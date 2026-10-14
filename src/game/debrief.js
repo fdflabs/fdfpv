@@ -60,6 +60,12 @@ export function createRoute() {
       topM = 0;
       end = null;
     },
+    /* The craft was put somewhere rather than flown there (a respawn, a
+     * reset to a spawn, a harness placing it): the next position starts a
+     * new leg, so the jump is never counted as distance flown. */
+    cut() {
+      last = null;
+    },
     /* x, y (up), z in metres; simMs the sim clock. */
     add(simMs, x, y, z) {
       if (![simMs, x, y, z].every(Number.isFinite)) {
@@ -101,6 +107,24 @@ export function createRoute() {
   };
 }
 
+/*
+ * THE AIRCRAFT'S CONDITION in three words (PILLARS 14): the word the HUD
+ * showed when the flight ended, src/game/damage.js conditionOf over the
+ * plant's damage flags, handed in by the shell and never re-derived here.
+ * null where the screen has no flight of this pilot's to speak for.
+ */
+export const CONDITIONS = ['operational', 'impaired', 'destroyed'];
+
+function conditionWord(c) {
+  if (c == null) {
+    return null;
+  }
+  if (!CONDITIONS.includes(c)) {
+    throw new Error(`debrief: unknown condition ${c}`);
+  }
+  return c;
+}
+
 /* The rows under the cursor, best first. Fly again leads everywhere: it is
  * the one a pilot most often wants after a flight. */
 const NEXT = {
@@ -140,11 +164,19 @@ function timeRecord(totalS, flightMs) {
 }
 
 /*
+ * EVENT LOG (PLAN.md phase 22, src/game/events.js, being built beside
+ * this): every builder below reads the end of run state the shell holds
+ * today. When the log lands, each builder takes the flight's log and folds
+ * it into these same arguments; the record and every screen that reads it
+ * stay as they are.
+ */
+
+/*
  * A solo race. log: race.js's laps in order ({ n, ms } or { n, ms: null,
  * reason }); recordAtStart the record this run chased; gates the course's
  * gate count and passed the gates passed this flight (null when unknown).
  */
-export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flightMs, totalS, route = null, replay, landed = null, gates = null, passed = null }) {
+export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flightMs, totalS, route = null, replay, landed = null, gates = null, passed = null, condition = null }) {
   const laps = log.filter((l) => Number.isFinite(l.ms)).map((l) => l.ms);
   const fastest = laps.length ? Math.min(...laps) : null;
   const prior = Number.isFinite(recordAtStart) ? recordAtStart : null;
@@ -168,6 +200,7 @@ export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flig
     aircraft,
     fixedWing,
     result: { kind, landed: fixedWing ? landed : null },
+    condition: conditionWord(condition),
     route,
     time: { flightMs, runMs: fastest },
     accuracy,
@@ -190,7 +223,7 @@ export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flig
  * others says neither won nor lost. points: this pilot's points where the
  * game counts them, else null.
  */
-export function fromRoom({ activity, aircraft, fixedWing = false, place, of, final, points = null, flightMs, totalS, route = null, replay }) {
+export function fromRoom({ activity, aircraft, fixedWing = false, place, of, final, points = null, flightMs, totalS, route = null, replay, condition = null }) {
   let kind = 'complete';
   if (final && place != null) {
     kind = place === 1 ? 'won' : 'lost';
@@ -207,6 +240,7 @@ export function fromRoom({ activity, aircraft, fixedWing = false, place, of, fin
     aircraft,
     fixedWing,
     result: { kind, landed: null },
+    condition: conditionWord(condition),
     route,
     time: { flightMs, runMs: null },
     accuracy,
@@ -220,7 +254,7 @@ export function fromRoom({ activity, aircraft, fixedWing = false, place, of, fin
  * An ops mission's end (src/ui/debrief.js). won and ended as the room
  * judged them; items the debrief's frames ({ required, kind }: 'mine' and
  * 'squad' are captured); stars { got, of }; flight this pilot's own
- * { aircraft, fixedWing, flightMs, totalS, route, replay }.
+ * { aircraft, fixedWing, flightMs, totalS, route, replay, condition }.
  */
 export function fromOps({ won, ended, items, stars, flight }) {
   const required = items.filter((f) => f.required);
@@ -237,6 +271,7 @@ export function fromOps({ won, ended, items, stars, flight }) {
     aircraft: flight.aircraft,
     fixedWing: Boolean(flight.fixedWing),
     result: { kind: won ? 'won' : ended ? 'ended' : 'lost', landed: null },
+    condition: conditionWord(flight.condition ?? null),
     route: flight.route ?? null,
     time: { flightMs: flight.flightMs, runMs: null },
     accuracy,
@@ -258,7 +293,7 @@ export function withPosted(d, posted) {
   return { ...d, records: [line, ...d.records.filter((r) => r.what !== 'debrief.run_best')] };
 }
 
-export function fromFree({ aircraft, fixedWing = false, summary, flightMs, totalS, route = null, replay, landed = null, posted = null }) {
+export function fromFree({ aircraft, fixedWing = false, summary, flightMs, totalS, route = null, replay, landed = null, posted = null, condition = null }) {
   const scored = summary.timed !== false;
   const kind = summary.tricks > 0 ? 'complete' : 'ended';
   const accuracy = [];
@@ -276,6 +311,7 @@ export function fromFree({ aircraft, fixedWing = false, summary, flightMs, total
     aircraft,
     fixedWing,
     result: { kind, landed: fixedWing ? landed : null },
+    condition: conditionWord(condition),
     route,
     time: { flightMs, runMs: scored ? summary.durationMs : null },
     accuracy,

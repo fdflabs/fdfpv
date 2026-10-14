@@ -8,7 +8,7 @@
  *   SIM_GPU=1 npm run film:world -- --mission=itaipu-2
  *
  * --mission plays another Act 1 mission's film the same three ways. One
- * still in development (src/game/campaign.js ACT1 release) is flown as
+ * still in development (its file's `release`, campaign.js released) is flown as
  * its developer flies it: the page with ?missions=dev, the check's own
  * rooms server starting missions in development, and the missions before
  * it won in the page's saved campaign, so its Play is offered.

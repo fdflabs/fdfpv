@@ -77,8 +77,9 @@ export const LIST_CACHE_MS = 1000;
 const MAP_RE = /^[a-z0-9_]{1,32}$/;
 
 /* What the list shows of a room: its meta, its pilot count, the game on
- * (core.js activity()) and, empty, when it went empty (host.js). */
-export function listingOf(meta, n, activity, emptySince = null) {
+ * (core.js activity()), empty, when it went empty (host.js), and its
+ * watchers (core.js watch), counted apart from n and the cap. */
+export function listingOf(meta, n, activity, emptySince = null, watchers = 0) {
   return {
     code: meta.code,
     name: meta.name ?? null,
@@ -86,6 +87,7 @@ export function listingOf(meta, n, activity, emptySince = null) {
     map: meta.map,
     n,
     cap: meta.cap,
+    watchers,
     game: activity.game,
     state: activity.state,
     mode: meta.mode ?? null,
@@ -154,6 +156,7 @@ export class LobbyBook {
       .map((e) => ({
         code: e.code, name: e.name, pick: e.pick, map: e.map, n: e.n, cap: e.cap, game: e.game, state: e.state, mode: e.mode,
         mission: e.mission ?? null, wave: e.wave ?? null, waves: e.waves ?? null, round: e.round ?? null, ready: e.ready ?? null, emptySince: e.emptySince,
+        watchers: e.watchers ?? 0,
       }));
   }
 
@@ -253,12 +256,23 @@ function send(env, entry) {
 }
 
 /* Called by the room after every event: a public room whose line moved
- * tells the lobby. Best effort; a lost line is corrected by the next. */
+ * tells the lobby. Best effort; a lost line is corrected by the next. A
+ * listed room its host made private (core.js setPublic) sends one last
+ * line as empty, so the book stops listing it at once, a quick join never
+ * lands in it, and prune drops it after the grace; made public again, it
+ * reports afresh. */
 export function reportRoom(env, core, now) {
-  if (!core || !core.meta.public || !core.meta.code) {
+  if (!core || !core.meta.code) {
     return null;
   }
-  const entry = listingOf(core.meta, core.people().length, core.activity(now), core.emptySince ?? null);
+  if (!core.meta.public) {
+    if (core.lastListing == null) {
+      return null;
+    }
+    core.lastListing = null;
+    return send(env, listingOf(core.meta, 0, core.activity(now), now));
+  }
+  const entry = listingOf(core.meta, core.people().length, core.activity(now), core.emptySince ?? null, core.watchers.size);
   const key = JSON.stringify(entry);
   if (core.lastListing === key) {
     return null;

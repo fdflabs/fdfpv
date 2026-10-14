@@ -64,6 +64,8 @@ jobs:
       - run: npm run stab:hold
       # Each stab selftest's straight throw, derived (scripts/lib/throwflight.js).
       - run: npm run stab:straight
+      - run: npm run knife:throttle
+      - run: npm run knife:budget
       - run: npm run as3x:derive
       # Each table's servo hold against its surfaces' hinge moment and its
       # servos' published torque (scripts/servo-derive.js, servo blow back).
@@ -80,6 +82,9 @@ jobs:
       # The lessons: data that exists, words in en and es, each judge.
       - run: npm run training:selftest
       - run: npm run progress:selftest
+      # The gameplay event log, and RunWatch judging the same challenges from
+      # it as from direct calls (src/game/events.js).
+      - run: npm run events:selftest
       # Medals on built courses (src/game/medals.js): times, award, merge.
       - run: npm run medals:selftest
       # Best laps synced to the account, lower wins (src/share/records.js).
@@ -98,12 +103,19 @@ jobs:
       # leaves the browser: a fuzz for planted personal data, the opt out
       # (src/share/clientreport.js).
       - run: npm run clientreport:selftest
+      # The same reports from the real shell, and nothing once opted out
+      # (scripts/clientreport-check.js).
+      - run: npm run clientreport:check
       # The language and statistics keys shared with the board, through
       # their move to fdfpv.* names (src/share/sharedkeys.js).
       - run: npm run sharedkeys:selftest
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest
+      # The save envelope over every historic store: each reader answers the
+      # same after it opens, a broken blob goes to .corrupt and its .prev
+      # comes back (src/share/save.js).
+      - run: npm run save:selftest
       # The walkable hangar's floor plans and walk (docs/HANGAR-ROOM.md).
       - run: npm run hangar:room
       - run: npm run parts:check
@@ -134,8 +146,9 @@ jobs:
       # report, exit code and the argv it hands shots.js and the browser,
       # over fakes on PATH, with no Emscripten and no browser.
       - run: npm run verify:selftest
-      # A new or changed constant in the C plant carries its source where it
-      # is defined (CLAUDE.md owner rule 2); today's uncited ones are a
+      # A new or changed constant in the C plant, its JavaScript configs, a
+      # derive script's inputs or an aircraft folder carries its source
+      # where it is defined (CLAUDE.md owner rule 2); today's uncited ones are a
       # baseline that only shrinks (scripts/physics-sources-lint.js). The
       # lint runs first so a lane sees its whole list in one run.
       - run: npm run lint:physics-sources
@@ -167,6 +180,15 @@ jobs:
       - run: npm run slowstick:stab
       - run: npm run timber:gates
       - run: npm run timber:stab
+      # Phase 29's pure Node halves, under a second each: the one world
+      # edge rule on every world's square (src/game/edges.js) and the
+      # chase camera's arm against real colliders (src/render/chasearm.js).
+      # Their page halves, chase:walls and edges:page, stay local: one
+      # boots two worlds and Itaipu's data to put a plane by a wall, the
+      # other waits out a five second notice, and each only re-proves the
+      # wiring these units already hold.
+      - run: npm run edges:selftest
+      - run: npm run chasearm:selftest
 
   shard-2:
     runs-on: ubuntu-latest
@@ -201,6 +223,7 @@ jobs:
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run padprofiles:selftest
+      - run: npm run comfort:selftest
       - run: npm run touchsticks:selftest
       - run: npm run input:trace
       - run: npm run stickmode:selftest
@@ -259,6 +282,7 @@ jobs:
       # A replay keeps the pilot's sticks, mode and flaps, plays them back on the
       # gimbals and exports them as a control recording (scripts/replay-sticks-check.js).
       - run: npm run replay:sticks
+      - run: npm run replay:refly:selftest
       - run: npm run crashrecord:selftest
       - run: npm run replaylib:selftest
       - run: npm run edit:selftest
@@ -451,6 +475,16 @@ jobs:
       # counted, and the RC grid follows the module's clock
       # (scripts/config-swap-check.js).
       - run: npm run configswap:check
+      # Every screen on five phones and tablets, in English and Spanish:
+      # every row reachable, no word cut (scripts/device-check.js). 73 to
+      # 126 s locally. On the lightest shard by measured time (shard-3,
+      # about 24 minutes of steps before these two, 2026-10-13).
+      - run: npm run lint:devices
+      # modes:card (home's hubs, the six cards, the lobbies, page H in
+      # Spanish) stays a local check: 384 s on 20 cores here, but on the
+      # 2-core runner it ran past 45 min on release/2026-10-13d (its rooms
+      # server plus AI fill never read calm), so the lead and the lanes run
+      # it before a release instead (2026-10-13).
 
   shard-4:
     runs-on: ubuntu-latest
@@ -542,6 +576,8 @@ jobs:
       - run: npm run jam:selftest
       - run: npm run figures:selftest
       - run: npm run personpilot:selftest
+      # The first AI pilot behind a ghost on the plant, judged by race.js.
+      - run: npm run aipilot:harness
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
@@ -566,6 +602,8 @@ jobs:
       - run: npm run hulls:check
       - run: npm run airframes:selftest
       - run: npm run aircraft:folder
+      # Each folder's class and roles, held to its flags (scripts/airframes-check.js).
+      - run: npm run airframes:check
       # The plant's FW_* tables in src/native/plant_wing.c are generated
       # from aircraft/<id>/plant.json: folder and C agree both ways, and a
       # changed folder and a changed C each fail (scripts/aircraft-ctable.js).
@@ -630,6 +668,15 @@ jobs:
           ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
           path: itaipu-data-ci
       - run: npm run lint:memory
+        env:
+          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
+      # Every start on every world, room seats and stations included, is
+      # above ground, dry, clear of solids and facing a way out, with
+      # negative controls per world (scripts/world-spawns-check.js). It
+      # boots Itaipu, so it sits by the data checked out above. 55 s
+      # locally, on the shard with Itaipu's data and the most headroom
+      # (608 s, tools/reshard-timings.json).
+      - run: npm run world:spawns
         env:
           FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
 

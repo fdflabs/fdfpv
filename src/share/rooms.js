@@ -425,6 +425,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
          * here at the network's edge; a server from before clocks sends
          * none, which is each world's own time. */
         welcome.daytime = clockOf(m.daytime);
+        /* How many watch as this tab joins (edge/rooms/core.js watch), a
+         * watcher itself among them; null from a server from before. */
+        welcome.watchers = Number.isInteger(m.watchers) && m.watchers >= 0 ? m.watchers : null;
         attempt = 0;
         restarting = false;
         /* A watcher's token names no seat, and would take a pilot's place. */
@@ -507,6 +510,14 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.lobby = m.lobby;
         }
         handlers.onLobby?.();
+      } else if (m.type === 'public') {
+        /* The host changed who joins in place (edge/rooms/core.js
+         * setPublic). */
+        if (welcome && typeof m.on === 'boolean') {
+          welcome.public = m.on;
+          welcome.cap = m.cap;
+        }
+        handlers.onRoom?.();
       } else if (m.type === 'bots') {
         /* The host switched the room's AI pilots (edge/rooms/roombots.js). */
         if (welcome && typeof m.level === 'string') {

@@ -25,14 +25,16 @@
 
 import {
   CHALLENGES, FIRST_LAP_XP, LAP_XP, LEVEL_XP, PLANE_LEVELS, RunWatch, STARTER_PLANES, STREAK_HOOPS,
-  FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, firstsOf,
-  freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
+  FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, everyFirst, firstsOf,
+  COUNTED, PLAYED_GAMES, WORLDS, countOf, foldEvents, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
 } from '../src/game/progress.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { POWER } from '../configs/power.js';
+import { EventLog } from '../src/game/events.js';
+import { mergeBlobs } from '../src/share/progressmerge.js';
 import { PROPS } from '../configs/hangar-parts.js';
-import { schemesFor } from '../configs/liveries.js';
+import { liveryKey, schemesFor } from '../configs/liveries.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 
@@ -233,6 +235,127 @@ check('not a hop: under 2 s in the air is not a flight', !run(timber, [{ simMs: 
 check('not on a glow plane', !run(kadetSmall, [{ simMs: 0, battery: 'warning' }, ...flight({ battery: 'warning' })]).has('deadstick'));
 check('the Bombshell glides home after the engine quits', run(bomb, [{ simMs: 0, power: out }, ...flight({ power: out })]).has('bombshell_glide'));
 check('not with the engine running', !run(bomb, flight({ power: running })).has('bombshell_glide'));
+
+/*
+ * COUNTS PER AIRCRAFT (PROGRESSION.md 5 and 9, COMPLETENESS.md 27):
+ * landings, crashes, laps and kills counted from the flight's event log,
+ * once each, per aircraft family, merged as the higher of two computers.
+ */
+console.log('landings, crashes, laps and kills, from the event log');
+{
+  check('counted: landings, crashes, laps and kills', same(COUNTED, {
+    landing: 'landings', crash: 'crashes', lap: 'laps', kill: 'kills',
+  }));
+  const log = new EventLog();
+  log.append('spawned', 0);
+  log.append('landing', 5000, { airframe: 'cub1400' });
+  log.append('crash', 6000, { airframe: 'cub1400' });
+  log.append('landing', 9000, { airframe: 'cub1400' });
+  log.append('lap', 10000, { ms: 41000, airframe: 'timber1500' });
+  log.append('gate', 10500);
+  log.append('landing', 12000, { airframe: 'timber1500' });
+  log.append('landing', 13000, { airframe: null });
+  const p = freshProgress();
+  const first = foldEvents(p, log.events);
+  check('each counts once on its aircraft; one with no aircraft counts nowhere',
+    same(p.landings, { cub1400: 2, timber1500: 1 }) && same(p.crashes, { cub1400: 1 }) && same(p.laps, { timber1500: 1 }) && first.counted === 5,
+    JSON.stringify([p.landings, p.crashes, p.laps, first.counted]));
+  const again = foldEvents(p, log.events, first.at);
+  check('the same log folded again counts nothing twice', again.counted === 0 && same(p.landings, { cub1400: 2, timber1500: 1 }) && same(p.crashes, { cub1400: 1 }));
+  log.append('landing', 20000, { airframe: 'cub1400' });
+  foldEvents(p, log.events, first.at);
+  check('an event after the last fold is counted by the next', countOf(p, 'landing', 'cub1400') === 3);
+  const floatId = AIRFRAMES.find((a) => a.id !== liveryKey(a.id) && a.fixedWing);
+  if (floatId) {
+    const q = freshProgress();
+    const fl = new EventLog();
+    fl.append('landing', 1, { airframe: floatId.id });
+    fl.append('crash', 2, { airframe: floatId.id });
+    foldEvents(q, fl.events);
+    check(`a ${floatId.id} landing and crash are its family's (${liveryKey(floatId.id)})`,
+      countOf(q, 'landing', floatId.id) === 1 && q.crashes[liveryKey(floatId.id)] === 1, JSON.stringify(q));
+  }
+  /* A kill is logged only for a victim the room credited to this pilot
+   * (src/share/roomwar.js), one event a victim: a blast that took two is
+   * two kills on the aircraft that flew it. */
+  const k = freshProgress();
+  const kl = new EventLog();
+  kl.append('spawned', 0);
+  kl.append('kill', 4000, { airframe: 'cub1400', victim: 'strike' });
+  kl.append('kill', 4000, { airframe: 'cub1400', victim: 'strike' });
+  kl.append('crash', 4000, { airframe: 'cub1400' });
+  kl.append('kill', 9000, { airframe: 'timber1500', victim: 'scout' });
+  kl.append('kill', 9500, { airframe: null, victim: 'decoy' });
+  const kf = foldEvents(k, kl.events);
+  const kAgain = foldEvents(k, kl.events, kf.at);
+  check('kills count per aircraft like landings: a two kill blast is two, one with no aircraft counts nowhere, a second fold takes nothing',
+    same(k.kills, { cub1400: 2, timber1500: 1 }) && countOf(k, 'kill', 'cub1400') === 2 && kf.counted === 4 && kAgain.counted === 0 && k.xp === 0,
+    JSON.stringify([k.kills, kf.counted, kAgain.counted]));
+  check('a fresh profile has no kills', same(freshProgress().kills, {}));
+  check('a count pays no XP', p.xp === 0);
+  const older = normaliseProgress({ v: 2, xp: 300, firsts: { a: true } });
+  check('a profile from before the counts reads as none, everything else kept', same(older.landings, {}) && same(older.crashes, {}) && same(older.laps, {}) && same(older.kills, {}) && older.xp === 300);
+  const families = [...new Set(AIRFRAMES.map((af) => liveryKey(af.id)))];
+  const dropped = families.filter((id) => Object.values(COUNTED).some((m) => normaliseProgress({ [m]: { [id]: 1 } })[m][id] !== 1));
+  check(`every aircraft family's counts survive a load (${families.length})`, dropped.length === 0, dropped.join());
+  check('stored counts are whole counts on known shaped keys',
+    same(normaliseProgress({ crashes: { cub1400: 4, timber1500: 2.5, 'BAD KEY': 3, kadet1981: -1, sky1800: '7' } }).crashes, { cub1400: 4 }));
+  const blob = (map, counts) => ({ v: 1, data: { progress: { ...freshProgress(), [map]: counts } }, stamps: {} });
+  const a = { cub1400: 5, timber1500: 1 };
+  const b = { cub1400: 3, kadet1981: 2 };
+  for (const map of Object.values(COUNTED)) {
+    const m1 = mergeBlobs(blob(map, a), blob(map, b)).data.progress[map];
+    const m2 = mergeBlobs(blob(map, b), blob(map, a)).data.progress[map];
+    check(`${map}: two computers merge to the higher count per aircraft, either way round`,
+      same(m1, { cub1400: 5, timber1500: 1, kadet1981: 2 }) && same(Object.entries(m1).sort(), Object.entries(m2).sort()), JSON.stringify(m1));
+    check(`${map}: a merge never exceeds either side, and a blob merged with itself is itself`,
+      Object.entries(m1).every(([k, n]) => n <= Math.max(a[k] || 0, b[k] || 0)) && same(mergeBlobs(blob(map, m1), blob(map, m1)).data.progress[map], m1));
+  }
+}
+
+/*
+ * A ROOM GAME FINISHED, ONCE PER WORLD (PROGRESSION.md 3, the lead's
+ * ruling of 2026-10-13): Streamer Combat and Catch the Ace! firsts.
+ */
+console.log('room games: a first per game and world');
+{
+  const { MAPS } = await import('../src/maps/registry.js');
+  check('the worlds are the registry\'s, less the track seat', same([...WORLDS].sort(), MAPS.map((m) => m.id).filter((id) => id !== 'track').sort()), WORLDS.join());
+  check('a room game first pays the lower Flight Club activity first, a course\'s first lap', FIRST_XP.game === FIRST_LAP_XP && FIRST_LAP_XP < FIRST_XP.lesson);
+  const p = freshProgress();
+  const log = new EventLog();
+  log.append('round', 1, { game: 'combat', world: 'alps' });
+  log.append('round', 2, { game: 'combat', world: 'alps' });
+  log.append('round', 3, { game: 'tag', world: 'itaipu' });
+  log.append('round', 4, { game: 'jam', world: 'alps' });
+  log.append('round', 5, { game: 'combat', world: 'atlantis' });
+  foldEvents(p, log.events);
+  check('a round is played on its world; an unknown game or world is not', same(p.played, { 'combat:alps': true, 'tag:itaipu': true }), JSON.stringify(p.played));
+  const ev = awardFirsts(p, { played: p.played });
+  check('each pays once, at FIRST_XP.game', same(ev.filter((e) => e.type === 'first').map((e) => e.key), ['game:combat:alps', 'game:tag:itaipu']) && p.xp === 2 * FIRST_XP.game, `${p.xp}`);
+  check('the same game on the same world again pays nothing', awardFirsts(p, { played: p.played }).length === 0);
+  p.played['combat:swiss2'] = true;
+  check('the same game on another world pays', same(awardFirsts(p, { played: p.played }).filter((e) => e.type === 'first').map((e) => e.key), ['game:combat:swiss2']));
+  check('a made up game or world is no first: the list is finite', firstsOf({ played: { 'combat:atlantis': true, 'jam:alps': true, 'war:alps': true } }).length === 0);
+  check('every game on every world is in the full list, once', everyFirst().filter((f) => f.key.startsWith('game:')).length === PLAYED_GAMES.length * WORLDS.length);
+  check('played survives a load and junk is dropped', same(normaliseProgress({ played: { 'tag:alps': true, 'combat:alps': 1 } }).played, { 'tag:alps': true }));
+  const blob = (played) => ({ v: 1, data: { progress: { ...freshProgress(), played } }, stamps: {} });
+  check('two computers merge played as the union', same(mergeBlobs(blob({ 'tag:alps': true }), blob({ 'combat:itaipu': true })).data.progress.played, { 'combat:itaipu': true, 'tag:alps': true }));
+  check('Unlock all is untouched by a room game first', (() => { const q = freshProgress(true); awardFirsts(q, { played: { 'tag:alps': true } }); return q.unlockAll === true && q.xp === FIRST_XP.game; })());
+}
+
+console.log('certifications (src/game/training.js CERTS)');
+{
+  check('a new pilot has none', same(freshProgress().certs, {}));
+  check('a profile from before them reads as none', same(normaliseProgress({ v: 2, xp: 10, lessons: { race_lap: 5 } }).certs, {}));
+  const kept = normaliseProgress({ certs: { racing: 1760000000000.5, multirotor: 'yes', glider: -1, 'BAD ID': 5, defence: 1760000000001 } });
+  check('earned ones keep their time, whole, unknown ones too; junk dropped', same(kept.certs, { racing: 1760000000000, defence: 1760000000001 }), JSON.stringify(kept.certs));
+  const blob = (certs) => ({ v: 1, data: { progress: { ...freshProgress(), certs } }, stamps: {} });
+  const m1 = mergeBlobs(blob({ racing: 200 }), blob({ racing: 100, multirotor: 300 })).data.progress.certs;
+  const m2 = mergeBlobs(blob({ racing: 100, multirotor: 300 }), blob({ racing: 200 })).data.progress.certs;
+  check('two computers merge as the union at the earlier time, either way round', same(m1, { multirotor: 300, racing: 100 }) && same(m2, m1), JSON.stringify(m1));
+  check('a merge never drops one', Object.keys(mergeBlobs(blob({}), blob({ racing: 100 })).data.progress.certs).join() === 'racing');
+}
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exitCode = failed ? 1 : 0;

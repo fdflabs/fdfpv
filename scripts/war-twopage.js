@@ -305,14 +305,17 @@ const frames = (p, k) => p.evaluate(`new Promise((r) => { let n = 0; const f = (
  * room judges as a crash, one airframe spent. Part 0, the root, is
  * refused, as is a part past the last. */
 const wreck = (p) => p.evaluate('(() => { for (let i = 1; i < 64; i += 1) { window.__crashBreak(i); } return true; })()');
+/* What the war calls its rounds: a mission of stages scores each stage as
+ * a round and says STAGE (src/ui/warround.js unit), any other says ROUND. */
+const unitOf = (m) => (m.stage ? 'STAGE' : 'ROUND');
 /* The result card's title for the room's round as it ended. */
 function cardTitle(m) {
   const n = m.round + 1;
   const mwText = String(Math.round(m.roundMw)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   if (m.roundResult === 'win') {
-    return `ROUND ${n}: HELD`;
+    return `${unitOf(m)} ${n}: HELD`;
   }
-  return `ROUND ${n}: ${m.roundResult === 'lost' ? 'LOST' : 'DAMAGED'}, -${mwText} MW`;
+  return `${unitOf(m)} ${n}: ${m.roundResult === 'lost' ? 'LOST' : 'DAMAGED'}, -${mwText} MW`;
 }
 const CARD_COLOUR = { win: 'rgb(125, 255, 154)', damaged: 'rgb(255, 138, 31)', lost: 'rgb(255, 74, 58)' };
 
@@ -338,11 +341,11 @@ async function roundRows(seatA, seatB, goAt) {
   const want = ended.roundState === 'result' ? cardTitle(ended) : '(no result seen)';
   check('round 1 ends on the real room and both pages show its result card: the title, its colour, a line a pilot, the next round counted down',
     ended.roundState === 'result' && cards.every((c) => c.on && c.title === want && c.colour === CARD_COLOUR[ended.roundResult]
-      && c.rows.length === 3 && /^NEXT ROUND IN [1-6]$/.test(c.next)),
+      && c.rows.length === 3 && new RegExp(`^NEXT ${unitOf(ended)} IN [1-6]$`).test(c.next)),
   `room ${ended.roundResult} ${ended.roundMw} MW, want "${want}"; ${cards.map((c) => JSON.stringify(c)).join(' | ')}`);
   /* Under the pilots' lines, this pilot's debrief line (docs/DEBRIEF.md). */
-  check('the card ends on each pilot\'s own debrief line: time in the air, distance, the replay key',
-    cards.every((c) => c.on && /^You: \d+:\d\d in the air, \d+(\.\d)? k?m\. [VX] replays the last 30 s$/.test(c.rows[c.rows.length - 1])),
+  check('the card ends on each pilot\'s own debrief line: time in the air, distance, the aircraft\'s condition, the replay key',
+    cards.every((c) => c.on && /^You: \d+:\d\d in the air, \d+(\.\d)? k?m\. Aircraft: (Operational|Impaired|Destroyed)\. [VX] replays the last 30 s$/.test(c.rows[c.rows.length - 1])),
     cards.map((c) => c.rows[c.rows.length - 1]).join(' | '));
   await shot(a, '5-A-round-result');
   await watch(async () => roomWarOf().match.round >= 1 && roomWarOf().match.roundState === 'live', goAt + 400000);
@@ -350,7 +353,7 @@ async function roundRows(seatA, seatB, goAt) {
   await frames(a, 20);
   const w1 = await warOf(a);
   check('round 2: A, a wreck since its warhead, is back in the air by itself, the card gone, four airframes', wreckedBefore && !w1.watch.wrecked && !w1.round.on
-    && /round 2\//i.test(w1.hud.line) && /airframes ■■■■(?![■□])/i.test(w1.hud.line), `wrecked before ${wreckedBefore}, now ${JSON.stringify(w1.watch)} hud "${w1.hud.line}"`);
+    && new RegExp(`${unitOf(roomWarOf().match)} 2/`, 'i').test(w1.hud.line) && /airframes ■■■■(?![■□])/i.test(w1.hud.line), `wrecked before ${wreckedBefore}, now ${JSON.stringify(w1.watch)} hud "${w1.hud.line}"`);
 
   /* A crashes each of its round's airframes, put back in the air between. */
   const bAt = await b.evaluate('(() => { const s = window.__craftState(); return [s.worldX, s.worldY, s.worldZ]; })()');
@@ -369,8 +372,8 @@ async function roundRows(seatA, seatB, goAt) {
   const bPos = await b.evaluate('(() => { const s = window.__craftState(); return [s.worldX, s.worldY, s.worldZ]; })()');
   const camOff = dist(w.watch.cam, bPos);
   check('A crashes its round\'s four airframes on the real room, then spectates B: the camera on B, the round and no airframes on the HUD, the markers up', m2.round === 1
-    && m2.spent[seatA] === allowance && w.watch.on && w.watch.seat === seatB && camOff < 20 && /round 2\//i.test(w.hud.line) && /airframes □□□□(?![■□])/i.test(w.hud.line)
-    && w.markers.on && /^OUT OF AIRFRAMES: watching .+\. Round ends when the last one's down\.$/.test(w.watch.banner),
+    && m2.spent[seatA] === allowance && w.watch.on && w.watch.seat === seatB && camOff < 20 && new RegExp(`${unitOf(m2)} 2/`, 'i').test(w.hud.line) && /airframes □□□□(?![■□])/i.test(w.hud.line)
+    && w.markers.on && new RegExp(`^OUT OF AIRFRAMES: watching .+\\. ${unitOf(m2) === 'STAGE' ? 'Stage' : 'Round'} ends when the last one's down\\.$`).test(w.watch.banner),
   `room round ${m2.round + 1} spent ${JSON.stringify(m2.spent)}; watching ${w.watch.seat} (B ${seatB}), camera ${camOff.toFixed(1)} m from B, hud "${w.hud.line}", banner "${w.watch.banner}"`);
   await shot(a, '6-A-spectates-B');
   await a.tap('BracketRight');

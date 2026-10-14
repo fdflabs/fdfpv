@@ -32,8 +32,9 @@ import { Loading, planStages } from './ui/loading.js';
 import { MAP_BUILD_MS } from './maps/build-cost.js';
 import { retiredMap } from './maps/retired.js';
 import { SIM_WINDOW, claimWindowName } from './share/windows.js';
-import { watchPageErrors } from './share/crashrecord.js';
+import { logWarn, watchPageErrors } from './share/crashrecord.js';
 import { moveIn } from './share/move.js';
+import { openSave } from './share/save.js';
 
 /* Time zero for the first-frame figure main.js reports through
  * window.__boot. Taken here because nothing the page does comes earlier. */
@@ -124,16 +125,26 @@ async function carryStorage() {
   try {
     outcome = await moveIn();
   } catch (e) {
-    console.warn('moving the guest\'s storage from the old address threw', e);
+    logWarn('network', 'moving the guest\'s storage from the old address threw', e);
     outcome = 'failed';
   }
   if (outcome === 'failed') {
-    console.warn('moving the guest\'s storage from the old address failed; see localStorage pdcs.move.v1');
+    logWarn('network', 'moving the guest\'s storage from the old address failed; see localStorage pdcs.move.v1');
+  }
+}
+
+/* The save's version, quarantine and backups, after the move brings the
+ * guest's storage in and before anything reads it (share/save.js). */
+function openStorage() {
+  const opened = openSave();
+  if (opened.quarantined.length || opened.failed.length) {
+    logWarn('save', 'save: a blob was kept as .corrupt or storage refused a step; see localStorage *.corrupt', opened);
   }
 }
 
 async function launch() {
   await carryStorage();
+  openStorage();
 
   const { mapId, retiredFrom } = resolveLink(linkedMap());
   const titleMap = mapId ? null : TITLE_WORLD;

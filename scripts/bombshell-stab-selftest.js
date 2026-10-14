@@ -83,11 +83,13 @@ function fullBank(s) {
  * body rates over the last quarter second (roll right, nose up and nose
  * right positive), the mean sideslip over the last second, and the end
  * state. */
+let lastPeakR = 0;
 function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
   const total = seconds * 1000;
   let worstBank = 0;
   let worstRef = 0;
   let sumBank = 0;
+  let peakR = 0;
   let sumPitch = 0;
   let sumBeta = 0;
   let n = 0;
@@ -109,6 +111,7 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
     }
     if (ms >= total - 1000) {
       sumBank += bank;
+      peakR = Math.max(peakR, Math.abs(s[13]));
       sumPitch += attitude(s).pitch;
       sumBeta += wingDebug(sim)[1];
       n += 1;
@@ -121,7 +124,10 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
     }
   }
   clockMs += total;
+  const floor = lastPeakR;
+  lastPeakR = peakR;
   return {
+    floor,
     bank: sumBank / n, endBank: fullBank(s), pitch: sumPitch / n, endPitch: attitude(s).pitch, beta: sumBeta / n,
     worstBank, worst: worstRef, p: sumP / m, q: sumQ / m, r: sumR / m,
     v: Math.hypot(s[4], s[5], s[6]), vz: s[6], z: s[3], y: s[2],
@@ -168,7 +174,11 @@ const yawed = fly(0, 0, 1, TRIM, 1);
  * takes back much of the yaw stick's rudder to keep the wings level; the
  * stick still wins, by less than on an aircraft with ailerons. */
 check('full right yaw stick is rudder too, and wins over the level hold: right of a quarter of its throw', surfaces()[3] * DEG < -5, `rudder ${deg(surfaces()[3])} deg`);
-check('and yaws the nose right', yawed.r * DEG > 3, `${deg(yawed.r)} deg/s`);
+/* "Yaws the nose right" is a sign: the rate the stick buys over the
+ * stabiliser must clear what the aircraft did with the sticks where they
+ * were, the worst yaw rate of the hold before (fly's floor). Until
+ * 2026-10-13 it had to clear 3 deg/s, a number from nowhere (4133ca0aa). */
+check('and yaws the nose right', yawed.r > yawed.floor, `${deg(yawed.r)} deg/s, the sticks where they were wandered ${deg(yawed.floor)}`);
 const unyawed = fly(0, 0, 0, TRIM, 5);
 check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG) < 4, `${deg(unyawed.bank)} deg`);
 

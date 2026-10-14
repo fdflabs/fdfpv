@@ -30,7 +30,7 @@ import { planeTable, propMoments, wash } from './lib/wash.js';
 import { wingProp } from './lib/propcurve.js';
 import { wingLift, plateCnOf, wingDrag } from './lib/liftcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
-import { fuselageRatio, smoothstep } from './lib/crossflow.js';
+import { fuselage, smoothstep } from './lib/crossflow.js';
 
 const SLIP = deriveWash('FW_KADET1981');
 const DEG = 180 / Math.PI;
@@ -556,7 +556,13 @@ const FUSE = [
   [13.5 + 1150 / 78, 1.875, 3.4 - (1150 / 78) * Math.tan(1.5 / DEG), -6.0, 5.0], [36.0, 1.72, 2.2, -6.0, 5.0],
   [44.0, 1.35, 0.9, -5.7, 5.0], [51.0, 0.90, -1.0, -5.2, 5.0], [57.3, 0.50, -1.0, -4.6, 5.0],
 ];
-const sectionK = fuselageRatio(FUSE, 4000, (i, u) => (i < 2 ? smoothstep(i, u) : u));
+const side = fuselage(FUSE, 4000, (i, u) => (i < 2 ? smoothstep(i, u) : u));
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 3.875 in behind the leading edge at 13.5 in (src/render/kadetcraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (13.5 + 3.875)) * 0.0254;
 const sideCda = SBs * 1.2 * sectionK * 0.7;
 
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
@@ -578,6 +584,7 @@ const rows = [
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['Clβ (the high wing\'s), Clp', `${f(Clb, 4)} (${f(ClbHigh, 4)}) ${f(Clp)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],

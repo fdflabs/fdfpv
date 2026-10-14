@@ -624,6 +624,15 @@ export const AIRFRAMES = [
 export const AIRFRAME_IDS = AIRFRAMES.map((a) => a.id);
 
 /*
+ * WHAT KIND OF AIRCRAFT EACH IS AND WHAT IT IS FOR, stated by its folder
+ * (docs/redesign/PLAN.md section 2.5) so the picker and the hangar sort by
+ * data: `class` one of CLASSES, `roles` a list from ROLES in this order.
+ * scripts/airframes-check.js holds every row to them and to its flags.
+ */
+export const CLASSES = ['multirotor', 'plane', 'wing', 'glider'];
+export const ROLES = ['race', 'combat', 'interceptor'];
+
+/*
  * THE AIRCRAFT AN ID THIS BUILD DOES NOT KNOW IS SEATED AND DRAWN AS: a
  * typo, a hand edited blob, a board link from a newer build. Named rather
  * than "the first row" since the five inch, which was both, went: the

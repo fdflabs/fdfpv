@@ -63,6 +63,11 @@ function planeName(id) {
   return gone ? gone.name : null;
 }
 
+/* Every landing on every aircraft (src/game/progress.js COUNTED). */
+function landingTotal(by) {
+  return Object.values(by || {}).reduce((n, v) => n + (Number.isInteger(v) && v > 0 ? v : 0), 0);
+}
+
 /* The numbers, from the settings and the wallet last held (null when
  * signed out or never answered). Plain data, so its JSON is the key the
  * panel is rebuilt on. */
@@ -103,6 +108,7 @@ export function pilotStats(settings, wallet = null) {
     starsMax: (ACT1.length + INTERIOR.length) * MAX_STARS,
     modes: MODE_TIME.map(([id]) => total.byActivity[id] || 0),
     flights: counts.flights,
+    landings: landingTotal(progress.landings),
     games: { tag: counts.tag, jam: counts.jam },
     tokens: wallet && Number.isFinite(wallet.balance) ? wallet.balance : null,
   };
@@ -134,7 +140,9 @@ export function paintPilotStats(host, st) {
   const extra = el('span', 'gate-stats-extra');
   const flights = el('span', 'gate-stats-flights', plural('stats.flights', st.flights, { n: num(st.flights) }));
   flights.dataset.stat = 'flights';
-  extra.append(flights);
+  const landings = el('span', 'gate-stats-landings', plural('stats.landings', st.landings, { n: num(st.landings) }));
+  landings.dataset.stat = 'landings';
+  extra.append(flights, landings);
   if (st.tokens !== null) {
     const tokens = el('span', 'gate-stats-tokens', str('shop.tokens', { n: num(st.tokens) }));
     tokens.dataset.stat = 'tokens';

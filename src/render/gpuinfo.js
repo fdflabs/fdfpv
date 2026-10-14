@@ -181,7 +181,7 @@ export function readGpuInfo(renderer) {
     integrated: false,
     vendor: '',
     name: '',
-    display: 'Unknown',
+    display: str('ui.gpu_unknown'),
     software: false,
     usable: false,
     webgl2: false,

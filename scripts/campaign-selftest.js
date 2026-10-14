@@ -21,11 +21,11 @@
  */
 
 import {
-  ACT1, INTERIOR, INTERIOR_CAMPAIGN, UPGRADES, applyResult, cardLabel, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
+  ACT1, INTERIOR, INTERIOR_CAMPAIGN, UPGRADES, actOf, applyResult, cardLabel, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
   emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, released, seenFilm, spent, starsOf, totalStars, unlocked,
 } from '../src/game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../src/share/campaignwar.js';
-import { MISSIONS } from '../src/share/war/missions/index.js';
+import { MISSIONS, PLANNED } from '../src/share/war/missions/index.js';
 import { MISSIONS as OPS_MISSIONS } from '../src/share/ops/missions.js';
 import {
   SYNCED_SECTIONS, mergeBlobs, pickSynced, stampChanges,
@@ -70,6 +70,38 @@ check('released: none of 1 to 7', ACT1.every((m) => !released(m.id)));
 check('released with dev: 2 to 4 too, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id, true))
   && ['itaipu-5', 'itaipu-6', 'itaipu-7'].every((id) => !released(id, true)));
 check('a mission outside Act 1 (the drill) is not the campaign\'s to hold back', released('itaipu-drill') && Object.hasOwn(MISSIONS, 'itaipu-drill'));
+console.log('Act 1 is the mission registry\'s (src/share/war/missions/index.js act, order, key, free, release)');
+const actRows = [...Object.values(MISSIONS), ...PLANNED].filter((m) => m.act === 1);
+check('every registry mission and planned row of act 1 is in ACT1, and nothing else',
+  same(actRows.map((m) => m.id).sort(), ACT1.map((m) => m.id).sort()), actRows.map((m) => m.id).join());
+check('ACT1 is each row\'s own key, free and release, in its order',
+  ACT1.every((m, i) => {
+    const r = MISSIONS[m.id] ?? PLANNED.find((p) => p.id === m.id);
+    return r.order === i + 1 && r.key === m.key && (r.free === true) === m.free && (r.release ?? 'soon') === m.release;
+  }));
+check('the drill states no act', MISSIONS['itaipu-drill'].act === undefined);
+/* Each change, made to a copy of the registry, must stop actOf. */
+const reg = () => Object.fromEntries(Object.entries(MISSIONS).map(([id, m]) => [id, { ...m }]));
+const ACT_CONTROLS = [
+  ['an order twice', (r) => { r['itaipu-3'].order = 2; }],
+  ['an order missing', (r) => { r['itaipu-3'].order = 9; }],
+  ['a release a flown mission cannot have', (r) => { r['itaipu-2'].release = 'soon'; }],
+  ['a release unknown', (r) => { r['itaipu-2'].release = 'released'; }],
+  ['a mission without its key', (r) => { delete r['itaipu-4'].key; }],
+  ['two free missions', (r) => { r['itaipu-2'].free = true; }],
+  ['a planned row that has its file', (r, p) => { p.push({ ...PLANNED[0], id: 'itaipu-2', order: 8 }); }],
+];
+for (const [name, change] of ACT_CONTROLS) {
+  const r = reg();
+  const p = [...PLANNED];
+  change(r, p);
+  check(`negative control: ${name} is refused`, throws(() => actOf(1, r, p)));
+}
+check('the unchanged registry is not refused', same(actOf(1, reg(), [...PLANNED]), ACT1));
+const moved = reg();
+moved['itaipu-1'].release = 'available';
+check('a release changed in the mission\'s file is the gate\'s', actOf(1, moved, PLANNED)[0].release === 'available');
+
 const saved = cleanCampaign({ missions: { 'itaipu-2': { stars: 3, won: true, credits: 300 }, 'itaipu-4': { stars: 1, won: false, credits: 50 } }, earned: 350 });
 check('stars saved on a mission held back are kept, and still counted', starsOf(saved, 'itaipu-2') === 3 && saved.missions['itaipu-4'].credits === 50
   && totalStars(saved) === 4 && same(mergeCampaign(saved, emptyCampaign()).missions, saved.missions), JSON.stringify(saved.missions));

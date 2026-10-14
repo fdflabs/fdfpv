@@ -32,7 +32,7 @@
 import { biplaneCell } from './lib/biplane.js';
 import { biplaneGroundTerms, wingGround } from './lib/groundeffect.js';
 import { wingProp } from './lib/propcurve.js';
-import { fuselageRatio } from './lib/crossflow.js';
+import { fuselage } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -503,7 +503,13 @@ const FUSE = [
   [0.450, 0.064, 0.074, -0.122, 3.6], [0.600, 0.060, 0.070, -0.118, 3.6], [0.800, 0.046, 0.056, -0.104, 3.4],
   [1.000, 0.032, 0.042, -0.092, 3.2], [1.150, 0.020, 0.030, -0.082, 3.0], [1.287, 0.010, 0.020, -0.075, 2.6],
 ];
-const sectionK = fuselageRatio(FUSE);
+const side = fuselage(FUSE);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG at 0.401 (src/render/tigermothcraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.401));
 const sideCda = 0.171 * 1.2 * sectionK * 0.7;
 
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
@@ -530,6 +536,7 @@ const rows = [
   ['fin: AR_v a_v V_V l_v; CYβ Cnβ (fus) Cnr', `${f(arV, 3)} ${f(av, 4)} ${f(VV, 5)} ${f(lv, 4)}; ${f(CYb, 4)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
   ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['Clβ: dihedral, heights, fin, total', `${f(ClbDih, 4)} ${f(ClbHeight, 4)} ${f(ClbFin, 4)} ${f(Clb, 4)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(ClbFin, 4)} ${f(av * VV, 4)}`],
   ['Clp, Clδa', `${f(Clp, 4)} ${f(Clda, 4)}`],

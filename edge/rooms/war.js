@@ -102,8 +102,8 @@
  *                                           lost in (a countdown, no
  *                                           briefing; RESTART_STARS)
  *
- * A start of a campaign mission not yet released (src/game/campaign.js
- * ACT1 `release`) is refused 'unreleased', whatever the client showed.
+ * A start of a campaign mission not yet released (its `release` in its
+ * file, src/share/war/missions; campaign.js released) is refused 'unreleased', whatever the client showed.
  *   { type: 'war', op: 'skipIntro' }        cut the briefing short: the
  *                                           countdown starts now; refused
  *                                           'unwatched' unless every pilot
@@ -112,6 +112,20 @@
  *                                           INTROS.md section 3: a first
  *                                           viewing is never cut)
  *   { type: 'war', op: 'end' }              stop now
+ *   { type: 'war', op: 'skip' }             developer mode: the stage
+ *                                           left now by its first way
+ *                                           on that is not a loss, as
+ *                                           if that exit had fired
+ *   { type: 'war', op: 'complete', objective? }
+ *                                           developer mode: that
+ *                                           objective of the stage (all
+ *                                           of them unsettled, without
+ *                                           one) done now
+ *
+ * Both developer ops are refused 'public' in a public room and 'dev'
+ * unless this server starts missions in development (devMissions) or the
+ * host is one of its DEV_ACCOUNTS (core.js devHost): what a client says
+ * about itself opens nothing, as a mission won by them would count.
  *
  * and any pilot, about its own seat, while a war is on and it is neither
  * spawning nor already a wreck:
@@ -129,7 +143,8 @@
  * here has not said it stands on the mission's (worldsUp). Anything
  * else is refused 'world'.
  *
- * What the room sends, to everybody:
+ * What the room sends, to everybody, its watchers too (core.js watch;
+ * their view's result null, core.js watchedView):
  *
  *   { type: 'war', war }                      the view (view()), on every
  *                                             change and in each welcome
@@ -145,9 +160,17 @@
  *                                             (src/share/war/contact.js)
  *   { type: 'war', op: 'dead', ids, at, by, why, p }
  *                                             why 'boom' (by the seat),
+ *                                             'pierce' (by the seat),
  *                                             'arrive' (by 0, with target
  *                                             and hit), 'leave' (by 0) or
  *                                             'wire' (by 0, on a line);
+ *                                             a boom and a pierce carry
+ *                                             credited, the ids of those
+ *                                             counted as `by`'s kills
+ *                                             (none when its airframe
+ *                                             never took off), so a
+ *                                             client counts exactly the
+ *                                             room's;
  *                                             scouts: true on the boom that
  *                                             killed a scout wave's last
  *   { type: 'war', op: 'boom', seat, at, p }  a defender detonated: that
@@ -179,8 +202,8 @@
  *   { type: 'war', error }                    to a refused sender
  *
  * and AGENTS (0xA0) to each seat on the room tick, thinned by distance on
- * the core's INTEREST bands, each followed by HUNTS (0xA1): the same
- * hunters' target seats.
+ * the core's INTEREST bands, and to each watcher unthinned, each followed
+ * by HUNTS (0xA1): the same hunters' target seats.
  *
  * DAMAGE. Every warhead that goes off is a blast on the map's structures
  * (src/share/war/damage.js blast): an attacker's at its aim point when it
@@ -808,13 +831,15 @@ export class RoomWar {
     return { war: this.view(core) };
   }
 
+  /* Every seat and every watcher (core.js watch): a watcher draws the
+   * attackers, the booms and the damage, and none of it is its own. */
   broadcast(core, msg) {
-    const data = JSON.stringify(msg);
-    return [...core.seats.keys()].map((conn) => ({ send: conn, data }));
+    return core.everyone(JSON.stringify(msg));
   }
 
+  /* The view, a watcher's with no result (core.js viewed). */
   changed(core) {
-    return [this.store(), ...this.broadcast(core, { type: 'war', war: this.view(core) })];
+    return [this.store(), ...core.viewed('war', this.view(core))];
   }
 
   error(conn, error) {
@@ -839,6 +864,18 @@ export class RoomWar {
       out.push({ send: conn, data: JSON.stringify({ type: 'war', op: 'damage', ...e }) });
     }
     return out;
+  }
+
+  /* A watcher come while a war is on: every attacker alive as births and
+   * the damage so far, as a joiner is told them, and never enlisted. */
+  watch(conn) {
+    if (!this.on()) {
+      return [];
+    }
+    return [
+      ...(this.match.agents.length ? [{ send: conn, data: JSON.stringify({ type: 'war', op: 'born', agents: this.match.agents }) }] : []),
+      ...(this.match.damage ?? []).map((e) => ({ send: conn, data: JSON.stringify({ type: 'war', op: 'damage', ...e }) })),
+    ];
   }
 
   /*
@@ -955,6 +992,9 @@ export class RoomWar {
     }
     if (msg.op === 'skipIntro') {
       return this.skipIntro(core, conn, now);
+    }
+    if (msg.op === 'skip' || msg.op === 'complete') {
+      return this.devOp(core, conn, msg, now);
     }
     if (msg.op === 'end' && this.on()) {
       const out = this.advance(core, now);
@@ -1746,7 +1786,7 @@ export class RoomWar {
       type: 'war', op: 'boom', seat: d.seat, at: tc, p: at,
     });
     out.push(...this.broadcast(core, {
-      type: 'war', op: 'dead', ids, at: tc, by: d.seat, why: pierce ? 'pierce' : 'boom', p: at, ...(scoutsDown ? { scouts: true } : {}),
+      type: 'war', op: 'dead', ids, credited: credited.map((a) => a.id), at: tc, by: d.seat, why: pierce ? 'pierce' : 'boom', p: at, ...(scoutsDown ? { scouts: true } : {}),
     }));
     if (stalled.length) {
       out.push(...this.stall(core, stalled, tc));
@@ -2093,7 +2133,6 @@ export class RoomWar {
    */
   stageStep(core, roomNow) {
     const m = this.match;
-    const mission = this.mission();
     const out = [];
     if (m.state !== 'live' || !m.stage) {
       return { out, dirty: false };
@@ -2124,6 +2163,18 @@ export class RoomWar {
     if (!due) {
       return { out, dirty };
     }
+    out.push(...this.takeExit(core, ctx, due, roomNow));
+    return { out, dirty: true };
+  }
+
+  /* The stage left by `due` ({ exit, t, k }, exitDue's): the attackers
+   * cleared as it says, its result counted, and then the end, the next
+   * stage at once, or the next after its beat. Returns what to send. */
+  takeExit(core, ctx, due, roomNow) {
+    const m = this.match;
+    const mission = this.mission();
+    const st = m.stage;
+    const out = [];
     const { exit, t, k } = due;
     const def = this.stages()[st.idx];
     const result = exit.result === 'auto' ? ((m.roundMw ?? 0) > 0 || failedAny(st) ? 'damaged' : 'win') : (exit.result ?? null);
@@ -2154,12 +2205,12 @@ export class RoomWar {
     }
     this.settle(t);
     if (m.state !== 'live') {
-      return { out, dirty: true };
+      return out;
     }
     const to = exitTarget(mission, st, exit, m.seed, k);
     if (to === 'won' || to === 'lost') {
       this.finish(t, to, exit.why ?? 'stages');
-      return { out, dirty: true };
+      return out;
     }
     if (beat > 0) {
       st.next = to;
@@ -2168,7 +2219,61 @@ export class RoomWar {
       this.enterStage(core, to, t);
       out.push(...this.births(core, roomNow));
     }
-    return { out, dirty: true };
+    return out;
+  }
+
+  /*
+   * The host's developer ops (the header's skip and complete), at the
+   * judgement's frontier: the match is advanced to now first, so what
+   * they settle comes after everything already judged. Refused 'off'
+   * outside a live stage or during a round's result, 'objective' for an
+   * objective the stage does not have, 'way' for a stage with no exit but
+   * a loss.
+   */
+  devOp(core, conn, msg, now) {
+    if (core.meta.public) {
+      return this.error(conn, 'public');
+    }
+    if (!this.devMissions && !core.devHost()) {
+      return this.error(conn, 'dev');
+    }
+    const m = this.match;
+    if (!m || m.state !== 'live' || !m.stage || (m.roundState ?? 'live') === 'result') {
+      return this.error(conn, 'off');
+    }
+    const out = this.advance(core, now);
+    if (m.state !== 'live' || (m.roundState ?? 'live') === 'result') {
+      return out;
+    }
+    const roomNow = core.roomMs(now);
+    const st = m.stage;
+    const def = this.stages()[st.idx];
+    if (msg.op === 'complete') {
+      const ids = (def.objectives ?? []).map((o) => o.id);
+      if (msg.objective != null && !ids.includes(msg.objective)) {
+        return [...out, ...this.error(conn, 'objective')];
+      }
+      for (const id of msg.objective != null ? [msg.objective] : ids) {
+        if ((st.obj[id]?.state ?? 'active') === 'active') {
+          st.obj[id] = { ...st.obj[id], state: 'done', t: m.f };
+        }
+      }
+      this.log.push({
+        what: 'dev', op: 'complete', t: m.f, stage: st.id, objective: msg.objective ?? null,
+      });
+      const step = this.stageStep(core, roomNow);
+      return [...out, ...this.changed(core), ...step.out];
+    }
+    const ctx = this.stageCtx(core, roomNow);
+    const k = (def.exits ?? []).findIndex((x, i) => x.result !== 'lost' && exitTarget(this.mission(), st, x, m.seed, i) !== 'lost');
+    if (k < 0) {
+      return [...out, ...this.error(conn, 'way')];
+    }
+    this.log.push({
+      what: 'dev', op: 'skip', t: m.f, stage: st.id,
+    });
+    const taken = this.takeExit(core, ctx, { exit: def.exits[k], t: m.f, k }, roomNow);
+    return [...out, ...this.changed(core), ...taken];
   }
 
   /* Every attacker alive at the end of a stage, at t: with `through`, each
@@ -2286,6 +2391,18 @@ export class RoomWar {
       if (list.length) {
         out.push({ send: conn, data: encodeAgents(this.lastStep, list) });
         out.push({ send: conn, data: encodeHunts(this.lastStep, list) });
+      }
+    }
+    /* A watcher flies nothing, so it is every hunter's far band: each
+     * one, every tick, as to a seat not flying. */
+    if (core.watchers.size) {
+      const list = this.lastPoses.map((h) => ({
+        id: h.id, kind: KIND_ID.get('hunter'), p: h.p, q: h.q, target: h.target,
+      }));
+      const agents = encodeAgents(this.lastStep, list);
+      const hunts = encodeHunts(this.lastStep, list);
+      for (const conn of core.watchers.keys()) {
+        out.push({ send: conn, data: agents }, { send: conn, data: hunts });
       }
     }
     return out;

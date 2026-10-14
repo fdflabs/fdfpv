@@ -41,7 +41,7 @@
          ],
          "kids": [
           {
-           "t": "Lap"
+           "t": "Vuelta"
           }
          ]
         },
@@ -1519,7 +1519,7 @@
          ],
          "kids": [
           {
-           "t": "Keyboard"
+           "t": "Teclado"
           }
          ]
         },
@@ -1877,7 +1877,7 @@
            "tag": "dt",
            "kids": [
             {
-             "t": "Turtle"
+             "t": "Modo tortuga"
             }
            ]
           },
@@ -2899,6 +2899,20 @@
           },
           {
            "t": "."
+          }
+         ]
+        },
+        {
+         "tag": "p",
+         "attrs": [
+          [
+           "class",
+           "credits-legal"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Versión local"
           }
          ]
         }
@@ -4569,7 +4583,7 @@
                ],
                "kids": [
                 {
-                 "t": "Roll"
+                 "t": "Alabeo"
                 }
                ]
               }
@@ -4607,7 +4621,7 @@
                ],
                "kids": [
                 {
-                 "t": "Pitch"
+                 "t": "Cabeceo"
                 }
                ]
               }
@@ -4645,7 +4659,7 @@
                ],
                "kids": [
                 {
-                 "t": "Yaw"
+                 "t": "Guiñada"
                 }
                ]
               }
@@ -4675,7 +4689,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Roll"
+                 "t": "Alabeo"
                 }
                ]
               },
@@ -4703,7 +4717,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Pitch"
+                 "t": "Cabeceo"
                 }
                ]
               },
@@ -4731,7 +4745,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Yaw"
+                 "t": "Guiñada"
                 }
                ]
               },
@@ -4859,7 +4873,7 @@
        "tag": "h2",
        "kids": [
         {
-         "t": "Controles"
+         "t": "Teclas y botones"
         }
        ]
       },
@@ -4873,7 +4887,7 @@
        ],
        "kids": [
         {
-         "t": "Elige la tecla de cada acción de vuelo. Pulsa una fila y luego la tecla; Escape cancela, Retroceso vuelve a la de fábrica."
+         "t": "Elige la tecla y el botón del mando de cada acción de vuelo. Pulsa una fila y luego la tecla o el botón; Escape cancela, Retroceso vuelve a los de fábrica."
         }
        ]
       },
@@ -4957,8 +4971,258 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-fc": {
+   "div.screen.screen-page.screen-pilot.screen-controller": {
     "after": "div.screen.screen-page.screen-pilot.screen-controls",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-controller"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "Controlador"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Todo lo que hay entre tus manos y la aeronave: qué dispositivo vuela, cómo se asignan sus palancas y cómo se sienten, y las teclas."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu menu-scroll"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Vuelve. Los cambios ya están guardados. Las flechas siguen moviendo el menú."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-pilot.screen-flywith": {
+    "after": "div.screen.screen-page.screen-pilot.screen-controller",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-flywith"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "¿Con qué vas a volar?"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Elige lo que tienes en las manos y el juego se prepara para eso. Puedes cambiarlo cuando quieras en el Hangar."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "↑↓"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Enter"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Las flechas mueven, Enter elige. Escape salta. En una radio: pitch para moverte, roll a la derecha para elegir."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-fc": {
+    "after": "div.screen.screen-page.screen-pilot.screen-flywith",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -6816,11 +7080,11 @@
      ],
      "on": [
       [
-       17,
+       19,
        "click"
       ],
       [
-       18,
+       20,
        "keydown"
       ]
      ],
@@ -6954,7 +7218,7 @@
              "attrs": [
               [
                "class",
-               "carousel-tab carousel-tab-mine"
+               "carousel-tab"
               ],
               [
                "role",
@@ -6968,6 +7232,34 @@
              "on": [
               [
                3,
+               "click"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "Favoritos"
+              }
+             ]
+            },
+            {
+             "tag": "button",
+             "attrs": [
+              [
+               "class",
+               "carousel-tab carousel-tab-mine"
+              ],
+              [
+               "role",
+               "tab"
+              ],
+              [
+               "type",
+               "button"
+              ]
+             ],
+             "on": [
+              [
+               4,
                "click"
               ]
              ],
@@ -6995,23 +7287,23 @@
          ],
          "on": [
           [
-           6,
+           7,
            "pointerdown"
           ],
           [
-           7,
+           8,
            "pointermove"
           ],
           [
-           8,
+           9,
            "pointerup"
           ],
           [
-           9,
+           10,
            "pointercancel"
           ],
           [
-           10,
+           11,
            "wheel"
           ]
          ],
@@ -7034,7 +7326,7 @@
            ],
            "on": [
             [
-             4,
+             5,
              "click"
             ]
            ],
@@ -7062,7 +7354,7 @@
            ],
            "on": [
             [
-             5,
+             6,
              "click"
             ]
            ],
@@ -7158,13 +7450,45 @@
              ],
              "on": [
               [
-               11,
+               12,
                "click"
               ]
              ],
              "kids": [
               {
                "t": "Flotadores"
+              }
+             ]
+            },
+            {
+             "tag": "button",
+             "attrs": [
+              [
+               "class",
+               "hangar-floats carousel-fav"
+              ],
+              [
+               "data-key",
+               "favourite"
+              ],
+              [
+               "role",
+               "switch"
+              ],
+              [
+               "type",
+               "button"
+              ]
+             ],
+             "on": [
+              [
+               13,
+               "click"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "★ Favorito"
               }
              ]
             }
@@ -7197,7 +7521,7 @@
              ],
              "on": [
               [
-               12,
+               14,
                "click"
               ]
              ],
@@ -7225,7 +7549,7 @@
              ],
              "on": [
               [
-               13,
+               15,
                "click"
               ]
              ],
@@ -7298,7 +7622,7 @@
              ],
              "on": [
               [
-               14,
+               16,
                "click"
               ]
              ],
@@ -7322,7 +7646,7 @@
              ],
              "on": [
               [
-               16,
+               18,
                "click"
               ]
              ],
@@ -7346,7 +7670,7 @@
              ],
              "on": [
               [
-               15,
+               17,
                "click"
               ]
              ],
@@ -8675,7 +8999,7 @@
          ],
          "kids": [
           {
-           "t": "Lap"
+           "t": "Vuelta"
           }
          ]
         },
@@ -10153,7 +10477,7 @@
          ],
          "kids": [
           {
-           "t": "Keyboard"
+           "t": "Teclado"
           }
          ]
         },
@@ -10511,7 +10835,7 @@
            "tag": "dt",
            "kids": [
             {
-             "t": "Turtle"
+             "t": "Modo tortuga"
             }
            ]
           },
@@ -11533,6 +11857,20 @@
           },
           {
            "t": "."
+          }
+         ]
+        },
+        {
+         "tag": "p",
+         "attrs": [
+          [
+           "class",
+           "credits-legal"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Versión local"
           }
          ]
         }
@@ -13203,7 +13541,7 @@
                ],
                "kids": [
                 {
-                 "t": "Roll"
+                 "t": "Alabeo"
                 }
                ]
               }
@@ -13241,7 +13579,7 @@
                ],
                "kids": [
                 {
-                 "t": "Pitch"
+                 "t": "Cabeceo"
                 }
                ]
               }
@@ -13279,7 +13617,7 @@
                ],
                "kids": [
                 {
-                 "t": "Yaw"
+                 "t": "Guiñada"
                 }
                ]
               }
@@ -13309,7 +13647,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Roll"
+                 "t": "Alabeo"
                 }
                ]
               },
@@ -13337,7 +13675,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Pitch"
+                 "t": "Cabeceo"
                 }
                ]
               },
@@ -13365,7 +13703,7 @@
                "tag": "dt",
                "kids": [
                 {
-                 "t": "Yaw"
+                 "t": "Guiñada"
                 }
                ]
               },
@@ -13493,7 +13831,7 @@
        "tag": "h2",
        "kids": [
         {
-         "t": "Controles"
+         "t": "Teclas y botones"
         }
        ]
       },
@@ -13507,7 +13845,7 @@
        ],
        "kids": [
         {
-         "t": "Elige la tecla de cada acción de vuelo. Pulsa una fila y luego la tecla; Escape cancela, Retroceso vuelve a la de fábrica."
+         "t": "Elige la tecla y el botón del mando de cada acción de vuelo. Pulsa una fila y luego la tecla o el botón; Escape cancela, Retroceso vuelve a los de fábrica."
         }
        ]
       },
@@ -13591,8 +13929,258 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-fc": {
+   "div.screen.screen-page.screen-pilot.screen-controller": {
     "after": "div.screen.screen-page.screen-pilot.screen-controls",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-controller"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "Controlador"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Todo lo que hay entre tus manos y la aeronave: qué dispositivo vuela, cómo se asignan sus palancas y cómo se sienten, y las teclas."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu menu-scroll"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Vuelve. Los cambios ya están guardados. Las flechas siguen moviendo el menú."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-pilot.screen-flywith": {
+    "after": "div.screen.screen-page.screen-pilot.screen-controller",
+    "tree": {
+     "tag": "div",
+     "attrs": [
+      [
+       "class",
+       "screen screen-page screen-pilot screen-flywith"
+      ],
+      [
+       "style",
+       "display: none;"
+      ]
+     ],
+     "kids": [
+      {
+       "tag": "h2",
+       "kids": [
+        {
+         "t": "¿Con qué vas a volar?"
+        }
+       ]
+      },
+      {
+       "tag": "p",
+       "attrs": [
+        [
+         "class",
+         "rates-lede"
+        ]
+       ],
+       "kids": [
+        {
+         "t": "Elige lo que tienes en las manos y el juego se prepara para eso. Puedes cambiarlo cuando quieras en el Hangar."
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "menu-stage"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu"
+          ],
+          [
+           "role",
+           "listbox"
+          ]
+         ]
+        },
+        {
+         "tag": "div",
+         "attrs": [
+          [
+           "class",
+           "menu-help"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "attrs": [
+        [
+         "class",
+         "hint"
+        ]
+       ],
+       "kids": [
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-keys"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "↑↓"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Enter"
+            }
+           ]
+          },
+          {
+           "tag": "kbd",
+           "kids": [
+            {
+             "t": "Esc"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "span",
+         "attrs": [
+          [
+           "class",
+           "hint-copy"
+          ]
+         ],
+         "kids": [
+          {
+           "t": "Las flechas mueven, Enter elige. Escape salta. En una radio: pitch para moverte, roll a la derecha para elegir."
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "div.screen.screen-page.screen-fc": {
+    "after": "div.screen.screen-page.screen-pilot.screen-flywith",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -15450,11 +16038,11 @@
      ],
      "on": [
       [
-       17,
+       19,
        "click"
       ],
       [
-       18,
+       20,
        "keydown"
       ]
      ],
@@ -15588,7 +16176,7 @@
              "attrs": [
               [
                "class",
-               "carousel-tab carousel-tab-mine"
+               "carousel-tab"
               ],
               [
                "role",
@@ -15602,6 +16190,34 @@
              "on": [
               [
                3,
+               "click"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "Favoritos"
+              }
+             ]
+            },
+            {
+             "tag": "button",
+             "attrs": [
+              [
+               "class",
+               "carousel-tab carousel-tab-mine"
+              ],
+              [
+               "role",
+               "tab"
+              ],
+              [
+               "type",
+               "button"
+              ]
+             ],
+             "on": [
+              [
+               4,
                "click"
               ]
              ],
@@ -15629,23 +16245,23 @@
          ],
          "on": [
           [
-           6,
+           7,
            "pointerdown"
           ],
           [
-           7,
+           8,
            "pointermove"
           ],
           [
-           8,
+           9,
            "pointerup"
           ],
           [
-           9,
+           10,
            "pointercancel"
           ],
           [
-           10,
+           11,
            "wheel"
           ]
          ],
@@ -15668,7 +16284,7 @@
            ],
            "on": [
             [
-             4,
+             5,
              "click"
             ]
            ],
@@ -15696,7 +16312,7 @@
            ],
            "on": [
             [
-             5,
+             6,
              "click"
             ]
            ],
@@ -15792,13 +16408,45 @@
              ],
              "on": [
               [
-               11,
+               12,
                "click"
               ]
              ],
              "kids": [
               {
                "t": "Flotadores"
+              }
+             ]
+            },
+            {
+             "tag": "button",
+             "attrs": [
+              [
+               "class",
+               "hangar-floats carousel-fav"
+              ],
+              [
+               "data-key",
+               "favourite"
+              ],
+              [
+               "role",
+               "switch"
+              ],
+              [
+               "type",
+               "button"
+              ]
+             ],
+             "on": [
+              [
+               13,
+               "click"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "★ Favorito"
               }
              ]
             }
@@ -15831,7 +16479,7 @@
              ],
              "on": [
               [
-               12,
+               14,
                "click"
               ]
              ],
@@ -15859,7 +16507,7 @@
              ],
              "on": [
               [
-               13,
+               15,
                "click"
               ]
              ],
@@ -15932,7 +16580,7 @@
              ],
              "on": [
               [
-               14,
+               16,
                "click"
               ]
              ],
@@ -15956,7 +16604,7 @@
              ],
              "on": [
               [
-               16,
+               18,
                "click"
               ]
              ],
@@ -15980,7 +16628,7 @@
              ],
              "on": [
               [
-               15,
+               17,
                "click"
               ]
              ],
@@ -17364,6 +18012,12 @@
    "instance": "Carousel"
   },
   "checkVersion": "function",
+  "controllerHelp": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-controller.2.1"
+  },
+  "controllerMenu": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-controller.2.0"
+  },
   "controlsHelp": {
    "node": "#ui/div.screen.screen-page.screen-pilot.screen-controls.2.1"
   },
@@ -17438,6 +18092,12 @@
   },
   "firstNote": {
    "node": "#ui/div.screen.screen-title.0.0.0.5"
+  },
+  "flywithHelp": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-flywith.2.1"
+  },
+  "flywithMenu": {
+   "node": "#ui/div.screen.screen-page.screen-pilot.screen-flywith.2.0"
   },
   "frameBot": {
    "node": "#ui/div.frame-bot"
@@ -18109,6 +18769,18 @@
      "controls",
      {
       "node": "#ui/div.screen.screen-page.screen-pilot.screen-controls"
+     }
+    ],
+    [
+     "controller",
+     {
+      "node": "#ui/div.screen.screen-page.screen-pilot.screen-controller"
+     }
+    ],
+    [
+     "flywith",
+     {
+      "node": "#ui/div.screen.screen-page.screen-pilot.screen-flywith"
      }
     ],
     [

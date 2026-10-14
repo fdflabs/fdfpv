@@ -11,6 +11,11 @@
  *                           once, one per CHAT_EVERY_MS after
  *   mute                    a pilot's own set; the room sends a muted
  *                           seat's chat and emotes to nobody who muted it
+ *   block                   a mute that outlasts the room: a signed in
+ *                           pilot's blocked accounts, which the accounts
+ *                           server gives the room with the join (core.js
+ *                           hello), are muted in every room as a seat's
+ *                           mute set is in one (shut)
  *   report                  a reason index; reports from distinct pilots
  *                           within REPORT_WINDOW_MS that reach max(2, a
  *                           third of the room) remove the target for
@@ -38,7 +43,10 @@
  *
  * WHAT IS KEPT, AND WHERE. A pilot's mute set is in their seat record
  * (and so in their socket's attachment, which survives a hibernation):
- * seat tokens, nothing else. Reports, allowances and pose history
+ * seat tokens, nothing else. So are their blocks, account ids, read from
+ * the accounts server at the join and never written from here: a block
+ * is set and taken back on the account (tracks-api/accounts.js), and the
+ * room learns it with the pilot's next join. Reports, allowances and pose history
  * are in this object's memory only and go with it; a removal is on the
  * core's kick list (core.js keepOut: the token kept out, the address's
  * new joins slowed), in memory, for REMOVE_MS. Nothing
@@ -81,6 +89,12 @@ export const POSE_MAX_SPEED = 100;
 export const WORLD_LIMIT_M = 50000;
 export const POSE_CLOCK_SLOP_MS = 10000;
 export const IMPOSSIBLE_LIMIT = 30;
+
+/* Whether seat record a refuses to hear seat record b: a muted b's seat
+ * in this room, or blocked b's account in any. */
+export function shut(a, b) {
+  return Boolean((a.muted && a.muted.includes(b.token)) || (b.account != null && a.blocks && a.blocks.includes(b.account)));
+}
 
 function recent(times, now, windowMs) {
   while (times.length && now - times[0] >= windowMs) {
@@ -157,7 +171,7 @@ export class RoomSafety {
     const data = JSON.stringify({ type: 'event', kind: msg.kind, seat: s.seat, id });
     const out = [];
     for (const [other, t] of this.core.seats) {
-      if (other !== conn && !(t.muted && t.muted.includes(s.token))) {
+      if (other !== conn && !shut(t, s)) {
         out.push({ send: other, data });
       }
     }

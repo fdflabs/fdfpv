@@ -48,6 +48,8 @@ export default {
     "sizeMm": 1400,
     "grams": 1532,
     "trackClass": "wing",
+    "class": "plane",
+    "roles": [],
     "cells": 3,
     "packVoltages": [
       4.2,
@@ -190,11 +192,11 @@ export default {
       "stock": {
         "3s2200": {
           "topSpeed": 21.59,
-          "minutes": 24.4
+          "minutes": 24.5
         },
         "3s3200": {
           "topSpeed": 22.1,
-          "minutes": 33.4
+          "minutes": 33.5
         }
       }
     }

@@ -188,6 +188,7 @@ export function createOpsCampaignScreen({
       store.save(applyResult(cur(), view.mission, {
         won: view.result.won === true, stars: view.result.stars ?? 0, credits: 0, flags: view.result.flags ?? {},
       }));
+      ui.progress.event('mission_end', { mission: view.mission, won: view.result.won === true, stars: Number.isFinite(view.result.stars) ? view.result.stars : 0 });
     },
     /* The mission after `id` in the campaign and the word its card shows,
      * or null at the end. */

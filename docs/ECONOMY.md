@@ -13,8 +13,13 @@ this lane ships one section of it and the check named there.
   and shows as a pip on the aircraft's card.
 - **Firsts from every activity** (PROGRESSION.md section 3, phase 1): a
   Defend the Paraná mission's first win and each of its stars the first time
-  pays XP, once. Streamer Combat and Catch the Ace firsts follow in their
-  own PR.
+  pays XP, once. A Streamer Combat round and a Catch the Ace! match
+  finished, once per world each, pays 40 XP and 10 tokens, once (lead's
+  ruling, 2026-10-13: the lower of the Flight Club activity firsts, a
+  course's first lap at 40 and a lesson at 60; the tokens the lower of
+  the two 40 XP firsts, a first flight at 10 and a star at 30;
+  reversible until a grant is paid). A new best score pays nothing yet:
+  no rule gives the `bests` shape a value.
 - **Tokens** (es: *Fichas*), the hangar's soft currency, shown beside the
   level in the Hangar. Earned two ways only:
   1. **firsts**: the same finite list of firsts that pay XP (a challenge, a
@@ -58,6 +63,12 @@ this lane ships one section of it and the check named there.
                               // writes; lead decision 2026-10-07); merge:
                               // union, earliest pass wins; a known lesson
                               // passed AND flown is a first ('lesson:<id>')
+    played: { ['<game>:<world>']: true }  // a Streamer Combat round or a
+                              // Catch the Ace! match finished on a world
+                              // (game 'combat' or 'tag', world a registry
+                              // world); the first 'game:<game>:<world>';
+                              // union
+
     lessonsFlown: { [lessonId]: true }   // the lesson actually flown (training
                               // lane writes it on a pass); lessons covered by
                               // "I fly already" are passed but not flown and

@@ -17,6 +17,13 @@
  * and with the accounts server gone a signed in pilot is refused with
  * CLOSE_ACCOUNTS, quickly, rather than seated unchecked.
  *
+ * Blocks that outlast a room (COMPLETENESS 60): a block set on the
+ * account keeps the blocked pilot's chat and voice from the blocker in
+ * every room after, whoever joins first and from whichever computer, and
+ * a renamed pilot stays blocked; an unblock ends it at the next join. The
+ * negative controls: a mute set in a room, by a signed in pilot or by a
+ * guest on a rooms server with no accounts, dies with that room.
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -138,8 +145,11 @@ async function seat(code, extra = {}) {
   return p;
 }
 
-async function makeRoom(room = { map: 'swiss2' }) {
-  const res = await fetch(`${roomsOrigin}/v2/create`, { method: 'POST', headers: { origin: PAGE }, body: JSON.stringify(room) });
+/* address: the client address Caddy would send, for a check that makes
+ * more rooms than front.js CREATES_PER_MIN allows one address. */
+async function makeRoom(room = { map: 'swiss2' }, address = null, origin = roomsOrigin) {
+  const headers = { origin: PAGE, ...(address ? { 'cf-connecting-ip': address } : {}) };
+  const res = await fetch(`${origin}/v2/create`, { method: 'POST', headers, body: JSON.stringify(room) });
   return (await res.json()).code;
 }
 
@@ -219,6 +229,127 @@ check('a changed callsign is the one the next join shows', watcher.welcome.peers
 
 for (const p of [first, signed, renamed, watcher]) {
   p.ws.close(1000);
+}
+
+console.log('blocks that outlast a room');
+{
+  /* pilot-1 is Goose now, pilot-2 Iceman; Viper is the witness who hears
+   * what the blocker must not. */
+  r = await api('POST', '/api/account/google', { credential: await idToken('pilot-4') });
+  const viper = r.body.session;
+  await api('PUT', '/api/account/callsign', { callsign: 'Viper' }, viper);
+  const chatFrom = (seatNo) => (x) => x.got.find((m) => m.type === 'event' && m.kind === 'chat' && m.seat === seatNo);
+  const voiceFrom = (seatNo) => (x) => x.got.find((m) => m.type === 'voice' && m.op === 'on' && m.from === seatNo);
+  /* Three pilots in a fresh room, in the order given; who says what: chat
+   * and voice from `speaker`, then whether `listener` heard each, read
+   * once the witness has heard both (the room sends to all in one turn). */
+  let made = 0;
+  const nextAddress = () => `198.51.100.${(made += 1)}`;
+  async function meet(order) {
+    const at = await makeRoom(undefined, nextAddress());
+    const seated = {};
+    for (const [n, [who, sess]] of order.entries()) {
+      seated[who] = await seat(at, { ...NEW, name: [n + 1, n + 2, 50 + n], session: sess });
+    }
+    return seated;
+  }
+  async function hears(speaker, listener, witness) {
+    const from = speaker.welcome.seat;
+    speaker.ws.send(JSON.stringify({ type: 'event', kind: 'chat', id: 0 }));
+    speaker.ws.send(JSON.stringify({ type: 'voice', op: 'on' }));
+    const witnessed = Boolean(await witness.until(chatFrom(from))) && Boolean(await witness.until(voiceFrom(from)));
+    await sleep(150);
+    return { witnessed, chat: Boolean(chatFrom(from)(listener)), voice: Boolean(voiceFrom(from)(listener)) };
+  }
+  const leave = (seated) => Object.values(seated).forEach((p) => p.ws.close(1000));
+
+  let room = await meet([['goose', session], ['iceman', other], ['viper', viper]]);
+  room.goose.ws.send(JSON.stringify({ type: 'mute', seats: [room.iceman.welcome.seat] }));
+  await sleep(100);
+  let h = await hears(room.iceman, room.goose, room.viper);
+  check('a mute in a room keeps the muted pilot\'s chat and voice from the muter', h.witnessed && !h.chat && !h.voice, JSON.stringify(h));
+  leave(room);
+  room = await meet([['goose', session], ['iceman', other], ['viper', viper]]);
+  h = await hears(room.iceman, room.goose, room.viper);
+  check('negative control: the mute died with the room, so the next room hears them', h.witnessed && h.chat && h.voice, JSON.stringify(h));
+  leave(room);
+
+  r = await api('PUT', '/api/account/blocks', { callsign: 'Iceman', on: true }, session);
+  check('Goose blocks Iceman on the account', r.status === 200 && JSON.stringify(r.body.blocks) === '["Iceman"]', JSON.stringify(r.body));
+  room = await meet([['goose', session], ['iceman', other], ['viper', viper]]);
+  h = await hears(room.iceman, room.goose, room.viper);
+  check('in the next room, the blocked pilot joining after, the blocker hears neither chat nor voice', h.witnessed && !h.chat && !h.voice,
+    JSON.stringify(h));
+  h = await hears(room.goose, room.iceman, room.viper);
+  check('and voice is refused both ways, as a mute\'s is, while the blocker\'s chat still goes', h.witnessed && h.chat && !h.voice,
+    JSON.stringify(h));
+  leave(room);
+  r = await api('POST', '/api/account/google', { credential: await idToken('pilot-1') });
+  const laptop = r.body.session;
+  room = await meet([['iceman', other], ['viper', viper], ['goose', laptop]]);
+  h = await hears(room.iceman, room.goose, room.viper);
+  check('from another computer, the blocker joining last, the same', h.witnessed && !h.chat && !h.voice, JSON.stringify(h));
+  leave(room);
+  await api('PUT', '/api/account/callsign', { callsign: 'Stinger' }, other);
+  room = await meet([['goose', session], ['iceman', other], ['viper', viper]]);
+  h = await hears(room.iceman, room.goose, room.viper);
+  check('a renamed pilot is still blocked', h.witnessed && !h.chat && !h.voice, JSON.stringify(h));
+  r = await api('PUT', '/api/account/blocks', { callsign: 'Stinger', on: false }, laptop);
+  check('the block is taken back from the other computer', r.status === 200 && r.body.blocks.length === 0, JSON.stringify(r.body));
+  leave(room);
+  room = await meet([['goose', session], ['iceman', other], ['viper', viper]]);
+  h = await hears(room.iceman, room.goose, room.viper);
+  check('and the next join hears them again', h.witnessed && h.chat && h.voice, JSON.stringify(h));
+  leave(room);
+  await api('PUT', '/api/account/callsign', { callsign: 'Iceman' }, other);
+
+  /* A guest's mute, where there are no accounts (do.js, a local server):
+   * nothing outlives the room. */
+  const guests = await startRooms({ db: join(scratch, 'guests.db'), port: 0 });
+  const guestOrigin = `http://127.0.0.1:${guests.port}`;
+  async function guestSeat(at, n) {
+    const ws = new WebSocket(`${guestOrigin.replace(/^http/, 'ws')}/v2/room/${at}`, { headers: { origin: PAGE } });
+    const p = { ws, got: [], closed: null };
+    ws.on('message', (data, binary) => {
+      if (!binary && data.toString() !== 'pong') {
+        p.got.push(JSON.parse(data.toString()));
+      }
+    });
+    ws.on('error', () => {});
+    await new Promise((resolve) => ws.on('open', resolve));
+    p.until = async (what, ms = 5000) => {
+      const end = Date.now() + ms;
+      while (Date.now() < end) {
+        const hit = what(p);
+        if (hit) {
+          return hit;
+        }
+        await sleep(20);
+      }
+      return null;
+    };
+    ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', name: [n, n + 1, 60 + n], profile, ...NEW }));
+    p.welcome = await p.until((x) => x.got.find((m) => m.type === 'welcome'));
+    return p;
+  }
+  async function guestMeet() {
+    const at = await makeRoom(undefined, nextAddress(), guestOrigin);
+    return { a: await guestSeat(at, 1), b: await guestSeat(at, 2), w: await guestSeat(at, 3) };
+  }
+  room = await guestMeet();
+  check('guests are seated where there are no accounts', Boolean(room.a.welcome && room.b.welcome && room.w.welcome));
+  room.a.ws.send(JSON.stringify({ type: 'mute', seats: [room.b.welcome.seat] }));
+  await sleep(100);
+  h = await hears(room.b, room.a, room.w);
+  check('a guest\'s mute holds in its room', h.witnessed && !h.chat && !h.voice, JSON.stringify(h));
+  leave(room);
+  room = await guestMeet();
+  h = await hears(room.b, room.a, room.w);
+  check('negative control: and dies with it, a signed out pilot having no account to keep a block on', h.witnessed && h.chat && h.voice,
+    JSON.stringify(h));
+  leave(room);
+  await sleep(100);
+  await guests.stop();
 }
 
 console.log('the accounts server down');

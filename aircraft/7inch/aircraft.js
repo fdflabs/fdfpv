@@ -36,6 +36,10 @@ export default {
     "sizeMm": 315,
     "grams": 979,
     "trackClass": "full",
+    "class": "multirotor",
+    "roles": [
+      "combat"
+    ],
     "topSpeed": 33.4,
     "thrustToWeight": 4.75,
     "cells": 6,

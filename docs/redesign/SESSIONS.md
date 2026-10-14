@@ -1,9 +1,12 @@
 # Sessions: choose what, then who, then Ready
 
-**Status: the core EXISTS** (#359 server, #372 client, merged 2026-10-02);
-the visibility values and the hubs are **planned**. This is the flow as
-built, the rules it keeps (docs/FLOW-AUDIT.md rules 1 to 17) and what the
-redesign adds, so nobody builds a second lobby.
+**Status: the core EXISTS** (#359 server, #372 client, merged 2026-10-02),
+the hubs since #382, and the three visibility values, the empty seats
+and the host's in place change since the 2026-10-13 batch (src/main.js
+openSession, the one way into a room; edge/rooms/core.js setPublic).
+This is the flow as built, the
+rules it keeps (docs/FLOW-AUDIT.md rules 1 to 17) and what the redesign
+adds, so nobody builds a second lobby.
 
 ## 1. The flow
 
@@ -16,13 +19,15 @@ redesign adds, so nobody builds a second lobby.
    | Public (default, or the pilot's last choice for this activity):
    |   join the busiest public room made for it on its world with a seat;
    |   none: make one, public, named for the pilot      [exists, #372]
-   | Friends: make a private room, its invite code shown [planned, phase 6]
-   | Solo: make a private room, its code not shown       [planned, phase 6]
+   | Friends: make a private room, its invite code shown [exists]
+   | Solo: make a private room, its code not shown       [exists]
    | The war: its consent first, once per pilot           [exists]
    v
  LOBBY (the session)                       home inside a room (FLOW rule 4)
-   | pilots and their Ready flags, the host's one setting (mission,
-   | minutes, goal, track), the aircraft row, Leave, invite code if private
+   | pilots and their Ready flags, the open seats (the cap less the
+   | people; none shown for Solo), Who joins (Public, Friends, Solo), the
+   | host's one setting (mission, minutes, goal, track), the aircraft row,
+   | Leave, invite code if private and not solo
    |
    | Ready alone          -> 5 s, then the round            [exists]
    | everyone Ready       -> 5 s, then the round            [exists]
@@ -56,12 +61,24 @@ in (FLOW rule 14).
 | Solo | not listed; no code shown, so nobody can join | `public: false`, code hidden |
 
 Public is the default (owner, 2026-10-02); each pilot's last choice per
-activity is remembered in settings (synced). A pilot alone in a lobby who
-changes visibility moves to a fresh room of the new kind (nobody to take
-along). A host with others present changes it in place: a new host
-message, server first, shown only when the welcome says the room takes it
-(the FLOW-AUDIT contract path). The war's public rooms keep their consent
-for every pilot.
+activity is remembered in settings (`sessionVisibility`, synced). A pilot
+alone in a lobby who changes visibility moves to a fresh room of the new
+kind (nobody to take along; the war's keeps its mission). The room cannot
+tell Solo from Friends, so the Solo room's code is kept in the page's
+session storage and a reload into it keeps the code hidden. A host with
+others present changes it in place: `{ type: 'public', on }` (edge/rooms/
+core.js setPublic), server first, offered only when the welcome's
+`publicInPlace` says the room takes it (the FLOW-AUDIT contract path),
+Public or Friends (Solo only while it is the room's: there is nobody left
+to keep out). The room keeps its code, pilots and game; its cap becomes
+the kind's (16 public, 8 private) and its listing follows at once. Going
+public follows POST /v2/create's rules (public rooms open, no game on
+that a public room runs only when made for it, no ops mission, a war
+room only for a released mission); going private needs no more people
+than 8. On a server without it, and for a pilot who is not the host, the
+row is a fact. The war's public rooms keep their consent for every pilot,
+and a mission in development gets a private room whatever was chosen (the
+release gate).
 
 **Changed from the thread:** Friends means "people with the code", because
 there is no friends list; a friends list would need accounts the game does
@@ -90,17 +107,34 @@ only visibility is Solo; the room games show disabled with the reason. A
 room the server will not make says so with one retry (exists, #372). A
 reload returns to the same session (FLOW rule 6).
 
-## 5. Spectating (planned)
+## 5. Spectating (built, PLAN.md phase 17)
 
 A watch seat in any room: the pilot joins without an aircraft and follows
 a pilot with the replay's follow camera on the live peers. Counted apart
 from the cap's flying seats. For the family case: a parent watching a
 child race without taking a slot.
 
+Built as edge/rooms/core.js watch: up to WATCH_CAP (8) watchers a room,
+counted apart in the welcome and the room browser (`watchers`). The page
+follows a pilot with the war spectator's watch camera (src/main.js
+warWatch), not the replay's follow camera. A watcher is sent the pilots'
+poses and the race's, tag's, jam's and combat's state (core.js everyone,
+the race's passes too), and is welcomed into a game as it stands: the
+flight screen shows the standings, the laps and the clock, and over the
+end the final order, never a results screen, a score or a logged round
+(src/share/roomrace.js WATCH_SEAT; `watch:twopage`). It is sent the war's,
+the ops' and the lobby's state too, the war's and the ops' view with no
+result (core.js viewed, watchedView), since a page holding one pays the
+campaign's stars and credits and records the debrief: the war HUD says
+Watching in place of airframes and kills, no war aircraft, role, debrief,
+loadout or Ready is its own, and with nobody flying its banner says the
+lobby's ready count and countdown or an ops mission's end.
+
 ## 6. Checks that hold this flow
 
 `game:lobby` (all five activities, click by click), `flow:check` (no hub in
 a room, Leave the only way out), `war:card`, `campaign:check`,
 `rooms:selftest` (the lobby's times and flags), `modes:selftest` (the
-registry). The visibility phase adds rows to `game:lobby` and an op to
-`rooms:server`.
+registry). The visibility phase added the Who joins rows to `game:lobby`
+(alone, each a fresh room; with B there, in place), the op to
+`rooms:selftest` (rooms-selftest-visibility.js) and to `rooms:server`.

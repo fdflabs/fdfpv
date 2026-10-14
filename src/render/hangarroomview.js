@@ -108,12 +108,14 @@ for (let k = 0; k < TROPHY_ROWS; k += 1) {
 }
 /* A first's trophy colour, linear, by its kind (src/game/progress.js
  * firstsOf keys): a mission won gold, a star silver, an aircraft's
- * milestone bronze, a lesson passed steel blue. */
+ * milestone bronze, a lesson passed steel blue, a room game finished on a
+ * world green. */
 const TROPHY_COLOUR = {
   win: [0.62, 0.42, 0.1],
   star: [0.5, 0.52, 0.55],
   aircraft: [0.4, 0.2, 0.08],
   lesson: [0.12, 0.22, 0.4],
+  game: [0.1, 0.36, 0.16],
   /* Flight Club medals (src/game/medals.js), brighter than the firsts'
    * metals so a medal reads as one beside a mission's cup. */
   gold: [0.85, 0.6, 0.12],
@@ -128,6 +130,9 @@ export function trophyKind(key) {
   }
   if (key.startsWith('mission:')) {
     return key.endsWith(':win') ? 'win' : 'star';
+  }
+  if (key.startsWith('game:')) {
+    return 'game';
   }
   return key.startsWith('aircraft:') ? 'aircraft' : 'lesson';
 }
@@ -657,6 +662,8 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
   let chartKey = '';
   let chartShown = 0;
   let trophyKey = '';
+  /* Each cup's kind, in wall order, for a check to read. */
+  let trophyKinds = [];
   /* The bays' aircraft, one baked mesh (bakeCraft), smooth shaded as the
    * flown models are, where the room's own pieces are flat. */
   const bayMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.05 });
@@ -1081,6 +1088,7 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
     const m = new THREE.Matrix4();
     const colour = new THREE.Color();
     cups.count = wallMatrix ? Math.min(keys.length, TROPHY_SLOTS.length) : 0;
+    trophyKinds = keys.slice(0, cups.count).map(trophyKind);
     for (let i = 0; i < cups.count; i += 1) {
       m.makeTranslation(...TROPHY_SLOTS[i]).premultiply(wallMatrix);
       cups.setMatrixAt(i, m);
@@ -1168,6 +1176,7 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
       ...info,
       tier,
       trophies: cups.count,
+      trophyKinds,
       lineup: lineup ? lineup.children.length : 0,
       photos: photoCount,
       bays: bayAirframes.length,

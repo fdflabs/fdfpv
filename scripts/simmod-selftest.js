@@ -60,7 +60,14 @@ import { transcript } from './lib/transcript.js';
  * (its readState and powerState after its flight), from its pod's
  * crossflow on its drawn sections and Munk's sin 2 beta; with those two
  * table values put back the old digest returns. */
-const PINNED = 'cfdf5ff551842b923514f186ddbda3352282f8cc74806b30b383fef7163d70a8';
+/* Re-pinned for w38-crossflow-moment: the Skyhunter's records again, its
+ * pod's crossflow now acting at its own centre of pressure (side_x); with
+ * side_x out and the AS3X tables as they were it is cfdf5ff551842b92 again. */
+/* Re-pinned for w38-physics-2: the Skyhunter's flight reaches its stall
+ * blend, where the separated wing's plate force now stays in the plane of
+ * symmetry (plant_wing.c THE PLATE'S FORCE IN A SIDESLIP); its trace first
+ * differs at that step (was 8ae7a4a2914f63b0). */
+const PINNED = '3db3cb6452f961ace03a8dd7cc69bdba230dd1b4a89c45069ef94a4dfdc25e09';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = readFileSync(join(root, 'dist/sim.wasm'));

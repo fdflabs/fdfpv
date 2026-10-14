@@ -34,7 +34,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { fuselageRatio } from './lib/crossflow.js';
+import { fuselage } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -42,6 +42,7 @@ import { fileURLToPath } from 'node:url';
 
 import { finSwirl as swirlAtFin, shares, wash as washOf } from './lib/wash.js';
 import { SEAT_GATES, wingProp, wingSeat } from './lib/propcurve.js';
+import { knifeFin, knifeRudder } from './lib/knifefin.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -344,6 +345,20 @@ const dragAt = (V) => { const q = 0.5 * rho * V * V; const CL = W / (q * S); ret
 const Vp = nStatic / 60 * 8 * IN;
 const prop = wingProp('FW_CAP1702');
 const T = (V, d) => Math.max(0, prop.thrust(Ts, V, d));
+/* The prop's torque on the air at a thrust and axial speed, as the plant
+ * takes it (plant_wing.c q_air, prop_spool): torque_arm Ts n^2
+ * torque_curve(mu) at the speed share n that gives the thrust there on
+ * axial_curve, the two curves the table carries (APC's, npm run
+ * prop:curves -- wings; scripts/lib/propcurve.js wingProp). The static
+ * torque_arm T alone is 1.5 to 2.1 times short with way on, where the
+ * prop's power coefficient holds up as its thrust coefficient falls. */
+function qAirAt(thrust, u) {
+  let lo = 0, hi = 2;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (prop.thrust(Ts, u, mid) < thrust) lo = mid; else hi = mid; }
+  const n = (lo + hi) / 2;
+  return torqueArm * Ts * n * n * prop.cp(Math.max(0, u) / (prop.pitchSpeed * n));
+}
+
 let vTopApc = 10;
 for (let i = 0; i < 80; i += 1) vTopApc = apcAt(vTopApc) > dragAt(vTopApc) ? vTopApc + 30 / 2 ** (i + 1) : vTopApc - 30 / 2 ** (i + 1);
 const tTopApc = apcAt(vTopApc) * Ts / apcCurve[0][1];
@@ -441,7 +456,13 @@ const FUSE = [
   [0.600, 0.075, 0.072, -0.113, 3.8], [0.800, 0.065, 0.070, -0.096, 3.6], [1.000, 0.051, 0.064, -0.078, 3.2],
   [1.200, 0.035, 0.056, -0.060, 2.8], [1.400, 0.018, 0.046, -0.043, 2.4], [1.530, 0.008, 0.040, -0.034, 2.2],
 ];
-const sectionK = fuselageRatio(FUSE);
+const side = fuselage(FUSE);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 0.560 m behind the prop's plane at 0.040 (src/render/capcraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.040 + 0.560));
 const sideCda = fusL * fusD * 0.8 * 1.2 * sectionK * 0.7;
 
 /* The torque roll and the aileron against it, SWIRL_KEEP the plant's 0.65
@@ -558,29 +579,72 @@ function harrier(alphaDeg) {
 }
 /* The knife edge, the Extra's derivation's. */
 function knifeEdge(V) {
+  /* The fin and rudder as the plant flies them (scripts/lib/knifefin.js). */
+  const fin = { av, cn: tailCn, cnb: slip.slip_cn_b, cyb: slip.slip_cy_b, cndr: Cndr, cydr: CYdr };
   const qb = 0.5 * rho * V * V;
   for (let bDeg = 1; bDeg < 60; bDeg += 0.01) {
     const bt = bDeg / DEG, sb = Math.sin(bt), cb = Math.cos(bt);
     const u = V * cb;
     let thrust = qb * S * CD0 / cb;
-    let side = 0, dr = 0;
+    let side = 0, dr = 0, q = 0, xs = 0;
     for (let it = 0; it < 30; it += 1) {
       const w = washOf(slip, thrust, u);
-      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) + rho * w.vi * w.fv * S * b * slip.slip_cn_b * (V * sb);
-      const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
-      dr = -nBeta / nPerDr;
-      side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slip.slip_cy_b) * (V * sb)
-        - (qb + w.dp * w.keepV * w.fv) * S * CYdr * Math.abs(dr);
+      const rest = qb * S * b * ((Cnb - slip.slip_cn_b - CnbFus) * sb + CnbFus * sb * cb);
+      /* The swirl at the fin (knifefin.js xs): the torque on the air at
+       * this thrust and speed, SWIRL_KEEP of it past the root. */
+      q = qAirAt(thrust, u);
+      xs = swirlAtFin(slip, w, q, SWIRL_KEEP, u).xs;
+      const fp = { rho, V, u, sb, w, S, b, jet: { kj: JET_KJ, R: propR, x: propX, T: thrust }, xs };
+      /* The crossflow drag at its centre of pressure, side_x ahead of the CG. */
+      const restX = rest - sideX * 0.5 * rho * sideCda * (V * sb) ** 2;
+      dr = knifeRudder(fin, fp, restX, throwR);
+      if (dr === null) break;
+      side = qb * S * (-(CYb - slip.slip_cy_b)) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 - knifeFin(fin, fp, dr).y;
       thrust = (qb * S * CD0 + side * sb) / cb;
     }
+    if (dr === null) continue;
     if (T(u, nAt(1, u)) < thrust) break;
     if (side * cb + thrust * sb >= W) {
       let lo = 0, hi = nAt(1, u);
       for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (T(u, mid) < thrust) lo = mid; else hi = mid; }
-      return { V, betaDeg: bDeg, duty: stickFor(lo, u), thrust, drOfThrow: Math.abs(dr) / throwR };
+      return { V, betaDeg: bDeg, duty: stickFor(lo, u), thrust, drOfThrow: Math.abs(dr) / throwR, qAir: q, swirlKeep: SWIRL_KEEP, xs };
     }
   }
   return null;
+}
+
+/* The gate's knife edge: the hardest level knife edge the derivation says
+ * the aircraft can hold, the speed at which the balance asks the most of
+ * the rudder among the speeds it asks no more than the full throw (the
+ * rudder's share rises from the slow side as the fuselage's saturating
+ * side force gives way to the fin's weathercock, peaks, and falls with
+ * the speed as the sideslip does; where the peak is past the throw, as
+ * the Slick's is, this is the floor, the slowest speed with a level knife
+ * edge), to 0.5 m/s; null where no speed holds one. The gate's speed
+ * is derived, not chosen (2026-10-13). */
+function knifeGate() {
+  const need = (V) => { const k = knifeEdge(V); return k === null ? Infinity : k.drOfThrow; };
+  /* Coarse at 2 m/s for the peak's bracket, then the peak to 0.25 m/s by
+   * halving the bracket about the best of three; where the peak is past
+   * the throw, the fast side's crossing of the throw to 0.5 m/s (each
+   * knife edge costs seconds; the peak is flat to 0.5 m/s). */
+  let peakV = null, peak = -Infinity, fastV = null;
+  for (let V = 6; V <= 50; V += 2) {
+    const d = need(V);
+    if (d < Infinity && d > peak) { peak = d; peakV = V; }
+    if (d <= 1 && (fastV === null || V > fastV)) fastV = V;
+  }
+  if (peakV === null || fastV === null) return null;
+  let lo = peakV - 2, hi = peakV + 2;
+  while (hi - lo > 0.5) {
+    const a = lo + (hi - lo) / 4, c = hi - (hi - lo) / 4, da = need(a), dc = need(c);
+    if (da > peak) { peak = da; peakV = a; } else if (dc > peak) { peak = dc; peakV = c; }
+    if (peakV <= a) hi = (lo + hi) / 2; else if (peakV >= c) lo = (lo + hi) / 2; else { lo = a; hi = c; }
+  }
+  if (peak <= 1) return knifeEdge(Number(peakV.toFixed(2)));
+  lo = peakV; hi = fastV;
+  while (hi - lo > 0.5) { const mid = (lo + hi) / 2; if (need(mid) > 1) lo = mid; else hi = mid; }
+  return knifeEdge(Number(hi.toFixed(2)));
 }
 /*
  * THE STABILISED THROW, cap580:stab's "straight": thrown level at 16 m/s,
@@ -709,7 +773,7 @@ function throwFlight(mount = true) {
     const H = propJ * n * wFull;
     const L = lAero - qReact + lSlip;
     const M = q * S * c * cm + mSlip + propX * zJet + r * H;
-    const N = -nAero + propX * fThrust - nSlip + propX * fJet + PFACTOR * thrust * -w / (n * wFull) - qn * H;
+    const N = -nAero + propX * fThrust - nSlip + propX * fJet + PFACTOR * thrust * -w / (n * wFull) - qn * H - sideX * 0.5 * rho * sideCda * v * Math.abs(v);
     /* Etkin and Reid ch. 4, body axes, z up, qn nose up: gravity and the
      * rates' turning of the velocity; the attitude's rates. */
     const sph = Math.sin(phi), cph = Math.cos(phi), sth = Math.sin(theta), cth = Math.cos(theta);
@@ -780,7 +844,7 @@ export const FW = {
   slip_cn_b: r(slip.slip_cn_b, 4), slip_cn_r: r(slip.slip_cn_r, 4), slip_cy_b: r(slip.slip_cy_b, 4), slip_cl_b: r(slip.slip_cl_b, 4),
   slip_loss: arr(slip.slip_loss, 4),
   strip_tau: arr(stripTau, 4), tail_at: r(at, 3), tail_av: r(av, 3), tail_deda: r(deda, 3),
-  side_cda: r(sideCda, 4), rot_k: arr(rotK, 5), j_prop: r(propJ, 6),
+  side_cda: r(sideCda, 4), side_x: r(sideX, 4), rot_k: arr(rotK, 5), j_prop: r(propJ, 6),
 };
 export const PT = {
   mass_kg: r(m, 4), inertia: arr([Ixx, Iyy, Izz], 4), r_cell: r(rCell, 5), pack_c: `${r(packMah, 1)} * 3.6`, prop_r: r(propR, 4),
@@ -792,7 +856,7 @@ export const GEAR = {
 export const DERIVED = {
   W, Ts, Vp, Vs, CLa, aw, CLmax, hoverDuty, hoverBench, vClimb, pb2v, torqueRoll: torqueRoll * DEG, aileronRollNet: aileronRollNet * DEG,
   pitchAccHover, yawAccHover, restPitchDeg, cgHeight, tailShare, level75: level(0.75), top: level(1), ld: ld(14),
-  harrier40: harrier(40), knife20: knifeEdge(20), takeoff: takeoff(), vRotate, ld15: ld(15),
+  harrier40: harrier(40), knifeGate: knifeGate(), knife20: knifeEdge(20), takeoff: takeoff(), vRotate, ld15: ld(15),
   straight: throwOn[throwOn.length - 1].y,
 };
 /* The plant's own constants the throw flies on, as plant_wing.c defines them. */
@@ -828,6 +892,7 @@ const rows = [
   ['bench rpm fraction at throttle 0.4 .. 1 (the plant\'s is the throttle)', benchRpmFrac.map(([t, n]) => `${t}:${f(n, 3)}`).join(' ')],
   ['slipstream', J(slip, 4)],
   ['rot_k roll pitch yaw N m s2; side_cda m2, its section over a round body\'s (TN 3038)', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}; ${f(sideCda, 4)}, ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['C1 level at 75 percent', f(level(0.75), 2)],
   ['C2 stall, CLmax / a_w', `${f(Vs, 2)} ${f(CLmax / aw, 5)}`],
   ['C3 L/D at 15 m/s', f(ld(15), 2)],
@@ -894,8 +959,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       ['c10_zero_speed', 'yawDerived', D.yawAccHover, 2, 'yawMin', 'yawMax', 0.75, 1.25, 1],
       ['c11_harrier', 'vDerived', D.harrier40.V, 3, 'vMin', 'vMax', 0.80, 1.20, 2],
       ['c11_harrier', 'dutyDerived', D.harrier40.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
-      ['c12_knife_edge', 'betaDerived', D.knife20.betaDeg, 2, 'betaMin', 'betaMax', 0.75, 1.25, 1],
-      ['c12_knife_edge', 'dutyDerived', D.knife20.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
+      ['c12_knife_edge', 'speed', D.knifeGate.V, 2, null, null],
+      ['c12_knife_edge', 'betaDerived', D.knifeGate.betaDeg, 2, 'betaMin', 'betaMax', 0.75, 1.25, 1],
+      ['c12_knife_edge', 'dutyDerived', D.knifeGate.duty, 3, 'dutyMin', 'dutyMax', 0.85, 1.15, 3],
+      ['c12_knife_edge', 'rudderDerived', D.knifeGate.drOfThrow, 3, null, null],
       ['c14_takeoff', 'derived', D.takeoff.x, 3, 'distMin', 'distMax', 0.60, 1.60, 2],
     ];
     for (const [gate, key, value, n, lo, hi, fl, fh, nb] of BANDS) {
@@ -961,7 +1028,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       ['c9_aileron_hover.derived', th.c9_aileron_hover.derived, D.aileronRollNet],
       ['c10_zero_speed.pitchDerived', th.c10_zero_speed.pitchDerived, D.pitchAccHover], ['c10_zero_speed.yawDerived', th.c10_zero_speed.yawDerived, D.yawAccHover],
       ['c11_harrier.vDerived', th.c11_harrier.vDerived, D.harrier40.V], ['c11_harrier.dutyDerived', th.c11_harrier.dutyDerived, D.harrier40.duty],
-      ['c12_knife_edge.betaDerived', th.c12_knife_edge.betaDerived, D.knife20.betaDeg], ['c12_knife_edge.dutyDerived', th.c12_knife_edge.dutyDerived, D.knife20.duty],
+      ['c12_knife_edge.speed', th.c12_knife_edge.speed, D.knifeGate.V], ['c12_knife_edge.rudderDerived', th.c12_knife_edge.rudderDerived, D.knifeGate.drOfThrow],
+      ['c12_knife_edge.betaDerived', th.c12_knife_edge.betaDerived, D.knifeGate.betaDeg], ['c12_knife_edge.dutyDerived', th.c12_knife_edge.dutyDerived, D.knifeGate.duty],
       ['c13_rest.pitchDerived', th.c13_rest.pitchDerived, D.restPitchDeg], ['c13_rest.zDerived', th.c13_rest.zDerived, D.cgHeight],
       ['c13_rest.tailDerived', th.c13_rest.tailDerived, D.tailShare], ['c14_takeoff.derived', th.c14_takeoff.derived, D.takeoff.x],
       ['stab_straight.derived', th.stab_straight.derived, D.straight],

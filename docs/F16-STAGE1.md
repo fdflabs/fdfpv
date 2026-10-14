@@ -68,7 +68,7 @@ coefficient below.
 | CL max, blend | 1.10, 3 deg | under the full size F-16's 1.5 to 1.6 for the model's Reynolds number and fixed leading edge; ESTIMATED |
 | Post stall | held 10 deg, falls to 0.8 | the strakes' vortex to Freewing's 30 deg of alpha; ESTIMATED (docs/STALL-STAGE1.md; stall:derive) |
 | Stall arms, stall_dw, stall_asym | -0.0552, 0.2052, 0.1442, 0.0035 | stall:derive: the CG 16 mm ahead of the wing's aerodynamic centre, the plate at 0.40 c, 1 mm of build tolerance |
-| CYβ, Cnβ, Cnr | -0.470, 0.1420, -0.2241 | the fin (the F-16's 5.09 m² at 1/11.5, 0.0385 m², 0.45 m aft), less the long forebody's -0.0683 (Nelson eq. 2.64) |
+| CYβ, Cnβ, Cnr | -0.470, 0.1420, -0.2241 | the fin (the F-16's 5.09 m² at 1/11.5, 0.0385 m², 0.45 m aft), less the long forebody's -0.0683 (Nelson eq. 2.64); the plant flies TP-1538's measured side force instead of this CYβ (cy_tab, -1.078 per rad at 0 deg, docs/FLIGHTMODEL.md) |
 | Clβ, Clp, Clδa | -0.1061, -0.3495, 0.1226 | the sweep's effective dihedral and the fin; strip theory; ailerons from 117 to 300 mm out, a fifth of the chord |
 | Cnδr, CYδr, Clδr | -0.1094, 0.2134, 0.0292 | the rudder, a fifth of the fin |
 
@@ -293,6 +293,34 @@ pendulum (Habeck and Seiler, "Moment of Inertia Estimation Using a Bifilar
 Pendulum", University of Minnesota, https://conservancy.umn.edu/items/93c40732-5e50-4c4b-97dd-23a7ab4c05c2):
 I = m g D^2 T^2 / (16 pi^2 L), D the wires' spacing, L their length, T the
 period.
+
+## The side force, from TP-1538's scan (SOURCED)
+
+The plant flies TP-1538's measured side force (cy_tab, docs/FLIGHTMODEL.md,
+`npm run f16:derive-hilat`). Its rows come from the digitized copy of table
+III (the hifi aerodata files CY0320 and CY0820), which the research note had
+not checked against the scan for CY. Checked 2026-10-13 against the NTRS
+scan (19800005879, PDF pages 74 and 75, printed pages 68 and 69: CY(alpha,
+beta) and CY,lef(alpha, beta)), at alpha 0 and 40 and every sideslip from
+-30 to +30. Every printed value is the digitized one less one constant per
+row, the digitized copy's value at beta 0; the scan prints 0.00000 there.
+That constant cancels in the odd part the plant takes, so the rows the
+plant flies are the scan's.
+
+| Table, alpha | beta -30 scan (digitized less its beta 0) | beta +30 scan (digitized less its beta 0) | digitized beta 0 | odd part at 30, taken |
+| --- | --- | --- | --- | --- |
+| CY, 0 | 0.62180 (0.6218) | -0.64000 (-0.6400) | -0.0038 | -0.6309 |
+| CY, 40 | 0.44700 (0.4470) | -0.22420 (-0.2242) | -0.0845 | -0.3356 |
+| CY,lef, 0 | 0.62930 (0.6293) | -0.64260 (-0.6426) | -0.0003 | -0.6360 |
+| CY,lef, 40 | 0.19760 (0.1976) | -0.21950 (-0.2195) | -0.0706 | -0.2086 |
+
+The intermediate sideslips of those four rows (-25 to +25) agree the same
+way to the last printed digit (for example CY,lef at alpha 40: 0.17760,
+0.15660, 0.12860, 0.09060, 0.07370, 0.05930, 0.05050, 0.01880, 0, -0.02860,
+-0.05160, -0.07370, -0.09380, -0.11320, -0.15030, -0.17910, -0.19960). The
+scan itself is asymmetric past 30 deg of alpha (CY at alpha 40 is 0.447 at
+-30 and -0.224 at +30): that is the tunnel model's, and the odd part takes
+the symmetric aircraft's mean, as the research note says to.
 
 ## The gear
 

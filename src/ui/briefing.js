@@ -35,10 +35,13 @@
 import { MISSIONS } from '../share/war/missions/index.js';
 import { airframeById } from '../../configs/airframes.js';
 import { ACT1 } from '../game/campaign.js';
+import { modeById } from '../share/modes.js';
 import { str } from '../strings/index.js';
 
-/* Pilots a mission is built for (docs/campaign/MISSIONS.md 1.6). */
-export const PILOTS = [1, 8];
+/* Pilots a mission is built for: as few as the registry's war keeps
+ * going (src/share/modes.js minPlayers), as many as its waves are scaled
+ * for (docs/campaign/MISSIONS.md 1.6, 1 to 8). */
+export const PILOTS = [modeById('war').minPlayers, 8];
 
 /* The objectives a pilot meets first: the first stage that has any. */
 function openingObjectives(mission) {
@@ -48,7 +51,8 @@ function openingObjectives(mission) {
 
 /*
  * The briefing of mission `id` for a room, or null for an id that is no
- * mission. `room` is { public, code }: who can join.
+ * mission. `room` is { public, code }: who can join, the code null for a
+ * private room nobody is told it (Solo).
  */
 export function briefingOf(id, room = { public: true, code: null }) {
   const mission = MISSIONS[id];
@@ -69,7 +73,7 @@ export function briefingOf(id, room = { public: true, code: null }) {
       { label: str('brief.aircraft'), value: str('brief.aircraft_value', { names: mission.aircraft.map((a) => airframeById(a).name).join(', '), n: mission.airframes }) },
       { label: str('brief.length'), value: minutes ? str('brief.minutes', { low: minutes[0], high: minutes[1] }) : str('brief.length_open') },
       { label: str('brief.pilots'), value: str('brief.pilots_value', { low: PILOTS[0], high: PILOTS[1] }) },
-      { label: str('brief.room'), value: room.public ? str('brief.room_public') : str('brief.room_private', { code: room.code || '' }) },
+      { label: str('brief.room'), value: room.public ? str('brief.room_public') : room.code ? str('brief.room_private', { code: room.code }) : str('brief.room_solo') },
     ],
   };
 }

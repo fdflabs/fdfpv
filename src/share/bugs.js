@@ -40,6 +40,28 @@ export const BUG_KINDS = [
   ['other', 'bugs.other'],
 ].map(([id, key]) => ({ id, label: str(key) }));
 
+/*
+ * Who and what a report is about, beyond the shell's own snapshot
+ * (COMPLETENESS 66): the build (the page's stamped commit, `local` for a
+ * checkout), the aircraft seated, the activity (the Ui's mode, empty on
+ * the title), and the controller the pilot chose (src/input/stickstore.js
+ * loadPadChoice: a pad's id as the browser names it, else `none` for the
+ * keyboard on purpose or `auto` for no choice yet).
+ * Plain inputs in, so the selftest holds it in Node.
+ */
+const FIELD_CHARS = 40;
+const CONTROLLER_CHARS = 100;
+export function reportFields({ version = null, airframe = '', mode = null, pad = null } = {}) {
+  const text = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+  const controller = pad && pad.kind === 'pad' ? text(pad.id, CONTROLLER_CHARS) : text(pad && pad.kind, FIELD_CHARS);
+  return {
+    build: text(version, FIELD_CHARS) || 'local',
+    airframe: text(airframe, FIELD_CHARS),
+    activity: text(mode, FIELD_CHARS),
+    controller,
+  };
+}
+
 /* Resolves to the board's answer (null when it is empty or not JSON).
  * Rejects with an Error carrying `status` when the board refuses, worded
  * as the board worded it if it did, and with fetch's own error when there

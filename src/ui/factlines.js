@@ -65,6 +65,9 @@ export function factLines(d) {
   if (d.result.landed != null) {
     lines.push([str('debrief.landing'), str(d.result.landed ? 'debrief.landed' : 'debrief.not_landed')]);
   }
+  if (d.condition != null) {
+    lines.push([str('debrief.condition'), str(`debrief.cond_${d.condition}`), d.condition === 'destroyed' ? 'off' : '']);
+  }
   for (const r of d.records) {
     lines.push([str(r.what), recordText(r), r.improved === true ? 'gain' : r.improved === false ? 'off' : '']);
   }

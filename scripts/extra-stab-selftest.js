@@ -88,11 +88,13 @@ function fullBank(s) {
  * body rates over the last quarter second (roll right, nose up and nose
  * right positive), the mean sideslip over the last second, and the end
  * state. */
+let lastPeakR = 0;
 function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
   const total = seconds * 1000;
   let worstBank = 0;
   let worstRef = 0;
   let sumBank = 0;
+  let peakR = 0;
   let sumPitch = 0;
   let sumBeta = 0;
   let n = 0;
@@ -116,6 +118,7 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
     }
     if (ms >= total - 1000) {
       sumBank += bank;
+      peakR = Math.max(peakR, Math.abs(s[13]));
       sumPitch += attitude(s).pitch;
       sumBeta += wingDebug(sim)[1];
       n += 1;
@@ -130,7 +133,10 @@ function fly(roll, pitch, yaw, duty, seconds, refBank = null) {
     }
   }
   clockMs += total;
+  const floor = lastPeakR;
+  lastPeakR = peakR;
   return {
+    floor,
     bank: sumBank / n, endBank: fullBank(s), pitch: sumPitch / n, endPitch: attitude(s).pitch, beta: sumBeta / n,
     worstBank, worst: worstRef, p: sumP / m, q: sumQ / m, r: sumR / m, rAll: sumRAll / mAll,
     v: Math.hypot(s[4], s[5], s[6]), vz: s[6], z: s[3], y: s[2],
@@ -151,7 +157,8 @@ throwAt(30, 12);
 /* Centred sticks at the stick that flies it level, the table's
  * stab_trim_throttle (npm run stab:glide): a fixed 0.75 climbed once the
  * prop curves gave the prop its thrust at speed. */
-const level = fly(0, 0, 0, planeTable('FW_EXTRA3D1308').fw.stab_trim_throttle, 10);
+const EXTRA_T = planeTable('FW_EXTRA3D1308');
+const level = fly(0, 0, 0, EXTRA_T.fw.stab_trim_throttle, 10);
 check('centred sticks fly level: bank within 3 degrees', Math.abs(level.bank * DEG) < 3, `${deg(level.bank)} deg`);
 check('and never banked past 8 degrees on the way', level.worstBank * DEG < 8, `${deg(level.worstBank)} deg`);
 check('and hold the trim pitch within 4 degrees', Math.abs(level.pitch * DEG - 2) < 4, `${deg(level.pitch)} deg`);
@@ -177,7 +184,11 @@ const yawed = fly(0, 0, 1, 0.75, 1);
 /* The coordinator's gain is the Cub's over a rudder twelve times its
  * authority; the stick still wins. */
 check('full right yaw stick wins over the coordinator: rudder right of half its throw', surfaces()[3] * DEG < -27.5, `rudder ${deg(surfaces()[3])} deg`);
-check('and yaws the nose right', yawed.r * DEG > 3, `${deg(yawed.r)} deg/s`);
+/* "Yaws the nose right" is a sign: the rate the stick buys over the
+ * stabiliser must clear what the aircraft did with the sticks where they
+ * were, the worst yaw rate of the hold before (fly's floor). Until
+ * 2026-10-13 it had to clear 3 deg/s, a number from nowhere (4133ca0aa). */
+check('and yaws the nose right', yawed.r > yawed.floor, `${deg(yawed.r)} deg/s, the sticks where they were wandered ${deg(yawed.floor)}`);
 const unyawed = fly(0, 0, 0, 0.75, 4);
 check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG) < 4, `${deg(unyawed.bank)} deg`);
 
@@ -259,7 +270,7 @@ const HOVER_DUTY = wingSeat('FW_EXTRA3D1308').hoverStick(SEAT_GATES);
  * near nothing, is no measure of a damper). */
 for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2, 0, -Math.SQRT1_2, 0], 0, HOVER_DUTY], ['level at 16 m/s', [1, 0, 0, 0], 16, 0.393]]) {
   for (const [axis, k] of [['roll', 11], ['pitch', 12], ['yaw', 13]]) {
-    const kicked = (heading) => bothModes((mode) => {
+    const kicked = (heading, kick = 1) => bothModes((mode) => {
       mode();
       must(sim.setHeading([heading, heading, heading]), 'sim_wing_set_heading');
       must(sim.reset(), 'reset');
@@ -270,28 +281,49 @@ for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2,
       fly(0, 0, 0, duty, 0.3);
       const s = sim.readState().state;
       const w = [s[11], s[12], s[13]];
-      w[k - 11] += 1;
+      w[k - 11] += kick;
       must(sim.e.sim_set_velocity(s[4], s[5], s[6], ...w), 'kick');
-      let angle = 0, rate = 0, decay = 0, at1 = 0;
+      let angle = 0, rate = 0, decay = 0;
+      const tr = [];
       for (let i = 0; i < 250; i += 1) {
         fly(0, 0, 0, duty, 0.004);
-        const d = sim.readState().state[k] - s[k];
-        at1 += d * 0.004;
+        tr.push(sim.readState().state[k]);
+        const d = tr[i] - s[k];
         if (i >= 125) continue;
         angle += d * 0.004;
         rate += Math.abs(d) * 0.004;
         if (Math.abs(d) >= Math.exp(-1)) decay = (i + 1) * 0.004;
       }
       must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
-      return { angle: Math.abs(angle), rate, decay, at1: Math.abs(at1) };
+      return { angle: Math.abs(angle), rate, decay, tr };
     });
     const held = kicked(1);
-    if (speed > 0) {
+    /* The turn the kick leaves after 1 s: the kicked flight's rate less
+     * the same flight's unkicked, integrated, in each mode. */
+    const still = kicked(1, 0);
+    for (const m of ['as3x', 'manual']) {
+      held[m].at1 = Math.abs(held[m].tr.reduce((sum, r, i) => sum + (r - still[m].tr[i]) * 0.004, 0));
+    }
+    /* An axis whose derived full Heading is zero (as3x_kh, npm run
+     * as3x:derive) has no hold to judge: its full Heading is the damper
+     * alone. Recorded, not judged; the damper is judged at the default
+     * Heading below. */
+    const noHold = EXTRA_T.fw.as3x_kh[k - 11] === 0;
+    if (noHold) {
+      console.log(`  info  ${where}, the Heading full, a 1 rad/s ${axis} kick: the table derives no ${axis} Heading (as3x_kh 0), recorded and not judged: ${deg(held.as3x.at1)} against Manual's ${deg(held.manual.at1)} deg left after 1 s`);
+    } else if (speed > 0) {
       /* Level, a heading hold is judged on the heading it leaves: the
        * angle the kick turned it, still off after 1 s, by when the
        * airframe's own weathercock swing has settled (in a level kick
        * flown 1 ms a step, Manual's yaw error is 0.41 deg at 0.5 s, 0.74
-       * at 1 s and 0.88 at 2 s). A hold
+       * at 1 s and 0.88 at 2 s), against the same flight unkicked in the
+       * same mode. Until w38-physics-3 the kicked rate was taken less the
+       * rate before the kick, as if the flight held it through the
+       * second; after the 0.3 s lead in it does not, and by a different
+       * amount in each mode (unkicked, -0.23 deg in Manual, -0.16 on the
+       * damper, -0.19 at the full Heading, the Extra's yaw on 20fde9b91),
+       * which put the yaw line at 0.5 against 0.4 deg where the kick
+       * itself leaves 0.73 against 0.76 (lead decision 2026-10-13). A hold
        * reverses the rate to bring the heading back, so how fast the rate
        * dies is no measure of it (lead decision 2026-10-12). Until then:
        * the angle at 0.5 s (yaw 0.1 against 0.1 deg on the ratio Heading,
@@ -314,7 +346,7 @@ const leftIn = fly(0, 0, 0, 1.0, 0.3);
 const bankLeft = fly(0, 0, 0, 1.0, 2);
 check('a bank it is left in is not levelled: still past half of it 2 s on', Math.abs(leftIn.endBank) * DEG > 15 && Math.abs(bankLeft.endBank) > 0.5 * Math.abs(leftIn.endBank), `${deg(leftIn.endBank)} -> ${deg(bankLeft.endBank)} deg`);
 const as3xYaw = fly(0, 0, 1, 0.75, 1);
-check('full right yaw stick yaws the nose right', as3xYaw.rAll * DEG > 3, `${deg(as3xYaw.rAll)} deg/s over the hold`);
+check('full right yaw stick yaws the nose right', as3xYaw.rAll > as3xYaw.floor, `${deg(as3xYaw.rAll)} deg/s over the hold, the sticks where they were wandered ${deg(as3xYaw.floor)}`);
 
 /* A pull with the power off, the owner's case (2026-10-09: "when i pull
  * on elevator when having zero accelerator ... it pulls left then banks

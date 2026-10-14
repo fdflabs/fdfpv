@@ -316,11 +316,19 @@ const respsOf = (ms) => [0, 1, 2].map((ax) => ms.flatMap((m) => m.conds.map((c) 
  * the Slick's roll and yaw held alone (0.75 and 1 of the rule's) and not
  * together, at any common factor down to a twentieth; its yaw alone
  * held. Not "every scale below it
- * too", as the margin rule's is: the receiver's damper alone leaves the
- * Extra's rock at 1.00 and 1.005 of Manual's, so no Heading near zero
- * holds, and on the Extra the yaw Heading worsens it from a twentieth to
- * a fifth of its full (1.03 to 1.08) before it damps it from two fifths
- * on (0.99 and 0.97 at 0.4). The flights are flown on lib/as3xloop.js's receiver
+ * too", as the margin rule's is: on an earlier plant the
+ * receiver's damper alone left the Extra's rock at 1.00 and 1.005 of
+ * Manual's, so no Heading near zero held. On 20fde9b91's plant (the
+ * plate's force in the plane of symmetry) the damper alone leaves it at
+ * 0.984 and 0.987 (the pitch Heading full with it, the same), and the
+ * Extra's yaw Heading worsens it from zero on, evenly, the pitch's full:
+ * 0.995 and 0.997 at a twentieth of the rule's, 0.997 and 0.9995 at
+ * 0.06, 0.999 and 1.002 at 0.07, 1.005 and 1.008 at a tenth, 1.110 and
+ * 1.115 at the full. The crossing sits near 0.064, so the sweep's
+ * first step, 0.05, holds and is the yaw Heading (0.0214 of it, 0.001 at
+ * four places): one step under a measured crossing, not under the
+ * sweep's resolution, as the fleet's other small Headings (0.0012,
+ * 0.0013, 0.0041) are the margin rule's. The flights are flown on lib/as3xloop.js's receiver
  * (emulatedSim), so a Heading the table does not hold yet can be flown;
  * as3x-feel.js F0 checks it against the plant's mode 3 at full Heading.
  *

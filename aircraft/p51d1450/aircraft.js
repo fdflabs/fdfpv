@@ -45,6 +45,8 @@ export default {
     "sizeMm": 1450,
     "grams": 2350,
     "trackClass": "wing",
+    "class": "plane",
+    "roles": [],
     "cells": 4,
     "packVoltages": [
       4.2,
@@ -249,7 +251,7 @@ export default {
       },
       "kv650": {
         "4s2600": {
-          "topSpeed": 33.49,
+          "topSpeed": 33.5,
           "minutes": 25.8
         }
       }

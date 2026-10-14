@@ -77,6 +77,12 @@
  *    clip without sticks still the version before and read back without
  *    them, and its refusals; the export a control recording that parses
  *    and that Compare sticks loads.
+ * 25. The app build that flew a clip (src/replay/file.js version 18): a
+ *    deploy's stamp and a checkout's null each round trip bit for bit
+ *    beside the sticks; the clip without a build (one an older file gave)
+ *    still the version before and read back without one, so My clips says
+ *    "build unknown"; a trim keeps it; its refusals, a version 18 file
+ *    without its build first.
  *
  * Run: npm run crashcam:selftest
  *
@@ -102,7 +108,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim, Sim, SIM_OK } from '../tests/lib/simmod.js';
-import { createJournal, PURE, POINTERS } from '../src/replay/journal.js';
+import {
+  allocatorSpans, createJournal, plantRegion, PURE, POINTERS,
+} from '../src/replay/journal.js';
+import { packRefly, reflyOf, unpackRefly } from '../src/replay/refly.js';
 import { INFO, PART_KINDS, PARTS_MAX, PART_STATE_DOUBLES, STATE, SURFACE } from '../configs/parts.js';
 import { powerBlock } from '../configs/power.js';
 import {
@@ -130,7 +139,10 @@ import { OPUS_BPS } from '../src/share/voice.js';
 import { FLAG_CRASHED, FLAG_QUAD } from '../src/share/roomwire.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
-import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
+import { decodeReplay, encodeReplay, FILE_MAX_BYTES, REFUSALS, ReplayFileError } from '../src/replay/file.js';
+import { buildOf } from '../src/replay/editor.js';
+import EN_STRINGS from '../src/strings/en.js';
+import ES_STRINGS from '../src/strings/es.js';
 import {
   BODY_N, MODES, STICK, STICK_N, STICK_SCALE, controlRows, createSticksRing, sticksAt,
 } from '../src/replay/sticks.js';
@@ -164,6 +176,21 @@ function check(ok, what, detail = '') {
 }
 
 const sha = (u8) => createHash('sha256').update(u8).digest('hex').slice(0, 16);
+
+/* The region's hash without malloc's bookkeeping (journal.js
+ * allocatorSpans): the shell's heap, which a take over keeps as it is
+ * rather than putting back (section 24), so it is not the plant. */
+const ALLOCATOR = await (async () => {
+  const m = await loadSim(wasmBytes);
+  return allocatorSpans(m.e, plantRegion(m.e));
+})();
+function plantSha(reg) {
+  const c = reg.slice();
+  for (const [a, z] of ALLOCATOR) {
+    c.fill(0, a, z);
+  }
+  return sha(c);
+}
 
 /* A module with the journal between it and the caller, as the shell has. */
 async function journaled(opts) {
@@ -340,7 +367,7 @@ function flyTakeOver() {
         if (freeAt < 0 && sim.e.sim_free_bodies_active() > 0) {
           freeAt = frames.length;
         }
-        frames.push({ ms, mark: j.mark(), st, parts, hash: sha(region()) });
+        frames.push({ ms, mark: j.mark(), st, parts, hash: plantSha(region()) });
       }
     }
     check(broke, 'the wing was broken off in flight');
@@ -404,7 +431,7 @@ function flyTakeOver() {
         Buffer.from(f.st.buffer, 0, f.st.byteLength)) === 0;
       const sameParts = Buffer.compare(Buffer.from(parts.buffer, parts.byteOffset, parts.byteLength),
         Buffer.from(f.parts.buffer, 0, f.parts.byteLength)) === 0;
-      const sameRegion = sha(reg) === f.hash;
+      const sameRegion = plantSha(reg) === f.hash;
       const good = ok && sameState && sameParts && sameRegion;
       identical += good ? 1 : 0;
       check(good, `frame ${i} (t ${((f.ms + 1) / 1000).toFixed(3)} s) put back`,
@@ -433,6 +460,102 @@ function flyTakeOver() {
     }
     check(identical === picks.length, 'every frame tried was put back exactly', `${identical}/${picks.length}`);
   })();
+}
+
+/* ---- 24. take over and the shell's heap ---- */
+
+/*
+ * The region a take over writes back holds malloc's own bookkeeping as
+ * well as the plant (the plant never allocates; the shell does, between
+ * two copies, for a buffer it makes on first use). Written back with the
+ * rest, the allocator forgot that buffer and handed it out again: two
+ * owners of one block. A take over must leave the allocator as it is, and
+ * still put the plant back bit for bit.
+ */
+async function allocatorTakeOver() {
+  console.log('24. take over leaves the shell\'s heap alone');
+  const { sim, j, raw } = await journaled();
+  const statePtr = sim.e.malloc(64 * 8);
+  const partsPtr = sim.e.malloc(PARTS_MAX * PART_STATE_DOUBLES * 8);
+  const eventsPtr = sim.e.malloc(64 * 16 * 8);
+  const nState = sim.e.sim_state_size();
+  j.snapshot(0);
+  setup(sim);
+  must(sim.e.sim_set_pose(0, 0, 30, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(15), 'sim_wing_launch');
+  let frame = null;
+  let lazy = 0;
+  const BYTES = 32;
+  let moved = 0;
+  let outside = 0;
+  for (let ms = 0; ms < 2500; ms += 1) {
+    stepMs(sim, ms, statePtr, partsPtr, eventsPtr);
+    const t = (ms + 1) / 1000;
+    if (ms % 16 === 15) {
+      if (j.due(t)) {
+        j.snapshot(t);
+      }
+      if (!frame && ms > 400) {
+        frame = { ms, mark: j.mark(), st: new Float64Array(raw.memory.buffer, statePtr, nState).slice() };
+      }
+    }
+    if (ms === 1600) {
+      /* A switch thrown after the frame: a setup call of the flight the
+       * take over undoes. */
+      must(sim.e.sim_set_crashflip(1), 'sim_set_crashflip');
+      must(sim.e.sim_set_crashflip(0), 'sim_set_crashflip');
+    }
+    if (ms === 1700) {
+      /* A buffer made on first use, after the frame's copy, as the shell
+       * makes its wing surface and wind buffers. */
+      const was = new Uint8Array(raw.memory.buffer, j.region.lo, j.region.hi - j.region.lo).slice();
+      lazy = sim.e.malloc(BYTES);
+      const p = sim.e.malloc(7 * 8);
+      sim.e.free(p);
+      new Uint8Array(raw.memory.buffer, lazy, BYTES).fill(0xa5);
+      const now = new Uint8Array(raw.memory.buffer, j.region.lo, j.region.hi - j.region.lo);
+      for (let i = 0; i < now.length; i += 1) {
+        if (now[i] !== was[i]) {
+          moved += 1;
+          outside += ALLOCATOR.some(([a0, z0]) => i >= a0 && i < z0) ? 0 : 1;
+        }
+      }
+    }
+  }
+  check(moved > 0 && outside === 0, 'the shell\'s allocations in flight move only the allocator\'s spans',
+    `${moved} bytes moved, ${outside} outside ${ALLOCATOR.map(([a0, z0]) => `${a0}+${z0 - a0}`).join(', ')}`);
+  const ok = j.restore(frame.mark, (frame.ms + 1) / 1000);
+  sim.e.sim_state(statePtr);
+  const st = new Float64Array(raw.memory.buffer, statePtr, nState);
+  const same = st.every((x, i) => Object.is(x, frame.st[i]));
+  check(ok && same, 'the plant is put back bit for bit', `restore ${ok}, state ${same}`);
+  const next = sim.e.malloc(BYTES);
+  new Uint8Array(raw.memory.buffer, next, BYTES).fill(0x5a);
+  const apart = next + BYTES <= lazy || lazy + BYTES <= next;
+  const kept = new Uint8Array(raw.memory.buffer, lazy, BYTES).every((b) => b === 0xa5);
+  check(apart && kept, 'a block made after the frame is still the shell\'s: the next one is elsewhere',
+    `made at ${lazy}, next at ${next}, first block ${kept ? 'intact' : 'overwritten'}`);
+
+  /* The setup log forgets the undone flight's calls too, so a clip cut
+   * after the take over opens and its setup is the flight flown on. */
+  const span = j.exportSpan(frame.mark[0]);
+  const flips = (() => {
+    let n = 0;
+    for (let r = 0; r < span.setup.calls.length; r += 3 + span.setup.calls[r + 1] + span.setup.calls[r + 2]) {
+      n += j.names[span.setup.calls[r]] === 'sim_set_crashflip' ? 1 : 0;
+    }
+    return n;
+  })();
+  const head = new Float64Array(HEAD_N);
+  head[HEAD.markSeg] = frame.mark[0];
+  head[HEAD.markPos] = frame.mark[1];
+  let opened = 'no refly';
+  const r = reflyOf(span, { n: 1, head });
+  if (r) {
+    opened = await unpackRefly(await packRefly(r)).then(() => 'opened', (err) => err.message);
+  }
+  check(flips === 0 && opened === 'opened', 'the setup log forgets the calls after the frame, and a clip cut from it opens',
+    `${flips} crashflip calls kept, ${opened}`);
 }
 
 /* ---- 15. a cut link and a warhead ---- */
@@ -536,7 +659,7 @@ function flyWarTakeOver() {
         mark: j.mark(),
         st: new Float64Array(raw.memory.buffer, statePtr, nState).slice(),
         parts: new Float64Array(raw.memory.buffer, partsPtr, PARTS_MAX * PART_STATE_DOUBLES).slice(),
-        hash: sha(region()),
+        hash: plantSha(region()),
       });
     });
     check((seen & RX_ACTIVE) !== 0, 'the cut link reached Betaflight\'s stage 2', `states seen 0x${seen.toString(16)}`);
@@ -570,7 +693,7 @@ function flyWarTakeOver() {
       const parts = new Float64Array(again.raw.memory.buffer, pp, PARTS_MAX * PART_STATE_DOUBLES);
       const sameState = Buffer.compare(Buffer.from(st.buffer, st.byteOffset, st.byteLength), Buffer.from(f.st.buffer, 0, f.st.byteLength)) === 0;
       const sameParts = Buffer.compare(Buffer.from(parts.buffer, parts.byteOffset, parts.byteLength), Buffer.from(f.parts.buffer, 0, f.parts.byteLength)) === 0;
-      const sameRegion = sha(reg) === f.hash;
+      const sameRegion = plantSha(reg) === f.hash;
       const good = ok && sameState && sameParts && sameRegion;
       identical += good ? 1 : 0;
       check(good, `frame ${i} (t ${((f.ms + 1) / 1000).toFixed(3)} s) put back`,
@@ -1014,6 +1137,33 @@ function file() {
     check(err instanceof ReplayFileError && err.airframe === 'sky1800' && err.map === null,
       'refused: an aircraft this build does not fly, by name', `${err.message}, airframe ${err.airframe}`);
   }
+  /* What the pilot is told: each refusal names one of REFUSALS, and each
+   * has its words in English and Spanish (replay.refused_<reason>); the
+   * English detail stays in the message, for the log. */
+  const reasonOf = (bytes, known = null) => {
+    try {
+      decodeReplay(bytes, known);
+      return 'accepted';
+    } catch (err) {
+      return err instanceof ReplayFileError ? err.reason : `threw ${err.message}`;
+    }
+  };
+  const newer = buf.slice(0);
+  new DataView(newer).setUint32(4, 999, true);
+  const reasons = [
+    ['not a file', reasonOf('not bytes'), 'not_replay'],
+    ['not a replay', reasonOf(new Uint8Array(64).buffer), 'not_replay'],
+    ['too big', reasonOf(new ArrayBuffer(FILE_MAX_BYTES + 1)), 'too_large'],
+    ['a version this build does not read', reasonOf(newer), 'version'],
+    ['an aircraft this build does not fly', reasonOf(buf, { airframe: () => false, map: () => true }), 'aircraft'],
+    ['a map this build does not have', reasonOf(buf, { airframe: () => true, map: () => false }), 'map'],
+    ['a damaged header', reasonOf(withHeader((h) => { h.meta.paint = { decals: [], wear: 2 }; })()), 'damaged'],
+  ];
+  for (const [why, got, want] of reasons) {
+    check(got === want, `the pilot is told why: ${why} is ${want}`, got);
+  }
+  const unsaid = REFUSALS.filter((r) => !EN_STRINGS[`replay.refused_${r}`] || !ES_STRINGS[`replay.refused_${r}`]);
+  check(unsaid.length === 0, 'every refusal has its words in English and Spanish', unsaid.join());
   /* The five inch and the 65 mm whoop, removed on 2026-10-03: a clip flown
    * on one is refused by its id against this build's own table, and that id
    * is one retiredAirframe names, which is what the crash cam's screen says
@@ -1512,12 +1662,14 @@ function peersRecord() {
   refused(() => encodeReplay(clip).slice(0, buf.byteLength - 4), 'a file cut short in its pieces');
 }
 
-/* A file with its version (in both places) changed and nothing else. */
-function reheader(buf, version) {
+/* A file with its version (in both places) changed and nothing else but
+ * what `edit` does to its header. */
+function reheader(buf, version, edit = () => {}) {
   const dv = new DataView(buf);
   const hl = dv.getUint32(8, true);
   const h = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 12, hl)));
   h.v = version;
+  edit(h);
   const json = new TextEncoder().encode(JSON.stringify(h));
   const oldStart = 12 + hl + ((8 - ((12 + hl) % 8)) % 8);
   const start = 12 + json.length + ((8 - ((12 + json.length) % 8)) % 8);
@@ -2090,7 +2242,7 @@ function animRecord() {
   gateFile(withClock, refused);
   soundFile(withClock, refused);
   voiceFile(withClock, refused);
-  sticksFile(withClock, refused);
+  buildFile(sticksFile(withClock, refused), refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -2899,6 +3051,61 @@ function sticksFile(withClock, refused) {
     none = err;
   }
   check(none instanceof Error, 'a clip saved before the sticks has no export, and says so', none ? none.message : 'exported');
+  return clip;
+}
+
+/*
+ * 25. The app build that flew a clip (src/replay/file.js version 18), the
+ * first field held only in the header: its rule is written once
+ * (HEADER_ONLY), so these are the cases any such field must pass.
+ */
+function buildFile(sticksClip, refused) {
+  console.log('25. the app build that flew a clip, saved (version 18) and shown in My clips');
+  const v = (b) => new DataView(b).getUint32(4, true);
+  const bytesOf = (b) => Buffer.from(new Uint8Array(b));
+  const old = encodeReplay(sticksClip);
+  const clip = { ...sticksClip, build: '0e9b7431f2ab' };
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(v(buf) === 18 && back.build === '0e9b7431f2ab' && same(back.sticks.ch, sticksClip.sticks.ch) && same(back.anim, sticksClip.anim),
+    'a clip with its build is saved as version 18 and comes back with it, the sticks and the clock beside it', `${buf.byteLength - old.byteLength} bytes for the build`);
+  check(bytesOf(encodeReplay(back)).equals(bytesOf(buf)), 'written again, the same bytes');
+  const local = decodeReplay(encodeReplay({ ...sticksClip, build: null }));
+  check(local.build === null && buildOf(local) === 'local build', 'a clip flown on a checkout keeps null and shows as a local build', buildOf(local));
+  const t = trimWhole(clip, clip.time[3], clip.time[clip.n - 3]);
+  check(t.build === clip.build && decodeReplay(encodeReplay(t)).build === clip.build, 'a trim keeps the build', `${t.n} rows`);
+
+  /* The old clip: the same rows without a build, written as a build
+   * before this one wrote them. */
+  const was = decodeReplay(old);
+  check(v(old) === 16 && !('build' in was) && bytesOf(encodeReplay(was)).equals(bytesOf(old)),
+    'the same clip without a build is still version 16, reads back without one and writes the same bytes again');
+  check(buildOf(was) === 'build unknown' && buildOf(back) === 'build 0e9b7431f2ab',
+    'My clips says build unknown for an older clip and names the build of a new one', `${buildOf(was)}; ${buildOf(back)}`);
+
+  refused(() => reheader(old, 18), 'a version 18 file without its build');
+  refused(() => reheader(buf, 16), 'a build in a file that says version 16');
+  const withBuild = (b) => reheader(buf, 18, (h) => { h.build = b; });
+  check(decodeReplay(withBuild('abc')).build === 'abc', 'the header rewritten with another good build still reads (the mutations below are the only change)');
+  refused(() => withBuild(42), 'a build that is a number');
+  refused(() => withBuild('x'.repeat(41)), 'a build over 40 characters');
+  refused(() => withBuild('../../etc'), 'a build with characters no stamp has');
+  let threw = null;
+  try {
+    const bare = { ...clip };
+    delete bare.sticks;
+    encodeReplay(bare);
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof Error, 'a clip with a build and no sticks is refused when written, not saved as a file no build reads', threw ? threw.message : 'written');
+  threw = null;
+  try {
+    encodeReplay({ ...clip, build: 7 });
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof Error, 'a build that is not one is refused when written', threw ? threw.message : 'written');
 }
 
 ring();
@@ -2916,6 +3123,7 @@ await pureReaders();
 await flyTakeOver();
 await flyWarTakeOver();
 await bounded();
+await allocatorTakeOver();
 
 if (failures) {
   console.log(`crashcam:selftest FAILED (${failures})`);

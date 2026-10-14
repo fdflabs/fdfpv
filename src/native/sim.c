@@ -2902,6 +2902,14 @@ SIM_EXPORT int sim_wing_slip(double *out) {
   return SIM_OK;
 }
 
+SIM_EXPORT int sim_wing_yaw_budget(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  plant_wing_yaw_budget(out);
+  return SIM_OK;
+}
+
 SIM_EXPORT int sim_wing_command(double *out) {
   if (out == 0) {
     return SIM_ERR_BAD_ARG;
@@ -3152,6 +3160,14 @@ SIM_EXPORT int sim_set_wind(double vx, double vy, double gust) {
   SIM_WIND[1] = vy;
   SIM_GUST = gust;
   SIM_WIND_ON = vx != 0.0 || vy != 0.0 || gust > 0.0 || SIM_AIR_W != 0.0;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_set_wind_clock(double ms) {
+  if (!finite_d(ms) || !(ms >= 0.0) || !(ms <= 1e15) || ms != (double)(long long)ms) {
+    return SIM_ERR_BAD_ARG;
+  }
+  SIM_GUST_STEP0 = ((long long)ms * SIM_STEP_HZ / 1000) % GUST_WRAP_STEPS;
   return SIM_OK;
 }
 

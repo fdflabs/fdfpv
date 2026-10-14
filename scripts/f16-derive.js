@@ -630,6 +630,7 @@ function rollOut(v0, mu = 0.08) {
   }
   return { x, t };
 }
+
 const f = (x, n = 3) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
 const V50 = level(0.5), V75 = level(0.75);
 const lat = lateral(V50);
@@ -644,6 +645,7 @@ const rows = [
   ['zero lift line deg, sin, cos', `${f(alphaZL * DEG, 2)} ${Math.sin(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)} ${Math.cos(Math.round(alphaZL * DEG * 100) / 100 / DEG).toPrecision(17)}`],
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma, 4)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde)}`],
   ['CYβ, Cnβ (fuselage), Cnr', `${f(CYb)} ${f(Cnb, 4)} (${f(CnbFus, 4)}) ${f(Cnr, 4)}`],
+  ['   the plant flies TP-1538\'s measured side force in place of CYβ, the drag\'s sideways share and the crossflow', 'npm run f16:derive-hilat, cy_tab'],
   ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['Clβ, Clp, Clδa', `${f(Clb, 4)} ${f(Clp, 4)} ${f(Clda, 4)}`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],

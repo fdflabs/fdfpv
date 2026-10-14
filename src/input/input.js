@@ -50,15 +50,20 @@ import { str } from '../strings/index.js';
 
 import { DEFAULT_STICK_MODE, normaliseStickMode } from './stickmode.js';
 import {
-  FLIGHT_CHANNELS, builtInKind, builtInMap, normaliseMap, readSticks,
+  AETR_MAP, FLIGHT_CHANNELS, builtInKind, builtInMap, normaliseFeel, normaliseMap, readSticks,
 } from './padmap.js';
-import { deviceKey } from './padprofiles.js';
-import { migrateStickStorage, loadStickMap, saveStickMap } from './stickstore.js';
+import { deviceKey, deviceKind, profileFor } from './padprofiles.js';
+import {
+  forgetStickMap, loadStickFeel, loadStickMap, migrateStickStorage, saveStickFeel, saveStickMap,
+} from './stickstore.js';
 import { KeyboardSticks } from './keyboard.js';
 import { MouseStick, MOUSE_CENTRE_KEY } from './mouse.js';
 import { PadRoster, connectedPads, shortPadName } from './padpick.js';
 import { CalibrationWizard } from './calibrate.js';
 import { GuessEvidence } from './guess.js';
+import { ACTION_BY_ID, ACTIONS } from './actions.js';
+import { buttonLabel, effectiveButtons } from './padbinds.js';
+import { PAD_BUTTONS } from './padbuttons.js';
 import { PadMenus, altButton, floatsButton, lookClick, lookStick, padDirections, startButton, swapButtons, footButton } from './menus.js';
 
 export { standardPadMap } from './padmap.js';
@@ -100,6 +105,14 @@ export class InputManager {
     /* The code each held physical key went down as, so its release lets
      * go of that same code. */
     this.downAs = new Map();
+    /* main.js sets this: () => ({ binds, airframe, flight }), the pilot's
+     * pad bindings (padbinds.js), the seated airframe and whether the
+     * screen is flight. Unset, every action is on its default button. */
+    this.padBinding = null;
+    /* The key codes a pad button holds down for its action (pollPadKeys). */
+    this.padKeysDown = new Set();
+    /* Set when the flying device went; takeDeviceLoss reads it once. */
+    this.deviceLost = false;
     this.stickMode = DEFAULT_STICK_MODE;
     this.keyboard = new KeyboardSticks(this.stickMode);
     this.mouseStick = new MouseStick();
@@ -114,6 +127,8 @@ export class InputManager {
      * until one is seen. With none, nothing is saved or loaded. */
     this.mapKey = null;
     this.map = loadStickMap(null);
+    /* The device's dead zone and expo, kept beside its map. */
+    this.feel = loadStickFeel(null);
     /* Which built-in layout this.map is while nothing is saved; see
      * builtInKind. 0 is the AETR guess. */
     this.defaultMode = 0;
@@ -278,13 +293,43 @@ export class InputManager {
     }
     this.mapKey = key;
     this.map = loadStickMap(key);
+    this.feel = loadStickFeel(key);
     this.defaultMode = 0;
     this.guess.forget();
     this.forgetAxisResolution();
   }
 
   readGamepad(gp, map = this.map) {
-    return readSticks(gp.axes, map);
+    return readSticks(gp.axes, map, this.feel);
+  }
+
+  /* A change to the device's feel, flying at once. False when there is no
+   * device to keep it for, or storage refused it (it flies this visit). */
+  setFeel(patch) {
+    if (!this.mapKey) {
+      return false;
+    }
+    this.feel = normaliseFeel({ ...this.feel, ...patch });
+    return saveStickFeel(this.mapKey, this.feel);
+  }
+
+  /*
+   * The device's calibration dropped: it flies the layout its profile
+   * vouches for (padprofiles.js), following the stick mode, or the AETR
+   * guess. Its feel stays. False with nothing calibrated to drop.
+   */
+  useBuiltInMap() {
+    const gp = this.firstGamepad();
+    if (!gp || !this.map.stored) {
+      return false;
+    }
+    forgetStickMap(this.mapKey);
+    this.map = normaliseMap({ ...AETR_MAP, stored: false });
+    this.defaultMode = 0;
+    this.guess.forget();
+    this.forgetAxisResolution();
+    this.followDefaultMap(gp);
+    return true;
   }
 
   /* Trusted for the menus too: the pilot's own map, or the guess once its
@@ -426,6 +471,9 @@ export class InputManager {
       mapUsable: this.mapUsable(),
       guessNoYaw: this.guess.noYaw,
       mapKnown: this.mapKnown(),
+      device: deviceKind(gp),
+      profile: gp ? profileFor(gp).key : null,
+      feel: { ...this.feel },
     };
   }
 
@@ -444,7 +492,7 @@ export class InputManager {
   }
 
   padSwapButtons() {
-    return swapButtons(this.firstGamepad());
+    return swapButtons(this.firstGamepad(), PAD_BUTTONS[this.padButtonOf('swap')]);
   }
 
   padAltButton() {
@@ -460,7 +508,7 @@ export class InputManager {
   }
 
   padFootButton() {
-    return footButton(this.firstGamepad());
+    return footButton(this.firstGamepad(), PAD_BUTTONS[this.padButtonOf('foot')]);
   }
 
   padFloatsButton() {
@@ -672,6 +720,143 @@ export class InputManager {
       && Boolean(this.touchSource && this.touchSource.active());
   }
 
+  /* ------------------------------------------------ controller loss */
+
+  /*
+   * The flying device went. The keyboard rung takes over (readSource):
+   * roll, pitch and yaw spring to centre, and the throttle holds where the
+   * pad left it, because the keys' collective mirrors the pad and does not
+   * spring until a throttle key is used. That is made deliberate here, not
+   * left to whatever the keys did before the pad came: the springs centre
+   * now and the collective is marked unused. main.js decides the rest
+   * (solo pauses; a room keeps flying on these sticks and says so).
+   */
+  noteDeviceLoss() {
+    if (!this.roster.lost) {
+      return;
+    }
+    this.roster.lost = false;
+    this.keyboard.centreSprings();
+    this.keyboard.collectiveUsed = false;
+    this.deviceLost = true;
+  }
+
+  /* True once after the flying device went. */
+  takeDeviceLoss() {
+    const lost = Boolean(this.deviceLost);
+    this.deviceLost = false;
+    return lost;
+  }
+
+  /* ----------------------------------------------- actions by name */
+
+  /* The chosen device when the browser maps it to the W3C standard
+   * layout, else null: a radio's switches are latched, in any order, and
+   * are never read as buttons by name. */
+  standardPad() {
+    const gp = this.firstGamepad();
+    return gp && gp.mapping === 'standard' && gp.buttons ? gp : null;
+  }
+
+  /* A standard pad's button by its padbuttons.js name, held or not. */
+  padButton(name) {
+    const gp = this.standardPad();
+    const b = gp && gp.buttons[PAD_BUTTONS[name]];
+    return Boolean(b && b.pressed);
+  }
+
+  /* How far it is pressed, 0 to 1 (a trigger), 0 with no standard pad. */
+  padValue(name) {
+    const gp = this.standardPad();
+    const b = gp && gp.buttons[PAD_BUTTONS[name]];
+    return b ? b.value || 0 : 0;
+  }
+
+  /* Every button of a standard pad as held or not, by index; empty with
+   * none. */
+  padHeld() {
+    const gp = this.standardPad();
+    return gp ? Array.from(gp.buttons, (b) => Boolean(b && b.pressed)) : [];
+  }
+
+  /* A standard pad's two sticks, Gamepad API signs (right and down
+   * positive), or null when there is none or it has fewer than four axes. */
+  padSticks() {
+    const gp = this.standardPad();
+    if (!gp || !gp.axes || gp.axes.length < 4) {
+      return null;
+    }
+    return { lx: gp.axes[0], ly: gp.axes[1], rx: gp.axes[2], ry: gp.axes[3] };
+  }
+
+  /* The button name the pilot's bindings put action `id` on, null for none. */
+  padButtonOf(id) {
+    const p = this.padBinding ? this.padBinding() : null;
+    return effectiveButtons(p && p.binds, p && p.airframe)[id];
+  }
+
+  /* The action the pilot's bindings put on button `name`, or null. */
+  padActionOn(name) {
+    const p = this.padBinding ? this.padBinding() : null;
+    const on = effectiveButtons(p && p.binds, p && p.airframe);
+    return Object.keys(on).find((id) => on[id] === name) || null;
+  }
+
+  /* Whether action `id`'s button is held on a standard pad. */
+  padAction(id) {
+    const name = this.padButtonOf(id);
+    return name ? this.padButton(name) : false;
+  }
+
+  /* What a prompt prints for action `id` on the pad: 'X'; '' for none. */
+  padActionLabel(id) {
+    return buttonLabel(this.padButtonOf(id));
+  }
+
+  /* Whether action `id`'s key is held (actions.js `key`, as the bindings
+   * deliver it in flight), or a pad button bound to it. */
+  actionHeld(id) {
+    return this.keys.has(ACTION_BY_ID.get(id).key);
+  }
+
+  /* -1, 0 or 1: which way the keyboard holds `channel`'s stick under the
+   * pilot's stick mode, the positive key winning when both are held. */
+  keyPush(channel) {
+    return this.keyboard.push(channel, this.isKeyDown);
+  }
+
+  /*
+   * In flight, a pad button bound to an action with a key arrives as that
+   * key: held in input.keys while the button is, and heard once by onKey
+   * on the press. So the key's readers serve the pad too. Releasing the
+   * button lets go of the key unless the keyboard holds it as well.
+   */
+  pollPadKeys() {
+    const p = this.padBinding ? this.padBinding() : null;
+    const live = p && p.flight ? effectiveButtons(p.binds, p.airframe) : null;
+    for (const a of ACTIONS) {
+      if (!a.key || a.own) {
+        continue;
+      }
+      const down = Boolean(live && live[a.id] && this.padButton(live[a.id]));
+      if (down === this.padKeysDown.has(a.key)) {
+        continue;
+      }
+      if (down) {
+        this.padKeysDown.add(a.key);
+        this.keys.add(a.key);
+        if (this.onKey) {
+          this.onKey(a.key, false);
+        }
+      } else {
+        this.padKeysDown.delete(a.key);
+        if (![...this.downAs.values()].includes(a.key)) {
+          this.keys.delete(a.key);
+        }
+      }
+    }
+  }
+
   /* ---------------------------------------------------------- polling */
 
   /*
@@ -684,7 +869,9 @@ export class InputManager {
     const dtMs = Math.min(t - this.lastWall, LONGEST_POLL_MS);
     this.lastWall = t;
     const gp = this.firstGamepad();
+    this.pollPadKeys();
     this.roster.track();
+    this.noteDeviceLoss();
     this.followDevice(gp);
     this.followDefaultMap(gp);
     this.measureRates(gp, dtMs);

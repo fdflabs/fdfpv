@@ -20,7 +20,9 @@
  * host's), cam, capture, take, active, swap, swapAccept, swapDecline (any
  * seat's, about itself); and the room's { type: 'ops', ops } view on every
  * change, { type: 'ops', op: 'cue', cues } filtered per seat by who hears
- * each line, and { type: 'ops', error } to a refused sender.
+ * each line, and { type: 'ops', error } to a refused sender. A watcher
+ * (core.js watch) is sent the view with no result and the lines told to
+ * all.
  *
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. The match is plain data, handed
@@ -275,26 +277,24 @@ export class RoomOps {
     return { ops: this.view(core) };
   }
 
-  broadcast(core, msg) {
-    const data = JSON.stringify(msg);
-    return [...core.seats.keys()].map((conn) => ({ send: conn, data }));
-  }
-
+  /* The view to every seat, and to every watcher with no result (core.js
+   * viewed): a watcher sees the match and holds no debrief of it. */
   changed(core) {
-    return [this.store(), ...this.broadcast(core, { type: 'ops', ops: this.view(core) })];
+    return [this.store(), ...core.viewed('ops', this.view(core))];
   }
 
   error(conn, error, why = undefined) {
     return [{ send: conn, data: JSON.stringify({ type: 'ops', error, ...(why ? { why } : {}) }) }];
   }
 
-  /* Cues told to the seats that hear them, one message a seat. */
+  /* Cues told to the seats that hear them, one message a seat; a watcher
+   * (seat 0, no role) hears the lines told to all. */
   tell(core, told) {
     if (!told.length) {
       return [];
     }
     const out = [];
-    for (const [conn, s] of core.seats) {
+    for (const [conn, s] of [...core.seats, ...[...core.watchers.keys()].map((conn) => [conn, { seat: 0 }])]) {
       const mine = told.filter((c) => roles.hears(this.match.roles, s.seat, c.heard));
       if (mine.length) {
         out.push({ send: conn, data: JSON.stringify({ type: 'ops', op: 'cue', cues: mine }) });

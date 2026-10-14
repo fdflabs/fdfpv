@@ -2889,3 +2889,52 @@ export function recordSlickFlight(sim) {
   }
   return samples;
 }
+
+/* The stick that puts a surface at a share of its throw through the
+ * house expo (plant_wing.c surface_from_stick, expo 0.30 on every
+ * airframe): x where 0.3 x^3 + 0.7 x = share, full stick past the throw. */
+export function stickForThrow(share) {
+  if (share >= 1) return 1;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 40; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (0.3 * mid ** 3 + 0.7 * mid < share) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+/* The knife edge pilot's throttle: the height, on the sink rate, and
+ * nothing else. A knife edge is held on the rudder and the throttle, the
+ * speed where it falls ("Use the rudder only to establish angle of
+ * attack. Then, reduce the power and the plane will descend. When you get
+ * low enough, just add throttle. Do not change the rudder ... power alone
+ * will be responsible for altitude", Precision Aerobatics, Top ten R/C
+ * flying tips, tip 8 "Power for altitude in knife-edge flight", 2018;
+ * "Use rudder as needed to maintain altitude", Hawkinson, Model Aviation
+ * Sept 1999 p. 122): until 2026-10-13 the gates' hands also held the
+ * gate's speed on the throttle (0.1 per m/s with an integral, nobody's
+ * number), and once the rudder was on its stop that hand cut the power
+ * as the sinking knife edge gathered speed, and it sank on. Per airframe
+ * at its gate's speed: the crossover the bandwidth criterion keeps and
+ * the airframe's own climb acceleration per stick there (scripts/
+ * knife-throttle-derive.js, --check); the person's gain is wc / gain,
+ * throttle per m/s of sink, the trim's integral cornered a quarter below
+ * crossover as personLoop's, held against the stops. Stepped every dt. */
+export const KNIFE_SINK = {
+  [EXTRA_AIRFRAME]: { wc: 2, gain: 27.895 },
+  [CAP_AIRFRAME]: { wc: 2, gain: 25.658 },
+  [SLICK_AIRFRAME]: { wc: 2, gain: 17.586 },
+};
+export function knifeThrottle(airframe, u0) {
+  const { wc, gain } = KNIFE_SINK[airframe];
+  const k = wc / gain;
+  let trim = u0 / k;
+  return {
+    k,
+    step(vz, dt) {
+      const e = -vz;
+      const free = k * (e + trim);
+      if (!((free >= 1 && e > 0) || (free <= 0 && e < 0))) trim += e * dt * wc / 4;
+      return Math.max(0, Math.min(1, k * (e + trim)));
+    },
+  };
+}

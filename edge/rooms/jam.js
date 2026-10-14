@@ -112,8 +112,7 @@ export class RoomJam {
   }
 
   broadcast(core) {
-    const data = JSON.stringify({ type: 'jam', jam: this.view(core) });
-    return [...core.seats.keys(), ...core.watchers.keys()].map((conn) => ({ send: conn, data }));
+    return core.everyone(JSON.stringify({ type: 'jam', jam: this.view(core) }));
   }
 
   changed(core) {

@@ -108,7 +108,7 @@ export function buildFlightOverlay(shell) {
    * freestyle. The ghost line is off until the first gate gives it a gap. */
   const head = el('div', 'osd-top');
   head.append(
-    keep(shell, 'osdClockLabel', 'div', 'osd-label', 'Lap'),
+    keep(shell, 'osdClockLabel', 'div', 'osd-label', str('ui.lap_label')),
     keep(shell, 'osdTimer', 'div', 'osd-timer', '--.--'),
     keep(shell, 'osdGate', 'div', 'osd-gate', ''),
     keep(shell, 'osdLast', 'div', 'osd-best', ''),
@@ -258,9 +258,9 @@ function titleScreen(shell) {
  * Touch is offered, first, only on a device with touch points.
  */
 function howtoTabs(shell) {
-  const sources = [['keyboard', 'Keyboard'], ['mouse', str('ui.mouse')], ['radio', str('ui.radio_or_gamepad')], ['launch', str('ui.launch_control')]];
+  const sources = [['keyboard', str('ui.keyboard')], ['mouse', str('ui.mouse')], ['radio', str('ui.radio_or_gamepad')], ['launch', str('ui.launch_control')]];
   if (touchWanted()) {
-    sources.unshift(['touch', 'Touch']);
+    sources.unshift(['touch', str('ui.touch')]);
   }
   const row = el('div', 'howto-tabs');
   shell.howtoTabs = {};
@@ -433,6 +433,23 @@ const PAGES = {
     menu: 'pilot',
     scroll: true,
     hint: ESC_STORED,
+  },
+  /* The Controller screen under the Hangar (src/ui/controller.js). */
+  controller: {
+    classes: 'screen-page screen-pilot screen-controller',
+    title: 'controller.title',
+    lede: ['rates-lede', 'controller.lede'],
+    menu: 'controller',
+    scroll: true,
+    hint: ESC_STORED,
+  },
+  /* The new pilot's controller question (src/ui/flywith.js). */
+  flywith: {
+    classes: 'screen-page screen-pilot screen-flywith',
+    title: 'flywith.title',
+    lede: ['rates-lede', 'flywith.lede'],
+    menu: 'flywith',
+    hint: [['↑↓', 'Enter', 'Esc'], 'flywith.hint'],
   },
   controls: {
     classes: 'screen-page screen-pilot screen-controls',
@@ -794,7 +811,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls'].map(menuPage),
+  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,

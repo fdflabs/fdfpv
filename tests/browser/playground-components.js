@@ -36,6 +36,8 @@
  */
 
 import { str } from '../../src/strings/index.js';
+import { fromRace } from '../../src/game/debrief.js';
+import { factLines } from '../../src/ui/factlines.js';
 
 /* The kinds the owner's brief asks the playground to show, each of which
  * at least one entry must answer (scripts/playground-check.js). */
@@ -87,6 +89,21 @@ function wordmark() {
     ' ', `<span class="lockup-name" data-text="Drone Combat">${h('span', '', 'Drone')} ${h('span', '', 'Combat')}</span>`,
     ' ', h('span', 'lockup-under', 'Simulator')));
 }
+
+/* The debrief's facts (docs/DEBRIEF.md) as results.js fillFacts draws
+ * them: from a real record through the real factLines, so the playground
+ * shows the frame every activity's end fills, not a copy of it. The route
+ * is a fixed line in the 100 unit box routeSvg scales into. */
+function debriefFacts(d) {
+  const route = '<svg class="results-route" viewBox="0 0 100 100">'
+    + '<polyline class="results-route-line" points="8,80 30,20 70,30 92,70 40,88"></polyline>'
+    + '<circle class="results-route-start" cx="8" cy="80" r="3.5"></circle><circle class="results-route-end" cx="40" cy="88" r="3.5"></circle></svg>';
+  const lines = factLines(d).flatMap(([label, value, tone]) => [h('dt', '', label), h('dd', tone || '', value)]);
+  return h('div', 'results-facts pg-static', route, h('dl', 'results-facts-list', ...lines));
+}
+
+const ROUTE = { points: [[0, 0], [40, 30]], distanceM: 1240, topM: 18, marks: [] };
+const RACE = { aircraft: 'whoop65', log: [{ n: 1, ms: 41200 }, { n: 2, ms: 39480 }, { n: 3, ms: 40110 }], flightMs: 128000, totalS: 5400, route: ROUTE, replay: { ok: true, why: null } };
 
 /*
  * The components. `kinds` says which of KINDS an entry answers; `states`
@@ -324,6 +341,18 @@ export const COMPONENTS = [
     states: [['rest', h('div', 'name-dialog-box', h('h2', '', str('campaign.shop')), h('p', 'lede', str('campaign.u.wide_note')),
       h('div', 'name-dialog-row', h('button', 'name-dialog-btn', str('ui.cancel')), h('button', 'name-dialog-btn on', str('ui.save'))))]],
   },
+  {
+    id: 'debrief-facts',
+    name: 'Debrief facts',
+    kinds: ['card', 'status'],
+    source: 'src/ui/results.js fillFacts, src/ui/factlines.js',
+    context: ['screen screen-results'],
+    states: [
+      ['record beaten, operational', debriefFacts(fromRace({ ...RACE, recordAtStart: 40000, condition: 'operational' }))],
+      ['record stands, impaired', debriefFacts(fromRace({ ...RACE, recordAtStart: 38900, condition: 'impaired' }))],
+      ['no clean lap, destroyed', debriefFacts(fromRace({ ...RACE, log: [{ n: 1, ms: null, reason: 'wreck' }], recordAtStart: 38900, condition: 'destroyed' }))],
+    ],
+  },
   /* What the design system names and the game does not have. */
   {
     id: 'tooltip',
@@ -339,9 +368,14 @@ export const COMPONENTS = [
   },
   {
     id: 'session-visibility',
-    name: 'Session visibility control',
+    name: 'Session visibility: who joins, three values',
     kinds: ['control'],
-    gap: 'Proposed, PLAN.md phase 6. The segments control with three values.',
+    source: 'src/main.js lobbyVisibilityRows',
+    context: ['screen', 'menu'],
+    states: [
+      ['alone, a choice', row(str('lobby.visibility'), '', seg([str('lobby.visibility_public'), str('lobby.visibility_friends'), str('lobby.visibility_solo')], str('lobby.visibility_public')))],
+      ['with others, a fact', row(str('lobby.visibility'), 'row-info', h('span', 'row-value', str('lobby.visibility_friends')))],
+    ],
   },
   {
     id: 'briefing-panel',

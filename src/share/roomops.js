@@ -33,6 +33,7 @@
  */
 
 import { MISSIONS } from './ops/missions.js';
+import { WATCH_SEAT } from './roomrace.js';
 
 /* Camera reports: two a second (CONTRACT-P0.md 3; the room keeps one per
  * CAM_MIN_MS = 400 ms and text shares 5 a second per seat). */
@@ -85,10 +86,14 @@ export function createRoomOps(send) {
     }
   }
 
+  /* The watch seat's view never holds a result: the debrief records the
+   * campaign for whoever holds one (src/ui/opscampaign.js record). */
+  const held = (v) => (seat === WATCH_SEAT && v && v.result != null ? { ...v, result: null } : v);
+
   function adopt(next) {
     const was = view.id === next.id ? view : LOBBY;
-    view = next;
-    diff(was, next);
+    view = held(next);
+    diff(was, view);
   }
 
   const say = (op, fields = {}) => send({ type: 'ops', op, ...fields });
@@ -98,7 +103,7 @@ export function createRoomOps(send) {
       seat = w.seat;
       room = w.code ?? null;
       host = w.host ?? null;
-      view = w.ops || LOBBY;
+      view = held(w.ops || LOBBY);
       events = [];
       lastCamT = -Infinity;
     },
@@ -120,6 +125,8 @@ export function createRoomOps(send) {
     },
     view: () => view,
     seat: () => seat,
+    /* The watch seat's: the room's match, no role, no debrief. */
+    watcher: () => seat === WATCH_SEAT,
     room: () => room,
     /* The mission's data this build has, or null. */
     mission: () => (view.mission ? MISSIONS[view.mission] ?? null : null),

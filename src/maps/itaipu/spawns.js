@@ -38,7 +38,11 @@
  * spawn's right and forward (src/game/slots.js): a column back down the
  * crest away from the intakes, 20 m apart and 1 m either side of s 1.5,
  * so every seat is on the clear road; the last, at t 1090, is on the
- * diversion structure's crest.
+ * diversion structure's crest. The pilots stand behind the row on the
+ * road's centre line, 3 m apart from t 1100, so a plane rolling out from
+ * its seat goes away from them, as slots.js stands them on open ground;
+ * its line across the heading put them off the crest, down its faces
+ * (scripts/world-spawns-check.js).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -67,6 +71,7 @@ export const CREST_SPAWN = {
   yaw: 1.3559,
   y: CREST_Y,
   slots: [[0, 0], [1, -20], [-1, -40], [1, -60], [-1, -80], [1, -100], [-1, -120], [1, -140]],
+  stations: [[0, -150], [0, -153], [0, -156], [0, -159], [0, -162], [0, -165], [0, -168], [0, -171]],
 };
 
 export const AIR_SPAWN = {

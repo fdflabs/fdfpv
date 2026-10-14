@@ -186,15 +186,65 @@ export function celTimeCount() {
 const after = (include, lines) => `#include <${include}>\n${lines}`;
 
 /*
+ * The shader text and uniforms a palette adds (celMaterial's palette
+ * option), or empty strings when there is none, so a material without one
+ * compiles the source it always did. The entry is looked up per vertex and
+ * passed flat: a flat varying is the provoking vertex's value, bit for
+ * bit, where an interpolated one could land an ulp off. The rim's colour
+ * and strength take the uniforms' names by define, so RIM_AND_SPECULAR
+ * reads them unchanged.
+ */
+function paletteChunks(entries) {
+  if (!entries) {
+    return { vertexPars: '', vertex: '', fragmentPars: '', fragment: '', uniforms: null };
+  }
+  const n = entries.length;
+  const paint = new Float32Array(n * 3);
+  const rim = new Float32Array(n * 4);
+  entries.forEach((e, i) => {
+    new THREE.Color(e.color ?? 0xffffff).toArray(paint, i * 3);
+    new THREE.Color(e.rimColor ?? 0x9ec8ff).toArray(rim, i * 4);
+    rim[i * 4 + 3] = e.rim ?? 0.32;
+  });
+  return {
+    vertexPars: `
+         attribute float aCelKey;
+         uniform vec3 uCelPaint[${n}];
+         uniform vec4 uCelRim[${n}];
+         flat varying vec3 vCelPaint;
+         flat varying vec4 vCelRim;`,
+    vertex: `
+         vCelPaint = uCelPaint[int(aCelKey)];
+         vCelRim = uCelRim[int(aCelKey)];`,
+    fragmentPars: `
+         flat varying vec3 vCelPaint;
+         flat varying vec4 vCelRim;
+         #define uRimColor vCelRim.rgb
+         #define uRimStrength vCelRim.a`,
+    fragment: 'diffuseColor.rgb *= vCelPaint;',
+    uniforms: { uCelPaint: { value: paint }, uCelRim: { value: rim } },
+  };
+}
+
+/*
  * A cel material. opts: color, map (with key), alphaTest, transparent,
  * opacity, side, fog (off for the mountain rings, whose baked colours are
  * already the aerial perspective), rim (strength), rimStart, rimColor,
- * spec, specWidth, specColor, cloudShadow (0..1), cloth (amplitude), key.
+ * spec, specWidth, specColor, cloudShadow (0..1), cloth (amplitude), key,
+ * palette.
  *
- * userData.celKey is the material's identity for the scenery merger:
- * equal options are interchangeable, so the options as JSON; a texture is
- * not JSON, so a material with a map must name itself with `key`, or two
- * logos would merge into one bucket and one would vanish.
+ * palette is a list of { color, rim, rimColor } that stand in for color,
+ * rim and rimColor per vertex: a geometry's aCelKey attribute picks the
+ * entry, so surfaces that differed only in those three draw as one mesh
+ * (kit.js bakeAll). The entry reaches the fragment through flat varyings
+ * and multiplies a white diffuse, so each surface's values are the bits
+ * its own material's uniforms held: the same pixels in one draw.
+ *
+ * userData.celKey is the material's identity: equal options are
+ * interchangeable, so the options as JSON (kit.js bakeAll reads a plain
+ * colour's back into a palette entry, swiss2/craftlook.js a craft's); a
+ * texture is not JSON, so a material with a map must name itself with
+ * `key`, or two materials with different maps would read as one.
  */
 export function celMaterial(opts = {}) {
   if (opts.map && !opts.key) {
@@ -217,6 +267,7 @@ export function celMaterial(opts = {}) {
    * below, so the key cannot disagree with the source. */
   const clothAttribute = cloth > 0 ? 'attribute vec2 aCloth;' : '';
   const clothMotion = cloth > 0 ? CLOTH_CHUNK : '';
+  const palette = paletteChunks(opts.palette);
 
   /* Values the shader reads. uRimStrength, uSpecStrength and uSpecDir are
    * also taken over by finish.js, which wraps this hook. */
@@ -248,10 +299,14 @@ export function celMaterial(opts = {}) {
          varying vec3 vCelWorld;
          uniform float uCelTime;
          uniform float uCloth;
-         ${clothAttribute}`))
+         ${clothAttribute}${palette.vertexPars}`))
       .replace('#include <begin_vertex>', after('begin_vertex', `
          ${clothMotion}
-         vCelWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;`));
+         vCelWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;${palette.vertex}`));
+    if (palette.uniforms) {
+      Object.assign(shader.uniforms, palette.uniforms);
+      shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', after('color_fragment', palette.fragment));
+    }
 
     /* The additions go straight after the dithering include, as the last
      * word on the colour. Not in a thermal frame, whose temperature output
@@ -269,7 +324,7 @@ export function celMaterial(opts = {}) {
          uniform float uCloudShadow;
          uniform float uCelTime;
          uniform vec3 uCloudTint;
-         ${CLOUD_SHADOW_GLSL}`))
+         ${CLOUD_SHADOW_GLSL}${palette.fragmentPars}`))
       .replace('#include <dithering_fragment>', after('dithering_fragment', `
          #ifdef TH_PARS
          if (thEnv.x < 0.5)
@@ -298,7 +353,7 @@ ${RIM_AND_SPECULAR}
    * (post.js) and three's depth material have no cloth code, so ink and
    * shadow are drawn at rest, out by at most FLAG_SAIL_CLOTH.
    */
-  mat.customProgramCacheKey = () => `cel${clothAttribute}${clothMotion}`;
+  mat.customProgramCacheKey = () => `cel${clothAttribute}${clothMotion}${palette.vertexPars}`;
   mat.userData.cel = true;
   mat.userData.celKey = opts.key ?? JSON.stringify(opts);
   return mat;

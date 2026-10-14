@@ -969,6 +969,13 @@ typedef struct FixedWingParams {
    * at 0 deg; then Cl_r and Cn_p, per rad, in place of the CL rules. Zero:
    * none, the linear derivatives at every angle. */
   double hi_lat[8][20];
+  /* A measured side force coefficient, CY, against the body's angle of
+   * attack at -20 to 90 deg (plant_wing.c, HI_LAT_DEG) and the sideslip,
+   * one row each at 2, 4, 8, 10, 15, 20, 25 and 30 deg (CY_TAB_DEG), in the
+   * body axes on the wing's area, negative for a wind from the right. In
+   * place of cy_beta's line, the drag's sideways share and the crossflow
+   * (plant_wing.c, cy_tab_at). Zero: none, those three. */
+  double cy_tab[8][20];
   /* A surface's share kept past the stall, at 0, 4, 10, 15, 20, 25 and 35
    * deg past the wing's own stall angle: the ailerons' and the fin's and
    * rudder's. Zero: the measured defaults, an unswept wing's ailerons (NACA
@@ -1078,10 +1085,13 @@ typedef struct FixedWingParams {
    * viscous crossflow (NACA TR 1048) with Jorgensen's eta for a body's
    * fineness (NASA TR R-474): a force against the sideways speed squared,
    * which the table's linear side force leaves out and which carries the
-   * weight in a knife edge with the thrust's share. Taken at the CG. Zero
-   * is an aircraft without, and then nothing is read.
+   * weight in a knife edge with the thrust's share. Zero is an aircraft
+   * without, and then nothing is read. side_x: where it acts, m ahead of
+   * the CG (negative aft), the centroid of the side view weighted by each
+   * station's crossflow drag (Allen and Perkins); zero takes it at the CG.
    */
   double side_cda;
+  double side_x;
   /*
    * THE SURFACE'S KNEE, docs/EDGE-STAGE1.md: a plain flap's lift stops
    * growing in proportion to its angle past 15 deg or so as the flow
@@ -1257,6 +1267,7 @@ void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_biplane(double out[4]);
 void plant_wing_slip(double out[6]);
+void plant_wing_yaw_budget(double out[26]);
 void plant_wing_command(double out[3]);
 void plant_wing_strips(double out[8]);
 void plant_wing_set_gyro(int on);
@@ -1287,6 +1298,10 @@ extern int SIM_WIND_ON;
 extern double SIM_WIND[2];
 extern double SIM_GUST;
 extern double SIM_AIR_W;
+/* The gusts' clock at step 0, steps, already within the wrap
+ * GUST_WRAP_STEPS (plant_wing.c, sim_set_wind_clock). */
+#define GUST_WRAP_STEPS (1LL << 27)
+extern long long SIM_GUST_STEP0;
 void plant_wind(long long step, double out[3]);
 /* The parachute: 1 pulls it on an airframe that has one and returns 0,
  * anything else returns -1; 0 stows it again, which a reset also does.

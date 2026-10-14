@@ -79,7 +79,11 @@ const PINNED = {
   /* Re-pinned: the Skyhunter's pod crossflow on its drawn sections and its
    * fuselage weathercock on Munk's sin 2 beta, w38-fuselage-side; the
    * old hash returns with those two values alone put back. */
-  'trace.sky.60.10': 'f5159db55bb62b9d70ee5e20f8cd840b31d32ee2fec53be09712557fbf10be58',
+  /* Re-pinned: the pod's crossflow at its own centre of pressure,
+   * w38-crossflow-moment; with side_x out it is f5159db55bb62b9d again. */
+  /* Re-pinned: the stalled wing's plate force in the plane of symmetry,
+   * w38-physics-2 (was f838061b1b131c26). */
+  'trace.sky.60.10': 'd68adda079f0230215646ac4aebdd53ca39dc00cb1ed85ae8693df226cb970d6',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */

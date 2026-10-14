@@ -184,6 +184,16 @@ function when(ms) {
   return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+/* A My clips row's app build (src/replay/file.js version 18): a deploy's
+ * stamp, null from a checkout, absent on a clip saved before builds were
+ * kept. */
+export function buildOf(row) {
+  if (row.build === undefined) {
+    return str('replay.clip_build_unknown');
+  }
+  return row.build === null ? str('replay.clip_build_local') : str('replay.clip_build', { version: row.build });
+}
+
 function readPrefs() {
   try {
     const raw = JSON.parse(localStorage.getItem(EXPORT_PREFS_KEY) || '{}');
@@ -518,17 +528,42 @@ export function createEditor(api) {
 
   document.body.append(root);
 
-  /* The replay OSD sits above the dock, however tall the dock wraps. */
+  /*
+   * The replay OSD sits above the dock, however tall the dock wraps, and
+   * under the head, however far its chips wrap. On a small window (800 by
+   * 600: the dock wraps tall and the chips to a second line) the two
+   * margins do not both fit, so it closes up to the middle of the room
+   * left, and lies in one row when three rows do not fit at all. The
+   * sticks sit under the head's buttons, which never wrap.
+   */
+  const OSD_GAP = 34;
   function placeOsd() {
-    if (!root.hidden) {
-      osd.style.bottom = `${dock.offsetHeight + 34}px`;
-      sticks.style.bottom = `${dock.offsetHeight + 34}px`;
+    if (root.hidden) {
+      return;
     }
+    const above = dock.offsetHeight + OSD_GAP;
+    sticks.style.bottom = `${above}px`;
+    osd.classList.remove('row');
+    const frame = root.getBoundingClientRect();
+    const dockTop = dock.getBoundingClientRect().top;
+    const room = dockTop - headLeft.getBoundingClientRect().bottom;
+    if (room >= osd.offsetHeight + 2 * OSD_GAP) {
+      osd.style.bottom = `${above}px`;
+      return;
+    }
+    if (room < osd.offsetHeight + 8) {
+      osd.classList.add('row');
+    }
+    const lift = Math.max(4, (room - osd.offsetHeight) / 2);
+    osd.style.bottom = `${Math.round(frame.bottom - dockTop + lift)}px`;
   }
   window.addEventListener('resize', () => {
     placeOsd();
     stripSig = '';
   });
+  /* A chip's words change as the clip plays (Last 30 seconds, Saved
+   * clip, the movie's length), and a new word can wrap the head. */
+  new ResizeObserver(() => placeOsd()).observe(headLeft);
 
   /* ---- the stage: drag to look, wheel to zoom ---- */
   let dragFrom = null;
@@ -1163,7 +1198,7 @@ export function createEditor(api) {
     th.append(el('span', 'cc-dur', fmt(row.duration || 0)));
     const body = el('div', 'cc-clip-body');
     const nm = el('div', 'cc-clip-name', row.name);
-    const meta = el('div', 'cc-clip-meta', str('replay.clip_meta', { when: when(row.created), map: api.mapName(row.map) }));
+    const meta = el('div', 'cc-clip-meta', str('replay.clip_meta', { when: when(row.created), map: api.mapName(row.map), build: buildOf(row) }));
     const acts = el('div', 'cc-clip-actions');
     const bPlayIt = button('cc-btn small primary', str('replay.play'), '', async () => {
       try {

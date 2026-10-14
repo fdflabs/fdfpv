@@ -627,6 +627,14 @@ double sim_boost(void);
  * swirl's sideways speed over the fin (m/s), for the gates that take one
  * term of the moment alone. Zeros on an aircraft without a wash.
  * Additive, version unchanged.
+ * sim_wing_yaw_budget(out[26]): the body's yaw moment term by term as
+ * the last step added it, N m (plant_wing.c g_yaw lists the slots: the
+ * fin and rudder in the free stream and in the wash, Munk, the roll
+ * coefficients through sin beta, the jet, the crossflow at side_x, the
+ * rates' terms, their sum and M[2], the prop's torque on the air and
+ * the swirl's share at the fin), for a check that holds the plant's
+ * budget against a derivation's at one flown point (scripts/
+ * knife-budget.js). Zeros on a quad. Additive, version unchanged.
  * sim_wing_command(out[3]): what the receiver last wrote to the aileron,
  * elevator and rudder servos, rad, after the gyro and before the servos
  * slew or the air blows them back (plant_wing.c hinge_hold), so a gate
@@ -662,6 +670,7 @@ int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 int sim_wing_biplane(double *out);
 int sim_wing_slip(double *out);
+int sim_wing_yaw_budget(double *out);
 int sim_wing_command(double *out);
 /* sim_wing_strips(out[8]): each stall strip's lift lost to separation as
  * the last step left it, left half root to tip then right half, in units
@@ -720,6 +729,22 @@ double sim_air_lift(double x, double y, double z);
  */
 int sim_set_wind(double vx, double vy, double gust);
 int sim_wind(double *out);
+
+/*
+ * THE GUSTS' CLOCK. sim_set_wind_clock(ms): where the gusts' clock stands at
+ * step 0, whole milliseconds, 0 to 1e15: a room's clock at the run's start,
+ * so every plant in the room meets the same gust at the same room
+ * millisecond, bit for bit, where each would otherwise run its gusts from
+ * its own step 0. The gust clock is the step's plus this, wrapping every
+ * 2^27 ms (37.3 h; src/native/plant_wing.c at plant_wind says why). It moves
+ * only the gusts' phase: the mean wind, the vertical air and every other
+ * term are untouched. A world property like the wind, kept across
+ * sim_reset and sim_init; 0, the default, is the plant's own clock, so a
+ * plant that never sets it is bit identical to one from before it existed.
+ * SIM_ERR_BAD_ARG for a value not finite, negative, past 1e15 or not whole.
+ * Additive, version unchanged.
+ */
+int sim_set_wind_clock(double ms);
 
 /*
  * VERTICAL AIR. sim_set_air_vertical(w): the air's vertical velocity at the

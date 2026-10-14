@@ -14,7 +14,7 @@
  *   deflected surfaces' drag; the pitching moment the same way; the six
  *   lateral derivatives and the CL rules' cross terms in the stability
  *   axes, the fuselage's share of cn_beta on Munk's u v in the body; the
- *   fuselage's crossflow drag (side_cda);
+ *   fuselage's crossflow drag (side_cda) at its centre of pressure (side_x);
  * - the motor: an electric's duty on the seated pack (scripts/lib/
  *   propcurve.js wingSeat, the gates' 4.1 V), an engine's from its idle,
  *   spooled from the duty's speed at the throw on Drela's law (or a glow
@@ -288,6 +288,8 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const b2 = (fw.k_induced * clmax * clmax - plateCn * sS * sS) / cS;
     const cdFlat = cd0 + plateCn * sinA * sinA + (cosA > 0 ? b2 * cosA : 0);
     const CD = (1 - sigma) * (cd0 + fw.k_induced * clLin * clLin) + sigma * cdFlat;
+    /* The plate's share, which goes with the lift (plant_wing.c, THE PLATE'S FORCE IN A SIDESLIP). */
+    const cdPlate = sigma * (plateCn * sinA * sinA + (cosA > 0 ? b2 * cosA : 0));
 
     /* The tail on its own angle (hi_alpha), the sideslip terms with it. */
     let cmStiff = fw.cm_alpha * alpha, cmDe = fw.cm_de;
@@ -320,9 +322,15 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const F = [0, 0, 0];
     if (V > 1e-6) {
       const L = qbar * fw.area * CL, D = qbar * fw.area * CD;
-      const Y = qbar * fw.area * (cyb * betaS + cydr * dR);
+      /* A measured side force (cy_tab, the F-16's) in place of cy_beta's
+       * line and the drag's sideways share, as plant_wing.c takes it. */
+      const cyMeas = fw.cy_tab && fw.cy_tab.length === 8 && fw.cy_tab[7][4] !== 0;
+      const yBeta = cyMeas ? cyTabAt(fw.cy_tab, Math.atan2(sinB, cosB) * 180 / Math.PI, Math.atan2(-v, Vxz) * 180 / Math.PI, -v / V) : cyb * betaS;
+      const Y = qbar * fw.area * (yBeta + cydr * dR);
       if (Vxz > 1e-6) { F[0] += L * (-w / Vxz); F[2] += L * (u / Vxz); }
-      F[0] -= D * u / V; F[1] -= D * v / V; F[2] -= D * w / V;
+      const Dp = qbar * fw.area * cdPlate, Dw = D - Dp;
+      F[0] -= Dw * u / V; if (!cyMeas) F[1] -= Dw * v / V; F[2] -= Dw * w / V;
+      if (Vxz > 1e-6) { F[0] -= Dp * u / Vxz; F[2] -= Dp * w / Vxz; } else { F[0] -= Dp * u / V; F[2] -= Dp * w / V; }
       F[1] -= Y;
     }
 
@@ -409,7 +417,8 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
       F[1] += fy; F[2] += fz;
       jetM[1] = -fw.prop_x * fz; jetM[2] = fw.prop_x * fy;
     }
-    if (fw.side_cda > 0) F[1] -= 0.5 * rho * fw.side_cda * v * Math.abs(v);
+    const fSide = fw.side_cda > 0 ? -0.5 * rho * fw.side_cda * v * Math.abs(v) : 0;
+    F[1] += fSide;
 
     /* The moments, in the stability axes and back. */
     const p = om[0], qAero = -om[1], rAero = -om[2];
@@ -437,7 +446,7 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const M = [
       qbar * fw.area * fw.span * clBody - qReact + lSlip,
       -mAero + fw.thrust_z * thrust - mSlip + jetM[1],
-      -qbar * fw.area * fw.span * cnBody + mThrustYaw - nSlip + jetM[2],
+      -qbar * fw.area * fw.span * cnBody + mThrustYaw - nSlip + jetM[2] + fw.side_x * fSide,
     ];
     if (wRot > 0) M[2] += fw.pfactor * thrust * -w / wRot;
     if (fw.rot_k && (fw.rot_k[0] > 0 || fw.rot_k[1] > 0 || fw.rot_k[2] > 0)) {
@@ -492,6 +501,22 @@ function hiLatAt(row, deg) {
   if (!(deg > HI_LAT_DEG[0])) return row[0];
   for (let i = 0; i < 19; i += 1) if (deg <= HI_LAT_DEG[i + 1]) return row[i] + (row[i + 1] - row[i]) * (deg - HI_LAT_DEG[i]) / (HI_LAT_DEG[i + 1] - HI_LAT_DEG[i]);
   return row[19];
+}
+
+/* plant_wing.c cy_tab_at: a row per sideslip, straight between, odd,
+ * the last row's on the sideslip's sine past it. */
+const CY_TAB_DEG = [2, 4, 8, 10, 15, 20, 25, 30];
+function cyTabAt(tab, aDeg, bDeg, sinB) {
+  const bd = Math.abs(bDeg);
+  let c;
+  if (bd >= 30) {
+    c = hiLatAt(tab[7], aDeg) * Math.abs(sinB) / 0.5;
+  } else {
+    let b0 = 0, c0 = 0, j = 0;
+    while (bd > CY_TAB_DEG[j]) { b0 = CY_TAB_DEG[j]; c0 = hiLatAt(tab[j], aDeg); j += 1; }
+    c = c0 + (hiLatAt(tab[j], aDeg) - c0) * (bd - b0) / (CY_TAB_DEG[j] - b0);
+  }
+  return bDeg < 0 ? -c : c;
 }
 
 /* plant_wing.c root_swirl: the swirl over the wing's root, its roll

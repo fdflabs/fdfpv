@@ -17,7 +17,14 @@
  *  3. The Sticks CSV button, pressed with a pointer, hands over a control
  *     recording (src/share/controlrec.js) of the range, one row a clip
  *     row, every setting in it.
- *  4. Saved to My clips and played from there: version 16, sticks and all.
+ *  4. Saved to My clips and played from there: version 18, sticks and all,
+ *     with what flies it again (src/replay/refly.js) and the app build
+ *     that flew it, null on this unstamped checkout. The saved file is
+ *     left in OUT_DIR and flown again in Node by npm run replay:refly,
+ *     which must give every row back bit for bit: a flight recorded in
+ *     Chromium, re-flown in Node. Then with --transplant: set up from the
+ *     clip's setup log twice on the same build, placed in its state, the
+ *     two flights must be the same.
  *  5. An old clip, the same flight written without its sticks (what a
  *     build before this one wrote, byte for byte; npm run
  *     crashcam:selftest holds that), imported and played: it plays, its
@@ -48,6 +55,7 @@
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -244,19 +252,31 @@ async function main() {
       await shot(page, `replay-sticks-${i + 1}`);
     }
     /* A small window: the dock wraps taller and the head comes close
-     * (style.js); the gimbals must overlap nothing else on screen. */
+     * (style.js); the gimbals and the readout must overlap nothing else on
+     * screen (editor.js placeOsd). */
     const overlaps = () => page.evaluate(`(() => {
       const s = document.querySelector('.cc-sticks').getBoundingClientRect();
       const hit = (q) => [...document.querySelectorAll(q)].some((e) => {
         const b = e.getBoundingClientRect();
         return b.width > 0 && s.left < b.right && b.left < s.right && s.top < b.bottom && b.top < s.bottom;
       });
-      return { box: [s.left, s.top, s.right, s.bottom].map(Math.round), hits: ['.cc-head-actions', '.cc-name', '.cc-sub', '.cc-title', '.cc-osd', '.cc-dock'].filter(hit) };
+      const o = document.querySelector('.cc-osd').getBoundingClientRect();
+      const osdHit = (q) => [...document.querySelectorAll(q)].some((e) => {
+        const b = e.getBoundingClientRect();
+        return b.width > 0 && o.left < b.right && b.left < o.right && o.top < b.bottom && b.top < o.bottom;
+      });
+      return {
+        box: [s.left, s.top, s.right, s.bottom].map(Math.round),
+        hits: ['.cc-head-actions', '.cc-name', '.cc-sub', '.cc-title', '.cc-osd', '.cc-dock'].filter(hit),
+        osd: [o.left, o.top, o.right, o.bottom].map(Math.round),
+        osdHits: ['.cc-head-actions', '.cc-name', '.cc-sub', '.cc-title', '.cc-dock'].filter(osdHit),
+      };
     })()`);
     for (const [w, h] of [[1280, 720], [800, 600]]) {
       await viewport(page, [w, h]);
       const o = await overlaps();
       check(`at ${w} by ${h} the gimbals are on screen and overlap nothing`, o.hits.length === 0 && o.box[1] >= 0 && o.box[2] <= w, `box ${o.box.join(',')}${o.hits.length ? `, over ${o.hits.join(' ')}` : ''}`);
+      check(`at ${w} by ${h} the readout is between the head and the dock`, o.osdHits.length === 0 && o.osd[3] > o.osd[1], `box ${o.osd.join(',')}${o.osdHits.length ? `, over ${o.osdHits.join(' ')}` : ''}`);
       await shot(page, `replay-sticks-${w}`);
     }
     await page.cdp.send('Emulation.clearDeviceMetricsOverride', {}, page.sessionId);
@@ -281,18 +301,46 @@ async function main() {
     const bytes = await page.evaluate(`(async () => {
       const f = await import('/src/replay/store.js');
       const row = await f.getClip(${JSON.stringify(id)});
-      return { size: row.bytes.byteLength, version: new DataView(row.bytes).getUint32(4, true) };
+      const u8 = new Uint8Array(row.bytes);
+      let bin = '';
+      for (let i = 0; i < u8.length; i += 0x8000) {
+        bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+      }
+      return {
+        size: row.bytes.byteLength, version: new DataView(row.bytes).getUint32(4, true), build: row.build, b64: btoa(bin),
+      };
     })()`);
+    const saved = join(outDir, 'sticks.fdfreplay');
+    writeFileSync(saved, Buffer.from(bytes.b64, 'base64'));
     await page.evaluate(`${H}.api.playSaved(${JSON.stringify(id)})`);
     await page.until(`window.__crashCam.live() && ${H}.view() && !${H}.view().live`, 3 * FRAME_MS);
     const vs = await page.evaluate(`JSON.stringify(${H}.view())`).then(JSON.parse);
-    check('saved as version 16 and played back with its sticks', bytes.version === 16 && Boolean(vs.sticks), `${bytes.size} bytes, version ${bytes.version}`);
+    check('saved as version 18 and played back with its sticks, the row naming a checkout\'s build', bytes.version === 18 && bytes.build === null && Boolean(vs.sticks),
+      `${bytes.size} bytes, version ${bytes.version}, build ${bytes.build}`);
+    const re = spawnSync(process.execPath, [join(root, 'scripts', 'replay-refly.js'), saved], { encoding: 'utf8' });
+    writeFileSync(join(outDir, 'sticks-refly.txt'), `${re.stdout}${re.stderr}`);
+    const tally = /bit for bit: (\d+)\/(\d+)/.exec(re.stdout);
+    check('flown again in Node, every row bit for bit (npm run replay:refly)',
+      re.status === 0 && Boolean(tally) && tally[1] === tally[2] && Number(tally[2]) > 0,
+      tally ? `${tally[1]}/${tally[2]} rows, exit ${re.status}` : `exit ${re.status}: ${(re.stderr || re.stdout).trim().split('\n').pop()}`);
+    /* Transplanted (set up from the clip's setup log, placed in its state)
+     * twice onto the same build, the two flights must be the same: the
+     * setup log a real page wrote is whole enough to set a module up. */
+    const tp = spawnSync(process.execPath, [join(root, 'scripts', 'replay-refly.js'), saved, '--transplant'], { encoding: 'utf8' });
+    writeFileSync(join(outDir, 'sticks-transplant.txt'), `${tp.stdout}${tp.stderr}`);
+    const setupLine = /setup log (\d+) calls, (\d+) B, sim_init text (\d+) B/.exec(tp.stdout);
+    check('set up from its setup log on the same build twice, the two flights are the same',
+      tp.status === 0 && /SAME: the new build flies this clip exactly/.test(tp.stdout) && Boolean(setupLine),
+      setupLine ? `setup log ${setupLine[1]} calls, ${setupLine[2]} B; ${(/jolt[^\n]*\n[^\n]*worst: [^\n]*/.exec(tp.stdout) || [''])[0].replace(/\s+/g, ' ')}`
+        : `exit ${tp.status}: ${(tp.stderr || tp.stdout).trim().split('\n').pop()}`);
 
     console.log('5. an old clip, without sticks');
     const old = await page.evaluate(`(async () => {
       const f = await import('/src/replay/file.js');
       const c = { ...${H}.clip(), meta: { ...${H}.clip().meta, name: 'old' } };
       delete c.sticks;
+      delete c.refly;
+      delete c.build;
       const buf = f.encodeReplay(c);
       await ${H}.api.importFile(new File([buf], 'old.fdfreplay'));
       return { version: new DataView(buf).getUint32(4, true), size: buf.byteLength };

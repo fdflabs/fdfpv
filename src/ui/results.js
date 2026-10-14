@@ -276,7 +276,7 @@ export const resultsMethods = {
       const label = cell('label', str('ui.lap', { n: lap.n }));
       if (lap.ms == null) {
         const why = String(lap.reason || '').replace(/\n/g, ' ').toLowerCase();
-        this.resultsBody.append(resultRow(['void'], [label, cell('time', 'void'), cell('why', why)]));
+        this.resultsBody.append(resultRow(['void'], [label, cell('time', str('ui.lap_void')), cell('why', why)]));
         continue;
       }
       const isFastest = lap.ms === fastest;
@@ -286,7 +286,7 @@ export const resultsMethods = {
         cells.push(cell('tag', plural('count.points', lap.score)));
       }
       if (isFastest && laps.length > 1) {
-        cells.push(cell('tag', 'fastest'));
+        cells.push(cell('tag', str('ui.lap_fastest')));
       }
       /* Bars are relative to the slowest lap, floored so the quickest
        * still reads as a bar. */
@@ -417,15 +417,15 @@ export const resultsMethods = {
     }
     const facts = [str('ui.tricks_of_them_different', { tricks: summary.tricks, unique: summary.unique })];
     if (summary.bestCombo > 0) {
-      facts.push(`best chain ${formatScore(summary.bestCombo)}`);
+      facts.push(str('ui.best_chain', { score: formatScore(summary.bestCombo) }));
     }
     if (summary.bonus > 0) {
-      facts.push(`variety bonus ${formatScore(summary.bonus)}`);
+      facts.push(str('ui.variety_bonus', { score: formatScore(summary.bonus) }));
     }
     if (summary.crashes === 0) {
       facts.push(str('ui.no_crashes'));
     } else {
-      facts.push(`${summary.crashes} ${summary.crashes === 1 ? 'crash' : 'crashes'}`);
+      facts.push(plural('count.crashes', summary.crashes));
     }
     meta.textContent = facts.join('  ·  ');
     meta.className = clean ? 'results-hero-meta gain' : 'results-hero-meta';

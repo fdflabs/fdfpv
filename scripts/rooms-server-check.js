@@ -16,7 +16,8 @@
  * rate limit, a pilot whose machine vanished dropped and a hidden tab
  * kept, and, when public rooms are open, the room browser: a named public
  * room made and listed, a bad name refused, a private room never listed,
- * and a quick join. A room made for the war: one off the war's
+ * a quick join, and its host making it private and public again in place,
+ * off the list and back. A room made for the war: one off the war's
  * map and a mission on another map refused; one for mission 2, in
  * development (src/game/campaign.js release), refused 'unreleased'; a
  * private Itaipu one made for the drill (itaipu-drill.js: a mission other
@@ -421,6 +422,19 @@ if (pub.open) {
   check('a quick join on its world lands in the busiest room there', q.welcome && q.welcome.code === publicCode, JSON.stringify(q.welcome && q.welcome.code));
   const rooms = await listed();
   check('and the list, read at once, counts both', rooms.rooms.find((r) => r.code === publicCode).n === 2);
+  /* Who joins, changed in place by the host with others here
+   * (edge/rooms/core.js setPublic). */
+  check('the welcome says the room takes who joins changed in place', p.welcome.publicInPlace === true);
+  q.say({ type: 'public', on: false });
+  check('only its host changes it', Boolean(await q.until((x) => x.text('refused').find((m) => m.why === 'host'))));
+  p.say({ type: 'public', on: false });
+  const shut = await q.until((x) => x.text('public').find((m) => m.on === false));
+  check('its host makes it private: both told, the private cap', Boolean(shut) && shut.cap === 8 && Boolean(await p.until((x) => x.text('public').find((m) => m.on === false))), JSON.stringify(shut));
+  check('and the browser lists it no more', !(await listed()).rooms.some((r) => r.code === publicCode));
+  p.say({ type: 'public', on: true });
+  check('public again: both told, the public cap', Boolean(await q.until((x) => x.text('public').find((m) => m.on === true && m.cap === 16))));
+  const back = (await listed()).rooms.find((r) => r.code === publicCode);
+  check('and listed again with both', back && back.n === 2, JSON.stringify(back));
   p.ws.close(1000);
   q.ws.close(1000);
 } else {
@@ -479,7 +493,8 @@ const watchers = [w];
 for (let i = 1; i < WATCH_CAP; i += 1) {
   watchers.push(await seat(`room/${code}`, { name: [8, 9, 10 + i], watch: true }));
 }
-check(`${WATCH_CAP} watchers are seated`, watchers.every((x) => x.welcome && x.welcome.watch === true && !x.closed));
+check(`${WATCH_CAP} watchers are seated, each welcome counting them apart from the cap`, watchers.every((x, i) => x.welcome && x.welcome.watch === true && !x.closed
+  && x.welcome.watchers === i + 1 && x.welcome.cap === 8), JSON.stringify(watchers.map((x) => x.welcome && x.welcome.watchers)));
 const tooMany = await seat(`room/${code}`, { name: [8, 9, 30], watch: true });
 check('one more watcher is refused full', Boolean(tooMany.closed) && tooMany.closed.code === CLOSE.full, JSON.stringify(tooMany.closed));
 fillers[0].ws.close(1000);
@@ -552,6 +567,18 @@ if (pub.open) {
   await sleep(300);
   check('a watcher in the war\'s lobby is seated, and its ready counts for nobody', Boolean(pww.welcome && pww.welcome.watch)
     && !pw.text('lobby').some((m) => Object.keys(m.lobby.ready).length), JSON.stringify(pw.text('lobby').map((m) => m.lobby.ready)));
+  /* The browser's line counts it apart from the pilots (the lobby's
+   * answer is cached a second, lobby.js LIST_CACHE_MS). */
+  const lineOf = async (want) => {
+    let line = null;
+    for (let i = 0; i < 15 && !(line && want(line)); i += 1) {
+      await sleep(200);
+      line = (await listed()).rooms.find((r) => r.code === pubWar);
+    }
+    return line;
+  };
+  const watchedLine = await lineOf((r) => r.watchers === 1);
+  check('the browser lists the room\'s watcher apart: watchers 1, its pilots 2', watchedLine && watchedLine.watchers === 1 && watchedLine.n === 2, JSON.stringify(watchedLine));
   pw.say({ type: 'lobby', op: 'ready', ready: true });
   pw2.say({ type: 'lobby', op: 'ready', ready: true });
   const counting = await pw2.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt !== null && m.lobby.ready['1'] && m.lobby.ready['2']));
@@ -562,6 +589,8 @@ if (pub.open) {
     JSON.stringify(counting && counting.lobby));
   check('and the room starts the drill\'s briefing for both on its own', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-drill' && m.war.state === 'briefing'), 9000)
     && await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'briefing'), 2000)));
+  const unwatchedLine = await lineOf((r) => r.watchers === 0);
+  check('and with the watcher gone, watchers 0', unwatchedLine && unwatchedLine.watchers === 0 && unwatchedLine.n === 2, JSON.stringify(unwatchedLine));
   pw.say({ type: 'war', op: 'end' });
   await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'ended'));
   pw2.ws.close(1000);

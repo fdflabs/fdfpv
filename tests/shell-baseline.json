@@ -22,7 +22,7 @@
       "belowFold": 0
     },
     "pilot": {
-      "overflow": 1520,
+      "overflow": 1710,
       "belowFold": 0
     },
     "launch": {
@@ -30,15 +30,15 @@
       "belowFold": 0
     },
     "rates": {
-      "overflow": 353,
+      "overflow": 321,
       "belowFold": 0
     },
     "pids": {
-      "overflow": 90,
+      "overflow": 63,
       "belowFold": 0
     },
     "fc": {
-      "overflow": 3723,
+      "overflow": 3475,
       "belowFold": 0
     },
     "paused": {

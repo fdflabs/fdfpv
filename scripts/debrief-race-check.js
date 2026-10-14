@@ -2,16 +2,26 @@
  * debrief-race-check.js: a solo race's debrief (docs/DEBRIEF.md), in the
  * real page.
  *
- *     node scripts/debrief-race-check.js [--out=<dir>]
+ *     node scripts/debrief-race-check.js [--out=<dir>] [--opponent-only]
  *
  * Three laps of the ring in tests/fixtures/map-track-v4.json, flown by
  * placing the craft through each gate as scripts/ghost-shell-check.js does,
  * end on the results screen. The rows check that the facts block shows the
  * flight (time in the air, the route from above, distance, clean laps, the
- * track record line, this aircraft's total), that Watch the replay is on
- * screen where a real pointer reaches it, that clicking it opens the crash
- * cam on this flight, that Escape comes back to the results (not to a
- * flight that has ended) and that Fly again flies. In English and Spanish.
+ * aircraft's condition, the track record line, this aircraft's total), that
+ * Watch the replay is on screen where a real pointer reaches it, that
+ * clicking it opens the crash cam on this flight, that Escape comes back
+ * to the results (not to a flight that has ended) and that Fly again
+ * flies. In English and Spanish.
+ *
+ * WITH AN AI OPPONENT (docs/redesign/PLAN.md 18): the same ring with the
+ * Ghost row on AI opponent, racing a lap the plant flew at OPPONENT_PACE
+ * (tests/lib/aireference.js, loaded as the board's lap through
+ * __ghostLoad). The opponent starts when the pilot's lap opens, flies its
+ * own plant round the ring while the pilot holds, closes a lap of its own
+ * through the ring's gate frames, and the results carry its line (laps,
+ * best) while the pilot's laps, clean laps and track record stay the
+ * pilot's. In English and Spanish.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -34,6 +44,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
+import { aiBench } from '../tests/lib/aireference.js';
+import { RATE_DEFAULTS } from '../configs/rates.js';
+import { composeConfig } from '../src/fc/dump.js';
+import { raceFromDocument } from '../src/game/verify.js';
+import { encodeGhost, ghostToBase64 } from '../src/share/ghostdata.js';
 import { frames } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
@@ -196,10 +211,12 @@ async function run(lang, track) {
     const f = await page.evaluate(FACTS);
     say(Boolean(f) && f.visible, `the facts block is on screen`);
     say(Boolean(f) && f.clear, `the facts cover none of the hero, the laps or the menu: ${f && f.box}`);
-    const want = ['debrief.air_time', 'debrief.distance', 'debrief.top', 'debrief.clean_laps', 'debrief.track_record', 'debrief.aircraft_time'].map((k) => t[k]);
+    const want = ['debrief.air_time', 'debrief.distance', 'debrief.top', 'debrief.clean_laps', 'debrief.condition', 'debrief.track_record', 'debrief.aircraft_time'].map((k) => t[k]);
     say(f && JSON.stringify(f.dts) === JSON.stringify(want), `its lines in order: ${f && f.dts.join(' | ')}`);
     say(f && f.dds[0] !== '0:00' && /^\d+:\d\d$/.test(f.dds[0]), `time in the air counted: ${f && f.dds[0]}`);
     say(f && f.dds[3] === t['debrief.n_of'].replace('{n}', '3').replace('{of}', '3'), `clean laps: ${f && f.dds[3]}`);
+    const hud = await page.evaluate('window.__crash().condition');
+    say(f && f.dds[4] === t[`debrief.cond_${hud}`], `the aircraft's condition is the HUD's word, ${hud}: ${f && f.dds[4]}`);
     say(f && f.points > 5, `the route is drawn from above: ${f && f.points} points`);
     await shot(page, `debrief-race-${lang}.png`);
     const reach = await page.evaluate(REACH('watchreplay'));
@@ -229,10 +246,82 @@ async function run(lang, track) {
   }
 }
 
+/* m/s: under the AI pilot's ceiling on this ring (aipilot:harness). */
+const OPPONENT_PACE = 8;
+
+/* The lap the opponent races: the reference pilot's on the real plant, as
+ * the page seats the interceptor, as wire base64. */
+async function opponentGhost(track) {
+  const af = airframeById('interceptor');
+  const wasm = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
+  const tune = composeConfig(await readFile(join(root, `configs/${af.defaultTune}.diff`), 'utf8'), RATE_DEFAULTS);
+  const bench = aiBench({ wasm, af, tune, course: raceFromDocument(track), rates: RATE_DEFAULTS });
+  const record = await bench.referenceGhost(await bench.learn(), OPPONENT_PACE);
+  if (!record) {
+    throw new Error(`the reference pilot could not lap the ring at ${OPPONENT_PACE} m/s`);
+  }
+  return { b64: ghostToBase64(encodeGhost(record)), ms: record.durationMs };
+}
+
+async function runOpponent(lang, track, ghost) {
+  const t = TABLES[lang];
+  console.log(`\n${lang}: the ring against an AI opponent racing a ${(ghost.ms / 1000).toFixed(2)} s lap`);
+  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: seeds(lang, track) });
+  try {
+    await playRing(page, track);
+    const G = await gatesOf(page);
+    await page.evaluate(`window.__ghostLoad(${JSON.stringify(ghost.b64)}, 'Harness')`);
+    const choice = await page.evaluate("window.__ghostPick('ai')");
+    say(choice === 'ai', `the Ghost row takes AI opponent: ${choice}`);
+    await page.until('window.__ghost().opponent.seated', 60000).catch(() => {});
+    const seated = await page.evaluate('window.__ghost()');
+    say(seated.opponent.seated && !seated.armed, `its plant is seated (sticks learnt in ${Math.round(seated.opponent.learnMs)} ms when picked) and no pacer is drawn: ${JSON.stringify({ seated: seated.opponent.seated, armed: seated.armed })}`);
+    await page.sleep(1500);
+    await through(page, G[0]);
+    const started = await page.evaluate('window.__ghost().opponent');
+    say(started.racing && started.visible, `the pilot's lap opens and the opponent starts, drawn: ${JSON.stringify({ racing: started.racing, visible: started.visible })}`);
+    /* The pilot holds on the ring while the opponent flies a lap of its
+     * own: its start from a hover, then a lap at the ghost's pace. */
+    await page.until('window.__ghost().opponent.laps.length >= 1 || window.__ghost().opponent.crashed', 240000).catch(() => {});
+    const op = await page.evaluate('window.__ghost().opponent');
+    say(op.laps.length >= 1 && !op.crashed, `the opponent closes a lap through the ring's frames: ${JSON.stringify({ laps: op.laps, crashed: op.crashed, contacts: op.contacts, next: op.next, ms: op.ms })}`);
+    say(op.laps.length === 0 || Math.abs(op.laps[0] - ghost.ms) <= 133.3, `its lap within aipilot:harness's band of the ghost's ${ghost.ms} ms: ${op.laps[0]}`);
+    for (let lap = 0; lap < 3; lap += 1) {
+      for (let k = 1; k <= G.length; k += 1) {
+        await through(page, G[k % G.length]);
+      }
+    }
+    await page.evaluate('window.__drawOff(false)');
+    await page.until("window.__craftState().mode === 'results' && window.__ui.screen === 'results'", 30000);
+    await page.sleep(700);
+    const shown = await page.evaluate(`(() => {
+      const line = document.querySelector('.results-ghost');
+      return { line: line ? line.textContent : null, laps: window.__race().laps.length, best: window.__race().bestMs, op: window.__ghost().opponent.laps };
+    })()`);
+    const want = t['main.ai_opponent_result'].split('{laps}')[0];
+    say(shown.line && shown.line.startsWith(want), `the results carry the opponent's line: ${shown.line}`);
+    say(shown.laps === 3, `the pilot's own laps are the pilot's: ${shown.laps}`);
+    say(!shown.op.includes(shown.best), `the track record is not the opponent's: ${shown.best} against ${JSON.stringify(shown.op)}`);
+    const f = await page.evaluate(FACTS);
+    say(f && f.dds[3] === t['debrief.n_of'].replace('{n}', '3').replace('{of}', '3'), `clean laps are the pilot's: ${f && f.dds[3]}`);
+    await shot(page, `debrief-race-opponent-${lang}.png`);
+    const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource|network:/.test(e));
+    say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  } finally {
+    await page.close();
+  }
+}
+
 const track = JSON.parse(await readFile(join(root, 'tests/fixtures/map-track-v4.json'), 'utf8'));
+const only = process.argv.includes('--opponent-only');
 try {
-  await run('en', track);
-  await run('es', track);
+  if (!only) {
+    await run('en', track);
+    await run('es', track);
+  }
+  const ghost = await opponentGhost(track);
+  await runOpponent('en', track, ghost);
+  await runOpponent('es', track, ghost);
 } catch (e) {
   failed += 1;
   console.log(`  FAIL  ${e.stack || e}`);

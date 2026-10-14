@@ -31,11 +31,12 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, foldEvents, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
+import { EventLog, feedRunWatch } from '../game/events.js';
 import { itemById } from '../game/economy.js';
-import { LessonWatch, passesOf } from '../game/training.js';
+import { LessonWatch, certsEarned, passesOf } from '../game/training.js';
 import { readWallet } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
@@ -203,6 +204,13 @@ export class Progress {
     this.ui = ui;
     this.host = host;
     this.watch = new RunWatch();
+    /* This flight's events (src/game/events.js), and the sim clock as the
+     * last tick gave it, for the calls that do not carry one. */
+    this.flight = new EventLog();
+    /* How far into this flight's log progress has counted. */
+    this.folded = 0;
+    this.simMs = 0;
+    this.wasCrashed = false;
     this.toasts = [];
     /* Every toast shown, newest last, for a check to read. */
     this.log = [];
@@ -254,6 +262,58 @@ export class Progress {
     this.watch.start(ctx);
   }
 
+  /* A new flight from the spawn at sim time `simMs`; `roomNow` the room
+   * clock while in a room. The last flight's log ends here. */
+  startFlight(simMs, roomNow = null) {
+    this.simMs = simMs;
+    this.flight.end(simMs);
+    this.flight = new EventLog({ roomNow });
+    this.folded = 0;
+    this.flight.append('spawned', simMs);
+  }
+
+  /* This flight's events not yet folded into progress, folded
+   * (progress.js foldEvents) and stored when any was. */
+  foldFlight() {
+    const { at, counted } = foldEvents(this.state, this.flight.events, this.folded);
+    this.folded = at;
+    if (counted) {
+      this.save();
+    }
+  }
+
+  /* A Streamer Combat round or a Catch the Ace! match this pilot had a
+   * seat in, ended by the room, on world `world` (src/main.js): logged,
+   * folded, and its first paid now rather than at the next flight time. */
+  roundFinished(game, world, more = {}) {
+    const round = this.event('round', { game, world, ...more });
+    this.foldFlight();
+    this.checkFirsts();
+    if (this.lesson) {
+      this.lesson.round(round);
+      this.lessonNews();
+    }
+  }
+
+  /* Attackers the room credited to this pilot's warhead (src/share/roomwar.js
+   * dead `kills`), each a `kill` on the seated aircraft, then folded. */
+  killed(kills) {
+    for (const k of kills) {
+      this.event('kill', { airframe: this.airframe, victim: k.kind });
+    }
+    this.foldFlight();
+  }
+
+  /* The seated aircraft, for the events counted per aircraft. */
+  get airframe() {
+    return this.watch.ctx ? this.watch.ctx.airframe : null;
+  }
+
+  /* One event into this flight's log at the last tick's sim time. */
+  event(type, data = {}) {
+    return this.flight.append(type, this.simMs, data);
+  }
+
   /*
    * THE LESSON being flown (src/game/training.js), or none: judged beside
    * the challenges from the same calls, and said in toasts. It lasts until
@@ -272,6 +332,9 @@ export class Progress {
 
   endLesson() {
     this.lesson = null;
+    if (this.onLessonEnd) {
+      this.onLessonEnd();
+    }
   }
 
   /* The visual aid the lesson in flight draws, or null. */
@@ -296,8 +359,16 @@ export class Progress {
        * made here when a profile from before it has none. */
       this.state.lessonsFlown ??= {};
       this.state.lessonsFlown[w.lesson.id] = true;
+      this.state.certs ??= {};
+      const certified = certsEarned(this.state.lessons).filter((t) => !this.state.certs[t]);
+      for (const track of certified) {
+        this.state.certs[track] = now;
+      }
       this.save();
       this.toast({ cls: 'challenge', icon: '\u2713', kicker: str('training.toast_passed'), title: str(`training.lesson.${w.lesson.id}`) });
+      for (const track of certified) {
+        this.toast({ cls: 'challenge', icon: '\u2605', kicker: str('training.toast_cert'), title: str(`training.cert.${track}`) });
+      }
       this.lesson = null;
       return;
     }
@@ -308,7 +379,7 @@ export class Progress {
   }
 
   gatePass() {
-    this.award(this.watch.gatePass());
+    this.award(feedRunWatch(this.watch, this.event('gate')));
     if (this.lesson) {
       this.lesson.gatePass();
       this.lessonNews();
@@ -316,7 +387,11 @@ export class Progress {
   }
 
   touch(kind) {
+    /* Direct, not through the logged event: the log keeps one touch per
+     * run of contact, and a startRun inside that run would leave RunWatch
+     * never told of it. */
     this.watch.touch(kind);
+    this.event('touch', { kind });
     if (this.lesson && RIM_KINDS.includes(kind)) {
       this.lesson.rim();
     }
@@ -328,19 +403,33 @@ export class Progress {
   lap(course, { ms = null, ghostMs = null, medal = null } = {}) {
     const events = awardLap(this.state, course);
     const won = medal ? awardMedal(this.state, course.key, medal) : [];
-    const done = this.watch.lap();
+    const lapped = this.event('lap', { ms, airframe: this.airframe, medal });
+    const done = feedRunWatch(this.watch, lapped);
+    this.foldFlight();
     this.save();
     this.show(events);
     this.show(won);
     this.award(done);
     if (this.lesson) {
-      this.lesson.lap({ ms, ghostMs });
+      this.lesson.lap(lapped, ghostMs);
       this.lessonNews();
     }
   }
 
   tick(state) {
+    this.simMs = state.simMs;
+    /* Its own edge: startRun clears RunWatch's flag mid crash. */
+    if (state.crashed && !this.wasCrashed) {
+      this.event('crash', { airframe: this.airframe });
+      this.foldFlight();
+    }
+    this.wasCrashed = Boolean(state.crashed);
+    const landings = this.watch.landings;
     this.award(this.watch.tick(state));
+    if (this.watch.landings > landings) {
+      this.event('landing', { airframe: this.airframe });
+      this.foldFlight();
+    }
     if (this.lesson) {
       this.lesson.tick(state);
       this.lessonNews();
@@ -366,6 +455,7 @@ export class Progress {
       seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
       lessons: this.state.lessons,
       flown: this.state.lessonsFlown,
+      played: this.state.played,
     });
     if (events.length) {
       this.save();
@@ -710,11 +800,19 @@ const MISSION_KEYS = new Map([
   ...INTERIOR.map((m) => [m.id, `ops.campaign.interior.m.${m.key}`]),
 ]);
 
+/* The words for a room game's first (progress.js PLAYED_GAMES, WORLDS):
+ * each game's card name and each world's registry name. */
+const GAME_NAMES = { combat: 'combat.card', tag: 'roomtag.section' };
+const WORLD_NAMES = { alps: 'registry.the_alps', swiss2: 'registry.swiss2', itaipu: 'registry.itaipu', interior: 'registry.interior' };
+
 /* A first's words, from its key (progress.js firstsOf). */
 export function firstTitle(key) {
   const [what, id, part] = key.split(':');
   if (what === 'lesson') {
     return str('progress.first.lesson', { lesson: str(`training.lesson.${id}`) });
+  }
+  if (what === 'game') {
+    return str('progress.first.game', { game: str(GAME_NAMES[id]), world: str(WORLD_NAMES[part]) });
   }
   if (what === 'mission') {
     const mission = str(MISSION_KEYS.get(id) ?? id);

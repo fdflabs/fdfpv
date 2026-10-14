@@ -26,7 +26,11 @@ in which PR, what it does NOT do, and the checks that prove it.
   room the host's setting is the room's.
 - Every pilot in the room flies the same air: the room hands out one preset
   and one seed, and the air is a pure function of (map, preset, seed,
-  position, room time).
+  position, room time). The gusts on top too: each windy run sets the
+  plant's gust clock to the room's clock at its start, whole ms
+  (`sim_set_wind_clock`, a setup call the journal keeps), so the gusts run
+  on the room's clock and two pilots at the same room millisecond meet the
+  same gust bit for bit. Solo it is 0, the plant's own clock, as before.
 - The wind gets stronger with height (layers), is weaker behind shelter and
   rougher near the zones a map names (on Itaipu, the main dam's crest), and a
   gust front sweeps across the map now and then: a band of stronger, rougher
@@ -64,6 +68,9 @@ The flightmodel lane owns src/native/plant_wing.c. The only existing input is
   model mid flight.
 - Replays: the journal (src/replay/journal.js) records every call into the
   module with its doubles, so the per step `sim_set_wind` replays itself.
+  It and `sim_set_air_vertical` are among the journal's every step calls
+  (STEP_CALLS), kept in the stretches and out of the setup log, which they
+  would otherwise fill in about 100 s of wind.
   Recorded flights from before this are calm and unchanged. A TAKE OVER
   restores the plant's whole region, the wind with it, so it counts as wind
   having been set: the next run clears it.
@@ -299,3 +306,16 @@ sets Gusty, saved; the next run flies it; Calm again flies still air.
 check starts; the host's gusty reaches both with the same seed, a non host
 is refused, calm again is calm on both. The room's messages are also in
 `npm run rooms:selftest` (scripts/rooms-selftest-weather.js, CI).
+
+`npm run rooms:wind` (local, about 5 minutes): a quad host and a wing in
+one room flying Gusty. Each plant's air is on the room's clock (within
+100 ms), is the room's air at its place and time bit for bit, and the
+other page's air at that place and room time is the same bit for bit;
+`sim_wind` is that mean plus gusts within their peak; each plant's gust
+clock is the room's within 100 ms, and its gust is the cosine sum at that
+room millisecond (within 1e-9 of the JS sum), the same on both pages. Runs after a throw, so a launch stand
+sit or a pause before the samples is not covered.
+
+`npm run replay:refly:selftest` (CI) flies a windy flight, the air set
+before every step: bit for bit on its build, and none of the air in the
+setup log.

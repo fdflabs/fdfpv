@@ -57,6 +57,7 @@ import {
   TYPE_FOOT, TYPE_PARTS, TYPE_STREAMER, WAR_JOIN,
 } from '../../src/share/roomwire.js';
 import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
+import { released } from '../../src/game/campaign.js';
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
@@ -203,6 +204,14 @@ function poseAt(bytes) {
 }
 
 /* The ticks between two sends of a pose at `b` to a seat at `a`. */
+/* A war's or an ops match's view as a watcher is sent it: the result
+ * (its stars, its credits, the flags a campaign records) is the seats'
+ * alone, since the page holding one pays it to its pilot and records
+ * its debrief (src/ui/campaign.js observe, src/ui/opscampaign.js record). */
+export function watchedView(view) {
+  return view && view.result != null ? { ...view, result: null } : view;
+}
+
 export function interestEvery(a, b) {
   if (!a || !b) {
     return 1;
@@ -294,6 +303,10 @@ export class RoomCore {
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     /* The accounts whose rooms start missions in development (devHost). */
     this.devAccounts = options.devAccounts ?? new Set();
+    this.devMissions = options.devMissions === true;
+    /* Whether this server lists public rooms at all (env.PUBLIC_ROOMS), so
+     * a private room may become one (setPublic). */
+    this.publicRooms = options.publicRooms === true;
     this.war = new RoomWar(meta, { devMissions: options.devMissions === true }); /* Defend Itaipu, edge/rooms/war.js */
     this.ops = new RoomOps(meta, { devMissions: options.devMissions === true }); /* ops missions (The Interior), edge/rooms/ops.js */
     this.gameLobby = new RoomGameLobby(); /* a game room's lobby, edge/rooms/gamelobby.js */
@@ -691,15 +704,30 @@ export class RoomCore {
   }
 
   /* others(), and every watcher: the news a watcher needs to draw the
-   * pilots (join, leave, profile, host, world), never a game's. */
+   * pilots (join, leave, profile, host, world), and a race's passes. */
   roster(except, data) {
     return [...this.others(except, data), ...[...this.watchers.keys()].map((conn) => ({ send: conn, data }))];
+  }
+
+  /* Every seat and every watcher: a game's state (its standings, round
+   * and clock), which a watcher reads and cannot act on (watcherSaid). */
+  everyone(data) {
+    return this.roster(null, data);
+  }
+
+  /* The war's and the ops' view, { type, [type]: view }: every seat the
+   * whole of it, every watcher the same with no result (watchedView). */
+  viewed(type, view) {
+    const data = JSON.stringify({ type, [type]: view });
+    const seen = JSON.stringify({ type, [type]: watchedView(view) });
+    return [...[...this.seats.keys()].map((conn) => ({ send: conn, data })), ...[...this.watchers.keys()].map((conn) => ({ send: conn, data: seen }))];
   }
 
   attachmentOf(s) {
     return {
       seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address,
       muted: s.muted || [], wreck: s.wreck ?? null, level: s.level || 0, callsign: s.callsign ?? null, account: s.account ?? null,
+      blocks: s.blocks || [],
     };
   }
 
@@ -768,11 +796,16 @@ export class RoomCore {
   /*
    * THE WATCH SEAT (docs/FLIGHTCLUB-PROGRESSION.md section 3): a hello
    * with watch: true. The watcher gets the room's welcome with seat 0 and
-   * its pilots, then their poses and the roster's news (roster()), and
-   * nothing else: no seat, no token a pilot's tab could take over, no game
-   * join, no say in the clock, the host or ready. Pilots are never told a
+   * its pilots, then their poses, the roster's news (roster()) and every
+   * game's state as it changes (everyone()): the race's, tag's, jam's,
+   * combat's, the war's and the ops' (with no result, viewed()) and the
+   * lobby's, and nothing else: no seat, no token a pilot's tab could take
+   * over, no game join, no role, no say in the clock, the host or ready,
+   * never counted in the lobby (people()). Pilots are never told a
    * watcher came, since there is nothing of it to draw and no public list
-   * of watchers. Up to WATCH_CAP, refused 'full' past it.
+   * of watchers, only their number (watchers) in a welcome and the room
+   * browser's line (lobby.js listingOf). Up to WATCH_CAP, refused 'full'
+   * past it.
    */
   watch(conn, msg, now, address, newToken, callsign) {
     if (!this.joinAllowed(address, now)) {
@@ -808,9 +841,20 @@ export class RoomCore {
           mission: this.meta.mission ?? null,
           map: this.meta.map,
           daytime: this.daytimeWelcome(),
+          watchers: this.watchers.size,
           peers: this.peerList(null),
+          /* Every game as it stands (everyone()); the war's and the
+           * ops' with no result (watchedView). */
+          ...this.race.welcome(),
+          ...this.tag.welcome(this),
+          ...this.jam.welcome(this),
+          war: watchedView(this.war.view(this)),
+          ops: watchedView(this.ops.view(this)),
+          ...this.gameLobby.welcome(this),
         }),
       },
+      ...this.combat.join(this, conn),
+      ...this.war.watch(conn),
       ...(this.ticking || !this.seats.size ? [] : [{ tick: true }]),
     ];
   }
@@ -825,9 +869,12 @@ export class RoomCore {
    * no hello can name itself one. It goes to every peer beside the picker
    * name, which a build from before it shows instead. account is that
    * pilot's account id from the same lookup (null the same way): never
-   * sent to anybody, only read against the room's DEV_ACCOUNTS (devHost).
+   * sent to anybody, only read against the room's DEV_ACCOUNTS (devHost)
+   * and other pilots' blocks. blocks is the ids of the accounts this
+   * pilot blocked, from the same lookup ([] the same way): whoever holds
+   * one of them is not heard by this pilot (safety.js shut).
    */
-  hello(conn, msg, now, address, newToken, callsign = null, account = null) {
+  hello(conn, msg, now, address, newToken, callsign = null, account = null, blocks = []) {
     if (msg.proto !== PROTO) {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
@@ -903,6 +950,7 @@ export class RoomCore {
       name: msg.name.slice(),
       callsign,
       account,
+      blocks,
       profile,
       joined,
       /* Memory only, for the admin's who is on (who()): this socket's
@@ -955,7 +1003,12 @@ export class RoomCore {
         map: this.meta.map,
         weather: this.meta.weather ?? CALM,
         stockSurfaces: Boolean(this.meta.stockSurfaces),
+        /* The host may change public in place (setPublic). */
+        publicInPlace: true,
         daytime: this.daytimeWelcome(),
+        /* How many watch, as at this join: no news follows a watcher's
+         * coming or going (watch). */
+        watchers: this.watchers.size,
         peers: this.peerList(conn),
         ...this.race.welcome(),
         ...this.tag.welcome(this),
@@ -984,12 +1037,12 @@ export class RoomCore {
   /* Any text can move the room's game clock (a host's time, a war or an
    * ops mission started, the lobby's mission picked): its news follows
    * the message's own. A pose never can. */
-  message(conn, data, now, address = '', newToken = null, callsign = null, account = null) {
-    const out = this.said(conn, data, now, address, newToken, callsign, account);
+  message(conn, data, now, address = '', newToken = null, callsign = null, account = null, blocks = []) {
+    const out = this.said(conn, data, now, address, newToken, callsign, account, blocks);
     return typeof data === 'string' ? [...out, ...this.daytimeNews()] : out;
   }
 
-  said(conn, data, now, address, newToken, callsign, account) {
+  said(conn, data, now, address, newToken, callsign, account, blocks) {
     const w = this.watchers.get(conn);
     if (w) {
       return this.watcherSaid(conn, w, data, now);
@@ -1031,7 +1084,7 @@ export class RoomCore {
       return [];
     }
     if (!s) {
-      return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken, callsign, account) : [];
+      return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken, callsign, account, blocks) : [];
     }
     /* Counted on an allowance of its own (edge/rooms/voice.js). */
     if (msg.type === 'voice') {
@@ -1072,6 +1125,9 @@ export class RoomCore {
     }
     if (msg.type === 'stockSurfaces') {
       return this.stockSurfaces(conn, s, msg);
+    }
+    if (msg.type === 'public') {
+      return this.setPublic(conn, s, msg);
     }
     if (msg.type === 'daytime') {
       return this.setDaytime(conn, s, msg);
@@ -1235,6 +1291,55 @@ export class RoomCore {
       { store: 'meta', value: this.meta },
       ...this.roster(null, JSON.stringify({ type: 'stockSurfaces', on: msg.on })),
     ];
+  }
+
+  /*
+   * The host changes who joins with others here (docs/redesign/SESSIONS.md
+   * section 2): { type: 'public', on }. The room keeps its code, its
+   * pilots and its game; only its listing and its cap change, the cap
+   * because a public room seats PUBLIC_CAP and a private one PRIVATE_CAP.
+   * Kept with the meta, and everybody is told { type: 'public', on, cap },
+   * a type a build from before it passes over; the welcome's publicInPlace
+   * says the room takes it, so a page offers it only then. To public as
+   * POST /v2/create would make it (front.js create): only where public
+   * rooms are open, never with a game on that a public room runs only
+   * when made for it (hostCheck) or an ops mission, and a war room only
+   * for a released mission. To private only with no more people here
+   * than its cap. Its AI pilots stay at the host's level.
+   */
+  setPublic(conn, s, msg) {
+    if (typeof msg.on !== 'boolean') {
+      return [];
+    }
+    const refuse = (why) => [{ send: conn, data: JSON.stringify({ type: 'refused', why }) }];
+    if (s.seat !== this.host()) {
+      return refuse('host');
+    }
+    if (msg.on && !this.meta.public) {
+      if (!this.publicRooms) {
+        return refuse('public_closed');
+      }
+      const game = this.game();
+      if (game === 'ops' || (game && modeById(game).publicOnlyWhenMadeFor && !madeFor(this.meta.mode, game))) {
+        return refuse('public_game');
+      }
+      /* The mission the room was made for, which the list shows, not the
+       * first one it may start (warMission). */
+      if (this.meta.mode === 'war' && !released(this.meta.mission ?? warMission(this), this.devMissions)) {
+        return refuse('war_unreleased');
+      }
+    }
+    if (!msg.on && this.meta.public && this.people().length > PRIVATE_CAP) {
+      return refuse('private_full');
+    }
+    const changed = msg.on !== Boolean(this.meta.public);
+    this.meta.public = msg.on;
+    this.meta.cap = msg.on ? PUBLIC_CAP : PRIVATE_CAP;
+    const told = JSON.stringify({ type: 'public', on: msg.on, cap: this.meta.cap });
+    if (!changed) {
+      return [{ send: conn, data: told }];
+    }
+    return [{ store: 'meta', value: this.meta }, ...this.roster(null, told)];
   }
 
   /*

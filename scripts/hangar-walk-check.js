@@ -37,7 +37,8 @@ import {
 } from '../src/game/hangarroom.js';
 import en from '../src/strings/en.js';
 import { airframeById } from '../configs/airframes.js';
-import { levelOf, LEVEL_XP } from '../src/game/progress.js';
+import { levelOf, LEVEL_XP, milestonesOf } from '../src/game/progress.js';
+import { FLIGHT_ACTIVITIES, flightTotals } from '../src/share/flighttime.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const out = process.argv[2] || join(tmpdir(), 'hangar-walk-check');
@@ -149,6 +150,25 @@ try {
   await page.until("window.__ui.hub === 'hangar'", 10000);
   const walkCard = '.gate-card.gate-card-hangar-walk';
   check('the Hangar shows a Walk in card', (await page.evaluate(`document.querySelector('${walkCard} .gate-card-name')?.textContent`)) === en['walk.card'], en['walk.card']);
+  await shot('00-hub');
+  /* Upgrades: the war's shop, opened on its own page, and Escape closes it
+   * back onto the Hangar rather than onto the war's missions. */
+  check('Upgrades clicked', await page.click('.gate-card.gate-card-hangar-upgrades'), 'clicked');
+  await page.sleep(300);
+  const shop = await page.evaluate("(() => { const b = document.querySelector('.campaign-box'); return b && !b.closest('[hidden]') ? b.dataset.page : null; })()");
+  check('Upgrades opens the war\'s shop', shop === 'shop', String(shop));
+  await page.tap('Escape');
+  await page.sleep(300);
+  const shut = await page.evaluate("({ open: Boolean(document.querySelector('.campaign-box')) && !document.querySelector('.campaign-box').closest('[hidden]'), hub: window.__ui.hub, screen: window.__ui.screen })");
+  check('Escape closes it onto the Hangar', !shut.open && shut.hub === 'hangar' && shut.screen === 'title', JSON.stringify(shut));
+  /* Choose joystick: the Settings row's own action, handed to the shell. */
+  await page.evaluate('(() => { const ui = window.__ui; const was = ui.onAction; window.__hubActs = []; ui.onAction = (a, ...rest) => { window.__hubActs.push(a); return was(a, ...rest); }; window.__hubActsWas = was; return true; })()');
+  check('Choose joystick clicked', await page.click('.gate-card.gate-card-hangar-joystick'), 'clicked');
+  await page.sleep(300);
+  const acts = await page.evaluate('(() => { window.__ui.onAction = window.__hubActsWas; return window.__hubActs; })()');
+  check('Choose joystick asks the shell to pick a pad, as the Settings row does', acts.includes('choosepad'), JSON.stringify(acts));
+  await page.evaluate('window.__ui.hub = "hangar"; window.__ui.show("title"); window.__ui.renderMenu(); true');
+  await page.sleep(300);
   check('Walk in clicked', await page.click(walkCard), 'clicked');
   await need("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
   await page.sleep(800);
@@ -300,7 +320,7 @@ try {
   /* A pilot who has flown to the workshop's level walks into the
    * workshop: progress as flying leaves it, set in place. */
   await page.evaluate(`(() => { const p = window.__ui.progress.state; p.unlockAll = false; p.xp = ${LEVEL_XP[TIER_LEVELS.workshop - 1]};
-    p.firsts = { 'mission:m1:win': true, 'mission:m1:star1': true, 'aircraft:timber1500:flight': true, 'lesson:hover': true, 'aircraft:cub1400:ten': false };
+    p.firsts = { 'mission:m1:win': true, 'mission:m1:star1': true, 'aircraft:timber1500:flight': true, 'lesson:hover': true, 'game:tag:alps': true, 'aircraft:cub1400:ten': false };
     p.medals = { 'board:alps-sprint': 'gold', 'board:swiss-hoops': 'bronze' }; return true; })()`);
   check('the Hangar hub card clicked again', await page.click('.gate-card.gate-card-hub-hangar'), 'clicked');
   await page.until("window.__ui.hub === 'hangar'", 10000);
@@ -311,13 +331,16 @@ try {
   room = ROOMS[s.tier];
   occ = occupancy(room, LAYOUTS[s.tier]);
   await shot('05-workshop');
-  check('the trophy wall holds a trophy per Flight Club medal and per first paid, none for one unpaid', s.view.trophies === 6, `${s.view.trophies} trophies (2 medals, 4 firsts)`);
+  check('the trophy wall holds a trophy per Flight Club medal and per first paid, none for one unpaid', s.view.trophies === 7, `${s.view.trophies} trophies (2 medals, 5 firsts)`);
+  check('a room game first is its own green cup, not a lesson\'s', (s.view.trophyKinds || []).filter((k) => k === 'game').length === 1, JSON.stringify(s.view.trophyKinds));
   const door = s.stations.find((x) => x.id === 'door');
   s = await walkTo(room, occ, door);
   await page.sleep(200);
   const doorPrompt = await page.evaluate("document.querySelector('.walk-prompt').hidden ? null : document.querySelector('.walk-prompt').textContent");
   check('door: its prompt says Fly', Boolean(doorPrompt) && doorPrompt.includes(en['walk.door']), JSON.stringify(doorPrompt));
   await shot('05-door-prompt');
+  /* Eleven minutes on the seated aircraft: two milestones of three. */
+  await page.evaluate(`(() => { const s = window.__ui.settings; s.flightTime = { walkcheck01: { by: { [s.airframe]: { ${JSON.stringify(FLIGHT_ACTIVITIES[0])}: 660 } } } }; return true; })()`);
   await page.tap('KeyE');
   /* The lineup before launch: the aircraft's card, a moment, then flight. */
   await page.sleep(500);
@@ -325,6 +348,12 @@ try {
   const craftName = await page.evaluate('window.__ui.settings.airframe');
   check('door: E shows the lineup card first, naming the aircraft, still in the room',
     Boolean(card) && card.includes(airframeById(craftName).name) && (await page.evaluate("window.__ui.screen === 'walk'")), JSON.stringify(card));
+  /* Its mastery milestones under it, lit as the time flown on it says. */
+  const pips = await page.evaluate("[...document.querySelectorAll('.walk-lineup .walk-lineup-milestones .hangar-milestone')].map((p) => [p.dataset.milestone, p.classList.contains('on')])");
+  const flown = await page.evaluate('window.__ui.settings.flightTime');
+  const lit = Object.entries(milestonesOf(flightTotals(flown).byAirframe, craftName));
+  check('door: the lineup card shows the aircraft\'s milestones, lit by its time flown',
+    JSON.stringify(pips) === JSON.stringify(lit) && lit.filter(([, on]) => on).length === 2, JSON.stringify(pips));
   await shot('05b-lineup');
   await page.until("window.__ui.screen !== 'walk'", 15000).then(() => true, () => false);
   const after = await page.evaluate('window.__ui.screen');

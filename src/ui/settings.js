@@ -32,7 +32,7 @@
  */
 
 import {
-  AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, DEFAULT_AIRFRAME,
+  AIRFRAMES, AIRFRAME_IDS, airframeById, CLASSES, currentAirframeId, DEFAULT_AIRFRAME,
   floatVersionOf, isFloatVersion, landPlaneOf, retiredAirframe,
 } from '../../configs/airframes.js';
 import { CUSTOM_TUNE, tunesFor } from '../../configs/registry.js';
@@ -52,6 +52,8 @@ import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { TIME_NAMES } from '../share/daytime.js';
 import { DEFAULT_STICK_MODE, normaliseStickMode } from '../input/stickmode.js';
 import { hasKeybinds, normaliseKeybinds } from '../input/keybinds.js';
+import { hasPadbinds, normalisePadbinds } from '../input/padbinds.js';
+import { CHASE_SMOOTHING, normaliseShake, normaliseUiScale, prefersReducedMotion } from '../render/comfort.js';
 import { LINK_PRESETS } from '../input/link.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { touchWanted } from '../input/touchsticks.js';
@@ -194,16 +196,29 @@ export const DEFAULTS = {
   /* One time screens read and accepted. */
   warConsent: false,
   interiorConsent: false,
+  /* Who joins each activity's session, by registry id (src/share/modes.js
+   * visibilityFor): the pilot's last choice, synced. */
+  sessionVisibility: {},
+  /* The activity whose session this pilot last opened, by registry id,
+   * '' for none: home's Continue (src/ui/actions.js continueWay), synced. */
+  lastActivity: '',
   warAirframe: '',
   voiceReplayAck: false,
   flightTime: {},
   pilotCounts: {},
   /* The tune last flown on each aircraft, restored when it is seated. */
   tuneFor: {},
+  /* The camera the pilot set on each aircraft, { angle, fov } where it is
+   * not the aircraft's stock (keepCamera): restored when it is seated, so
+   * cameraAngle and cameraFov stay the seated aircraft's. */
+  cameraFor: {},
   livery: {},
   liverySaves: {},
   /* The pilot's own colours (configs/liveries.js normaliseSwatches). */
   swatches: { list: [] },
+  /* The aircraft the pilot starred, land plane ids, newest first
+   * (normaliseFavourites); the picker's Favourites tab. */
+  favourites: { list: [] },
   rates: RATE_DEFAULTS,
   ratesSplitPitch: false,
   pids: {},
@@ -245,6 +260,13 @@ export const DEFAULTS = {
   live: 'off',
   cameraAngle: CAMERA_ANGLE_DEFAULT,
   cameraFov: CAMERA_FOV_DEFAULT,
+  /* src/render/comfort.js. A missing shake level follows the system's
+   * reduced motion request once, then is stored like any other choice. */
+  cameraShake: 'on',
+  chaseSmooth: 'standard',
+  /* The war radio's lines as captions (main.js warSubtitles). */
+  subtitles: true,
+  uiScale: 100,
   wingView: 'fpv',
   hudStyle: 'osd',
   hudStyleBy: {},
@@ -369,6 +391,57 @@ export function normaliseFloats(stored, airframe) {
   return floats;
 }
 
+/* The starred aircraft as a profile or a sync may hold them: each a card's
+ * id (a retired aircraft's successor, a float version's land plane), known
+ * to this build, once each, in the order stored. */
+export function normaliseFavourites(raw) {
+  const list = raw && Array.isArray(raw.list) ? raw.list : [];
+  const out = [];
+  for (const v of list) {
+    const id = typeof v === 'string' ? landPlaneOf(currentAirframeId(v)) : null;
+    if (AIRFRAME_IDS.includes(id) && !out.includes(id)) out.push(id);
+  }
+  return { list: out };
+}
+
+/* The favourites with `id` starred first, or unstarred when it is there. */
+export function toggleFavourite(favs, id) {
+  const list = favs.list.includes(id) ? favs.list.filter((x) => x !== id) : [id, ...favs.list];
+  return normaliseFavourites({ list });
+}
+
+/* The camera overrides a profile or a sync may hold: for aircraft this
+ * build has, a tilt clamped to the camera's range and a lens a profile may
+ * hold (LENSES). */
+export function normaliseCameraFor(raw) {
+  const valid = raw && typeof raw === 'object' && !Array.isArray(raw);
+  const out = {};
+  for (const [id, cam] of valid ? Object.entries(raw) : []) {
+    if (!AIRFRAME_IDS.includes(id) || !cam || typeof cam !== 'object') continue;
+    if (Number.isFinite(cam.angle) && LENSES.includes(cam.fov)) {
+      out[id] = { angle: clampCameraAngle(cam.angle), fov: cam.fov };
+    }
+  }
+  return out;
+}
+
+/*
+ * The camera rows' change, kept for the seated aircraft: an entry where it
+ * is not the aircraft's stock, none where it is. Kept when the pilot sets
+ * it and not inferred at a seat change, because a profile's camera may be
+ * one nobody chose (DEFAULTS' 30 and 85 are no aircraft's stock).
+ */
+export function keepCamera(s) {
+  const af = airframeById(s.airframe);
+  const cams = { ...normaliseCameraFor(s.cameraFor) };
+  if (s.cameraFov === af.cameraFov && s.cameraAngle === clampCameraAngle(af.cameraAngle)) {
+    delete cams[af.id];
+  } else {
+    cams[af.id] = { angle: s.cameraAngle, fov: s.cameraFov };
+  }
+  s.cameraFor = normaliseCameraFor(cams);
+}
+
 /* The id actually flown for a picked aircraft: its float version when the
  * profile has floats on for it. */
 export function withFloats(s, id) {
@@ -396,6 +469,63 @@ function stockCurves(airframe) {
 
 const limitsWith = (power) => (id) => setupFor(id, powerChoice(id, power)).limits;
 
+/* Rates kept per aircraft class (configs/airframes.js CLASSES): only known
+ * classes, each a rates profile as normaliseRates makes it. */
+export function normaliseRatesFor(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const c of CLASSES) {
+    if (raw[c] && typeof raw[c] === 'object') out[c] = normaliseRates(raw[c]);
+  }
+  return out;
+}
+
+/* Rates that were only the old aircraft's stock become the new one's:
+ * its curves, and its throttle cap. */
+function reseedStockRates(s, from, to) {
+  if (sameCurves(s.rates, from.rates)) s.rates = normaliseRates({ ...s.rates, ...stockCurves(to) });
+  if (s.rates && s.rates.throttleCap === from.rates.throttleCap) {
+    s.rates = { ...s.rates, throttleCap: to.rates.throttleCap };
+  }
+}
+
+const sameRates = (a, b) => JSON.stringify(normaliseRates(a)) === JSON.stringify(normaliseRates(b));
+
+/*
+ * Rates are the pilot's per aircraft class, not one set for every stick
+ * (PLAN section 2.6): a quad pilot's 800 deg/s rolls are not a Cub's, and
+ * every tune, a plane's stabilised modes included, flies s.rates. Leaving
+ * a class keeps the pilot's own rates under ratesFor; arriving at one puts
+ * its kept rates back, or, after the pilot's own, a fresh start: the new
+ * aircraft's stock, or on a touch screen the thumb rates, which main.js
+ * offers only once. Rates that are nobody's own (an aircraft's stock, or
+ * the touch screen's defaults) travel as they always have. s.rates stays
+ * the one live set every reader uses. ratesFor is emptied by assignment,
+ * not deleted, because the hot swap seats a copy and assigns it back.
+ */
+function swapClassRates(s, from, to) {
+  const stock = (af) => ({ ...stockCurves(af), throttleCap: af.rates.throttleCap });
+  const kept = normaliseRatesFor(s.ratesFor);
+  const own = !sameRates(s.rates, stock(from)) && !sameRates(s.rates, TOUCH_RATE_DEFAULTS);
+  if (own) {
+    kept[from.class] = normaliseRates(s.rates);
+  } else {
+    delete kept[from.class];
+  }
+  if (kept[to.class]) {
+    s.rates = normaliseRates(kept[to.class]);
+  } else if (own) {
+    s.rates = normaliseRates(touchWanted() ? TOUCH_RATE_DEFAULTS : stock(to));
+  } else {
+    reseedStockRates(s, from, to);
+  }
+  if (Object.keys(kept).length) {
+    s.ratesFor = kept;
+  } else if (s.ratesFor !== undefined) {
+    s.ratesFor = undefined;
+  }
+}
+
 /* Puts an aircraft's stock PIDs into its default tune once, the first
  * time the profile meets that tune. Aircraft without stock PIDs are left
  * alone. */
@@ -416,8 +546,9 @@ function seedStockPids(s, id) {
  *
  * Settings that are the pilot's own stay; settings that were only the old
  * aircraft's stock values become the new one's: rates still at the old
- * stock curves, the old stock throttle cap, and the lens. The tune comes
- * back to what was last flown on the new aircraft. Moving between a plane
+ * stock curves, the old stock throttle cap, and the lens. Own rates stay
+ * within a class: another class brings its own (swapClassRates). The tune
+ * comes back to what was last flown on the new aircraft. Moving between a plane
  * and its float version carries the build (power, parts, tuning) across
  * unless the target already has one of its own.
  */
@@ -454,12 +585,16 @@ export function seatAirframe(s, id) {
   }
 
   if (!to.packVoltages.includes(s.packVoltage)) s.packVoltage = to.packVoltages[0];
-  if (sameCurves(s.rates, from.rates)) s.rates = normaliseRates({ ...s.rates, ...stockCurves(to) });
-  if (s.rates && s.rates.throttleCap === from.rates.throttleCap) {
-    s.rates = { ...s.rates, throttleCap: to.rates.throttleCap };
+  if (from.class !== to.class) {
+    swapClassRates(s, from, to);
+  } else {
+    reseedStockRates(s, from, to);
   }
-  s.cameraFov = to.cameraFov;
-  s.cameraAngle = clampCameraAngle(to.cameraAngle);
+  /* `to` gets the camera the pilot set on it (keepCamera), or its stock. */
+  s.cameraFor = normaliseCameraFor(s.cameraFor);
+  const own = s.cameraFor[to.id];
+  s.cameraFov = own ? own.fov : to.cameraFov;
+  s.cameraAngle = clampCameraAngle(own ? own.angle : to.cameraAngle);
   seedStockPids(s, to.id);
   return s;
 }
@@ -486,11 +621,33 @@ function adoptSeatedStock(s) {
   return s;
 }
 
+/* The lenses a profile may hold: the Field of view row's choices and every
+ * aircraft's stock one, which the row does not list (the planes' 100, the
+ * combat quads' 90). Holding the row's alone put every plane on 85 at the
+ * next load. */
+const LENSES = [...new Set([...CAMERA_FOVS, ...AIRFRAMES.map((a) => a.cameraFov)])];
+
+/*
+ * A CAMERA NOBODY SET flies the seated aircraft's stock. Every profile
+ * started on 30 degrees and 85 (DEFAULTS), which is no aircraft's stock,
+ * and nothing replaced it until the first change of aircraft. A profile
+ * still on exactly that start with no camera kept for its aircraft
+ * (keepCamera) never had it set, so it takes the stock. A pilot who sets
+ * 30 and 85 on purpose has it kept, since it is not the stock either.
+ */
+const START_CAMERA = { angle: 30, fov: 85 };
+function unsetCameraToStock(s) {
+  const af = airframeById(s.airframe);
+  if (s.cameraFor[af.id] || s.cameraAngle !== START_CAMERA.angle || s.cameraFov !== START_CAMERA.fov) return;
+  s.cameraAngle = clampCameraAngle(af.cameraAngle);
+  s.cameraFov = af.cameraFov;
+}
+
 /* Fields that must be one of a list, and the list. A value not on it
  * takes the default, except the tune, which takes the aircraft's own. */
 const ONE_OF = {
   link: () => Object.keys(LINK_PRESETS),
-  cameraFov: () => CAMERA_FOVS,
+  cameraFov: () => LENSES,
   renderScale: () => RENDER_SCALES,
   fpsCap: () => FPS_CAPS,
   perfMode: () => PERF_MODES,
@@ -544,10 +701,16 @@ export function loadSettings() {
   if (s.flightMode !== 'angle') s.flightMode = 'acro';
   if (!WING_VIEWS.includes(s.wingView)) s.wingView = 'fpv';
   s.stickMode = normaliseStickMode(s.stickMode);
+  s.cameraShake = normaliseShake(raw.cameraShake, prefersReducedMotion());
+  if (!CHASE_SMOOTHING.includes(s.chaseSmooth)) s.chaseSmooth = 'standard';
+  s.uiScale = normaliseUiScale(s.uiScale);
   /* Flight keys the pilot moved (src/input/keybinds.js), synced. Absent
    * until one is, so a profile that moved none is stored as before. */
   const keybinds = normaliseKeybinds(raw.keybinds);
   if (hasKeybinds(keybinds)) s.keybinds = keybinds;
+  /* And the pad buttons (src/input/padbinds.js), the same way. */
+  const padbinds = normalisePadbinds(raw.padbinds);
+  if (hasPadbinds(padbinds)) s.padbinds = padbinds;
 
   s.airframe = currentAirframeId(s.airframe);
   try {
@@ -577,11 +740,13 @@ export function loadSettings() {
   s.surfaces = normaliseSurfaces(s.surfaces);
   s.buildFits = normaliseBuildFits(s.buildFits);
   s.cameraAngle = clampCameraAngle(s.cameraAngle);
+  s.cameraFor = normaliseCameraFor(s.cameraFor);
   s.weight = clampWeight(s.weight);
   s.livery = normaliseLiveries(s.livery);
   s.progress = normaliseProgress(raw.progress, { existing: Object.keys(raw).length > 0 });
   s.liverySaves = normaliseSaves(s.liverySaves);
   s.swatches = normaliseSwatches(s.swatches);
+  s.favourites = normaliseFavourites(s.favourites);
   s.campaign = cleanCampaign(s.campaign);
   s.flightTime = cleanFlightTime(s.flightTime);
   s.pilotCounts = cleanPilotCounts(s.pilotCounts);
@@ -596,6 +761,15 @@ export function loadSettings() {
     s.touchRatesOffered = true;
   } else {
     s.rates = normaliseRates(converted || s.rates);
+  }
+  /* The pilot's own rates of the other aircraft classes (swapClassRates),
+   * synced. Absent until one is kept, so a profile that never changed
+   * class with its own rates is stored as before. */
+  const ratesFor = normaliseRatesFor(raw.ratesFor);
+  if (Object.keys(ratesFor).length) {
+    s.ratesFor = ratesFor;
+  } else {
+    delete s.ratesFor;
   }
   s.pids = normalisePids(s.pids);
 
@@ -619,6 +793,7 @@ export function loadSettings() {
   if (!MAPS.some((m) => m.mode === 'freestyle' && m.id === s.freestyleMap)) s.freestyleMap = '';
 
   adoptSeatedStock(s);
+  unsetCameraToStock(s);
   if (!pitchMatchesRoll(s.rates)) s.ratesSplitPitch = true;
   if (!s.scoringReset) {
     s.freestyleScoring = DEFAULTS.freestyleScoring;

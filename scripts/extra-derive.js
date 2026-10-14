@@ -23,10 +23,11 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { fuselageRatio } from './lib/crossflow.js';
+import { fuselage } from './lib/crossflow.js';
 import { washKw } from './lib/washcontrol.js';
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
-import { slipLoss, tailWash } from './lib/wash.js';
+import { finSwirl, slipLoss, tailWash } from './lib/wash.js';
+import { knifeFin, knifeRudder } from './lib/knifefin.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -297,7 +298,13 @@ const FUSE = [
   [0.220, 0.064, 0.062, -0.100, 3.0], [0.340, 0.063, 0.060, -0.104, 3.2], [0.480, 0.058, 0.055, -0.098, 3.2],
   [0.700, 0.042, 0.046, -0.070, 3.0], [0.950, 0.024, 0.036, -0.042, 2.8], [1.137, 0.009, 0.030, -0.030, 2.4],
 ];
-const sectionK = fuselageRatio(FUSE);
+const side = fuselage(FUSE);
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 0.302 m behind the prop's plane at 0.035 (src/render/extracraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.035 + 0.302));
 const sideCda = (1.26 * 0.125) * 1.2 * sectionK * 0.7;
 
 /* Hanging on the prop: the thrust the weight, no airspeed. */
@@ -372,11 +379,24 @@ const ROOT_ETA_DERIVED = (1 - SWIRL_KEEP) * Qprop / rootSwirl(1, 0, 2 * hov.vi, 
 const ROOT_ETA = Number(ROOT_ETA_DERIVED.toFixed(3));
 /* The root's share of the torque at a thrust, an axial speed u and a
  * crossflow xw over the wing, as the plant takes it. */
-function rootShare(thrust, u, xw) {
+function rootShare(thrust, u, xw, Q = torqueArm * thrust) {
   const ws = wash(thrust, u);
-  const Q = torqueArm * thrust;
   return Math.min(1, rootSwirl(ROOT_ETA, xw, u + 2 * ws.vi, swirlOm(Q, u, ws.vi, ws.rw), ws.rw) / Q);
 }
+/* The prop's torque on the air at a thrust and axial speed, as the plant
+ * takes it (plant_wing.c q_air, prop_spool): torque_arm Ts n^2
+ * torque_curve(mu) at the speed share n that gives the thrust there on
+ * axial_curve, the two curves the table carries (APC's, npm run
+ * prop:curves -- wings; scripts/lib/propcurve.js wingProp). The static
+ * torque_arm T alone is 1.5 to 2.1 times short with way on, where the
+ * prop's power coefficient holds up as its thrust coefficient falls. */
+function qAirAt(thrust, u) {
+  let lo = 0, hi = 2;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (prop.thrust(Ts, u, mid) < thrust) lo = mid; else hi = mid; }
+  const n = (lo + hi) / 2;
+  return torqueArm * Ts * n * n * prop.cp(Math.max(0, u) / (prop.pitchSpeed * n));
+}
+
 const vhT = -slipCma / (at * (1 - deda)), vvF = slipCnb / av;
 /* Full elevator and rudder hanging on the prop, from rest: the first
  * angular accelerations, each surface's share of the wash's dp on its
@@ -482,30 +502,79 @@ function harrier(alphaDeg) {
  * iteration. The fuselage's share of the weathercock is Munk's couple,
  * on sin beta cos beta (plant_wing.c, MUNK'S MOMENT).
  */
+/* Selig's jet normal force at the disc, the table's jet_kj (AIAA 2010-7938:
+ * about 80 percent behind a smooth cowling). */
+const KNIFE_JET_KJ = 0.80;
 function knifeEdge(V) {
+  /* The fin and rudder as the plant flies them (scripts/lib/knifefin.js). */
+  const fin = { av, cn: tailCn, cnb: slipCnb, cyb: slipCyb, cndr: Cndr, cydr: CYdr };
   const qb = 0.5 * rho * V * V;
   for (let bDeg = 1; bDeg < 60; bDeg += 0.01) {
     const bt = bDeg / DEG, sb = Math.sin(bt), cb = Math.cos(bt);
     const u = V * cb;
     let thrust = qb * S * CD0 / cb;
-    let side = 0, dr = 0, w = null;
+    let side = 0, dr = 0, w = null, q = 0, keep = 0, xs = 0;
     for (let it = 0; it < 30; it += 1) {
       w = wash(thrust, u);
-      const nBeta = qb * S * b * ((Cnb - CnbFus) * sb + CnbFus * sb * cb) + rho * w.vi * w.fv * S * b * slipCnb * (V * sb);
-      const nPerDr = qb * S * b * Cndr + w.dp * w.keepV * w.fv * S * b * Cndr;
-      dr = -nBeta / nPerDr;
-      side = qb * S * (-CYb) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 + rho * w.vi * w.fv * S * (-slipCyb) * (V * sb)
-        - (qb + w.dp * w.keepV * w.fv) * S * CYdr * Math.abs(dr);
+      const rest = qb * S * b * ((Cnb - slipCnb - CnbFus) * sb + CnbFus * sb * cb);
+      /* The swirl at the fin (knifefin.js xs): the torque on the air at
+       * this thrust and speed, less what the wing's root turns back
+       * (rootShare, the plant's root_swirl at the wing's crossflow, none
+       * here with the nose on the heading), as the plant flies it. */
+      q = qAirAt(thrust, u);
+      keep = 1 - rootShare(thrust, u, 0, q);
+      xs = finSwirl({ slip_r: propR, slip_hv: [hvUp, hvDn] }, w, q, keep, u).xs;
+      const fp = { rho, V, u, sb, w, S, b, jet: { kj: KNIFE_JET_KJ, R: propR, x: propX, T: thrust }, xs };
+      /* The crossflow drag at its centre of pressure, side_x ahead of the CG. */
+      const restX = rest - sideX * 0.5 * rho * sideCda * (V * sb) ** 2;
+      dr = knifeRudder(fin, fp, restX, throwR);
+      if (dr === null) break;
+      side = qb * S * (-(CYb - slipCyb)) * sb + 0.5 * rho * sideCda * (V * sb) ** 2 - knifeFin(fin, fp, dr).y;
       thrust = (qb * S * CD0 + side * sb) / cb;
     }
+    if (dr === null) continue;
     if (T(u, 1) < thrust) break;
     if (side * cb + thrust * sb >= W) {
       let lo = 0, hi = 1;
       for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (T(u, mid) < thrust) lo = mid; else hi = mid; }
-      return { V, betaDeg: bDeg, duty: lo, thrust, drDeg: Math.abs(dr) * DEG, drOfThrow: Math.abs(dr) / throwR };
+      return { V, betaDeg: bDeg, duty: lo, thrust, drDeg: Math.abs(dr) * DEG, drOfThrow: Math.abs(dr) / throwR, qAir: q, swirlKeep: keep, xs };
     }
   }
   return null;
+}
+
+/* The gate's knife edge: the hardest level knife edge the derivation says
+ * the aircraft can hold, the speed at which the balance asks the most of
+ * the rudder among the speeds it asks no more than the full throw (the
+ * rudder's share rises from the slow side as the fuselage's saturating
+ * side force gives way to the fin's weathercock, peaks, and falls with
+ * the speed as the sideslip does; where the peak is past the throw, as
+ * the Slick's is, this is the floor, the slowest speed with a level knife
+ * edge), to 0.5 m/s; null where no speed holds one. The gate's speed
+ * is derived, not chosen (2026-10-13). */
+function knifeGate() {
+  const need = (V) => { const k = knifeEdge(V); return k === null ? Infinity : k.drOfThrow; };
+  /* Coarse at 2 m/s for the peak's bracket, then the peak to 0.25 m/s by
+   * halving the bracket about the best of three; where the peak is past
+   * the throw, the fast side's crossing of the throw to 0.5 m/s (each
+   * knife edge costs seconds; the peak is flat to 0.5 m/s). */
+  let peakV = null, peak = -Infinity, fastV = null;
+  for (let V = 6; V <= 50; V += 2) {
+    const d = need(V);
+    if (d < Infinity && d > peak) { peak = d; peakV = V; }
+    if (d <= 1 && (fastV === null || V > fastV)) fastV = V;
+  }
+  if (peakV === null || fastV === null) return null;
+  let lo = peakV - 2, hi = peakV + 2;
+  while (hi - lo > 0.5) {
+    const a = lo + (hi - lo) / 4, c = hi - (hi - lo) / 4, da = need(a), dc = need(c);
+    if (da > peak) { peak = da; peakV = a; } else if (dc > peak) { peak = dc; peakV = c; }
+    if (peakV <= a) hi = (lo + hi) / 2; else if (peakV >= c) lo = (lo + hi) / 2; else { lo = a; hi = c; }
+  }
+  if (peak <= 1) return knifeEdge(Number(peakV.toFixed(2)));
+  lo = peakV; hi = fastV;
+  while (hi - lo > 0.5) { const mid = (lo + hi) / 2; if (need(mid) > 1) lo = mid; else hi = mid; }
+  return knifeEdge(Number(hi.toFixed(2)));
 }
 
 /*
@@ -578,6 +647,7 @@ const rows = [
   ['slipstream: tail CLα, Cmα, a0; fin Cnβ, Cnr, CYβ, Clβ', `${f(slipCla, 4)} ${f(slipCma, 4)} ${f(slipA0, 4)}; ${f(slipCnb, 4)} ${f(slipCnr, 4)} ${f(slipCyb, 4)} ${f(slipClb, 4)}`],
   ['rot_k roll pitch yaw N m s2', `${f(rotK[0], 5)} ${f(rotK[1], 5)} ${f(rotK[2], 5)}`],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['E1 level at 75 percent', f(level(0.75), 2)],
   ['E2 stall, CLmax / CLα', `${f(Vs, 2)} ${f(CLmax / CLa, 5)}`],
   ['E3 L/D at 12, 14 m/s', `${f(ld(12), 2)} ${f(ld(14), 2)}`],
@@ -602,6 +672,7 @@ const rows = [
   ['   35', J(harrier(35))],
   ['   40', J(harrier(40))],
   ['   45', J(harrier(45))],
+  ['E12 the gate\'s knife edge, the hardest held (knifeGate)', J(knifeGate())],
   ['E12 knife edge at 12, 15, 18 m/s', ''],
   ['   12', J(knifeEdge(12))],
   ['   15', J(knifeEdge(15))],

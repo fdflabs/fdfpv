@@ -142,8 +142,116 @@ headless case in `flow:check`.
 
 ## 8. Phases
 
-1. The controller question and its routing (radio to the wizard).
+1. The controller question and its routing (radio to the wizard). Built
+   (w38-controller, src/ui/flywith.js): asked before any card and before
+   any joystick picker; `controller:check` drives it.
 2. Track 1 and Track 4 (they use only what exists).
 3. Tracks 2 and 3, with the landing aid and the racing line.
 4. The Glider track.
 5. Track 5, after the stage engine (#363).
+
+## 9. Lead decisions 2026-10-13
+
+The lead's decisions on what sections 3 and 7 leave unsaid. They are
+product rules, not physics: where a number is a flight figure it is the
+aircraft's own derived one, cited. Each lesson is data in
+src/game/training.js and is judged in `training:selftest` on recorded
+inputs and the flight's event log, each with a near miss that fails.
+
+- **The `training` activity** in src/share/modes.js is the sessions
+  lane's: a row there needs a lobby in src/main.js `LOBBY_GAMES` (the
+  shell throws at load without one) and changes the room wire's setups.
+  Until it lands, lessons go in by the Free Flight and Track Day cards.
+- **Racing a pilot** (`race_pilot`): a race finished in a room with at
+  least one other pilot on its grid, so two racers. A race's grid is
+  people only (no AI pilots race). The shell logs it as a `round`
+  event, game `race`, with the grid's size, once per race and only
+  for a pilot whose finish the room recorded. The lesson opens Track
+  Day's lobby when a rooms server is there.
+- **A lap under a time** (`race_bronze`): a lap at the course's bronze
+  or better, read from the `medal` the lap event carries.
+- **Certifications**: a track's, earned when every lesson of it is
+  passed, an "I fly already" pass included, and awarded with a toast on
+  the lesson that completes it. Stored as `progress.certs` (track to the
+  time it was earned), synced, merged as the union at the earlier time.
+  A stored one is never taken back, so a track is listed in `CERTS` only
+  once every lesson this document gives it exists: Fixed wing, Glider,
+  Multirotor and Racing. Defence waits on the stage engine. First
+  flight has none.
+- **Gates** (track 3) is not built: the tree's casual sky tracks are
+  offered only to a fixed wing (src/ui/items.js `newTrackRows`), so a
+  quad has no casual course to fly. Casual sky tracks for quads are a
+  product gap. Multirotor's certification is its other four lessons.
+- **Sticks** (`first_sticks`): each stick held at each end of its
+  travel for 1 s, any order: roll, pitch and yaw at 95 percent either
+  way, the throttle at 95 percent and at 5 percent. 95 percent and 1 s
+  are the lead's product numbers; the calibration wizard does not
+  measure them (src/input/calibrate.js asks 55 percent of raw travel,
+  steady 0.9 s, which is how it finds an axis, not how far a pilot can
+  push one). It is judged on the channels the plant gets each frame, so
+  it is flown on the Timber in Stabilised on the Swiss valley rather
+  than on How to fly (src/ui/ui.js), which is not a flight and has no
+  judge. "I fly already" on First flight does not cover it: the
+  unaided round asks nothing of full travel.
+- **The stall** (`wing_stall`): the airspeed under the aircraft's
+  derived clean stall (configs/airframes.js `stall`, the Timber's 7.20
+  m/s from tests/timber-thresholds.json T2), then back up to 1.3 times
+  it, never under 30 m over the ground in between. 1.3 is
+  `AIR_START_STALL_MARGIN`, the margin the air starts and the Bramor's
+  catapult already use; 30 m is the lead's floor, the middle of the
+  height lesson's 25 to 35 m band. Airspeed is the plant's velocity
+  less the air it stepped in (the mean wind and the rising air, gusts
+  left out). Flown in AS3X, because SAFE Select caps
+  the pitch and levels the wings, which is the thing being taught away.
+  Known limit: the rule is speed, the plant stalls on angle of attack,
+  and `stall` is flaps up: with flaps down the real stall is slower
+  (T4, 6.31 m/s), so a pilot flying slow on full flaps may count a stall
+  the wing did not have.
+- **Coordinated turn** (`wing_eight`), on the Cub in AS3X (Stabilised
+  coordinates the rudder for the pilot, which is the thing being
+  taught): a figure eight, two full circles of opposite bank joined
+  where the heading reverses, judged on the heading's integral. A
+  frame's turn counts only while the bank is 20 to 45 degrees towards
+  it; the first circle is a full turn either way, the second a full
+  turn back from the furthest the first went. Coordinated is the body's
+  lateral acceleration under 0.1 g the whole way. The FAA Airplane
+  Flying Handbook (FAA-H-8083-3C, Basic Flight Maneuvers) teaches a
+  coordinated turn as one flown with the inclinometer's ball centred,
+  the rudder keeping it there; 0.1 g is the lead's reading of the
+  ball within half its width, not a figure from the handbook (this
+  lane did not have the handbook's text to quote). The lateral acceleration
+  is the specific force along the body's left axis from two
+  consecutive plant states (the velocity's change over the 1 ms step,
+  less gravity). A slip of 0.1 g or more, or the ground, starts the
+  eight again. The numbers are the lead's (2026-10-13); the HUD shows
+  no ball, so the pilot flies it by feel and the result. Measured on
+  the plant (the Cub at 28 degrees of bank, no rudder): a steady 0.035
+  g, with no step to step noise over the 1 ms difference.
+- **Glider**, a track of three after Fixed wing, on the Radian in
+  Stabilised on the Swiss valley (the NRJ is not used yet):
+  - *Launch and hold* (`glider_launch`): airborne 20 s without touching
+    the ground, First flight's takeoff rule (`TAKEOFF_HOLD_MS`).
+  - *Find a thermal* (`glider_thermal`): 10 m climbed from the lowest
+    point with the throttle closed (5 percent or less, Sticks' closed
+    end) in rising air (the weather's vertical air where the craft is,
+    above zero); opening the throttle, sinking air or the ground starts
+    it again. 10 m is this lane's number, past what a zoom gives: the
+    Radian slowing from 15 m/s to its 6.49 m/s stall climbs 9.3 m in
+    still air. The lesson sets the weather to Breeze, whose thermals
+    rise 2.2 m/s (src/game/weather.js). Known limit: the shell gets the
+    air's rise as one number, so the slope lift on the valley's sides
+    counts as well as a thermal; both are soaring.
+  - *Land on the strip* (`glider_land`): down and still on the strip
+    itself, the glide aid's end: `STRIP_L` by `STRIP_W` (160 by 12 m,
+    src/maps/alps/heights.js) from the threshold the glide path is drawn
+    to. The aid draws no box; the strip is the box.
+  The track has no "I fly already": no lesson of it covers the others.
+  The Radian opens at level 5, and a glider lesson seats it at any
+  level: training gates nothing (section 4), so the lesson does not
+  wait on the level.
+- **A lesson's settings go back when it ends.** Flying a lesson seats
+  its aircraft, tune, flight mode and weather in the pilot's stored
+  settings; what they were before the first lesson is kept (under
+  `fdfpv.lessonRestore`, so a reload keeps it too) and put back when
+  the lesson is left: the next card pressed, or the next load of the
+  page. A lesson flown after another keeps the first's starting point.

@@ -67,11 +67,15 @@ import { scaleSection } from './rooms-selftest-scale.js';
 import { sessionSection } from './rooms-selftest-session.js';
 import { weatherSection } from './rooms-selftest-weather.js';
 import { stockSurfacesSection } from './rooms-selftest-surfaces.js';
+import { visibilitySection } from './rooms-selftest-visibility.js';
 import { dropsSection } from './rooms-selftest-drops.js';
 import { footSection } from './rooms-selftest-foot.js';
+import { watchSection, watchStateSection } from './rooms-selftest-watch.js';
 import { warSection } from './rooms-selftest-war.js';
 import { botsSection } from './rooms-selftest-bots.js';
-import { emptyRoomSection, gameLobbySection, warLobbySection } from './rooms-selftest-gamelobby.js';
+import {
+  emptyRoomSection, gameLobbySection, lobbyReadySection, warLobbySection,
+} from './rooms-selftest-gamelobby.js';
 import { RoomTag } from '../edge/rooms/tag.js';
 import { Track, hullFor as tagHullFor } from '../src/game/midair.js';
 import { RoomHost } from '../edge/rooms/host.js';
@@ -795,6 +799,23 @@ A.rr.ready(true);
 B.rr.ready(true);
 pump();
 check('each says its world has the track, and everybody sees who is ready', B.rr.race().ready.join() === '1,2');
+{
+  /* A ready the room dropped (over its text rate, in the burst a host's
+   * Play and track make) is sent again until the room's race says it,
+   * and not after. */
+  const said = [];
+  const rr = createRoomRace((m) => said.push(m));
+  rr.onWelcome({ seat: 1, track: { id: 'trk-race0001' }, race: { state: 'lobby', ready: [] } });
+  rr.ready(true, 1000);
+  rr.ready(true, 2000);
+  const once = said.length;
+  rr.ready(true, 2600);
+  const again = said.length;
+  rr.onMessage({ type: 'race', race: { state: 'lobby', ready: [1] } });
+  rr.ready(true, 9000);
+  check('a ready the room never heard is sent again every 1.5 s of room clock, and no more once the room says it', once === 1 && again === 2 && said.length === 2
+    && said.every((m) => m.op === 'ready' && m.ready === true), JSON.stringify(said));
+}
 B.rr.start(2);
 pump();
 check('only the host starts', A.rr.race().state === 'lobby');
@@ -1241,6 +1262,76 @@ uaSafety.peerPick(seatOf(ub), 'confirm');
 uaSafety.peerPick(seatOf(ub), 'unreport_unmute');
 check('undo and unmute takes back the report and the mute that came with it', room.safety.reports.length === 0 && !uaSafety.isMuted(seatOf(ub))
   && ua.attachment.muted.length === 0);
+
+console.log('blocks: a mute that outlasts the room (COMPLETENESS 60)');
+{
+  room = new RoomCore(meta);
+  const [ka, kb, kc] = ['ka', 'kb', 'kc'].map((name, i) => {
+    const s = sock(name, `10.9.2.${i + 1}`);
+    hello(s);
+    return s;
+  });
+  /* The account as src/share/account.js keeps it, its server's answers
+   * at once; kc is a guest, with no callsign to block. */
+  const kept = [];
+  const calls = [];
+  let refuse = false;
+  const adapter = {
+    callsignOf: (seat) => (seat === seatOf(kc) ? null : `Pilot${seat}`),
+    held: () => kept.slice(),
+    setBlocked: async (c, on) => {
+      calls.push(`${c}:${on}`);
+      if (refuse) {
+        throw new Error('down');
+      }
+      if (on) {
+        kept.push(c);
+      } else {
+        kept.splice(kept.indexOf(c), 1);
+      }
+      return kept.slice();
+    },
+    fetch: async () => kept.slice(),
+  };
+  const settle = () => new Promise((r) => setTimeout(r, 0));
+  const ka1 = createRoomSafety((m) => {
+    now += 1000;
+    run(room.message(ka, JSON.stringify(m), now, ka.address, newToken));
+  }, (seat) => `pilot ${seat}`, () => {}, adapter);
+  const kbSeat = seatOf(kb);
+  const opts = (seat) => ka1.peerOptions(seat, false).map((o) => o.value).filter((v) => !v.startsWith('report:'));
+  check('a signed in pilot\'s row offers Block beside Mute', opts(kbSeat).join() === 'mute,block');
+  check('a guest\'s row does not: there is no account to keep it on', opts(seatOf(kc)).join() === 'mute');
+  const signedOut = createRoomSafety(() => {}, (seat) => `pilot ${seat}`, () => {}, { ...adapter, held: () => null });
+  check('nor does anybody\'s while this pilot is signed out', signedOut.peerOptions(kbSeat, false)[0].value === 'mute'
+    && !signedOut.peerOptions(kbSeat, false).some((o) => o.value === 'block'));
+  ka1.peerPick(kbSeat, 'block');
+  check('Block mutes in this room at once, since the room learns blocks only at a join',
+    ka1.isMuted(kbSeat) && ka.attachment.muted.length === 1 && calls.join() === `Pilot${kbSeat}:true`);
+  await settle();
+  check('and keeps it on the account, the row then offering only Unblock', kept.join() === `Pilot${kbSeat}` && opts(kbSeat).join() === 'unblock'
+    && ka1.note() === str('friends.blocked_note', { name: `pilot ${kbSeat}` }));
+  ka1.peerPick(kbSeat, 'unblock');
+  await settle();
+  check('Unblock takes it off the account and the room\'s mute', kept.length === 0 && ka.attachment.muted.length === 0
+    && ka1.note() === str('friends.unblocked_note', { name: `pilot ${kbSeat}` }));
+  check('but the seat reads muted, with nothing to pick, until the next join', ka1.isMuted(kbSeat) && opts(kbSeat).join() === '');
+  ka1.welcomed();
+  check('after which it is an ordinary seat again', !ka1.isMuted(kbSeat) && opts(kbSeat).join() === 'mute,block');
+  kept.push(`pilot${kbSeat}`);
+  ka1.welcomed();
+  await settle();
+  check('a block from another computer arrives at the next welcome and mutes the seat with nothing sent, whatever the case',
+    ka1.isMuted(kbSeat) && ka.attachment.muted.length === 0 && opts(kbSeat).join() === 'unblock');
+  kept.length = 0;
+  ka1.welcomed();
+  await settle();
+  refuse = true;
+  ka1.peerPick(kbSeat, 'block');
+  await settle();
+  check('a block the account could not keep says so, and the room\'s mute holds', ka1.note() === str('friends.block_failed', { name: `pilot ${kbSeat}` })
+    && ka1.isMuted(kbSeat) && opts(kbSeat).join() === 'unmute,block');
+}
 
 console.log('phase 5: kicks and caps');
 const pubMeta = {
@@ -1906,13 +1997,17 @@ jamSection(check);
 warSection(check);
 warLobbySection(check);
 gameLobbySection(check);
+lobbyReadySection(check);
 botsSection(check);
 emptyRoomSection(check);
 sessionSection(check);
 weatherSection(check);
 stockSurfacesSection(check);
+visibilitySection(check);
 dropsSection(check);
 footSection(check);
+watchSection(check);
+watchStateSection(check);
 await browserSection(check);
 await scaleSection(check);
 

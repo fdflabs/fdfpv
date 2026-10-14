@@ -209,9 +209,9 @@ export const lineKr = (thr, v) => LINE_GM / (LINE_PITCH_K.a + LINE_PITCH_K.b * t
  * 5.7 on the CAP and about 3 on the Slick at the speeds they fly level;
  * on these the Extra's rings at 0.5. Pinned here and checked there. */
 export const LINE_YAW_KR = {
-  [EXTRA_AIRFRAME]: [[8, 0.097], [14, 0.07], [18, 0.061], [22, 0.057], [26, 0.057], [30, 0.059]],
-  [CAP_AIRFRAME]: [[8, 0.27], [14, 0.162], [18, 0.138], [22, 0.117], [26, 0.105], [30, 0.098]],
-  [SLICK_AIRFRAME]: [[8, 0.478], [14, 0.329], [18, 0.244], [22, 0.214], [26, 0.18], [30, 0.156]],
+  [EXTRA_AIRFRAME]: [[8, 0.097], [14, 0.07], [18, 0.061], [22, 0.057], [26, 0.058], [30, 0.059]],
+  [CAP_AIRFRAME]: [[8, 0.27], [14, 0.161], [18, 0.138], [22, 0.117], [26, 0.105], [30, 0.098]],
+  [SLICK_AIRFRAME]: [[8, 0.477], [14, 0.329], [18, 0.244], [22, 0.213], [26, 0.179], [30, 0.156]],
 };
 export function lineYawKr(airframe, v) {
   const t = LINE_YAW_KR[airframe];
@@ -242,8 +242,8 @@ export const lineBank = (s) => {
  * there. */
 export const LINE_AIL = {
   [EXTRA_AIRFRAME]: [[8, 1.6, 3.71], [14, 1.8, 6.015], [18, 1.8, 7.597], [22, 1.8, 9.193], [26, 1.8, 10.158], [30, 1.8, 12.37]],
-  [CAP_AIRFRAME]: [[8, 1.6, 2.066], [14, 1.8, 3.15], [18, 1.8, 3.938], [22, 1.8, 4.742], [26, 1.8, 5.373]],
-  [SLICK_AIRFRAME]: [[8, 1.2, 1.423], [14, 1.4, 1.984], [18, 1.6, 2.43], [22, 1.6, 2.898], [26, 1.6, 3.375], [30, 1.8, 3.859]],
+  [CAP_AIRFRAME]: [[8, 1.6, 2.066], [14, 1.6, 3.153], [18, 1.8, 3.938], [22, 1.8, 4.742], [26, 1.8, 5.373]],
+  [SLICK_AIRFRAME]: [[8, 1.2, 1.422], [14, 1.4, 1.981], [18, 1.6, 2.43], [22, 1.6, 2.898], [26, 1.6, 3.375], [30, 1.8, 3.859]],
 };
 function lineAilAt(airframe, v) {
   const t = LINE_AIL[airframe];
@@ -342,7 +342,7 @@ const POINT_LEAD = 0.35;
  */
 export const POINT_STOP = {
   [EXTRA_AIRFRAME]: { wc: 2.8, gain: 9.353 },
-  [CAP_AIRFRAME]: { wc: 2.8, gain: 5.198 },
+  [CAP_AIRFRAME]: { wc: 2.8, gain: 5.323 },
   [SLICK_AIRFRAME]: { wc: 2.6, gain: 5.192 },
 };
 export const POINT_HOLD_MS = 400;
@@ -399,10 +399,10 @@ const points = (n, stick = 0.5) => ({
  * its back in 2 s.
  */
 export const KNIFE = {
-  bank: { wc: 2, gain: 13.785 },
-  elevation: { wc: 0.8, gain: 1.065 },
-  heading: { wc: 2, gain: 6.041 },
-  trim: { rudder: 0.38, elevation: 0.188, speed: 32.9 },
+  bank: { wc: 2, gain: 13.794 },
+  elevation: { wc: 0.8, gain: 0.931 },
+  heading: { wc: 2, gain: 6.062 },
+  trim: { rudder: 0.42, elevation: 0.199, speed: 32.9 },
 };
 const G = 9.80665;
 const knife = (ms) => ({
@@ -492,7 +492,7 @@ const knife = (ms) => ({
  * turn) the Extra did not finish the loop and reached the ground in all
  * four. It lets go 0.3 s of the path's rate early.
  */
-export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.959 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
+export const KNIFE_LOOP = { path: { wc: 0.8, gain: 0.828 }, rate: 0.5, rateMin: 0, rampS: 2, ff: 0.55 };
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const knifeLoop = () => ({
   name: 'knife loop',
@@ -640,13 +640,13 @@ const rollingCircle = (rolls, rate = 1.6) => ({
  */
 export const HOVER = {
   [EXTRA_AIRFRAME]: {
-    pitch: { wc: 3, gain: 5.179, lead: 0.35 }, yaw: { wc: 2.8, gain: 5.345, lead: 0.3 }, roll: { wc: 2.4, gain: 7.632 }, climb: { wc: 1.8, gain: 34.935 }, torque: -3.31,
+    pitch: { wc: 3, gain: 5.179, lead: 0.35 }, yaw: { wc: 2.8, gain: 5.336, lead: 0.3 }, roll: { wc: 2.4, gain: 7.632 }, climb: { wc: 1.8, gain: 34.935 }, torque: -3.31,
   },
   [CAP_AIRFRAME]: {
-    pitch: { wc: 3, gain: 4.063, lead: 0.5 }, yaw: { wc: 1, gain: 2.881, lead: 0.5 }, roll: { wc: 3, gain: 7.021 }, climb: { wc: 1.8, gain: 33.447 }, torque: -3.29,
+    pitch: { wc: 3, gain: 4.063, lead: 0.5 }, yaw: { wc: 1, gain: 3.181, lead: 0.5 }, roll: { wc: 3, gain: 6.985 }, climb: { wc: 1.8, gain: 33.447 }, torque: -3.29,
   },
   [SLICK_AIRFRAME]: {
-    pitch: { wc: 2.6, gain: 2.366, lead: 0.5 }, yaw: { wc: 1.8, gain: 1.628, lead: 0.5 }, roll: { wc: 2.8, gain: 2.476 }, climb: { wc: 0.8, gain: 22.584 }, torque: -2.31,
+    pitch: { wc: 2.6, gain: 2.361, lead: 0.5 }, yaw: { wc: 1.8, gain: 1.597, lead: 0.5 }, roll: { wc: 2.8, gain: 2.479 }, climb: { wc: 0.8, gain: 22.633 }, torque: -2.31,
   },
 };
 /* The drift's tilt and the height's climb rate a person asks for at most:

@@ -45,15 +45,20 @@ export function rowValue(row, laps) {
   return str('roomrace.lap_of', { lap: Math.min(row.lap + 1, laps), laps });
 }
 
-/* What RoomRaceHud draws now, or null: nothing before the go. */
+/* What RoomRaceHud draws now, or null: nothing before the go. The
+ * watch seat's stays up over the results, its only results. */
 export function hudView(rr, now, nameOf) {
   const r = rr.race();
   const role = rr.role(now);
-  if (r.state !== 'on' || role === 'countdown') {
+  const final = r.state === 'results' && rr.watcher();
+  if ((r.state !== 'on' && !final) || role === 'countdown') {
     return null;
   }
+  const titles = {
+    spectating: 'roomrace.hud_watching', watching: 'roomrace.hud_watch', results: 'roomrace.hud_watch_final',
+  };
   return {
-    title: str(role === 'spectating' ? 'roomrace.hud_watching' : 'roomrace.hud_title'),
+    title: str(titles[role] ?? 'roomrace.hud_title'),
     rows: rr.standings().map((row) => ({
       place: row.place, name: nameOf(row.seat), value: rowValue(row, r.laps), me: row.seat === rr.seat(),
     })),

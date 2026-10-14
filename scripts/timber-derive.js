@@ -25,7 +25,7 @@
 import { wingProp, SEAT_GATES, wingSeat } from './lib/propcurve.js';
 import { hold } from './lib/hinge.js';
 import { FLEET, heldAt } from './servo-derive.js';
-import { fuselageRatio, smoothstep } from './lib/crossflow.js';
+import { fuselage, smoothstep } from './lib/crossflow.js';
 
 const DEG = 180 / Math.PI;
 const rho = 1.225;
@@ -320,7 +320,13 @@ const FUSE = [
   [0.560, 0.052, 0.052, -0.066, 3.2], [0.720, 0.038, 0.034, -0.054, 2.8], [0.880, 0.022, 0.020, -0.042, 2.4],
   [0.975, 0.010, 0.012, -0.036, 2.2],
 ];
-const sectionK = fuselageRatio(FUSE, 4000, (i, u) => (i === 3 ? u : smoothstep(i, u)));
+const side = fuselage(FUSE, 4000, (i, u) => (i === 3 ? u : smoothstep(i, u)));
+const sectionK = side.ratio;
+/* Where it acts (plant_wing.c side_x): the side view's centroid, each
+ * station weighted by its own crossflow drag (scripts/lib/crossflow.js
+ * profile, Allen and Perkins NACA TR 1048), ahead of the drawing's CG, 0.060 m behind the leading edge at 0.265 (src/render/timbercraft.js CG_S).
+ * ESTIMATED: the drawn sections. */
+const sideX = -(side.centre - (0.265 + 0.060));
 const sideCda = 0.125 * 1.2 * sectionK * 0.7;
 
 const f = (x, n = 3) => (x === null ? 'none' : Number(x).toFixed(n));
@@ -340,6 +346,7 @@ const rows = [
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['cn_beta_fus: the fuselage\'s share of Cnβ, Munk\'s moment (NACA TR 184), on sin 2β', f(CnbFus, 4)],
   ['side crossflow drag area m2; its section over a round body\'s (TN 3038)', `${f(sideCda, 4)}; ${f(sectionK, 4)}`],
+  ['side_x: the crossflow\'s centre of pressure ahead of the CG, m (Allen and Perkins)', f(sideX, 4)],
   ['Clβ, Clp, Clδa (tau)', `${f(Clb, 4)} ${f(Clp)} ${f(Clda)} (${f(tauA)})`],
   ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)}`],

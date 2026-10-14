@@ -1,8 +1,8 @@
 /*
  * itaipu-drill.js: the drill, mission 1 as it was before it became First
  * Light (docs/campaign/MISSIONS.md M1): its five fixed rounds and routes,
- * by day. Not in the campaign (src/game/campaign.js ACT1 names the
- * missions a pilot is offered); a room can still be asked for it by id.
+ * by day. Not in the campaign: it states no `act`, so campaign.js ACT1,
+ * the missions a pilot is offered, leaves it out; a room can still be asked for it by id.
  * It is what the war's checks fly when what they test is the referee, the
  * markers, the fuzes or the hunters rather than a mission's story: a
  * Striker on the yard 2 s after the go, a swarm at 4 s, a Hunter in round
