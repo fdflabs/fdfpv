@@ -2048,10 +2048,7 @@ export class RoomWar {
     const out = [];
     const turnOf = (id) => this.leafTurnAt(structures[id], id, t);
     for (const r of blast(structures, m.wreck, at, w, mm(t), turnOf)) {
-      /* Its stoplogs down (containShut): a hole torn now passes no water. */
-      if (m.wreck[r.target]?.shut != null) {
-        r.openings = [];
-      }
+      r.openings = this.stoplogged(r.target, r.openings);
       /* Where its leaf stood when its holes were last told. */
       if (r.openings.length && structures[r.target].frame.hinge) {
         m.wreck[r.target].leafOpen = this.gateOpen(structures[r.target], r.target, t);
@@ -2112,7 +2109,7 @@ export class RoomWar {
     const t = m.f;
     for (const [id, st] of Object.entries(m.wreck)) {
       const s = structures[id];
-      if (!s || !s.frame.hinge || !st.open || st.leafOpen == null || st.shut != null) {
+      if (!s || !s.frame.hinge || !st.open || st.leafOpen == null) {
         continue;
       }
       const o = this.gateOpen(s, id, t);
@@ -2125,7 +2122,9 @@ export class RoomWar {
       if (!r) {
         continue;
       }
-      const e = { seq: m.damage.length, ...r, p: null, by: 'hoist' };
+      const e = {
+        seq: m.damage.length, ...r, openings: this.stoplogged(id, r.openings), p: null, by: 'hoist',
+      };
       m.damage.push(e);
       out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
     }
@@ -2469,8 +2468,8 @@ export class RoomWar {
    * its hold (MISSIONS.md 1.9 point 5, contain.js shutDue): an op 'damage'
    * with no chunks, kept with the match's damage for a late joiner, which
    * the flood takes as the hole shut (src/maps/itaipu/water/flood.js).
-   * The stoplogs stay down, so the target's later holes pass no water
-   * (strike, leafWatch). An opening the room recorded with no hole (a
+   * The stoplogs stay down, so the target's later holes, and its holes
+   * moved with its leaf, are told at zero size (stoplogged). An opening the room recorded with no hole (a
    * breach without damage) sends nothing.
    */
   containShut(core) {
@@ -2500,6 +2499,16 @@ export class RoomWar {
       out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
     }
     return out;
+  }
+
+  /* A target's openings as told: at zero size once its stoplogs are down
+   * (containShut), so its holes still move with its leaf and are told
+   * where they are, but pass no water. The wreck keeps their real size. */
+  stoplogged(id, openings) {
+    if (this.match.wreck?.[id]?.shut == null) {
+      return openings;
+    }
+    return openings.map((o) => ({ ...o, width_m: 0, height_m: 0 }));
   }
 
   /* The closures' lines now due (contain.js linesDue), told as a stage's
