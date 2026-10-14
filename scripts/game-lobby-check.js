@@ -326,6 +326,13 @@ try {
     a.clicks - aBefore === CLICKS && la.shown && la.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && la.public === true && la.mode === (GAME === 'free' ? null : GAME)
     && /, /.test(la.name || '') && la.here === 'friends-lobby-ready' && la.flying !== 'flight', JSON.stringify(la));
   await shot(a, '1-a-lobby');
+  /* The room's Weather row, the host's choice, in every lobby flown in a
+   * free flight world; none in a war's (still air) or a race's (a track's
+   * records are flown in still air, main.js seatWeather). */
+  const stillAir = GAME === 'war' || GAME === 'race';
+  const wxA = await a.evaluate("(() => { const it = window.__ui.items().find((x) => x.label === 'Weather'); return it ? { value: it.value, choice: Boolean(it.options) } : null; })()");
+  check(stillAir ? 'and its lobby has no Weather row: still air' : 'and its lobby has the room\'s Weather, a choice for its host: Calm',
+    stillAir ? wxA === null : Boolean(wxA && wxA.choice && wxA.value === 'Calm'), JSON.stringify(wxA));
   /* A public room of a game that allows AI pilots fills with them, A one
    * of FILL_TO (edge/rooms/roombots.js); every other game's is A alone.
    * A race's AI pilots wait for the room's track, which a lobby just made
@@ -607,10 +614,10 @@ try {
     /* THE ROOM'S WEATHER in the lobby, after the aircraft: the host's a
      * choice, which is the room's air at once (main.js offerRoomWeather),
      * and B's a fact that follows it on the room's word (rooms.js
-     * onWeather). A war room has none: its missions fly still air. */
+     * onWeather). A war's or a race's has none: still air. */
     const WX_ROW = "window.__ui.items().some((x) => x.label === 'Weather')";
-    if (GAME === 'war') {
-      check('the war\'s briefing has no Weather row: its missions fly still air', !(await a.evaluate(WX_ROW)) && !(await b.evaluate(WX_ROW)));
+    if (stillAir) {
+      check('neither lobby has a Weather row: still air', !(await a.evaluate(WX_ROW)) && !(await b.evaluate(WX_ROW)));
     } else {
       /* `drawn`: the row on the screen, not just the list the screen is
        * drawn from, so the room's word has to redraw it. */
