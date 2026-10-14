@@ -177,9 +177,10 @@ try {
     window.__warHear(m);
     return t;
   })()`);
-  const strike = mission.waves.find((w) => w.kind === 'strike');
+  /* An agent as a room births it: one route and one target, where a
+   * stage's spawn names a sector and a list (stages.js draws them). */
   const born = (id, t) => hear({
-    type: 'war', op: 'born', agents: [{ id, kind: 'strike', route: strike.route, t0: t, k: 0, n: 1, err: 0, target: strike.target }],
+    type: 'war', op: 'born', agents: [{ id, kind: 'strike', route: 'reservoir-west', t0: t, k: 0, n: 1, err: 0, target: 'yard-right' }],
   });
   /* A gate hoisted toward 14 m open from now (hoist.js: half a metre a
    * minute), as the match's gate state would. */
