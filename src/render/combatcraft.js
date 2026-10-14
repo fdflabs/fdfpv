@@ -28,7 +28,8 @@
  * pieces, each grown about its own centre, merged. So a part costs one
  * call a material plus one, not one a bolt. The rotors stay a mesh each
  * because they turn, and the blur discs a mesh each because the shell
- * fades them by motor (src/main.js).
+ * fades them by motor (src/main.js). A peer goes further (mergeFixed): a
+ * material worn in several parts at one offset is one mesh across them.
  *
  * Built in the model frame every builder uses: x right, y up, z aft, front
  * at -z, metres, the bare CG at the origin. Positions written in the
@@ -267,6 +268,68 @@ function kitGroup(kit, name, mats, { shade, ink, inkMat }) {
     group.add(mesh);
   }
   return group;
+}
+
+/*
+ * The fixed parts as one mesh a material (buildCombatDrone's mergeFixed
+ * option): the meshes under `parts` that wear one material and sit at one
+ * offset from the group are joined into one mesh, under the first one's
+ * parent; the rest keep their meshes. The same vertices, bit for bit, at
+ * the same matrices, drawn with the same material object, so the paint
+ * regions, finishes, decals, a map's look and a wreck's cut, which all
+ * work by material or by triangle, see the craft they always did, in
+ * fewer draws.
+ *
+ * Not across offsets: the camera mount and the payload sit off the
+ * group's origin, and a piece moved into the group's frame lands a float
+ * rounding off where the matrices put it (an in page A/B, 2026-10-14: the
+ * 7 inch's steel, straps and wires joined across all three drew up to
+ * 1e-7 off over hundreds of pixels, and flipped an edge pixel by 0.3).
+ *
+ * Invariant: a part only translates from the group, and nothing moves it
+ * after the build.
+ */
+function mergeFixed(group, parts) {
+  const sets = new Map();
+  const offset = new THREE.Vector3();
+  for (const part of parts) {
+    part.traverse((o) => {
+      if (!o.isMesh) {
+        return;
+      }
+      offset.set(0, 0, 0);
+      for (let p = o; p !== group; p = p.parent) {
+        if (p.quaternion.w !== 1 || p.scale.x !== 1 || p.scale.y !== 1 || p.scale.z !== 1) {
+          throw new Error(`combatcraft: ${o.name} turns or scales under the group; mergeFixed only joins parts that translate`);
+        }
+        offset.add(p.position);
+      }
+      const key = `${o.material.uuid} ${offset.x} ${offset.y} ${offset.z}`;
+      if (!sets.has(key)) {
+        sets.set(key, []);
+      }
+      sets.get(key).push(o);
+    });
+  }
+  for (const meshes of sets.values()) {
+    if (meshes.length < 2) {
+      continue;
+    }
+    const first = meshes[0];
+    const home = first.parent;
+    const name = `fixed-${first.name.slice(home.name.length + 1)}`;
+    for (const mesh of meshes) {
+      if (mesh.castShadow !== first.castShadow || !mesh.position.equals(first.position)) {
+        throw new Error(`combatcraft: ${mesh.name} and ${first.name} differ in castShadow or place`);
+      }
+      mesh.removeFromParent();
+    }
+    const mesh = new THREE.Mesh(merged(meshes.map((m) => m.geometry), name), first.material);
+    mesh.name = name;
+    mesh.position.copy(first.position);
+    mesh.castShadow = first.castShadow;
+    home.add(mesh);
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -1032,7 +1095,12 @@ function packSurfaces(f, pack2At) {
  * the frame does not offer, throws: the shell resolves the pilot's choice before it gets here
  * (docs/COMBAT-DRONES.md section 2), so either is a bug upstream, and a
  * machine quietly drawn without the part would hide it. The other options
- * are every builder's: name, fog, lite, worldScale, measure.
+ * are every builder's: name, fog, lite, worldScale, measure; and
+ * mergeFixed, for a craft drawn and never pointed at, retuned or tilted
+ * (a peer in a room, src/render/peers.js): the parts but the rotors, the
+ * discs and the LEDs joined by material where they share an offset
+ * (mergeFixed above). The hangar, the flown craft and the checks build
+ * without it.
  *
  * Returns what every builder returns ({ group, discs, blades,
  * cameraMount, propSpin, stator }) and `combat`: the answers as built, the
@@ -1191,6 +1259,9 @@ export function buildCombatDrone(opts = {}) {
   const setLights = armLeds(group, f, opts.lights, fog);
   if (setLights) {
     group.userData.setLights = setLights;
+  }
+  if (opts.mergeFixed) {
+    mergeFixed(group, [parts.frame, parts.pack, parts.legs, parts.stockAntenna, cameraMount, ...Object.values(parts.accessories), parts.payload].filter(Boolean));
   }
   const craft = {
     group,

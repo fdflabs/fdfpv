@@ -117,9 +117,9 @@ GPU floor (docs/PERF.md, proposed budgets).
 | `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 1.14 (<= 1.31) 2026-10-14 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.46 (<= 1.69) 2026-10-14 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.74 (<= 2.01) 2026-10-14 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M | 1 alive, stage `eyes` |
-| `peers` | low | 815 (<= 938) | 1.31 (<= 1.51) | 16 (<= 19) | 1.46 (<= 1.68) 2026-10-14 | 1.4 | 3.4 / 5.3 | 26 %, 10.7 | within | 7 peers |
-| `peers` | medium | 1573 (<= 1809) | 2.43 (<= 2.80) | 18 (<= 21) | 2.99 (<= 3.44) 2026-10-14 | 5.8 | 11.5 / 20.1 | 30 %, 11.1 | within | 7 peers |
-| `peers` | high | 1586 (<= 1824) | 2.43 (<= 2.80) | 29 (<= 34) | 2.90 (<= 3.34) 2026-10-14 | 4.6 | 8.5 / 10.6 | 18 %, 14.2 | over: 1586 calls, the whole frame against the main view's 300 (not split) | 7 peers |
+| `peers` | low | 717 (<= 825) | 1.31 (<= 1.51) | 16 (<= 19) | 1.46 (<= 1.68) 2026-10-14 | 1.4 | 3.4 / 5.3 | 26 %, 10.7 | within | 7 peers |
+| `peers` | medium | 1398 (<= 1608) | 2.43 (<= 2.80) | 18 (<= 21) | 2.99 (<= 3.44) 2026-10-14 | 5.8 | 11.5 / 20.1 | 30 %, 11.1 | within | 7 peers |
+| `peers` | high | 1411 (<= 1623) | 2.43 (<= 2.80) | 29 (<= 34) | 2.90 (<= 3.34) 2026-10-14 | 4.6 | 8.5 / 10.6 | 18 %, 14.2 | over: 1411 calls, the whole frame against the main view's 300 (not split) | 7 peers |
 
 The draw calls of `title` and `alps-low` at every tier were retaken on
 2026-10-13 after the Alps' draws were merged (branch w38-perf: the
@@ -145,14 +145,22 @@ three tiers passed again at 01:14 to 01:20 with GPU 1 under 50 % busy;
 two Low runs while another lane's check held GPU 1 at 100 % read 8.43
 and 2.35 ms, which says what a floor on a full card is worth.
 
-A room is the dearest row in draw calls. Each peer's 7 inch is 48
-meshes (336 visible for the seven, counted in the scene at Medium), and
-the room adds about 1 250 calls to the alps' own at Medium and High:
-about four passes of 336, which fits the scene, the shadow maps and the
-inset each drawing every mesh, though the passes were not split. Three
-runs that had the seven off the view drew 300 to 319. So at High a full
-room is five times the main view's 300 calls on its own; batching a
-peer's meshes is the work that brings it under, and is not in this row.
+A room is the dearest row in draw calls. Each peer's 7 inch was 47
+meshes and a name tag, and a per draw breakdown of the busiest frame at
+Medium and at High (2026-10-14) put 1 267 calls on the seven: 48 each in
+the scene, the sensor inset and the ink prepass, 37 in the shadow map
+(no ink, tag or discs). Three runs that had the seven off the view drew
+300 to 319.
+
+Their draw calls were retaken 2026-10-14 between 02:41 and 03:06 local
+after a peer's combat quad was built with mergeFixed (branch
+w39-peers-perf: a material worn in several parts at one offset is one
+mesh, 47 meshes to 40), on GPU 1 through run-check.sh, the same run
+settings, each tier three times: 717 at Low, 1 398 at Medium, 1 411 at
+High in every run, and their ceilings moved down to 1.15 times that.
+Their other columns are the first runs'. At High a full room is still
+almost five times the main view's 300 calls on its own: the rest is the
+parts' own materials (one call each) and the four rotors and discs.
 
 The ceilings above hold today's whole frame cost from growing; whether
 a row is within the contract is the column "Over the written
