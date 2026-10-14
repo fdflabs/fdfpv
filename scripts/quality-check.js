@@ -76,6 +76,7 @@ const INTEGRATED = [
   'Mali-G78',
   'Adreno (TM) 650',
   'PowerVR Rogue GE8320',
+  'ANGLE (NVIDIA, Vulkan 1.3.251 (NVIDIA NVIDIA Tegra Orin (nvgpu) (0x97BA03D7)), NVIDIA)',
 ];
 const DISCRETE = [
   'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)',
