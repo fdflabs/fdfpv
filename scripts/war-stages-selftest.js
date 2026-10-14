@@ -1299,6 +1299,175 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
     JSON.stringify(v.stage && { id: v.stage.id, at: v.stage.at, o: v.stage.objectives[0] }));
 }
 
+console.log('The Long Night (itaipu-4), flown on the room by bot squads');
+{
+  /* MISSIONS.md M4 as the room plays it, as the Spillway's above. */
+  const mission = MISSIONS['itaipu-4'];
+  const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
+  const TWISTS = ['towns', 'dark-scout'];
+  check('The Long Night plays 5 rounds of its 6 round stages', roundsOf(mission) === 5 && stagesOf(mission).filter((x) => x.round).length === 6,
+    `${roundsOf(mission)}`);
+  const games = [];
+  for (const pilots of [1, 4]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const views = [];
+      const born = [];
+      const dead = [];
+      runOne({
+        pilots,
+        skill: 'good',
+        seed,
+        floorBuf,
+        spawn: SPAWN,
+        mission,
+        record: (m, now) => {
+          if (m.type !== 'war') {
+            return;
+          }
+          if (m.war) {
+            views.push({ ...m.war, now });
+          } else if (m.op === 'born') {
+            born.push(...m.agents);
+          } else if (m.op === 'dead') {
+            dead.push(m);
+          }
+        },
+      });
+      games.push({
+        pilots, seed, views, born, dead,
+      });
+    }
+  }
+  const order = [];
+  const bad = [];
+  const twists = new Set();
+  const scouts = { killed: 0, alive: 0 };
+  for (const g of games) {
+    const label = `x${g.pilots} seed ${g.seed}`;
+    const path = [];
+    for (const v of g.views) {
+      if (v.stage && path.at(-1) !== v.stage.id) {
+        path.push(v.stage.id);
+      }
+    }
+    order.push(`${label}: ${path.join(' > ')}`);
+    const twist = path[3];
+    twists.add(twist);
+    const end = g.views.at(-1);
+    if (!(path.length === 5 && path[0] === 'quiet' && path[1] === 'dark-water' && path[2] === 'hunters' && TWISTS.includes(twist) && path[4] === 'before-dawn')) {
+      bad.push(`${label}: stages ${path.join(',')}`);
+    }
+    if (end.state !== 'won') {
+      bad.push(`${label}: ended ${end.state} ${end.why}`);
+    }
+    /* The quiet: STAND BY on the HUD and nothing born until the boat, at
+     * least 40 s (paced) after the go; then the boat's objective, and
+     * STAND BY gone. */
+    const quiet = g.views.filter((v) => v.stage && v.stage.id === 'quiet');
+    const first = g.born.reduce((a, b) => (a && a.t0 <= b.t0 ? a : b), null);
+    const goAt = end.goAt;
+    const before = quiet.filter((v) => first && v.now < first.t0 && v.now > goAt + 1000);
+    const after = quiet.filter((v) => first && v.now > first.t0 + 500);
+    if (!first || first.kind !== 'boat' || first.t0 - goAt < 40000
+      || !before.length || !before.every((v) => v.stage.text === 'war.obj.itaipu_4.stand_by' && v.stage.objectives.length === 0)
+      || (after.length && !after.every((v) => v.stage.text == null && v.stage.objectives.some((o) => o.id === 'boat')))) {
+      bad.push(`${label}: the quiet: first born ${first && first.kind} at ${first && first.t0 - goAt}, before ${before.length}, after ${after.length}`);
+    }
+    /* The twist's objective on the HUD once the twist is born, not before. */
+    const inTwist = g.views.filter((v) => v.stage && v.stage.id === twist);
+    const twistSi = stagesOf(mission).find((x) => x.id === twist)?.spawns.find((w) => w.group === 'twist')?.si;
+    const twistBorn = g.born.filter((a) => a.wave === twistSi);
+    const early = inTwist.filter((v) => twistBorn.length && v.now < twistBorn[0].t0 && v.stage.objectives.some((o) => o.id === 'twist'));
+    const shown = inTwist.some((v) => v.stage.objectives.some((o) => o.id === 'twist'));
+    if (!twistBorn.length || early.length || !shown) {
+      bad.push(`${label}: the twist's objective shown early ${early.length}, ever ${shown}, born ${twistBorn.length && twistBorn[0].t0}`);
+    }
+    /* The scout's rule (edge/rooms/war.js births): the dawn's attackers
+     * fly exactly unless the night's only Scout was killed. */
+    const dawnAt = g.views.find((v) => v.stage && v.stage.id === 'before-dawn')?.stage.at ?? Infinity;
+    const dawn = g.born.filter((a) => a.t0 >= dawnAt && a.kind !== 'hunter');
+    const scoutKilled = twist === 'dark-scout' && twistBorn.some((a) => g.dead.some((d) => d.ids.includes(a.id) && ['boom', 'pierce', 'wire'].includes(d.why)));
+    if (twist === 'dark-scout') {
+      scouts[scoutKilled ? 'killed' : 'alive'] += 1;
+    }
+    if (dawn.length && (scoutKilled ? !dawn.some((a) => a.err !== 0) : !dawn.every((a) => a.err === 0))) {
+      bad.push(`${label}: the scout ${scoutKilled ? 'killed' : 'not killed'}, the dawn's errors ${dawn.map((a) => a.err).join(',')}`);
+    }
+  }
+  console.log(`    ${order.join('\n    ')}`);
+  console.log(`    the twist's scout: killed in ${scouts.killed}, not in ${scouts.alive}`);
+  check('ten games, 1 and 4 good pilots: Quiet, Dark Water, Hunters, one twist of The Turn, Before Dawn, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
+    bad.filter((x) => /stages|ended/.test(x)).join(' | '));
+  check('the quiet: STAND BY alone on the HUD and nothing born for 40 s or more, then the dark boat and its objective', bad.filter((x) => /quiet/.test(x)).length === 0,
+    bad.filter((x) => /quiet/.test(x)).join(' | '));
+  check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective shown/.test(x)).length === 0,
+    bad.filter((x) => /objective shown/.test(x)).join(' | '));
+  check('over the ten games both twists are met', twists.size === 2, [...twists].join(','));
+  check('in the bot games too, Before Dawn flies exactly unless the night\'s Scout was killed', bad.filter((x) => /scout/.test(x)).length === 0,
+    bad.filter((x) => /scout/.test(x)).join(' | '));
+  const [lo, hi] = mission.estimatedMinutes;
+  const minutes = games.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
+  console.log(`    minutes from the go to the end: ${minutes.map((x) => x.toFixed(1)).join(' ')}`);
+  check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi),
+    minutes.map((x) => x.toFixed(1)).join(' '));
+
+  /* Nobody shooting: the intakes fall stage by stage until the output is
+   * under the floor before the end, and the restart offers the stage it
+   * was lost in. */
+  const rooms = [0.15, 0.3, 0.41].map((seed) => {
+    const r = warRoom(mission, { n: 1, seed, dev: true });
+    r.fly(GO + 1800000);
+    return r;
+  });
+  const ends = rooms.map((r) => r.view());
+  check('with nobody shooting The Long Night is lost under its floor, and offers the stage it was lost in again',
+    ends.every((x) => x.state === 'lost' && x.why === 'output' && x.checkpoint
+      && x.checkpoint.n === stagesOf(mission).findIndex((y) => y.id === x.checkpoint.stage)),
+    JSON.stringify(ends.map((x) => ({
+      state: x.state, why: x.why, cp: x.checkpoint, stage: x.stage && x.stage.id, output: x.output,
+    }))));
+
+  /* The scout's rule on the room, both ways, in twist C: a pilot moved
+   * onto the Scout's circle once it is born kills it, and Before Dawn's
+   * attackers then draw their errors; left alone, they fly exactly. With
+   * no floor, so a game nobody else defends reaches the dawn. */
+  const unfloored = { ...mission, floorMw: 0 };
+  const scoutRoom = (kill) => {
+    for (const seed of [0.15, 0.3, 0.41, 0.6, 0.8, 0.95]) {
+      const r = warRoom(unfloored, { n: 1, seed, dev: true });
+      r.paths[0] = () => [-4000, Y, 4000];
+      let born = null;
+      for (let t = GO; t < GO + 1800000 && !born; t += 5000) {
+        r.fly(t);
+        const v = r.view();
+        if (v.state === 'won' || v.state === 'lost' || (v.stage && v.stage.id === 'towns')) {
+          break;
+        }
+        born = r.of(0, 'born').flatMap((m) => m.agents).find((a) => a.kind === 'scout');
+      }
+      if (!born) {
+        continue;
+      }
+      if (kill) {
+        const meet = poseAt(planAgent(unfloored, born), born.t0 + 30000).p;
+        r.paths[0] = () => meet;
+      }
+      r.fly(r.clock + 900000);
+      const dawnAt = r.of(0).map((m) => m.war).find((w) => w.stage && w.stage.id === 'before-dawn')?.stage.at;
+      const killed = r.of(0, 'dead').some((m) => m.ids.includes(born.id) && m.why === 'boom');
+      const dawn = r.of(0, 'born').flatMap((m) => m.agents).filter((a) => dawnAt != null && a.t0 >= dawnAt && a.kind !== 'hunter');
+      return {
+        seed, killed, dawn: dawn.length, errs: dawn.filter((a) => a.err !== 0).length,
+      };
+    }
+    return null;
+  };
+  const left = scoutRoom(false);
+  const shot = scoutRoom(true);
+  check('twist C, the Scout left alone: Before Dawn\'s attackers fly exactly', left && !left.killed && left.dawn > 0 && left.errs === 0, JSON.stringify(left));
+  check('twist C, the Scout killed: Before Dawn\'s attackers draw their errors', shot && shot.killed && shot.dawn > 0 && shot.errs > 0, JSON.stringify(shot));
+}
+
 console.log('the room: the practice (itaipu-practice), one Striker at a time');
 {
   /* Training's Defence track flies it alone (docs/redesign/TRAINING.md

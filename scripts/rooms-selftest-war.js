@@ -865,8 +865,8 @@ export function warSection(check) {
       && k.e.view().result.won && k.e.view().result.stars === 3 && k.e.view().result.credits === 320
       && k.e.view().result.criteria.map((c) => `${c.id}:${c.met}`).join() === 'held:true,noLosses:true,output:true', JSON.stringify(k.e.view().result));
     check('no result while the mission is on', e.view().result && headOn('standard', { until: -1500 }).e.view().result === null);
-    check('itaipu-4 is the drill (mission 1 as it was) at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
-      && !MISSIONS['itaipu-drill'].night && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-drill'].waves);
+    check('itaipu-4, The Long Night, is flown at night on stages of its own, not the drill\'s; the others are not at night', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
+      && !MISSIONS['itaipu-drill'].night && MISSIONS['itaipu-4'].stages[0].id === 'quiet' && MISSIONS['itaipu-4'].waves !== MISSIONS['itaipu-drill'].waves);
     const n = warRoom({ mission: MISSIONS['itaipu-4'], dev: true });
     check('the night raid counts down prepMs longer, so every screen has built its night before the go',
       MISSIONS['itaipu-4'].prepMs >= 10000 && n.view().state === 'countdown' && n.view().goAt === COUNTDOWN_MS + MISSIONS['itaipu-4'].prepMs,
