@@ -225,6 +225,7 @@ room relays it in a `0x21` batch.
 | `hit` | r to c | the referee's mid air contact (section 6) |
 | `race` | r to c | countdown start time, results |
 | `report`, `kick`, `track` | c to r | a report with a reason id; a host's kick; a host's track |
+| `fail` | c to r to c | `map` the page could not build; the room relays `{ seat, map }` and counts that seat out of every game until its profile is on the room's world again (edge/rooms/core.js) |
 
 A **profile** is `{ airframe, livery, parts, figure }`. `livery` is the
 entry `normaliseEntry` returns for that plane (`configs/liveries.js`),
