@@ -684,7 +684,7 @@ jobs:
       # Every start on every world, room seats and stations included, is
       # above ground, dry, clear of solids and facing a way out, with
       # negative controls per world (scripts/world-spawns-check.js). It
-      # boots Itaipu, so it sits by the data checked out above. 55 s
+      # boots Itaipu, so it sits by the data checked out above. about 60 s
       # locally, on the shard with Itaipu's data and the most headroom
       # (608 s, tools/reshard-timings.json).
       - run: npm run world:spawns
