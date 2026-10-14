@@ -10,7 +10,9 @@
  * Stabilised on the valley, says the lesson in a toast and holds its
  * judge. In flight, put in the air by the dev hook, the judge reads the
  * craft's heading every frame (the turn steps count it). Pressing another
- * card ends the lesson. A lap lesson's pass is stored with its time and
+ * card ends the lesson. Gates passes on a casual sky track's lap, judged
+ * from the lap event in the flight's log, and not on a built track's. A
+ * lap lesson's pass is stored with its time and
  * the page says Passed, also after a reload. No page error. Pictures in
  * outdir.
  *
@@ -171,6 +173,27 @@ try {
   await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'quad_hover'", 15000).catch(() => {});
   const quad = await page.evaluate("({ airframe: window.__ui.settings.airframe, mode: window.__ui.settings.flightMode, map: window.__ui.settings.map })");
   check('Hover seats the interceptor in angle mode on the valley', quad.airframe === 'interceptor' && quad.mode === 'angle' && quad.map === 'swiss2', JSON.stringify(quad));
+
+  /* GATES: a clean lap of a casual sky track, judged from the flight's
+   * log. A clean lap of a built track, closed through Progress as the
+   * race step closes one, does not pass it; a casual one does, and the
+   * lap event in the log carries the casual kind it was judged on. */
+  await page.evaluate("window.__ui.show('title'); true");
+  await page.sleep(300);
+  await page.evaluate('(window.__training.open(), true)');
+  await page.until("!!document.querySelector('.training-box')", 15000);
+  await click(page, '[data-lesson="quad_gates"] .campaign-play');
+  await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'quad_gates'", 15000).catch(() => {});
+  check('Fly on Gates holds the lesson', await page.evaluate("!!window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'quad_gates'"));
+  await page.evaluate("(window.__ui.progress.lap({ key: 'built-track', kind: 'built' }, { ms: 30000, ghostMs: null }), true)");
+  const builtLap = await page.evaluate("({ passed: !!(window.__ui.settings.progress.lessons || {}).quad_gates, held: !!window.__ui.progress.lesson })");
+  check('a clean lap of a built track does not pass it', !builtLap.passed && builtLap.held, JSON.stringify(builtLap));
+  await page.evaluate("(window.__ui.progress.lap({ key: 'casual-track', kind: 'casual' }, { ms: 30000, ghostMs: null }), true)");
+  const gatesLap = await page.evaluate(`(() => {
+    const laps = window.__ui.progress.flight.events.filter((e) => e.type === 'lap');
+    return { passed: (window.__ui.settings.progress.lessons || {}).quad_gates, kinds: laps.map((e) => e.kind) };
+  })()`);
+  check('a clean casual lap passes it, its lap event logged as casual', Number.isFinite(gatesLap.passed) && gatesLap.kinds.join() === 'built,casual', JSON.stringify(gatesLap));
 
   /* I FLY ALREADY: First flight's skip flies the unaided round in Acro,
    * and its pass, fed to Progress as the frames would feed it, passes the
