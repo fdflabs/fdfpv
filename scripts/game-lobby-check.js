@@ -250,6 +250,27 @@ function endRound(code) {
   room.host.run(G.end(room.host.core, now));
 }
 
+/* The host of room `code` setting its war's mission, as its lobby's
+ * Mission row would (edge/rooms/gamelobby.js, op 'mission'): the row
+ * offers only the campaign's, and the drill and Training's practice are
+ * in none. */
+function setMission(code, mission) {
+  const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.meta.code === code);
+  const core = room.host.core;
+  const [conn] = [...core.seats.entries()].find(([, s]) => s.seat === core.host());
+  const was = core.meta.mission;
+  room.host.run(core.message(conn, JSON.stringify({ type: 'lobby', op: 'mission', mission }), Date.now()));
+  return was;
+}
+/* Room `code`'s mission put back as it was, past the release gate the
+ * host's op meets (mission 1 in development: this server's rooms are not
+ * a developer's, see the release gate rows above). */
+function restoreMission(code, mission) {
+  const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.meta.code === code);
+  room.host.core.meta.mission = mission;
+  room.host.run(room.host.core.gameLobby.changed(room.host.core));
+}
+
 /* The codes on the browser's list, as the title's panel reads it. */
 const listedCodes = async () => ((await (await fetch(`${rooms}/v2/rooms`)).json()).rooms || []).map((r) => r.code);
 
@@ -439,6 +460,26 @@ try {
     const pub = await pickWho('public');
     check('Public: remembered, and still a private room for a mission in development, its code shown again', pub && pub.code !== solo.code && pub.public === false && pub.codeRow && pub.remembered === 'public', JSON.stringify(pub));
     code = pub.code;
+    /* A mission in no act is named by its own title, never as Act 1's
+     * first (main.js missionLine); mission 1 is "Mission 1: First Light". */
+    const DRAWN = "(document.querySelector('.war-lobby-mission') || {}).textContent || ''";
+    const LINE = `\`\${${DRAWN}} [\${(window.__rooms().lobby || {}).mission}]\``;
+    /* The panel draws the room's word on its next refresh: wait for the
+     * drawn line itself to move off the one before. */
+    const moved = async (was) => {
+      await a.until(`(${DRAWN}) !== ${JSON.stringify(was.split(' [')[0])}`, 10000).catch(() => {});
+      return a.evaluate(LINE);
+    };
+    const first = await a.evaluate(LINE);
+    const was = setMission(code, 'itaipu-drill');
+    const drill = await moved(first);
+    setMission(code, 'itaipu-practice');
+    const practice = await moved(drill);
+    restoreMission(code, was);
+    const lines = { first, drill, practice, back: await moved(practice) };
+    check('the briefing names the drill and the practice by their own titles, not as Mission 6: First Light; mission 1 by its number, and back',
+      /· Drill \[/.test(lines.drill) && /· Practice \[/.test(lines.practice) && /Mission 1: First Light \[/.test(lines.first) && lines.back === lines.first
+      && ![lines.drill, lines.practice].some((l) => /Mission|First Light/.test(l)), JSON.stringify(lines));
   } else {
     check('the lobby\'s Who joins row, a choice, Public, Ready still under the cursor', who0 && who0.choice && who0.value === 'public' && who0.public === true && who0.here === 'friends-lobby-ready', JSON.stringify(who0));
     const friends = await pickWho('friends');

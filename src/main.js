@@ -4874,7 +4874,7 @@ export async function boot({
         choices: () => (campaignRef ? campaignRef.playable() : []),
         label: 'lobby.mission',
         note: 'lobby.mission_note',
-        value: (id) => String(missionNumber(id)),
+        value: (id) => (ACT1.some((m) => m.id === id) ? String(missionNumber(id)) : str(WAR_MISSIONS[id].title)),
       },
       /* After a loss Start now and Deploy go back to the lost stage; the
        * host's way to the mission's start instead is a row of its own. */
@@ -4884,7 +4884,7 @@ export async function boot({
       ],
       line: (lobby) => {
         const mission = WAR_MISSIONS[lobby.mission] ? lobby.mission : roomMission();
-        return str('lobby.mission_line', { n: missionNumber(mission), name: str(`campaign.m.${missionKey(mission)}`) });
+        return missionLine(mission);
       },
     },
     combat: {
@@ -5087,9 +5087,18 @@ export async function boot({
     }
     return { seats: plural('count.open_seats', n), note: str(`lobby.open_${who}`) };
   }
+  /* Act 1's key of mission `id`, which must be one of Act 1's. */
   function missionKey(id) {
+    return ACT1.find((x) => x.id === id).key;
+  }
+
+  /* The war lobby's line for mission `id`: an act's mission by its number
+   * and campaign name, one in no act (the drill, Training's practice) by
+   * its own title, never as Act 1's first. */
+  function missionLine(id) {
     const m = ACT1.find((x) => x.id === id);
-    return m ? m.key : ACT1[0].key;
+    return m ? str('lobby.mission_line', { n: missionNumber(id), name: str(`campaign.m.${missionKey(id)}`) })
+      : str('lobby.mission_line_own', { name: str(WAR_MISSIONS[id].title) });
   }
 
   /*
@@ -5191,10 +5200,12 @@ export async function boot({
    * Then the mission campaign Play chose for this room, else mission 1:
    * after its loss from the stage it was lost in, as Deploy does (the
    * owner, 2 Oct: "a lost mission restarts from the lost stage, max 2
-   * stars"), else, or with `fresh`, from its start, its film first. */
+   * stars"), else, or with `fresh`, from its start, its film first when
+   * it is a campaign act's (the rooms server's lobby the same way,
+   * edge/rooms/gamelobby.js briefed). */
   async function warStart(fresh = false) {
     if (await warConsented()) {
-      const how = !fresh && warLostStage() ? { from: 'checkpoint' } : { intro: true };
+      const how = !fresh && warLostStage() ? { from: 'checkpoint' } : { intro: WAR_MISSIONS[roomMission()].act != null };
       if (!campaignRef.startSelected(how)) {
         roomWar.start(roomMission(), how);
       }

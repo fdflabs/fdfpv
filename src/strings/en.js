@@ -3703,6 +3703,7 @@ export default {
   "war.back_lobby": "BACK TO THE LOBBY IN {n}",
   "lobby.title": "LOBBY",
   "lobby.mission_line": "Defend the Paraná · Mission {n}: {name}",
+  "lobby.mission_line_own": "Defend the Paraná · {name}",
   "lobby.starting": "Starting in {n}",
   "lobby.deadline": "Starts in {t} with whoever is ready",
   "lobby.waiting": "Press Ready, or R, to go: alone, or with whoever is here.",

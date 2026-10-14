@@ -191,8 +191,18 @@ export function warLobbySection(check) {
     stored.ready(0);
     stored.ready(1);
     stored.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    check('and its lobby starts the drill', stored.war().state === 'briefing' && stored.war().mission === 'itaipu-drill',
+    /* A mission in no act has no story to tell: no 2030 film, straight
+     * to its countdown (gamelobby.js briefed); an act's keeps its
+     * briefing (mission 2's below). */
+    check('and its lobby starts the drill, straight to its countdown: no briefing film', stored.war().state === 'countdown' && stored.war().mission === 'itaipu-drill',
       JSON.stringify({ state: stored.war().state, mission: stored.war().mission }));
+    const practice = lobbyRoom({ mission: 'itaipu-practice' });
+    practice.at(100);
+    practice.ready(0);
+    practice.ready(1);
+    practice.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    check('a room set to Training\'s practice starts it the same way, no briefing film', practice.war().state === 'countdown' && practice.war().mission === 'itaipu-practice',
+      JSON.stringify({ state: practice.war().state, mission: practice.war().mission }));
     check('a check\'s own room (dev) made for mission 1 says mission 1', lobbyRoom({ dev: true }).lobby(0).mission === 'itaipu-1');
   }
   {

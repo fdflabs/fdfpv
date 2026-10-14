@@ -90,6 +90,12 @@ function warFits(core, id) {
   return typeof id === 'string' && Object.hasOwn(MISSIONS, id) && MISSIONS[id].map === core.meta.map && core.war.startable(id, core);
 }
 
+/* Whether mission `id` starts with its film's briefing: a mission in a
+ * campaign act does, one in none (its file states no `act`) does not. */
+export function briefed(id) {
+  return MISSIONS[id].act != null;
+}
+
 /* The war's mission: the room's own, else the first on its map it may
  * start. A room stored set to a mission since held back (src/game/
  * campaign.js released) is the first again, not one stuck refusing. The
@@ -132,10 +138,12 @@ const GAMES = {
     on: (core) => core.war.on(),
     /* After a loss, the same mission again from the stage it was lost in
      * (the owner, 2 Oct; war.js checkpointOf), with no briefing; else the
-     * mission from its start, with its film. */
+     * mission from its start, with its film when it is a campaign's: one
+     * in no act (the drill, Training's practice) has no story to tell
+     * and goes straight to its countdown (briefed). */
     start: (core, conn, s, now) => core.war.message(core, conn, s, warCheckpoint(core)
       ? { type: 'war', op: 'start', mission: warMission(core), from: 'checkpoint' }
-      : { type: 'war', op: 'start', mission: warMission(core), intro: true }, now),
+      : { type: 'war', op: 'start', mission: warMission(core), intro: briefed(warMission(core)) }, now),
   },
   combat: {
     set: { key: settingKey('combat'), valid: (core, v) => ROUND_MINUTES.includes(v) },

@@ -3708,6 +3708,7 @@ export default {
   "war.back_lobby": "DE VUELTA A LA SALA DE ESPERA EN {n}",
   "lobby.title": "SALA DE ESPERA",
   "lobby.mission_line": "Defender el Paraná · Misión {n}: {name}",
+  "lobby.mission_line_own": "Defender el Paraná · {name}",
   "lobby.starting": "Empieza en {n}",
   "lobby.deadline": "Empieza en {t} con quienes estén listos",
   "lobby.waiting": "Pulsa Listo, o R, para empezar: solo, o con quien esté aquí.",
