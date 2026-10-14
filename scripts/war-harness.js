@@ -44,6 +44,9 @@
  *           rack, and the next wave is sized for it; one who leaves
  *           sizes the next one down and takes its airframes; one back
  *           with its token is its own entry, never a second share
+ *   practice the practice (itaipu-practice.js) alone: one interceptor
+ *           on the Striker's pass catches it on every link set, the room's
+ *           credit the same, the match live with no result
  *   cost    eight pilots and sixty attackers at once: fifty two parked
  *           around the pilots just outside BLAST_M, none going off, and eight
  *           hunters steered by the room from far out. The room's CPU per
@@ -88,6 +91,7 @@ import {
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { MISSIONS, WARHEADS } from '../edge/rooms/war.js';
+import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
 import { LATE_MS, hullDistance, hullFor } from '../src/game/midair.js';
 import {
   BLAST_M, KIND, planAgent, poseAt,
@@ -1048,6 +1052,51 @@ function latejoin() {
   return failed;
 }
 
+/*
+ * The practice (src/share/war/missions/itaipu-practice.js), Training's
+ * Defence track: one pilot alone, hovering on the Striker's pass, catches
+ * it under every link set, and the room's `dead` credits the kill to that
+ * seat (edge/rooms/war.js dead `credited`) the same on every run, at the
+ * zero latency run's ms; the match stays live on its one stage with no
+ * result, so no star is ever earned.
+ */
+function practice() {
+  let failed = 0;
+  const row = (name, ok, detail) => {
+    console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
+    failed += ok ? 0 : 1;
+  };
+  const m = MISSIONS[PRACTICE_ID];
+  const t0 = GO + m.stages[0].spawns[0].at * 1000;
+  const plan = planAgent(m, {
+    id: 1, kind: 'strike', route: 'practice-pass', t0, k: 0, n: 1, err: 0, target: null,
+  });
+  const meet = t0 + 20000;
+  const sc = {
+    name: 'practice', kind: 'practice', air: ['interceptor'], mission: m, paths: [hover(poseAt(plan, meet).p)], end: meet + 3000,
+  };
+  const runs = [];
+  for (const base of BASES) {
+    for (const jitter of JITTERS) {
+      runs.push(runOne({ sc, seed: base + jitter, clock: 0, links: [{ base, jitter }] }));
+    }
+  }
+  const credit = (res) => {
+    const c = res.clients[0];
+    const d = c.deads.filter((x) => x.why === 'boom');
+    return d.length === 1 && d[0].by === c.seat && Array.isArray(d[0].credited) && d[0].credited.join() === d[0].ids.join() ? `${d[0].ids.join()}:${d[0].at}` : null;
+  };
+  const ref = credit(runs[0]);
+  console.log(`\nthe practice: one interceptor on the Striker's pass, ${runs.length} link sets`);
+  row('the zero latency run catches it and the room credits the pilot', ref !== null, `${ref}`);
+  const same = runs.filter((res) => allOnTime(res) && credit(res) === ref).length;
+  const onTime = runs.filter(allOnTime).length;
+  row('every run inside LATE_MS credits the same kill at the same ms', same === onTime && onTime > 0, `${same} of ${onTime}`);
+  const live = runs.filter((res) => res.room.war.match.state === 'live' && res.room.war.view(res.room).result == null).length;
+  row('and the match stays live with no result', live === runs.length, `${live} of ${runs.length}`);
+  return failed;
+}
+
 const clocks = arg('run', 'both') === 'both' ? [0, 1] : arg('run', '') === 'cost' ? [] : [Number(arg('run', 1)) - 1];
 const started = Date.now();
 const list = scenarios();
@@ -1062,6 +1111,7 @@ if (arg('run', 'both') !== 'cost') {
   failed += fuzes();
   failed += wires();
   failed += latejoin();
+  failed += practice();
 }
 /* The plan's 60 attackers, and twice that. In rounds, the most alive at
  * once in any Act 1 mission at 8 pilots is its largest round: 52

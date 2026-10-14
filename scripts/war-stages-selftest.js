@@ -57,6 +57,8 @@ import {
   beatOf, crossings, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, slotKind, spilling, stagesOf, worthOf,
 } from '../src/share/war/stages.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
+import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
+import { released } from '../src/game/campaign.js';
 import { FREE_OPEN_M, openAt } from '../src/share/war/hoist.js';
 import { SPRAY_HIDE_M, inSpray } from '../src/ui/warmarkers.js';
 import { SPAWN, firstDifference, playGame } from './war-legacy-games.js';
@@ -1295,6 +1297,41 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
   check('it opens on the twist stage drawn before, its hold running again from the go',
     v.stage && v.stage.id === lost.checkpoint.stage && v.stage.objectives[0].heldFrom === v.stage.at,
     JSON.stringify(v.stage && { id: v.stage.id, at: v.stage.at, o: v.stage.objectives[0] }));
+}
+
+console.log('the room: the practice (itaipu-practice), one Striker at a time');
+{
+  /* Training's Defence track flies it alone (docs/redesign/TRAINING.md
+   * track 5): one Striker with no target, caught or let go, then the next,
+   * and never a result. */
+  const mission = MISSIONS[PRACTICE_ID];
+  check('the practice is a mission any room may start, in no campaign act', Boolean(mission) && mission.act == null && released(PRACTICE_ID));
+  const e = warRoom(mission, { n: 1 });
+  e.fly(GO + 8000);
+  const first = e.of(0, 'born').flatMap((m) => m.agents);
+  check('one Striker is born 5 s after the go, with no target', first.length === 1 && first[0].kind === 'strike' && first[0].target == null && first[0].t0 === GO + 5000,
+    JSON.stringify(first));
+  const meet = poseAt(planAgent(mission, first[0]), first[0].t0 + 20000).p;
+  e.paths[0] = () => meet;
+  e.fly(GO + 30000);
+  const boom = e.of(0, 'dead').find((m) => m.why === 'boom');
+  check('caught: the room credits its kill to the pilot', boom && boom.by === e.view().scores[0].seat && Array.isArray(boom.credited) && boom.credited.includes(first[0].id),
+    JSON.stringify(boom));
+  e.paths[0] = () => [4000, Y, 4000];
+  e.fly(boom.at + 4000 + 8000);
+  const born = e.of(0, 'born').flatMap((m) => m.agents);
+  const v = e.view();
+  check('the stage goes again after its beat: a second Striker, no result, the output whole', born.length === 2 && born[1].t0 === boom.at + 4000 + 5000
+    && v.state === 'live' && v.stage.id === 'pass' && v.result == null && v.output === mission.output, `${born.map((a) => a.t0)} ${v.state} ${v.output}`);
+  const plan = planAgent(mission, born[1]);
+  e.fly(plan.tEnd + 1000);
+  const gone = e.of(0, 'dead').find((m) => m.ids.includes(born[1].id));
+  check('let go: it leaves at its route\'s end, harmless, and a third comes', gone && gone.why === 'leave' && e.view().output === mission.output
+    && (e.fly(plan.tEnd + 12000), e.of(0, 'born').flatMap((m) => m.agents).length === 3), JSON.stringify(gone));
+  e.say(0, { type: 'war', op: 'end' });
+  e.fly(e.clock + 100);
+  const end = e.view();
+  check('ended by the host: no win, no stars', end.state === 'ended' && end.result && end.result.won === false && end.result.stars === 0, JSON.stringify(end.result));
 }
 
 console.log('legacy: the four missions against their record');
