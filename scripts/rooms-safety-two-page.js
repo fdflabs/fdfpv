@@ -118,8 +118,13 @@ try {
   for (const p of [a, b]) {
     await p.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
   }
+  /* Drawn means the peer's model has loaded and its rig is visible, so the
+   * wait is for a load, the same class as the page's own flight above: on
+   * the hosted 2-core runner, two pages loading at once, 30 s was not
+   * enough (release/2026-10-14a, 2026-10-14), while here on the software
+   * rasteriser the whole check takes 201 s. */
   for (const p of [a, b]) {
-    await p.until('window.__rooms().peers[0].drawn', 30000);
+    await p.until('window.__rooms().peers[0].drawn', 400000);
   }
   const nameOfAonB = (await b.evaluate('window.__rooms()')).peers[0].name;
   const nameOfBonA = (await a.evaluate('window.__rooms()')).peers[0].name;
