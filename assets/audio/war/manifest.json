@@ -26737,6 +26737,399 @@
     }
    }
   },
+  "film-itaipu-3-1.en": {
+   "text": "Everything the right bank makes leaves the dam through this yard.",
+   "speaker": "crest",
+   "seconds": 3.065,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4208068806,
+     "heard": "Everything the right bank makes leads the dam through this yard.",
+     "wer": 0.091,
+     "extra": 0,
+     "missing": [
+      "leaves"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2527362917,
+     "heard": "Everything the right bank makes leaves the dam through this yard.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14275,
+     "sha256": "757c105055dd67f826599cdb7e4d7084d517e326ed00800abc81a97f9884128d"
+    },
+    "mp3": {
+     "bytes": 13772,
+     "sha256": "2c92dc66817e7aa2102b1839e8a9b77bf65dd22d09eb489d0b8127600c2416f7"
+    }
+   }
+  },
+  "film-itaipu-3-1.es": {
+   "text": "Todo lo que genera la margen derecha sale de la represa por esta subestación.",
+   "speaker": "crest",
+   "seconds": 4.875,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 88031222,
+     "heard": "Todo lo que genera la margen derecha sale de la represa por esta subestación.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22362,
+     "sha256": "acfb545d99af4232760f02df84e4843f1207a0186aafa5d92f3ec4372e071a42"
+    },
+    "mp3": {
+     "bytes": 20420,
+     "sha256": "b0710016c29ec080fbb3480e73d10b5d73ea220ddc3d91eafbb2e46df751eb6b"
+    }
+   }
+  },
+  "film-itaipu-3-2.en": {
+   "text": "Crest, Dispatch. I can reroute it. I need time, and I need that yard standing.",
+   "speaker": "despacho",
+   "seconds": 6.125,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 449003905,
+     "heard": "Crest, dispatch, I can reroute it, I need time and I need that yard standing.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 28083,
+     "sha256": "d9b1b3a7d9f60a6a6d27a9e96044b58aac1e27507d622b488282950cf26fc229"
+    },
+    "mp3": {
+     "bytes": 28772,
+     "sha256": "bd91f5f58972ce7c5ff7335e85d4f9c0dd3de670893a32ae89725e399503f8a3"
+    }
+   }
+  },
+  "film-itaipu-3-2.es": {
+   "text": "Cresta, Despacho. La puedo redirigir. Necesito tiempo, y necesito esa subestación en pie.",
+   "speaker": "despacho",
+   "seconds": 6.505,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1699147394,
+     "heard": "Cresta, despacho. La puedo redirigir, necesito tiempo y necesito esa subestación en pie.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29730,
+     "sha256": "63a61c44c90af14690826f34865a2c864ff076740d8ba9b2d27a3bfba62be986"
+    },
+    "mp3": {
+     "bytes": 28556,
+     "sha256": "b6e8f6da43fdddebfea19f681006cac18469b6de2096cc832d24ae443f7fd803"
+    }
+   }
+  },
+  "film-itaipu-3-3.en": {
+   "text": "Same shape, same speed. One of them is lying.",
+   "speaker": "mirador",
+   "seconds": 4.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2372449849,
+     "heard": "Same shape, same speed. One of them is lying.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19146,
+     "sha256": "7a41a210602ef04c24d98328f2678616ecf0637d5028696a70040736d9beec5a"
+    },
+    "mp3": {
+     "bytes": 19028,
+     "sha256": "d591e2dd68290f9da3a796074387d571ecaf85d348ac84882ca12044bb91588f"
+    }
+   }
+  },
+  "film-itaipu-3-3.es": {
+   "text": "Misma forma, misma velocidad. Uno de los dos miente.",
+   "speaker": "mirador",
+   "seconds": 3.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2558307939,
+     "heard": "misma forma, misma velocidad, uno de los dos miente,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16982,
+     "sha256": "3b937879e69ee2bc5c4295a007d59c55c02cefab9d43042d54289fc7cab366b2"
+    },
+    "mp3": {
+     "bytes": 15980,
+     "sha256": "2be79567a55ef34d83949319b9cd724c1a81a068c6f7fe4ed251059bcfc882ed"
+    }
+   }
+  },
+  "film-itaipu-3-4.en": {
+   "text": "Get close before you spend a bird.",
+   "speaker": "crest",
+   "seconds": 2.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1937755143,
+     "heard": "Get close before you spend a bird. It's the end of parts.",
+     "wer": 0.714,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3273398767,
+     "heard": "Get close before you spend a bird.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 250
+    },
+    {
+     "attempt": 2,
+     "seed": 4075100404,
+     "heard": "Get close before you spend a bird.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10920,
+     "sha256": "e99f25cfa385167fda25aebbdb8732aaf5e1e16dfb9496a171d8a7295baf57c5"
+    },
+    "mp3": {
+     "bytes": 10196,
+     "sha256": "1d0653f12bce58b9a01a3a9aa6cff418506b4daf9f9ac5caa2d34bb3b7544568"
+    }
+   }
+  },
+  "film-itaipu-3-4.es": {
+   "text": "Acérquense antes de gastar un aparato.",
+   "speaker": "crest",
+   "seconds": 3.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3751432651,
+     "heard": "Acérquense antes de gastar un aparato.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14169,
+     "sha256": "6c462afccb7d4ec91762a540d2bb073f66aca739ce6457bcb79f314409d16f8a"
+    },
+    "mp3": {
+     "bytes": 13652,
+     "sha256": "ce015b83e91991895e0d6d9cf847707a374d4e61fa27863148d2661c4deee668"
+    }
+   }
+  },
+  "film-itaipu-3-o2.en": {
+   "text": "Every bird that came back is on the bench. They'll be ready before full dark.",
+   "speaker": "taller",
+   "seconds": 4.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 986295369,
+     "heard": "Every bird that came back is on the bench, they'll be ready before full dark.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20423,
+     "sha256": "1db135ecaa92ba932e521b94f75725de933c633fd219bc77c91e6be184e27c8a"
+    },
+    "mp3": {
+     "bytes": 21572,
+     "sha256": "0d4b8f513bfc9da5e145d7dd1ce85844a358736fcdbc5764536474912d702220"
+    }
+   }
+  },
+  "film-itaipu-3-o2.es": {
+   "text": "Cada aparato que volvió está en el banco. Van a estar listos antes de que oscurezca del todo.",
+   "speaker": "taller",
+   "seconds": 5.325,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2748450693,
+     "heard": "Cada aparato que volvió está en el banco. Van a estar listos antes de que oscurezca del todo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24224,
+     "sha256": "c5dc3cc484be322dc503a814528c52126487450bc1bf244b8f07db0e35eacb02"
+    },
+    "mp3": {
+     "bytes": 25124,
+     "sha256": "e4760a863edba40f5da47fabc07ff8c8df66de74540abde542e164692c7d173b"
+    }
+   }
+  },
+  "film-itaipu-3-o3.en": {
+   "text": "West arm's quiet. Nothing on the water. That won't last.",
+   "speaker": "mirador",
+   "seconds": 4.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2176934298,
+     "heard": "West arms quiet, nothing on the water. That won't last.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19543,
+     "sha256": "57c0af6368cfffb94d28e4dbf94e2fc2b271b42c4211f534aa29ed0320a916ed"
+    },
+    "mp3": {
+     "bytes": 19052,
+     "sha256": "b35c3e6de0ac7cfdea27c36562186cd528ac3c61f4397bd279a92450f155805d"
+    }
+   }
+  },
+  "film-itaipu-3-o3.es": {
+   "text": "El brazo oeste está tranquilo. Nada sobre el agua. Eso no va a durar.",
+   "speaker": "mirador",
+   "seconds": 4.635,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2474547455,
+     "heard": "El brazo oeste está tranquilo. Nada sobre el agua. Eso no va a durar.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21020,
+     "sha256": "af0b90509ed9db122d384009a106cd656759ab519519dabe2ebdf48ee7d2e23e"
+    },
+    "mp3": {
+     "bytes": 19748,
+     "sha256": "4d3a97f53a5310bd676a3b94a91381d8fe1873cd14929f7a8d708c11d81189cb"
+    }
+   }
+  },
+  "film-itaipu-3-o4.en": {
+   "text": "They spent today learning where we are. Tonight they come in the dark.",
+   "speaker": "crest",
+   "seconds": 4.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3856565879,
+     "heard": "They spent today learning where we are. Tonight they come in the dark.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19147,
+     "sha256": "a56a0096001c8e7106531327ff79e7748115dc4797b7c9015c1dec4a7ce416d8"
+    },
+    "mp3": {
+     "bytes": 17732,
+     "sha256": "3350b83891558366df8626f02c9208fb7345bc8c6591529bf17625d5242ae578"
+    }
+   }
+  },
+  "film-itaipu-3-o4.es": {
+   "text": "Hoy aprendieron dónde estamos. Esta noche vienen a oscuras.",
+   "speaker": "crest",
+   "seconds": 3.785,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 514409067,
+     "heard": "Hoy aprendieron dónde estamos. Esta noche vienen a oscuras.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17369,
+     "sha256": "d4ac3ad15d2a22bdcff87018795b06d20f59fa652834b2cf68f2a9bf3946f68a"
+    },
+    "mp3": {
+     "bytes": 15908,
+     "sha256": "8e42337e43a2ceb8142bbcd229c273d79349b22500f3523cad3bd5203c969f0c"
+    }
+   }
+  },
   "film-itaipu-2-o3.es": {
    "text": "El brazo oeste está vacío. Se fueron a mirar otra cosa.",
    "speaker": "mirador",

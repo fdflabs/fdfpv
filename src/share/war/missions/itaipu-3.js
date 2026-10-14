@@ -180,6 +180,9 @@ export default withWaves({
   starMw: 12600,
   airframes: 4,
   radio: { brief: ['itaipu-3-s0-brief', 'itaipu-3-s0-rules'], win: 'debrief-itaipu-3-win', lose: 'debrief-itaipu-3-lose' },
+  film: 'lights-out',
+  /* The film a win ends on (films/lights-out-outro.js). */
+  outro: 'lights-out-outro',
   /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
   nudge: true,
   /* Dusk (MISSIONS.md M3): the light does not fall across the mission
