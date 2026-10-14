@@ -31,8 +31,9 @@ a week or more) and its phase (PLAN.md section 5).
 means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
-**Counts over the 83 items with a verdict:** 33 EXISTS, 40 PARTIAL, 7
-MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
+**Counts over the 83 items with a verdict** (2026-10-14, the first verdict
+in each item's heading): 35 EXISTS, 24 BUILT (since built by a phase), 20
+PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
 the owner since): no jamming, signal loss or radio breakup (rule 1);
@@ -48,7 +49,18 @@ whoop. That removal is the first real customer of item 1's migrations.
 
 ## 1. Saves and progress (items 1 to 3)
 
-**1. Save-state architecture. PARTIAL.** There is a de facto main save:
+**1. Save-state architecture. BUILT (phase 19).** Built (2026-10-13,
+w38-save-events): src/share/save.js, the envelope `{ saveVersion,
+settings, controllers, aircraft, player, records }` over the keys where
+they lie, `saveVersion` 4 under `fdfpv.save.version`, the ordered
+`MIGRATIONS` (one step, 3 to 4, nothing moved on disk), opened once per
+boot from src/boot.js; the sync blob's `v` is read
+(src/share/progressmerge.js). Decided otherwise than the spec below: the
+retired aircraft and worlds stay a repair on every read, not migration
+steps, since the same ids arrive from rooms, the account and replays
+(save.js header), and the whoop's generations went with the whoop.
+Check: `save:selftest` (CI) over tests/fixtures/save-pre-envelope.json.
+What follows is the gap as first written. There is a de facto main save:
 the settings blob `webfpv.settings.v3` (src/ui/ui.js 368), which holds the
 last aircraft, the worlds, liveries, parts, power, tuning, PIDs, rates,
 progress (XP, challenges, Unlock all: `{ v: 1, ... }`, src/game/progress.js
@@ -427,7 +439,14 @@ by birth record and room clock (src/replay/warrec.js); cameras are keys
 
 ## 7. Events, debrief, statistics, achievements (items 25 to 28)
 
-**25. Central gameplay event bus. MISSING.** There are at least six
+**25. Central gameplay event bus. BUILT (phase 22).** Built (2026-10-13,
+w38-save-events): src/game/events.js, the vocabulary below as the frozen
+`EVENT_TYPES`, one append only log per flight on the sim and room
+clocks; RunWatch fed from it (src/ui/progress-ui.js `feedRunWatch`), the
+counts per aircraft folded from it (item 27) and the Defence lessons
+judged from it. The debrief does not read it yet (item 26). Check:
+`events:selftest` (CI). What follows is the gap as first written. There
+are at least six
 separate channels, each with its own vocabulary: the recorder's
 `event()` (`off`, `impact`, `debris`, `cue`, recorder.js 276);
 `audio.event('takeoff' | 'land' | 'gate' | 'crash' | 'clip')` across
@@ -461,7 +480,7 @@ debrief frame reads phase 22's log, so route, time, crashes, landings and
 kills come from what happened. Check: phase 10's results checks, plus
 `events:selftest` folding a debrief. Size M. Phase 10, after 22.
 
-**27. Unified statistics. PARTIAL.** Built (2026-10-13): landings,
+**27. Unified statistics. BUILT (phase 11).** Built (2026-10-13): landings,
 crashes, laps, kills and missions started and completed per aircraft,
 folded from phase 22's log into `progress` (src/game/progress.js
 COUNTED, foldEvents), merged as the higher by progressmerge, checked by
@@ -469,10 +488,10 @@ COUNTED, foldEvents), merged as the higher by progressmerge, checked by
 logged only for a victim the room credited (war.js `dead` carries
 `credited`, `rooms:selftest`). A mission is started when the client
 sees its war begin and completed when its result is applied, won or
-lost (src/ui/campaign.js observe). Still missing: The Interior's
-mission_start, which needs a call from main.js where an ops match
-begins (opscampaign.js only hears of a match at its debrief), so for
-The Interior completed can exceed started. What follows
+lost (src/ui/campaign.js observe). The Interior's mission_start is
+logged where its match goes live (src/main.js, the ops state to
+`live`, 2026-10-13), the vantage its mission_end is recorded from, so
+started and completed count alike for both campaigns. What follows
 is the gap as first written. stats.js sends three anonymous
 counters to the board (visit, session, flush: laps, flight seconds,
 crashes since the last flush) and keeps none of them (src/share/stats.js
@@ -806,7 +825,12 @@ skippable, and listed for replay; the first flight hint is lesson one.
 Check: `progress:selftest` runs each lesson's judge (phase 8's check).
 Size M. Phase 8.
 
-**56. First-run experience. PARTIAL.** A first run is detected
+**56. First-run experience. BUILT (phase 7).** Built (2026-10-13,
+w38-controller): "What will you fly with?" asked once on a first visit,
+before any queued picker (src/ui/flywith.js), a radio straight to the
+calibration wizard and the rest to How to fly. Check: `controller:check`
+(local, the question in the real page) in place of a `flow:check` case.
+What follows is the gap as first written. A first run is detected
 (`detectFirstRun`, ui.js 964) and gets the first flight row; the language
 follows the browser (src/strings/index.js 104). The controller question
 appears only with two pads. Decided already: "What will you fly with?"
@@ -814,7 +838,15 @@ once, a radio straight to calibration (PLAN.md 6 item 19). **Done:**
 PLAN.md phase 7. Check: `flow:check` (local) adds the first run question.
 Size M. Phase 7.
 
-**57. Returning-player experience. MISSING.** The last activity is not
+**57. Returning-player experience. PARTIAL (phase 27).** Built
+(2026-10-13, w38-continue): the last activity kept (settings
+`lastActivity`, synced), and Continue stands in that activity's link on
+its hub, one press into it through openSession with the remembered Who
+joins (src/ui/actions.js, src/ui/cards.js); home's order unchanged;
+hidden for an unknown id, a room game with no server and the war until a
+mission is released. Check: `modes:card` (local). Missing: Operations'
+next unplayed mission kept for Continue. What follows is the gap as
+first written. The last activity is not
 remembered (`this.mode = linkedMode()` reads only the URL, ui.js 3432);
 nothing says "last flown" or "continue". The aircraft and worlds are
 remembered. **Done:** the last activity and, for Operations, the next
@@ -893,7 +925,12 @@ started, completed and abandoned as day totals, no new identifiers.
 Check: `stats` keeps its refusal list; a Node selftest asserts the new
 fields are counts. Size S. Phase 23, if decided.
 
-**64. Crash reporting. PARTIAL.** Page errors and unhandled rejections
+**64. Crash reporting. BUILT (phase 23); sending unasked is the owner's
+decision.** Built (2026-10-13, w38-save-events): the bug report carries
+the build (src/share/bugs.js `reportFields`) and item 65's log of the
+last 50 lines beside the crash record. Checks: `bugs:selftest`,
+`crashrecord:selftest` (CI). What follows is the gap as first written.
+Page errors and unhandled rejections
 are recorded locally (src/share/crashrecord.js 148, from boot.js 44) and
 sent only inside a bug report the pilot files with F8 (src/share/bugs.js,
 `submitBug`, ui.js 5807), with up to four screenshots. Nothing is sent on
@@ -902,14 +939,25 @@ report carries the build and the last 50 recorded errors; whether errors
 are also sent unasked is an owner decision (section 19). Check: phase
 23's `bugs:selftest`. Size S. Phase 23.
 
-**65. Structured logs. MISSING.** No log module: 6 `console.warn`, 24
+**65. Structured logs. PARTIAL (phase 23).** Built (2026-10-13,
+w38-save-events): one ring of `{ atMs, cat, msg, count }` in
+src/share/crashrecord.js, 50 lines, the checklist's eight categories
+(`LOG_CATEGORIES`), written by `logWarn` and `logError` and read by the
+bug report; a line repeated counts up instead of filling the ring.
+Check: `crashrecord:selftest` (CI). Missing: 13 sites write it, and 34
+`console.warn` and `console.error` calls elsewhere in src do not. What
+follows is the gap as first written. No log module: 6 `console.warn`, 24
 `console.error`, no categories, no timestamps. **Done:** one ring buffer
 in crashrecord.js of `{ t, cat, msg }` with the checklist's categories
 (input, network, physics, ai, mission, render, save, audio), written by
 the existing warn and error sites, read by the bug report. No log levels,
 no console spam. Check: `crashrecord:selftest` (CI). Size S. Phase 23.
 
-**66. Bug-report contents. PARTIAL.** `bugSnapshot` (ui.js 5512 to 5579)
+**66. Bug-report contents. BUILT (phase 23).** Built (2026-10-13,
+w38-save-events): the build, the aircraft id, the activity and the
+controller's id from a pure function (src/share/bugs.js `reportFields`),
+and item 65's log. Check: `bugs:selftest` (CI). What follows is the gap
+as first written. `bugSnapshot` (ui.js 5512 to 5579)
 already carries the screen, world, course, flight mode, rates, graphics,
 GPU, user agent, viewport, input rates and the crash record. Missing: the
 build version, the aircraft id, the activity, the controller's id, the
@@ -917,7 +965,14 @@ log of item 65. **Done:** those five fields; the snapshot builder moved to
 a pure function so it can be tested. Check: `bugs:selftest` (Node, CI).
 Size S. Phase 23.
 
-**67. Build version visible. PARTIAL.** Shown only at the foot of the
+**67. Build version visible. BUILT (phase 23).** Built (2026-10-13,
+w38-save-events and w38-replay-v18): the build in the credits
+(src/ui/credits.js), a Build row in Settings (src/ui/items.js), every
+replay clip's header (clip version 18, `crashcam:selftest` case 25) and
+the bug report (item 66). Checks: `boot:loader` reads the loader's line
+and `bugs:selftest` the report's; no check reads the credits' or
+Settings' line. What follows is the gap as first written. Shown only at
+the foot of the
 loading screen ("Build {version}", loading.js 480); the title shows a
 beta note without it (ui.js 3855). **Done:** the build in the credits and
 at the foot of Settings, and in every replay file's meta (item 24) and
@@ -926,7 +981,14 @@ it. Size S. Phase 23.
 
 ## 16. Testing (items 68 to 71)
 
-**68. Automated smoke tests. PARTIAL.** `npm run verify` (local, 16
+**68. Automated smoke tests. BUILT (phase 23).** Built (2026-10-13,
+w38-save-events): `npm run smoke` (local, scripts/smoke.js) boots a
+fresh profile, starts the solo drill in a private room on a rooms server
+of its own, flies it to its result, reloads and finds the time flown
+still in the profile, with no page error; named in DEPLOY.md. The drill
+pays no stars, so a reload that finds a mission's stars stays
+`campaign:check`'s. What follows is the gap as first written. `npm run
+verify` (local, 16
 checks: build, determinism, frame independence, flight physics, a clean
 console, audio, world scale, map isolation), `flow:check` (reloads, room
 links, card lobbies), `game:lobby` per game, `campaign:check`; CI runs
@@ -942,7 +1004,12 @@ named in the deploy checklist (DEPLOY.md). Size M. Phase 23.
 aircraft families, `crashcam:selftest` (replay encode and decode across
 versions). Local: `check:craft`, `itaipu:spawns`, `replay:selftest`.
 
-**70. Device matrix. PARTIAL.** Viewports are checked (lint:devices: 390
+**70. Device matrix. BUILT (phase 30).** Built (2026-10-13, w38-blocks):
+docs/DEVICES.md, one row per real device and date the repository
+records, ten rows (the Pocket over USB and Bluetooth, an Xbox pad, a
+FlySky FS-i6, a Boxer, phones, a keyboard, two machines); a row is added
+when someone flies one. What follows is the gap as first written.
+Viewports are checked (lint:devices: 390
 by 844 to 1180 by 820; modes:card: 1280 by 720 to 2560 by 1080; both
 local); nothing records a real device run (operating systems, the Pocket,
 a pad, a low end GPU, a high refresh display). **Done:** a table in
@@ -981,7 +1048,14 @@ works by accident: the rooms server runs anywhere
 no discovery. **Done:** an owner decision (section 19), written into
 PILLARS 5.
 
-**75. Spectator join. PARTIAL.** A war pilot out of airframes watches a
+**75. Spectator join. BUILT (phase 17).** Built (472c2316b, then
+2026-10-13 w38-watch, w38-watch-state, w38-watch-war): a watch seat in any room
+(edge/rooms/core.js, `join(code, { watch: true })`), past the cap with
+eight of its own, never seated and never the host; the race's, tag's,
+jam's, combat's, the war's and the ops' state sent to it, no result paid
+on it. Checks: `rooms:selftest`, `rooms:server` (CI), `watch:twopage`
+(local). What follows is the gap as first written. A war pilot out of
+airframes watches a
 teammate (main.js 2784); a race's late joiner watches the race. The watch
 seat in any room is decided (PLAN.md 6 item 18). **Done:** PLAN.md phase
 17. Size M. Phase 17.
