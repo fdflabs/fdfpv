@@ -26,7 +26,8 @@ import {
 } from '../src/game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../src/share/campaignwar.js';
 import { MISSIONS, PLANNED } from '../src/share/war/missions/index.js';
-import { MISSIONS as OPS_MISSIONS } from '../src/share/ops/missions.js';
+import { MISSIONS as OPS_MISSIONS, checkRows } from '../src/share/ops/missions.js';
+import { ROWS as OPS_ROWS } from '../src/share/ops/rows.js';
 import {
   SYNCED_SECTIONS, mergeBlobs, pickSynced, stampChanges,
 } from '../src/share/progressmerge.js';
@@ -227,6 +228,24 @@ check('Mission 1 has its mission file, as development means', Object.hasOwn(OPS_
 check('the cards read Under development on 2 to 5 (the owner\'s words)', INTERIOR.slice(1).every((m) => cardLabel(m) === 'development')
   && cardLabel(INTERIOR[0]) === 'development' && cardLabel(ACT1[4]) === 'soon');
 check('the campaign asks the war\'s consent first (armed conflict)', INTERIOR_CAMPAIGN.consent === true);
+/* Each change, made to copies of the ops registry and its rows, must stop
+ * checkRows (src/share/ops/missions.js), which runs at its load. */
+const opsReg = () => Object.fromEntries(Object.entries(OPS_MISSIONS).map(([id, m]) => [id, { ...m }]));
+const opsRows = () => OPS_ROWS.map((r) => ({ ...r }));
+const ROW_CONTROLS = [
+  ['a mission file without a row', (m, r) => { r.splice(r.findIndex((x) => x.id === 'interior-2'), 1); }],
+  ['a mission file whose row is soon', (m, r) => { r.find((x) => x.id === 'interior-3').release = 'soon'; }],
+  ['a mission file whose row is another campaign\'s', (m, r) => { r.find((x) => x.id === 'interior-1').campaign = 'other'; }],
+  ['a row in development without its file', (m) => { delete m['interior-3']; }],
+  ['an available row without its file', (m, r) => { r.find((x) => x.id === 'interior-4').release = 'available'; }],
+];
+for (const [name, change] of ROW_CONTROLS) {
+  const m = opsReg();
+  const r = opsRows();
+  change(m, r);
+  check(`negative control: ${name} is refused`, throws(() => checkRows(m, r)));
+}
+check('the unchanged ops registry and rows are not refused', !throws(() => checkRows(opsReg(), opsRows())));
 {
   const f = applyResult(fresh, 'interior-1', {
     stars: 2, credits: 0, won: true, flags: { M1_SYMBOL_CAPTURED: true, 'bad flag': true, M1_X: 7 },
