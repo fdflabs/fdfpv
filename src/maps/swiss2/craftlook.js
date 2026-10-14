@@ -152,14 +152,72 @@ const NOISE = /* glsl */ `
   }
 `;
 
+/*
+ * A palette cel material's twin (combatcraft.js paletteFixed): one
+ * physical material whose colour, roughness, metalness, clearcoat, grain
+ * and weave are each entry's own, the entry's finish read from the
+ * material it stands in for, picked per vertex by aCelKey and passed by
+ * flat varyings, as celmat.js does, so each surface draws with the bits
+ * its own twin's uniforms held. Clearcoat is on for the whole mesh when
+ * any entry has it, at 0 for the rest: their light times 1 plus the
+ * coat's times 0.
+ */
+function paletteTwin(cel) {
+  const finishes = cel.userData.paletteOf.map((m) => FINISHES[finishOf(m, false)]);
+  const n = finishes.length;
+  const paint = new Float32Array(n * 4);
+  const pbr = new Float32Array(n * 4);
+  finishes.forEach((f, i) => {
+    const m = cel.userData.paletteOf[i];
+    (f.color === undefined ? m.color : new THREE.Color().setHex(f.color, THREE.SRGBColorSpace)).toArray(paint, i * 4);
+    paint[i * 4 + 3] = f.grain ?? 0;
+    pbr.set([f.roughness, f.metalness, f.clearcoat ?? 0, f.clearcoatRoughness ?? 0], i * 4);
+  });
+  const weave = new Float32Array(finishes.map((f) => f.weave ?? 0));
+  const chunk = THREE.ShaderChunk.lights_physical_fragment;
+  const coat = ['material.clearcoat = clearcoat;', 'material.clearcoatRoughness = clearcoatRoughness;'];
+  if (!coat.every((line) => chunk.includes(line))) {
+    throw new Error('swiss2 craftlook: three changed lights_physical_fragment; a palette twin would draw every clearcoat alike');
+  }
+  return {
+    clearcoat: finishes.some((f) => f.clearcoat) ? 1 : 0,
+    uniforms: { uCkPaint: { value: paint }, uCkPbr: { value: pbr }, uCkWeaves: { value: weave } },
+    vertexPars: `
+      attribute float aCelKey;
+      uniform vec4 uCkPaint[${n}];
+      uniform vec4 uCkPbr[${n}];
+      uniform float uCkWeaves[${n}];
+      flat varying vec4 vCkPaint;
+      flat varying vec4 vCkPbr;
+      flat varying float vCkWeave;`,
+    vertex: `
+      vCkPaint = uCkPaint[int(aCelKey)];
+      vCkPbr = uCkPbr[int(aCelKey)];
+      vCkWeave = uCkWeaves[int(aCelKey)];`,
+    fragmentPars: `
+      flat varying vec4 vCkPaint;
+      flat varying vec4 vCkPbr;
+      flat varying float vCkWeave;
+      #define uCkGrain vCkPaint.a
+      #define uCkWeave vCkWeave`,
+    colour: '\n        diffuseColor.rgb *= vCkPaint.rgb;',
+    roughness: '\n        roughnessFactor = vCkPbr.x;',
+    metalness: '\n        metalnessFactor = vCkPbr.y;',
+    lights: chunk.replace(coat[0], 'material.clearcoat = vCkPbr.z;').replace(coat[1], 'material.clearcoatRoughness = vCkPbr.w;'),
+    key: `swiss2-craft-palette${n}`,
+  };
+}
+
 function craftMaterial(cel, finish) {
-  const f = FINISHES[finish];
+  const palette = cel.userData.paletteOf ? paletteTwin(cel) : null;
+  /* A palette twin's own values are each overridden per entry. */
+  const f = palette ? FINISHES.plastic : FINISHES[finish];
   const mat = new THREE.MeshPhysicalMaterial({
-    color: f.color === undefined ? cel.color.clone() : new THREE.Color().setHex(f.color, THREE.SRGBColorSpace),
+    color: palette ? 0xffffff : (f.color === undefined ? cel.color.clone() : new THREE.Color().setHex(f.color, THREE.SRGBColorSpace)),
     map: cel.map,
     roughness: f.roughness,
     metalness: f.metalness,
-    clearcoat: f.clearcoat ?? 0,
+    clearcoat: palette ? palette.clearcoat : f.clearcoat ?? 0,
     clearcoatRoughness: f.clearcoatRoughness ?? 0,
     transparent: cel.transparent,
     opacity: cel.opacity,
@@ -182,23 +240,56 @@ function craftMaterial(cel, finish) {
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uCkGrain = { value: grain };
     shader.uniforms.uCkWeave = { value: weave };
+    if (palette) {
+      Object.assign(shader.uniforms, palette.uniforms);
+    }
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vCkP;\nvarying vec3 vCkN;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCkP = position;\nvCkN = normal;');
+      .replace('#include <common>', `#include <common>\nvarying vec3 vCkP;\nvarying vec3 vCkN;${palette ? palette.vertexPars : ''}`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvCkP = position;\nvCkN = normal;${palette ? palette.vertex : ''}`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${NOISE}`)
-      .replace('#include <color_fragment>', `#include <color_fragment>
+      .replace('#include <common>', `#include <common>\n${NOISE}${palette ? palette.fragmentPars : ''}`)
+      .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>${palette ? palette.metalness : ''}`)
+      .replace('#include <lights_physical_fragment>', palette ? palette.lights : '#include <lights_physical_fragment>')
+      .replace('#include <color_fragment>', `#include <color_fragment>${palette ? palette.colour : ''}
         float ckM = ckMottle();
         float ckT = ckTwill();
         diffuseColor.rgb *= 1.0 + uCkGrain * ckM * 2.0;
         diffuseColor.rgb *= mix(1.0, 0.55 + 0.9 * ckT, uCkWeave);`)
-      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>${palette ? palette.roughness : ''}
         roughnessFactor = clamp(roughnessFactor * (1.0 + uCkGrain * ckM * 3.0) + uCkWeave * (0.5 - ckT) * 0.3, 0.02, 1.0);`);
   };
   /* The injected source is the same for every finish; what differs are
    * uniforms, and the physical features three keys on itself. */
-  mat.customProgramCacheKey = () => 'swiss2-craft';
+  mat.customProgramCacheKey = () => (palette ? palette.key : 'swiss2-craft');
   return mat;
+}
+
+/*
+ * A palette geometry with its entries' runs of vertices put in the order
+ * `first` gives (each entry's material first met), or null when they are
+ * in it already. Every run is whole (combatcraft.js paletteFixed
+ * concatenates the parts), so the vertices are only moved, never changed.
+ */
+function inFirstOrder(geo, first) {
+  const ks = first.map((_, k) => k).sort((a, b) => first[a] - first[b] || a - b);
+  if (ks.every((k, i) => k === i)) {
+    return null;
+  }
+  const keys = geo.attributes.aCelKey.array;
+  const runs = ks.map((k) => [keys.indexOf(k), keys.lastIndexOf(k) + 1]);
+  const out = new THREE.BufferGeometry();
+  for (const [name, a] of Object.entries(geo.attributes)) {
+    const arr = new a.array.constructor(a.array.length);
+    let at = 0;
+    for (const [from, to] of runs) {
+      arr.set(a.array.subarray(from * a.itemSize, to * a.itemSize), at);
+      at += (to - from) * a.itemSize;
+    }
+    out.setAttribute(name, new THREE.BufferAttribute(arr, a.itemSize, a.normalized));
+  }
+  out.boundingSphere = geo.boundingSphere;
+  out.boundingBox = geo.boundingBox;
+  return out;
 }
 
 /*
@@ -215,6 +306,7 @@ export function photoCraftLook(lit) {
     const twins = new Map();
     const swapped = [];
     const hulls = [];
+    const cels = [];
     craft.group.traverse((o) => {
       /* A multi material mesh is not one any builder makes; left as built. */
       if (!o.isMesh || Array.isArray(o.material)) {
@@ -225,11 +317,32 @@ export function photoCraftLook(lit) {
         o.visible = false;
         return;
       }
-      if (!o.material.userData.cel) {
-        return;
+      if (o.material.userData.cel) {
+        cels.push(o);
+      }
+    });
+    /* Three draws the twins in the order they are made, which is the
+     * order their materials are first met here. A peer whose parts were
+     * joined (combatcraft.js paletteFixed) has its twins made, and each
+     * palette's entries drawn, in the order the parts' materials were met
+     * before the join, so where two parts meet at a depth tie the one that
+     * won still does. */
+    const joined = cels.some((o) => o.userData.firstSeq !== undefined);
+    if (joined) {
+      const at = (o) => (o.userData.paletteFirst ? Math.min(...o.userData.paletteFirst) : o.userData.firstSeq ?? Infinity);
+      cels.sort((a, b) => at(a) - at(b));
+    }
+    const regeometry = [];
+    for (const o of cels) {
+      if (o.userData.paletteFirst) {
+        const g = inFirstOrder(o.geometry, o.userData.paletteFirst);
+        if (g) {
+          regeometry.push({ mesh: o, geometry: o.geometry });
+          o.geometry = g;
+        }
       }
       const cel = o.material;
-      const finish = finishOf(cel, rotorMeshes.has(o));
+      const finish = cel.userData.paletteOf ? 'palette' : finishOf(cel, rotorMeshes.has(o));
       const key = `${finish}|${cel.uuid}`;
       if (!twins.has(key)) {
         /* A film keeps its light through the frame, its cel material's own. */
@@ -239,11 +352,15 @@ export function photoCraftLook(lit) {
       swapped.push({ mesh: o, material: cel, receive: o.receiveShadow });
       o.material = twins.get(key);
       o.receiveShadow = true;
-    });
+    }
     return function undo() {
       for (const s of swapped) {
         s.mesh.material = s.material;
         s.mesh.receiveShadow = s.receive;
+      }
+      for (const r of regeometry) {
+        r.mesh.geometry.dispose();
+        r.mesh.geometry = r.geometry;
       }
       for (const h of hulls) {
         h.mesh.visible = h.visible;
