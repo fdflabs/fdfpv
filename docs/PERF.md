@@ -39,6 +39,42 @@ It prints a table per run and writes OUT_DIR/perf-play.json with every
 frame. The frames stay out of the repository; the numbers worth keeping
 go here.
 
+## Comparing numbers across the GPU 1 switch
+
+Every number in this file and in docs/BUDGETS.md taken before 2026-10-13
+14:23 is GPU 0's (02:00.0, x16, the owner's desktop card, shared with
+the desktop and with every lane's checks); run-check.sh numbers after it
+are GPU 1's (85:00.0, x4, the checks' card). Both are RTX 3060 Ti on
+driver 595, so a difference between a before and an after taken on
+different cards is the card's load and its link, not the game, until
+shown otherwise. To compare:
+
+- **Same card or no comparison.** Take the after on the before's card:
+  `CHECK_GPU=0 ~/.cache/run-check.sh <worktree> perf -- ...` for a GPU 0
+  baseline, or retake the before on GPU 1 from its commit. Check which
+  card a run drew on: run-check prints `run-check: perf on GPU 0: <why>`
+  when it falls back, and the run's `gpu load` line lists one card
+  (index 0, which is GPU 1 inside the bwrap) on GPU 1 and both on GPU 0.
+- **Draw calls, triangles and live textures do not depend on the card**
+  and compare across the switch as they are: all eighteen BUDGETS rows
+  read the same on GPU 1 as on GPU 0, within 2 calls and 0.04 M.
+- **The GPU floor is the GPU column that travels best,** each segment's
+  tenth percentile, the least of anyone else's work in it, but it still
+  moved: the eighteen rows' floors on GPU 1 (2026-10-13 evening, card 8
+  to 55 % busy, host load 2 to 5) were 0.49 to 0.96 of the GPU 0 floors
+  taken that morning (card 21 to 100 % busy, load 7 to 37), the menu at
+  Low most (0.61 to 0.30 ms) and the menu at Medium the least (0.71 to
+  0.68). That spread is the morning's shared card as much as the cards'
+  difference; no like-for-like run on two quiet cards has been taken, so
+  no factor converts one to the other.
+- **Frame average, p95, the GPU median and the busy share do not
+  compare** across cards, or across hours on GPU 0: they carry whatever
+  else drew on the card. Quote them beside the busy share and host load
+  the run opened with, as BUDGETS does.
+- The BUDGETS GPU floor ceilings are GPU 1's since 2026-10-13 (the
+  measurement x1.15), so `--budgets` on GPU 0 is not a test of the game:
+  a run that fell back is to be retaken on GPU 1.
+
 ## How it is measured
 
 **Real play, not parked views.** scripts/swiss2-perf.js and
