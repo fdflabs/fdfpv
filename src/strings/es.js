@@ -366,6 +366,7 @@ export default {
   "elements.hoop_30": "Aro, 30 m",
   "elements.a_big_soft_hoop_for_planes": "Un aro grande y blando que flota en el cielo. Pasa con tu avión por dentro; si tocas el borde, solo se tambalea.",
   "elements.a_small_firm_hoop_for_quads": "Un aro pequeño y firme que flota en el aire, para quads. Pasa por el medio.",
+  "fc.unavailable": "No disponible",
   "fc.all_motors": "Todos los motores",
   "fc.always_on": "Siempre encendido",
   "fc.angle": "ANGLE",

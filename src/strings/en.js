@@ -366,6 +366,7 @@ export default {
   "elements.hoop_30": "Hoop, 30 m",
   "elements.a_big_soft_hoop_for_planes": "A big soft hoop that floats in the sky. Fly your plane through it; bump the rim and it only wobbles.",
   "elements.a_small_firm_hoop_for_quads": "A small firm hoop that floats in the air, for quads. Fly through the middle.",
+  "fc.unavailable": "Unavailable",
   "fc.all_motors": "All motors",
   "fc.always_on": "Always on",
   "fc.angle": "ANGLE",
