@@ -53,7 +53,7 @@ import {
 } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
-import { CHALLENGES, LAP_XP, FIRST_LAP_XP, FIRST_XP, PLANE_LEVELS } from '../src/game/progress.js';
+import { AIRCRAFT_CHALLENGE_XP, BEST_XP, CHALLENGES, LAP_XP, FIRST_LAP_XP, FIRST_XP, PLANE_LEVELS } from '../src/game/progress.js';
 import { revRpm } from '../src/ui/hangar-polish.js';
 import { VOICES } from '../src/render/audio.js';
 
@@ -389,8 +389,10 @@ async function earn(page) {
   const p = await progress(page);
   const want = LAP_XP.built + FIRST_LAP_XP;
   const challengeXp = 40 + 120;
-  /* The Timber's first flight pays once too (src/game/progress.js FIRST_XP, progress v2). */
-  say(p.xp === before.xp + want + challengeXp + FIRST_XP.flight, `XP: ${before.xp} to ${p.xp}, a first lap on a built track (${want}), two challenges (${challengeXp}) and the Timber's first flight (${FIRST_XP.flight})`);
+  /* The Timber's first flight pays once too (src/game/progress.js FIRST_XP, progress v2), and the lap is
+   * the first lap best on its course for a plane (PROGRESSION.md 3.1, BEST_XP.set). */
+  say(p.xp === before.xp + want + challengeXp + FIRST_XP.flight + BEST_XP.set,
+    `XP: ${before.xp} to ${p.xp}, a first lap on a built track (${want}), two challenges (${challengeXp}), the Timber's first flight (${FIRST_XP.flight}) and its first lap best (${BEST_XP.set})`);
   say(p.challenges.first_course && p.challenges.timber_clean, `the clean Timber lap completes its challenge, and the first lap: ${JSON.stringify(p.challenges)}`);
   const log = await page.evaluate('window.__ui.progress.log');
   const kinds = log.map((t) => t.cls);
@@ -490,8 +492,13 @@ async function casual(page, before) {
   const lap = await flyPath(page, hoopPath(st.gates), 15, 600);
   say(lap.laps.length >= 1, `the Timber flies the whole casual track on the sticks: ${lap.laps.length ? (lap.laps[0] / 1000).toFixed(1) : 'no lap'} s${lap.laps.length ? '' : `, crashed ${lap.c.crashed} at ${lap.c.worldX.toFixed(0)}, ${lap.c.worldY.toFixed(0)}, ${lap.c.worldZ.toFixed(0)}`}`);
   const p = await progress(page);
-  const lapXp = p.xp - before.xp - Object.keys(p.challenges).filter((c) => !before.challenges[c]).reduce((n, c) => n + CHALLENGES.find((x) => x.id === c).xp, 0);
-  say(lapXp === LAP_XP.casual + FIRST_LAP_XP && p.courses[`track:${st.doc.id}`], `its lap earns the casual track's ${LAP_XP.casual} XP and the first lap bonus: ${lapXp} XP, ${before.xp} to ${p.xp} in all`);
+  /* What else the lap paid, set apart: a challenge, the casual track's first lap best
+   * (BEST_XP.set, PROGRESSION.md 3.1) and the Timber's casual lap challenge if it beat
+   * its time (PROGRESSION.md 5.1). */
+  const others = Object.keys(p.challenges).filter((c) => !before.challenges[c]).reduce((n, c) => n + CHALLENGES.find((x) => x.id === c).xp, 0)
+    + BEST_XP.set + (p.aircraftChallenges['timber1500:lap'] ? AIRCRAFT_CHALLENGE_XP : 0);
+  const lapXp = p.xp - before.xp - others;
+  say(lapXp === LAP_XP.casual + FIRST_LAP_XP && p.courses[`track:${st.doc.id}`], `its lap earns the casual track's ${LAP_XP.casual} XP and the first lap bonus: ${lapXp} XP, ${before.xp} to ${p.xp} in all, ${others} for its best and challenges`);
   const log = await page.evaluate('window.__ui.progress.log');
   const last = [...log].reverse().find((t) => t.cls.startsWith('lap'));
   say(Boolean(last) && /First lap/.test(last.kicker) && last.xp === LAP_XP.casual + FIRST_LAP_XP, `and its toast says so: ${JSON.stringify(last)}`);
