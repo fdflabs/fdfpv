@@ -29,6 +29,8 @@
  *     record): A and B each keep it; B reloaded at the end, back on its
  *     token, keeps it once; B reloaded with no campaign saved (a page that
  *     sees only the end) is paid it from the welcome
+ *   - the host's Play again on its debrief starts the mission again, and
+ *     B follows into the new match, its debrief closed
  *   - no page errors on any page; pictures outside the repository
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -246,6 +248,20 @@ try {
   const fresh = await BACK();
   check('B reloaded with no campaign saved, seeing only the end, is paid it from the welcome', fresh.seat === seats.b && fresh.result
     && fresh.paid.filter((x) => x === uid).length === 1 && fresh.stars != null, JSON.stringify(fresh));
+  /* The host's one press from its debrief (COMPLETENESS 76): Play again
+   * from the start, and the room's start brings B, on its seat, into the
+   * new match, B's debrief of the last one giving way to it. */
+  const endedId = await A.evaluate('window.__ops.view().id');
+  const bOpen = await B.evaluate('Boolean(window.__debrief && window.__debrief().open)');
+  const pressed = await A.evaluate("(() => { const b = document.querySelector('.debrief button[data-act=\"restart\"]'); if (b) { b.click(); } return Boolean(b); })()");
+  const NEW = `window.__ops.view().id > ${endedId} && ['briefing', 'countdown', 'live'].includes(window.__ops.view().state)`;
+  await A.until(NEW, 20000).catch(() => {});
+  await B.until(NEW, 20000).catch(() => {});
+  const NOW = "({ id: window.__ops.view().id, state: window.__ops.view().state, mission: window.__ops.view().mission, seat: window.__ops.seat(), debrief: Boolean(window.__debrief && window.__debrief().open) })";
+  const next = { a: await A.evaluate(NOW), b: await B.evaluate(NOW) };
+  check('the host\'s Play again on its debrief starts the mission again, and B is in the new match on its seat, its debrief closed',
+    pressed && [next.a, next.b].every((x) => x.id > endedId && x.mission === 'interior-1' && ['briefing', 'countdown', 'live'].includes(x.state) && !x.debrief)
+    && next.b.seat === seats.b, JSON.stringify({ pressed, bOpen, endedId, next }));
   const errs = [...errsOf(A.errors).map((e) => `A ${e}`), ...errsOf(B.errors).map((e) => `B ${e}`), ...cErrs.map((e) => `C ${e}`)];
   check('no page errors on any page', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

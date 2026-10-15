@@ -1135,7 +1135,31 @@ lobby after a round, nobody ready (gamelobby.js 35); a lost mission offers
 its stage; the host picks the next mission in the lobby. Missing: a Next
 mission action on the result, Change aircraft from the result. **Done:**
 phase 10's debrief puts Again, Next mission, Change aircraft and Back to
-lobby under the cursor. Size S inside phase 10. Phase 10.
+lobby under the cursor. Size S inside phase 10. Phase 10. **Again and
+Next mission built** (2026-10-15 batch, w43-sessions): the host has one
+press on every end screen, and the room's start brings every pilot along
+(SESSIONS.md 3, "Again and next"). Race again and Play again already led
+the race's and the Ace's results; Battle again now leads the Trick
+Battle's (src/main.js roomResultsRows). The war's end banner gives the
+host Restart (from the lost stage after such a loss) and, after a win,
+Next mission when the host may start it (the campaign's playable), over
+the lobby's seconds in a room made for the war, where it used to be only
+a notice (src/ui/warhud.js; src/main.js warNext moves Play's mission in
+that room with it, src/ui/campaign.js follow). The ops debrief gives the
+host Next mission after a win and Play again from the start beside the
+checkpoint's (src/ui/debrief.js), and another pilot's debrief closes as
+the new match begins. Which presses, in order, is one pure function
+(src/game/debrief.js missionEndActions). Held by `debrief:selftest` (CI,
+the presses), `interior:debrief` (Next mission sends the next one's
+start), `interior:coop` (Play again, and the other pilot follows; its debrief
+was not open there, so the closing is not yet seen by a check),
+`war:twopage --main` (the banner's presses; Restart, and B follows) and
+`jam:twopage` (Battle again, and B follows), the last four local. Not
+built: Change aircraft on a room's results (a room's aircraft row is in
+its lobby), a Next mission row in the war lobby once the banner's
+seconds are over (its mission row and Start now are two presses), and
+Streamer Combat, whose room goes straight back to its lobby with no end
+screen of its own.
 
 **77. Party persistence. EXISTS.** The room is the party: its code and
 pilots survive rounds, mission changes and, in private rooms, world

@@ -352,6 +352,20 @@ export function createCampaignScreen({
     return pending && r.code === pending.code ? pending.mission : null;
   }
 
+  /* Play's mission in the room made for it becomes `id` (the host's Next
+   * mission on the war's end banner, src/main.js warNext), so the lobby's
+   * start row and its loadout follow the room. False when Play chose
+   * nothing for this room. */
+  function follow(id) {
+    const r = room();
+    bind(r);
+    if (!pending || r.code !== pending.code) {
+      return false;
+    }
+    pending = { ...pending, mission: id };
+    return true;
+  }
+
   /* The start row's press, in the room Play made: that mission, this
    * pilot's loadout, started `how` (startMessage). False when the row is
    * not the campaign's, and the Defend Itaipu start goes ahead as ever. */
@@ -460,6 +474,7 @@ export function createCampaignScreen({
     close,
     startSelected,
     selectedMission,
+    follow,
     selectedNumber,
     /* The missions this pilot may start, in order: released, open (the
      * one before won, or the pilot is the owner) and inside the full

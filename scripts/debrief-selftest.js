@@ -25,7 +25,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { CONDITIONS, createRoute, fromFree, fromOps, fromRace, fromRoom, nextActions, replayState, ROUTE_MAX, withBests, withPosted } from '../src/game/debrief.js';
+import { CONDITIONS, createRoute, fromFree, fromOps, fromRace, fromRoom, missionEndActions, nextActions, replayState, ROUTE_MAX, withBests, withPosted } from '../src/game/debrief.js';
 import { factLines } from '../src/ui/factlines.js';
 import { useLocale } from '../src/strings/index.js';
 
@@ -233,6 +233,18 @@ check('replay: no span does not', replayState(null).why === 'debrief.replay_shor
 check('replay: already open does not', replayState([0, 900, 10, 40], true).why === 'debrief.replay_open');
 check('next: unknown activity is again then title', JSON.stringify(nextActions('nope')) === '["again","title"]');
 check('next: a copy', nextActions('race') !== nextActions('race'));
+
+/* A mission's end, the host's one press (COMPLETENESS 76). */
+const ends = (o) => JSON.stringify(missionEndActions(o));
+check('mission end: a win with a next mission leads with it, then the same again', ends({ host: true, state: 'won', next: 'itaipu-2' })
+  === '[{"act":"next","mission":"itaipu-2"},{"act":"again","from":null}]');
+check('mission end: a win with none to start next is again alone', ends({ host: true, state: 'won', next: null }) === '[{"act":"again","from":null}]');
+check('mission end: a loss that kept its stage is again from it, never next', ends({ host: true, state: 'lost', checkpoint: true, next: 'itaipu-2' })
+  === '[{"act":"again","from":"checkpoint"}]');
+check('mission end: a loss with no stage kept, and an end, are again from the start', ends({ host: true, state: 'lost' }) === '[{"act":"again","from":null}]'
+  && ends({ host: true, state: 'ended', checkpoint: true }) === '[{"act":"again","from":null}]');
+check('mission end: nothing for a pilot who is not the host, nor before the end', ends({ host: false, state: 'won', next: 'itaipu-2' }) === '[]'
+  && ends({ host: true, state: 'live' }) === '[]');
 
 console.log(failed ? `${failed} failed` : 'all passed');
 process.exitCode = failed;

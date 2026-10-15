@@ -885,7 +885,11 @@ export async function boot({
         ui.show('friends');
       }
     },
-    again: () => roomOps.start(roomOps.view().mission, { from: 'checkpoint' }),
+    /* The host's presses (src/game/debrief.js missionEndActions): the
+     * same mission again, from its checkpoint or from the start with no
+     * film, and the next mission with its film, as Play starts one. */
+    again: (from) => roomOps.start(roomOps.view().mission, from ? { from } : { intro: false }),
+    next: (id) => roomOps.start(id, { intro: true }),
     /* The crash cam on this pilot's last 30 s; its way out shows the
      * debrief again (crashCam's exit). */
     replay: () => {
@@ -1453,6 +1457,11 @@ export async function boot({
         if (!(e.to === 'won' && opsFilmOf(v.mission, 'outro') && m && opsWorldUp(m.map))) {
           opsDebrief();
         }
+      } else if (e.type === 'state' && ['won', 'lost', 'ended'].includes(e.from) && debrief.isOpen) {
+        /* The host started the next match from its debrief (again, or
+         * the next mission): this pilot's debrief of the last one gives
+         * way to it, as the room's start brings the squad along. */
+        debrief.close();
       } else if (e.type === 'classified') {
         opsHud.cardEvent([str('card.classification_updated'), str('ops.hud.class_change', { from: opsClassWord(e.from), to: opsClassWord(e.to) })]);
       }
@@ -4603,18 +4612,29 @@ export async function boot({
     const l = roomWar.view().loadouts?.[roomWar.seat()];
     return l && Number.isFinite(l.speedMul) ? l.speedMul : 1;
   }
-  /* The end banner's restart: the host starts the same mission again,
-   * straight to the countdown; the room keeps the host's loadout. A host
+  /* The end banner's host presses (COMPLETENESS 76): the same mission
+   * again, straight to the countdown (a lost one from the stage it was
+   * lost in), the room keeping the host's loadout; or, after a win, the
+   * next mission with its film, as Play starts one. Over the lobby's
+   * seconds too: the room's start brings every pilot along. A host
    * handed the room by a leaving one may never have consented. */
   const warHud = createWarHud(roomSeatName, {
     host: () => roomHost(roomLinkState.state().welcome),
-    go: async (v) => {
-      if (await warConsented()) {
-        /* A lost mission again from the stage it was lost in. */
-        roomWar.start(v.mission, { from: v.state === 'lost' && v.checkpoint ? 'checkpoint' : null });
+    go: async (v, act) => {
+      if (!(await warConsented())) {
+        return;
       }
+      if (act.act === 'next') {
+        warNext(act.mission);
+        return;
+      }
+      roomWar.start(v.mission, { from: act.from });
     },
     back: () => (lobbyBackAt != null && gameLobby() ? Math.max(0, Math.ceil((lobbyBackAt - performance.now()) / 1000)) : null),
+    next: (v) => {
+      const id = warNextMission(v.mission);
+      return id ? { id, name: str(`campaign.m.${missionKey(id)}`) } : null;
+    },
   });
   /* Off the flight screen at once, not at the next frame (roomWarFrame
    * keeps it after): a frame can be a second long (war-card-check counted
@@ -5260,6 +5280,26 @@ export async function boot({
   function warFreshRows() {
     const lost = warLostStage();
     return lost ? [{ label: str('lobby.restart_fresh'), note: str('lobby.restart_fresh_note', { n: lost.n + 1 }), action: 'friends-war-fresh' }] : [];
+  }
+
+  /* The Act 1 mission after `id` that this pilot, as host, may start in
+   * this room (the campaign's playable: released, reached, inside the
+   * full game's gate), or null: the war banner's Next mission. */
+  function warNextMission(id) {
+    const i = ACT1.findIndex((m) => m.id === id);
+    const next = i >= 0 ? ACT1[i + 1] : null;
+    return next && Object.hasOwn(WAR_MISSIONS, next.id) && campaignRef && campaignRef.playable().includes(next.id) ? next.id : null;
+  }
+
+  /* The next mission at the host's one press: Play's mission in this room
+   * moves to it (its loadout said as Play's start says it), else the
+   * room's start as the lobby's. Consent is the caller's. */
+  function warNext(id) {
+    const how = { intro: WAR_MISSIONS[id].act != null };
+    if (!campaignRef.follow(id) || !campaignRef.startSelected(how)) {
+      roomWar.start(id, how);
+    }
+    ui.refreshFriends();
   }
 
   /* The start row's press. Consent first, whoever's room this is: a
@@ -8820,8 +8860,15 @@ export async function boot({
       return roomTagResultsRows();
     }
     if (roomResultsOf === 'jam') {
+      /* The host's one press to the same battle again, the room's pilots
+       * in it as at any start (COMPLETENESS 76), as the race's and the
+       * Ace's results have. */
+      const v = roomJam.view();
+      const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomJam.seat();
+      const again = host && v.state === 'results' && Number.isFinite(v.seconds);
       return [
-        { label: str('roomtag.fly_on'), action: 'restart', note: str('jam.fly_on_note'), primary: true },
+        ...(again ? [{ label: str('jam.again'), note: str('jam.again_note', { s: v.seconds }), action: `friends-jam-${v.seconds}`, primary: true }] : []),
+        { label: str('roomtag.fly_on'), action: 'restart', note: str('jam.fly_on_note'), primary: !again },
         ...ui.friendsItems(),
         { label: str('ui.back_to_title'), action: 'title' },
       ];

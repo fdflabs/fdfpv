@@ -144,6 +144,23 @@ export function nextActions(activity) {
   return (NEXT[activity] ?? ['again', 'title']).slice();
 }
 
+/*
+ * The host's one press after a mission's end (the war's end banner, the
+ * ops debrief; COMPLETENESS 76), in order, the first under the cursor:
+ * after a win the next mission when there is one this host may start
+ * (`next`, its id, or null), then the same mission again, from the stage
+ * it was lost in after a loss that kept one (`checkpoint`). Empty for
+ * every other pilot: the room's start brings them along. Each is
+ * { act: 'next', mission } or { act: 'again', from: 'checkpoint' | null }.
+ */
+export function missionEndActions({ host, state, checkpoint = false, next = null }) {
+  if (!host || !['won', 'lost', 'ended'].includes(state)) {
+    return [];
+  }
+  const again = { act: 'again', from: state === 'lost' && checkpoint ? 'checkpoint' : null };
+  return state === 'won' && next ? [{ act: 'next', mission: next }, again] : [again];
+}
+
 /* The replay row's state from the recorder's span ([first, n, t0, t1]):
  * a clip under a second is not worth opening. */
 export function replayState(span, replaying = false) {

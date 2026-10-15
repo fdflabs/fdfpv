@@ -225,7 +225,9 @@ try {
   check('a required item nobody captured: the analyst reconstruction, marked', k1.shelters && k1.shelters.kind === 'rec' && /Not a capture/.test(d1.text));
   check('an optional item nobody captured: not captured', k1.burned && k1.burned.kind === 'missing');
   check('the star earned, and the next mission\'s state', /★ {2}HISTORICAL SYMBOL/.test(d1.text) && /Eyes in the Forest · Available/.test(d1.text), d1.text.slice(0, 200));
-  check('no play again on a win', !d1.buttons.includes('again') && d1.buttons.includes('continue'));
+  check('no play again from a checkpoint on a win', !d1.buttons.includes('again') && d1.buttons.includes('continue'));
+  check('the host\'s one press after a win: Next mission first, then Play again from the start, Continue last (COMPLETENESS 76)',
+    d1.buttons[0] === 'next' && d1.buttons[1] === 'restart' && d1.buttons.at(-1) === 'continue' && /NEXT MISSION: Eyes in the Forest/.test(d1.text), d1.buttons.join());
   /* The flight's facts (docs/DEBRIEF.md) under the stills: this page
    * never flew, so no clip and no replay button, never a dead one. */
   const facts1 = await page.evaluate(`JSON.stringify([...document.querySelectorAll('.debrief-facts dt')].map((n, i) => [n.textContent, document.querySelectorAll('.debrief-facts dd')[i].textContent]))`);
@@ -349,8 +351,12 @@ try {
   const flags2 = await page.evaluate('(window.__ui.settings.campaign && window.__ui.settings.campaign.flags) || null');
   check('Mission 2: its stars and flags go into the synced progress', prog2 && prog2.won === true && prog2.stars === 2 && flags2 && flags2.M2_ALL_WATCHERS_FOUND === true && flags2.M2_SECOND_CAMP_UNDETECTED === true, JSON.stringify({ prog2, flags2 }));
   await shot('debrief-m2-won.png');
-  await page.evaluate("(document.querySelector('.debrief button[data-act=\"continue\"]').click(), true)");
+  await page.evaluate("(document.querySelector('.debrief button[data-act=\"next\"]').click(), true)");
   await page.sleep(300);
+  const sentNext = await page.evaluate('window.__ops.sent().slice(-1)[0]');
+  check('the host\'s Next mission sends the start of the campaign\'s next, with its film, and closes the debrief',
+    sentNext && sentNext.op === 'start' && sentNext.mission === 'interior-3' && sentNext.intro === true && !sentNext.from && !(await page.evaluate('window.__debrief().open')),
+    JSON.stringify(sentNext));
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {
