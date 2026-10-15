@@ -3611,6 +3611,8 @@ export default {
   "cloud.not_a_track": "Eso no es una pista que este simulador pueda volar",
   "cloud.will_retry": "Guardada en este navegador. El servidor de pistas está ocupado, así que se sube en unos minutos",
   "cloud.offline": "Guardada en este navegador. Se sube cuando vuelva la conexión",
+  "offline.down": "No se puede llegar a los servidores del juego: vuelas solo hasta que respondan. Tu progreso queda guardado en este dispositivo y se sincroniza entonces.",
+  "offline.back": "Los servidores del juego responden de nuevo.",
   "cloud.retired_world": "Su mundo fue retirado, así que no se puede volar",
   "cloud.retired_world_short": "Mundo retirado",
   "cloud.edit_a_copy": "Editar una copia",

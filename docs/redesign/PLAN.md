@@ -308,6 +308,10 @@ core.js setPublic, the welcome's `publicInPlace`).
 **Offline** (no rooms server): Track Day and Free Flight still run, with a
 local session whose only visibility is Solo; the other values and the
 room games are shown disabled with the reason. One screen either way.
+Built (2026-10-15 batch, w43-saves) for the device offline and a rooms
+server not answering too (src/share/offline.js): the cards fly solo, the
+room games leave the hubs as on a page with no server, said once, not
+drawn disabled (COMPLETENESS 11); held by `offline:check` (local).
 
 **Operations' briefing is the session**, with the mission's facts above
 the pilots: objective, location (Itaipu), eligible aircraft, estimated

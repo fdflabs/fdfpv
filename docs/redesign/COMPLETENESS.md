@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 26 BUILT (since built by a phase), 18
+in each item's heading): 35 EXISTS, 27 BUILT (since built by a phase), 17
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -337,7 +337,37 @@ open tab learns of a new deploy from `version.json` every three minutes
 (src/ui/update.js). Checks: `version:check`, `rooms:selftest` (CI);
 `version:reload` (local).
 
-**11. Offline behaviour. PARTIAL.** Tracks are offline safe ("Saved in
+**11. Offline behaviour. BUILT (phase 6).** Built (2026-10-15 batch,
+w43-saves): one answer for whether the page can reach its servers,
+src/share/offline.js: the device offline (navigator.onLine, the
+`online` event), or online with the rooms server not answering (a fetch
+that fails on the network, from the room list or a card's room, counts
+the rooms down for RETRY_MS, 60 s, or until a fetch gets through or the
+device is back). While cut off, `roomLinkState.available()` is false
+(src/share/rooms.js), so the cards fly solo and the room games leave the
+hubs, the rule a page with no rooms server has had since #372 (stale in
+this item: with `?rooms=off` the cards already flew solo, ui.js
+pickForWay; flow:check holds Free Flight's); Track Day's or Free
+Flight's card pressed as the server stops answering flies solo on the
+same press, a room game's asks to try again (src/main.js onGameCard). The pilot is told once a spell, and once when
+it ends, in en and es (`offline.down`, `offline.back`). The account's
+sync sends nothing offline, what changed staying changed
+(progressChanged), and sends it the moment the device is back rather
+than on the next minute; a failed send is said once until one gets
+through (src/ui/accountui.js). Tracks were already kept and sent on
+`online` (cloud.js). Decided otherwise than the spec below: the room
+games are left off the hubs with the reason said, not drawn disabled,
+the representation the no-server page already had; and a cold load
+offline stays out (CDN, a CLAUDE.md decision), as does a file the page
+has not fetched yet (a tune never flown says it could not be loaded and
+the flight keeps the one it has). Held by `offline:check` (local: its
+own rooms server and a signed in page; the device offline through
+Chromium's network emulation: told once, no room games, Free Flight and
+Track Day each reach a flight, the sync sends and says nothing; back
+online: told, room games back, the held change sent at once; the rooms
+server stopped: the Free Flight card flies solo on its press; the server
+back: after RETRY_MS the card makes its room again, told). What follows
+is the item as it was. Tracks are offline safe ("Saved in
 this browser. It goes online when the connection is back",
 `cloud.offline`; src/share/cloud.js 424 retries on `online`); rooms,
 accounts and the board fail with a sentence (item 14); the loader says
