@@ -131,10 +131,10 @@ const NEXT = {
   race: ['again', 'replay', 'aircraft', 'title'],
   free: ['again', 'replay', 'aircraft', 'title'],
   /* A room's own rows (the host's Again, Fly on, the room's) lead; the
-   * replay follows them. */
-  roomrace: ['room', 'replay', 'title'],
-  tag: ['room', 'replay', 'title'],
-  combat: ['room', 'replay', 'title'],
+   * replay and another aircraft for the next round follow them. */
+  roomrace: ['room', 'replay', 'aircraft', 'title'],
+  tag: ['room', 'replay', 'aircraft', 'title'],
+  combat: ['room', 'replay', 'aircraft', 'title'],
   /* The ops debrief's own buttons: Again from the checkpoint (the host,
    * after a loss), the replay, Continue. */
   ops: ['again', 'replay', 'continue'],

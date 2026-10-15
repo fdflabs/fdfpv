@@ -4600,6 +4600,7 @@ export default {
   "debrief.seconds": "{s} s",
   "debrief.watch_replay": "Ver la repetición",
   "debrief.watch_replay_note": "Los últimos 30 segundos de este vuelo en la cámara de choques",
+  "debrief.change_aircraft_note": "Pone otra aeronave para la próxima ronda de la sala.",
   "debrief.replay_short": "Vuelo demasiado corto para repetir",
   "debrief.replay_open": "La repetición ya está abierta",
   "training.card": "Aprender a volar",

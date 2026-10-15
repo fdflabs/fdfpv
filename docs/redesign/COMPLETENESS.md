@@ -1346,7 +1346,7 @@ teammate (main.js 2784); a race's late joiner watches the race. The watch
 seat in any room is decided (PLAN.md 6 item 18). **Done:** PLAN.md phase
 17. Size M. Phase 17.
 
-**76. Rematch and next mission. PARTIAL.** Every room goes back to its
+**76. Rematch and next mission. BUILT (2026-10-15 batch, w43-sessions and w44-warend).** Every room goes back to its
 lobby after a round, nobody ready (gamelobby.js 35); a lost mission offers
 its stage; the host picks the next mission in the lobby. Missing: a Next
 mission action on the result, Change aircraft from the result. **Done:**
@@ -1385,8 +1385,13 @@ this pilot's points, the debrief) with the host's Combat again under
 the cursor, then the lobby as the others' (src/ui/combathud.js
 combatResultsView, src/main.js combatResults); a pilot who joins a room
 whose round is already over is not shown it. Held by `game:lobby
---game=combat` (local). Not built: Change aircraft on a room's results
-(a room's aircraft row is in its lobby).
+--game=combat` (local). **Change aircraft on a room's results built**
+(2026-10-15 batch, w44-warend): every room game's results (the race's,
+the Ace's, the Trick Battle's, combat's) have Change aircraft after the
+replay, the picker seating the aircraft for the room's next round, the
+war's in a war room (src/ui/items.js resultsRows, src/game/debrief.js
+nextActions). Held by `debrief:selftest` (CI) and `game:lobby
+--game=combat` (local). Nothing of the item is left unbuilt.
 
 **77. Party persistence. EXISTS.** The room is the party: its code and
 pilots survive rounds, mission changes and, in private rooms, world

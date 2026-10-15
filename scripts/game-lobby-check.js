@@ -572,8 +572,8 @@ try {
     if (GAME === 'combat') {
       await a.until('window.__combat().results', 15000).catch(() => {});
       const res = await a.evaluate("(() => { const it = window.__ui.items(); return { results: window.__combat().results, here: (it[window.__ui.cursor] || {}).action || null, rows: it.map((x) => x.action || x.label) }; })()");
-      check('combat\'s end: its results screen first, the host\'s Combat again under the cursor', res.results && res.here === 'friends-lobby-start'
-        && res.rows.includes('restart'), JSON.stringify(res));
+      check('combat\'s end: its results screen first, the host\'s Combat again under the cursor, Change aircraft among its rows', res.results && res.here === 'friends-lobby-start'
+        && res.rows.includes('restart') && res.rows.includes('hangar-aircraft'), JSON.stringify(res));
     }
     await a.until(IN_LOBBY, 30000).catch(() => {});
     const back = await a.evaluate(LOBBY);

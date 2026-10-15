@@ -4595,6 +4595,7 @@ export default {
   "debrief.seconds": "{s} s",
   "debrief.watch_replay": "Watch the replay",
   "debrief.watch_replay_note": "The last 30 seconds of this flight in the crash cam",
+  "debrief.change_aircraft_note": "Seats another aircraft for the room's next round.",
   "debrief.replay_short": "Too short a flight to replay",
   "debrief.replay_open": "The replay is already open",
   "training.card": "Learn to fly",
