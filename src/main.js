@@ -6774,6 +6774,14 @@ export async function boot({
     worldAudio.war(live, now);
     avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
+    /* A hull hit and still afloat burns until its last hit (MISSIONS.md
+     * M5 "its two hit burn"): the explosions' own fire and smoke, over
+     * its deck. */
+    for (const a of live) {
+      if (a.hp != null) {
+        warBooms.burn([a.p[0], a.p[1] + 1, a.p[2]], dt);
+      }
+    }
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
      * is already on the air. */

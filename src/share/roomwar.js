@@ -131,7 +131,8 @@ export function createRoomWar(send) {
   let war = { state: 'lobby' };
   let error = null;
   /* id -> { a (birth record), plan, samples ([{ t, p, q }], hunters),
-   * hunts (a hunter's target seat, null for none, undefined unheard) }. */
+   * hunts (a hunter's target seat, null for none, undefined unheard),
+   * hp (the hit points a hurt one has left, null while it is whole) }. */
   let agents = new Map();
   /* What happened since the shell last asked, oldest first. */
   let events = [];
@@ -163,7 +164,9 @@ export function createRoomWar(send) {
       if (agents.has(a.id)) {
         continue;
       }
-      agents.set(a.id, { a, plan: planAgent(m, a), samples: [] });
+      agents.set(a.id, {
+        a, plan: planAgent(m, a), samples: [], hp: null,
+      });
       born.push(a);
     }
     if (born.length) {
@@ -269,6 +272,7 @@ export function createRoomWar(send) {
           const x = agents.get(id);
           const o = x ? poseOf(x, m.at) : null;
           if (x) {
+            x.hp = (m.hp || [])[i] ?? x.hp;
             list.push({
               id, kind: x.a.kind, p: o ? o.p : m.p.slice(), hp: (m.hp || [])[i] ?? null,
             });
@@ -353,7 +357,8 @@ export function createRoomWar(send) {
      * Every attacker alive at room ms t: [{ id, kind, p: [x, y, z], q:
      * [x, y, z, w] }], scene world metres, y up, in id order, and on a
      * hunter whose HUNTS has been heard, hunts: the seat it chases or
-     * null. Only while a war is live; none before its birth or past its
+     * null; on one hurt and alive (a carrier hit once), hp: what it has
+     * left. Only while a war is live; none before its birth or past its
      * route's end.
      */
     attackersAt(t) {
@@ -370,6 +375,9 @@ export function createRoomWar(send) {
           const a = { id: x.a.id, kind: x.a.kind, p: o.p, q: o.q };
           if (x.hunts !== undefined) {
             a.hunts = x.hunts;
+          }
+          if (x.hp != null) {
+            a.hp = x.hp;
           }
           out.push(a);
         }

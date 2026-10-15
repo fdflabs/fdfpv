@@ -178,6 +178,17 @@ const LOOK = {
   sim: { size: 70, life: 5, tilt: 0.12, pace: 0.7, minAng: 0.09 },
 };
 
+/* A hull still burning between its hits (burn below): the fireball's
+ * puffs, small and low over the deck, and the column's smoke, at a rate a
+ * second each, `hz`. At these rates a burning hull keeps about 8 fire and
+ * 11 smoke particles alive (rate times mean life), so mission 5's two
+ * hulls take some 16 of HOT's 768 and 22 of SMOKE's 320 slots, and a
+ * boom never loses one to them. */
+const BURN = {
+  fire: { hz: 8, rise: [1.5, 3], size: [2, 6], life: [0.7, 1.3], minAng: 0.02 },
+  smoke: { hz: 2.5, rise: [3, 6], size: [5, 22], life: [3.5, 5], minAng: 0.02 },
+};
+
 /* The fireball's colour over its life: white hot, yellow, orange, a deep
  * red as it dies. Linear, and above 1 at first so the bloom takes it. */
 const FIRE_RAMP = [
@@ -501,11 +512,12 @@ const K_SIM_SMOKE = 8;
 const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 
 /*
- * The explosions' layer. Returns { group, play(p, size, ageS), flash(level),
- * update(dtS), stats(), clear(), dispose() }. play throws one at p (world,
- * [x, y, z]) of `size` (1 an attacker's, 1.6 a warhead's, more for a
- * swarm), already ageS old (a replay's jump); update steps them on the
- * frame's seconds; flash(level) whites out this pilot's own screen.
+ * The explosions' layer. Returns { group, play(p, size, ageS), burn(p,
+ * dtS), flash(level), update(dtS), stats(), clear(), dispose() }. play
+ * throws one at p (world, [x, y, z]) of `size` (1 an attacker's, 1.6 a
+ * warhead's, more for a swarm), already ageS old (a replay's jump); burn
+ * keeps a hurt hull's fire and smoke going over p; update steps them on
+ * the frame's seconds; flash(level) whites out this pilot's own screen.
  * `renderer`, if given, has the flipbook uploaded as soon as it arrives.
  */
 export function createExplosions({ renderer = null } = {}) {
@@ -561,7 +573,7 @@ export function createExplosions({ renderer = null } = {}) {
   let flashPeak = 0;
 
   const stats = {
-    booms: 0, fire: 0, smoke: 0, flashes: 0, hotLive: 0, smokeLive: 0, dropped: 0, updateMs: 0,
+    booms: 0, fire: 0, smoke: 0, burnFire: 0, burnSmoke: 0, flashes: 0, hotLive: 0, smokeLive: 0, dropped: 0, updateMs: 0,
   };
 
   function spawn(pool, o) {
@@ -661,6 +673,50 @@ export function createExplosions({ renderer = null } = {}) {
       o.grav = GRAVITY;
       o.spin = 0;
       spawn(hot, o);
+    }
+  }
+
+  /* A hull that took a hit and lives (a carrier, routes.js hpOf): its
+   * fire and smoke over p, called each frame it burns with the frame's
+   * seconds. The puffs come at BURN's rates on average, a frame's share
+   * plus a draw for its fraction, so nothing is kept per hull. */
+  function burn(p, dtS) {
+    const dt = Math.min(0.1, Math.max(0, dtS));
+    const f = BURN.fire;
+    for (let k = Math.floor(f.hz * dt + Math.random()); k > 0; k -= 1) {
+      at(p, 1.5, 0.6, 0);
+      o.vy = rand(f.rise[0], f.rise[1]);
+      o.age = 0;
+      o.life = rand(f.life[0], f.life[1]);
+      o.s0 = f.size[0];
+      o.s1 = f.size[1];
+      o.kind = K_FIRE;
+      o.alpha = 0.55;
+      o.shape = PUFF;
+      o.minAng = f.minAng;
+      o.drag = 1.5;
+      o.grav = -2.5;
+      o.spin = rand(-0.8, 0.8);
+      spawn(hot, o);
+      stats.burnFire += 1;
+    }
+    const c = BURN.smoke;
+    for (let k = Math.floor(c.hz * dt + Math.random()); k > 0; k -= 1) {
+      at(p, 2, 0.8, 0);
+      o.vy = rand(c.rise[0], c.rise[1]);
+      o.age = 0;
+      o.life = rand(c.life[0], c.life[1]);
+      o.s0 = c.size[0];
+      o.s1 = c.size[1];
+      o.kind = K_GREY;
+      o.alpha = 1;
+      o.shape = PUFF;
+      o.minAng = c.minAng;
+      o.drag = 0.25;
+      o.grav = 0;
+      o.spin = rand(-0.2, 0.2);
+      spawn(smoke, o);
+      stats.burnSmoke += 1;
     }
   }
 
@@ -930,6 +986,7 @@ export function createExplosions({ renderer = null } = {}) {
   return {
     group,
     play,
+    burn,
     flash,
     update,
     clear,

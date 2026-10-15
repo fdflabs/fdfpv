@@ -15,6 +15,8 @@
  *   - the pilot's own FPV camera: a marker or an arrow for every one
  *   - mission 5's carrier: tagged CARRIER in orange, its model a hull
  *     bigger than a sea drone's
+ *   - an attacker the room says is hurt (a carrier hit once) burns,
+ *     fire and smoke from the explosions' layer, only while it lives
  *   - held up the gorge, a Hunter the room has on this seat (its
  *     Hunters' target, edge/rooms/warhunt.js) shows the warning, and the
  *     page heard that target on the wire (HUNTS, 0xA1)
@@ -484,6 +486,35 @@ try {
   check('a carrier is marked CARRIER in orange, and drawn as a hull longer and higher than a sea drone, with its pieces to throw',
     carrier.tag === 'CARRIER' && carrier.colour === '#ff8a1f' && carrier.carrier[2] > carrier.boat[2] && carrier.carrier[1] > carrier.boat[1] && carrier.death,
     JSON.stringify(carrier));
+  /* A hull hit once and alive burns (MISSIONS.md M5, its two hit burn):
+   * on this shell, an attacker the room says is hurt (the `hurt` op, as a
+   * carrier's first detonation sends it) draws the explosions' fire and
+   * smoke over it every frame it lives, none before, and none once it is
+   * gone. The drill flies no carrier, so one of its own is said hurt. */
+  await page.until('window.__warAt(window.__rooms().roomNow).length > 0', 120000);
+  const burnt = await page.evaluate(`(async () => {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const fx = () => { const s = window.__war().fx; return { fire: s.burnFire, smoke: s.burnSmoke }; };
+    const now = () => window.__rooms().roomNow;
+    const a = window.__warAt(now())[0];
+    const whole = fx();
+    await wait(1000);
+    const still = fx();
+    window.__warHear({ type: 'war', op: 'hurt', ids: [a.id], hp: [1], at: now(), by: 0, p: a.p });
+    const drawn = window.__warAt(now()).find((x) => x.id === a.id);
+    await wait(1500);
+    const hurt = fx();
+    window.__warHear({ type: 'war', op: 'dead', ids: [a.id], credited: [], at: now(), by: 0, why: 'leave', p: a.p });
+    await wait(100);
+    const gone = fx();
+    await wait(1000);
+    return { id: a.id, hp: drawn ? drawn.hp : null, whole, still, hurt, gone, after: fx() };
+  })()`);
+  check('a hurt attacker burns: fire and smoke over it while it lives, none while whole, none once it is gone',
+    burnt.hp === 1 && burnt.still.fire === burnt.whole.fire && burnt.still.smoke === burnt.whole.smoke
+    && burnt.hurt.fire - burnt.still.fire >= 4 && burnt.hurt.smoke - burnt.still.smoke >= 1
+    && burnt.after.fire === burnt.gone.fire && burnt.after.smoke === burnt.gone.smoke, JSON.stringify(burnt));
+  await shot(page, '6-burning');
   const radio = (await warOf()).radio;
   console.log(`  info  the radio said: ${radio ? radio.said.join(', ') : 'no radio'}`);
 

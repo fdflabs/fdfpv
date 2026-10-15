@@ -1113,6 +1113,14 @@ war:stages flies it on the room), held at `release: 'development'`:
   birth" changes nothing on the screen. The twist's line is cued at the
   carrier's birth in C (CARANCHO marks it then), at the second hull in
   A, at the first Hunters in B.
+- **The burn** (built 15 October, branch w46-m5b): a carrier hit once
+  and alive burns until its last hit, the explosions' own fire puffs and
+  smoke column at a rate over its deck (`src/render/explosion.js` burn,
+  about 8 fire and 11 smoke particles alive a hull), drawn by every
+  screen from roomwar's `hp` (the `hurt` op). A pilot who joins after a
+  hit draws the hull whole: the view does not carry it yet. The dam's
+  own damage smoke (its map part's points, one slot a target) cannot
+  follow a moving hull.
 - **The radio**: the table's 13 lines, `itaipu-5-op` and the film's four,
   voiced en and es on the Orin (CARANCHO `am_puck`, `pm_alex`). In twist
   A `itaipu-5-s3-carrier` ("It's launching") waits for the first launch,
@@ -1127,10 +1135,9 @@ war:stages flies it on the room), held at `release: 'development'`:
   downriver in shot 1 and shot 3's own rider near the face for 8 s (the
   film's header says why). The campaign card's line is the Briefing
   above, as The Long Night's is its own.
-- **Not built**: the carrier's two hit burn (its first hit throws half
-  its death's pieces, no fire), spotting (T1.8), the music cues (no
-  mission has its five layers), and an outro film (INTROS.md writes none
-  for M5).
+- **Not built**: spotting (T1.8), the guide lines (M5 writes none), the
+  music cues (no mission has its five layers, and music is off by the
+  owner's decision), and an outro film (INTROS.md writes none for M5).
 
 ### The twist (stage 3)
 
