@@ -84,6 +84,7 @@ function check(name, ok, detail = '') {
 
 const Y = 300;
 const GO = COUNTDOWN_MS;
+const mm3 = (v) => Math.round(v * 1000) / 1000;
 
 /*
  * A mission's stages, checked as data, so a wrong one fails loudly where
@@ -2144,6 +2145,116 @@ console.log('hit points: a carrier takes two detonations, a penetrator\'s one (T
   const p = play({ 0: { warhead: 'penetrator' } });
   const pierced = p.first.dead.find((m) => m.ids.includes(p.hull.id));
   check('a penetrator\'s hit takes all of it at once: dead by pierce, no hurt', p.first.hurt.length === 0 && pierced && pierced.why === 'pierce', JSON.stringify(p.first));
+}
+
+console.log('launches: a carrier\'s children, born at its pose while it lives (TECH-NEEDS T1.6)');
+{
+  const base = MISSIONS['itaipu-1'];
+  const PEN = ['penstock-8', 'penstock-9'];
+  const stage = (spawns, more = {}) => ({
+    id: 'hull',
+    round: true,
+    spawns,
+    objectives: [],
+    cues: [],
+    exits: [{
+      when: { cleared: true }, to: 'won', after: 0, result: 'auto', clear: 'leave', why: 'waves',
+    }],
+    ...more,
+  });
+  const LAUNCH = {
+    kind: 'fpv', n: 1, per: 0, route: 'launch-test', target: PEN, spread: 10, group: 'launched', every: [20, 20],
+  };
+  const test = (spawns, more) => ({
+    ...base,
+    id: 'itaipu-launch-test',
+    contain: undefined,
+    sectors: {},
+    stages: [stage(spawns, more)],
+    routes: {
+      ...base.routes,
+      'river-test': [[-800, 103.5, 300], [-850, 103.5, 190]],
+      'launch-test': [[-700, 180, -200], [-400, 180, -800], [-150, 180, -1100], [0, 185, -1350]],
+    },
+  });
+  const far = (i) => () => [4000 + 50 * i, Y, 4000];
+  /* A game: pilots far off, `act(e, hull)` once the carrier is born. */
+  const play = (mission, act, until = 130000) => {
+    const e = warRoom(mission, { n: 2, seed: 0.4 });
+    e.paths[0] = far(0);
+    e.paths[1] = far(1);
+    e.fly(GO + 4000);
+    const hull = e.of(0, 'born').flatMap((m) => m.agents).find((a) => a.kind === 'carrier');
+    act(e, hull);
+    e.fly(hull.t0 + until);
+    const born = e.of(0, 'born').flatMap((m) => m.agents);
+    return { e, hull, kids: born.filter((a) => a.parent === hull.id) };
+  };
+  const one = test([{
+    at: 1, kind: 'carrier', n: 1, per: 0, route: 'river-test', group: 'carrier', launch: LAUNCH,
+  }]);
+  const g = play(one, () => {}, 70000);
+  const plan = planAgent(one, g.hull);
+  const deckOk = g.kids.every((a) => {
+    const p = poseAt(plan, a.t0).p;
+    return Math.abs(a.from[0] - p[0]) < 0.001 && Math.abs(a.from[1] - p[1] - 2) < 0.001 && Math.abs(a.from[2] - p[2]) < 0.001;
+  });
+  check('left alone it launches every 20 s from its birth, each child from its deck at its pose then, on the launch\'s route to its target',
+    g.kids.length === 3 && g.kids.every((a, k) => a.t0 === g.hull.t0 + 20000 * (k + 1) && a.kind === 'fpv' && a.route === 'launch-test' && PEN.includes(a.target) && a.group === 'launched')
+    && deckOk, JSON.stringify(g.kids.map((a) => [a.t0 - g.hull.t0, a.from, a.target])));
+  const kid = g.kids[0];
+  const kp = planAgent(one, kid);
+  check('a child\'s flight starts at its birth\'s from and runs the launch route to its aim point',
+    poseAt(kp, kid.t0).p.every((v, i) => Math.abs(v - kid.from[i]) < 1e-6) && kp.end === 'arrive', JSON.stringify(poseAt(kp, kid.t0).p));
+  /* Killed at 30 s: the 20 s launch came, the 40 s one never does. */
+  const k = play(one, (e, hull) => {
+    const on = poseAt(planAgent(one, hull), hull.t0 + 30000).p;
+    e.paths[0] = (t) => (t >= hull.t0 + 26000 ? [on[0], on[1] + 2, on[2]] : far(0)());
+    e.paths[1] = (t) => (t >= hull.t0 + 28000 ? [on[0], on[1] + 2, on[2]] : far(1)());
+  }, 70000);
+  const died = k.e.of(0, 'dead').find((m) => m.ids.includes(k.hull.id));
+  check('killed, it launches no more: the launch before its death came, none after', died && k.kids.length >= 1 && k.kids.every((a) => a.t0 < died.at),
+    JSON.stringify({ died: died && died.at - k.hull.t0, kids: k.kids.map((a) => a.t0 - k.hull.t0) }));
+  /* Twist B's then: Hunters once its first launch is all killed. */
+  const then = test([{
+    at: 1, kind: 'carrier', n: 1, per: 0, route: 'river-test', group: 'carrier', launch: { ...LAUNCH, then: { kind: 'hunter', n: 1, per: 0, route: 'gorge-hunt', group: 'launched-hunters' } },
+  }]);
+  const kill = play(then, (e, hull) => {
+    const first = planAgent(then, {
+      kind: 'fpv', route: 'launch-test', from: (() => {
+        const p = poseAt(planAgent(then, hull), hull.t0 + 20000).p;
+        return [mm3(p[0]), mm3(p[1] + 2), mm3(p[2])];
+      })(), t0: hull.t0 + 20000, k: 0, n: 1, err: 0, target: PEN[0],
+    });
+    const at = poseAt(first, hull.t0 + 30000).p;
+    e.paths[1] = (t) => (t >= hull.t0 + 25000 ? at : far(1)());
+  }, 50000);
+  const left = play(then, () => {}, 50000);
+  check('with `then`: its first launch killed, the next is Hunters; its first launch let go, the next is the same swarm',
+    kill.kids.length === 2 && kill.kids[1].kind === 'hunter' && kill.kids[1].group === 'launched-hunters' && left.kids.length === 2 && left.kids[1].kind === 'fpv',
+    JSON.stringify({ kill: kill.kids.map((a) => a.kind), left: left.kids.map((a) => a.kind) }));
+  /* Twist A's silent: two hulls, one group of them launches nothing, the
+   * seed's draw. */
+  const two = test([
+    {
+      at: 1, kind: 'carrier', n: 1, per: 0, route: 'river-test', group: 'hull-a', launch: LAUNCH,
+    },
+    {
+      at: 1, kind: 'carrier', n: 1, per: 0, route: 'river-test', az: [0.3, 0.3], group: 'hull-b', launch: LAUNCH,
+    },
+  ], { silent: ['hull-a', 'hull-b'] });
+  const quiet = new Set();
+  for (const seed of [0.1, 0.3, 0.5, 0.7, 0.9]) {
+    const e = warRoom(two, { n: 1, seed });
+    e.fly(GO + 50000);
+    const born = e.of(0, 'born').flatMap((m) => m.agents);
+    const hulls = born.filter((a) => a.kind === 'carrier');
+    const launching = new Set(born.filter((a) => a.parent != null).map((a) => a.parent));
+    if (hulls.length === 2 && launching.size === 1) {
+      quiet.add(hulls.find((h) => !launching.has(h.id)).wave);
+    }
+  }
+  check('two hulls with silent: in every game one launches and one does not, and over five seeds each is the quiet one', quiet.size === 2, [...quiet].join(','));
 }
 
 console.log('legacy: the four missions against their record');

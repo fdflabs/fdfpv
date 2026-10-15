@@ -30,7 +30,9 @@
  *           where it is born
  *   jammer  the route, then parks at its last point for good ('park')
  *   carrier the route weaving slowly, then parks where the weave left it
- *           for good ('park')
+ *           for good ('park'); the room launches its children from it
+ *           (edge/rooms/war.js launch), each with its birth's `from`, the
+ *           point its route starts at: the carrier's pose then
  *
  * and any of them but a hunter whose birth record carries `wire` (room
  * ms, edge/rooms/war.js from wires.js wireStrike) flies into a power
@@ -249,7 +251,7 @@ function planRoute(mission, agent) {
   }
   const n = agent.n || 1;
   const form = ((agent.k || 0) - (n - 1) / 2) * kind.gap;
-  const pts = turned(route, agent.az);
+  const pts = turned(agent.from ? [agent.from, ...route] : route, agent.az);
   let aim = null;
   if (target) {
     const last = pts[pts.length - 1];

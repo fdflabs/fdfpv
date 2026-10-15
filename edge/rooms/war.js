@@ -170,7 +170,11 @@
  *                                             (src/share/war/wires.js),
  *                                             meet the room ms it meets a
  *                                             structure, where it arrives
- *                                             (src/share/war/contact.js)
+ *                                             (src/share/war/contact.js);
+ *                                             a carrier's child (launch)
+ *                                             adds from, the point its
+ *                                             route starts at, parent,
+ *                                             the carrier's id, and group
  *   { type: 'war', op: 'dead', ids, at, by, why, p }
  *                                             why 'boom' (by the seat),
  *                                             'pierce' (by the seat),
@@ -307,6 +311,17 @@ export const SAMPLE_MS = 20;
 /* A wave is announced this long before its birth, so a screen that hears
  * it draws the attacker from its first millisecond. */
 export const BIRTH_LEAD_MS = 2000;
+/* A carrier's children leave its deck this far over its waterline. */
+export const LAUNCH_DECK_M = 2;
+
+/* A carrier's ms between launches for `pilots` pilots: its launch's
+ * `every` [s at 1 pilot, s at 8], straight between (MISSIONS.md M5: a solo
+ * pilot's every 50 s, eight pilots' every 35 s). */
+export function launchEvery(launch, pilots) {
+  const [one, eight] = launch.every;
+  return Math.round((one + ((eight - one) * (Math.min(8, Math.max(1, pilots)) - 1)) / 7) * 1000);
+}
+
 /* An assist: within this of a kill's point, in the ASSIST_MS before it. */
 export const ASSIST_M = 50;
 export const ASSIST_MS = 3000;
@@ -1495,7 +1510,8 @@ export class RoomWar {
       /* Sized by the match's pilots here when it is announced, so one who
        * joins or leaves mid war changes the next wave, never one already
        * told (its n and k ride in the births, and no screen sizes one). */
-      const n = waveSize(w, Math.max(1, this.players(core).length));
+      const n0 = Math.max(1, this.players(core).length);
+      const n = waveSize(w, n0);
       /* The first group born after an opening that can reach the crest is
        * turned at the gantry closing it (contain.js retargetFor). */
       const turn = w.target != null ? retargetFor(m.contain, t0) : null;
@@ -1518,23 +1534,13 @@ export class RoomWar {
         if (d.sector != null) {
           a.sector = d.sector;
         }
-        /* Whether it flies into a power line on its way, and when. */
-        const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, id, j), m.cut && m.cut.length ? new Set(m.cut) : null);
-        if (wire != null) {
-          a.wire = wire;
+        this.place(a, w.group ?? null);
+        /* A carrier that launches (its spawn's `launch`, not its stage's
+         * drawn silent group): its first launch one interval after its
+         * birth (launch below). */
+        if (w.launch && w.group !== st.silent) {
+          (m.launches ??= {})[id] = { next: t0 + launchEvery(w.launch, n0), k: 0, first: null };
         }
-        /* Whether it meets a structure short of its aim point, and when:
-         * its warhead goes off there, a gate's leaf met where the match's
-         * gate state has it then. */
-        const meet = a.target != null ? contactAt(mission.map, planAgent(mission, a), this.gates()) : null;
-        if (meet) {
-          a.meet = meet.t;
-        }
-        m.agents.push(a);
-        const x = this.adopt(a);
-        note(st, {
-          t: t0, e: 'born', id, kind: a.kind, group: w.group ?? null, sector: a.sector ?? null, cross: crossings(mission, x.plan),
-        });
         born.push(a);
       }
       if (slotKind(w, d, 0, m.seed, st.entry) === 'scout') {
@@ -1545,6 +1551,93 @@ export class RoomWar {
     if (!born.length) {
       return [];
     }
+    return this.broadcast(core, { type: 'war', op: 'born', agents: born });
+  }
+
+  /* A birth record made an attacker of the match: whether it flies into
+   * a power line on its way, and when; whether it meets a structure short
+   * of its aim point, and when (its warhead goes off there, a gate's leaf
+   * met where the match's gate state has it then); then live, and noted
+   * for the stage's triggers under `group`. */
+  place(a, group) {
+    const m = this.match;
+    const mission = this.mission();
+    const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, a.id, j), m.cut && m.cut.length ? new Set(m.cut) : null);
+    if (wire != null) {
+      a.wire = wire;
+    }
+    const meet = a.target != null ? contactAt(mission.map, planAgent(mission, a), this.gates()) : null;
+    if (meet) {
+      a.meet = meet.t;
+    }
+    m.agents.push(a);
+    const x = this.adopt(a);
+    note(m.stage, {
+      t: a.t0, e: 'born', id: a.id, kind: a.kind, group, sector: a.sector ?? null, cross: crossings(mission, x.plan),
+    });
+    return x;
+  }
+
+  /* The live carrier whose launch (m.launches) comes first: { t, x, s },
+   * the lower id on a tie, or null. */
+  launchNext() {
+    let due = null;
+    for (const [id, s] of Object.entries(this.match.launches ?? {})) {
+      const x = this.live.get(Number(id));
+      if (x && (!due || s.next < due.t)) {
+        due = { t: s.next, x, s };
+      }
+    }
+    return due;
+  }
+
+  /*
+   * A carrier's launch at room ms t (MISSIONS.md M5, TECH-NEEDS T1.6): its
+   * spawn's `launch` group born on its deck, at its pose then (the birth's
+   * `from`, where each one's route starts), sized by the pilots here as a
+   * wave is, and its next launch one interval on. Judged in order with the
+   * detonations (step), so a carrier killed first launches nothing, and a
+   * launch is the same on every run whatever the lag. Its children are
+   * told as soon as they are judged born, not BIRTH_LEAD_MS ahead: a
+   * screen draws them from their t0, already off the deck. Once every
+   * one of its first launch was killed, a launch with `then` sends that
+   * instead (twist B: Hunters).
+   */
+  launch(core, due, roomNow) {
+    const m = this.match;
+    const st = m.stage;
+    const { t, x, s } = due;
+    const w = wavesOf(this.stages())[x.a.wave];
+    const killed = (id) => st.ev.some((e) => e.e === 'gone' && e.id === id && e.how === 'kill');
+    const spec = w.launch.then && s.first && s.first.every(killed) ? { ...w.launch, ...w.launch.then, target: w.launch.then.target ?? null } : w.launch;
+    const pilots = Math.max(1, this.players(core).length);
+    const n = waveSize(spec, pilots);
+    const deck = poseAt(x.plan, t).p;
+    const from = [mm(deck[0]), mm(deck[1] + LAUNCH_DECK_M), mm(deck[2])];
+    const blind = this.stages()[st.idx].stationDark === true || (Boolean(m.scouts) && m.scouts.killed >= m.scouts.n);
+    const turn = spec.target != null ? retargetFor(m.contain, t) : null;
+    const born = [];
+    for (let k = 0; k < n; k += 1) {
+      const id = m.nextAgent;
+      m.nextAgent += 1;
+      const err = blind && spec.spread ? mm(spec.spread * (2 * draw(m.seed, id) - 1)) : 0;
+      const a = {
+        id, kind: spec.kind, route: spec.route, from, t0: t, k, n, err, target: waveTarget(spec, k, m.sets), wave: x.a.wave, parent: x.a.id, group: spec.group,
+      };
+      if (turn && TURNS.includes(a.kind)) {
+        a.target = turn.gantry;
+        turn.retarget = t;
+      }
+      const y = this.place(a, spec.group);
+      this.fill(y, this.judgeT1);
+      born.push(a);
+    }
+    s.k += 1;
+    s.first ??= born.map((a) => a.id);
+    s.next = t + launchEvery(w.launch, pilots);
+    this.log.push({
+      what: 'launch', t, id: x.a.id, ids: born.map((a) => a.id), decided: roomNow,
+    });
     return this.broadcast(core, { type: 'war', op: 'born', agents: born });
   }
 
@@ -1797,6 +1890,14 @@ export class RoomWar {
         arrive = x;
       }
     }
+    /* A carrier's launch before whatever else comes first (on the same
+     * millisecond, the other first: a carrier killed then launches
+     * nothing). */
+    const first = arrive ? arrive.plan.tEnd : crash ? crash.t : boom ? boom.tc : Infinity;
+    const launch = this.launchNext();
+    if (launch && launch.t >= from && launch.t <= t1 && launch.t < first) {
+      return { out: this.launch(core, launch, roomNow), from: launch.t };
+    }
     if (arrive) {
       return { out: this.arrival(core, arrive, roomNow), from: arrive.plan.tEnd };
     }
@@ -1829,6 +1930,9 @@ export class RoomWar {
       this.hunters.kill(id);
       if (m.hurt) {
         delete m.hurt[id];
+      }
+      if (m.launches) {
+        delete m.launches[id];
       }
     }
   }
@@ -2501,7 +2605,7 @@ export class RoomWar {
 
   /* The group an attacker's spawn named, for the stage's counts. */
   groupOf(a) {
-    return wavesOf(this.stages())[a.wave]?.group ?? null;
+    return a.group ?? wavesOf(this.stages())[a.wave]?.group ?? null;
   }
 
   /* An attacker gone at t, `how` (stages.js note), for the triggers. */

@@ -72,6 +72,9 @@
  *   worth       { set: factor }: the set's targets cost the output their
  *               mw times factor when hit in this stage (T1.9: the working
  *               gates are worth double while the spill runs)
+ *   silent      [group, ...]: one of these groups, drawn at the entry, is
+ *               carriers that launch nothing (MISSIONS.md M5 twist A, two
+ *               hulls); the stage's state keeps it as `silent`
  *
  * A hold may open gates: { ..., ms, targets: { set }, open: metres } has
  * its targets' hoists start toward `open` at the hold's start (gatesOf
@@ -87,6 +90,16 @@
  *           [S...] }: a sector drawn (never the one the mission's last
  *           sector spawn took, when there is another), then a route of
  *           its family
+ *   sector  with a route or a list of them: the sector they come from,
+ *           for the bearing's call and the adaptive weights, where the
+ *           sector's family is another kind's (M5: Strikers low over the
+ *           river, whose RIVER family is the carriers' surface routes)
+ *   launch  a carrier's children (edge/rooms/war.js launch): { kind, n,
+ *           per, route, target, spread, group, every: [s at 1 pilot, s
+ *           at 8], then? }, a group born at the carrier's pose every
+ *           `every` seconds while it lives, its route from there; then,
+ *           { kind, n, per, route, group }: what it launches instead once
+ *           every one of its first launch was killed
  *   az      [lo, hi] radians: the route turned about the vertical through
  *           its own last point, positive to the left (routes.js planAgent)
  *   kind    a kind, or a list of them: one drawn for the group
@@ -210,6 +223,7 @@ export function draw(seed, id) {
 
 const SALT = {
   at: 0x53544154, route: 0x53545254, az: 0x5354415a, pick: 0x5354504b, sector: 0x53545343, kind: 0x53544b44, mix: 0x53544d58, after: 0x53544146, cue: 0x53544355, set: 0x53545354,
+  silent: 0x5354534c,
 };
 function drawFor(seed, salt, entry, i) {
   return draw((seed ^ salt) >>> 0, Math.imul(entry, 4099) + i);
@@ -401,6 +415,10 @@ export function enter(mission, idx, at, seed, entry, { was = null, pilots = 1 } 
   const due = st.spawns.map((w, i) => {
     let route = w.route;
     let sector = null;
+    if (typeof w.route === 'string' || Array.isArray(w.route)) {
+      sector = w.sector ?? null;
+      lastSector = sector ?? lastSector;
+    }
     if (Array.isArray(w.route)) {
       route = w.route[Math.floor(drawFor(seed, SALT.route, entry, i) * w.route.length)];
     } else if (w.route && typeof w.route === 'object') {
@@ -419,8 +437,9 @@ export function enter(mission, idx, at, seed, entry, { was = null, pilots = 1 } 
       i, t: w.when ? null : at + ms, ms, route, sector, az, kind, born: false,
     };
   });
+  const silent = st.silent ? st.silent[Math.floor(drawFor(seed, SALT.silent, entry, 0) * st.silent.length)] : null;
   return {
-    idx, id: st.id, at, entry, pace, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null, sector: lastSector,
+    idx, id: st.id, at, entry, pace, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null, sector: lastSector, ...(silent ? { silent } : {}),
   };
 }
 
