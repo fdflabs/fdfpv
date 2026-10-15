@@ -104,6 +104,9 @@ export default {
   /* The hours of the day on the room clock (clock.js M2_CLOCK): a screen
    * moves the sun by it. */
   clock: M2_CLOCK,
+  /* BIBLE.md 2.3's "humid, overcast, brightening": the light under it (src/maps/interior/look.js
+   * WEATHER). */
+  weather: 'overcast',
   sensor: { palette: 'arctic' },
   /* The camps as the story has them (life.js setCamp): Claro Viejo
    * left, its antenna down, its motorcycles gone, its fire cold; Claro

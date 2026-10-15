@@ -102,6 +102,9 @@ export default {
   /* The hours of the day on the room clock (clock.js M3_CLOCK): a screen
    * moves the sun by it. */
   clock: M3_CLOCK,
+  /* BIBLE.md 2.3's "unstable cloud": the light under it (src/maps/interior/look.js
+   * WEATHER). */
+  weather: 'unstable',
   /* Thermal matters more as the light goes (MISSIONS.md M3). */
   sensor: { palette: 'arctic' },
   /* The forward feed's loss past the ridge, until the relay holds

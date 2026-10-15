@@ -1662,6 +1662,7 @@ export async function boot({
       view.setCamp({
         nuevo: false, mast: 0, parked: Infinity, cold: false, ...(mission.camp && mission.camp.world),
       });
+      view.setWeather?.(mission.weather ?? null);
     }
     const defs = new Map((mission.contacts || []).map((c) => [c.id, c]));
     const list = [];

@@ -99,7 +99,7 @@ const CAMP = (() => {
 
 /* Each mission's start as its pilot sees it, at its hour (the mission's
  * clock, or M1's 16:40 where it has none, as src/maps/interior.js
- * hourFor): on Pista Cero's rail looking up the strip, and 300 m over the
+ * hourFor) and in its weather (src/maps/interior/look.js WEATHER): on Pista Cero's rail looking up the strip, and 300 m over the
  * strip looking toward the mission's first ground (M1 Sector Alpha, M2
  * Cruce Tranquera, M3 Puesto Arenal). */
 const FIRST = { 'interior-1': [5.4, 4.8], 'interior-2': M2_AT.cruce, 'interior-3': [4.0, 13.98] };
@@ -107,6 +107,9 @@ const STARTS = Object.entries(FIRST).flatMap(([mission, [e, n]], k) => [
   { id: `m${k + 1}-launch`, mission, cam: pose(2.8, 1.95, 3, 3.4, 2.1, 2) },
   { id: `m${k + 1}-climb`, mission, cam: pose(3.0, 2.0, 300, e, n) },
 ]);
+/* M3's climb 12 minutes on, when its unstable cloud has the sun covered
+ * (look.js WEATHER.unstable). */
+STARTS.push({ ...STARTS[5], id: 'm3-climb-12min', minutes: 12 });
 
 const VIEWS = [
   ...STARTS,
@@ -298,8 +301,11 @@ try {
       nuevo: false, mast: 0, parked: Infinity, cold: false, ...v.camp,
     };
     await page.evaluate(`(window.__mapScene().userData.interior.life.setCamp({ nuevo: ${camp.nuevo}, mast: ${camp.mast}, parked: ${camp.parked}, cold: ${camp.cold} }), "")`);
-    const hour = v.mission ? (MISSIONS[v.mission].clock ?? M1_CLOCK).startHour : builtHour;
+    const clock = v.mission ? MISSIONS[v.mission].clock ?? M1_CLOCK : null;
+    const hour = clock ? clock.startHour + ((v.minutes ?? 0) / 60) * clock.rate : builtHour;
+    const weather = v.mission ? MISSIONS[v.mission].weather ?? null : null;
     await page.evaluate(`(() => { const u = window.__mapScene().userData.interior;
+      u.look.setWeather(${JSON.stringify(weather)});
       const s = u.look.setLocalTime(${hour}); u.trees.setSun(s); u.life.setSun(s); return ""; })()`);
     await page.evaluate(`(window.__setCam(${v.cam.join(',')}, ${v.fov || FOV}), "")`);
     await settle(page);
@@ -311,7 +317,7 @@ try {
     const trees = await page.evaluate('window.__mapScene().userData.interior.trees.stats()');
     const gpu = await page.evaluate(`window.__interiorGpu(${FRAMES})`);
     const row = {
-      ...v, hour, stats, trees, frameMs: gpu.frameMs, gpuMs: gpu.gpuMs, gpuLeastMs: gpu.gpuLeastMs, gpuDisjoint: gpu.disjoint,
+      ...v, hour, weather, stats, trees, frameMs: gpu.frameMs, gpuMs: gpu.gpuMs, gpuLeastMs: gpu.gpuLeastMs, gpuDisjoint: gpu.disjoint,
       clearance: { ground: y - ground, solid: gap },
     };
     const over = [];
