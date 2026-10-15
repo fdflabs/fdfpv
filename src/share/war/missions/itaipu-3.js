@@ -185,7 +185,7 @@ export default withWaves({
   order: 3,
   key: 'switchyard',
   free: false,
-  release: 'development',
+  release: 'available',
   /* A string key (src/strings): Lights Out. */
   title: 'war.mission.itaipu_3',
   map: 'itaipu',

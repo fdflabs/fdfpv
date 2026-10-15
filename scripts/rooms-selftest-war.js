@@ -42,6 +42,7 @@ import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { LATE_MS } from '../src/game/midair.js';
+import { withHeld } from './lib/held.js';
 
 const Y = 300;
 
@@ -879,18 +880,25 @@ export function warSection(check) {
      * mission in development, by its word, whatever a client sends: a
      * stale build, a crafted socket, a ?missions=dev page. The drill,
      * which no campaign offers, starts as ever; a check's own room (dev)
-     * starts 1 to 4. */
+     * starts a held one. The owner released 1 to 4 on 2026-10-15, so each
+     * is held here for its rows (scripts/lib/held.js), then started as
+     * released by a room with no developer flag. */
     for (const id of ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4']) {
-      const held = warRoom({ mission: MISSIONS[id], code: 'R3L000' });
-      check(`${id}: the room refuses to start it, 'unreleased', and no war is on`, held.errors(0).includes('unreleased') && held.r.war.match === null,
-        JSON.stringify({ errors: held.errors(0), match: held.r.war.match && held.r.war.match.mission }));
-      held.say(0, { type: 'war', op: 'start', mission: id, from: 'checkpoint' });
-      held.say(0, { type: 'war', op: 'start', mission: id, intro: true });
-      check(`${id}: nor from a checkpoint, nor with its intro`, held.r.war.match === null
-        && held.errors(0).filter((x) => x === 'unreleased').length === 3, JSON.stringify(held.errors(0)));
-      const dev = warRoom({ mission: MISSIONS[id], code: 'R3L001', dev: true });
-      check(`${id}: a check's own room (devMissions) starts it`, dev.errors(0).length === 0 && dev.r.war.match && dev.r.war.match.mission === id,
-        JSON.stringify(dev.errors(0)));
+      withHeld([id], () => {
+        const held = warRoom({ mission: MISSIONS[id], code: 'R3L000' });
+        check(`${id} held in development: the room refuses to start it, 'unreleased', and no war is on`, held.errors(0).includes('unreleased') && held.r.war.match === null,
+          JSON.stringify({ errors: held.errors(0), match: held.r.war.match && held.r.war.match.mission }));
+        held.say(0, { type: 'war', op: 'start', mission: id, from: 'checkpoint' });
+        held.say(0, { type: 'war', op: 'start', mission: id, intro: true });
+        check(`${id} held: nor from a checkpoint, nor with its intro`, held.r.war.match === null
+          && held.errors(0).filter((x) => x === 'unreleased').length === 3, JSON.stringify(held.errors(0)));
+        const dev = warRoom({ mission: MISSIONS[id], code: 'R3L001', dev: true });
+        check(`${id} held: a check's own room (devMissions) starts it`, dev.errors(0).length === 0 && dev.r.war.match && dev.r.war.match.mission === id,
+          JSON.stringify(dev.errors(0)));
+      });
+      const released = warRoom({ mission: MISSIONS[id], code: 'R3L003' });
+      check(`${id}, released (the owner, 2026-10-15): a room with no developer flag starts it`, released.errors(0).length === 0
+        && released.r.war.match && released.r.war.match.mission === id, JSON.stringify(released.errors(0)));
     }
     const open = warRoom({ mission: MISSIONS['itaipu-drill'], code: 'R3L002' });
     check('itaipu-drill: the room starts it as ever', open.errors(0).length === 0 && open.r.war.match && open.r.war.match.mission === 'itaipu-drill',

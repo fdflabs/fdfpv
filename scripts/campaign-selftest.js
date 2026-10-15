@@ -26,6 +26,7 @@ import {
   PAID_KEEP, paidWar, payResult,
 } from '../src/game/campaign.js';
 import { createCampaignScreen } from '../src/ui/campaign.js';
+import { withHeld } from './lib/held.js';
 import { createOpsCampaignScreen } from '../src/ui/opscampaign.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
@@ -68,17 +69,26 @@ check('mission 1 is open and free, the rest wait in order', unlocked(fresh, 0) &
   && ACT1.slice(1).every((m) => !m.free));
 check('mission 1 is in this build', Object.hasOwn(MISSIONS, ACT1[0].id));
 
-console.log('release (the owner, 2026-10-04: only mission 1 until it is right; 2026-10-07: mission 1 held too, until it has its narration)');
+console.log('release (the owner, 2026-10-04: only mission 1 until it is right; 2026-10-07: mission 1 held too; 2026-10-15: all four released)');
 check('Act 1 is the seven missions of docs/campaign/MISSIONS.md, in order',
   ACT1.map((m) => m.id).join() === 'itaipu-1,itaipu-2,itaipu-3,itaipu-4,itaipu-5,itaipu-6,itaipu-7', ACT1.map((m) => m.id).join());
 check('every mission says available, development or soon', ACT1.every((m) => ['available', 'development', 'soon'].includes(m.release)));
-check('no mission is available: First Light is held with the rest', ACT1.every((m) => m.release !== 'available'));
-check('a mission with a definition in the build is in development, one without is coming soon',
-  ACT1.filter((m) => m.release !== 'available').every((m) => (m.release === 'development') === Object.hasOwn(MISSIONS, m.id)));
-check('released: none of 1 to 7', ACT1.every((m) => !released(m.id)));
-check('released with dev: 2 to 4 too, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id, true))
+check('the four missions with a file are available to every pilot (the owner, 2026-10-15), 5 to 7 coming soon',
+  ACT1.slice(0, 4).every((m) => m.release === 'available') && ACT1.slice(4).every((m) => m.release === 'soon'), ACT1.map((m) => m.release).join());
+check('a mission with a definition in the build is available or in development, one without is coming soon',
+  ACT1.every((m) => (m.release !== 'soon') === Object.hasOwn(MISSIONS, m.id)));
+check('released: 1 to 4, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id))
+  && ['itaipu-5', 'itaipu-6', 'itaipu-7'].every((id) => !released(id)));
+check('released with dev: 1 to 4 too, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id, true))
   && ['itaipu-5', 'itaipu-6', 'itaipu-7'].every((id) => !released(id, true)));
 check('a mission outside Act 1 (the drill) is not the campaign\'s to hold back', released('itaipu-drill') && Object.hasOwn(MISSIONS, 'itaipu-drill'));
+/* The gate itself, on a mission held in development (scripts/lib/held.js):
+ * not released, released with dev, the rest as they were, and put back. */
+withHeld(['itaipu-2'], () => {
+  check('a mission held in development: not released, released with dev, the others unchanged',
+    !released('itaipu-2') && released('itaipu-2', true) && released('itaipu-1') && released('itaipu-3') && !released('itaipu-5', true));
+});
+check('and the hold is put back: mission 2 released again', released('itaipu-2') && ACT1[1].release === 'available');
 console.log('Act 1 is the mission registry\'s (src/share/war/missions/index.js act, order, key, free, release)');
 const actRows = [...Object.values(MISSIONS), ...PLANNED].filter((m) => m.act === 1);
 check('every registry mission and planned row of act 1 is in ACT1, and nothing else',
@@ -108,8 +118,8 @@ for (const [name, change] of ACT_CONTROLS) {
 }
 check('the unchanged registry is not refused', same(actOf(1, reg(), [...PLANNED]), ACT1));
 const moved = reg();
-moved['itaipu-1'].release = 'available';
-check('a release changed in the mission\'s file is the gate\'s', actOf(1, moved, PLANNED)[0].release === 'available');
+moved['itaipu-1'].release = 'development';
+check('a release changed in the mission\'s file is the gate\'s', actOf(1, moved, PLANNED)[0].release === 'development');
 
 const saved = cleanCampaign({ missions: { 'itaipu-2': { stars: 3, won: true, credits: 300 }, 'itaipu-4': { stars: 1, won: false, credits: 50 } }, earned: 350 });
 check('stars saved on a mission held back are kept, and still counted', starsOf(saved, 'itaipu-2') === 3 && saved.missions['itaipu-4'].credits === 50
@@ -250,6 +260,18 @@ console.log('a war\'s result is paid once, by the room\'s id for it (phase 19, C
   const screen = () => createCampaignScreen({
     ui: shell(), enterWarRoom: () => null, send: () => {}, view: () => null, room: () => ({ phase: 'idle' }),
   });
+  /* Released to every pilot (the owner, 2026-10-15): a page that is no
+   * developer's offers mission 1, then each next one as the one before is
+   * won; a mission held in development is not offered there. */
+  const offered = screen().playable();
+  const won = (ids) => ids.reduce((x, id) => applyResult(x, id, { stars: 1, credits: 100, won: true }), emptyCampaign());
+  settings.campaign = won(['itaipu-1', 'itaipu-2', 'itaipu-3']);
+  const all = screen().playable();
+  const heldOut = withHeld(['itaipu-3'], () => screen().playable());
+  delete settings.campaign;
+  check('no developer: mission 1 offered, and 2 to 4 once the one before is won; one held in development is not',
+    same(offered, ['itaipu-1']) && same(all, ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'])
+    && same(heldOut, ['itaipu-1', 'itaipu-2', 'itaipu-4']), JSON.stringify({ offered, all, heldOut }));
   const UID = 'w1760000000000-W4RR00-000003';
   const res = { won: true, stars: 2, credits: 240, criteria: [] };
   const live = { id: 3, uid: UID, mission: 'itaipu-1', state: 'live', result: null };
