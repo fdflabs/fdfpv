@@ -19118,6 +19118,44 @@
     }
    }
   },
+  "itaipu-3-s3-back.en": {
+   "text": "Reroute complete. Bringing half the right bank back up. Hernandarias last.",
+   "speaker": "despacho",
+   "seconds": 5.155,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 146315141,
+     "heard": "Reroute complete. Bringing half the right bank back up, Hernanderry is last.",
+     "wer": 0.182,
+     "extra": 1,
+     "missing": [
+      "hernandarias"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 663116384,
+     "heard": "Reroute complete, bringing half the right bank back up, Hernandaria's last.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23808,
+     "sha256": "2caedc05625a26348603e02ba744f74a92a424382f9d78453e8919fd9864a48e"
+    },
+    "mp3": {
+     "bytes": 24380,
+     "sha256": "ac9fb65e44e80cd88dfe7ed8cb07117f5cf1bf8a6d8b0896fb037c47fea6dd4b"
+    }
+   },
+   "machine": "orin"
+  },
   "itaipu-3-s3-down.es": {
    "text": "Terminé de redirigir. Lo que se apagó queda a oscuras esta noche, pero ya nada más depende de esa subestación.",
    "speaker": "despacho",
@@ -19163,6 +19201,53 @@
      "sha256": "618a0348a898ecab7bcedbd61f34cd58097af8c37666103abd0e217c38cdef1a"
     }
    }
+  },
+  "itaipu-3-s3-back.es": {
+   "text": "Terminé de redirigir. Vuelvo a encender la mitad de la margen derecha. Los de cerca, al final.",
+   "speaker": "despacho",
+   "seconds": 5.615,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 298795208,
+     "heard": "Terminé de redirigir. Vuelvo a encender la mitad de la margen derecha a los de cerca al final",
+     "wer": 0.059,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1800964034,
+     "heard": "Terminé de dirigir, vuelvo a encender la mitad de la margen derecha, los de cerca al final,",
+     "wer": 0.059,
+     "extra": 0,
+     "missing": [
+      "redirigir"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 733722161,
+     "heard": "Terminé de redirigir. Vuelvo a encender la mitad de la margen derecha, los de cerca. Al final...",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25902,
+     "sha256": "fc30a08ff481c7280bd4accc550a8eae94145932d53aeb306e4a417fa3b4669e"
+    },
+    "mp3": {
+     "bytes": 26348,
+     "sha256": "cb211fe100d05e19adf061574645375c7b941b588ac97f5630d1c3bc30638af5"
+    }
+   },
+   "machine": "orin"
   },
   "itaipu-3-s3-failed.en": {
    "text": "Crest, I lost the yard in the middle of the reroute. The right bank is dark. Keep them off the intakes.",
@@ -19321,14 +19406,14 @@
    }
   },
   "itaipu-3-s4-dark.en": {
-   "text": "Sun's almost down. Anything we lose now, they'll see from their kitchens.",
+   "text": "Lights are on in town. Anything we lose now, they'll see from their kitchens.",
    "speaker": "crest",
-   "seconds": 4.485,
+   "seconds": 5.055,
    "takes": [
     {
      "attempt": 0,
      "seed": 3373282177,
-     "heard": "Sun's almost down. Anything we lose now they'll see from their kitchens.",
+     "heard": "Lights are on in town. Anything we lose now, they'll see from their kitchens.",
      "wer": 0.0,
      "extra": 0,
      "missing": [],
@@ -19337,24 +19422,25 @@
    ],
    "files": {
     "webm": {
-     "bytes": 20600,
-     "sha256": "7b4331b28d6f8567fc93acf72310da9725b9b0f06a70eaae7ab4879600ad6779"
+     "bytes": 23052,
+     "sha256": "4798038897b8234fd1a1589bb8d27bef7c98a96ec2dc7546747201028c687106"
     },
     "mp3": {
-     "bytes": 19004,
-     "sha256": "9e3de9f61912c90060e4c5f1d19f150be504a9de19a3726b5b5ef0793a0e239e"
+     "bytes": 20660,
+     "sha256": "63226320cdd5e375ec66a251d80c3fa65c60aef2806b0c3ed7fe0439ec1e8b06"
     }
-   }
+   },
+   "machine": "orin"
   },
   "itaipu-3-s4-dark.es": {
-   "text": "El sol ya casi se fue. Lo que perdamos ahora se va a ver desde las cocinas.",
+   "text": "Se encendieron las luces del pueblo. Lo que perdamos ahora se va a ver desde las cocinas.",
    "speaker": "crest",
-   "seconds": 4.915,
+   "seconds": 4.975,
    "takes": [
     {
      "attempt": 0,
      "seed": 778930718,
-     "heard": "El sol ya casi se fue. Lo que perdamos ahora se va a ver desde las cocinas.",
+     "heard": "Se encendieron las luces del pueblo. Lo que perdamos ahora se va a ver desde las cocinas.",
      "wer": 0.0,
      "extra": 0,
      "missing": [],
@@ -19363,14 +19449,15 @@
    ],
    "files": {
     "webm": {
-     "bytes": 22380,
-     "sha256": "8279cbd82723eb8d28311c5993b3d678823ce284445f608356050f8010386037"
+     "bytes": 22665,
+     "sha256": "7d71059063ebc3134a02d41db6ae9ba4808b159ddcd33ee8499c73093b702487"
     },
     "mp3": {
-     "bytes": 19772,
-     "sha256": "3d5e622e6bc7d8e0b77d6daad7d4b70b51cbaf8e83a7db37cd2a12d93509c0bc"
+     "bytes": 20156,
+     "sha256": "c9e55b9ce1118f03cc677c1b913c0b0b707ebf17104fc0913a4cc712010da1df"
     }
-   }
+   },
+   "machine": "orin"
   },
   "itaipu-3-s4-order.en": {
    "text": "Planes on the Loiterers. Quads on the intakes. Nobody chases cardboard.",
@@ -29753,6 +29840,168 @@
      "sha256": "7b78c0d51b3d7ca65801671b379397622859743bde9b5b4052c60f88fd5db96f"
     }
    }
+  },
+  "itaipu-4-g-dark.en": {
+   "text": "Protect the middle penstocks. The swarm comes up the gorge. Fly low and take it up close.",
+   "speaker": "crest",
+   "seconds": 5.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1639333499,
+     "heard": "Protect the middle penstocks. The swarm comes up the gorge. Fly low and take it up close.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24132,
+     "sha256": "fb8ea34609446abb5e991eede731df9a07dfae90d9fb3d26e3d0f836a1a1934d"
+    },
+    "mp3": {
+     "bytes": 21788,
+     "sha256": "149d772be5b548ca289b953ac9912148ac06664cd2e8f192f1cb3d61d6b36ffc"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-g-dark.es": {
+   "text": "Protejan las tuberías del medio. El enjambre sube por el cañón. Vuelen bajo y tómenlo de cerca.",
+   "speaker": "crest",
+   "seconds": 6.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1505076958,
+     "heard": "Protejan las tuberías del medio. El enjambre sube por el cañón. Vuelen bajo y tómenlo de cerca.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 28096,
+     "sha256": "4e6ccf23fdacc9e857321397cb7e5489b4f9199f0d2d75ccd5a9fec5a259c146"
+    },
+    "mp3": {
+     "bytes": 25532,
+     "sha256": "63611f23c77827565ea7fd17ac181edcf5e1b35fed2256e8a7946c2277105baf"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-ta-turn.en": {
+   "text": "Killing the station lights. Their aim goes with them. So does ours.",
+   "speaker": "crest",
+   "seconds": 3.905,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4241940228,
+     "heard": "killing the station lights, their aim goes with them, so does ours.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17877,
+     "sha256": "cf83dc1960020d984e924552e1d9118b756cdf332b55c0cd5213882f5edd87d2"
+    },
+    "mp3": {
+     "bytes": 16772,
+     "sha256": "56e8f236842b7b94c21d8ac594b9a696e5ef8873c05f5b32a94485bb91137dc7"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-ta-turn.es": {
+   "text": "Apagando las luces de la central. Se les va la puntería. A nosotros también.",
+   "speaker": "crest",
+   "seconds": 4.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1530164320,
+     "heard": "Apagando las luces de la central, se les va la puntería, a nosotros también.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20994,
+     "sha256": "dd93a5a2f3ba813c199668791d296c99a4590939989c189381b33bfaf8417236"
+    },
+    "mp3": {
+     "bytes": 19580,
+     "sha256": "18e0befce16f22bc93a5607486ca45d27ead04117415b0dedd3941b37f1806c9"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-ta-why.en": {
+   "text": "Now they have to come close to see. Watch the gorge.",
+   "speaker": "crest",
+   "seconds": 3.385,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 124520000,
+     "heard": "Now they have to come close to see, watch the gorge.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15643,
+     "sha256": "2a838a343206817436c03a84e6d07ef83ca50e0858aeaa58bf3b2df0903f0f8f"
+    },
+    "mp3": {
+     "bytes": 14060,
+     "sha256": "3055f5537d0590f8079fe3f733be60c9d086a3b38bb40b5cf63de615ed235d2a"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-ta-why.es": {
+   "text": "Ahora tienen que acercarse para ver. Atentos al cañón.",
+   "speaker": "crest",
+   "seconds": 3.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1894617463,
+     "heard": "Ahora tienen que acercarse para ver, atentos al cañón.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15677,
+     "sha256": "9821e8a6a03d1ce68d4b149d6c3d10cf4023f43257a3def99acd100b59aa9350"
+    },
+    "mp3": {
+     "bytes": 14972,
+     "sha256": "7b83994fb8a93de9e0ee635f7a5ee46504c7bb405a9cfd33d58de0d9e6e5ced6"
+    }
+   },
+   "machine": "orin"
   }
  },
  "models": {

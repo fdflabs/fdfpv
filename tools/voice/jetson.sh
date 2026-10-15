@@ -38,9 +38,10 @@
 # and setting the same, Kokoro's reference clip already differs (same
 # length and loudness, correlation 0.991), so Chatterbox clones a voice
 # that is not bit for bit the committed one, and ffmpeg there is 4.4, not
-# the desktop's 8.0, so even the same wav encodes to other bytes. Whether
-# the Orin's voice counts as the same voice is the owner's decision
-# (docs/AUDIO.md is unchanged until it is made).
+# the desktop's 8.0, so even the same wav encodes to other bytes. The
+# Orin's voice is accepted, with that difference, and is where every
+# voice build runs now; assets/audio/war/CREDITS.md (Where the voices are
+# built) has the rule that keeps a mission's speaker one voice.
 #
 # This file is part of the Paraguayan Drone Combat Simulator.
 #
