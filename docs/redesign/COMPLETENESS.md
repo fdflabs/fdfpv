@@ -37,7 +37,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-15, the first verdict
-in each item's heading): 35 EXISTS, 40 BUILT (since built by a phase), 4
+in each item's heading): 35 EXISTS, 41 BUILT (since built by a phase), 3
 PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -1514,7 +1514,7 @@ teammate (main.js 2784); a race's late joiner watches the race. The watch
 seat in any room is decided (PLAN.md 6 item 18). **Done:** PLAN.md phase
 17. Size M. Phase 17.
 
-**76. Rematch and next mission. PARTIAL.** Every room goes back to its
+**76. Rematch and next mission. BUILT (2026-10-15 batch, w43-sessions and w44-warend).** Every room goes back to its
 lobby after a round, nobody ready (gamelobby.js 35); a lost mission offers
 its stage; the host picks the next mission in the lobby. Missing: a Next
 mission action on the result, Change aircraft from the result. **Done:**
@@ -1538,12 +1538,28 @@ the presses), `interior:debrief` (Next mission sends the next one's
 start), `interior:coop` (Play again, and the other pilot follows; its debrief
 was not open there, so the closing is not yet seen by a check),
 `war:twopage --main` (the banner's presses; Restart, and B follows) and
-`jam:twopage` (Battle again, and B follows), the last four local. Not
-built: Change aircraft on a room's results (a room's aircraft row is in
-its lobby), a Next mission row in the war lobby once the banner's
-seconds are over (its mission row and Start now are two presses), and
-Streamer Combat, whose room goes straight back to its lobby with no end
-screen of its own.
+`jam:twopage` (Battle again, and B follows), the last four local.
+**Next mission in the war lobby built** (2026-10-15 batch, w44-warend):
+once the banner's seconds are over the host's lobby has Next mission
+beside Start now after a win, one press to the next mission's briefing,
+the lobby's mission moving with it (src/main.js warNextRows, warNext).
+A won mission's outro plays to its end before the banner and its
+seconds (src/main.js gameLobbyFrame), where the lobby used to come up
+under the film with every press the film's. Held by `war:lobby`
+(local: the row after a win, its press, the outro past the 8 s).
+**Streamer Combat's end screen built** (2026-10-15 batch, w44-warend):
+a round over in a room made for combat shows its results (standings,
+this pilot's points, the debrief) with the host's Combat again under
+the cursor, then the lobby as the others' (src/ui/combathud.js
+combatResultsView, src/main.js combatResults); a pilot who joins a room
+whose round is already over is not shown it. Held by `game:lobby
+--game=combat` (local). **Change aircraft on a room's results built**
+(2026-10-15 batch, w44-warend): every room game's results (the race's,
+the Ace's, the Trick Battle's, combat's) have Change aircraft after the
+replay, the picker seating the aircraft for the room's next round, the
+war's in a war room (src/ui/items.js resultsRows, src/game/debrief.js
+nextActions). Held by `debrief:selftest` (CI) and `game:lobby
+--game=combat` (local). Nothing of the item is left unbuilt.
 
 **77. Party persistence. EXISTS.** The room is the party: its code and
 pilots survive rounds, mission changes and, in private rooms, world

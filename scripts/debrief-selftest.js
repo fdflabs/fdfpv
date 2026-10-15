@@ -218,7 +218,7 @@ const rt = (events) => JSON.parse(JSON.stringify(events));
   check('room: a later place when called is lost, points counted', lost.result.kind === 'lost' && lost.accuracy[1].what === 'debrief.points' && lost.accuracy[1].n === 7 && lost.accuracy[1].of === null);
   const none = fromRoom({ activity: 'combat', aircraft: 'x', place: null, of: 0, final: true, flightMs: 1, totalS: NaN, replay: ok });
   check('room: no standing, no place line, no time line', none.accuracy.length === 0 && none.records.length === 0 && none.result.kind === 'complete');
-  check('room: the room rows lead', JSON.stringify(won.next) === '["room","replay","title"]');
+  check('room: the room rows lead, then the replay and Change aircraft (COMPLETENESS 76)', JSON.stringify(won.next) === '["room","replay","aircraft","title"]');
 }
 
 /*
@@ -523,6 +523,12 @@ check('replay: no span does not', replayState(null).why === 'debrief.replay_shor
 check('replay: already open does not', replayState([0, 900, 10, 40], true).why === 'debrief.replay_open');
 check('next: unknown activity is again then title', JSON.stringify(nextActions('nope')) === '["again","title"]');
 check('next: a copy', nextActions('race') !== nextActions('race'));
+/* COMPLETENESS 76: a room's results offer another aircraft for its next
+ * round, after the replay (src/ui/items.js resultsRows). */
+check('next: every room game\'s results have Change aircraft after the replay', ['roomrace', 'tag', 'combat'].every((a) => {
+  const n = nextActions(a);
+  return n.indexOf('aircraft') === n.indexOf('replay') + 1;
+}));
 
 /* A mission's end, the host's one press (COMPLETENESS 76). */
 const ends = (o) => JSON.stringify(missionEndActions(o));

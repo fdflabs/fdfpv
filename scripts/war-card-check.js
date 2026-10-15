@@ -23,8 +23,8 @@
  * room is private and not listed: the server makes a public room only
  * for a released mission (campaign-check has the public page, mission 1
  * Under development). Reloaded (consent now stored),
- * the way in (the page, then Play) goes to a new Itaipu room with no
- * consent screen at all.
+ * the way in, home's link now Continue (one press, the next mission's
+ * Play), goes to a new Itaipu room with no consent screen at all.
  *
  * Make a room, opened while the lobby still builds the mission's world,
  * stays up when that build ends. Its Game row offers Defend the Paraná on
@@ -184,7 +184,14 @@ async function playMission1(page) {
     await page.sleep(400);
   }
   await page.until('window.__ui.hub === null', 10000).catch(() => {});
+  /* Once a mission's Play has made a room, home's link is Continue, and
+   * its press is the next mission's Play, no page between (8159a53c7,
+   * COMPLETENESS 57); this pilot has won none, so mission 1. */
+  const link = await page.evaluate("(document.querySelector('.gate-card-campaign') || {}).textContent || ''");
   await click(page, '.gate-card-campaign');
+  if (/Continue/.test(link)) {
+    return { continue: true };
+  }
   await page.until(`${PAGE} !== null`, 10000).catch(() => {});
   const v = await page.evaluate(PAGE);
   await click(page, '[data-mission="itaipu-1"] .campaign-play');
@@ -381,9 +388,10 @@ try {
   await toGate(page);
   check('consent survives a reload', await page.evaluate('window.__ui.settings.warConsent === true'));
   await page.evaluate(WATCH_DIALOG);
-  await playMission1(page);
+  const again = await playMission1(page);
   const two = await landed(page);
-  check('the way in again: a new private Itaipu room, the start row under the cursor', landedWell(two) && two.code !== one.code, JSON.stringify(two));
+  check('the way in again, home\'s Continue: a new private Itaipu room, the start row under the cursor', Boolean(again && again.continue)
+    && landedWell(two) && two.code !== one.code, JSON.stringify({ again, two }));
   check('and no consent screen on the way', (await page.evaluate('window.__warCardDialogs')) === 0, String(await page.evaluate('window.__warCardDialogs')));
 
   /* MAKE A ROOM'S GAME ROW, opened while the lobby still builds the
@@ -548,8 +556,7 @@ try {
    * The war is on and the pilot flying it, a callout up. The pause keeps
    * the room and draws nothing of the war; Back to title leaves it, and
    * for eight seconds nothing of the war or the room is drawn over the
-   * title. The war room is mission 1's, by Defend the Paraná on home and
-   * Play on its campaign page. */
+   * title. The war room is mission 1's, by home's Continue. */
   await page.evaluate("(() => { window.__ui.act('friends-leave'); window.__ui.act('mode-gate'); return true; })()");
   await page.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
   await playMission1(page);

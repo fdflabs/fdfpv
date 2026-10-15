@@ -155,7 +155,7 @@ import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
 import { createFootSender, createFootTrack } from './share/roomfoot.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
-import { createCombatHud } from './ui/combathud.js';
+import { combatResultsView, createCombatHud, standings as combatStandings } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
 import { grounded } from './share/ops/missions.js';
@@ -203,6 +203,7 @@ import { stationOrder } from './share/war/stationdark.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
 import { FILMS as WAR_FILMS, filmFor } from './share/war/films/index.js';
+import { filmMs } from './share/war/film.js';
 import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
@@ -4170,7 +4171,10 @@ export async function boot({
       ui.refreshFriends();
     },
     onRoom: () => ui.refreshFriends(),
-    onLobby: () => ui.refreshFriends(),
+    onLobby: () => {
+      lobbyReadyHeard();
+      ui.refreshFriends();
+    },
     onSetup: () => roomSetup(),
     onWorld: () => ui.refreshFriends(),
     onWeather: () => ui.refreshFriends(),
@@ -4193,7 +4197,9 @@ export async function boot({
     },
     onHit: (m) => roomHit(m),
     onHost: () => ui.refreshFriends(),
-    onMessage: (m) => {
+    /* Every game's word goes through the lobby's watch on its round as
+     * it lands, not only on the next frame (lobbyHeard). */
+    onMessage: lobbyHeard((m) => {
       if (m.type === 'voice') {
         voice.onMessage(m);
         return;
@@ -4239,7 +4245,7 @@ export async function boot({
         }
         ui.refreshFriends();
       }
-    },
+    }),
     onBinary: (bytes) => {
       /* AGENTS first: the one binary the war sends, 30 times a second. */
       if (roomWar.onBinary(bytes) || roomCombat.onBinary(bytes)) {
@@ -4415,6 +4421,10 @@ export async function boot({
     roomCombat.step(combatPos.x, combatPos.y, combatPos.z, combatQuat.x, combatQuat.y, combatQuat.z, combatQuat.w, combatV, groundAt);
   }
   let combatHudAt = 0;
+  /* This page saw the round start (its countdown, or on), so its end is
+   * a result here: a pilot who joins a room whose last round is over is
+   * not shown its results. */
+  let combatRoundSeen = false;
   /* Once a frame in a room: this pilot's paper to the room, every paper
    * drawn, the cuts shown, the round on screen. */
   function combatFrame(now, wallMs, scene, dt) {
@@ -4432,17 +4442,31 @@ export async function boot({
         }
         combatHud.say(str(key, { cutter: combatNameOf(n.ev.cutter), victim: combatNameOf(n.ev.victim), points: n.ev.points }));
       } else if (n.state === 'on') {
+        combatRoundSeen = true;
         combatHud.say(str('combat.go'));
         /* A pilot who came while the round was on (a join, the title's
-         * panel) goes up into it; one flying already flies on. */
-        roomCall('game');
-      } else if (n.state === 'over' && roomCombat.mine() && mode !== 'replay') {
-        ui.progress.roundFinished('combat', worldId(), { points: roomCombat.mine().points });
+         * panel) goes up into it; one flying already flies on. Not into a
+         * round over by now: its end, heard in the same frame, has put the
+         * pilot on its results. */
+        if (roomCombat.round().state === 'on') {
+          roomCall('game');
+        }
+      } else if (n.state === 'over') {
+        if (roomCombat.mine() && mode !== 'replay') {
+          ui.progress.roundFinished('combat', worldId(), { points: roomCombat.mine().points });
+        }
+        if (combatRoundSeen) {
+          combatResults();
+        }
+        combatRoundSeen = false;
       } else if (n.state === 'countdown') {
+        combatRoundSeen = true;
         /* A round's countdown is the time to take off in, so every pilot
          * in the room goes up with it, from wherever they are (roomCall).
          * A pilot already flying the room's world flies on. */
-        roomCall('game');
+        if (roomCombat.round().state !== 'over') {
+          roomCall('game');
+        }
       }
     }
     const paper = roomCombat.paper();
@@ -4454,8 +4478,10 @@ export async function boot({
     }
     if (wallMs > combatHudAt) {
       combatHudAt = wallMs + 200;
-      /* Not over the crash cam's replay, which is another moment. */
-      combatHud.update(mode === 'replay' ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
+      /* Not over the crash cam's replay, which is another moment, nor over
+       * the round's own results screen, which says it all (combatResults). */
+      const aside = mode === 'replay' || (ui.screen === 'results' && roomResultsOf === 'combat');
+      combatHud.update(aside ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
         paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow, debriefCardLine());
     }
     if (!roomCombat.out()) {
@@ -4491,6 +4517,24 @@ export async function boot({
       return peer ? peer.profile.airframe : null;
     }, now, wallMs / 1000);
     combatLayer.update(dt);
+  }
+  /* A round over in a room made for combat, the last of its match (no
+   * next round counting down): its results screen, as the other games'
+   * rooms have, then the lobby (gameLobbyFrame). Kept whatever room screen
+   * is up; not over the crash cam's replay, which is another moment; and
+   * only while the lobby's return is still to come: a page whose world
+   * was building hears the end after it, and was left on results. */
+  function combatResults() {
+    const r = roomCombat.round();
+    if (lobbyBackAt == null || lobbyGame() !== 'combat' || r.nextAt > 0 || mode === 'replay' || !(mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+      return;
+    }
+    if (mode === 'flight') {
+      leaveFlightForResults();
+    }
+    roomResultsOf = 'combat';
+    const rows = combatStandings(r).map((x, i) => ({ seat: x.seat, place: i + 1 }));
+    ui.showRoomResults(combatResultsView(r, roomCombat.seat(), combatNameOf), roomDebrief('combat', rows, roomCombat.seat(), true));
   }
   /* The Fly with friends rows: the room's host, public or private, starts
    * and stops a round; everyone sees where it is. `lead` is the room set
@@ -4999,7 +5043,7 @@ export async function boot({
        * host's way to the mission's start instead is a row of its own. */
       rows: (host) => [
         { label: str('lobby.campaign'), note: str('lobby.campaign_note'), action: 'friends-lobby-campaign' },
-        ...(host ? warFreshRows() : []),
+        ...(host ? [...warNextRows(), ...warFreshRows()] : []),
       ],
       line: (lobby) => {
         const mission = WAR_MISSIONS[lobby.mission] ? lobby.mission : roomMission();
@@ -5341,11 +5385,33 @@ export async function boot({
     return next && Object.hasOwn(WAR_MISSIONS, next.id) && campaignRef && campaignRef.playable().includes(next.id) ? next.id : null;
   }
 
+  /* The mission after the one this room just won, which this host may
+   * start, or null: the lobby's Next mission row, standing once the end
+   * banner's seconds are over (COMPLETENESS 76). */
+  function warLobbyNext() {
+    const v = roomWar.view();
+    const id = (campaignRef && campaignRef.selectedMission()) ?? roomMission();
+    return v && v.state === 'won' && v.mission === id ? warNextMission(id) : null;
+  }
+  function warNextRows() {
+    const id = warLobbyNext();
+    return id ? [{
+      label: str('lobby.next_mission', { name: str(`campaign.m.${missionKey(id)}`) }),
+      note: str('lobby.next_mission_note', { n: missionNumber(id) }),
+      action: 'friends-war-next',
+    }] : [];
+  }
+
   /* The next mission at the host's one press: Play's mission in this room
    * moves to it (its loadout said as Play's start says it), else the
-   * room's start as the lobby's. Consent is the caller's. */
+   * room's start as the lobby's. The lobby's mission moves with it, so
+   * its line, Start now and, after its win, Next mission are that one's.
+   * Consent is the caller's. */
   function warNext(id) {
     const how = { intro: WAR_MISSIONS[id].act != null };
+    if (gameLobby() && lobbyGame() === 'war') {
+      roomLinkState.send({ type: 'lobby', op: 'mission', mission: id });
+    }
     if (!campaignRef.follow(id) || !campaignRef.startSelected(how)) {
       roomWar.start(id, how);
     }
@@ -6191,10 +6257,26 @@ export async function boot({
     warOutroFrame(v);
   }
 
+  /* The ms of view v's outro still to play on the room's clock, 0 when
+   * there is none. */
+  const warOutroMs = new Map();
+  function warOutroLeftMs(v) {
+    const outro = v && v.state === 'won' && v.endAt != null ? WAR_MISSIONS[v.mission]?.outro : null;
+    const now = roomLinkState.roomNow();
+    if (!outro || now == null) {
+      return 0;
+    }
+    if (!warOutroMs.has(outro)) {
+      warOutroMs.set(outro, filmMs(WAR_FILMS[outro]));
+    }
+    return Math.max(0, v.endAt + warOutroMs.get(outro) - now);
+  }
+
   /* A mission's outro (its `outro`, First Light's) on a win, once per
    * match, on the room's clock from the end, so every pilot sees the same
    * frame; in the mission's own world as it stands, its damage and all.
-   * A new match, a restart or the lobby ends it. */
+   * A new match or a restart ends it; the lobby waits for its end
+   * (gameLobbyFrame). */
   const warOutroOn = (v) => warIntro !== null && String(warIntroFor).startsWith('outro:') && v.state === 'won';
   function warOutroFrame(v) {
     const outro = WAR_MISSIONS[v.mission]?.outro;
@@ -6409,10 +6491,31 @@ export async function boot({
   let lobbyPanelAt = 0;
   let lobbyBackAt = null;
   let lobbySeen = null;
-  function gameLobbyFrame(wallMs) {
+  /* The Ready said, against the lobby as the room has it now: on every
+   * frame and on every word of the lobby. A frame alone missed it: a page
+   * building its world draws no frame (openFrame), and under load the
+   * room's ready, its round's start and its end came between two frames,
+   * so the next one met the lobby after the round, nobody ready, and said
+   * the Ready pressed before it again (game:lobby --game=war, B ready
+   * after the war's end). */
+  function lobbyReadyHeard(wallMs = performance.now()) {
     const st = roomLinkState.state();
     lobbyReady.frame(gameLobby(), st.phase === 'open' && st.welcome ? st.welcome.seat : null, wallMs);
+  }
+  function gameLobbyFrame(wallMs) {
+    lobbyReadyHeard(wallMs);
     lobbySeenFrame(wallMs);
+    /* A win's outro (warOutroFrame) has the screen and every key while it
+     * plays, and the end banner comes after it (docs/campaign/
+     * FIRST-LIGHT-OUTRO.md): the banner's seconds count from the film's
+     * end on the room's clock, which the film runs on from endAt, also
+     * when its world came up late and it began part way. Counted from the
+     * win, the lobby came up under the film, its rows dead to the host's
+     * presses and the banner's Next mission never seen. */
+    const filmLeft = lobbyBackAt != null ? warOutroLeftMs(roomWar.view()) : 0;
+    if (filmLeft > 0) {
+      lobbyBackAt = Math.max(lobbyBackAt, wallMs + filmLeft + LOBBY_BACK_MS);
+    }
     if (lobbyBackAt != null && wallMs >= lobbyBackAt) {
       lobbyBackAt = null;
       if (gameLobby() && (mode === 'flight' || mode === 'paused')) {
@@ -6424,6 +6527,17 @@ export async function boot({
       }
     }
     lobbyPanelFrame(wallMs);
+  }
+  /* A room message handler f, then the lobby's watch on its round
+   * (lobbySeenFrame) at once: a round whose start and end both came
+   * between two frames (a page building its world, a slow frame under
+   * load) was never seen on, so its end took nobody back to the lobby
+   * (game:lobby's "its end: both back in the lobby", combat and war). */
+  function lobbyHeard(f) {
+    return (m) => {
+      f(m);
+      lobbySeenFrame(performance.now());
+    };
   }
   /* Whether the room's round is on, over or in its lobby, and its end.
    * Also mid world build (openFrame), when nothing else runs: a round
@@ -7191,6 +7305,17 @@ export async function boot({
       s.restart = true;
       return;
     }
+    /* Up into the room's round, which ended while the seat waited for a
+     * world or a frame: the pilot stays where its end put them (its
+     * results, the lobby), never flown into a round over. Under load a
+     * combat round's countdown summoned its pilots, the round ended
+     * before the summon landed, and they flew on past the lobby's return
+     * (game:lobby's "its end: both back in the lobby"). */
+    const game = lobbyGame();
+    if (s.why === 'game' && roomRunning() == null && !roomOps.on() && !(game && lobbyRoundOn(game))) {
+      roomSummon = null;
+      return;
+    }
     /* The builder saves as it goes and again on the way out. A seated map
      * track is the builder's too (build.racing), and stays. */
     if (build && build.active && !build.racing) {
@@ -7926,6 +8051,7 @@ export async function boot({
       schwing: { voice: Boolean(audio.schwingVoice), struck: audio.schwings || 0 },
       hud: combatHud.shown(),
       said: combatHud.said(),
+      results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'combat'),
     };
   };
   devHooks.__combatStart = (minutes) => roomCombat.start(minutes);
@@ -8636,6 +8762,13 @@ export async function boot({
       await warStart(true);
       return;
     }
+    if (action === 'friends-war-next') {
+      const id = warLobbyNext();
+      if (id && await warConsented()) {
+        warNext(id);
+      }
+      return;
+    }
     if (action === 'friends-war-private') {
       await warFromPublic();
       return;
@@ -8920,6 +9053,19 @@ export async function boot({
   ui.roomResultsRows = () => {
     if (roomResultsOf === 'tag') {
       return roomTagResultsRows();
+    }
+    if (roomResultsOf === 'combat') {
+      /* The host's one press to another round of the same length, the
+       * room's pilots in it as at any start (COMPLETENESS 76). */
+      const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomCombat.seat();
+      const lobby = gameLobby();
+      const again = host && lobbyGame() === 'combat' && Boolean(lobby) && roomCombat.round().state === 'over';
+      return [
+        ...(again ? [{ label: str('combat.again'), note: str('combat.again_note', { minutes: lobby.minutes }), action: 'friends-lobby-start', primary: true }] : []),
+        { label: str('roomtag.fly_on'), action: 'restart', note: str('combat.fly_on_note'), primary: !again },
+        ...ui.friendsItems(),
+        { label: str('ui.back_to_title'), action: 'title' },
+      ];
     }
     if (roomResultsOf === 'jam') {
       /* The host's one press to the same battle again, the room's pilots
