@@ -832,11 +832,16 @@ not add one, because its frame times on this box's shared card measure
 the other lanes (docs/BUDGETS.md: alps-low at Low 49 ms a frame with the
 card 100 % busy, 6.1 ms at 25 %). A pacer check needs a quiet card.
 
-**46. Performance budgets. PARTIAL (the full room within the contract
-since 2026-10-14; a war row at mission 1's peak stage open).**
+**46. Performance budgets. BUILT (the full room within the contract
+since 2026-10-14, the war at mission 1's peak since branch
+w44-perfwar).**
 docs/BUDGETS.md is one table:
 the menu (`title`), each world (`alps-low`, `swiss-low`, `itaipu-stream`,
-`interior-ops`), the war at full load (`itaipu-war`) and a full room
+`interior-ops`), the war at full load (`itaipu-war`), the war at its
+peak (`itaipu-war-peak`: mission 1's First Light in a full room, eight
+pilots enlisted, 45 to 49 attackers alive at most, the seven defenders'
+quads in view, the dam, the explosions; flown through the room's
+developer skip, measured 2026-10-14 three runs a tier) and a full room
 (`peers`: seven more pilots' 7 inches in view, from perf-play on the
 room's wire), at Low, Medium and High, measured on this box 2026-10-13
 and 14. Draw calls, triangles, live textures and the GPU floor are held
@@ -859,7 +864,18 @@ documented rule; a thermal draw keeps the motors apart for their heat),
 its name tag left the ink prepass and the thermal picture, and a pilot
 figure is five meshes, not ten. Pixels: an in page A/B against the base
 tree, 0 to 42 px different per case over eight views and three passes
-(docs/PERF.md, A full room under the contract). A peer nearer than
+(docs/PERF.md, A full room under the contract). The war's peak is within
+it too since branch w44-perfwar: 278 calls in the main view and 103 in
+the inset at High in every run of three (299 and 120 before; 361 calls
+as a whole frame, 379 before). An instanced mesh with nothing in it, or
+an attacker kind with nothing in a camera's view, issues no draw
+(src/render/attackers.js drawCount, paradrops.js, breakage.js: three
+r160 draws a count of 0), 0 px different over eight views and three
+passes in an in page A/B; and a sensor's own colour picture leaves the
+name tags out, as its thermal one did (src/render/sensorview.js
+sensorHide), each 1 to 3 of the inset's 270 rows tall at the row's 20 to
+102 m. No attacker is dropped or simplified, so a target is drawn as
+before at every range (docs/PERF.md, The war at its peak). A peer nearer than
 about 23 m in the row's view draws its near model, 10 calls a pass. The
 ceilings hold today's cost; whether a row is within the contract is
 the column "Over the written contract". Texture megabytes are not
@@ -869,8 +885,8 @@ perf-play's upload bytes are a frame's uploads, not what stays
 allocated. The peers' GPU floor moves by half between runs on the shared
 card, so it is held from the highest of three. Checks: `perf --
 --budgets` (local), `render:golden`, `check:combat-models`,
-`kits:quads`, `rooms:wrecks` (local). **Done:** a war row at mission
-1's peak stage. Size S. Phase 30.
+`kits:quads`, `rooms:wrecks` (local), `war:twopage`, `sensor:check`.
+Size S. Phase 30.
 
 **47. Object pooling. EXISTS.** Explosions, debris, breakage pieces,
 smoke, attackers and war markers are fixed pools or instanced meshes that

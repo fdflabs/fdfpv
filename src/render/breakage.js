@@ -101,11 +101,16 @@ export function createBreakage(opts = {}) {
    * lookup each time, about 800 a second in a war (docs/PERF.md P8). */
   pieceMesh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
   pieceMesh.count = 0;
+  /* Hidden while empty: three r160 draws an instanced mesh of count 0 as
+   * a call of nothing in every pass, the shadow map's too (docs/PERF.md,
+   * The war at its peak). */
+  pieceMesh.visible = false;
   const edgeMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 5, 1).translate(0, 0.5, 0), mat, EDGES);
   edgeMesh.name = 'war-breakage-edges';
   edgeMesh.frustumCulled = false;
   edgeMesh.castShadow = false;
   edgeMesh.count = 0;
+  edgeMesh.visible = false;
   const white = new THREE.Color(1, 1, 1);
   for (let i = 0; i < PIECES; i += 1) {
     pieceMesh.setColorAt(i, white);
@@ -198,6 +203,7 @@ export function createBreakage(opts = {}) {
       edges += 1;
     }
     edgeMesh.count = edges;
+    edgeMesh.visible = edges > 0;
     edgeMesh.instanceMatrix.needsUpdate = true;
     edgeMesh.instanceColor.needsUpdate = true;
   }
@@ -250,6 +256,8 @@ export function createBreakage(opts = {}) {
       leafM.clear();
       pieceMesh.count = 0;
       edgeMesh.count = 0;
+      pieceMesh.visible = false;
+      edgeMesh.visible = false;
     },
     /* One roomwar 'damage' event, at room ms now; `quiet` for one
      * applied again to a rebuilt map, which throws no dust and makes no
@@ -289,6 +297,7 @@ export function createBreakage(opts = {}) {
         pieces.splice(0, pieces.length - PIECES);
       }
       pieceMesh.count = pieces.length;
+      pieceMesh.visible = pieces.length > 0;
       redrawColours();
       pieces.forEach((pc, k) => drawPiece(k, pc));
       pieceMesh.instanceMatrix.needsUpdate = true;

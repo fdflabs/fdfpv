@@ -52,6 +52,7 @@ import { dressParts } from './partsfit.js';
 import { celMaterial } from './celmat.js';
 import { createSmoke } from './smoke.js';
 import { THERMAL, thermalHide } from './thermal.js';
+import { sensorHide } from './sensorview.js';
 import { airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { liveryKey, lookFor, normaliseEntry, paintable } from '../../configs/liveries.js';
 import { unpackEntry } from '../../configs/paint.js';
@@ -131,6 +132,8 @@ function nameTag(height, width) {
    * thermal chunks (src/render/thermal.js), so the IR inset drew the
    * name's colours as temperatures. */
   thermalHide(material);
+  /* Nor in a sensor's own colour picture (src/render/sensorview.js). */
+  sensorHide(material);
   let text = '';
   function set(next) {
     next = String(next || '').slice(0, 32);

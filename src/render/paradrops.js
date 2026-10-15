@@ -47,9 +47,11 @@ export function createParadrops(capacity) {
   );
   for (const m of [boxes, domes, flats]) {
     m.count = 0;
+    m.visible = false;
     m.frustumCulled = false;
     group.add(m);
   }
+  risers.visible = false;
   risers.frustumCulled = false;
   group.add(risers);
 
@@ -140,9 +142,15 @@ export function createParadrops(capacity) {
     boxes.count = nb;
     domes.count = nd;
     flats.count = nf;
+    /* Hidden when empty: three r160 draws an instanced mesh of count 0,
+     * and a draw range of 0, as a call of nothing in every pass (four in
+     * the view, four in the water's mirror, four in the sensor inset,
+     * with no drop down; docs/PERF.md, The war at its peak). */
     for (const m of [boxes, domes, flats]) {
+      m.visible = m.count > 0;
       m.instanceMatrix.needsUpdate = true;
     }
+    risers.visible = nr > 0;
     risers.geometry.setDrawRange(0, nr * 2);
     risers.geometry.attributes.position.needsUpdate = true;
   }
