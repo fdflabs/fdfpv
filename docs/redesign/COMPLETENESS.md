@@ -1370,12 +1370,18 @@ the presses), `interior:debrief` (Next mission sends the next one's
 start), `interior:coop` (Play again, and the other pilot follows; its debrief
 was not open there, so the closing is not yet seen by a check),
 `war:twopage --main` (the banner's presses; Restart, and B follows) and
-`jam:twopage` (Battle again, and B follows), the last four local. Not
+`jam:twopage` (Battle again, and B follows), the last four local.
+**Next mission in the war lobby built** (2026-10-15 batch, w44-warend):
+once the banner's seconds are over the host's lobby has Next mission
+beside Start now after a win, one press to the next mission's briefing,
+the lobby's mission moving with it (src/main.js warNextRows, warNext).
+A won mission's outro plays to its end before the banner and its
+seconds (src/main.js gameLobbyFrame), where the lobby used to come up
+under the film with every press the film's. Held by `war:lobby`
+(local: the row after a win, its press, the outro past the 8 s). Not
 built: Change aircraft on a room's results (a room's aircraft row is in
-its lobby), a Next mission row in the war lobby once the banner's
-seconds are over (its mission row and Start now are two presses), and
-Streamer Combat, whose room goes straight back to its lobby with no end
-screen of its own.
+its lobby), and Streamer Combat, whose room goes straight back to its
+lobby with no end screen of its own.
 
 **77. Party persistence. EXISTS.** The room is the party: its code and
 pilots survive rounds, mission changes and, in private rooms, world

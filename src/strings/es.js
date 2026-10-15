@@ -3810,6 +3810,8 @@ export default {
   "lobby.open_friends": "Quien tenga el código de invitación",
   "lobby.watch": "Mirar en vez de volar",
   "lobby.watch_note": "Deja tu lugar y sigue a los pilotos con una cámara. Sin aeronave, no cuenta para listos.",
+  "lobby.next_mission": "Siguiente misión: {name}",
+  "lobby.next_mission_note": "La misión {n} para todos aquí, primero su introducción. Empezar ya vuelve a volar la que acaban de ganar.",
   "lobby.restart_fresh": "Reiniciar desde el principio",
   "lobby.restart_fresh_note": "La misión otra vez desde la fase 1, primero su introducción, con las tres estrellas en juego. Si no, vuelven a la fase {n}, donde la perdieron: dos estrellas como máximo.",
   "lobby.mission": "Misión",

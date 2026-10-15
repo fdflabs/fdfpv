@@ -3805,6 +3805,8 @@ export default {
   "lobby.open_friends": "Whoever has the invite code",
   "lobby.watch": "Watch instead",
   "lobby.watch_note": "Give up your seat and follow the pilots from a camera. No aircraft, not counted in ready.",
+  "lobby.next_mission": "Next mission: {name}",
+  "lobby.next_mission_note": "Mission {n} for everybody here, its intro first. Start now flies the one just won again.",
   "lobby.restart_fresh": "Restart from the beginning",
   "lobby.restart_fresh_note": "The mission again from stage 1, its intro first, all three stars to win. Otherwise it goes back to stage {n}, where it was lost: two stars at most.",
   "lobby.mission": "Mission",

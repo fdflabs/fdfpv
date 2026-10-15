@@ -31,6 +31,8 @@
  *     fresh. The Spillway the same
  *     (this check's room starts missions in development), and the
  *     campaign's start, its loadout, from the lost stage too.
+ *   After a win the host's lobby has Next mission, one press to the
+ *     next one's briefing, the room's mission moving with it.
  *   Campaign Play makes a lobby too.
  *
  * Pictures of the lobby at 1920 by 1080 and 390 by 844 in outdir (not in
@@ -373,7 +375,8 @@ try {
     const row = (action) => window.__ui.items().find((it) => it.action === action) || null;
     const s = row('friends-war-start');
     const f = row('friends-war-fresh');
-    return { start: s && s.label, fresh: f && { label: f.label, note: f.note } };
+    const n = row('friends-war-next');
+    return { start: s && s.label, fresh: f && { label: f.label, note: f.note }, next: n && n.label };
   })()`;
   const WAR = '(() => { const v = window.__war().view; return { state: v.state, mission: v.mission, restarted: v.restarted ?? null }; })()';
   const press = async (action) => {
@@ -429,6 +432,9 @@ try {
     && under.screen !== 'friends', JSON.stringify(under));
   const wonRows = await hostBack('won');
   check('after the win: Start now, and no Restart from the beginning', wonRows.start === 'Start now' && wonRows.fresh === null, JSON.stringify(wonRows));
+  /* COMPLETENESS 76: the banner's seconds are over, and the lobby has the
+   * host's Next mission, one press, beside Start now. */
+  check('and the host\'s lobby has Next mission: The Spillway, mission 2 being playable here', wonRows.next === 'Next mission: The Spillway', JSON.stringify(wonRows));
   await press('friends-war-start');
   await a.until("window.__war().view.state === 'briefing'", 15000).catch(() => {});
   const afterWin = await a.evaluate(WAR);
@@ -479,6 +485,22 @@ try {
   const spillAgain = await a.evaluate(WAR);
   check('and back on the Spillway, Start now restarts it from the stage it was lost in', spillAgain.state === 'countdown' && spillAgain.mission === 'itaipu-2'
     && spillAgain.restarted === 'channel', JSON.stringify(spillAgain));
+  await endIt();
+  setMission('itaipu-1');
+
+  /* NEXT MISSION from the lobby, one press (COMPLETENESS 76): First Light
+   * won, the host's row starts the Spillway from its briefing, and the
+   * room's mission moves with it. */
+  await flyLive('itaipu-1');
+  winNow(code);
+  const nextRows = await hostBack('won');
+  await press('friends-war-next');
+  await a.until("window.__war().view.state === 'briefing'", 15000).catch(() => {});
+  const nextWar = await a.evaluate(WAR);
+  const nextLine = await a.evaluate("(document.querySelector('.war-lobby-mission') || {}).textContent || ''");
+  check('First Light won again: the host\'s Next mission starts mission 2 from its briefing, the lobby\'s mission now mission 2', nextRows.next === 'Next mission: The Spillway'
+    && nextWar.state === 'briefing' && nextWar.mission === 'itaipu-2' && nextWar.restarted === null && (roomOf(code).core.meta.mission === 'itaipu-2'),
+    JSON.stringify({ nextRows, nextWar, nextLine, meta: roomOf(code).core.meta.mission }));
   await endIt();
   setMission('itaipu-1');
 

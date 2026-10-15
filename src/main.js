@@ -4957,7 +4957,7 @@ export async function boot({
        * host's way to the mission's start instead is a row of its own. */
       rows: (host) => [
         { label: str('lobby.campaign'), note: str('lobby.campaign_note'), action: 'friends-lobby-campaign' },
-        ...(host ? warFreshRows() : []),
+        ...(host ? [...warNextRows(), ...warFreshRows()] : []),
       ],
       line: (lobby) => {
         const mission = WAR_MISSIONS[lobby.mission] ? lobby.mission : roomMission();
@@ -5299,11 +5299,33 @@ export async function boot({
     return next && Object.hasOwn(WAR_MISSIONS, next.id) && campaignRef && campaignRef.playable().includes(next.id) ? next.id : null;
   }
 
+  /* The mission after the one this room just won, which this host may
+   * start, or null: the lobby's Next mission row, standing once the end
+   * banner's seconds are over (COMPLETENESS 76). */
+  function warLobbyNext() {
+    const v = roomWar.view();
+    const id = (campaignRef && campaignRef.selectedMission()) ?? roomMission();
+    return v && v.state === 'won' && v.mission === id ? warNextMission(id) : null;
+  }
+  function warNextRows() {
+    const id = warLobbyNext();
+    return id ? [{
+      label: str('lobby.next_mission', { name: str(`campaign.m.${missionKey(id)}`) }),
+      note: str('lobby.next_mission_note', { n: missionNumber(id) }),
+      action: 'friends-war-next',
+    }] : [];
+  }
+
   /* The next mission at the host's one press: Play's mission in this room
    * moves to it (its loadout said as Play's start says it), else the
-   * room's start as the lobby's. Consent is the caller's. */
+   * room's start as the lobby's. The lobby's mission moves with it, so
+   * its line, Start now and, after its win, Next mission are that one's.
+   * Consent is the caller's. */
   function warNext(id) {
     const how = { intro: WAR_MISSIONS[id].act != null };
+    if (gameLobby() && lobbyGame() === 'war') {
+      roomLinkState.send({ type: 'lobby', op: 'mission', mission: id });
+    }
     if (!campaignRef.follow(id) || !campaignRef.startSelected(how)) {
       roomWar.start(id, how);
     }
@@ -8621,6 +8643,13 @@ export async function boot({
     }
     if (action === 'friends-war-fresh') {
       await warStart(true);
+      return;
+    }
+    if (action === 'friends-war-next') {
+      const id = warLobbyNext();
+      if (id && await warConsented()) {
+        warNext(id);
+      }
       return;
     }
     if (action === 'friends-war-private') {
