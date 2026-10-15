@@ -38,7 +38,7 @@ const DEFAULT_RECORD_KEY = 'webfpv.bestLapMs';
  * far inside the visible opening the craft's centre must stay. A plain
  * object, so an unknown class falls back to full, and a class named after an
  * inherited property gives undefined sizes, as it always has. */
-const CLASS_BOX = {
+export const CLASS_BOX = {
   full: { depth: 0.5, margin: 0.02 },
   wing: { depth: 2.0, margin: 0.02 },
 };

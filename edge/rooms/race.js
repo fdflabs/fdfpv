@@ -27,8 +27,12 @@
  *
  * TIMES. goAt is room clock ms (edge/rooms/core.js roomMs). A racer's
  * times are ms since goAt on the same clock, measured by the racer: the
- * room orders them and does not second guess them, since it cannot see a
- * gate.
+ * room orders them. It cannot see a gate as the racer does, but it holds
+ * the racer's poses, and a pass or finish they contradict is not counted
+ * (edge/rooms/anticheat.js, the witness): a pass is dropped, a finish
+ * retires the racer. A claim the poses have not reached yet waits for
+ * them (pending), so a pass may be relayed a frame or two after it
+ * arrived.
  *
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. What must survive a hibernation
@@ -57,6 +61,8 @@ import { raceGatesOf } from '../../src/builder/course.js';
 import { badWordIn } from '../../tracks-api/words.js';
 import { orderStandings } from '../../src/share/roomrace.js';
 import { sessionOf } from '../../src/share/modes.js';
+import { decodePose } from '../../src/share/roomwire.js';
+import { Witness } from './anticheat.js';
 
 /* Long enough for a pilot on a menu to be put on the start line and see
  * the numbers before they fly. */
@@ -151,6 +157,11 @@ export class RoomRace {
     this.nextId = 1;
     /* seat -> track id its world has seated. Memory only. */
     this.ready = new Map();
+    this.witness = new Witness();
+    /* Claims the witness waits on the racer's poses for, in arrival
+     * order: { kind, seat, conn, race, at, laps, gate, p, heardAt }.
+     * Memory only: a room that slept had nobody racing. */
+    this.pending = [];
   }
 
   restore(saved) {
@@ -160,6 +171,8 @@ export class RoomRace {
     this.track = saved.track ?? null;
     this.race = saved.race ?? null;
     this.nextId = saved.nextId ?? 1;
+    /* A race restored mid way has no count of what was flown before the
+     * room slept, so its witness judges nothing until the next race. */
   }
 
   store() {
@@ -327,6 +340,8 @@ export class RoomRace {
       results: null,
     };
     this.nextId += 1;
+    this.witness.start(this.track.doc, this.race.goAt);
+    this.pending = [];
     return this.changed(core);
   }
 
@@ -342,15 +357,91 @@ export class RoomRace {
     if (!p || p.lap >= r.laps) {
       return [];
     }
-    /* A pass older than the one already held (a reordered retry) is not
-     * news. A lower count at a later time is: a wreck voided the lap. */
-    const held = r.progress[s.seat];
-    if (held && p.t < held.t) {
+    return this.claim(core, {
+      kind: msg.kind, seat: s.seat, conn, race: r.id, at: r.goAt + p.t, laps: p.lap, gate: p.gate, p, heardAt: core.roomMs(now),
+    }, now);
+  }
+
+  /* A pass the witness let through, if the race still wants it. */
+  takePass(core, c) {
+    const r = this.race;
+    if (!r || r.state !== 'on' || r.id !== c.race || r.finish[c.seat] || r.out[c.seat]) {
       return [];
     }
-    r.progress[s.seat] = p;
+    /* A pass older than the one already held (a reordered retry) is not
+     * news. A lower count at a later time is: a wreck voided the lap. */
+    const held = r.progress[c.seat];
+    if (held && c.p.t < held.t) {
+      return [];
+    }
+    r.progress[c.seat] = c.p;
     /* The watchers too: the laps moving in their standings. */
-    return core.roster(conn, JSON.stringify({ type: 'event', kind: msg.kind, seat: s.seat, race: r.id, ...p }));
+    return core.roster(c.conn, JSON.stringify({ type: 'event', kind: c.kind, seat: c.seat, race: r.id, ...c.p }));
+  }
+
+  /* A finish the witness let through, or the racer's retirement when it
+   * refused it. */
+  takeFinish(core, c, refused) {
+    const r = this.race;
+    if (!r || r.state !== 'on' || r.id !== c.race || r.finish[c.seat] || r.out[c.seat]) {
+      return [];
+    }
+    if (refused) {
+      r.out[c.seat] = 'retired';
+    } else {
+      r.finish[c.seat] = { ms: c.p.t, lap: c.p.lap, points: c.p.points };
+    }
+    return [...this.changed(core), ...this.maybeEnd(core)];
+  }
+
+  /* A claim to the witness, behind any of the same racer's still waiting. */
+  claim(core, c, now) {
+    this.pending.push(c);
+    return this.settle(core, now);
+  }
+
+  /* Every waiting claim the witness can now decide, in arrival order; a
+   * racer's claims stay in order behind its first that still waits. */
+  settle(core, now) {
+    const roomNow = core.roomMs(now);
+    const waiting = new Set();
+    const out = [];
+    const keep = [];
+    for (const c of this.pending) {
+      if (!this.race || this.race.id !== c.race || this.race.state !== 'on') {
+        continue;
+      }
+      const verdict = waiting.has(c.seat) ? 'wait' : this.witness.judge({ ...c, finish: c.kind === 'finish' }, roomNow);
+      if (verdict === 'wait') {
+        waiting.add(c.seat);
+        keep.push(c);
+        continue;
+      }
+      const ok = verdict === 'ok';
+      this.witness.record({ seat: c.seat, at: c.at, finish: c.kind === 'finish' }, verdict);
+      if (c.kind === 'finish') {
+        out.push(...this.takeFinish(core, c, !ok));
+      } else if (ok) {
+        out.push(...this.takePass(core, c));
+      }
+    }
+    this.pending = keep;
+    return out;
+  }
+
+  /* A racer's pose, past the room's pose rules (core.js judge): its
+   * witness sample, and whatever waiting claim it decides. */
+  pose(core, s, bytes, now) {
+    const r = this.race;
+    if (!r || r.state !== 'on' || !r.racers.includes(s.seat)) {
+      return [];
+    }
+    const p = decodePose(bytes);
+    if (!p) {
+      return [];
+    }
+    this.witness.sample(s.seat, s.profile && s.profile.airframe, p, core.roomMs(now));
+    return this.pending.length ? this.settle(core, now) : [];
   }
 
   finish(core, s, msg, now) {
@@ -363,12 +454,17 @@ export class RoomRace {
     if (r.finish[s.seat]) {
       return this.broadcast(core, { type: 'race', race: this.view(core) });
     }
+    /* A resent finish the witness is still waiting to judge. */
+    if (this.pending.some((c) => c.kind === 'finish' && c.seat === s.seat && c.race === r.id)) {
+      return [];
+    }
     const p = passOf({ ...msg, gate: 0 }, r.laps);
     if (!p || p.lap !== r.laps) {
       return [];
     }
-    r.finish[s.seat] = { ms: p.t, lap: p.lap, points: p.points };
-    return [...this.changed(core), ...this.maybeEnd(core)];
+    return this.claim(core, {
+      kind: 'finish', seat: s.seat, conn: null, race: r.id, at: r.goAt + p.t, laps: p.lap, gate: 0, p, heardAt: core.roomMs(now),
+    }, now);
   }
 
   /* A seat's socket closed. A racer is out of the race until the same
@@ -413,10 +509,11 @@ export class RoomRace {
   }
 
   tick(core, now) {
+    const out = this.pending.length ? this.settle(core, now) : [];
     const r = this.race;
     if (r && r.state === 'on' && core.roomMs(now) > r.goAt + RACE_MAX_MS) {
-      return this.end(core);
+      return [...out, ...this.end(core)];
     }
-    return [];
+    return out;
   }
 }
