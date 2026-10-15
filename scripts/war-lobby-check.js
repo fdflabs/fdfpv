@@ -239,8 +239,13 @@ try {
 
   /* B FINDS IT AND JOINS. */
   const rowAction = `friends-room-${code}`;
+  /* The rooms panel's All rooms (src/ui/roombrowser.js, lobby:rooms),
+   * as a pilot opens Rooms: the friends way in with the world kept. The
+   * friends way alone seats its own world (swiss2), and the swap that
+   * ends after Rooms opened put B on the title (2 of 3 runs at load 10
+   * to 18, 2026-10-15). */
   const openRooms = async () => {
-    await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");
+    await b.evaluate("(() => { window.__ui.act('lobby:rooms'); return true; })()");
     await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(rowAction)})`, 30000).catch(() => {});
   };
   await openRooms();
