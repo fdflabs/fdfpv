@@ -239,7 +239,6 @@ voice: the one place the rule is not met, and known.
 | itaipu-3-s3-despacho | `voice/en/itaipu-3-s3-despacho.webm`, `voice/en/itaipu-3-s3-despacho.mp3`, `voice/es/itaipu-3-s3-despacho.webm`, `voice/es/itaipu-3-s3-despacho.mp3` |
 | itaipu-3-s3-half | `voice/en/itaipu-3-s3-half.webm`, `voice/en/itaipu-3-s3-half.mp3`, `voice/es/itaipu-3-s3-half.webm`, `voice/es/itaipu-3-s3-half.mp3` |
 | itaipu-3-s3-done | `voice/en/itaipu-3-s3-done.webm`, `voice/en/itaipu-3-s3-done.mp3`, `voice/es/itaipu-3-s3-done.webm`, `voice/es/itaipu-3-s3-done.mp3` |
-| itaipu-3-s3-down | `voice/en/itaipu-3-s3-down.webm`, `voice/en/itaipu-3-s3-down.mp3`, `voice/es/itaipu-3-s3-down.webm`, `voice/es/itaipu-3-s3-down.mp3` |
 | itaipu-3-s3-back | `voice/en/itaipu-3-s3-back.webm`, `voice/en/itaipu-3-s3-back.mp3`, `voice/es/itaipu-3-s3-back.webm`, `voice/es/itaipu-3-s3-back.mp3` |
 | itaipu-3-s3-failed | `voice/en/itaipu-3-s3-failed.webm`, `voice/en/itaipu-3-s3-failed.mp3`, `voice/es/itaipu-3-s3-failed.webm`, `voice/es/itaipu-3-s3-failed.mp3` |
 | itaipu-3-ta-turn | `voice/en/itaipu-3-ta-turn.webm`, `voice/en/itaipu-3-ta-turn.mp3`, `voice/es/itaipu-3-ta-turn.webm`, `voice/es/itaipu-3-ta-turn.mp3` |

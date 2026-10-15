@@ -258,7 +258,12 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 - `contain-river` is DESPACHO's in every mission, as the table says, so
   in missions 1 and 2 DESPACHO speaks before mission 3 introduces it. A
   CREST variant for missions 1 and 2 is proposed below
-  (`contain-river-crest`), text only: not voiced and not wired.
+  (`contain-river-crest`), text only: not voiced and not wired. Held on
+  purpose (w43-voice-orin): voices are built on the Orin now, and a new
+  CREST line in missions 1 and 2 means every CREST line of both built
+  again there (CREDITS.md, Where the voices are built): 50 lines, 31 of
+  them takes a person picked and pinned, 10 of them in the released
+  First Light's and the Spillway's films. That is the owner's to order.
 - A turned group's last leg to the crest is flown by no route check
   (war:routes flies each spawn's own targets).
 
@@ -279,7 +284,7 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 | 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 9 to 13 min |
 | 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min (13.1 to 17.4 measured with bot squads when the face opens: 1.9's closures hold a stage up to 2.5 min each) |
 | 3 | itaipu-3 | Lights Out | Day 1, dusk into dark | decoys; Despacho; lights going out and coming back | 10 to 14 min |
-| 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 11 to 15 min |
+| 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 11 to 16 min |
 | 5 | itaipu-5 | The River Below | Day 2, morning | a new axis; the carrier | 11 to 15 min |
 | 6 | itaipu-6 | The Corridor | Day 2, dusk | towers; spotters; split the squad | 12 to 16 min |
 | 7 | itaipu-7 | Breach | Day 3, before dawn | breachers; the dam opens, or does not | 14 to 20 min |
@@ -326,8 +331,8 @@ branch w39-mission-3):
 
 Mission 3 also lacks what the world does not do yet, so its lines do not
 claim it: spotting (T1.8). Districts coming back after the reroute
-(T1.10) are built since branch w40-grid-restore; one voiced line
-(`itaipu-3-s3-down`) now says otherwise, see M3's as-built notes. The light falling across the mission (T1.11) is built since
+(T1.10) are built since branch w40-grid-restore, and DESPACHO says so
+(`itaipu-3-s3-back`). The light falling across the mission (T1.11) is built since
 branch w39-daynight (14 October): see M3's as-built notes for the lines
 that may now say more. Its release stays `development` (the owner's
 gate).
@@ -724,7 +729,7 @@ Built 14 October, against the code (war:stages flies it on the room;
   nothing of the stage reaches the yard sooner than 99 s after its birth
   (routes.js plans), and at one pilot's pace the swarm arrives 201 to
   233 s in. A yard already down when Reroute opens cannot fail the hold;
-  DESPACHO then says what is true (`itaipu-3-s3-down`).
+  DESPACHO then says what is true (`itaipu-3-s3-back`).
 - **The lights come back, built 14 October (w40-grid-restore, T1.10).**
   The reroute's hold, once done, feeds four of the right bank's towns
   round the yard (`itaipu-3.js` `REROUTED`): the half of the eight the
@@ -736,11 +741,12 @@ Built 14 October, against the code (war:stages flies it on the room;
   nothing changes on screen, and a hit on it in The Dark puts out only
   the other four. A failed hold restores nothing. The yard's own lights
   stay out.
-- **A voiced line is now untrue (blocks the release, not the merge).**
-  `itaipu-3-s3-down`, cued when the hold is done with the yard already
-  down, says "What went dark stays dark tonight". It still plays, since
-  voice builds are paused: its replacement is `itaipu-3-s3-back`
-  (proposed below, not recorded), cued in its place.
+- **The line says what comes back (w43-voice-orin).** When the hold is
+  done with the yard already down, `itaipu-3-s3-back` plays: "Reroute
+  complete. Bringing half the right bank back up. Hernandarias last."
+  (the Spanish opens on the verb and names no town, for the reasons the
+  table's notes give). It replaced `itaipu-3-s3-down`, "What went dark
+  stays dark tonight", voiced before T1.10, which is gone.
 - **Dusk into dark, built 14 October (w39-daynight).** Each Reroute
   twist carries `daytime: { to: 'night', ms: HOLD_MS }`: the room's clock
   runs from the golden hour to night over the four minute hold, without
@@ -750,16 +756,12 @@ Built 14 October, against the code (war:stages flies it on the room;
   its four minutes (a failed hold, cleared early) steps the light from
   where it had got to straight to night as The Dark opens: a visible
   step, the price of a clock that is the stage's.
-- **Lines that may now say more (proposed, not changed: a voice build
-  is the mission lane's).** `itaipu-3-s4-dark` could go back to the
-  table's "Lights are on in town." (the towns are lit when The Dark
-  opens). `itaipu-3-s2-clear` ("The light's going.") stays true.
-  `itaipu-3-s3-back` replaces `itaipu-3-s3-down` (same cue: the hold
-  done with the yard down), now that T1.10 brings half the right bank
-  back: EN "Reroute complete. Bringing half the right bank back up.
-  Hernandarias last." ES "Terminé de redirigir. Vuelvo a encender la
-  mitad de la margen derecha. Los de cerca, al final." (the Spanish opens
-  on the verb and names no town, for the reasons the table's notes give).
+- **The lines that could say more, said (w43-voice-orin).**
+  `itaipu-3-s4-dark` is the table's "Lights are on in town." again (the
+  towns are lit when The Dark opens). `itaipu-3-s2-clear` ("The light's
+  going.") stays true. Both, `itaipu-3-s3-back`, and every other CREST
+  and DESPACHO line of this mission were built on the Orin
+  (CREDITS.md, Where the voices are built).
 - **The Dark has a swarm up the gorge onto the west penstocks.** As
   written above, with nobody flying, the mission was won: the yard and two
   intakes leave 9 800 MW over the 9 700 floor. With the swarm the game is
@@ -836,7 +838,7 @@ and the closure run at the same time.
 | itaipu-3-s3-despacho | stage 3 opens | DESPACHO | calm | Crest, Dispatch. Starting the reroute. I need the yard standing until I call it. | Cresta, Despacho. Empezamos a redirigir. Necesito la subestación en pie hasta que avise. |
 | itaipu-3-s3-half | hold at half | DESPACHO | calm | Halfway. The far towns are moved. Hernandarias is next. | Vamos por la mitad. Los pueblos lejanos ya están. Sigue Hernandarias. |
 | itaipu-3-s3-done | `held` | DESPACHO | calm | Reroute complete. If you lose the yard now, the right bank stays lit. | Redirección completa. Si ahora pierden la subestación, la margen derecha sigue con luz. |
-| itaipu-3-s3-back | `held` after a yard hit | DESPACHO | calm | Reroute complete. Bringing the right bank back up. | Redirección completa. Volviendo a encender la margen derecha. |
+| itaipu-3-s3-back | `held` after a yard hit | DESPACHO | calm | Reroute complete. Bringing half the right bank back up. Hernandarias last. | Terminé de redirigir. Vuelvo a encender la mitad de la margen derecha. Los de cerca, al final. |
 | itaipu-3-ta-turn | twist A | MIRADOR | urgent | Tight pack, all decoys on the scope. That's too neat. One of them is real. | Grupo cerrado, todos señuelos en pantalla. Demasiado prolijo. Uno es real. |
 | itaipu-3-tb-turn | twist B | MIRADOR | urgent | The yard run is noise. Real ones over open water, heading for the west intakes. | Lo de la subestación es ruido. Los reales vienen por agua abierta, hacia las tomas del oeste. |
 | itaipu-3-tc-turn | twist C | MIRADOR | urgent | Contacts on the line corridor, under the wires. | Contactos en el corredor de las líneas, bajo los cables. |
@@ -924,7 +926,7 @@ Built 14 October, against the code (war:stages flies it on the room):
   bot games end between 05:20 and 06:28, and the result stands at the
   hour reached. The world is built at the briefing for both ends; the
   moon stands where the morning's sun will rise.
-- **Twist A, built 14 October (w39-daynight), not drawn.** `itaipu-4.js`
+- **Twist A, built 14 October (w39-daynight), drawn since w43-voice-orin.** `itaipu-4.js`
   `STATION_DARK`: a stage with `stationDark: true`, whose attackers draw
   their error as if every scout were dead, and from whose start the
   dam's own lights (the crest, the powerhouse, the spillway, the dams
@@ -933,21 +935,26 @@ Built 14 October, against the code (war:stages flies it on the room):
   north on the middle intakes as cover, a swarm up the gorge on the
   middle penstocks as the twist (close defence in the dark); objective
   `war.obj.itaipu_4.station`, en and es. war:stages flies it both ways.
-  It is not among the mission's stages yet because its radio is not
-  voiced and the twist is a trade the squad hears made. To draw it: voice
-  `itaipu-4-ta-turn` (the table's), a `-ta-why` and a guide `-g-dark`, add
-  them as its cues, put the stage in `stages` and `'station-dark'` in
-  Hunters' pick, and record war:legacy's itaipu-4 games again (the
-  bots' loiter point is the middle of every wave's targets, so a stage
-  more moves them).
+  Hunters draws it among three (`station-dark`, `towns`, `dark-scout`).
+  Its radio, all CREST, so the twist adds no speaker to the mission:
+  `itaipu-4-ta-turn` (the table's) a second in, as the lights go;
+  `itaipu-4-ta-why` "Now they have to come close to see. Watch the
+  gorge." / "Ahora tienen que acercarse para ver. Atentos al cañón." as
+  the swarm is born; and the guide `itaipu-4-g-dark` "Protect the middle
+  penstocks. The swarm comes up the gorge. Fly low and take it up
+  close." / "Protejan las tuberías del medio. El enjambre sube por el
+  cañón. Vuelen bajo y tómenlo de cerca." 4 s later. war:legacy's
+  itaipu-4 games were recorded again (the bots' loiter point is the
+  middle of every wave's targets, so a stage more moves them).
 - **Lines that may now say more (proposed, not changed).**
   `itaipu-4-s5-near` ("Not long to sunrise now.") is cued 45 s into
   Before Dawn, while the ramp is still full night, so it stays right as
   it is; the table's "sky going grey" would fit a cue some 120 s in.
   `itaipu-4-tc-why` ("before the dawn") and `debrief-itaipu-4-win`
   ("Sunrise") stay true.
-- **Length** 11 to 15 minutes: ten good bot games end 11.0 to 14.9
-  minutes after the go.
+- **Length** 11 to 16 minutes: with twist A in the draw ten good bot
+  games end 12.1 to 15.6 minutes after the go, the closures' waits apart
+  (11.0 to 14.9 before it).
 
 ### The twist (stage 4)
 

@@ -438,7 +438,6 @@ export default Object.freeze({
   'itaipu-3-s3-back': { en: 5.155, es: 5.615 },
   'itaipu-3-s3-despacho': { en: 5.825, es: 6.035 },
   'itaipu-3-s3-done': { en: 5.175, es: 6.535 },
-  'itaipu-3-s3-down': { en: 6.585, es: 6.775 },
   'itaipu-3-s3-failed': { en: 7.155, es: 7.225 },
   'itaipu-3-s3-half': { en: 4.405, es: 3.895 },
   'itaipu-3-s4-all': { en: 4.035, es: 5.795 },

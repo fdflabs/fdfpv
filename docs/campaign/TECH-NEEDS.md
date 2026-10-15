@@ -236,7 +236,7 @@ both deterministic and stored:
   station bus but the two switchyards, which are the grid's) out from
   then with `grid.js` `levelAt`'s flicker (`src/share/war/stationdark.js`).
   M4's twist A is `itaipu-4.js` `STATION_DARK`, flown by `war:stages`
-  both ways, and not yet among the mission's stages: its radio is not
+  both ways, and drawn among The Long Night's twists since its radio was
   voiced (MISSIONS.md M4).
 - `war:grid` gains the restore (the four back after the reroute, in
   order, flickering, bit for bit on two screens, a late joiner agreeing,

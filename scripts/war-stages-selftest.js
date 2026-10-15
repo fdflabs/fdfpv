@@ -59,7 +59,6 @@ import {
 import { missionTime, waveTarget } from '../src/share/war/missions/index.js';
 import { TIME_HOUR, missionClock } from '../src/share/daytime.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
-import { STATION_DARK } from '../src/share/war/missions/itaipu-4.js';
 import { STATION_DARK_DISTRICTS, stationOrder } from '../src/share/war/stationdark.js';
 import { DISTRICTS, FLICKER_MS } from '../src/share/war/grid.js';
 import { released } from '../src/game/campaign.js';
@@ -1686,13 +1685,13 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
     }
     /* The reroute's hold, settled before the stage leaves, its end said
      * once, the right one: held with the yard standing (done), held with
-     * it already down (down), or failed; and the twist's objective on
+     * it already down (back), or failed; and the twist's objective on
      * the HUD only once the twist is born. */
     const inTwist = g.views.filter((v) => v.stage && v.stage.id === twist);
     const state = inTwist.at(-1)?.stage.objectives.find((o) => o.id === 'reroute')?.state;
     const yardDown = Boolean(inTwist[0]?.down?.includes('yard-right'));
-    const ends = said.filter((id) => /^itaipu-3-s3-(done|down|failed)$/.test(id));
-    const told = state === 'failed' ? 'itaipu-3-s3-failed' : yardDown ? 'itaipu-3-s3-down' : 'itaipu-3-s3-done';
+    const ends = said.filter((id) => /^itaipu-3-s3-(done|back|failed)$/.test(id));
+    const told = state === 'failed' ? 'itaipu-3-s3-failed' : yardDown ? 'itaipu-3-s3-back' : 'itaipu-3-s3-done';
     holds.push(`${state}${yardDown ? '(yard down)' : ''}`);
     if ((state !== 'done' && state !== 'failed') || ends.join() !== told) {
       bad.push(`${label}: the hold left ${state}, said ${ends.join(',')}`);
@@ -1799,9 +1798,11 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   /* MISSIONS.md M4 as the room plays it, as the Spillway's above. */
   const mission = MISSIONS['itaipu-4'];
   const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
-  const TWISTS = ['towns', 'dark-scout'];
-  const TWIST = { towns: ['itaipu-4-tb-turn', 'itaipu-4-tb-why'], 'dark-scout': ['itaipu-4-tc-turn', 'itaipu-4-tc-why'] };
-  check('The Long Night plays 5 rounds of its 6 round stages', roundsOf(mission) === 5 && stagesOf(mission).filter((x) => x.round).length === 6,
+  const TWISTS = ['station-dark', 'towns', 'dark-scout'];
+  const TWIST = {
+    'station-dark': ['itaipu-4-ta-turn', 'itaipu-4-ta-why'], towns: ['itaipu-4-tb-turn', 'itaipu-4-tb-why'], 'dark-scout': ['itaipu-4-tc-turn', 'itaipu-4-tc-why'],
+  };
+  check('The Long Night plays 5 rounds of its 7 round stages', roundsOf(mission) === 5 && stagesOf(mission).filter((x) => x.round).length === 7,
     `${roundsOf(mission)}`);
   const games = [];
   for (const pilots of [1, 4]) {
@@ -1918,7 +1919,7 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
     bad.filter((x) => /quiet/.test(x)).join(' | '));
   check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective shown/.test(x)).length === 0,
     bad.filter((x) => /objective shown/.test(x)).join(' | '));
-  check('over the ten games both twists are met', twists.size === 2, [...twists].join(','));
+  check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
   const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
   check('the room\'s clock is the mission\'s light: night, the dawn ramp told as Before Dawn opens, and over the end the hour it reached',
     lightOff.length === 0 && games.every((g) => g.clocks.some((c) => c && c.rate > 0 && c.to === TIME_HOUR.morning + 24)), lightOff.join(' | '));
@@ -1994,12 +1995,11 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
 
 console.log('The Long Night\'s twist A, Station dark, on the room');
 {
-  /* Twist A is not among The Long Night's stages until its radio is
-   * voiced (itaipu-4.js STATION_DARK), so it is flown here as the first
-   * stage of a mission of two (it, then Before Dawn), against twist B the
-   * same way: hovering pilots, the same seed. */
+  /* Twist A (itaipu-4.js STATION_DARK) flown as the first stage of a
+   * mission of two (it, then Before Dawn), against twist B the same way:
+   * hovering pilots, the same seed. */
   const M4 = MISSIONS['itaipu-4'];
-  const of = (id) => (id === STATION_DARK.id ? STATION_DARK : M4.stages.find((x) => x.id === id));
+  const of = (id) => M4.stages.find((x) => x.id === id);
   const pair = (id) => ({ ...M4, id: `itaipu-4-${id}-test`, stages: [of(id), of('before-dawn')] });
   const flown = ['station-dark', 'towns'].map((id) => {
     const mission = pair(id);

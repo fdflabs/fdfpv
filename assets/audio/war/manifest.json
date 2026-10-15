@@ -19092,32 +19092,6 @@
     }
    }
   },
-  "itaipu-3-s3-down.en": {
-   "text": "Reroute complete. What went dark stays dark tonight, but nothing else hangs on that yard.",
-   "speaker": "despacho",
-   "seconds": 6.585,
-   "takes": [
-    {
-     "attempt": 0,
-     "seed": 2594282611,
-     "heard": "Reroute complete. What went dark stays dark tonight, but nothing else hangs on that yard.",
-     "wer": 0.0,
-     "extra": 0,
-     "missing": [],
-     "tail_ms": 0
-    }
-   ],
-   "files": {
-    "webm": {
-     "bytes": 30114,
-     "sha256": "ba4e9322d462b454095878c09ce6fbb3fc9292d5ea1d8845f73cebfcc0e94801"
-    },
-    "mp3": {
-     "bytes": 28628,
-     "sha256": "a27e8e603ca2083f5a78b45d96bc5a8d2840d8faa78ee7f2f2b50051722aa8f5"
-    }
-   }
-  },
   "itaipu-3-s3-back.en": {
    "text": "Reroute complete. Bringing half the right bank back up. Hernandarias last.",
    "speaker": "despacho",
@@ -19155,52 +19129,6 @@
     }
    },
    "machine": "orin"
-  },
-  "itaipu-3-s3-down.es": {
-   "text": "Terminé de redirigir. Lo que se apagó queda a oscuras esta noche, pero ya nada más depende de esa subestación.",
-   "speaker": "despacho",
-   "seconds": 6.775,
-   "takes": [
-    {
-     "attempt": 0,
-     "seed": 1161648190,
-     "heard": "Terminé de redirigir. Lo que se apagó queda a oscuras esta noche, pero ya nada más depende de esa subestación.",
-     "wer": 0.0,
-     "extra": 0,
-     "missing": [],
-     "tail_ms": 640
-    },
-    {
-     "attempt": 1,
-     "seed": 2999400232,
-     "heard": "Terminé de arbedirigir. Lo que se apagó queda a oscuras esta noche, pero ya nada más depende de esa subestación. No.",
-     "wer": 0.1,
-     "extra": 1,
-     "missing": [
-      "redirigir"
-     ],
-     "tail_ms": 0
-    },
-    {
-     "attempt": 2,
-     "seed": 469496266,
-     "heard": "Terminé de redirigir. Lo que se apagó queda a oscuras esta noche, pero ya nada más depende de esa subestación.",
-     "wer": 0.0,
-     "extra": 0,
-     "missing": [],
-     "tail_ms": 0
-    }
-   ],
-   "files": {
-    "webm": {
-     "bytes": 31086,
-     "sha256": "37c3b1e28230b0bdccd12159b08cec7137eb731e92b8904815b788bc1659b7e7"
-    },
-    "mp3": {
-     "bytes": 32300,
-     "sha256": "618a0348a898ecab7bcedbd61f34cd58097af8c37666103abd0e217c38cdef1a"
-    }
-   }
   },
   "itaipu-3-s3-back.es": {
    "text": "Terminé de redirigir. Vuelvo a encender la mitad de la margen derecha. Los de cerca, al final.",

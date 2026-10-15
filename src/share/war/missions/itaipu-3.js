@@ -163,12 +163,11 @@ function reroute(id, twist, objective, cues) {
       { at: 2, radio: 'itaipu-3-g-reroute' },
       { when: { held: 'reroute', f: 0.5 }, radio: 'itaipu-3-s3-half' },
       /* Held with the yard standing, or held with it already down (it
-       * fell before the stage, so nothing could fail the hold). The
-       * second line was voiced before T1.10 and says what went dark stays
-       * dark, which the restore now makes untrue: its replacement,
-       * itaipu-3-s3-back, waits on a voice build (MISSIONS.md M3). */
+       * fell before the stage, so nothing could fail the hold): then
+       * the restore brings half the right bank back (T1.10), and the
+       * line says so. */
       { when: { objective: 'reroute', is: 'done' }, skip: { destroyed: YARD }, radio: 'itaipu-3-s3-done' },
-      { when: { all: [{ objective: 'reroute', is: 'done' }, { destroyed: YARD }] }, radio: 'itaipu-3-s3-down' },
+      { when: { all: [{ objective: 'reroute', is: 'done' }, { destroyed: YARD }] }, radio: 'itaipu-3-s3-back' },
       { when: { objective: 'reroute', is: 'failed' }, radio: 'itaipu-3-s3-failed' },
       ...cues,
       STAGE_LOST,
