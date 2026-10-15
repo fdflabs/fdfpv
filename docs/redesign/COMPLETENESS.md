@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-15, the first verdict
-in each item's heading): 35 EXISTS, 26 BUILT (since built by a phase), 18
+in each item's heading): 35 EXISTS, 27 BUILT (since built by a phase), 17
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -262,7 +262,7 @@ can take the seat back. **Built (phase 21):** 4005 is final, said as
 `friends.failed_replaced`; `rooms:server` drives the browser's own link
 through it, and without the entry the two links trade the seat.
 
-**7. Join in progress rules. PARTIAL.** Per mode, as the checklist asks:
+**7. Join in progress rules. BUILT.** Per mode, as the checklist asks:
 `allowDropIn` in src/share/modes.js (race false; tag, combat, war, free
 true), and `modes:selftest` (CI) asserts race is the only round a
 newcomer waits out. But the field is read by nothing at run time (only
@@ -277,6 +277,10 @@ join reads it through the room's registry and hands it to each game (the
 race's grid, the war's enlist, combat's paper, the Ace's hunters, the
 jam's turns); `rooms:selftest` turns each over, and a newcomer that
 waits a round out has no paper, no hunt and no turn until the next.
+Checked against the tree 2026-10-15 (w43-sessions): one read
+(edge/rooms/core.js join, `dropIn`), and rooms-selftest-gamelobby.js
+flips race, war, combat, tag and jam; free flight has no round to wait
+out, and an ops match (no registry entry yet) always takes a newcomer.
 
 **8. Multiplayer authority. BUILT.** Decided and mostly server side,
 but written down only in file headers. Server: midair collisions
