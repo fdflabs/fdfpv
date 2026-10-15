@@ -97,8 +97,10 @@ voice: the one place the rule is not met, and known.
 
 Built under the rule so far: Lights Out (`itaipu-3`), CREST and
 DESPACHO, and The Long Night (`itaipu-4`), CREST, every line of theirs
-in those missions from the Orin (2026-10-15). The other missions and
-speakers keep their desktop builds.
+in those missions from the Orin (2026-10-15); The River Below
+(`itaipu-5`), new, every line of its own from the Orin (CARANCHO,
+CREST, MIRADOR and TALLER, its story, debriefs, Contain line and film,
+2026-10-15). The other missions and speakers keep their desktop builds.
 
 <!-- voice table: written by tools/voice/check.py --fix from lines.json -->
 | Line | Files |
@@ -149,6 +151,8 @@ speakers keep their desktop builds.
 | debrief-itaipu-3-lose | `voice/en/debrief-itaipu-3-lose.webm`, `voice/en/debrief-itaipu-3-lose.mp3`, `voice/es/debrief-itaipu-3-lose.webm`, `voice/es/debrief-itaipu-3-lose.mp3` |
 | debrief-itaipu-4-win | `voice/en/debrief-itaipu-4-win.webm`, `voice/en/debrief-itaipu-4-win.mp3`, `voice/es/debrief-itaipu-4-win.webm`, `voice/es/debrief-itaipu-4-win.mp3` |
 | debrief-itaipu-4-lose | `voice/en/debrief-itaipu-4-lose.webm`, `voice/en/debrief-itaipu-4-lose.mp3`, `voice/es/debrief-itaipu-4-lose.webm`, `voice/es/debrief-itaipu-4-lose.mp3` |
+| debrief-itaipu-5-win | `voice/en/debrief-itaipu-5-win.webm`, `voice/en/debrief-itaipu-5-win.mp3`, `voice/es/debrief-itaipu-5-win.webm`, `voice/es/debrief-itaipu-5-win.mp3` |
+| debrief-itaipu-5-lose | `voice/en/debrief-itaipu-5-lose.webm`, `voice/en/debrief-itaipu-5-lose.mp3`, `voice/es/debrief-itaipu-5-lose.webm`, `voice/es/debrief-itaipu-5-lose.mp3` |
 | bearing-n | `voice/en/bearing-n.webm`, `voice/en/bearing-n.mp3`, `voice/es/bearing-n.webm`, `voice/es/bearing-n.mp3` |
 | bearing-nw | `voice/en/bearing-nw.webm`, `voice/en/bearing-nw.mp3`, `voice/es/bearing-nw.webm`, `voice/es/bearing-nw.mp3` |
 | bearing-ne | `voice/en/bearing-ne.webm`, `voice/en/bearing-ne.mp3`, `voice/es/bearing-ne.webm`, `voice/es/bearing-ne.mp3` |
@@ -170,6 +174,7 @@ speakers keep their desktop builds.
 | itaipu-2-op | `voice/en/itaipu-2-op.webm`, `voice/en/itaipu-2-op.mp3`, `voice/es/itaipu-2-op.webm`, `voice/es/itaipu-2-op.mp3` |
 | itaipu-3-op | `voice/en/itaipu-3-op.webm`, `voice/en/itaipu-3-op.mp3`, `voice/es/itaipu-3-op.webm`, `voice/es/itaipu-3-op.mp3` |
 | itaipu-4-op | `voice/en/itaipu-4-op.webm`, `voice/en/itaipu-4-op.mp3`, `voice/es/itaipu-4-op.webm`, `voice/es/itaipu-4-op.mp3` |
+| itaipu-5-op | `voice/en/itaipu-5-op.webm`, `voice/en/itaipu-5-op.mp3`, `voice/es/itaipu-5-op.webm`, `voice/es/itaipu-5-op.mp3` |
 | film-itaipu-1-1 | `voice/en/film-itaipu-1-1.webm`, `voice/en/film-itaipu-1-1.mp3`, `voice/es/film-itaipu-1-1.webm`, `voice/es/film-itaipu-1-1.mp3` |
 | film-itaipu-1-2 | `voice/en/film-itaipu-1-2.webm`, `voice/en/film-itaipu-1-2.mp3`, `voice/es/film-itaipu-1-2.webm`, `voice/es/film-itaipu-1-2.mp3` |
 | film-itaipu-1-3 | `voice/en/film-itaipu-1-3.webm`, `voice/en/film-itaipu-1-3.mp3`, `voice/es/film-itaipu-1-3.webm`, `voice/es/film-itaipu-1-3.mp3` |
@@ -312,6 +317,17 @@ speakers keep their desktop builds.
 | itaipu-4-g-yard | `voice/en/itaipu-4-g-yard.webm`, `voice/en/itaipu-4-g-yard.mp3`, `voice/es/itaipu-4-g-yard.webm`, `voice/es/itaipu-4-g-yard.mp3` |
 | itaipu-4-g-scout | `voice/en/itaipu-4-g-scout.webm`, `voice/en/itaipu-4-g-scout.mp3`, `voice/es/itaipu-4-g-scout.webm`, `voice/es/itaipu-4-g-scout.mp3` |
 | itaipu-4-g-all | `voice/en/itaipu-4-g-all.webm`, `voice/en/itaipu-4-g-all.mp3`, `voice/es/itaipu-4-g-all.webm`, `voice/es/itaipu-4-g-all.mp3` |
+| itaipu-5-s0-brief | `voice/en/itaipu-5-s0-brief.webm`, `voice/en/itaipu-5-s0-brief.mp3`, `voice/es/itaipu-5-s0-brief.webm`, `voice/es/itaipu-5-s0-brief.mp3` |
+| itaipu-5-s0-rules | `voice/en/itaipu-5-s0-rules.webm`, `voice/en/itaipu-5-s0-rules.mp3`, `voice/es/itaipu-5-s0-rules.webm`, `voice/es/itaipu-5-s0-rules.mp3` |
+| itaipu-5-s1-swarm | `voice/en/itaipu-5-s1-swarm.webm`, `voice/en/itaipu-5-s1-swarm.mp3`, `voice/es/itaipu-5-s1-swarm.webm`, `voice/es/itaipu-5-s1-swarm.mp3` |
+| itaipu-5-s2-pattern | `voice/en/itaipu-5-s2-pattern.webm`, `voice/en/itaipu-5-s2-pattern.mp3`, `voice/es/itaipu-5-s2-pattern.webm`, `voice/es/itaipu-5-s2-pattern.mp3` |
+| itaipu-5-s3-carrier | `voice/en/itaipu-5-s3-carrier.webm`, `voice/en/itaipu-5-s3-carrier.mp3`, `voice/es/itaipu-5-s3-carrier.webm`, `voice/es/itaipu-5-s3-carrier.mp3` |
+| itaipu-5-s3-order | `voice/en/itaipu-5-s3-order.webm`, `voice/en/itaipu-5-s3-order.mp3`, `voice/es/itaipu-5-s3-order.webm`, `voice/es/itaipu-5-s3-order.mp3` |
+| itaipu-5-s3-dead | `voice/en/itaipu-5-s3-dead.webm`, `voice/en/itaipu-5-s3-dead.mp3`, `voice/es/itaipu-5-s3-dead.webm`, `voice/es/itaipu-5-s3-dead.mp3` |
+| itaipu-5-ta-turn | `voice/en/itaipu-5-ta-turn.webm`, `voice/en/itaipu-5-ta-turn.mp3`, `voice/es/itaipu-5-ta-turn.webm`, `voice/es/itaipu-5-ta-turn.mp3` |
+| itaipu-5-tb-turn | `voice/en/itaipu-5-tb-turn.webm`, `voice/en/itaipu-5-tb-turn.mp3`, `voice/es/itaipu-5-tb-turn.webm`, `voice/es/itaipu-5-tb-turn.mp3` |
+| itaipu-5-tc-turn | `voice/en/itaipu-5-tc-turn.webm`, `voice/en/itaipu-5-tc-turn.mp3`, `voice/es/itaipu-5-tc-turn.webm`, `voice/es/itaipu-5-tc-turn.mp3` |
+| itaipu-5-s4-last | `voice/en/itaipu-5-s4-last.webm`, `voice/en/itaipu-5-s4-last.mp3`, `voice/es/itaipu-5-s4-last.webm`, `voice/es/itaipu-5-s4-last.mp3` |
 | film-itaipu-4-1 | `voice/en/film-itaipu-4-1.webm`, `voice/en/film-itaipu-4-1.mp3`, `voice/es/film-itaipu-4-1.webm`, `voice/es/film-itaipu-4-1.mp3` |
 | film-itaipu-4-2 | `voice/en/film-itaipu-4-2.webm`, `voice/en/film-itaipu-4-2.mp3`, `voice/es/film-itaipu-4-2.webm`, `voice/es/film-itaipu-4-2.mp3` |
 | film-itaipu-4-3 | `voice/en/film-itaipu-4-3.webm`, `voice/en/film-itaipu-4-3.mp3`, `voice/es/film-itaipu-4-3.webm`, `voice/es/film-itaipu-4-3.mp3` |
@@ -319,6 +335,10 @@ speakers keep their desktop builds.
 | film-itaipu-4-o2 | `voice/en/film-itaipu-4-o2.webm`, `voice/en/film-itaipu-4-o2.mp3`, `voice/es/film-itaipu-4-o2.webm`, `voice/es/film-itaipu-4-o2.mp3` |
 | film-itaipu-4-o3 | `voice/en/film-itaipu-4-o3.webm`, `voice/en/film-itaipu-4-o3.mp3`, `voice/es/film-itaipu-4-o3.webm`, `voice/es/film-itaipu-4-o3.mp3` |
 | film-itaipu-4-o4 | `voice/en/film-itaipu-4-o4.webm`, `voice/en/film-itaipu-4-o4.mp3`, `voice/es/film-itaipu-4-o4.webm`, `voice/es/film-itaipu-4-o4.mp3` |
+| film-itaipu-5-1 | `voice/en/film-itaipu-5-1.webm`, `voice/en/film-itaipu-5-1.mp3`, `voice/es/film-itaipu-5-1.webm`, `voice/es/film-itaipu-5-1.mp3` |
+| film-itaipu-5-2 | `voice/en/film-itaipu-5-2.webm`, `voice/en/film-itaipu-5-2.mp3`, `voice/es/film-itaipu-5-2.webm`, `voice/es/film-itaipu-5-2.mp3` |
+| film-itaipu-5-3 | `voice/en/film-itaipu-5-3.webm`, `voice/en/film-itaipu-5-3.mp3`, `voice/es/film-itaipu-5-3.webm`, `voice/es/film-itaipu-5-3.mp3` |
+| film-itaipu-5-4 | `voice/en/film-itaipu-5-4.webm`, `voice/en/film-itaipu-5-4.mp3`, `voice/es/film-itaipu-5-4.webm`, `voice/es/film-itaipu-5-4.mp3` |
 | war-g-next | `voice/en/war-g-next.webm`, `voice/en/war-g-next.mp3`, `voice/es/war-g-next.webm`, `voice/es/war-g-next.mp3` |
 | war-g-clock-1 | `voice/en/war-g-clock-1.webm`, `voice/en/war-g-clock-1.mp3`, `voice/es/war-g-clock-1.webm`, `voice/es/war-g-clock-1.mp3` |
 | war-g-clock-2 | `voice/en/war-g-clock-2.webm`, `voice/en/war-g-clock-2.mp3`, `voice/es/war-g-clock-2.webm`, `voice/es/war-g-clock-2.mp3` |

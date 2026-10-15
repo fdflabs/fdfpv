@@ -42,6 +42,11 @@
  * twice the size is built. The carrier's two hit burn is half its death's
  * pieces on the first hit (src/render/attackers.js hurt), no fire.
  *
+ * THE RADIO is the stages' cues (MISSIONS.md M5 Radio: CARANCHO, CREST,
+ * MIRADOR, TALLER), the countdown's two lines, CARANCHO's and CREST's,
+ * and the debriefs (`radio`). M5 writes no guide lines (`-g-`), so the
+ * mission has none; the nudge is CREST's shared one.
+ *
  * THE DIALS (MISSIONS.md 1.4), as First Light's: each group's time in a
  * window, the carrier's route on the river, the Loiterer's bearing, the
  * Strikers' route, the twist, and twist A's silent hull. `pace` stretches
@@ -139,6 +144,14 @@ const KILL = (done) => ({
   id: 'carrier', text: 'war.obj.itaipu_5.carrier', kind: 'kill', show: { born: { group: 'carrier' } }, done,
 });
 const DOWN = { down: { group: 'carrier' } };
+/* The source's story (MISSIONS.md M5 Radio), from the carrier's birth `at`
+ * seconds on: MIRADOR has it, CREST orders the kill (unless it is already
+ * dead), TALLER marks the kill. */
+const SOURCE_CUES = (at) => [
+  { when: { born: { group: 'carrier' } }, at, radio: 'itaipu-5-s3-carrier' },
+  { when: { born: { group: 'carrier' } }, at: at + 4, radio: 'itaipu-5-s3-order', skip: DOWN },
+  { when: DOWN, radio: 'itaipu-5-s3-dead' },
+];
 
 export default withWaves({
   id: 'itaipu-5',
@@ -165,10 +178,13 @@ export default withWaves({
   airframes: 4,
   /* Day two, the morning (MISSIONS.md M5 "Time: day"; daytime.js). */
   time: 'day',
-  /* The shared calls, as the drill's, until the mission's own are voiced. */
-  radio: { brief: [], win: 'win', lose: 'lose-output' },
+  radio: { brief: ['itaipu-5-s0-brief', 'itaipu-5-s0-rules'], win: 'debrief-itaipu-5-win', lose: 'debrief-itaipu-5-lose' },
   /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
   nudge: true,
+  /* When the face opens (src/share/war/contain.js, MISSIONS.md 1.9): the
+   * mission's own line after the opening is called, CARANCHO's from
+   * downriver. */
+  contain: { op: 'itaipu-5-op' },
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
   adapt: true,
   sectors: {
@@ -190,7 +206,10 @@ export default withWaves({
         },
       ],
       objectives: [{ id: 'penstocks', text: 'war.obj.protect_penstocks', kind: 'protect' }],
-      cues: [STAGE_LOST],
+      cues: [
+        { when: { born: { group: 'swarm' } }, at: 2, radio: 'itaipu-5-s1-swarm' },
+        STAGE_LOST,
+      ],
       exits: exits({ cleared: true }, 'gorge', BEAT(12, 12)),
     },
     {
@@ -206,7 +225,10 @@ export default withWaves({
         },
       ],
       objectives: [{ id: 'penstocks', text: 'war.obj.protect_penstocks', kind: 'protect' }],
-      cues: [STAGE_LOST],
+      cues: [
+        { at: 1, radio: 'itaipu-5-s2-pattern' },
+        STAGE_LOST,
+      ],
       /* Over when the swarm is gone and the Hunters are down or HUNT_S
        * have passed, not while the face is closing (MISSIONS.md 1.9 point
        * 4); then the source, one of its three twists. */
@@ -228,7 +250,15 @@ export default withWaves({
         },
       ],
       objectives: [KILL({ all: [DOWN, { down: { group: 'carrier-2' } }] })],
-      cues: [STAGE_LOST],
+      /* MIRADOR calls the hull "launching" only once one is: the first
+       * hull may be the silent one. */
+      cues: [
+        { when: { born: { group: 'launched' } }, radio: 'itaipu-5-s3-carrier' },
+        { when: { born: { group: 'launched' } }, at: 4, radio: 'itaipu-5-s3-order', skip: { objective: 'carrier', is: 'done' } },
+        { when: { born: { group: 'carrier-2' } }, at: 2, radio: 'itaipu-5-ta-turn' },
+        { when: { objective: 'carrier', is: 'done' }, radio: 'itaipu-5-s3-dead' },
+        STAGE_LOST,
+      ],
       exits: exits({ all: [DOWN, { down: { group: 'carrier-2' } }, { cleared: true }] }, 'clear', BEAT(20, 20)),
     },
     {
@@ -246,7 +276,11 @@ export default withWaves({
         },
       }],
       objectives: [KILL(DOWN)],
-      cues: [STAGE_LOST],
+      cues: [
+        ...SOURCE_CUES(3),
+        { when: { born: { group: 'launched-hunters' } }, radio: 'itaipu-5-tb-turn' },
+        STAGE_LOST,
+      ],
       /* Over when the carrier is dead and nothing is left, or its swarms
        * are gone and HUNT_S have passed: its Hunters, as stage 2's. */
       exits: exits({
@@ -261,7 +295,12 @@ export default withWaves({
       title: 'war.stage.itaipu_5.source',
       spawns: [{ ...CARRIER, launch: { ...LAUNCH, n: 6, per: 2 } }],
       objectives: [KILL(DOWN)],
-      cues: [STAGE_LOST],
+      /* CARANCHO first: the hull is his to mark, then MIRADOR has it. */
+      cues: [
+        { when: { born: { group: 'carrier' } }, at: 1, radio: 'itaipu-5-tc-turn' },
+        ...SOURCE_CUES(3),
+        STAGE_LOST,
+      ],
       exits: exits({ all: [DOWN, { cleared: true }] }, 'clear', BEAT(20, 20)),
     },
     {
@@ -283,7 +322,7 @@ export default withWaves({
         },
       ],
       objectives: [{ id: 'penstocks', text: 'war.obj.protect_penstocks', kind: 'protect' }],
-      cues: [],
+      cues: [{ at: 1, radio: 'itaipu-5-s4-last' }],
       /* The last: lost or held, the mission is won if the output is still
        * over the floor when it ends (as First Light's). */
       exits: exits({ cleared: true }, 'won', 0, 'waves'),

@@ -239,7 +239,7 @@ console.log('data');
    * mission's own for an opening are voice lines. */
   const contained = Object.values(MISSIONS).filter((m) => m.contain);
   const missing = ['contain-breach', 'contain-retarget', 'contain-river', 'contain-half', 'contain-held', 'contain-lost', ...contained.map((m) => m.contain.op)].filter((id) => !lines.has(id));
-  check(`Contain's lines and each of the ${contained.length} missions' own opening line are voice lines`, contained.length === 4 && missing.length === 0, missing.join(', '));
+  check(`Contain's lines and each of the ${contained.length} missions' own opening line are voice lines`, contained.length === 5 && missing.length === 0, missing.join(', '));
 }
 
 check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6, Lights Out 4 of its 6',
@@ -2114,6 +2114,22 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
         bad.push(`${label}: ${twist}: ${hunters.length} Hunters launched, its first swarm killed ${first.every(killed)}`);
       }
     }
+    /* The story (MISSIONS.md M5 Radio): every stage's line, the twist's
+     * own and no other twist's; the source's when it launches (two hulls:
+     * once one does) and its kill's when every hull of it is down. */
+    const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
+    const TWIST_LINES = { 'two-hulls': 'itaipu-5-ta-turn', 'hunters-launched': 'itaipu-5-tb-turn', 'last-bird': 'itaipu-5-tc-turn' };
+    const allKilled = hulls.length && hulls.every((h) => g.dead.some((m) => m.ids.includes(h.id) && ['boom', 'pierce'].includes(m.why)));
+    const want = ['itaipu-5-s1-swarm', 'itaipu-5-s2-pattern', 'itaipu-5-s4-last',
+      ...(twist === 'two-hulls' ? ['itaipu-5-ta-turn', ...(kids.length ? ['itaipu-5-s3-carrier'] : [])] : ['itaipu-5-s3-carrier']),
+      ...(twist === 'last-bird' ? ['itaipu-5-tc-turn'] : []),
+      ...(twist === 'hunters-launched' && kids.some((a) => a.kind === 'hunter') ? ['itaipu-5-tb-turn'] : []),
+      ...(allKilled ? ['itaipu-5-s3-dead'] : [])];
+    const missing = want.filter((id) => !said.includes(id));
+    const others = Object.entries(TWIST_LINES).filter(([k]) => k !== twist).map(([, id]) => id).filter((id) => said.includes(id));
+    if (missing.length || others.length) {
+      bad.push(`${label}: never said ${missing.join(',')}; said another twist's ${others.join(',')}`);
+    }
     /* Two detonations each: a carrier killed by a boom was hurt first. */
     for (const h of hulls) {
       const d = g.dead.find((m) => m.ids.includes(h.id));
@@ -2130,6 +2146,8 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
   check('the twists as M5: two hulls, at most one of them launching; Hunters only once its first swarm is killed; Carancho\'s last bird, every swarm twice the size',
     bad.filter((x) => /two hulls|hunters-launched|last-bird/.test(x)).length === 0, bad.filter((x) => /two hulls|hunters-launched|last-bird/.test(x)).join(' | '));
   check('a carrier killed by warheads took two', bad.filter((x) => /one boom/.test(x)).length === 0, bad.filter((x) => /one boom/.test(x)).join(' | '));
+  check('every stage\'s story said: the swarm, the pattern, the source and its kill, the twist\'s own line and no other twist\'s, the last stage\'s',
+    bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
   const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
   check('the room\'s clock is the mission\'s light, day', lightOff.length === 0, lightOff.join(' | '));

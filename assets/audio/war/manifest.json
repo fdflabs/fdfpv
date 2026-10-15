@@ -30064,6 +30064,1126 @@
     }
    },
    "machine": "orin"
+  },
+  "itaipu-5-s0-brief.en": {
+   "text": "Crest, Carancho. We're out of birds. Falling back. The river is yours.",
+   "speaker": "carancho",
+   "seconds": 5.445,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3531911611,
+     "heard": "Crest, Carancho, we're out of birds, falling back, the river is yours.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24634,
+     "sha256": "519f4051e98a272ca6bf05ba031208b1f4599c02f598b16c8c124429c6d67baa"
+    },
+    "mp3": {
+     "bytes": 24380,
+     "sha256": "a839e6b1e1688a14dd75c9aba09467ef8a4a42a2e3debb9354bc2a47350746ff"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s0-brief.es": {
+   "text": "Cresta, Carancho. Nos quedamos sin aparatos. Nos replegamos. El río es de ustedes.",
+   "speaker": "carancho",
+   "seconds": 6.065,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 62035366,
+     "heard": "Cresta, carancho, nos quedamos sin aparatos, nos replegamos, el río es de ustedes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27392,
+     "sha256": "ab7b7a67d49359f71d32364d1cee64aacc993267bf11a8489dd24940bc100d65"
+    },
+    "mp3": {
+     "bytes": 27356,
+     "sha256": "67661174806ccf6cc08195fa34d3235ed0139f6a46706cf80d53ed77dae22faf"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s0-rules.en": {
+   "text": "Copy, Carancho. Pilots, everything coming up the gorge is ours now.",
+   "speaker": "crest",
+   "seconds": 4.085,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3837213691,
+     "heard": "Copy, Carancho. Pilots, everything coming up the gorge is ours now.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18805,
+     "sha256": "25f4f9fabfa524d0e4b5c63c938fe30a2df2e47e9d8b1e3c6499f16d8a3ad039"
+    },
+    "mp3": {
+     "bytes": 17828,
+     "sha256": "7945df13ffa6afd356c0897fd26141d48474b63c17ee57c620f97d07f15887d6"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s0-rules.es": {
+   "text": "Copiado, Carancho. Pilotos, todo lo que suba por el cañón ahora es nuestro.",
+   "speaker": "crest",
+   "seconds": 4.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1428872372,
+     "heard": "Copiado Carancho Pilotos, todo lo que suba por el cañón ahora es nuestro.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22218,
+     "sha256": "cf9417689140f4533bdf29c3b72670d93b4ec82177ee707dc39064fffe769cf5"
+    },
+    "mp3": {
+     "bytes": 20132,
+     "sha256": "14de506514fd001b77256c67bbd539757b353a201927d03d7a3a3d80ae4c73db"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s1-swarm.en": {
+   "text": "Swarm up the gorge. They'll hug the rims all the way to the face.",
+   "speaker": "mirador",
+   "seconds": 4.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2535944809,
+     "heard": "Swarm up the gorge, they'll hug the rims all the way to the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18957,
+     "sha256": "f6f0bfbf179483584eae624dc53d819e3cf569c2d78459d3ab80629d45fcf85f"
+    },
+    "mp3": {
+     "bytes": 18908,
+     "sha256": "118da29951b87d79208d11c91b68360044955123ef0c64dd55d4860136f4c6fb"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s1-swarm.es": {
+   "text": "Enjambre por el cañón. Van a ir pegados a los bordes hasta la cara.",
+   "speaker": "mirador",
+   "seconds": 4.285,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 729825137,
+     "heard": "Enjambre por el cañón. Van a ir pegados a los bordes hasta la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 260
+    },
+    {
+     "attempt": 1,
+     "seed": 1001963406,
+     "heard": "Enjambre por el cañón. Van a ir pegados a los bordes hasta la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19443,
+     "sha256": "b952e9c75ce585710f3ad1c7ba2386f41033be19b67beaceb7744e0a67251604"
+    },
+    "mp3": {
+     "bytes": 19484,
+     "sha256": "459012d0a454a69c46321918c44e8c6224d1256cab940ffee785a4312d01a3da"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s2-pattern.en": {
+   "text": "They keep coming from the same stretch of river. Something down there is launching them.",
+   "speaker": "mirador",
+   "seconds": 4.995,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1535570915,
+     "heard": "They keep coming from the same stretch of river. Something down there is launching them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22522,
+     "sha256": "4167cc6fe163971778598acb462d9127fc14705366150e68efc60959662d9914"
+    },
+    "mp3": {
+     "bytes": 23156,
+     "sha256": "d00b646bef7ee772b50a9593a446f25b85242192962ad50f4d56dcc4e019e6c9"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s2-pattern.es": {
+   "text": "Siguen saliendo del mismo tramo del río. Algo allá abajo los está lanzando.",
+   "speaker": "mirador",
+   "seconds": 4.705,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4114021330,
+     "heard": "Siguen saliendo del mismo tramo del río. Algo allá abajo los está lanzando.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21310,
+     "sha256": "cfe4a7918afdd2a3dea6e591f3436bbb2e57f84011075aed5884fb18969ff25e"
+    },
+    "mp3": {
+     "bytes": 20084,
+     "sha256": "bc02b9c6a31bfc6b6ff14f92883bf0c51f5d47dc856dc7aa85064d4c9180af5b"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s3-carrier.en": {
+   "text": "Got it. A big hull on the river. It's launching.",
+   "speaker": "mirador",
+   "seconds": 3.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 639357913,
+     "heard": "Got it. A big hull on the river. It's launching.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15067,
+     "sha256": "e93c83e6ee39091335da1ca1612f8a7d7e21087109c801c1e65e04478efb46b6"
+    },
+    "mp3": {
+     "bytes": 15236,
+     "sha256": "91e2ca8c5900a70b9caea5e168200177fa1ee1841578c61cd393385f988abba1"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s3-carrier.es": {
+   "text": "Lo tengo. Un casco grande en el río. Está lanzando.",
+   "speaker": "mirador",
+   "seconds": 3.355,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 374341940,
+     "heard": "Lo tengo, un casco grande en el río, está lanzando.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 360
+    },
+    {
+     "attempt": 1,
+     "seed": 3872971224,
+     "heard": "Lo tengo, un casco grande en el río, está lanzando.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15382,
+     "sha256": "9b3434163481dce1265e5a555912c41e47635cb92b467ec61d706f61e7ef60e3"
+    },
+    "mp3": {
+     "bytes": 14876,
+     "sha256": "420a3759ceb568a66f0291b47299be314c7595c2669834b7ba3499b50d70f6fd"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s3-order.en": {
+   "text": "Kill the source. One hit won't do it.",
+   "speaker": "crest",
+   "seconds": 2.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 314822614,
+     "heard": "Kill the source. One hit won't do it. Won't do it.",
+     "wer": 0.375,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3890638922,
+     "heard": "Kill the source. One hit won't do it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11955,
+     "sha256": "d2e554ca7796fe14e8f292f255bd5ddd979098e7653622bde10e4eea89c9ccf8"
+    },
+    "mp3": {
+     "bytes": 11684,
+     "sha256": "1215a8c7ee0a7d9a75b427c454ca94aebe1dd0f8e16bde6bdbc65adb59aec0b6"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s3-order.es": {
+   "text": "Maten el origen. Con un impacto no alcanza.",
+   "speaker": "crest",
+   "seconds": 3.295,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 199901838,
+     "heard": "maten el origen. Con un impacto, no alcanza.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15203,
+     "sha256": "f5650f7d2e60fbbeabbda8e02a6ea552b2a333292f9749ecbc068f330c03e77e"
+    },
+    "mp3": {
+     "bytes": 13868,
+     "sha256": "afcafed7ad7682ca455008e0d7e79ec032163df5c17d497d43e59b410e29b0bd"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s3-dead.en": {
+   "text": "That's the nest. Aguyje.",
+   "speaker": "taller",
+   "seconds": 2.415,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1251177475,
+     "heard": "That's the nest. Aguije.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11138,
+     "sha256": "67de9c84fda7d1a81f883a05a33bb5ec109d6b95d4b59cd6facac07949a91d3c"
+    },
+    "mp3": {
+     "bytes": 11660,
+     "sha256": "fe33e5c8170b7513744f7b0dbae09b0e00a3d0f3c8bf65f19dcebd30a68b869b"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s3-dead.es": {
+   "text": "Ese era el nido. Aguyje.",
+   "speaker": "taller",
+   "seconds": 2.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 893368531,
+     "heard": "Ese era el nido. Aguje.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10741,
+     "sha256": "27ad6c5b223dbf2fbb7995fe1f50d4cd79cca843241c414f65b1b19a6d828f04"
+    },
+    "mp3": {
+     "bytes": 11276,
+     "sha256": "bf52ea15be429ee6741fa8d04dd66b622b5ec5f60530ce81da21b2064d9e028b"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-ta-turn.en": {
+   "text": "A second hull. One of them isn't launching anything.",
+   "speaker": "mirador",
+   "seconds": 3.565,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3158705737,
+     "heard": "A second hull. One of them isn't launching anything.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16201,
+     "sha256": "d783b54459701c967bf3bfbff3feee413552badfd5ac8f12ebfaa90798f86900"
+    },
+    "mp3": {
+     "bytes": 16148,
+     "sha256": "d0be7914e24835ebaf4d2dc7ca9d19864b1a409f67122c0ebddd7967909be998"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-ta-turn.es": {
+   "text": "Un segundo casco. Uno de los dos no lanza nada.",
+   "speaker": "mirador",
+   "seconds": 4.445,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1742347738,
+     "heard": "Un segundo casco. Uno de los dos no lanza nada.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 110
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20008,
+     "sha256": "510a176101b512b308a520e8c4557ab2cd7247e304fabd33260eb2d7c84b2326"
+    },
+    "mp3": {
+     "bytes": 18932,
+     "sha256": "10310840470e5b7736e6fb55d99d2236ecf198f6d0abc9116cb85dc2129f7261"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-tb-turn.en": {
+   "text": "It's launching Hunters now. They want you.",
+   "speaker": "mirador",
+   "seconds": 2.835,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3043565392,
+     "heard": "It's launching hunters now. They want you.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13046,
+     "sha256": "66df9e0508aff4f406d09eb5cdb833b25f595097a1402faed57ba7797db54d81"
+    },
+    "mp3": {
+     "bytes": 13556,
+     "sha256": "448421f25106869b8855ee4d2257f3fa9b5f1766e21628ac49de88c2efd7b387"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-tb-turn.es": {
+   "text": "Ahora está lanzando cazadores. Los quieren a ustedes.",
+   "speaker": "mirador",
+   "seconds": 3.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1329195575,
+     "heard": "Ahora está lanzando cazadores. Los quieren a ustedes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15135,
+     "sha256": "e2b61a78e973735aee60ecf9c52eb7b899b95f90364c96983fc625921a6a6cda"
+    },
+    "mp3": {
+     "bytes": 14708,
+     "sha256": "fd17d7f2eb324186d53e38e9e53961a611962b3ba0d0a9fda33b6d949582928f"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-tc-turn.en": {
+   "text": "Crest, Carancho. One last bird up. I've got eyes on the hull, marking it. Beleza, go.",
+   "speaker": "carancho",
+   "seconds": 5.635,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4122160922,
+     "heard": "Crest, Karin show, one last bird up, I've got eyes on the hull, marking it, Beliza go,",
+     "wer": 0.125,
+     "extra": 1,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 30488223,
+     "heard": "Crest, Carancho, one last bird up, I've got eyes on the hull marking it, Beliza, go!",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25592,
+     "sha256": "da29e6ff0e2f1f182304e9212cd2cde610be4144bc6dd03b203bca2be209722d"
+    },
+    "mp3": {
+     "bytes": 26444,
+     "sha256": "db6151446bb9e2a75c26668642c9d1e626147c9cfe14d42268161681201202ea"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-tc-turn.es": {
+   "text": "Cresta, Carancho. Último aparato arriba. Tengo el casco a la vista, lo marco. Beleza, vayan.",
+   "speaker": "carancho",
+   "seconds": 5.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3898255229,
+     "heard": "cresta carancho último aparato arriba tengo el casco a la vista lo marco belleza vayan",
+     "wer": 0.067,
+     "extra": 0,
+     "missing": [
+      "beleza"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1468691346,
+     "heard": "Cresta. Carancho. Último aparato arriba. Tengo y casco a la vista. Lo marco. Beleza. Vayan.",
+     "wer": 0.067,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26766,
+     "sha256": "3a9fe9c5a5e4b2088755c126b5949ea2e25889396d461877586a7fe0d8c5b475"
+    },
+    "mp3": {
+     "bytes": 27404,
+     "sha256": "0c30b26adbb34fa641554b975fe46aaeaa0d329f1a8a22b0e35900594ed73060"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s4-last.en": {
+   "text": "Whatever it launched is still coming. Clear the river.",
+   "speaker": "crest",
+   "seconds": 3.075,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3859408645,
+     "heard": "Whatever it launched is still coming, clear the river.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14226,
+     "sha256": "5b1e708b17773d94f6f9f41bae335a4f0a505e1b238616e02b70d79ef87113bb"
+    },
+    "mp3": {
+     "bytes": 12596,
+     "sha256": "5d8d8ebd5d56aa87060b0071ccbd0668ac67d4b0cc5646e583a1df8d3d526118"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s4-last.es": {
+   "text": "Lo que lanzó todavía viene. Limpien el río.",
+   "speaker": "crest",
+   "seconds": 3.635,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1167850716,
+     "heard": "Lo que lanzó todavía viene, limpia en el río.",
+     "wer": 0.25,
+     "extra": 1,
+     "missing": [
+      "limpien"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1874177517,
+     "heard": "lo que lanzó todavía viene limpia en el río",
+     "wer": 0.25,
+     "extra": 1,
+     "missing": [
+      "limpien"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 377847901,
+     "heard": "Lo que lanzó todavía viene. Limpien el río.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16816,
+     "sha256": "d3307e04d8997baeecde760a0cb7e9445b9804ce14ead0c514f2f6ef5532de44"
+    },
+    "mp3": {
+     "bytes": 15548,
+     "sha256": "e6f97628076823c2ab2dd06a9773b575687896e3d7f8e3b8e398e8f00b4ced68"
+    }
+   },
+   "machine": "orin"
+  },
+  "debrief-itaipu-5-win.en": {
+   "text": "Crest, Carancho. River's quiet. Thanks for covering us.",
+   "speaker": "carancho",
+   "seconds": 3.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4050829939,
+     "heard": "Crest Currancho. River's quiet. Thanks for covering us.",
+     "wer": 0.125,
+     "extra": 0,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2698780645,
+     "heard": "Crest, Carancho, River's Quiet. Thanks for covering us.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17373,
+     "sha256": "12130f2a4d9c83722c31c066538c0b722b94bea0966d65a7b578b75c48c5a311"
+    },
+    "mp3": {
+     "bytes": 17828,
+     "sha256": "980e6adaff01a97ffed17b1bb75325aa4db57ad0ca283146967295fe1e5d9f6f"
+    }
+   },
+   "machine": "orin"
+  },
+  "debrief-itaipu-5-win.es": {
+   "text": "Cresta, Carancho. El río está tranquilo. Gracias por cubrirnos.",
+   "speaker": "carancho",
+   "seconds": 3.725,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1426840458,
+     "heard": "Cresta, Carancho, el río está tranquilo, gracias por cubrirnos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17117,
+     "sha256": "36d5a0a412db1f0d05952fb12ec051f000573b42df3d514b190612bba85c75a3"
+    },
+    "mp3": {
+     "bytes": 17924,
+     "sha256": "451446164933b0fc317c36c8c6e6d9d2250e78a4bce60d89b7d5ccf57b6dc6f5"
+    }
+   },
+   "machine": "orin"
+  },
+  "debrief-itaipu-5-lose.en": {
+   "text": "The face took too much. Pull back to the crest.",
+   "speaker": "crest",
+   "seconds": 3.215,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2782114917,
+     "heard": "The face took too much, pull back to the crest.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14742,
+     "sha256": "3cd7f9d3990c2338c65bc129daae24e1ba6c6095319fa1603c06ee000d798c8f"
+    },
+    "mp3": {
+     "bytes": 13412,
+     "sha256": "ff297946a95b9f8f39292dc5506d794ff8d49f40218e10cc55a0ebddf26413d4"
+    }
+   },
+   "machine": "orin"
+  },
+  "debrief-itaipu-5-lose.es": {
+   "text": "La cara recibió demasiado. Repliéguense a la cresta.",
+   "speaker": "crest",
+   "seconds": 3.475,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3419061288,
+     "heard": "La cara recibió demasiado. Repliéguense a la cresta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16066,
+     "sha256": "c624b8184ae26c2abd16ddcfb342eb039fabdc4f1cbec8f5a7a66f80412737ed"
+    },
+    "mp3": {
+     "bytes": 15524,
+     "sha256": "2e5e2e8f0a03e48c029d6758ad7a792992d759bd5d3c80938525022d4040018c"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-op.en": {
+   "text": "Crest, Carancho. Water coming down the gorge. We're clear of the bank. Close it.",
+   "speaker": "carancho",
+   "seconds": 4.325,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1819742805,
+     "heard": "Crest, Karin Cho, water coming down the gorge. We're clear of the bank. Close it.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 774621000,
+     "heard": "Crest, Karen Cho, water coming down the gorge, we're clear of the bank, close it.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2031666067,
+     "heard": "Crest, Karen Cho, water coming down the gorge, we're clear of the bank, close it.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 4163984202,
+     "heard": "Crest, Carrancho. Water coming down the gorge. We're clear of the bank. Close it.",
+     "wer": 0.071,
+     "extra": 0,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 2875270014,
+     "heard": "Crest, Karen, Cho, water coming down the gorge, we're clear of the bank, close it.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 5,
+     "seed": 2350454665,
+     "heard": "Crest, Car and Cho, water coming down the gorge, we're clear of the bank, close it. Ah.",
+     "wer": 0.286,
+     "extra": 3,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 6,
+     "seed": 138173653,
+     "heard": "Crest, Carancho, water coming down the gorge. We're clear of the bank. Close it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19719,
+     "sha256": "185b76b3238baba1728a847b898e97d8a3103c65135ca541ddeeb74b79f248cc"
+    },
+    "mp3": {
+     "bytes": 20876,
+     "sha256": "36af94c763d994e00bfce8da47135b9ebb07bb39aa19266a66d13556987fdc52"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-op.es": {
+   "text": "Cresta, Carancho. Baja agua por el cañón. Estamos lejos de la orilla. Ciérrenla.",
+   "speaker": "carancho",
+   "seconds": 4.825,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3349584175,
+     "heard": "Cresta, carancho, baja agua por el cañón. Estamos lejos de la orilla, ciérrenla.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22015,
+     "sha256": "12c8a079c50673fe965a9f334a1935198ea68fb0abcbc640fd25247a0753834a"
+    },
+    "mp3": {
+     "bytes": 22892,
+     "sha256": "1ef1c6545568dabd877821599e91c15c9b23a5e1f3f05d1a4c16c6dad4238146"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-1.en": {
+   "text": "Crest, Carancho. That's the last of our birds. We can't hold the river.",
+   "speaker": "carancho",
+   "seconds": 4.435,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1793688696,
+     "heard": "Crest, Carancho, that's the last of our birds, we can't hold the river.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20211,
+     "sha256": "c71330c6965113de1d4f82fe7783236ca1fe21571afb7bdcbfb407d0f15894b9"
+    },
+    "mp3": {
+     "bytes": 20516,
+     "sha256": "8c52862e59fbff2922fb4a1f080286457dac97f0783f80193b60ea09a18d5ab2"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-1.es": {
+   "text": "Cresta, Carancho. Ese fue nuestro último aparato. No podemos sostener el río.",
+   "speaker": "carancho",
+   "seconds": 5.405,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 990804066,
+     "heard": "Cresta Carancho, ese fue nuestro último aparato. No podemos sostener el río.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24562,
+     "sha256": "5b08aa7c0f959ffa100f78555a4383a304b373fdd8d0dd4af3766f5ac8be05fa"
+    },
+    "mp3": {
+     "bytes": 24044,
+     "sha256": "0a1cce601b04a94cb949e29534ac73d94910cfd4695048209f05294ee69d13e5"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-2.en": {
+   "text": "Copy. Everything coming up the gorge is ours.",
+   "speaker": "crest",
+   "seconds": 3.245,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1708948091,
+     "heard": "Copy. Everything coming up the gorge is ours.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14949,
+     "sha256": "50df9521a0b9d71d96460d9e37f5d829d6be5f9c554ab68f3d92d4df660bd1e0"
+    },
+    "mp3": {
+     "bytes": 13988,
+     "sha256": "30844e5b267ec4ab8a7528add63123bf2435b9fc6ce7b427ace31e454bd25e61"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-2.es": {
+   "text": "Copiado. Todo lo que suba por el cañón es nuestro.",
+   "speaker": "crest",
+   "seconds": 3.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1654121029,
+     "heard": "Copiado. Todo lo que suba por el cañón es nuestro.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15197,
+     "sha256": "961afe72c1bb6d1ec1eb2faad6499a3f9cf29a71bed2347c819a807282a263bb"
+    },
+    "mp3": {
+     "bytes": 14036,
+     "sha256": "3ab95edae0e3ef2f75e40ea88b9eef3dd5905bec7f59bb77d43742093f446b7f"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-3.en": {
+   "text": "They all start from the same stretch of river. Something is launching them.",
+   "speaker": "mirador",
+   "seconds": 4.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2224177060,
+     "heard": "They all start from the same stretch of river, something is launching them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19723,
+     "sha256": "43b8a3a6290b8439f21d4d032ca45cbeef86340a7a68c054a45fa66998d4effd"
+    },
+    "mp3": {
+     "bytes": 19196,
+     "sha256": "a847685a9ce290c52c1039f83744744e90bfa89321c0dc0f1ec2615f8bfe46ed"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-3.es": {
+   "text": "Todos salen del mismo tramo del río. Algo los está lanzando.",
+   "speaker": "mirador",
+   "seconds": 4.195,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2873557396,
+     "heard": "Todos salen del mismo tramo del río. Algo los está lanzando.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19093,
+     "sha256": "21260d36b9ee1d874d36b0aad85d1ebe11c173fca3fd8c27151acd371eb9ef62"
+    },
+    "mp3": {
+     "bytes": 18740,
+     "sha256": "7825de6612804f719d48af69a0d8396906ec6bb1532af8a4fe35fe502fd82499"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-4.en": {
+   "text": "Find the source.",
+   "speaker": "crest",
+   "seconds": 1.615,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2658395715,
+     "heard": "Find the source.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7756,
+     "sha256": "629ca0612e554c9c4a6ad28d6a3c019e31187ea3ff59b35988a1b63a022d9ef2"
+    },
+    "mp3": {
+     "bytes": 7388,
+     "sha256": "24b9c9210b7acdf3cae5f96d3e4648c4ea7d085aee8b7be7cbded76c0c086400"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-4.es": {
+   "text": "Encuentren el origen.",
+   "speaker": "crest",
+   "seconds": 1.635,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2858181411,
+     "heard": "Encuentren el origen.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7785,
+     "sha256": "db86253e3dc555c6b4e67d4b8280590c4842a5632408987254d75b4aba681047"
+    },
+    "mp3": {
+     "bytes": 7964,
+     "sha256": "abece4c9a7bf8c33f0fc5eb1e5c295d7d343ad5f650af15aac2a95516183dd63"
+    }
+   },
+   "machine": "orin"
   }
  },
  "models": {
