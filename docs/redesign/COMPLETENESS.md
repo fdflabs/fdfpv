@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
+in each item's heading): 35 EXISTS, 26 BUILT (since built by a phase), 18
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -1171,7 +1171,7 @@ picture field: the picker and the hangar draw the model. Checks:
 campaign.js reaches the ops registry), `airframes:check`,
 `aircraft:folder`, `war:stages` (CI).
 
-**81. Feature flags. PARTIAL, missions BUILT (phase 26).** No flags
+**81. Feature flags. BUILT (phase 26).** No flags
 system, decided by the author: one place to hide a row is enough. A war
 mission's gate is its file's `release` (available, development, soon;
 the owner's 2026-10-04 rule), an Interior mission's is its row's `release` in
@@ -1184,7 +1184,17 @@ be switched off (`?rooms=off`). **Built (w38-sessions):** a `hidden`
 field on the mode registry's rows (src/share/modes.js), false on every
 row today; a hidden row draws no card (src/ui/ways.js gateWays) and is
 never home's Continue, and `modes:selftest` (CI) hides the race in a
-registry of its own and sees Track Day's card go and no other.
+registry of its own and sees Track Day's card go and no other. Asked
+again on 2026-10-14 (w43-telemetry: one registry of the non-mission
+flags, read at boot, with `?dev` overrides) and not built, with the
+author's decision kept: the non-mission switches this item names each
+have one home and a check already, the `hidden` field on the mode
+registry (`modes:selftest`), an upgrade's `later` on its row (src/game/campaign.js
+UPGRADES) and the rooms server's `?rooms=off` (src/share/rooms.js), and
+no row is hidden today, so a second registry would be a second place to
+hide the same row with nothing to switch. A `?dev` override of `hidden`
+is worth its line the day a row ships hidden. Checks: `modes:selftest`,
+`campaign:selftest` (CI).
 
 **82. No silent placeholders. EXISTS.** What is not built says so and is
 disabled: "Coming soon" on an unbuilt mission (`campaign.not_built`,
