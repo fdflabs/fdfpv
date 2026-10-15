@@ -475,6 +475,35 @@ export const dialogMethods = {
     });
   },
 
+  /* Something the pilot is told, with one button to close it: Enter and
+   * Escape close it too, after the same deaf period as askConfirm's.
+   * Resolves when it closes. */
+  askNotice({ title, detail, ok }) {
+    return new Promise((resolve) => {
+      this.nameWait = resolve;
+      const box = el('div', 'name-dialog-box notice');
+      box.append(el('h2', null, title));
+      box.append(el('p', 'lede', detail));
+      const okBtn = btn('name-dialog-btn on', ok || str('ui.got_it'));
+      box.append(buttonRow(okBtn));
+      present(this, box);
+      const openedAt = performance.now();
+      const close = () => {
+        if (performance.now() - openedAt >= CONFIRM_DEAF_MS) {
+          this.closeNameDialog(true);
+        }
+      };
+      holdKeys(this, (e) => {
+        if (e.key === 'Enter' || e.key === 'Escape') {
+          swallow(e);
+          close();
+        }
+      });
+      okBtn.addEventListener('click', close);
+      okBtn.focus();
+    });
+  },
+
   /*
    * Raised by the camera angle stepper once per session, crossing upward
    * past the tilt where yaw rolls the horizon hard, when the yaw rate is

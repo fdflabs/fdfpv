@@ -352,6 +352,7 @@ import { createFpvFail } from './render/fpvfail.js';
 import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
 import { crashRecord } from './share/crashrecord.js';
+import { saveNotice } from './share/save.js';
 import { reportPageErrors } from './share/clientreport.js';
 import { devHooks } from './share/devhooks.js';
 import { stateHash } from './replay/recorder.js';
@@ -693,7 +694,7 @@ async function loadMap(shell, id, loading, options) {
 }
 
 export async function boot({
-  loading, bootStart, mapId, titleMap, retiredFrom,
+  loading, bootStart, mapId, titleMap, retiredFrom, saveReport = null,
 }) {
   const BOOT_START = bootStart ?? performance.now();
   /* Ordering matters: pingVisit strips every utm_ parameter from the
@@ -3218,9 +3219,10 @@ export async function boot({
    * the default; the other answer is the freestyle room, where the worlds
    * that are left are cards.
    */
+  let bootAsked = Promise.resolve();
   if (retiredFrom) {
     const gone = retiredMap(retiredFrom);
-    ui.askConfirm({
+    bootAsked = ui.askConfirm({
       title: str('main.that_world_was_retired'),
       detail: str('main.that_map_was_retired', { map: str(gone.name), now: mapById(gone.to).name }),
       yes: str('main.stay_here'),
@@ -3230,6 +3232,23 @@ export async function boot({
         ui.show('freestyle');
       }
     });
+  }
+  /*
+   * Saved data boot.js found broken (src/share/save.js openSave): said
+   * once, in a dialog for the same reason as the retired world's, after
+   * it, since one dialog is up at a time. What was put back and what
+   * starts fresh are named; the report itself is already in the bug
+   * report's log (boot.js openStorage).
+   */
+  const saveSaid = saveReport ? saveNotice(saveReport) : null;
+  if (saveSaid) {
+    const parts = (ids) => ids.map((id) => str(id)).join(', ');
+    const detail = [
+      saveSaid.restored.length ? str('save.notice_restored', { parts: parts(saveSaid.restored) }) : '',
+      saveSaid.lost.length ? str('save.notice_lost', { parts: parts(saveSaid.lost) }) : '',
+      str('save.notice_kept'),
+    ].filter(Boolean).join(' ');
+    bootAsked.then(() => ui.askNotice({ title: str('save.notice_title'), detail, ok: str('ui.got_it') }));
   }
   loading.start('frame');
 

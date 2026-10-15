@@ -233,6 +233,36 @@ console.log('a broken blob is kept as .corrupt and its backup put back');
   }
 }
 
+console.log('the pilot is told once what was put back and what starts fresh');
+{
+  const good = FIXTURE['v3-profile'];
+  const en = (await import('../src/strings/en.js')).default;
+  const es = (await import('../src/strings/es.js')).default;
+  for (const { key, part } of Object.values(save.SECTIONS).flat().filter((e) => e.shape)) {
+    check(`${key} is named to the pilot in en and es`, Boolean(part && en[part] && es[part]), part);
+  }
+  for (const id of ['save.notice_title', 'save.notice_restored', 'save.notice_lost', 'save.notice_kept']) {
+    check(`${id} is in en and es`, Boolean(en[id] && es[id]));
+  }
+  check('a clean boot says nothing', save.saveNotice(save.openSave(new Storage(good))) === null);
+  {
+    const store = new Storage(good);
+    save.openSave(store);
+    store.setItem(SETTINGS_KEY, '{"airframe":');
+    store.setItem('webfpv.builds.v1', '[]');
+    store.removeItem('webfpv.builds.v1.prev');
+    const said = save.saveNotice(save.openSave(store));
+    check('a blob put back is said as put back', show(said?.restored) === show(['save.part_settings']), show(said));
+    check('a blob with no backup is said as starting fresh', show(said?.lost) === show(['save.part_builds']), show(said));
+    const again = save.openSave(store);
+    check('the next boot says nothing', save.saveNotice(again) === null, show(again));
+    check('though the blob still broken is still reported', again.quarantined.includes('webfpv.builds.v1') && again.known.includes('webfpv.builds.v1'));
+    check('and its .corrupt is the broken text', store.getItem('webfpv.builds.v1.corrupt') === '[]');
+    store.setItem('webfpv.builds.v1', '"other"');
+    check('a blob broken differently is said again', show(save.saveNotice(save.openSave(store))?.lost) === show(['save.part_builds']));
+  }
+}
+
 console.log('a newer save and refusing storage are left alone');
 {
   const store = new Storage({ ...FIXTURE['v3-profile'], [save.VERSION_KEY]: String(save.SAVE_VERSION + 1), [SETTINGS_KEY]: '{broken' });

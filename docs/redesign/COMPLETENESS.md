@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
+in each item's heading): 35 EXISTS, 26 BUILT (since built by a phase), 18
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -157,7 +157,25 @@ the save (built), and `save:selftest` asserting each trigger writes
 card; its Node half is `campaign:selftest`'s (paid once across a
 reload), and The Interior's is `interior:coop`'s. Phase 19.
 
-**3. Recovery from corrupted saves. PARTIAL.** Every read is still
+**3. Recovery from corrupted saves. BUILT (phase 19).** Built
+(2026-10-15 batch, w43-saves): the pilot is told. boot.js hands
+`openSave`'s report to main.js, which shows it once in a dialog (after
+the retired world's, one dialog at a time; ui.askNotice, one button,
+src/ui/dialogs.js) in the pilot's language: what was put back from its
+last good copy and what starts fresh with none, each blob named in
+plain words (save.js SECTIONS `part`: the settings, progress and
+campaign; voice chat choices; stick calibration; joystick choice; the
+planes in My Hangar), and that the unreadable copy is kept in this
+browser (save.js `saveNotice`). Once: a blob with no backup stays
+broken until its reader next writes, so `openSave` reports a broken
+text already kept as `.corrupt` as `known`, and `saveNotice` says only
+what is new. Held by `save:selftest` (CI: each part named in en and es,
+put back and fresh said apart, the next boot silent, a blob broken
+differently said again) and `save:notice` (local: a truncated settings
+blob with a backup, in English, and a broken My Hangar with none, in
+Spanish, each read on screen, closed with one press, the settings read
+as the backup's, and silent after a reload). What follows is the item as
+it was. Every read is still
 wrapped by its own reader (`loadSettings`, `normaliseProgress`,
 `cleanCampaign`, `normaliseBuilds` and the rest), and under them, once
 per boot before any reader runs, src/share/save.js `openSave` keeps each
@@ -174,9 +192,10 @@ restored, no backup leaving the reader's fallback as it was, a broken
 backup not put back, and each reset keeping the other half. Missing: the
 pilot is not told. A quarantine or a refused step is a `logWarn('save',
 ...)` line (src/boot.js `openStorage`), in the bug report's ring and the
-console, never on screen. **Done:** the pilot told once, in words, when a
-blob was quarantined (restored or not), en and es; check: a `save` case
-that boots with a broken blob and reads the notice. Size S. Phase 19.
+console, never on screen (built since, above). **Done:** the pilot told
+once, in words, when a blob was quarantined (restored or not), en and
+es (built); check: a `save` case that boots with a broken blob and reads
+the notice (`save:notice`, built). Size S. Phase 19.
 
 ## 2. Sessions and multiplayer (items 4 to 11)
 
