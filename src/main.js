@@ -4124,7 +4124,10 @@ export async function boot({
       ui.refreshFriends();
     },
     onRoom: () => ui.refreshFriends(),
-    onLobby: () => ui.refreshFriends(),
+    onLobby: () => {
+      lobbyReadyHeard();
+      ui.refreshFriends();
+    },
     onSetup: () => roomSetup(),
     onWorld: () => ui.refreshFriends(),
     onWeather: () => ui.refreshFriends(),
@@ -6355,9 +6358,19 @@ export async function boot({
   let lobbyPanelAt = 0;
   let lobbyBackAt = null;
   let lobbySeen = null;
-  function gameLobbyFrame(wallMs) {
+  /* The Ready said, against the lobby as the room has it now: on every
+   * frame and on every word of the lobby. A frame alone missed it: a page
+   * building its world draws no frame (openFrame), and under load the
+   * room's ready, its round's start and its end came between two frames,
+   * so the next one met the lobby after the round, nobody ready, and said
+   * the Ready pressed before it again (game:lobby --game=war, B ready
+   * after the war's end). */
+  function lobbyReadyHeard(wallMs = performance.now()) {
     const st = roomLinkState.state();
     lobbyReady.frame(gameLobby(), st.phase === 'open' && st.welcome ? st.welcome.seat : null, wallMs);
+  }
+  function gameLobbyFrame(wallMs) {
+    lobbyReadyHeard(wallMs);
     lobbySeenFrame(wallMs);
     if (lobbyBackAt != null && wallMs >= lobbyBackAt) {
       lobbyBackAt = null;
