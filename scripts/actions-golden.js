@@ -604,6 +604,26 @@ async function cardsSweep() {
     ui.settings.lastActivity = last;
     out[`continue ${last} rooms:${rooms}`] = ui.hubCards(rooms).map((c) => c.links.map((l) => `${l.key}:${l.action}`));
   }
+  /* A campaign's Continue (src/ui/continuity.js) as its screen answers
+   * it: its next mission's Play, the mission named in the link's title;
+   * with every playable one won, the campaign's own link; with none
+   * playable, none. The Interior's without a screen: none while no
+   * mission of it is released. */
+  const screen = (playable, next) => ({ playable: () => playable, nextMission: () => next, playMission: (id) => ui0.calls.push(['playMission', id]) });
+  let ui0 = null;
+  for (const [last, playable, next] of [
+    ['war', ['m1'], { id: 'm1', name: 'First' }], ['war', ['m1'], null], ['war', [], null],
+    ['interior', ['o1'], { id: 'o1', name: 'Old' }], ['interior', ['o1'], null], ['interior', [], null], ['interior', null, null],
+  ]) {
+    const ui = setUp('gate-home');
+    ui0 = ui;
+    ui.settings.lastActivity = last;
+    if (playable) ui.campaigns = { [last]: screen(playable, next) };
+    const key = `continue ${last} campaign:${playable ? playable.length : 'none'} next:${next ? next.id : 'none'}`;
+    out[key] = ui.hubCards(true).map((c) => c.links.map((l) => `${l.key}:${l.action}${l.title ? `:${l.title}` : ''}`));
+    ui.act('continue-mission');
+    out[`${key} press`] = ui.calls.splice(0);
+  }
   return out;
 }
 

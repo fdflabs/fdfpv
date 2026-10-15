@@ -43,6 +43,15 @@
  * ?missions=dev still sees it and mission 1 Under development; with it, Play, whose
  * press makes a private war room for mission 2 that starts it.
  *
+ * CONTINUE (docs/redesign/COMPLETENESS.md item 57): mission 1's Play
+ * records the war as the last activity; after the win and a reload home's
+ * Continue stands in Defend the Paraná's link and goes on with mission 2.
+ * On another computer, a fresh profile signed in as the owner, the sync
+ * brings the last activity and the stars, and one click on Continue asks
+ * the consent and makes mission 2's room. There The Interior's mission 1
+ * Play, its consent given, makes The Interior the last activity, Continue
+ * its mission 1, and its mission 2 once mission 1 is won.
+ *
  * No page error. Pictures in outdir, not in the repository.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -200,6 +209,12 @@ const SEED = `(() => {
 
 const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && !document.querySelector('.campaign-box') && /Defend the Paraná/.test(d.textContent); })()";
 const IN_LOBBY = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
+/* Home's Continue links, from the hubs as drawn, and the stored last
+ * activity (docs/redesign/COMPLETENESS.md item 57). */
+const CONTINUE_LINK = `(() => {
+  const links = window.__ui.hubCards(true).flatMap((c) => c.links).filter((l) => l.continue);
+  return { stored: JSON.parse(localStorage.getItem('webfpv.settings.v3')).lastActivity, links: links.map((l) => ({ key: l.key, action: l.action, mission: l.mission ?? null, title: l.title ?? null })) };
+})()`;
 
 const server = await roomsServer(process.argv[2], 'campaign', { devMissions: true });
 const pageUrl = `/index.html?rooms=${encodeURIComponent(server.url)}`;
@@ -478,6 +493,12 @@ try {
   const dev = await reloadInRoom(devUrl);
   check('with ?missions=dev, back in the room: mission 2 playable, 5 to 7 still Coming soon', dev && dev.missions[1].play === 'Play' && dev.missions[1].playable
     && dev.missions.slice(4).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(dev && dev.missions.map((m) => m.play)));
+  /* CONTINUE (docs/redesign/COMPLETENESS.md item 57): mission 1's Play
+   * recorded the war as the last activity, kept across the reload, and
+   * with mission 1 won home's Continue goes on with mission 2. */
+  const cont = await page.evaluate(CONTINUE_LINK);
+  check('after mission 1 won and a reload: the war is the last activity, and Continue stands in Defend the Paraná\'s link with mission 2, The Spillway, its title',
+    cont.stored === 'war' && JSON.stringify(cont.links) === JSON.stringify([{ key: 'campaign', action: 'continue-mission', mission: 'itaipu-2', title: 'The Spillway' }]), JSON.stringify(cont));
 
   /* PLAY MISSION 2, from the lobby's Campaign row: the lobby says mission
    * 2 (the owner saw "Start mission 1" there, 2026-09-30) and Start now
@@ -561,6 +582,7 @@ const openCampaign = async () => {
   await page2.sleep(300);
   return page2.evaluate(`({ screen: ${SCREEN}, answers: window.__devAnswers })`);
 };
+let page2Closed = false;
 const reload = async (url) => {
   await page2.evaluate('(() => { window.__beforeReload = true; return true; })()');
   await page2.cdp.send('Page.navigate', { url: `${page2.origin}${url}` }, page2.sessionId);
@@ -653,8 +675,72 @@ try {
 
   const errs = page2.errors.filter((e) => !e.startsWith('network:'));
   check('no page error, signed in', errs.length === 0, errs.slice(0, 3).join(' | '));
-} finally {
+
+  /* Done with this page: closed before the next opens, inside the
+   * check's memory ceiling (two pages and three servers were OOM killed
+   * at 4G, 2026-10-14). */
   await page2.close();
+  page2Closed = true;
+
+  /* CONTINUE ON ANOTHER COMPUTER (docs/redesign/COMPLETENESS.md item 57):
+   * the owner's Play recorded the war as the last activity, and the
+   * account holds it beside mission 1's stars; a fresh profile signed in
+   * as the owner is given both by the sync, and home's Continue, one
+   * click, is mission 2's Play: the consent (asked on each computer),
+   * then a war room made for mission 2. */
+  const lastHeld = async () => (await accounts.api('GET', '/api/account/progress', undefined, owner.session)).progress.data.lastActivity ?? null;
+  for (let i = 0; i < 40 && (await lastHeld()) !== 'war'; i += 1) {
+    await page2.sleep(250);
+  }
+  check('the account holds the war as the owner\'s last activity', (await lastHeld()) === 'war', JSON.stringify(await lastHeld()));
+  const page3 = await openPage({
+    root, url: `${signedUrl}&missions=dev`, width: 1280, height: 720, seed: [seedSignedIn(accounts.origin, owner)],
+  });
+  try {
+    await page3.until('window.__shellReady === true', 300000);
+    await page3.until("!!document.querySelector('.gate-card-continue[data-mission]')", 30000).catch(() => {});
+    const link = await page3.evaluate("(() => { const b = document.querySelector('.gate-card-continue'); return b ? { text: b.textContent, mission: b.dataset.mission || null, title: b.title, card: [...b.classList].find((c) => c.startsWith('gate-card-') && c !== 'gate-card-continue') } : null; })()");
+    check('another computer, signed in: home\'s Continue in Defend the Paraná\'s link, mission 2 its mission',
+      link && link.text === 'Continue' && link.mission === 'itaipu-2' && link.title === 'The Spillway' && link.card === 'gate-card-campaign', JSON.stringify(link));
+    await click(page3, '.gate-card-continue');
+    await page3.until(CONSENT, 10000).catch(() => {});
+    const asked = await page3.evaluate(CONSENT);
+    check('one click on it asks the Defend the Paraná consent', asked);
+    await page3.sleep(700);
+    await page3.tap('Enter');
+    await page3.until(`${IN_LOBBY} && /Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 60000).catch(() => {});
+    const made3 = await page3.evaluate("(() => { const r = window.__rooms(); return { phase: r.phase, mode: r.mode, pending: window.__campaign.pending(), line: (document.querySelector('.war-lobby-mission') || {}).textContent || '' }; })()");
+    check('then a war room made for mission 2, mission 2 remembered for it',
+      made3.phase === 'open' && made3.mode === 'war' && /Mission 2: /.test(made3.line) && made3.pending && made3.pending.mission === 'itaipu-2', JSON.stringify(made3));
+    await shot(page3, 'continue-other-computer');
+
+    /* THE INTERIOR'S CONTINUE: its mission 1's Play, through its consent,
+     * records The Interior as the last activity; Continue then goes on with
+     * its mission 1 until that is won, then mission 2. On the other
+     * computer, in mission 2's lobby. */
+    const opsPlayable = await page3.evaluate("JSON.stringify(window.__opsCampaign.playable())");
+    await page3.evaluate("(() => { window.__opsCampaign.playMission('interior-1'); return true; })()");
+    await page3.until("(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /The Interior/.test(d.textContent); })()", 10000).catch(() => {});
+    const opsAsked = await page3.evaluate("(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden ? d.textContent.slice(0, 60) : null; })()");
+    await page3.sleep(700);
+    await click(page3, '.name-dialog .name-dialog-btn.on');
+    await page3.until("window.__ui.settings.lastActivity === 'interior'", 10000).catch(() => {});
+    const ops1 = await page3.evaluate(CONTINUE_LINK);
+    check('The Interior\'s Play, consent given: The Interior is the last activity, Continue in its link with its mission 1, The Old War',
+      ops1.stored === 'interior' && JSON.stringify(ops1.links) === JSON.stringify([{ key: 'interior', action: 'continue-mission', mission: 'interior-1', title: 'The Old War' }]), JSON.stringify({ ...ops1, opsPlayable, opsAsked }));
+    await page3.evaluate("(() => { window.__opsCampaign.record('CHECK-INT', { uid: 'check-interior-1', mission: 'interior-1', result: { won: true, stars: 2, flags: {} } }); return true; })()");
+    const ops2 = await page3.evaluate(CONTINUE_LINK);
+    check('and once it is won, Continue goes on with mission 2, Eyes in the Forest',
+      JSON.stringify(ops2.links) === JSON.stringify([{ key: 'interior', action: 'continue-mission', mission: 'interior-2', title: 'Eyes in the Forest' }]), JSON.stringify(ops2));
+    const errs3 = page3.errors.filter((e) => !e.startsWith('network:'));
+    check('no page error, another computer', errs3.length === 0, errs3.slice(0, 3).join(' | '));
+  } finally {
+    await page3.close();
+  }
+} finally {
+  if (!page2Closed) {
+    await page2.close();
+  }
   await signed.stop();
   await accounts.stop();
 }

@@ -8318,6 +8318,8 @@ export async function boot({
     },
   });
   ui.onOpsCampaignCard = () => opsCampaignOpen();
+  /* Home's Continue asks each campaign for its next mission (src/ui/actions.js continueWay). */
+  ui.campaigns = { war: campaign, [INTERIOR_CAMPAIGN.id]: interiorScreen };
   /*
    * LEARN TO FLY: a lesson seats its aircraft and its assist (the tune,
    * Stabilised or Acro) and goes in by the card it is flown from, Free

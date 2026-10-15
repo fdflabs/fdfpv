@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 24 BUILT (since built by a phase), 20
+in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -873,15 +873,34 @@ once, a radio straight to calibration (PLAN.md 6 item 19). **Done:**
 PLAN.md phase 7. Check: `flow:check` (local) adds the first run question.
 Size M. Phase 7.
 
-**57. Returning-player experience. PARTIAL (phase 27).** Built
+**57. Returning-player experience. BUILT (phase 27).** Built
 (2026-10-13, w38-continue): the last activity kept (settings
 `lastActivity`, synced), and Continue stands in that activity's link on
 its hub, one press into it through openSession with the remembered Who
 joins (src/ui/actions.js, src/ui/cards.js); home's order unchanged;
-hidden for an unknown id, a room game with no server and the war until a
-mission is released. Check: `modes:card` (local). Missing: Operations'
-next unplayed mission kept for Continue. What follows is the gap as
-first written. The last activity is not
+hidden for an unknown id, a room game with no server and a campaign with
+no mission this page may play. Check: `modes:card` (local). Built
+(2026-10-14, w43-return): the campaigns. A campaign's Play records it as
+the last activity (src/ui/campaign.js play1 the war, src/ui/opscampaign.js
+go The Interior, whose card has no registry row: src/ui/continuity.js
+widens `lastActivity` to it, and a build that does not know the id shows
+no Continue, so no migration). Continue on a campaign is its next
+mission's Play, the consent and room as that Play's (action
+`continue-mission`), the mission named in the link's title; the next
+mission is not stored but derived from the synced campaign progress (the
+first this page may play and the pilot has not won), so a reload, a sign
+in and another computer agree on it. With every playable mission won,
+Continue opens the campaign's page. Checks: `campaign:check` (local:
+after mission 1's win and a reload, Continue holds mission 2; another
+computer signed in as the owner gets it by the sync and one click asks
+the consent and makes mission 2's room; The Interior's Play makes it the
+last activity, Continue its mission 1, then mission 2 once 1 is won) and
+`actions:golden` (CI, `continue war|interior campaign:...` cases).
+Before 2026-10-14 the gap was wider than this item said: a campaign's
+Play went in by the Defend Itaipu way, which has no registry card, so the
+war was recorded only by a Who joins change in its lobby, and The
+Interior never. What follows is the gap as first written. The last
+activity is not
 remembered (`this.mode = linkedMode()` reads only the URL, ui.js 3432);
 nothing says "last flown" or "continue". The aircraft and worlds are
 remembered. **Done:** the last activity and, for Operations, the next
