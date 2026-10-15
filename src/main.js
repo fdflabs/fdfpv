@@ -8067,6 +8067,9 @@ export async function boot({
     feedHeldMs: warFeedHeldMs,
     boomSound: { rung: (audio.booms || 0) + worldAudio.booms, world: worldAudio.booms, heard: worldAudio.stats, nodes: typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0, peakNodes: warAudioPeak },
     seat: roomWar.seat(),
+    /* The world this screen last told the room it has standing
+     * (warWorldTell), 'map:time', or null while it has none. */
+    world: warWorldTold,
     view: roomWar.view(),
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },

@@ -13,6 +13,7 @@
  *     pilots, the cursor on Ready, no Fly and no world row.
  *   B finds it in Rooms, joins, says Continue to the consent: in the same
  *     lobby, each in the other's pilots.
+ *   Both screens build mission 1's world under the lobby and say so.
  *   A presses R, B Enter on Ready: both are told the five seconds, and
  *     both are in mission 1's briefing.
  *   The host ends it: both are back in the lobby, nobody ready, the last
@@ -62,7 +63,7 @@ import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
-import { MISSIONS } from '../src/share/war/missions/index.js';
+import { MISSIONS, missionTime } from '../src/share/war/missions/index.js';
 import { stagesOf } from '../src/share/war/stages.js';
 import { FILMS, briefingMs } from '../src/share/war/films/index.js';
 import { filmMs } from '../src/share/war/film.js';
@@ -266,6 +267,20 @@ try {
   await shot(a, 'lobby-1920x1080');
   await shot(b, 'lobby-390x844');
 
+  /* BOTH WORLDS UP. Every screen builds the mission's world under the
+   * lobby and tells the room so (op 'world', edge/rooms/war.js
+   * WORLD_LEAD_MS); Ready is pressed once both have, as the check reads
+   * what a screen draws on its frames. Pressed before, it raced B's
+   * build of Itaipu (load 6, 2026-10-15): B's frames stalled up to 3 s
+   * at a time, so B's panel missed the five seconds, and B was seated
+   * in the Striker only when its world stood, 7 s into the briefing. */
+  const missionWorld = `${MISSIONS['itaipu-1'].map}:${missionTime(MISSIONS['itaipu-1']) ?? 'day'}`;
+  const worldUp = `window.__war().world === ${JSON.stringify(missionWorld)} && window.__map().ready`;
+  await Promise.all([a, b].map((p) => p.until(worldUp, 120000).catch(() => {})));
+  const worlds = await Promise.all([a, b].map((p) => p.evaluate("({ told: window.__war().world, ready: window.__map().ready })")));
+  check(`both screens build mission 1's world under the lobby and tell the room: ${missionWorld}`, worlds.every((w) => w.told === missionWorld && w.ready),
+    JSON.stringify(worlds));
+
   /* BOTH READY. */
   await a.tap('KeyR');
   await b.tap('Enter');
@@ -285,7 +300,8 @@ try {
   /* Each came to it in the default aircraft, no war one, so each is put
    * in the Striker, the war's default, and told so once the film is over.
    * The seat is taken on the shell's next frame after the briefing comes
-   * in, so it is waited for: read at once, it failed one run in two. */
+   * in, with its world standing (BOTH WORLDS UP above), so it is waited
+   * for: read at once, it failed one run in two. */
   await Promise.all([a, b].map((p) => p.until(`window.__war().craft.length > 0`, 5000).catch(() => {})));
   const crafts = await Promise.all([a, b].map((p) => p.evaluate("({ seated: window.__ui.settings.airframe, craft: window.__war().craft })")));
   check('a pilot coming into a war in another aircraft is put in the Striker, its line ready to say', crafts.every((c) => c.seated === WAR_DEFAULT
