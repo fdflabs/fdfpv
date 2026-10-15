@@ -32,7 +32,7 @@ replaces none of it.
 | --- | --- | --- |
 | XP and levels | src/game/progress.js | XP from laps (`LAP_XP`, 40 to 50 a lap, 40 more the first time on a course) and seven challenges (40 to 200). `LEVEL_XP` 0, 60, 180 ... 3100, then 800 a level. Levels open planes (`PLANE_LEVELS`), power options, paint schemes past the first two, props, add-ons, decals. |
 | Unlock all | settings, the hangar's Challenges tab | Opens everything; on for any profile from before progression. |
-| Challenges | progress.js `CHALLENGES`, judged by `RunWatch` | Seven small stories ("round a course on the small tank before the engine quits"). |
+| Challenges | progress.js `CHALLENGES`, rows judged from the event log (`challengesOn`, paid by `awardFlight`) | Seven small stories ("round a course on the small tank before the engine quits"). |
 | The war's economy | src/game/campaign.js | Stars (three a mission), credits (100 a star, 10 a team kill), a shop: warheads, rack slots, speed. |
 | Records | src/share/board.js | Lap times and ghosts per track. |
 | Sync | src/share/progressmerge.js | XP the higher of two devices, flown courses and challenges the union, the campaign's upgrades the union. |
@@ -182,7 +182,7 @@ clock in flight, the plant's grounded state, the crash flag):
 - **flight time** (sim seconds in the air, summed);
 - **landings** (a ground contact under a gentle sink rate with no part
   past its limit, the damage mode's own judgement);
-- **one challenge per aircraft**, judged by `RunWatch` like the seven
+- **one challenge per aircraft**, judged from the event log like the seven
   that exist (twenty aircraft, so thirteen to write; each a small story of
   that kit, the way `bombshell_glide` and `kadet_small_tank` are);
 - **milestones**: first flight, first landing, its challenge, an hour in

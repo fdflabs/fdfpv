@@ -8828,7 +8828,7 @@ export async function boot({
       place: me ? me.place : null,
       of: rows.length,
       final,
-      points: me && activity !== 'roomrace' ? me.points : null,
+      events: ui.progress.flight.events,
       flightMs: runAirMs,
       totalS: aircraftSecondsNow(),
       route: runRoute.snapshot(),
@@ -14066,7 +14066,7 @@ export async function boot({
     const ctx = progressRun();
     if (ctx.key !== progressKey) {
       progressKey = ctx.key;
-      ui.progress.startRun(ctx);
+      ui.progress.startRun({ ...ctx, crashed });
     }
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,

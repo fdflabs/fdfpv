@@ -181,11 +181,16 @@ function timeRecord(totalS, flightMs) {
 }
 
 /*
- * EVENT LOG (PLAN.md phase 22, src/game/events.js, being built beside
- * this): every builder below reads the end of run state the shell holds
- * today. When the log lands, each builder takes the flight's log and folds
- * it into these same arguments; the record and every screen that reads it
- * stay as they are.
+ * EVENT LOG (src/game/events.js, COMPLETENESS.md item 26): a fact the
+ * flight's log holds is read from it, so a debrief rebuilt from a saved
+ * log says what the one shown said: a room game's points (its `round`).
+ * The rest are handed in, each for a reason the log cannot carry yet:
+ * a race's laps (race.js's log keeps the voided laps, which the event log
+ * does not), freestyle's tricks and crashes (score.js's, whose crash is
+ * any bail, a hard bounce included, where the log's `crash` is the crash
+ * flag's edge), an ops mission's result (logged after the debrief shows),
+ * a room's places (the room's order), and what is measured, not an
+ * event: the time in the air, the route, the replay, the condition.
  */
 
 /*
@@ -237,10 +242,16 @@ export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flig
  * Combat. place and of are this pilot's standing in the room's order
  * (place null when the room has none for this pilot yet); final whether
  * the room has called the result, so a race still being finished by the
- * others says neither won nor lost. points: this pilot's points where the
- * game counts them, else null.
+ * others says neither won nor lost. events: this pilot's flight's log;
+ * the points are its last `round` of this game's (Progress.roundFinished,
+ * logged as the room ends it), none where the game counts none (a room
+ * race's round carries its grid, not points).
  */
-export function fromRoom({ activity, aircraft, fixedWing = false, place, of, final, points = null, flightMs, totalS, route = null, replay, condition = null }) {
+const ROUND_GAME = { roomrace: 'race', tag: 'tag', combat: 'combat' };
+
+export function fromRoom({ activity, aircraft, fixedWing = false, place, of, final, events = [], flightMs, totalS, route = null, replay, condition = null }) {
+  const round = events.filter((e) => e.type === 'round' && e.game === ROUND_GAME[activity]).pop();
+  const points = round && Number.isFinite(round.points) ? round.points : null;
   let kind = 'complete';
   if (final && place != null) {
     kind = place === 1 ? 'won' : 'lost';

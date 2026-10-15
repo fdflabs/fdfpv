@@ -32,10 +32,12 @@
  * name? }. An item not in the build is not in the list, so a part or a
  * decal that has not merged simply does not appear.
  *
- * THE CHALLENGES are judged by RunWatch from what the shell already
- * knows: a gate passed, a rim or a gate touched, a lap closed, the plant's
- * pack and tank, the OSD's LOW BATTERY, the crash flag and whether the
- * craft is on the ground. It reads no clock; it is told the sim time.
+ * THE ACHIEVEMENTS (lap XP and a course's first lap, medals, bests, the
+ * challenges, the aircraft challenges, places found and the firsts) are
+ * paid by one function, awardFlight, from the flight's event log
+ * (src/game/events.js), each once. RunWatch only detects what a frame
+ * shows and the log then says: a landing, the engine quitting, LOW
+ * BATTERY. It reads no clock; it is told the sim time.
  *
  * Pure: no DOM, no three.js, so scripts import it in Node.
  *
@@ -162,18 +164,21 @@ const LANDED_MS = 1000;
 export const STREAK_HOOPS = 10;
 
 /*
- * THE CHALLENGES. `plane` is the plane (by family) it is flown on, or
- * null for any; `power` narrows it to a kind of power. The words are
+ * THE CHALLENGES (COMPLETENESS.md item 28): each a row, judged on one
+ * event type (`on`) by a condition (`when`) over the run so far
+ * (challengeRun), and only on the plane and power it names (fits).
+ * `plane` is the plane (by family) it is flown on, or null for any;
+ * `power` narrows it to a kind of power. The words are
  * progress.challenge.<id> and progress.challenge.<id>_note.
  */
 export const CHALLENGES = [
-  { id: 'first_course', plane: null, xp: 40 },
-  { id: 'timber_clean', plane: 'timber1500', xp: 120 },
-  { id: 'hoops_10', plane: null, xp: 150 },
-  { id: 'slowstick_three', plane: 'slowstick1180', xp: 120 },
-  { id: 'kadet_small_tank', plane: 'kadet1981', power: 'glow', xp: 200 },
-  { id: 'deadstick', plane: null, power: 'electric', xp: 200 },
-  { id: 'bombshell_glide', plane: 'bombshell1118', power: 'glow', xp: 200 },
+  { id: 'first_course', plane: null, xp: 40, on: 'lap', when: () => true },
+  { id: 'timber_clean', plane: 'timber1500', xp: 120, on: 'lap', when: (r) => r.lapClean },
+  { id: 'hoops_10', plane: null, xp: 150, on: 'gate', when: (r) => r.streak >= STREAK_HOOPS },
+  { id: 'slowstick_three', plane: 'slowstick1180', xp: 120, on: 'lap', when: (r) => r.laps >= 3 },
+  { id: 'kadet_small_tank', plane: 'kadet1981', power: 'glow', xp: 200, on: 'lap', when: (r) => r.ctx.smallestPack && !r.engineOut },
+  { id: 'deadstick', plane: null, power: 'electric', xp: 200, on: 'landing', when: (r) => r.lowBattery && !r.brokeSince },
+  { id: 'bombshell_glide', plane: 'bombshell1118', power: 'glow', xp: 200, on: 'landing', when: (r) => r.engineOut && !r.brokeSince },
 ];
 
 export function challengeById(id) {
@@ -473,7 +478,7 @@ function classOf(airframe) {
 
 /*
  * The bests a flight's log shows from the event at `from` on: [{ key,
- * value }], in log order. The whole log is read for the context (where
+ * value, at }], at the event's index, in log order. The whole log is read for the context (where
  * the flight began, a run's earlier laps), so folding again from where
  * the last fold stopped finds nothing twice.
  */
@@ -483,17 +488,17 @@ export function bestsOf(events, from = 0) {
   for (let i = from; i < events.length; i += 1) {
     const e = events[i];
     if (e.type === 'round' && PLAYED_GAMES.includes(e.game) && WORLDS.includes(e.world) && Number.isInteger(e.points) && e.points > 0) {
-      out.push({ key: `${e.game}:${e.world}`, value: e.points });
+      out.push({ key: `${e.game}:${e.world}`, value: e.points, at: i });
       continue;
     }
     const cls = e.type === 'lap' ? classOf(e.airframe) : null;
     if (!cls || typeof e.course !== 'string' || !e.course || !Number.isFinite(e.ms) || e.ms <= 0 || start == null || e.ms > e.simMs - start) {
       continue;
     }
-    out.push({ key: `lap:${cls}:${e.course}`, value: Math.round(e.ms) });
+    out.push({ key: `lap:${cls}:${e.course}`, value: Math.round(e.ms), at: i });
     const run = runOf(events, i, start);
     if (run != null) {
-      out.push({ key: `run:${e.of}:${cls}:${e.course}`, value: Math.round(run) });
+      out.push({ key: `run:${e.of}:${cls}:${e.course}`, value: Math.round(run), at: i });
     }
   }
   return out;
@@ -980,11 +985,11 @@ export function challengeAmounts(airframe) {
 
 /*
  * The aircraft challenges a flight's log shows from the event at `from`
- * on: [{ airframe, id }], airframe the family, in log order. The whole log
- * is read for the context (the landings before, where it began), as
- * bestsOf reads it. Only a log that began with `spawned` counts, and a
- * lap or a flight longer than the log is not one flown in it (a reset or
- * a developer placement starts a new log).
+ * on: [{ airframe, id, at }], airframe the family, at the event's index,
+ * in log order. The whole log is read for the context (the landings
+ * before, where it began), as bestsOf reads it. Only a log that began
+ * with `spawned` counts, and a lap or a flight longer than the log is not
+ * one flown in it (a reset or a developer placement starts a new log).
  */
 export function aircraftChallengesOf(events, from = 0) {
   const out = [];
@@ -1019,7 +1024,7 @@ export function aircraftChallengesOf(events, from = 0) {
       done.push('lap');
     }
     if (i >= from) {
-      out.push(...done.map((id) => ({ airframe: family, id })));
+      out.push(...done.map((id) => ({ airframe: family, id, at: i })));
     }
   }
   return out;
@@ -1070,11 +1075,128 @@ export function fits(c, ctx) {
 }
 
 /*
- * THE JUDGE, one per run. start() seats it; the shell tells it what
- * happens and it hands back the ids of the challenges that just came
- * true, which may include ones already done (awardChallenge ignores
- * those). ctx is { airframe, fixedWing, power: 'electric' | 'glow' | null,
- * smallestPack }.
+ * A run's state as the challenges read it, folded from the log: what it
+ * is flown on (ctx, the `seated` event's { airframe, fixedWing, power,
+ * smallestPack }), laps closed, gates in a row with no rim touched or
+ * crash between, whether this lap has touched a rim or crashed, whether
+ * the engine has quit or LOW BATTERY shown, and whether the craft broke
+ * since the later of those. A new `seated` is a new run.
+ */
+export function challengeRun(ctx = null) {
+  return { ctx, laps: 0, streak: 0, lapClean: true, engineOut: false, lowBattery: false, brokeSince: false };
+}
+
+function broke(run) {
+  run.streak = 0;
+  run.lapClean = false;
+  run.brokeSince = true;
+}
+
+/*
+ * One event into a run's state, in place: the ids of the challenges it
+ * makes true, in CHALLENGES order, which may include ones already done
+ * (awardChallenge pays those nothing). A `seated` with `crashed` was
+ * seated mid crash, which the run reads as a crash: the old judge was
+ * told the crash flag fresh after a new seat.
+ */
+export function challengesOn(run, e) {
+  if (e.type === 'seated') {
+    Object.assign(run, challengeRun({ airframe: e.airframe, fixedWing: e.fixedWing, power: e.power, smallestPack: e.smallestPack }));
+    if (e.crashed) {
+      broke(run);
+    }
+    return [];
+  }
+  if (e.type === 'crash') {
+    broke(run);
+  } else if (e.type === 'engine_out') {
+    run.engineOut = true;
+    run.brokeSince = false;
+  } else if (e.type === 'battery_low') {
+    run.lowBattery = true;
+    run.brokeSince = false;
+  } else if (e.type === 'touch' && RIM_KINDS.includes(e.kind)) {
+    run.streak = 0;
+    run.lapClean = false;
+  } else if (e.type === 'gate') {
+    run.streak += 1;
+  } else if (e.type === 'lap') {
+    run.laps += 1;
+  }
+  const out = CHALLENGES.filter((c) => c.on === e.type && fits(c, run.ctx) && c.when(run)).map((c) => c.id);
+  if (e.type === 'lap') {
+    run.lapClean = true;
+  }
+  return out;
+}
+
+/*
+ * THE ONE PLACE ACHIEVEMENTS ARE PAID (COMPLETENESS.md item 28): a
+ * flight's log from the event at `from` on, in log order, into progress
+ * in place. For each event: a lap's XP (awardLap, a course's first lap
+ * once) and its medal (awardMedal), the bests it sets (bestsOf), the
+ * aircraft challenges it does (aircraftChallengesOf), the challenges it
+ * makes true (challengesOn over `run`, the run's state, carried across
+ * the flights of one run by the caller) and a place `found`; then the
+ * counts (foldEvents), and last the firsts, which are read from the
+ * pilot's record and not from the log: a mission's win and stars are the
+ * campaign's (merged from every computer), an aircraft's milestones its
+ * flight time (src/share/flighttime.js), and src/game/economy.js pays
+ * tokens from that same list. `outside` is { campaign, seconds }, the two
+ * the progress object does not hold, or null for no firsts.
+ *
+ * Every award pays once (each award function keeps what it paid), and
+ * the returned `at` is where the next fold starts, so a log folded twice
+ * from there pays nothing twice. Returns { at, counted, awards }: awards
+ * a list of groups, each one thing paid and its XP's events, in order.
+ */
+export function awardFlight(progress, events, from, run, outside = null) {
+  const awards = [];
+  const bests = bestsOf(events, from);
+  const feats = aircraftChallengesOf(events, from);
+  const add = (group) => {
+    if (group.length) {
+      awards.push(group);
+    }
+  };
+  for (let i = from; i < events.length; i += 1) {
+    const e = events[i];
+    if (e.type === 'lap') {
+      add(awardLap(progress, { key: e.course, kind: e.kind }));
+      if (e.medal) {
+        add(awardMedal(progress, e.course, e.medal));
+      }
+    }
+    for (const b of bests.filter((x) => x.at === i)) {
+      add(awardBest(progress, b.key, b.value));
+    }
+    for (const c of feats.filter((x) => x.at === i)) {
+      add(awardAircraftChallenge(progress, c.airframe, c.id));
+    }
+    for (const id of challengesOn(run, e)) {
+      add(awardChallenge(progress, id));
+    }
+    if (e.type === 'found') {
+      add(awardPlace(progress, e.world, e.id));
+    }
+  }
+  const { at, counted } = foldEvents(progress, events, from);
+  if (outside) {
+    add(awardFirsts(progress, {
+      ...outside, lessons: progress.lessons, flown: progress.lessonsFlown, played: progress.played,
+    }));
+  }
+  return { at, counted, awards };
+}
+
+/*
+ * THE DETECTOR, one per run: what a frame shows that the log then says.
+ * start() seats it; tick() hands back the edges this frame crossed,
+ * 'engine_out' and 'battery_low' (electric power only, the one LOW
+ * BATTERY means the motor's pack), each once a run, and counts a landing:
+ * down and whole for LANDED_MS after AIRBORNE_MS in the air, its time in
+ * the air in lastAirMs. ctx is { airframe, fixedWing, power: 'electric' |
+ * 'glow' | null, smallestPack }.
  */
 export class RunWatch {
   constructor() {
@@ -1083,58 +1205,18 @@ export class RunWatch {
 
   start(ctx) {
     this.ctx = ctx;
-    this.laps = 0;
-    this.lapClean = true;
-    this.streak = 0;
     this.engineOut = false;
     this.lowBattery = false;
-    /* Whether the craft broke since the event a landing is judged after. */
-    this.brokeSince = false;
     this.crashed = false;
     this.airSince = null;
     this.flew = false;
     this.downSince = null;
-    /* Landings judged this run, for the event log (src/game/events.js),
+    /* Landings counted this run, for the event log (src/game/events.js),
      * and the last one's time in the air, ms, from the take off to the
      * touchdown (a bounce shorter than a landing is part of the flight). */
     this.landings = 0;
     this.flightFrom = null;
     this.lastAirMs = null;
-  }
-
-  can(id) {
-    return fits(challengeById(id), this.ctx);
-  }
-
-  /* A gate or hoop flown through. */
-  gatePass() {
-    this.streak += 1;
-    return this.streak >= STREAK_HOOPS && this.can('hoops_10') ? ['hoops_10'] : [];
-  }
-
-  /* The craft touched something of kind `kind` (collide.js KINDS). */
-  touch(kind) {
-    if (RIM_KINDS.includes(kind)) {
-      this.streak = 0;
-      this.lapClean = false;
-    }
-  }
-
-  /* A lap closed on the course. */
-  lap() {
-    this.laps += 1;
-    const out = ['first_course'];
-    if (this.lapClean && this.can('timber_clean')) {
-      out.push('timber_clean');
-    }
-    if (this.laps >= 3 && this.can('slowstick_three')) {
-      out.push('slowstick_three');
-    }
-    if (this.ctx && this.ctx.smallestPack && !this.engineOut && this.can('kadet_small_tank')) {
-      out.push('kadet_small_tank');
-    }
-    this.lapClean = true;
-    return out.filter((id) => id === 'first_course' || this.can(id));
   }
 
   /*
@@ -1146,9 +1228,6 @@ export class RunWatch {
   tick({ simMs, crashed, grounded, power, battery }) {
     const out = [];
     if (crashed && !this.crashed) {
-      this.streak = 0;
-      this.lapClean = false;
-      this.brokeSince = true;
       this.flew = false;
       this.airSince = null;
       this.downSince = null;
@@ -1160,11 +1239,11 @@ export class RunWatch {
     }
     if (power && power.tankM3 > 0 && !power.running && !this.engineOut) {
       this.engineOut = true;
-      this.brokeSince = false;
+      out.push('engine_out');
     }
     if (battery && battery !== 'ok' && !this.lowBattery && this.ctx && this.ctx.power === 'electric') {
       this.lowBattery = true;
-      this.brokeSince = false;
+      out.push('battery_low');
     }
     if (!grounded) {
       this.downSince = null;
@@ -1196,12 +1275,6 @@ export class RunWatch {
     this.flightFrom = null;
     this.downSince = null;
     this.landings += 1;
-    if (!this.brokeSince && this.lowBattery && this.can('deadstick')) {
-      out.push('deadstick');
-    }
-    if (!this.brokeSince && this.engineOut && this.can('bombshell_glide')) {
-      out.push('bombshell_glide');
-    }
     return out;
   }
 }
