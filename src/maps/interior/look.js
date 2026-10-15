@@ -183,42 +183,56 @@ function lightAt(sinEl, out) {
  * minute and a half of room.
  */
 const GUST_H = 0.04;
+function gustHash(n) {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
 function gust(h) {
   const t = h / GUST_H;
   const i = Math.floor(t);
   const f = t - i;
-  const hash = (n) => {
-    const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
-    return x - Math.floor(x);
-  };
+  const hash = gustHash;
   const v = hash(i) + (hash(i + 1) - hash(i)) * f * f * (3 - 2 * f);
   return THREE.MathUtils.smoothstep(v, 0.35, 0.8);
 }
+/* Each weather writes its state at hour h into one shared object
+ * (WEATHER_AT) and returns it, so a frame allocates nothing. */
+const WEATHER_AT = { cover: 0, sunlit: 1 };
+const weatherIs = (cover, sunlit) => {
+  WEATHER_AT.cover = cover;
+  WEATHER_AT.sunlit = sunlit;
+  return WEATHER_AT;
+};
 export const WEATHER = {
-  clear: () => ({ cover: 0, sunlit: 1 }),
+  clear: () => weatherIs(0, 1),
   /* Full at the start (06:45), thinning from 07:15 to half by 08:30,
    * where M2's clock ends a long run (clock.js M2_CLOCK). */
-  overcast: (h) => ({ cover: 0.9 - 0.45 * THREE.MathUtils.smoothstep(h, 7.25, 8.5), sunlit: 1 }),
+  overcast: (h) => weatherIs(0.9 - 0.45 * THREE.MathUtils.smoothstep(h, 7.25, 8.5), 1),
   /* Broken cloud: a third of the sky, and the sun in and out. */
-  unstable: (h) => ({ cover: 0.4, sunlit: 1 - 0.75 * gust(h) }),
+  unstable: (h) => weatherIs(0.4, 1 - 0.75 * gust(h)),
 };
 
-/* The weather `w` at hour `h` over LIGHT's values `now`, in place. */
-function weatherOver(now, w, h) {
-  const { cover: k, sunlit } = w(h);
+/* Scratch and constants for weatherOver, which runs every frame on a
+ * moving clock: no allocation per frame. */
+const WHITE_SUN = new THREE.Color(1, 0.97, 0.92);
+const GREY = new THREE.Color();
+const OVERCAST_SKY = new THREE.Color();
+
+/* The weather `at` (WEATHER's value at the hour) over LIGHT's values
+ * `now`, in place. */
+function weatherOver(now, at) {
+  const { cover: k, sunlit } = at;
   if (k === 0 && sunlit === 1) {
     return now;
   }
-  const grey = (c, f) => {
-    const l = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-    return c.lerp(new THREE.Color().setRGB(l, l, l, THREE.LinearSRGBColorSpace), f);
-  };
   now.irradiance *= (1 - 0.8 * k) * sunlit;
   now.env *= 1 + 1.1 * k;
   now.mie *= 1 - 0.85 * k;
-  now.sun.lerp(new THREE.Color(1, 0.97, 0.92), 0.6 * k);
-  grey(now.haze, 0.7 * k).multiplyScalar(1 + 0.15 * k);
-  now.zenith.lerp(now.haze.clone().multiplyScalar(0.8), 0.8 * k);
+  now.sun.lerp(WHITE_SUN, 0.6 * k);
+  const l = 0.2126 * now.haze.r + 0.7152 * now.haze.g + 0.0722 * now.haze.b;
+  GREY.setRGB(l, l, l, THREE.LinearSRGBColorSpace);
+  now.haze.lerp(GREY, 0.7 * k).multiplyScalar(1 + 0.15 * k);
+  now.zenith.lerp(OVERCAST_SKY.copy(now.haze).multiplyScalar(0.8), 0.8 * k);
   now.contrast += (0.62 - now.contrast) * k;
   now.grade *= 1 - 0.7 * k;
   return now;
@@ -502,8 +516,9 @@ export async function makeLook({
   function setLocalTime(h) {
     hourNow = h;
     sunDir.set(...sunAt(h).dir).normalize();
-    weatherOver(lightAt(sunDir.y, now), weather, h);
-    su.uDisc.value = 1 - weather(h).cover;
+    const at = weather(h);
+    weatherOver(lightAt(sunDir.y, now), at);
+    su.uDisc.value = 1 - at.cover;
     light.irradiance = now.irradiance;
     sunState.irradiance = now.irradiance;
     su.uSun.value.copy(sunDir);
