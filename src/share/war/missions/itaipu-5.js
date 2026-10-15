@@ -179,6 +179,9 @@ export default withWaves({
   /* Day two, the morning (MISSIONS.md M5 "Time: day"; daytime.js). */
   time: 'day',
   radio: { brief: ['itaipu-5-s0-brief', 'itaipu-5-s0-rules'], win: 'debrief-itaipu-5-win', lose: 'debrief-itaipu-5-lose' },
+  /* Its film (films/river-below.js, INTROS.md 5.5); no outro: INTROS.md
+   * writes none for M5, so a win ends on its debrief. */
+  film: 'river-below',
   /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
   nudge: true,
   /* When the face opens (src/share/war/contain.js, MISSIONS.md 1.9): the

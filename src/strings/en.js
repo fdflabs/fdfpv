@@ -4007,6 +4007,7 @@ export default {
   "war.scope.spillway": "Spillway",
   "war.scope.west_arm": "West arm",
   "war.scope.channel": "Channel",
+  "war.scope.river": "River",
   "war.craft_switched": "Wars fly combat drones only: you are in the {name}.",
   "war.intro.music": "Music: \"Cinematic Suspense Trailer\" by Gregor Quendel (www.gregorquendel.com), CC BY 4.0",
   "war.intro.watch": "Watch intro",

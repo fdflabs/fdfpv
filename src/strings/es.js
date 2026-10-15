@@ -4012,6 +4012,7 @@ export default {
   "war.scope.spillway": "Vertedero",
   "war.scope.west_arm": "Brazo oeste",
   "war.scope.channel": "Canal",
+  "war.scope.river": "Río",
   "war.craft_switched": "En la guerra solo vuelan drones de combate: vas en el {name}.",
   "war.intro.music": "Música: \"Cinematic Suspense Trailer\" de Gregor Quendel (www.gregorquendel.com), CC BY 4.0",
   "war.intro.watch": "Ver introducción",
