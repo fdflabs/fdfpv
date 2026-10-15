@@ -1224,7 +1224,16 @@ match `^[A-Za-z0-9._\- ]{2,24}$` (pilot.js 51) and the word filter
 (roomwire.js 565) and the filter (edge/rooms/front.js 218); track names 80
 characters, no control characters, the filter (tracks-api/worker.js 112);
 lines are set with `textContent`, never markup. Checks: `rooms:selftest`,
-`test:tracks` (CI).
+`test:tracks` (CI). **A card's room always named fixed** (2026-10-16
+batch, w46-results): the room a card makes is named for its pilot and
+its game ("{name}, Catch the Ace"), and that whole could be past the 32
+letters (1.4% of picker names for the Ace, 84% for the Spanish Trick
+Battle, a 24 letter callsign in any game), when the room was made with
+no name at all. The pilot's name is now shortened, by its last words and
+then by letters, until the whole fits (src/share/roomwire.js
+pilotRoomName). Held by `rooms:selftest` (CI: every picker name and the
+longest callsign, every game, en and es) and `game:lobby --game=tag`
+(local).
 
 **62. Basic anti-cheat. PARTIAL.** The room refuses impossible poses,
 out of range race passes, non host actions, and rates over its limits

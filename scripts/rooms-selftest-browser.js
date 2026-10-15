@@ -29,8 +29,11 @@
  */
 
 import {
-  CLOSE, EMPTY_CLOSE_MS, LIST_EVERY_MS, PROTO, PUBLIC_CAP, ROOM_NAME_MAX, ROOM_NAME_REPORT, normaliseRoomName, validNamePick,
+  CLOSE, EMPTY_CLOSE_MS, LIST_EVERY_MS, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PROTO, PUBLIC_CAP,
+  ROOM_NAME_MAX, ROOM_NAME_REPORT, normaliseRoomName, pilotRoomName, validNamePick,
 } from '../src/share/roomwire.js';
+import en from '../src/strings/en.js';
+import es from '../src/strings/es.js';
 import front from '../edge/rooms/front.js';
 import { PURGE_MS, RoomHost } from '../edge/rooms/host.js';
 import { PRIVATE_CAP } from '../edge/rooms/core.js';
@@ -183,6 +186,40 @@ export async function browserSection(check) {
   check('another script\'s lookalike letter, a symbol, an emoji or a control are refused', normaliseRoomName('Сlub') === null
     && normaliseRoomName('a$$ club') === null && normaliseRoomName('club \u{1F600}') === null && normaliseRoomName('club\u0007x') === null);
   check('and a name that is not text is none', normaliseRoomName(42) === null && normaliseRoomName(null) === null);
+  /* A card's room is named for its pilot and its game (main.js
+   * openSession): every picker name in both languages, and a callsign of
+   * the most letters a handle may have (src/share/pilot.js HANDLE), in
+   * every game's frame, is a room name that keeps the game and the ", ". */
+  const fill = (text, values) => text.replace(/\{(\w+)\}/g, (all, k) => String(values[k]));
+  const unnamed = [];
+  let framed = 0;
+  for (const [lang, S] of [['en', en], ['es', es]]) {
+    const frames = Object.keys(S).filter((k) => k.startsWith('lobby.room_name_'));
+    const pilots = ['Abcdefghijklmnopqrstuvwx', 'Abcdefghijk Mnopqrstuvwx'];
+    for (let a = 0; a < NAME_ADJECTIVES; a += 1) {
+      for (let b = 0; b < NAME_ANIMALS; b += 1) {
+        for (let n = NAME_NUMBER_MIN; n <= NAME_NUMBER_MAX; n += 1) {
+          pilots.push(fill(S['rooms.name'], { adj: S[`rooms.adj.${a}`], animal: S[`rooms.animal.${b}`], n }));
+        }
+      }
+    }
+    for (const key of frames) {
+      const game = fill(S[key], { name: '' });
+      for (const pilot of pilots) {
+        const name = pilotRoomName(pilot, (p) => fill(S[key], { name: p }));
+        if (name && name.endsWith(game) && name.length > game.length) {
+          framed += 1;
+        } else if (unnamed.length < 3) {
+          unnamed.push(`${lang} ${key} ${pilot}: ${name}`);
+        }
+      }
+    }
+  }
+  check('a card\'s room is named for its pilot and its game, the pilot\'s name shortened to fit: every picker name and the longest callsign, in every game, in en and es',
+    unnamed.length === 0 && framed > 0, `${framed} named${unnamed.length ? `; ${unnamed.join('; ')}` : ''}`);
+  check('the pilot\'s name is shortened by its last words first', pilotRoomName('Frailecillo Veloz 10', (p) => `${p}, Atrapa al As`) === 'Frailecillo Veloz, Atrapa al As'
+    && pilotRoomName('Cheerful Falcon 10', (p) => `${p}, Catch the Ace`) === 'Cheerful Falcon, Catch the Ace'
+    && pilotRoomName('Swift Lynx 36', (p) => `${p}, Catch the Ace`) === 'Swift Lynx 36, Catch the Ace');
 
   console.log('room browser: making rooms');
   let s = server();

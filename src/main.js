@@ -139,7 +139,7 @@ import {
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
   FLAG_SPAWNING, FOOT_HANGAR, FOOT_ON, checkCrashTable, checkWhack, decodeFootRelay, decodePartsRelay, encodePose, normaliseCode,
-  normaliseRoomName, streamerColour,
+  pilotRoomName, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
 import {
@@ -5574,7 +5574,7 @@ export async function boot({
     const mission = id === 'war' ? room.mission ?? WAR_MISSION : null;
     const open = visibility === 'public' && (mission === null || room.fresh === true || released(mission));
     const found = open && mission === null && !room.fresh ? await roomBrowser.bestRoom(game, world) : null;
-    const name = room.name !== undefined ? room.name : normaliseRoomName(str(`lobby.room_name_${id}`, { name: roomName(ownName()) })) || null;
+    const name = room.name !== undefined ? room.name : pilotRoomName(roomName(ownName()), (pilot) => str(`lobby.room_name_${id}`, { name: pilot }));
     const code = found || await roomLinkState.create(world, false, {
       name, mode: game, mission, public: open, daytime: chosenTime(ui.settings),
     });
