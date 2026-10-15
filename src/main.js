@@ -4151,7 +4151,9 @@ export async function boot({
     },
     onHit: (m) => roomHit(m),
     onHost: () => ui.refreshFriends(),
-    onMessage: (m) => {
+    /* Every game's word goes through the lobby's watch on its round as
+     * it lands, not only on the next frame (lobbyHeard). */
+    onMessage: lobbyHeard((m) => {
       if (m.type === 'voice') {
         voice.onMessage(m);
         return;
@@ -4197,7 +4199,7 @@ export async function boot({
         }
         ui.refreshFriends();
       }
-    },
+    }),
     onBinary: (bytes) => {
       /* AGENTS first: the one binary the war sends, 30 times a second. */
       if (roomWar.onBinary(bytes) || roomCombat.onBinary(bytes)) {
@@ -6433,6 +6435,17 @@ export async function boot({
       }
     }
     lobbyPanelFrame(wallMs);
+  }
+  /* A room message handler f, then the lobby's watch on its round
+   * (lobbySeenFrame) at once: a round whose start and end both came
+   * between two frames (a page building its world, a slow frame under
+   * load) was never seen on, so its end took nobody back to the lobby
+   * (game:lobby's "its end: both back in the lobby", combat and war). */
+  function lobbyHeard(f) {
+    return (m) => {
+      f(m);
+      lobbySeenFrame(performance.now());
+    };
   }
   /* Whether the room's round is on, over or in its lobby, and its end.
    * Also mid world build (openFrame), when nothing else runs: a round
