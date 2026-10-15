@@ -358,17 +358,27 @@ collected.close();
 await server.stop();
 
 /* The rooms server's live instance (/etc/fdfpv/rooms-live): the stubs
- * answer as the rooms server does, each with its own port as pilots. */
+ * answer as the rooms server does, each with its VM port as pilots. They
+ * listen on free ports, and fetch is routed from the VM port to its stub:
+ * binding 8797/8798 here failed the check whenever anything else on the
+ * box held one (another project's server did, 2026-10-15). */
 console.log('\nrooms live instance');
 const stubs = [];
+const stubAt = new Map();
 for (const port of [8797, 8798]) {
   const stub = http.createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     res.end(JSON.stringify(req.url === '/v2/admin/health' ? { pilots: port, rooms: 1 } : { commit: 'stub' }));
   });
-  await new Promise((resolve, reject) => stub.once('error', reject).listen(port, '127.0.0.1', resolve));
+  await new Promise((resolve, reject) => stub.once('error', reject).listen(0, '127.0.0.1', resolve));
   stubs.push(stub);
+  stubAt.set(`http://127.0.0.1:${port}`, `http://127.0.0.1:${stub.address().port}`);
 }
+const realFetch = globalThis.fetch;
+globalThis.fetch = (url, init) => {
+  const u = new URL(url);
+  return realFetch(stubAt.has(u.origin) ? `${stubAt.get(u.origin)}${u.pathname}${u.search}` : url, init);
+};
 const liveFile = join(scratch, 'rooms-live');
 const noRooms = { counts: {}, lines: [], cursor: null, read: false };
 const probe = async (file) => collect({ store: openStore(':memory:'), roomsLiveFile: file, tracks: 'http://127.0.0.1:9', board: 'http://127.0.0.1:9', paths: {}, readJournal: () => noRooms });
@@ -392,6 +402,7 @@ const broken = await probe(unreadable);
 check('the collector then probes no rooms server and still writes its minute', broken.pilots === undefined && broken['probe.rooms'] === null && broken['cpu.busy'] >= 0, JSON.stringify(broken).slice(0, 200));
 const brokenReport = await serverReport({ latency: new Latency(), roomsLiveFile: unreadable, liveMs: 10 }).report('1h');
 check('and the report carries the error with no rooms numbers', /EISDIR/.test(brokenReport.roomsLive.error) && brokenReport.rooms === null && brokenReport.host.mem.total > 0, JSON.stringify(brokenReport.roomsLive));
+globalThis.fetch = realFetch;
 for (const stub of stubs) {
   await new Promise((resolve) => stub.close(resolve));
 }
