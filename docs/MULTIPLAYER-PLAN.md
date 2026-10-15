@@ -302,6 +302,9 @@ One owner per system, so every screen shows the same answer
 | Who flew a war, and so is paid its result | the room (war.js flew, by seat token) | everything: the page pays only a result the room sent it, once per war uid | `rooms:selftest`, `campaign:selftest` |
 | Who took part in an ops match, and so is paid its result | the room (ops.js took, by seat token, kept in the match's `pilots`) | everything: the page pays only a result the room sent it, once per match uid | `rooms:selftest`, `campaign:selftest` |
 | A war airframe lost | the pilot's client, trusted | a player of the match (war.js `lost`) | `war:harness` |
+| An ops match: contacts, the sites' alertness, the boundary, stages, its end | the room (ops.js) | everything, on its grid of room time from the pilots' poses and camera aims | `interior:stages`, `interior:m2`, `interior:m3` |
+| An ops capture (an item photographed) | the pilot's client asks, the room decides (ops.js capture) | an item asked of this seat, its time inside the match and not ahead of the room, and the room's own pose of the seat then | `interior:stages`, `interior:m2` |
+| A world that will not load | the pilot's client, trusted | the room's own world only; the seat counted out of every game, and of a start's count (core.js fielded), until its profile stands on that world again | `rooms:selftest` |
 
 Race passes stay scored by the racer: the room has 30 Hz poses, the
 racer every physics step, and the board already checks every published

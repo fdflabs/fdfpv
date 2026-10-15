@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-15, the first verdict
-in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
+in each item's heading): 35 EXISTS, 26 BUILT (since built by a phase), 18
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -278,7 +278,7 @@ race's grid, the war's enlist, combat's paper, the Ace's hunters, the
 jam's turns); `rooms:selftest` turns each over, and a newcomer that
 waits a round out has no paper, no hunt and no turn until the next.
 
-**8. Multiplayer authority. PARTIAL.** Decided and mostly server side,
+**8. Multiplayer authority. BUILT.** Decided and mostly server side,
 but written down only in file headers. Server: midair collisions
 (edge/rooms/referee.js 7), combat cuts (combat.js 16), tags (tag.js),
 everything in the war: attackers, warheads, damage, stages, output,
@@ -294,6 +294,9 @@ them client scored inside the bounds `passOf` checks (race.js 69), since
 the board already re verifies every published lap (item 59). Check: the
 table names the harness that holds each server row. Size S. Phase 21.
 **Built:** docs/MULTIPLAYER-PLAN.md 4.1, race passes kept client scored.
+The table has every server row's harness, the pay-once rows of the war
+and the ops (w41), and since the 2026-10-15 batch (w43-sessions) the ops
+match, its captures and a world that will not load.
 
 **9. Deterministic scoring. EXISTS.** Every screen shows the same number,
 because each number has one author. Hits, tags, cuts and kills are judged
