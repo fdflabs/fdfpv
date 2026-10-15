@@ -98,11 +98,13 @@ const FONT = 'ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace';
  * launches goes for the penstocks (mission 5). A carrier spotted
  * (roomwar's `spotted`, edge/rooms/war.js spot) is marked for what the
  * spotter saw: `launching`, the dam's, or `silent`, a hull that launches
- * nothing (mission 5's twist A), neither's. */
+ * nothing (mission 5's twist A), neither's; any other spotted attacker as
+ * its own kind (routes.js spottedAs). */
 const THREAT = {
   hunter: 2, strike: 1, loiter: 1, fpv: 1, scout: 0, boat: 0, decoy: 0, carrier: 1, launching: 1, silent: 0,
 };
-/* A decoy is marked as a Striker until it is this close (mission 3). */
+/* A decoy is marked as a Striker until it is this close (mission 3), or
+ * until a pilot spots it, at any range (mission 6, TECH-NEEDS T1.8). */
 const DECOY_M = 300;
 /* In a mission's spray (its `spray`, while the spill runs: mission 2's
  * twist A) an attacker is marked only this close (TECH-NEEDS T1.9). */
@@ -391,7 +393,7 @@ export function createWarMarkers(camera, view) {
       const dy = y - a.p[1];
       const dz = z - a.p[2];
       const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      const kind = a.kind === 'decoy' && d > DECOY_M ? 'strike' : a.spotted ?? a.kind;
+      const kind = a.spotted ?? (a.kind === 'decoy' && d > DECOY_M ? 'strike' : a.kind);
       const k = KINDS.indexOf(kind);
       kindOf[i] = k < 0 ? UNKNOWN : k;
       threat[i] = THREAT[kind] ?? 0;

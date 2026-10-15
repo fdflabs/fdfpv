@@ -3725,6 +3725,8 @@ export default {
   "war.hit.other": "TARGET HIT: -{mw} MW",
   "war.hit.down": "IMPACT ON A TARGET ALREADY DOWN",
   "war.hit.gantry": "GANTRY HIT",
+  "war.hit.tower": "TOWER DOWN: -{mw} MW",
+  "war.hit.tower_line": "TOWER DOWN: ITS LINE WAS ALREADY OUT",
   "war.kill_mine.one": "SPLASH ONE",
   "war.kill_mine.other": "SPLASH {n}",
   "war.kill_by.one": "{name}: SPLASH ONE",

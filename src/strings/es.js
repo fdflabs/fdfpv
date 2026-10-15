@@ -3730,6 +3730,8 @@ export default {
   "war.hit.other": "BLANCO ALCANZADO: -{mw} MW",
   "war.hit.down": "IMPACTO EN UN BLANCO YA CAÍDO",
   "war.hit.gantry": "GRÚA ALCANZADA",
+  "war.hit.tower": "TORRE DERRIBADA: -{mw} MW",
+  "war.hit.tower_line": "TORRE DERRIBADA: SU LÍNEA YA ESTABA CAÍDA",
   "war.kill_mine.one": "UNO ABATIDO",
   "war.kill_mine.other": "{n} ABATIDOS",
   "war.kill_by.one": "{name}: UNO ABATIDO",

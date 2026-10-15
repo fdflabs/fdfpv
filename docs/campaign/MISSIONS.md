@@ -135,6 +135,12 @@ The rules every mission shares; each mission adds its own line.
 - **Hold timers** never change with pilots: they are story time.
 - **Twist size** scales like a group; the twist itself is the same.
 
+Sectors at once is built as a spawn's `lane` (branch w47-m6,
+`stages.js` sectorsAt): the k-th of a stage's groups on a sector of its
+own comes at its time when the pilots have k + 1 sectors at once, and
+otherwise 30 s after the lane that many before it is gone, so a solo
+pilot meets them one at a time. Mission 6 is the first to use it.
+
 ### 1.7 The radio, per stage
 
 - 4 to 6 lines a stage for mission 1 (the reference), 3 to 5 for the
