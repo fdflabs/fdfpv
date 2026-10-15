@@ -229,6 +229,12 @@ export async function aiRaceSection(check) {
     check('the results order them with the person, the person last', results.length === FILL_TO && results.at(-1).seat === me
       && results.slice(0, -1).every((row) => ai.includes(row.seat) && row.ms != null),
       results.map((row) => `${row.seat}:${row.ms}`).join(' '));
+    /* The AI pilots fly the real plant through the real gates, scored by
+     * the shell's own Race: the race's witness (edge/rooms/anticheat.js)
+     * judges their claims as a person's, and must refuse none. */
+    const w = e.r.race.witness;
+    check('the room\'s witness decided every AI pilot\'s pass and finish on its poses and refused none', w.judged >= ai.length * LAPS * e.r.race.track.gates && w.flagged === 0,
+      `${w.judged} decided, ${w.flagged} refused ${JSON.stringify(w.flags)}`);
     const batches = e.socks[0].got.filter((m) => m instanceof Uint8Array && m[0] === TYPE_BATCH);
     for (const b of batches) {
       for (const p of decodeBatch(b).poses) {

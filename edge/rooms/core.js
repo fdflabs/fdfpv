@@ -568,7 +568,8 @@ export class RoomCore {
   waiting() {
     return this.people().length > 0 && (this.bots.flying(this) || this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting()
       || this.war.on() || this.ops.on() || this.gameLobby.waiting(this) || this.jam.on()
-      || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on())));
+      || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on()))
+      || this.race.pending.length > 0);
   }
 
   wake() {
@@ -1646,6 +1647,8 @@ export class RoomCore {
     hits.push(...this.combat.pose(this, s, now));
     hits.push(...this.war.pose(this, s, bytes, now));
     hits.push(...this.ops.pose(this, s, bytes, now));
+    /* A racer's poses are the race's witness (edge/rooms/anticheat.js). */
+    hits.push(...this.race.pose(this, s, bytes, now));
     return hits;
   }
 

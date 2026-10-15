@@ -1117,6 +1117,34 @@ credits and unlocks are whatever a client says. Unlocks are free anyway
 (decided by the author, reversible):** the rooms server signs each war
 result and the accounts server credits stars and credits only from a
 signed result. Not before an economy with a price exists. Size M. Phase 31.
+**Built** (2026-10-15, w44-anticheat): a race's passes and finishes
+are no longer taken on the client's word. The room keeps its own count of
+each racer's race from the racer's 30 Hz poses against the track's gates
+(edge/rooms/anticheat.js, the witness; race.js hands it every claim and
+core.js judge every pose), erring toward the racer at every step: a gate
+counts within its widest scoring box and, for a plane, PLANE_REACH; the
+path between two poses is given the slack 100 m/s allows; a gap or a
+respawn is credited with every gate reachable at 100 m/s; the count never
+loses a gate. A claim further on than that count at its time plus LATE_MS
+is refused: a pass is dropped, a finish retires the racer, and nobody is
+removed from the room for it. Real flights, zero refusals: the 24 stick
+recordings in tests/inputs flown on the plant and scored by the shell's
+own Race (174 passes), the AI racers on the plant, and two browser pages
+racing (8 claims). Negative controls refuse a finish of laps not flown,
+passes for gates not visited, a finish 1.5 s early, a finish unreachable
+from the last pose, and every one of a quad's recorded passes claimed a
+second early. Checks: `rooms:selftest` (CI), the race witness and AI
+racers sections; `rooms:racetwopage` (local). Checked against the tree,
+already held: hits and kills are decided by the room (referee.js, war.js
+blasts), never claimed; text, pose and join rates (core.js TEXT_PER_S,
+POSE_PER_S, JOINS_PER_MIN); the board re-flies every lap (item 59, the
+board's server.js `checkLap`); the tracks server takes no lap time and
+prices the wallet itself. Not built, and why: a per airframe speed limit
+(`topSpeed` is level flight on a fresh pack, a dive exceeds it, the Power
+tab fits stronger motors the room's profile does not carry, and pose
+velocity includes the wind), so safety.js POSE_MAX_SPEED stays the one
+limit; Trick Battle numbers (docs/JAM-PLAN.md, the trust boundary); a
+racer that sends no pose at all is not judged.
 
 ## 15. Telemetry and diagnostics (items 63 to 67)
 

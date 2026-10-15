@@ -77,6 +77,7 @@ import { warSection } from './rooms-selftest-war.js';
 import { opsSection } from './rooms-selftest-ops.js';
 import { botsSection } from './rooms-selftest-bots.js';
 import { aiRaceSection } from './rooms-selftest-airace.js';
+import { anticheatSection } from './rooms-selftest-anticheat.js';
 import {
   emptyRoomSection, gameLobbySection, loadFailSection, lobbyReadySection, sessionStatesSection, warLobbySection,
 } from './rooms-selftest-gamelobby.js';
@@ -2015,6 +2016,7 @@ gameLobbySection(check);
 lobbyReadySection(check);
 botsSection(check);
 await aiRaceSection(check);
+await anticheatSection(check);
 emptyRoomSection(check);
 loadFailSection(check);
 sessionStatesSection(check);

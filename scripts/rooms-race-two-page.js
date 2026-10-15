@@ -255,6 +255,15 @@ try {
   check('both results screens agree, order and times', line(ra) === line(rb) && ra.standings.length === 2);
   check('A first, B second, both finished', ra.standings[0].seat === 1 && ra.standings[1].seat === 2
     && ra.standings[0].ms > 0 && ra.standings[1].ms > ra.standings[0].ms);
+  if (localRooms) {
+    /* The room's race witness (edge/rooms/anticheat.js) judged both
+     * pages' passes and finishes on their poses, and refused none. */
+    const witnesses = [...localRooms.env.ROOMS.objects.values()].map((o) => o.host.core).filter((core) => core && core.race.race).map((core) => core.race.witness);
+    const judged = witnesses.reduce((n, w) => n + w.judged, 0);
+    const flagged = witnesses.reduce((n, w) => n + w.flagged, 0);
+    check('the room\'s witness judged every pass and finish of both pages on their poses and refused none', judged >= 2 * 3 && flagged === 0,
+      `${judged} decided, ${flagged} refused ${JSON.stringify(witnesses.flatMap((w) => w.flags))}`);
+  }
   const cub = ra.standings.find((r) => r.seat === 2);
   const quad = ra.standings.find((r) => r.seat === 1);
   check('the Cub\'s points came with it, the quad has none', cub.points > 0 && quad.points === 0, `${cub.points} ${quad.points}`);
