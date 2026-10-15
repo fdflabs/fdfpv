@@ -12,7 +12,7 @@
  *     SIM_GPU=1 node scripts/perf-play.js [OUT_DIR] [--scenarios=itaipu-war,swiss-low,wing-cruise]
  *         [--seconds=30] [--preset=high] [--pace=free|raf] [--cap=90]
  *         [--mode=quality|balanced|performance] [--objects] [--alloc] [--buffers] [--gctrace]
- *         [--budgets]
+ *         [--budgets] [--calls]
  *
  * --budgets holds each scenario's run to its row at the preset in
  * docs/BUDGETS.md (draw calls, triangles, live textures, GPU floor) and
@@ -73,7 +73,9 @@
  * every draw by mesh (`scene:<top>/<mesh>`, `draw ...:<top>/<mesh>`) with
  * the mesh's onBeforeRender and onAfterRender, as swiss2-perf.js does:
  * a diagnostic, its hundreds of queries a frame cost time of their own,
- * so its frame times are not comparable with a run without it.
+ * so its frame times are not comparable with a run without it. --calls
+ * counts the draw calls of the window's busiest frame by pass and by mesh
+ * (`<pass> | <top>/<mesh>`): what renderer.info's one number is made of.
  *
  * Long tasks come from a PerformanceObserver, the garbage rate from the
  * JS heap (performance.memory) falling between two frames, and each
@@ -143,7 +145,7 @@ const BUDGET_MS = 1000 / 90;
 
 const opts = {
   scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1, cap: 0, mode: '', objects: false, alloc: false, buffers: false, gctrace: false,
-  budgets: false,
+  budgets: false, calls: false,
 };
 const positional = [];
 for (const a of process.argv.slice(2)) {
@@ -414,8 +416,15 @@ const INSTRUMENT = /* js */ `(() => {
     PP.wasmMs = 0;
     PP.renderMs = 0;
     if (timing) { frameSegs = []; label = 'other'; seg('other'); }
+    PP.tally = rec && PP.wantTally ? new Map() : null;
     for (const { cb } of list) {
       try { cb(t0); } catch (e) { setTimeout(() => { throw e; }); }
+    }
+    if (PP.tally) {
+      let n = 0;
+      for (const v of PP.tally.values()) { n += v; }
+      if (!PP.busiest || n > PP.busiest.n) { PP.busiest = { n, by: [...PP.tally].sort((a, b) => b[1] - a[1]) }; }
+      PP.tally = null;
     }
     let segs = null;
     if (timing) { seg(null); segs = frameSegs; frameSegs = null; }
@@ -499,6 +508,12 @@ const INSTRUMENT = /* js */ `(() => {
        * named after what needed it. */
       const rbd = r.renderBufferDirect;
       r.renderBufferDirect = function (camera, scene, geometry, material, object, group) {
+        if (PP.tally) {
+          let top = object;
+          while (top.parent && top.parent.parent) { top = top.parent; }
+          const k = label + ' | ' + (top === object ? '' : (top.name || top.type) + '/') + (object.name || object.type);
+          PP.tally.set(k, (PP.tally.get(k) || 0) + 1);
+        }
         PP.drawing = object;
         PP.drawingMat = material;
         return rbd.call(this, camera, scene, geometry, material, object, group);
@@ -965,12 +980,16 @@ const SCENARIOS = {
     },
     during: /* js */ `(async (seconds) => {
       const P = globalThis.__PP;
-      P.peers = { drawn: 0, least: Infinity, inView: Infinity };
+      P.peers = { drawn: 0, least: Infinity, inView: Infinity, nearM: Infinity, farM: 0, fov: P.camera.fov };
       const v = P.camera.position.clone();
       const seen = (at) => { v.set(at[0], at[1], at[2]).project(P.camera); return Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1; };
       const sample = setInterval(() => {
         const ps = window.__rooms().peers.filter((p) => p.drawn);
-        P.peers = { drawn: Math.max(P.peers.drawn, ps.length), least: Math.min(P.peers.least, ps.length), inView: Math.min(P.peers.inView, ps.filter((p) => seen(p.at)).length) };
+        const m = ps.map((p) => P.camera.position.distanceTo(v.set(p.at[0], p.at[1], p.at[2])));
+        P.peers = {
+          drawn: Math.max(P.peers.drawn, ps.length), least: Math.min(P.peers.least, ps.length), inView: Math.min(P.peers.inView, ps.filter((p) => seen(p.at)).length),
+          nearM: Math.min(P.peers.nearM, ...m), farM: Math.max(P.peers.farM, ...m), fov: P.camera.fov,
+        };
       }, 1000);
       setTimeout(() => clearInterval(sample), seconds * 1000);
       return true;
@@ -1475,6 +1494,9 @@ async function runScenario(id) {
         samplingInterval: 16384, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true,
       }, page.sessionId);
     }
+    if (opts.calls) {
+      await page.evaluate('(window.__PP.wantTally = true, window.__PP.busiest = null, true)');
+    }
     if (opts.objects) {
       const n = await page.evaluate('window.__PP.tagObjects()');
       console.log(`  objects: ${n} meshes tagged`);
@@ -1486,6 +1508,7 @@ async function runScenario(id) {
     const gcEvents = trace ? await trace.stop() : null;
     const loadAfter = gpuLoad();
     const s = summarise(raw);
+    s.busiest = opts.calls ? await page.evaluate('window.__PP.busiest') : null;
     s.profile = profileTop(profile, s.seconds);
     s.alloc = heap ? allocTop(heap, s.seconds) : null;
     s.gcTrace = gcEvents ? gcTraceOf(gcEvents) : null;
@@ -1507,6 +1530,12 @@ async function runScenario(id) {
     s.textures = await page.evaluate('window.__gpuMemory().textures');
     s.consoleErrors = page.errors.filter((e) => !String(e).startsWith('network:')).slice(0, 5);
     console.log(table(id, s));
+    if (s.busiest) {
+      const byPass = new Map();
+      for (const [k, v] of s.busiest.by) { const p = k.slice(0, k.indexOf(' | ')); byPass.set(p, (byPass.get(p) || 0) + v); }
+      console.log(`  calls      busiest frame ${s.busiest.n}: ${[...byPass].map(([p, v]) => `${p} ${v}`).join(', ')}`);
+      for (const [k, v] of s.busiest.by) { console.log(`             ${v} ${k}`); }
+    }
     for (const [name, g] of Object.entries(s.grass)) {
       console.log(`  ${name}: tiles built ${g.built} (${g.forced} in the frame that needed them), ${f(g.buildMs, 0)} ms in all, ${f(g.buildMs / Math.max(1, g.built), 2)} ms a tile, worst frame since the build ${f(g.maxFrameMs, 1)} ms, pending ${g.pending}`);
     }

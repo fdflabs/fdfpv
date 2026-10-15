@@ -449,6 +449,7 @@ export function paletteFixed(craft) {
       thermalKind(material, first.material.userData.thermal);
     }
     material.userData.paletteOf = members.map((m) => m.mesh.material);
+    material.userData.paletteEntries = members.map((m) => m.entry);
     const mesh = new THREE.Mesh(merged(geos, 'palette'), material);
     mesh.name = `palette-${first.name.slice(home.name.length + 1)}`;
     mesh.userData.paletteSeq = members.map((m) => m.mesh.userData.targetSeq);
@@ -463,25 +464,257 @@ export function paletteFixed(craft) {
     from += members.length;
     to += 1;
   }
-  /* Three draws opaque meshes of one order by material id, so the ink,
-   * made after the craft's materials, drew after every one of them and
-   * took the ties at its silhouette; a palette material is newer still.
-   * The ink is made again after them, so it does. */
   if (to > 0) {
-    const inks = new Map();
-    group.traverse((o) => {
-      if (o.isMesh && o.material.userData.hullColor !== undefined) {
-        if (!inks.has(o.material)) {
-          inks.set(o.material, o.material.clone());
-        }
-        o.material = inks.get(o.material);
-      }
-    });
-    for (const old of inks.keys()) {
-      old.dispose();
-    }
+    inkLast(group);
   }
   return { from, to };
+}
+
+/* Three draws opaque meshes of one order by material id, so the ink,
+ * made after the craft's materials, drew after every one of them and
+ * took the ties at its silhouette; a palette material is newer still.
+ * The ink is made again after them, so it does. */
+function inkLast(group) {
+  const inks = new Map();
+  group.traverse((o) => {
+    if (o.isMesh && o.material.userData.hullColor !== undefined) {
+      if (!inks.has(o.material)) {
+        inks.set(o.material, o.material.clone());
+      }
+      o.material = inks.get(o.material);
+    }
+  });
+  for (const old of inks.keys()) {
+    old.dispose();
+  }
+}
+
+/* A mesh's matrix into `group`, from the local matrices between them, or
+ * null when one of them turns or scales: what a join across parts bakes
+ * into the vertices. `turns` lets a rotor's turn through. */
+function intoGroup(o, group, turns = false) {
+  const m = new THREE.Matrix4();
+  for (let p = o; p !== group; p = p.parent) {
+    if (!turns && (p.quaternion.w !== 1 || p.scale.x !== 1 || p.scale.y !== 1 || p.scale.z !== 1)) {
+      return null;
+    }
+    p.updateMatrix();
+    m.premultiply(p.matrix);
+  }
+  return m;
+}
+
+/* Copies of `meshes`' geometries in the group's frame. `names` the
+ * attributes kept, or all of the first's, which every one must then
+ * have. */
+function inGroupFrame(meshes, group, names = null, turns = false) {
+  if (!names) {
+    names = Object.keys(meshes[0].geometry.attributes).sort();
+    for (const o of meshes) {
+      if (Object.keys(o.geometry.attributes).sort().join() !== names.join()) {
+        throw new Error(`combatcraft: ${o.name} carries other attributes than ${meshes[0].name}`);
+      }
+    }
+  }
+  return meshes.map((o) => {
+    const m = intoGroup(o, group, turns);
+    if (!m) {
+      throw new Error(`combatcraft: ${o.name} turns or scales under the group; a join across parts only moves them`);
+    }
+    const g = new THREE.BufferGeometry();
+    for (const name of names) {
+      g.setAttribute(name, o.geometry.attributes[name].clone());
+    }
+    g.setIndex(o.geometry.index ? o.geometry.index.clone() : null);
+    if (turns) {
+      return g.applyMatrix4(m);
+    }
+    /* A move only: the positions shifted, the normals left bit for bit
+     * (applyMatrix4 would normalise them again). */
+    const pos = g.attributes.position;
+    for (let i = 0; i < pos.count; i += 1) {
+      pos.setXYZ(i, pos.getX(i) + m.elements[12], pos.getY(i) + m.elements[13], pos.getZ(i) + m.elements[14]);
+    }
+    return g;
+  });
+}
+
+/* Every one indexed or none, so mergeGeometries takes them. */
+function sameIndexing(geos) {
+  return geos.some((g) => !g.index) ? geos.map((g) => (g.index ? g.toNonIndexed() : g)) : geos;
+}
+
+/*
+ * What paletteFixed leaves apart that a peer can still join (src/render/
+ * peers.js, after paletteFixed): the inks of every offset as one mesh a
+ * material, and the blur discs as one mesh. Across offsets, so each piece
+ * is moved into the group's frame, a float rounding off where its
+ * matrices put it (mergeFixed's note); docs/PERF.md, A full room under
+ * the contract, lists the pixels that moves. The discs share one colour
+ * and opacity and never write depth, so where two overlap the blend is
+ * the same whichever draws first. Joined, a disc no longer turns: a disc
+ * is round, and turning it moved only where its sides fall.
+ *
+ * Returns the joined discs, the craft's `discs` from now.
+ */
+export function joinPeerHulls(craft) {
+  const { group } = craft;
+  const inks = new Map();
+  group.traverse((o) => {
+    if (o.isMesh && o.visible && o.material.userData.hullColor !== undefined) {
+      if (!inks.has(o.material)) {
+        inks.set(o.material, []);
+      }
+      inks.get(o.material).push(o);
+    }
+  });
+  for (const [material, meshes] of inks) {
+    if (meshes.length < 2) {
+      continue;
+    }
+    const geo = merged(sameIndexing(inGroupFrame(meshes, group)), 'peer ink');
+    for (const o of meshes) {
+      o.removeFromParent();
+      o.geometry.dispose();
+    }
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.name = 'peer-ink';
+    group.add(mesh);
+  }
+  const discs = craft.discs;
+  const first = discs[0];
+  for (const d of discs) {
+    if (d.parent !== group || d.material.color.getHex() !== first.material.color.getHex() || d.material.opacity !== first.material.opacity
+      || d.renderOrder !== first.renderOrder) {
+      throw new Error(`combatcraft: ${d.name} is not a disc like ${first.name}`);
+    }
+  }
+  const mesh = new THREE.Mesh(merged(sameIndexing(inGroupFrame(discs, group)), 'peer discs'), first.material);
+  mesh.name = 'peer-discs';
+  mesh.renderOrder = first.renderOrder;
+  for (const d of discs) {
+    d.removeFromParent();
+    d.geometry.dispose();
+    if (d.material !== first.material) {
+      d.material.dispose();
+    }
+  }
+  group.add(mesh);
+  return mesh;
+}
+
+/*
+ * A peer's far models (src/render/peers.js, PEER_FAR_SHARE): the craft's
+ * opaque cel meshes as one palette mesh, drawn both sides, in two cuts.
+ * `look`, every one of them, for every draw but a thermal one; `cold`,
+ * those of no thermal kind, for a thermal draw, beside the meshes of a
+ * kind (`heat`, the motors: a thermal camera sees a far quad by them),
+ * which it cannot join since a kind is a material's. What they stand in
+ * for is the palettes paletteFixed left at each offset, the lens, the
+ * motors and the rotors where they stand now. Never in them, and so drawn
+ * in every model: the ink, the discs, anything transparent (the
+ * interceptor's clear props), the lamps and the layers. Joined across
+ * offsets and with the rotors at a standstill, so only for a craft too
+ * small on screen for either to show. Both sides, since the lens and the
+ * blades are thin; a closed part's back faces are behind its front ones.
+ *
+ * Returns { look, cold, near, heat }: the two far meshes, hidden, in the
+ * group; the meshes of no kind they stand in for, and those of a kind. Or
+ * null when their options other than the palette's differ (a map's look
+ * put on already), so the craft keeps one model.
+ */
+export function peerFarModel(craft) {
+  const { group } = craft;
+  const members = [];
+  const shared = new Set();
+  group.traverse((o) => {
+    const mat = o.material;
+    if (!o.isMesh || !o.visible || Array.isArray(mat) || !mat.userData.cel || !mat.userData.celKey.startsWith('{') || mat.transparent
+      || mat.side === THREE.BackSide || o.userData.decal) {
+      return;
+    }
+    const opts = JSON.parse(mat.userData.celKey);
+    if (opts.map || !mat.emissive.equals(BLACK)) {
+      return;
+    }
+    const own = {};
+    for (const [k, v] of Object.entries(opts)) {
+      if (k !== 'palette' && k !== 'side' && !PALETTE_OPTIONS.has(k)) {
+        own[k] = v;
+      }
+    }
+    shared.add(JSON.stringify(own));
+    members.push({ mesh: o, opts });
+  });
+  if (shared.size !== 1) {
+    return null;
+  }
+  const options = JSON.parse([...shared][0]);
+  const near = members.filter((m) => !m.mesh.material.userData.thermal);
+  const heat = members.filter((m) => m.mesh.material.userData.thermal);
+  if (near.length < 2) {
+    return null;
+  }
+  const look = farMesh(craft, members, options, 'peer-far');
+  const cold = farMesh(craft, near, options, 'peer-far-cold');
+  if (!look || !cold) {
+    return null;
+  }
+  group.add(look, cold);
+  inkLast(group);
+  return { look, cold, near: near.map((m) => m.mesh), heat: heat.map((m) => m.mesh) };
+}
+
+/* One far mesh of `members` (peerFarModel), hidden, or null past the 255
+ * entries a palette key holds. */
+function farMesh(craft, members, options, name) {
+  const entries = [];
+  const mats = [];
+  const firsts = [];
+  const bases = [];
+  for (const { mesh, opts } of members) {
+    const mat = mesh.material;
+    bases.push(entries.length);
+    if (mat.userData.paletteOf) {
+      entries.push(...mat.userData.paletteEntries);
+      mats.push(...mat.userData.paletteOf);
+      firsts.push(...mesh.userData.paletteFirst);
+    } else {
+      const entry = { color: mat.color.clone() };
+      for (const k of PALETTE_OPTIONS) {
+        if (k !== 'color' && opts[k] !== undefined) {
+          entry[k] = opts[k];
+        }
+      }
+      entries.push(finishedEntry(mat, entry));
+      mats.push(mat);
+      firsts.push(mesh.userData.firstSeq);
+    }
+  }
+  if (entries.length > 255) {
+    return null;
+  }
+  const meshes = members.map((m) => m.mesh);
+  const geos = inGroupFrame(meshes, craft.group, ['position', 'normal'], true);
+  geos.forEach((g, i) => {
+    const own = meshes[i].geometry.attributes.aCelKey;
+    const keys = new Uint8Array(g.attributes.position.count);
+    for (let v = 0; v < keys.length; v += 1) {
+      keys[v] = bases[i] + (own ? own.getX(v) : 0);
+    }
+    g.setAttribute('aCelKey', new THREE.BufferAttribute(keys, 1));
+  });
+  const material = celMaterial({ ...options, palette: entries });
+  material.side = THREE.DoubleSide;
+  material.userData.paletteOf = mats;
+  const far = new THREE.Mesh(merged(sameIndexing(geos), name), material);
+  far.name = name;
+  far.userData.paletteFirst = firsts;
+  far.castShadow = true;
+  far.receiveShadow = meshes[0].receiveShadow;
+  far.visible = false;
+  finishPalette(craft, far, mats);
+  return far;
 }
 
 /* ------------------------------------------------------------------ */

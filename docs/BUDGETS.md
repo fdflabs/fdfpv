@@ -117,9 +117,9 @@ GPU floor (docs/PERF.md, proposed budgets).
 | `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 1.14 (<= 1.31) 2026-10-14 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.46 (<= 1.69) 2026-10-14 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.74 (<= 2.01) 2026-10-14 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M | 1 alive, stage `eyes` |
-| `peers` | low | 381 (<= 438) | 1.31 (<= 1.51) | 16 (<= 19) | 1.46 (<= 1.68) 2026-10-14 | 1.4 | 3.4 / 5.3 | 26 %, 10.7 | within | 7 peers |
-| `peers` | medium | 726 (<= 835) | 2.43 (<= 2.80) | 18 (<= 21) | 2.99 (<= 3.44) 2026-10-14 | 5.8 | 11.5 / 20.1 | 30 %, 11.1 | within | 7 peers |
-| `peers` | high | 739 (<= 850) | 2.43 (<= 2.80) | 29 (<= 34) | 2.90 (<= 3.34) 2026-10-14 | 4.6 | 8.5 / 10.6 | 18 %, 14.2 | over: 739 calls, the whole frame against the main view's 300 (not split) | 7 peers |
+| `peers` | low | 199 (<= 229) | 1.31 (<= 1.51) | 16 (<= 19) | 1.37 (<= 1.68) 2026-10-14 | 1.4 | 6.6 / 13.9 | 68 %, 14.6 | within | 7 peers |
+| `peers` | medium | 355 (<= 409) | 2.43 (<= 2.80) | 18 (<= 21) | 2.01 (<= 3.44) 2026-10-14 | 2.1 | 9.2 / 18.6 | 55 %, 14.3 | within | 7 peers |
+| `peers` | high | 368 (<= 424) | 2.43 (<= 2.80) | 29 (<= 34) | 1.47 (<= 3.34) 2026-10-14 | 2.0 | 8.9 / 21.7 | 81 %, 10.1 | within: main view 279 calls, inset 105 (busiest frame by pass, `--calls`); 2.43 M triangles the whole frame | 7 peers |
 
 The draw calls of `title` and `alps-low` at every tier were retaken on
 2026-10-13 after the Alps' draws were merged (branch w38-perf: the
@@ -171,10 +171,34 @@ The row's seven peers send no livery, so these are stock peers. Since
 2026-10-15 (branch w40-perf-finish) a peer wearing a finish joins as a
 stock one does, its finish per palette entry: the row flown at High with
 the seven in a finished livery (a local patch) drew 1 411 calls before
-and 739 after, the stock row's (docs/PERF.md). At High a full room
-is still about two and a half times the main view's 300 calls: what is
-left a peer is a palette mesh per offset and render state,
-the lens, the inks, four rotors and four discs.
+and 739 after, the stock row's (docs/PERF.md).
+
+And again 2026-10-14 after branch w43-perf (docs/PERF.md, A full room
+under the contract): a peer's inks and its four blur discs are one mesh
+each, a peer under 1 % of the view's height draws its far model (its
+palettes, lens, motors and rotors as one mesh; src/render/peers.js
+PEER_FAR_SHARE), its name tag left the ink prepass and the thermal
+picture, and a pilot figure is five meshes, not ten. On GPU 1 through
+run-check.sh with `--budgets --calls`, the same run settings, each tier
+three times between 21:48 and 21:58 local (Low twice more to 21:57): 199 at Low, 355 at Medium, 368
+at High in every run (max of the run; averages 196, 350, 363), triangles
+and textures unchanged, the call ceilings moved down to 1.15 times that.
+Split by pass (perf-play `--calls`, the busiest frame), High is 279
+calls in the main view (shadow 69, scene 103, ink prepass 92, bloom and
+grade 15) and 105 in the sensor inset: within the contract's 300 and
+110. Before, the busiest frame was 751: 557 and 194. The seven are at
+23 to 104 m in a 90 degree view, 0.19 to 0.87 % of its height, so all
+seven draw the far model; a peer nearer than about 23 m is 10 calls a
+pass (the near model), not 5.
+
+GPU 1 was 55 to 100 % busy with other lanes' checks through these runs,
+so the frame times are worse than the 2026-10-14 ones and say nothing
+about this change; they are the quietest run's, with its busy share. The
+GPU floor ceilings are left where they were (not raised): the floors
+read 0.88 to 1.89 ms at Low, 1.35 to 2.01 at Medium, 1.45 to 1.47 at
+High; the 1.89 was the one run of five at Low that failed its 1.68
+ceiling, on a card 100 % busy, and two more Low runs at 76 to 95 % read
+0.93 and 0.94. The written floor is the highest of the passing runs.
 
 The ceilings above hold today's whole frame cost from growing; whether
 a row is within the contract is the column "Over the written
@@ -262,6 +286,9 @@ second.
     SIM_GPU=1 node scripts/perf-play.js OUT --scenarios=title,alps-low,swiss-low --preset=high --seconds=15 --mode=quality --budgets
 
 or `~/.cache/run-check.sh <worktree> perf -- OUT --scenarios=... --preset=... --seconds=15 --mode=quality --budgets`.
+`--calls` (a diagnostic) also counts the busiest frame's draw calls by
+pass and by mesh: the main view is every pass but `draw
+render/sensorview`, which is the inset.
 `--budgets` reads this table and fails the run on any held column over
 its ceiling, or on a scenario with no row at the preset. One run per tier
 and per set of scenarios; a set of all three Itaipu and Interior
