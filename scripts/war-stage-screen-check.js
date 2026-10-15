@@ -14,6 +14,8 @@
  *             and a hold's bar counting on the page's clock; the stage's
  *             title as a lower third that goes after its 3 s; the next
  *             wave from the room's drawn time
+ *   the end   a campaign mission's epilogue under its end banner, a
+ *             win's and a loss's, and none for a drill
  *   cutaway   a pilot in control gets the picture in picture: the corner
  *             drawn from the cutaway's camera (its pixels differ from the
  *             main view's there), the main view untouched, and gone after
@@ -130,6 +132,34 @@ try {
   const gone = await page.evaluate('getComputedStyle(document.querySelector(".war-stage-title")).opacity');
   row('and the lower third goes after its 3 s', Number(gone) < 0.05, gone);
   await page.evaluate('(window.__stageHud.hud.update(null), true)');
+
+  console.log('the end banner');
+  /* A campaign mission's end: its epilogue under the result, a win's and
+   * a loss's (src/game/debrief.js missionEpilogue, docs/campaign/BIBLE.md
+   * 10); a drill, which has none, shows none. */
+  const ends = await page.evaluate(`(async () => {
+    const { createWarHud } = await import('/src/ui/warhud.js');
+    const hud = createWarHud(() => 'X');
+    const v = (mission, state) => ({ state, mission, why: state === 'lost' ? 'output' : 'waves', output: 9000, floor: 7700, wave: 2, waves: 2, alive: 0, rack: 1, rackMax: 1, scores: [] });
+    const read = (mission, state) => {
+      hud.update(v(mission, state), 1, 0, 14000);
+      const shown = hud.shown();
+      const n = document.querySelector('.war-epilogue');
+      const b = document.querySelector('.war-banner').getBoundingClientRect();
+      return { banner: shown.banner, epilogue: shown.epilogue, inside: b.left >= 0 && b.right <= innerWidth && b.top >= 0 && b.bottom <= innerHeight, font: n && getComputedStyle(n).fontSize };
+    };
+    const won = read('itaipu-3', 'won');
+    window.__endHud = hud;
+    return { won };
+  })()`);
+  await shot('end-won');
+  const lost = await page.evaluate("(() => { const hud = window.__endHud; hud.update({ state: 'lost', mission: 'itaipu-3', why: 'output', output: 9000, floor: 9700, wave: 2, waves: 2, alive: 0, rack: 1, rackMax: 1, scores: [] }, 1, 0, 14000); return hud.shown(); })()");
+  await shot('end-lost');
+  const drill = await page.evaluate("(() => { const hud = window.__endHud; hud.update({ state: 'won', mission: 'itaipu-drill', why: 'waves', output: 9000, floor: 7700, wave: 2, waves: 2, alive: 0, rack: 1, rackMax: 1, scores: [] }, 1, 0, 14000); const s = hud.shown(); hud.update(null); return s; })()");
+  row('a won mission\'s banner tells its epilogue under the result, read not shouted, inside the window',
+    ends.won.banner === 'ITAIPU HOLDS' && /^Night has fallen and the right bank is lit\./.test(ends.won.epilogue) && ends.won.inside && ends.won.font === '17px', JSON.stringify(ends.won));
+  row('a lost one its loss\'s, and a drill none', /^The right bank is dark/.test(lost.epilogue) && /DARK/.test(lost.banner) && drill.epilogue === '' && drill.banner === 'ITAIPU HOLDS',
+    JSON.stringify({ lost: lost.epilogue, drill: drill.epilogue }));
 
   console.log('the cutaway');
   /* The shell's own cutaway (main.js), handed a cue as the room sends one,
