@@ -155,7 +155,7 @@ import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
 import { createFootSender, createFootTrack } from './share/roomfoot.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
-import { createCombatHud } from './ui/combathud.js';
+import { combatResultsView, createCombatHud, standings as combatStandings } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
 import { grounded } from './share/ops/missions.js';
@@ -4375,6 +4375,10 @@ export async function boot({
     roomCombat.step(combatPos.x, combatPos.y, combatPos.z, combatQuat.x, combatQuat.y, combatQuat.z, combatQuat.w, combatV, groundAt);
   }
   let combatHudAt = 0;
+  /* This page saw the round start (its countdown, or on), so its end is
+   * a result here: a pilot who joins a room whose last round is over is
+   * not shown its results. */
+  let combatRoundSeen = false;
   /* Once a frame in a room: this pilot's paper to the room, every paper
    * drawn, the cuts shown, the round on screen. */
   function combatFrame(now, wallMs, scene, dt) {
@@ -4392,17 +4396,31 @@ export async function boot({
         }
         combatHud.say(str(key, { cutter: combatNameOf(n.ev.cutter), victim: combatNameOf(n.ev.victim), points: n.ev.points }));
       } else if (n.state === 'on') {
+        combatRoundSeen = true;
         combatHud.say(str('combat.go'));
         /* A pilot who came while the round was on (a join, the title's
-         * panel) goes up into it; one flying already flies on. */
-        roomCall('game');
-      } else if (n.state === 'over' && roomCombat.mine() && mode !== 'replay') {
-        ui.progress.roundFinished('combat', worldId(), { points: roomCombat.mine().points });
+         * panel) goes up into it; one flying already flies on. Not into a
+         * round over by now: its end, heard in the same frame, has put the
+         * pilot on its results. */
+        if (roomCombat.round().state === 'on') {
+          roomCall('game');
+        }
+      } else if (n.state === 'over') {
+        if (roomCombat.mine() && mode !== 'replay') {
+          ui.progress.roundFinished('combat', worldId(), { points: roomCombat.mine().points });
+        }
+        if (combatRoundSeen) {
+          combatResults();
+        }
+        combatRoundSeen = false;
       } else if (n.state === 'countdown') {
+        combatRoundSeen = true;
         /* A round's countdown is the time to take off in, so every pilot
          * in the room goes up with it, from wherever they are (roomCall).
          * A pilot already flying the room's world flies on. */
-        roomCall('game');
+        if (roomCombat.round().state !== 'over') {
+          roomCall('game');
+        }
       }
     }
     const paper = roomCombat.paper();
@@ -4414,8 +4432,10 @@ export async function boot({
     }
     if (wallMs > combatHudAt) {
       combatHudAt = wallMs + 200;
-      /* Not over the crash cam's replay, which is another moment. */
-      combatHud.update(mode === 'replay' ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
+      /* Not over the crash cam's replay, which is another moment, nor over
+       * the round's own results screen, which says it all (combatResults). */
+      const aside = mode === 'replay' || (ui.screen === 'results' && roomResultsOf === 'combat');
+      combatHud.update(aside ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
         paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow, debriefCardLine());
     }
     if (!roomCombat.out()) {
@@ -4451,6 +4471,24 @@ export async function boot({
       return peer ? peer.profile.airframe : null;
     }, now, wallMs / 1000);
     combatLayer.update(dt);
+  }
+  /* A round over in a room made for combat, the last of its match (no
+   * next round counting down): its results screen, as the other games'
+   * rooms have, then the lobby (gameLobbyFrame). Kept whatever room screen
+   * is up; not over the crash cam's replay, which is another moment; and
+   * only while the lobby's return is still to come: a page whose world
+   * was building hears the end after it, and was left on results. */
+  function combatResults() {
+    const r = roomCombat.round();
+    if (lobbyBackAt == null || lobbyGame() !== 'combat' || r.nextAt > 0 || mode === 'replay' || !(mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+      return;
+    }
+    if (mode === 'flight') {
+      leaveFlightForResults();
+    }
+    roomResultsOf = 'combat';
+    const rows = combatStandings(r).map((x, i) => ({ seat: x.seat, place: i + 1 }));
+    ui.showRoomResults(combatResultsView(r, roomCombat.seat(), combatNameOf), roomDebrief('combat', rows, roomCombat.seat(), true));
   }
   /* The Fly with friends rows: the room's host, public or private, starts
    * and stops a round; everyone sees where it is. `lead` is the room set
@@ -7959,6 +7997,7 @@ export async function boot({
       schwing: { voice: Boolean(audio.schwingVoice), struck: audio.schwings || 0 },
       hud: combatHud.shown(),
       said: combatHud.said(),
+      results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'combat'),
     };
   };
   devHooks.__combatStart = (minutes) => roomCombat.start(minutes);
@@ -8960,6 +8999,19 @@ export async function boot({
   ui.roomResultsRows = () => {
     if (roomResultsOf === 'tag') {
       return roomTagResultsRows();
+    }
+    if (roomResultsOf === 'combat') {
+      /* The host's one press to another round of the same length, the
+       * room's pilots in it as at any start (COMPLETENESS 76). */
+      const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomCombat.seat();
+      const lobby = gameLobby();
+      const again = host && lobbyGame() === 'combat' && Boolean(lobby) && roomCombat.round().state === 'over';
+      return [
+        ...(again ? [{ label: str('combat.again'), note: str('combat.again_note', { minutes: lobby.minutes }), action: 'friends-lobby-start', primary: true }] : []),
+        { label: str('roomtag.fly_on'), action: 'restart', note: str('combat.fly_on_note'), primary: !again },
+        ...ui.friendsItems(),
+        { label: str('ui.back_to_title'), action: 'title' },
+      ];
     }
     if (roomResultsOf === 'jam') {
       /* The host's one press to the same battle again, the room's pilots

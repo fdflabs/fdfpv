@@ -15,7 +15,9 @@
  *   it went to the free flight menu); a click on it again is a lobby
  *   again. A alone presses R: the five seconds,
  *   then the round, A in it. Its end (the room's own: a combat round run
- *   out, a tag match ended, a war lost) puts A back in the lobby. Free
+ *   out, a tag match ended, a war lost) puts A back in the lobby,
+ *   combat's through its results screen, the host's Combat again under
+ *   the cursor. Free
  *   flight's round never ends; A leaves it for the title instead and
  *   clicks the card again into a room of its own.
  *
@@ -564,6 +566,15 @@ try {
     JSON.stringify({ on: await a.evaluate(G.on), flying: await a.evaluate('window.__craftState().mode'), screen: await a.evaluate('window.__ui.screen') }));
   if (G.end) {
     endRound(code);
+    /* Combat's end has a screen of its own before the lobby, as the
+     * others' (COMPLETENESS 76): the results, the host's Combat again
+     * under the cursor. */
+    if (GAME === 'combat') {
+      await a.until('window.__combat().results', 15000).catch(() => {});
+      const res = await a.evaluate("(() => { const it = window.__ui.items(); return { results: window.__combat().results, here: (it[window.__ui.cursor] || {}).action || null, rows: it.map((x) => x.action || x.label) }; })()");
+      check('combat\'s end: its results screen first, the host\'s Combat again under the cursor', res.results && res.here === 'friends-lobby-start'
+        && res.rows.includes('restart'), JSON.stringify(res));
+    }
     await a.until(IN_LOBBY, 30000).catch(() => {});
     const back = await a.evaluate(LOBBY);
     check('its end puts A back in the lobby, not ready', back.shown && back.flying !== 'flight' && people(back.pilots).length === 1 && people(back.pilots).every((p) => !p.ready),

@@ -1378,10 +1378,15 @@ the lobby's mission moving with it (src/main.js warNextRows, warNext).
 A won mission's outro plays to its end before the banner and its
 seconds (src/main.js gameLobbyFrame), where the lobby used to come up
 under the film with every press the film's. Held by `war:lobby`
-(local: the row after a win, its press, the outro past the 8 s). Not
-built: Change aircraft on a room's results (a room's aircraft row is in
-its lobby), and Streamer Combat, whose room goes straight back to its
-lobby with no end screen of its own.
+(local: the row after a win, its press, the outro past the 8 s).
+**Streamer Combat's end screen built** (2026-10-15 batch, w44-warend):
+a round over in a room made for combat shows its results (standings,
+this pilot's points, the debrief) with the host's Combat again under
+the cursor, then the lobby as the others' (src/ui/combathud.js
+combatResultsView, src/main.js combatResults); a pilot who joins a room
+whose round is already over is not shown it. Held by `game:lobby
+--game=combat` (local). Not built: Change aircraft on a room's results
+(a room's aircraft row is in its lobby).
 
 **77. Party persistence. EXISTS.** The room is the party: its code and
 pilots survive rounds, mission changes and, in private rooms, world
