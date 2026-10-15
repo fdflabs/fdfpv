@@ -1,7 +1,7 @@
 # Progression: mastery and discovery, no grind
 
 **Status: PARTLY BUILT** (proposed 2026-10-03, under docs/PILLARS.md
-sections 7, 8, 9 and 22; state as of 2026-10-14). docs/ECONOMY.md is the
+sections 7, 8, 9 and 22; state as of 2026-10-15). docs/ECONOMY.md is the
 later contract and wins where the two differ: three currencies, not two
 (tokens buy cosmetics), progress is `v: 2`, and the mastery milestones are
 first flight, ten minutes and an hour. Built, by the phases of section 10:
@@ -15,13 +15,16 @@ first flight, ten minutes and an hour. Built, by the phases of section 10:
   milestones as pips in the hangar; landings, crashes and laps per
   aircraft counted from the event log (src/game/events.js) into progress;
 - phase 3: medals on built courses (src/game/medals.js);
+- phase 4: discovery (section 6, the lead's decision of 2026-10-15):
+  twelve named places at Itaipu, none yet in the other three worlds
+  (section 6.1 says why);
+- phase 5: the aircraft challenges (section 5.1, the same decision):
+  three on every aircraft, by its class;
 - phase 6, in part: the pilot's numbers on Flight Club's page
   (src/ui/pilotstats.js, docs/PILOT-STATS.md), landings among them.
 
-Waiting for content, not code: discovery (section 6) needs each world's
-named places, their radii and an XP amount; the per aircraft challenges
-(section 5) need their stories and amounts. Certifications arrive with
-TRAINING.md. It extends what exists and replaces none of it.
+Certifications arrive with TRAINING.md. It extends what exists and
+replaces none of it.
 
 ## 1. What exists, and stays
 
@@ -186,6 +189,52 @@ clock in flight, the plant's grounded state, the crash flag):
   the air. Each milestone shows on the aircraft in the hangar. The hour
   opens one livery for that aircraft, its only reward that is not XP.
 
+### 5.1 The aircraft challenges (the lead's decision, 2026-10-15)
+
+**Changed from the sketch above:** not one hand written story per
+aircraft but three per airframe class, the same three stories for every
+class, each built from what the event log (src/game/events.js) already
+measures, with the amount the class's own measured numbers give, written
+next to it in src/game/progress.js (`CLASS_CHALLENGES`). Each is paid once
+per aircraft (by family: a float plane's is its land plane's), XP only,
+`AIRCRAFT_CHALLENGE_XP` 60 (a lesson's first, the lane's call on the
+firsts' scale), kept in `progress.aircraftChallenges` as
+'<family>:<challenge>', shown in the hangar's Challenges tab first, under
+the aircraft's name, and as a "Challenge complete" line on the debrief of
+the run that did it (src/game/debrief.js withBests), Free Flight's
+included.
+
+| Challenge | Read from | multirotor | plane | wing | glider |
+| --- | --- | --- | --- | --- | --- |
+| landings | `landing` events in one log, no `crash` between, one aircraft | 3 | 3 | 3 | 3 |
+| lap | a `lap` of kind `casual`, valid as a best is (3.1) | 360 m at 13 m/s: 28 s | 3 200 m at (stall + top) / 2 | as plane | 3 200 m at best glide |
+| endurance | a `landing`'s `airMs`, take off to touchdown, inside its log | 300 s | 300 s | 300 s | 600 s |
+
+Where each amount comes from:
+
+- **3 landings**: the approaches lesson's three (src/game/training.js
+  wing_approaches), read from it.
+- **The casual track**: its size is fixed by the aircraft it was made
+  with (src/builder/course.js CASUAL, 8 gates 45 m apart for a quad, 400 m
+  for a fixed wing). A multirotor's pace is the AI pilot's measured
+  13 m/s, the fastest it follows the plant through gates
+  (scripts/aipilot-harness.js; the casual quad oval is sized to that
+  line's tightest turn). A plane's and a wing's pace is the middle of its
+  own measured stall and top speed (configs/airframes.js), so from the
+  F-16's 111 s to the Slow Stick's 436 s. A glider's top speed is a dive
+  or the throw, so its pace is its best glide, the speed its plant trims
+  at (the Radian 7.7 m/s, 416 s; the NRJ 5.13 m/s, 624 s): a lap that asks
+  for lift. Rounded up to the second.
+- **Endurance**: half the ten minute milestone (`MILESTONE_S.ten`), and
+  all of it on a glider, whose flight is soaring.
+
+**Left out, and why:** the brief named a trick for an aircraft with
+tricks, but the log carries no trick (the detectors land them on the
+freestyle scorer in src/main.js, outside the log), so the three are what
+the log measures. Known edge, accepted: the lap event does not say which
+size of casual track it was, so a plane flying a quad's 360 m track meets
+its 3 200 m time easily; it pays 60 XP once.
+
 ## 6. Discovery in Free Flight
 
 Each world gets a short list of named places (the Alps' church and lake,
@@ -195,6 +244,49 @@ Flying through one the first time marks it found and pays XP once. A world
 "explored" when all are found. This is the Flight Club's quiet reason to
 fly somewhere new, and it costs nothing at runtime: one distance test a
 frame against a dozen points.
+
+### 6.1 As built (the lead's decision, 2026-10-15)
+
+**The rule.** A place is a named, real thing in the world's own data,
+with one short factual line (en and es) from a source the repository
+already cites; no invented history, no person named; 6 to 12 a world.
+Found by flying within its radius across the ground and no higher than
+its radius over what is under the craft, any flight in that world, and
+not on a flight that began inside it (a spawn, a room's start slot, a
+developer placement). Paid once, `PLACE_XP` 40, the firsts table's Flight
+Club amount (`FIRST_XP.game`), XP only: a place is not in `firstsOf`, so
+no token is paid for it. The places live in src/game/discovery.js, not
+the registry entry, since the registry pulls the string table and the
+server reads progress.js. Shown as a toast with the place and its line.
+
+**Itaipu, twelve** (coordinates from the map's dam data and
+docs/ITAIPU-PLAN.md section 4; facts from ITAIPU-PLAN.md, which quotes
+Itaipu's own pages, and src/maps/itaipu/town/bridge.js):
+
+| Place | Its line |
+| --- | --- |
+| Main dam | hollow gravity and buttress, 1 064 m long, 196 m high |
+| Diversion structure | concrete gravity, 170 m long, 162 m high |
+| Right wing dam | concrete buttress, 998 m long, 64.5 m high |
+| Spillway | 14 gates of 20 by 21.34 m, up to 62 200 m3/s |
+| Powerhouse | 968 m long, 20 penstocks of 690 m3/s each |
+| Rockfill dam | left bank, 1 984 m long, 70 m high |
+| Left bank earth dam | 2 294 m long, 30 m high |
+| Itaipu reservoir | normal level 220.30 m, 223.10 m in a flood |
+| Paraná River | below the dam it runs at about 1 m/s |
+| Right bank substation | 50 Hz and 500 kV, on 48 ha |
+| Acaray hydro plant | Paraguayan, 210 MW |
+| Friendship Bridge | a concrete deck arch |
+
+**The other three worlds have none, on the rule.** The Alps and the Swiss
+valley are one procedural valley that takes Lauterbrunnen only as an art
+reference (docs/SWISS2-ASSETS.md: "Nothing here is a real map, a real
+village"); its church, lake, falls and strip are real in the data but
+have no name and no sourced fact. Every name in The Interior is invented
+on purpose (src/share/interior/places.js, `lint:interior-names`). Either
+can be given places by a looser rule (the valley's features by what they
+are, the Interior's by the campaign bible's names and lines): a row
+each in discovery.js, the lead's call.
 
 ## 7. Certifications
 
@@ -218,7 +310,10 @@ Progress is `v: 2` (docs/ECONOMY.md), additive inside it: `hours: {
 'bronze' | 'silver' | 'gold' }`, `places: { [world]: { [place]: true } }`,
 `lessons`, `certs`, `bests: { [key]: n }` (section 3.1; the earlier
 sketch `{ [activity]: { [world]: n } }` could not hold a lap per course
-and class). `normaliseProgress` fills each from nothing, so an old profile
+and class). As built, `places` is flat, `{ '<world>:<place>': true }`,
+and `aircraftChallenges` the same, `{ '<family>:<challenge>': true }`, so
+both merge as the union with the other flag maps; the nested sketch above
+would have needed a merge of its own for nothing. `normaliseProgress` fills each from nothing, so an old profile
 reads as a new pilot of these and keeps its XP. `progressmerge.js` merges
 counts as the higher, sets as the union, medals as the better, bests per
 key as the better by the key's direction.
@@ -249,7 +344,7 @@ Each ships alone:
    losses, no dev mark in its result).
 2. Aircraft flight time and landings, shown in the hangar.
 3. Medals on built courses (the builder sets them).
-4. Discovery points in the three worlds.
-5. Per aircraft challenges, thirteen new.
+4. Discovery points. Built at Itaipu, twelve places (section 6.1).
+5. Per aircraft challenges. Built as three per class (section 5.1).
 6. The pilot record screen; certifications arrive with TRAINING.md's
    phases.

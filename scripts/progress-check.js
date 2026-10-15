@@ -239,11 +239,20 @@ async function hangarTouches(page) {
   await settle(page, 900);
   const tab = await page.evaluate(`({
     rows: [...document.querySelectorAll('.pg-ch')].map((r) => r.dataset.challenge),
+    words: [...document.querySelectorAll('.pg-ch')].slice(0, 3).map((r) => [r.querySelector('.pg-ch-title').textContent, r.querySelector('.pg-ch-xp').textContent]),
+    head: (document.querySelector('.pg-tab .hangar-h + .pg-level ~ .hangar-h') || {}).textContent,
     level: (document.querySelector('.pg-ring-in') || {}).textContent,
     sw: (document.querySelector('.pg-switch') || {}).getAttribute ? document.querySelector('.pg-switch').getAttribute('aria-checked') : null,
   })`);
-  say(tab.rows.length === 7 && tab.level === '1' && tab.sw === 'false' && tab.rows[0] === 'timber_clean',
-    `the Challenges tab: level ${tab.level}, the switch off, ${tab.rows.length} challenges, the Timber's first: ${tab.rows.join(', ')}`);
+  say(tab.rows.length === 10 && tab.level === '1' && tab.sw === 'false' && tab.rows[3] === 'timber_clean',
+    `the Challenges tab: level ${tab.level}, the switch off, ${tab.rows.length} challenges, the Timber's own three and then its first: ${tab.rows.join(', ')}`);
+  /* The aircraft's own three (PROGRESSION.md section 5), first, beside
+   * the aircraft, with the amounts its class gives: three landings, a
+   * casual lap under 3 200 m at the middle of its stall and top speed
+   * (7.2 and 27.2 m/s, so 187 s), five minutes up; 60 XP each. */
+  say(tab.head === 'With the Turbo Timber' && JSON.stringify(tab.rows.slice(0, 3)) === JSON.stringify(['timber1500:landings', 'timber1500:lap', 'timber1500:endurance'])
+    && JSON.stringify(tab.words) === JSON.stringify([['3 landings in one flight', '+60 XP'], ['Casual lap under 3:07.00', '+60 XP'], ['5 minutes up', '+60 XP']]),
+    `the Timber's own challenges head the tab: ${tab.head}, ${JSON.stringify(tab.words)}`);
   await shot(page, '2-challenges');
   await closeHangar(page);
 }

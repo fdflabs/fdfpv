@@ -65,6 +65,7 @@ import {
 } from '../../configs/paint.js';
 import { ACT1, INTERIOR, MAX_STARS } from './campaign.js';
 import { MEDAL_STEPS, newSteps } from './medals.js';
+import { placeKey, placesOf } from './discovery.js';
 import { LESSONS } from './training.js';
 
 const { POWER } = powerConfig;
@@ -205,7 +206,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, played: {}, lessons: {}, lessonsFlown: {}, certs: {}, medals: {}, landings: {}, crashes: {}, laps: {}, kills: {}, missionsStarted: {}, missionsCompleted: {}, bests: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, played: {}, lessons: {}, lessonsFlown: {}, certs: {}, medals: {}, landings: {}, crashes: {}, laps: {}, kills: {}, missionsStarted: {}, missionsCompleted: {}, bests: {}, places: {}, aircraftChallenges: {}, unlockAll };
 }
 
 /*
@@ -306,6 +307,12 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     /* Additive inside the stored version, as medals and the counts are:
      * an older profile reads as none, and its next valid run sets them. */
     bests: bestsMap(p.bests),
+    /* Places found (src/game/discovery.js) as '<world>:<place>' and the
+     * aircraft challenges done as '<family>:<challenge>', both flags,
+     * additive as bests are; kept whether this build knows the key or
+     * not, so an older computer never drops a newer one. */
+    places: flags(p.places, 500),
+    aircraftChallenges: flags(p.aircraftChallenges, 2000),
     unlockAll: typeof p.unlockAll === 'boolean' ? p.unlockAll : existing,
   };
 }
@@ -878,6 +885,174 @@ export function awardFirsts(progress, facts) {
 }
 
 /*
+ * DISCOVERY (PROGRESSION.md section 6, the lead's decision of 2026-10-15):
+ * a named place of a world (src/game/discovery.js) found by flying to it,
+ * paid once as a first. PLACE_XP is the firsts table's Flight Club amount,
+ * FIRST_XP.game (the lead's ruling of 2026-10-13: a Flight Club activity's
+ * first pays the lower 40). XP only, never tokens: a place is not in
+ * firstsOf, so src/game/economy.js grants nothing for it and its ceiling
+ * is unchanged.
+ */
+export const PLACE_XP = FIRST_XP.game;
+
+/* A place found: kept, and its XP once; [] for one already found or one
+ * the world does not have. */
+export function awardPlace(progress, world, id) {
+  const key = placeKey(world, id);
+  progress.places ??= {};
+  if (progress.places[key] || !placesOf(world).some((p) => p.id === id)) {
+    return [];
+  }
+  progress.places[key] = true;
+  return [{ type: 'place', world, id }, ...addXp(progress, PLACE_XP, { kind: 'place', key })];
+}
+
+/* How many of a world's places are found, of how many. */
+export function placesFound(progress, world) {
+  const all = placesOf(world);
+  const found = isRecord(progress && progress.places) ? progress.places : {};
+  return { n: all.filter((p) => found[placeKey(world, p.id)] === true).length, of: all.length };
+}
+
+/*
+ * THE AIRCRAFT CHALLENGES (PROGRESSION.md section 5, the lead's decision
+ * of 2026-10-15): three on every aircraft, the same three stories for
+ * every class with the amounts its class's measured numbers give, each
+ * read from the flight's event log (src/game/events.js), paid once per
+ * aircraft (by family, liveryKey: a float plane's is its land plane's),
+ * XP only. Kept in progress.aircraftChallenges as '<family>:<id>'.
+ *
+ *   landings   LANDING_STREAK landings in one flight with no crash
+ *              between, on the one aircraft. 3, the approaches lesson's
+ *              three (src/game/training.js wing_approaches), read from
+ *              the lesson so the two never disagree.
+ *   lap        a lap of a casual sky track (the lap event's kind
+ *              'casual', a track whose size is fixed: src/builder/
+ *              course.js CASUAL, 8 gates 45 m apart for a quad, 400 m
+ *              for a fixed wing, so 360 m and 3 200 m) under the time the
+ *              class's pace gives: the track's length over that pace,
+ *              rounded up to the second. A multirotor's pace is the AI
+ *              pilot's measured one, 13 m/s, the fastest it follows the
+ *              plant through gates (scripts/aipilot-harness.js; the
+ *              casual quad oval is sized to that line's tightest turn):
+ *              28 s. A plane's and a wing's is the middle of its own
+ *              measured stall and top speed (configs/airframes.js
+ *              `stall` and `topSpeed`, each held by its stage's checks),
+ *              a brisk cruise. A glider's is its best glide, the speed
+ *              its plant trims at (docs/GLIDER-STAGE1.md, the Radian's
+ *              7.7 m/s; docs/DLG-STAGE1.md, the NRJ's 5.13 m/s), since a
+ *              glider's top speed is a dive or, on the NRJ, the throw: a
+ *              lap at best glide asks for lift, which is the glider's
+ *              skill. The lane's call on the paces, reversible.
+ *   endurance  one flight of ENDURANCE_S in the air, from the take off to
+ *              the landing that ends it, without a crash: half the ten
+ *              minute milestone (MILESTONE_S.ten), 300 s, and the whole
+ *              of it, 600 s, on a glider, whose flight is soaring.
+ *
+ * The brief named a trick too; the event log carries no trick (the
+ * detectors land them on the freestyle scorer, src/main.js), so the
+ * three are the ones the log measures. Known edge, accepted: a casual
+ * track is sized for the aircraft it was made with, and the lap event
+ * does not say which, so a quad's 360 m track flown later on a plane
+ * meets the plane's 3 200 m time easily; it pays 60 XP once.
+ */
+export const AIRCRAFT_CHALLENGE_IDS = ['landings', 'lap', 'endurance'];
+export const AIRCRAFT_CHALLENGE_XP = FIRST_XP.lesson;
+export const LANDING_STREAK = LESSONS.find((l) => l.id === 'wing_approaches').steps.length;
+/* src/builder/course.js CASUAL: gates times spacing; the selftest holds
+ * them equal (that module draws on the builder, which Node's server side
+ * readers of this file do not load). */
+export const CASUAL_LAP_M = { quad: 8 * 45, plane: 8 * 400 };
+export const QUAD_PACE = 13;
+export const BEST_GLIDE = { radian2000: 7.7, nrj1490: 5.13 };
+const midRange = (af) => (af.stall + af.topSpeed) / 2;
+export const CLASS_CHALLENGES = Object.freeze({
+  multirotor: { lapM: CASUAL_LAP_M.quad, pace: () => QUAD_PACE, airS: MILESTONE_S.ten / 2 },
+  plane: { lapM: CASUAL_LAP_M.plane, pace: midRange, airS: MILESTONE_S.ten / 2 },
+  wing: { lapM: CASUAL_LAP_M.plane, pace: midRange, airS: MILESTONE_S.ten / 2 },
+  glider: { lapM: CASUAL_LAP_M.plane, pace: (af) => BEST_GLIDE[af.id], airS: MILESTONE_S.ten },
+});
+
+/* An aircraft's three amounts, { landings, lapMs, airMs }, or null for an
+ * id this build does not know or a class with no row. */
+export function challengeAmounts(airframe) {
+  const af = typeof airframe === 'string' && AIRFRAMES.some((a) => a.id === airframe) ? airframeById(liveryKey(airframe)) : null;
+  const row = af ? CLASS_CHALLENGES[af.class] : null;
+  const pace = row ? row.pace(af) : NaN;
+  if (!row || !Number.isFinite(pace) || pace <= 0) {
+    return null;
+  }
+  return { landings: LANDING_STREAK, lapMs: Math.ceil(row.lapM / pace) * 1000, airMs: row.airS * 1000 };
+}
+
+/*
+ * The aircraft challenges a flight's log shows from the event at `from`
+ * on: [{ airframe, id }], airframe the family, in log order. The whole log
+ * is read for the context (the landings before, where it began), as
+ * bestsOf reads it. Only a log that began with `spawned` counts, and a
+ * lap or a flight longer than the log is not one flown in it (a reset or
+ * a developer placement starts a new log).
+ */
+export function aircraftChallengesOf(events, from = 0) {
+  const out = [];
+  const start = events.length && events[0].type === 'spawned' ? events[0].simMs : null;
+  if (start == null) {
+    return out;
+  }
+  let streak = 0;
+  let streakOn = null;
+  for (let i = 0; i < events.length; i += 1) {
+    const e = events[i];
+    if (e.type === 'crash') {
+      streak = 0;
+      continue;
+    }
+    const need = challengeAmounts(e.airframe);
+    if (!need) {
+      continue;
+    }
+    const family = liveryKey(e.airframe);
+    const done = [];
+    if (e.type === 'landing') {
+      streak = streakOn === family ? streak + 1 : 1;
+      streakOn = family;
+      if (streak >= need.landings) {
+        done.push('landings');
+      }
+      if (Number.isFinite(e.airMs) && e.airMs >= need.airMs && e.airMs <= e.simMs - start) {
+        done.push('endurance');
+      }
+    } else if (e.type === 'lap' && e.kind === 'casual' && Number.isFinite(e.ms) && e.ms > 0 && e.ms <= e.simMs - start && e.ms <= need.lapMs) {
+      done.push('lap');
+    }
+    if (i >= from) {
+      out.push(...done.map((id) => ({ airframe: family, id })));
+    }
+  }
+  return out;
+}
+
+/* An aircraft challenge done: kept, and its XP once. */
+export function awardAircraftChallenge(progress, airframe, id) {
+  if (!AIRCRAFT_CHALLENGE_IDS.includes(id) || !challengeAmounts(airframe)) {
+    return [];
+  }
+  const family = liveryKey(airframe);
+  const key = `${family}:${id}`;
+  progress.aircraftChallenges ??= {};
+  if (progress.aircraftChallenges[key]) {
+    return [];
+  }
+  progress.aircraftChallenges[key] = true;
+  return [{ type: 'aircraft_challenge', key, airframe: family, id }, ...addXp(progress, AIRCRAFT_CHALLENGE_XP, { kind: 'aircraft_challenge', key })];
+}
+
+/* Every aircraft challenge a log shows from `from` on, awarded in order. */
+export function awardAircraftChallenges(progress, events, from = 0) {
+  return aircraftChallengesOf(events, from).flatMap((c) => awardAircraftChallenge(progress, c.airframe, c.id));
+}
+
+/*
  * The kind of track a lap was closed on, from its id: a casual sky track
  * (My tracks' one click starter, src/builder/course.js casualCourse),
  * whose id progression recorded when it was made, since the document
@@ -926,8 +1101,12 @@ export class RunWatch {
     this.airSince = null;
     this.flew = false;
     this.downSince = null;
-    /* Landings judged this run, for the event log (src/game/events.js). */
+    /* Landings judged this run, for the event log (src/game/events.js),
+     * and the last one's time in the air, ms, from the take off to the
+     * touchdown (a bounce shorter than a landing is part of the flight). */
     this.landings = 0;
+    this.flightFrom = null;
+    this.lastAirMs = null;
   }
 
   can(id) {
@@ -980,6 +1159,7 @@ export class RunWatch {
       this.flew = false;
       this.airSince = null;
       this.downSince = null;
+      this.flightFrom = null;
     }
     this.crashed = Boolean(crashed);
     if (crashed) {
@@ -998,6 +1178,9 @@ export class RunWatch {
       if (this.airSince == null) {
         this.airSince = simMs;
       }
+      if (this.flightFrom == null) {
+        this.flightFrom = simMs;
+      }
       if (simMs - this.airSince >= AIRBORNE_MS) {
         this.flew = true;
       }
@@ -1005,6 +1188,7 @@ export class RunWatch {
     }
     this.airSince = null;
     if (!this.flew) {
+      this.flightFrom = null;
       return out;
     }
     if (this.downSince == null) {
@@ -1015,6 +1199,8 @@ export class RunWatch {
     }
     /* Down, whole, for LANDED_MS after a real flight: a landing. */
     this.flew = false;
+    this.lastAirMs = this.downSince - this.flightFrom;
+    this.flightFrom = null;
     this.downSince = null;
     this.landings += 1;
     if (!this.brokeSince && this.lowBattery && this.can('deadstick')) {

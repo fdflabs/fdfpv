@@ -14013,7 +14013,7 @@ export async function boot({
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
       sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null, airUp: weather ? airOut.up : 0,
-      bank: bankOf(stateCurr), slipG: lateralG(statePrev, stateCurr),
+      bank: bankOf(stateCurr), slipG: lateralG(statePrev, stateCurr), world: worldId(),
     });
   }
   /* The craft's speed through the air, m/s: the plant's world velocity
@@ -15480,7 +15480,7 @@ export async function boot({
     leaveFlightForResults();
     const summary = score.summary();
     const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
-    ui.showFreestyleResults(summary, fromFree({
+    ui.showFreestyleResults(summary, withBests(fromFree({
       aircraft: runAirframe,
       fixedWing,
       summary,
@@ -15492,7 +15492,7 @@ export async function boot({
        * one still in the air or in pieces when the horn went. */
       landed: fixedWing ? landed && !crashed && !wrecked : null,
       condition: conditionOf(crashFlags, fixedWing),
-    }));
+    }), ui.progress.runBests()));
   }
 
   /* Puts the flight down. A craft left parked upside down (waiting for the
