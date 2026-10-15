@@ -31,6 +31,7 @@
  */
 
 import { HERO, TILE_BYTES, tilePath } from './frame.js';
+import { logError } from '../../share/crashrecord.js';
 
 /* A tile's key, a number: the selection asks about a few hundred tiles a
  * frame and a string key would be a few hundred allocations. i and j are
@@ -207,7 +208,7 @@ export class TileStore {
          * stays on its coarser level, which is drawn and is ground. */
         this.failed.set(key, String(e.message || e));
         if (!this.disposed) {
-          console.error(`terrain: tile ${url} failed: ${e.message || e}`);
+          logError('render', `terrain: tile ${url} failed: ${e.message || e}`);
           this.pump();
         }
       });

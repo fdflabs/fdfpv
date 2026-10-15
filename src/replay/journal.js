@@ -48,6 +48,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { logWarn } from '../share/crashrecord.js';
+
 /* Pure readers the shell calls every step or every frame. Not written
  * down, which is most of the journal's size saved. Each is checked by the
  * self test to leave the plant's region byte identical. */
@@ -197,7 +199,7 @@ export function createJournal(e, opts = {}) {
   const named = opts.wasm ? wasmBuild(opts.wasm).then((id) => {
     build = id;
   }, (err) => {
-    console.warn('journal: the build could not be named, saved clips will not say which it was', err);
+    logWarn('save', 'journal: the build could not be named, saved clips will not say which it was', err);
   }) : Promise.resolve();
 
   const names = [];

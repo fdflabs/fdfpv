@@ -134,6 +134,9 @@ jobs:
       # No em or en dash in any text the repository holds (CLAUDE.md),
       # outside vendor/.
       - run: npm run lint:dashes
+      # No bare console.warn or console.error in src/: each goes through
+      # logWarn or logError, so the bug report's log holds it (COMPLETENESS 65).
+      - run: npm run lint:console
       - run: npm run lint:owner-rules
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).

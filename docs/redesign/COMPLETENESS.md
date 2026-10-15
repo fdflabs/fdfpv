@@ -37,7 +37,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
+in each item's heading): 35 EXISTS, 27 BUILT (since built by a phase), 17
 PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -957,11 +957,41 @@ signed result. Not before an economy with a price exists. Size M. Phase 31.
 else, by design (src/share/stats.js 11 to 20: no address, no user agent,
 no pilot, no timestamp sent). No `mode_selected`, `mission_started`,
 `mission_abandoned`, `tutorial_completed`. **Done:** an owner decision
-(section 19). If yes: the same three event rule kept, with the session
+(section 21). If yes: the same three event rule kept, with the session
 event carrying the activity and the flush event counting missions
 started, completed and abandoned as day totals, no new identifiers.
 Check: `stats` keeps its refusal list; a Node selftest asserts the new
 fields are counts. Size S. Phase 23, if decided.
+
+Checked 2026-10-14 (w43-telemetry), nothing built: privacy.html's Site
+statistics names what the board counts (pilots, sessions, laps, flight
+time, crashes; country, aircraft, input, map), and neither the activity
+nor a mission count is in it, so under its own rule (change the page in
+the same pull request as what is kept) nothing new may leave before the
+owner's yes. Nothing is built ahead of it either: a fold with no sender
+is a switch nobody sets. The yes is one change in two repositories, all
+three parts in the same release:
+
+- here, src/share/stats.js: the session event gains `activity`, the
+  mode registry's id (src/share/modes.js, a fixed list); the flush event
+  gains `started`, `finished` and `abandoned`, the missions since the
+  previous flush, folded from the gameplay log's `mission_start` and
+  `mission_end` (src/game/events.js; a start with no end when the flight
+  closes is abandoned), capped in `PER_FLUSH` like laps. No mission id,
+  no result, no stars, no time. `stats:selftest` asserts the four new
+  fields are an id from the registry and three integers, and its
+  refusal list stands as it is.
+- the board's repository: public/stats.js kept in step, and its event
+  validator taking the four fields and counting them per day.
+- privacy.html, both languages, Site statistics' first sentence:
+  "The board counts pilots, sessions, laps, flight time, crashes and
+  missions started, finished and given up as totals per day, with the
+  country as two letters and the aircraft, input, map and activity as
+  one of a fixed list." and "El tablero cuenta pilotos, sesiones,
+  vueltas, tiempo de vuelo, choques y misiones empezadas, terminadas y
+  abandonadas como totales por día, con el país en dos letras y la
+  aeronave, el control, el mapa y la actividad de una lista fija."
+  with its Last changed date.
 
 **64. Crash reporting. BUILT (phase 23); sending unasked is the owner's
 decision.** Built (2026-10-13, w38-save-events): the bug report carries
@@ -974,16 +1004,20 @@ sent only inside a bug report the pilot files with F8 (src/share/bugs.js,
 `submitBug`, ui.js 5807), with up to four screenshots. Nothing is sent on
 its own, and the report carries no build version. **Done:** the bug
 report carries the build and the last 50 recorded errors; whether errors
-are also sent unasked is an owner decision (section 19). Check: phase
+are also sent unasked is an owner decision (section 21). Check: phase
 23's `bugs:selftest`. Size S. Phase 23.
 
-**65. Structured logs. PARTIAL (phase 23).** Built (2026-10-13,
-w38-save-events): one ring of `{ atMs, cat, msg, count }` in
-src/share/crashrecord.js, 50 lines, the checklist's eight categories
-(`LOG_CATEGORIES`), written by `logWarn` and `logError` and read by the
-bug report; a line repeated counts up instead of filling the ring.
-Check: `crashrecord:selftest` (CI). Missing: 13 sites write it, and 34
-`console.warn` and `console.error` calls elsewhere in src do not. What
+**65. Structured logs. BUILT (phase 23).** Built (2026-10-13,
+w38-save-events; every site 2026-10-14, w43-telemetry): one ring of
+`{ atMs, cat, msg, count }` in src/share/crashrecord.js, 50 lines, the
+checklist's eight categories and `ui` for the shell's own screens and
+loads (`LOG_CATEGORIES`), written by `logWarn` and `logError` and read by
+the bug report; a line repeated counts up instead of filling the ring.
+Every warning and error the game writes goes through them: the 34 bare
+`console.warn` and `console.error` calls left in src were moved onto
+them, the console line unchanged, and `lint:console` (CI,
+scripts/console-lint.js) fails on a new one anywhere in src outside
+crashrecord.js. Checks: `crashrecord:selftest`, `lint:console` (CI). What
 follows is the gap as first written. No log module: 6 `console.warn`, 24
 `console.error`, no categories, no timestamps. **Done:** one ring buffer
 in crashrecord.js of `{ t, cat, msg }` with the checklist's categories
@@ -1223,7 +1257,7 @@ picture field: the picker and the hangar draw the model. Checks:
 campaign.js reaches the ops registry), `airframes:check`,
 `aircraft:folder`, `war:stages` (CI).
 
-**81. Feature flags. PARTIAL, missions BUILT (phase 26).** No flags
+**81. Feature flags. BUILT (phase 26).** No flags
 system, decided by the author: one place to hide a row is enough. A war
 mission's gate is its file's `release` (available, development, soon;
 the owner's 2026-10-04 rule), an Interior mission's is its row's `release` in
@@ -1236,7 +1270,17 @@ be switched off (`?rooms=off`). **Built (w38-sessions):** a `hidden`
 field on the mode registry's rows (src/share/modes.js), false on every
 row today; a hidden row draws no card (src/ui/ways.js gateWays) and is
 never home's Continue, and `modes:selftest` (CI) hides the race in a
-registry of its own and sees Track Day's card go and no other.
+registry of its own and sees Track Day's card go and no other. Asked
+again on 2026-10-14 (w43-telemetry: one registry of the non-mission
+flags, read at boot, with `?dev` overrides) and not built, with the
+author's decision kept: the non-mission switches this item names each
+have one home and a check already, the `hidden` field on the mode
+registry (`modes:selftest`), an upgrade's `later` on its row (src/game/campaign.js
+UPGRADES) and the rooms server's `?rooms=off` (src/share/rooms.js), and
+no row is hidden today, so a second registry would be a second place to
+hide the same row with nothing to switch. A `?dev` override of `hidden`
+is worth its line the day a row ships hidden. Checks: `modes:selftest`,
+`campaign:selftest` (CI).
 
 **82. No silent placeholders. EXISTS.** What is not built says so and is
 disabled: "Coming soon" on an unbuilt mission (`campaign.not_built`,
