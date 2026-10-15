@@ -105,7 +105,10 @@ the migrated result and that migrating twice is a no op. Size L. Phase
 w43-saves): `save:selftest` (CI) runs each row of save.js's SAVE POINTS
 table as the game calls it, on a store of its own, and holds it to the
 key it writes: a settings change through `Ui.persistSettings`, Unlock
-all, a challenge (twice writes once), a landing counted, a campaign
+all, a challenge (hoops_10 by ten gates, `Progress.gatePass`; twice
+writes once; nine gates write nothing), a landing counted and the
+deadstick challenge on it (a run seated and its frames, `startRun` and
+`tick`, paid through progress.js awardFlight), a campaign
 commit, a calibration accepted and forgotten, a pad chosen and set back
 to automatic, a build saved, renamed and deleted through the Ui, a new
 best lap and a first lap, a better record from the account, the name,
@@ -377,7 +380,9 @@ this item: with `?rooms=off` the cards already flew solo, ui.js
 pickForWay; flow:check holds Free Flight's); Track Day's or Free
 Flight's card pressed as the server stops answering flies solo on the
 same press, a room game's asks to try again (src/main.js onGameCard). The pilot is told once a spell, and once when
-it ends, in en and es (`offline.down`, `offline.back`). The account's
+it ends, in en and es (`offline.down`, `offline.back`), on the toasts,
+which queue: on the one notice line the reconnect's "Progress synced."
+replaced the line within a frame. The account's
 sync sends nothing offline, what changed staying changed
 (progressChanged), and sends it the moment the device is back rather
 than on the next minute; a failed send is said once until one gets

@@ -427,16 +427,30 @@ console.log('each save point writes its key, and nothing else writes');
   none('reading the settings', await written(() => { loadSettings(); }));
 
   /* progression: Progress.save is Ui.persistSettings. A Progress without
-   * its toasts, the pilot's own progress under it. */
+   * its toasts, the pilot's own progress under it, driven the way the
+   * shell drives it: a run seated (startRun), frames (tick), gates passed
+   * (gatePass); each pays through progress.js awardFlight, the one place
+   * an achievement is paid, and saves when anything was. */
+  const { RunWatch, challengeRun } = await import('../src/game/progress.js');
   const progress = () => {
     const u = ui();
     u.settings.progress = u.settings.progress ?? freshProgress(false);
     u.persistSettings = Ui.prototype.persistSettings;
     const p = Object.create(Progress.prototype);
-    Object.assign(p, { ui: u, show: () => {}, toast: () => {}, flight: new EventLog(), folded: 0, bests: [] });
+    Object.assign(p, {
+      ui: u, show: () => {}, toast: () => {}, flight: new EventLog(), folded: 0, bests: [], run: challengeRun(),
+      watch: new RunWatch(), simMs: 0, wasCrashed: false, heldTrack: null, placeWorld: null, placeSkip: null, lesson: null,
+    });
     return p;
   };
   const progressOf = (store) => JSON.parse(store.getItem(SETTINGS_KEY)).progress;
+  /* A flight on `p`'s seated run: AIRBORNE_MS and more in the air, then
+   * down past LANDED_MS, which RunWatch counts as a landing. */
+  const flyAndLand = (p, battery = 'ok') => {
+    const t0 = p.simMs;
+    for (let ms = t0 + 100; ms <= t0 + 3000; ms += 100) p.tick({ simMs: ms, crashed: false, grounded: false, power: null, battery });
+    for (let ms = t0 + 3100; ms <= t0 + 4500; ms += 100) p.tick({ simMs: ms, crashed: false, grounded: true, power: null, battery });
+  };
   {
     const got = await written((store) => {
       const p = progress();
@@ -446,25 +460,39 @@ console.log('each save point writes its key, and nothing else writes');
     point('Unlock all', got, [SETTINGS_KEY]);
   }
   {
-    const fresh = Object.keys(JSON.parse(good[SETTINGS_KEY]).progress.challenges ?? {});
-    const id = ['first_course', 'hoops_10', 'deadstick'].find((c) => !fresh.includes(c));
-    point(`a challenge done (${id})`, await written((store) => {
-      progress().award([id]);
-      check('and the challenge is stored', progressOf(store).challenges[id] === true);
-    }), [SETTINGS_KEY]);
-    const again = await written(() => {
-      const p = progress();
-      p.award([id]);
-      p.award([id]);
-    });
+    /* The profile without its hoops_10, so ten gates in a row pay it. */
+    const blob = JSON.parse(good[SETTINGS_KEY]);
+    delete blob.progress.challenges.hoops_10;
+    const undone = { ...good, [SETTINGS_KEY]: JSON.stringify(blob) };
+    const gates = (p, n) => {
+      p.startRun({ airframe: 'interceptor', fixedWing: false, power: 'electric' });
+      for (let i = 0; i < n; i += 1) p.gatePass();
+    };
+    none('nine gates in a row', await written(() => { gates(progress(), 9); }, undone));
+    point('a challenge done (hoops_10)', await written((store) => {
+      gates(progress(), 10);
+      check('and the challenge is stored', progressOf(store).challenges.hoops_10 === true);
+    }, undone), [SETTINGS_KEY]);
+    const again = await written(() => { gates(progress(), 20); }, undone);
     check('the same challenge twice writes once', again.writes === 1, `${again.writes}`);
   }
   point('a landing counted', await written((store) => {
     const p = progress();
-    p.flight.append('landing', 1000, { airframe: 'timber1500' });
-    p.foldFlight();
+    p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
+    flyAndLand(p);
     check('and the landing is stored', Object.values(progressOf(store).landings ?? {}).some((n) => n > 0));
   }), [SETTINGS_KEY]);
+  point('a challenge paid on a landing (deadstick)', await written((store) => {
+    const p = progress();
+    p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
+    flyAndLand(p, 'warning');
+    check('and the challenge is stored', progressOf(store).challenges.deadstick === true);
+  }), [SETTINGS_KEY]);
+  none('frames in the air with nothing to count', await written(() => {
+    const p = progress();
+    p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
+    for (let ms = 100; ms <= 3000; ms += 100) p.tick({ simMs: ms, crashed: false, grounded: false, power: null, battery: 'ok' });
+  }));
   none('a flight with nothing to count', await written(() => {
     const p = progress();
     p.foldFlight();

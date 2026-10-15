@@ -81,11 +81,16 @@ const seed = [COUNT_SYNCS, `try {
   localStorage.setItem(k, JSON.stringify(s));
 } catch (e) { /* storage refused */ }`];
 
-/* Every notice the shell put up, in order, as the page saw them. */
+/* Everything the shell said, in order: each toast (progress-ui.js keeps
+ * every one in its log, so none can be missed) and each notice line as
+ * the page saw it. */
 const RECORD = `(() => {
   window.__w43Said = [];
   let last = '';
+  let toasts = window.__ui.progress.log.length;
   setInterval(() => {
+    const log = window.__ui.progress.log;
+    for (; toasts < log.length; toasts += 1) window.__w43Said.push(log[toasts].title);
     const n = window.__craftState().notice;
     if (n && n !== last) window.__w43Said.push(n);
     last = n;

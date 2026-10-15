@@ -3646,6 +3646,7 @@ export default {
   "cloud.not_a_track": "That is not a track this simulator can fly",
   "cloud.will_retry": "Saved in this browser. The tracks server is busy, so it goes online in a few minutes",
   "cloud.offline": "Saved in this browser. It goes online when the connection is back",
+  "offline.kicker": "Connection",
   "offline.down": "The game's servers cannot be reached: you fly solo until they answer. Your progress is kept on this device and syncs then.",
   "offline.back": "The game's servers answer again.",
   "cloud.retired_world": "Its world was retired, so it cannot be flown",

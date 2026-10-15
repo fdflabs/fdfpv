@@ -16151,7 +16151,10 @@ export async function boot({
    * the rooms server not answering. The cards fly solo and the room games
    * leave the hubs on their own (roomLinkState.available); the pilot is
    * told once when it starts and once when it ends, and the menu is
-   * redrawn, since what it offers changed.
+   * redrawn, since what it offers changed. Told on the toasts, which
+   * queue, not the one notice line: the sync that follows a reconnect
+   * says "Progress synced." there within a frame, and a line replaced
+   * that fast is never read.
    */
   const cutOff = () => !deviceOnline() || !reachable('rooms');
   let wasCutOff = false;
@@ -16161,7 +16164,7 @@ export async function boot({
       return;
     }
     wasCutOff = now;
-    notice = { text: str(now ? 'offline.down' : 'offline.back'), untilMs: performance.now() + 6000 };
+    ui.progress.toast({ cls: 'lap', icon: '!', kicker: str('offline.kicker'), title: str(now ? 'offline.down' : 'offline.back') });
     ui.renderMenu();
   };
   onNetwork(networkChanged);
