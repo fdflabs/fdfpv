@@ -1157,8 +1157,10 @@ war:stages flies it on the room), held at `release: 'development'`:
   film's header says why). The campaign card's line is the Briefing
   above, as The Long Night's is its own.
 - **Not built**: the music cues (no mission has its five layers, and
-  music is off by the owner's decision), and an outro film (INTROS.md
-  writes none for M5).
+  music is off by the owner's decision), an outro film (INTROS.md
+  writes none for M5), and the burn and the spotted marks in the crash
+  cam's replay: `src/replay/warrec.js` records neither the `hurt` nor
+  the `spot` op, and the live explosions are hidden while it plays.
 
 ### The twist (stage 3)
 
@@ -1494,13 +1496,13 @@ hold the one thing that fixes it.
 | 2 | 17 | 4 |
 | 3 | 15 | 4 |
 | 4 | 14 | 4 |
-| 5 | 14 | 4 |
+| 5 | 15 (MIRADOR's spotting call added on branch w46-m5b) | 4 |
 | 6 | 14 | 4 |
 | 7 | 18 | 5 |
 | Shared calls (1.8) and Contain (1.9) | 17 | |
-| Total | 132 | 32 |
+| Total | 133 | 32 |
 
-164 lines, 328 voice files with Spanish, against 54 lines (108 files) in
+165 lines, 330 voice files with Spanish, against 54 lines (108 files) in
 `lines.json` today; the existing intro, mission and debrief lines they
 replace are about 20 of those 54. Every line in MISSIONS.md and INTROS.md
 was extracted into a lines.json shaped scratch file and passed

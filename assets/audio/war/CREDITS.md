@@ -100,7 +100,8 @@ DESPACHO, and The Long Night (`itaipu-4`), CREST, every line of theirs
 in those missions from the Orin (2026-10-15); The River Below
 (`itaipu-5`), new, every line of its own from the Orin (CARANCHO,
 CREST, MIRADOR and TALLER, its story, debriefs, Contain line and film,
-2026-10-15). The other missions and speakers keep their desktop builds.
+2026-10-15, and its guide and spotting call, branch w46-m5b). The other
+missions and speakers keep their desktop builds.
 
 <!-- voice table: written by tools/voice/check.py --fix from lines.json -->
 | Line | Files |

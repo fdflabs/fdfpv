@@ -516,8 +516,13 @@ try {
     const still = fx();
     window.__warHear({ type: 'war', op: 'hurt', ids: [a.id], hp: [1], at: now(), by: 0, p: a.p });
     const drawn = window.__warAt(now()).find((x) => x.id === a.id);
-    await wait(1500);
-    const hurt = fx();
+    /* Puffs come at a rate with a draw for a frame's fraction (burn), so
+     * wait for both to show, up to 5 s, rather than a fixed time. */
+    let hurt = fx();
+    for (let k = 0; k < 50 && !(hurt.fire - still.fire >= 4 && hurt.smoke - still.smoke >= 1); k += 1) {
+      await wait(100);
+      hurt = fx();
+    }
     window.__warHear({ type: 'war', op: 'dead', ids: [a.id], credited: [], at: now(), by: 0, why: 'leave', p: a.p });
     await wait(100);
     const gone = fx();
