@@ -38,6 +38,7 @@
     "perf:latency": "node scripts/perf-latency.js",
     "ratepresets:selftest": "node scripts/ratepresets-selftest.js",
     "perf:peers": "node scripts/perf-peers.js",
+    "perf:floor:selftest": "node scripts/perf-floor-selftest.js",
     "lint:presets": "node scripts/preset-lint.js",
     "lint:catalog": "node scripts/fc-catalog-lint.js",
     "fc-catalog:selftest": "node scripts/fc-catalog-selftest.js",

@@ -42,14 +42,16 @@
  */
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { craftBuilderFor } from './craft.js';
-import { paletteFixed } from './combatcraft.js';
+import { joinPeerHulls, paletteFixed, peerFarModel } from './combatcraft.js';
 import { addNavLights } from './navlights.js';
 import { dressLivery } from './livery.js';
 import { cancelDecals, dressDecalsLater, readDecals } from './decals.js';
 import { dressParts } from './partsfit.js';
 import { celMaterial } from './celmat.js';
 import { createSmoke } from './smoke.js';
+import { THERMAL, thermalHide } from './thermal.js';
 import { airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { liveryKey, lookFor, normaliseEntry, paintable } from '../../configs/liveries.js';
 import { unpackEntry } from '../../configs/paint.js';
@@ -78,6 +80,35 @@ if (FIGURE_LOOKS.length !== FIGURE_COUNT) {
 
 const TAG_COLOUR = '#ffe7a3';
 
+/*
+ * The pieces of one rigid part of a figure, each [geometry, entry, x, y,
+ * z, turn about x], as one palette mesh (celmat.js palette) of
+ * `colours`: one draw and one shadow caster where each piece was a mesh
+ * of its own. A piece only moved keeps its normals bit for bit; a turned
+ * one has them turned here, not by its matrix in the shader.
+ */
+function paletteMesh(pieces, colours) {
+  const geos = pieces.map(([g, k, x, y, z, turn = 0]) => {
+    if (turn) {
+      g.applyMatrix4(new THREE.Matrix4().makeRotationX(turn).setPosition(x, y, z));
+    } else {
+      const pos = g.attributes.position;
+      for (let i = 0; i < pos.count; i += 1) {
+        pos.setXYZ(i, pos.getX(i) + x, pos.getY(i) + y, pos.getZ(i) + z);
+      }
+    }
+    g.setAttribute('aCelKey', new THREE.BufferAttribute(new Uint8Array(g.attributes.position.count).fill(k), 1));
+    return g;
+  });
+  const geo = mergeGeometries(geos, false);
+  for (const g of geos) {
+    g.dispose();
+  }
+  const mesh = new THREE.Mesh(geo, celMaterial({ palette: colours.map((color) => ({ color })) }));
+  mesh.castShadow = true;
+  return mesh;
+}
+
 /* A name over a thing: one canvas, redrawn when the text changes. */
 function nameTag(height, width) {
   const canvas = document.createElement('canvas');
@@ -90,6 +121,16 @@ function nameTag(height, width) {
   sprite.position.set(0, height, 0);
   sprite.scale.set(width, width * (96 / 512), 1);
   sprite.renderOrder = 3;
+  /* Drawn, never inked (src/render/post.js, Layers). On layer 0 the ink
+   * prepass drew it in its own material, a quad square to the group and
+   * not to the camera, writing depth and no normal: whatever stood behind
+   * the tag's 2 m rectangle lost its ink, and a room drew it once more a
+   * pilot. */
+  sprite.layers.set(1);
+  /* Nor is it in a thermal picture: a sprite's shader has none of the
+   * thermal chunks (src/render/thermal.js), so the IR inset drew the
+   * name's colours as temperatures. */
+  thermalHide(material);
   let text = '';
   function set(next) {
     next = String(next || '').slice(0, 32);
@@ -137,6 +178,67 @@ function release(root) {
   });
 }
 
+/*
+ * A peer smaller on screen than this share of its view's height is drawn
+ * as its far model (combatcraft.js peerFarModel): its fixed parts, lens,
+ * motors and rotors as one mesh, the rotors standing still. 1 % is 9 px
+ * of a 900 px view, a 7 inch's props 4 px across: too small for a turning
+ * blade to show. Measured (in page A/B against the near model, 2026-10-14,
+ * docs/PERF.md, A full room under the contract): the far model drew 0 to
+ * 6 pixels differently at 1 % and under, and at most 139 pixels, by at
+ * most 4 levels, at 10 %, its props held still in both. A full room's
+ * seven peers at 23 to 104 m in a 90 degree view are 0.19 to 0.87 %.
+ */
+const PEER_FAR_SHARE = 0.01;
+
+/*
+ * The choice between a peer's models, made for each camera as three
+ * draws with it (the view, the sensor's inset, a mirror): three calls
+ * update(camera) on an object marked isLOD as it walks the scene, before
+ * what comes after it, so it is the group's first child. Far, a thermal
+ * draw (renderThermal, THERMAL.env[0] set) takes the cold far mesh and
+ * the motors, every other draw the one mesh. The shadow map is drawn with
+ * the view's choice. group.userData.wreckHold(true) keeps the near model,
+ * which a wreck cuts (src/render/wreck.js), until false.
+ */
+function farSwitch(group, model, extent) {
+  const lod = new THREE.Object3D();
+  lod.name = 'peer-lod';
+  lod.isLOD = true;
+  lod.autoUpdate = true;
+  let held = false;
+  const at = new THREE.Vector3();
+  const eye = new THREE.Vector3();
+  const show = (far, thermal) => {
+    model.look.visible = far && !thermal;
+    model.cold.visible = far && thermal;
+    for (const m of model.near) {
+      m.visible = !far;
+    }
+    for (const m of model.heat) {
+      m.visible = !far || thermal;
+    }
+  };
+  lod.update = (camera) => {
+    let far = false;
+    if (!held && camera.isPerspectiveCamera) {
+      at.setFromMatrixPosition(group.matrixWorld);
+      eye.setFromMatrixPosition(camera.matrixWorld);
+      const view = (2 * at.distanceTo(eye) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) / camera.zoom;
+      far = extent < PEER_FAR_SHARE * view;
+    }
+    show(far, THERMAL.env[0] > 0.5);
+  };
+  group.userData.wreckHold = (on) => {
+    held = on;
+    if (on) {
+      show(false, false);
+    }
+  };
+  group.add(lod);
+  group.children.unshift(group.children.pop());
+}
+
 /* What a profile draws, as a key: a new key is a rebuild. */
 export function profileKey(profile) {
   return JSON.stringify([profile.airframe, profile.livery ?? null, profile.parts ?? null]);
@@ -170,14 +272,22 @@ export function buildPeerCraft(profile, look = null) {
     dressLivery(craft, id, { ...paint, decals: [] });
     addNavLights(craft, paint.lights);
   }
+  /* The props, counted before the discs are joined: one disc each. */
+  const rotors = Math.min(4, craft.discs.length);
   /* A combat quad's fixed parts as a few palette meshes, in the colours
    * and finishes just put on and before the layers take their targets
-   * (src/render/combatcraft.js paletteFixed). The Striker carries a
-   * combat block too, but its parts are its own and its surfaces move,
-   * so only a buildCombatDrone craft, the one with a frame, is joined. */
-  if (craft.combat && craft.combat.frame) {
+   * (src/render/combatcraft.js paletteFixed), then its inks and its blur
+   * discs (joinPeerHulls: a joined disc is the four in one, not turned).
+   * The Striker carries a combat block too, but its parts are its own
+   * and its surfaces move, so only a buildCombatDrone craft, the one with
+   * a frame, is joined. */
+  const joined = Boolean(craft.combat && craft.combat.frame);
+  if (joined) {
     paletteFixed(craft);
+    craft.discs = [joinPeerHulls(craft)];
   }
+  /* Before the layers take their targets, which it is not one of. */
+  const model = joined ? peerFarModel(craft) : null;
   if (paint && paint.decals.length) {
     dressDecalsLater(craft, paint.decals);
   }
@@ -197,6 +307,9 @@ export function buildPeerCraft(profile, look = null) {
    * (src/ui/peermarks.js) judge by. */
   const size = new THREE.Box3().setFromObject(craft.group).getSize(new THREE.Vector3());
   const extent = Math.max(size.x, size.y, size.z) || 1;
+  if (model) {
+    farSwitch(craft.group, model, extent);
+  }
   const tag = nameTag(1.3, 2.2);
   craft.group.add(tag.sprite);
   const quad = !airframeById(id).fixedWing;
@@ -212,12 +325,14 @@ export function buildPeerCraft(profile, look = null) {
   /* The moving parts from a sample `p`: the props turned by `spinK` of
    * a live frame's turn, the retracts at `gearAt`, 0 down to 1 up. */
   function drive(p, spinK, gearAt) {
-    const rotors = (p.flags & FLAG_QUAD) ? [p.c0, p.c1, p.c2, p.c3] : [p.motor, p.motor, p.motor, p.motor];
-    for (let m = 0; m < craft.discs.length && m < 4; m += 1) {
+    const speeds = (p.flags & FLAG_QUAD) ? [p.c0, p.c1, p.c2, p.c3] : [p.motor, p.motor, p.motor, p.motor];
+    for (let m = 0; m < rotors; m += 1) {
       /* The wire's rad/s, turned back into the rpm this spin was tuned
        * on (60 / 2 pi). */
-      const spin = (rotors[m] * 9.549e-4 + (rotors[m] > 0 ? 0.10 : 0)) * spinK;
-      craft.discs[m].rotation.y += spin;
+      const spin = (speeds[m] * 9.549e-4 + (speeds[m] > 0 ? 0.10 : 0)) * spinK;
+      if (!joined) {
+        craft.discs[m].rotation.y += spin;
+      }
       if (craft.blades && craft.blades[m]) {
         craft.blades[m].rotation.y += spin * (craft.propSpin ? craft.propSpin[m] : 1);
       }
@@ -366,9 +481,7 @@ export function buildPilotFigure(figure) {
   const look = FIGURE_LOOKS[Math.max(0, Math.min(FIGURE_COUNT - 1, figure | 0))];
   const group = new THREE.Group();
   group.name = 'pilot-figure';
-  const suit = celMaterial({ color: look.suit });
   const cap = celMaterial({ color: look.cap });
-  const skin = celMaterial({ color: 0xe0b48f });
   const dark = celMaterial({ color: 0x23262b });
   const box = (w, h, d, mat, x, y, z) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -388,28 +501,26 @@ export function buildPilotFigure(figure) {
   };
   const legL = leg(-0.1);
   const legR = leg(0.1);
-  body.add(box(0.44, 0.6, 0.24, suit, 0, 1.16, 0));
-  /* Forearms out in front, holding the transmitter at the chest. */
-  const armL = box(0.1, 0.5, 0.1, suit, -0.26, 1.12, -0.08);
-  armL.rotation.x = 0.9;
-  const armR = box(0.1, 0.5, 0.1, suit, 0.26, 1.12, -0.08);
-  armR.rotation.x = 0.9;
-  body.add(armL, armR);
-  body.add(box(0.26, 0.16, 0.08, dark, 0, 1.02, -0.3));
-  const antenna = box(0.015, 0.16, 0.015, dark, 0.1, 1.14, -0.3);
-  antenna.rotation.x = -0.4;
-  body.add(antenna);
+  /* The torso, the forearms out in front holding the transmitter at the
+   * chest, and its antenna: one piece, in the suit and the dark. */
+  body.add(paletteMesh([
+    [new THREE.BoxGeometry(0.44, 0.6, 0.24), 0, 0, 1.16, 0],
+    [new THREE.BoxGeometry(0.1, 0.5, 0.1), 0, -0.26, 1.12, -0.08, 0.9],
+    [new THREE.BoxGeometry(0.1, 0.5, 0.1), 0, 0.26, 1.12, -0.08, 0.9],
+    [new THREE.BoxGeometry(0.26, 0.16, 0.08), 1, 0, 1.02, -0.3],
+    [new THREE.BoxGeometry(0.015, 0.16, 0.015), 1, 0.1, 1.14, -0.3, -0.4],
+  ], [look.suit, 0x23262b]));
   const head = new THREE.Group();
   head.position.set(0, 1.56, 0);
   body.add(head);
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), skin);
-  skull.position.set(0, 0.06, 0);
-  skull.castShadow = true;
-  head.add(skull);
+  /* The face and the cap's peak cast a shadow; the crown never did. */
+  head.add(paletteMesh([
+    [new THREE.SphereGeometry(0.12, 12, 8), 0, 0, 0.06, 0],
+    [new THREE.BoxGeometry(0.2, 0.02, 0.14), 1, 0, 0.1, -0.13],
+  ], [0xe0b48f, look.cap]));
   const crown = new THREE.Mesh(new THREE.SphereGeometry(0.125, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), cap);
   crown.position.set(0, 0.08, 0);
   head.add(crown);
-  head.add(box(0.2, 0.02, 0.14, cap, 0, 0.1, -0.13));
   const tag = nameTag(2.25, 2.4);
   group.add(tag.sprite);
 

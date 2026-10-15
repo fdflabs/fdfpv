@@ -51,6 +51,7 @@ import * as THREE from 'three';
 import { buildShell } from './render/shell.js';
 import { applyPixelRatio, normalizeGraphics, pixelRatioFor } from './render/quality.js';
 import { createDynRes } from './render/dynres.js';
+import { FLOOR_FPS, createFloorWatch, lowerGraphics } from './render/floor.js';
 import { PerfOverlay } from './ui/perfoverlay.js';
 import { readGpuInfo } from './render/gpuinfo.js';
 import { makeAttractCamera } from './render/attract.js';
@@ -2459,6 +2460,7 @@ export async function boot({
   ui.setGpuInfo(gpuInfo);
   window.__gpu = gpuInfo;
   const dynres = createDynRes();
+  const floorWatch = createFloorWatch();
   dynres.bind(shell.renderer.getContext(), gpuInfo.software);
   dynres.setMode(ui.settings.perfMode, Number(ui.settings.fpsCap) || 0, gpuInfo.software);
   const perfOverlay = new PerfOverlay(uiRoot, gpuInfo);
@@ -14762,6 +14764,7 @@ export async function boot({
     }
     /* A new world starts native: its cost is not the old one's. */
     dynres.reset();
+    floorWatch.reset();
     try {
       /* Read once: the clock may move while the world builds, and the
        * time recorded must be the one built. */
@@ -20644,6 +20647,15 @@ export async function boot({
           resizeDirty = true;
         }
       }
+    }
+    /* Under the owner's frame rate floor, said once a world in flight
+     * (src/render/floor.js; silent while the floor is unset). */
+    if (fr.drawThis && fr.worldLive && mapReady && mode === 'flight' && floorWatch.frame(nowWall, fr.capHz)) {
+      const lower = lowerGraphics(ui.settings.graphics);
+      notice = {
+        text: lower ? str('perf.floor_lower', { fps: FLOOR_FPS, tier: str(`quality.name_${lower}`) }) : str('perf.floor_lowest', { fps: FLOOR_FPS }),
+        untilMs: nowWall + 6000,
+      };
     }
     if (fr.drawThis) {
       const ds = dynres.state;

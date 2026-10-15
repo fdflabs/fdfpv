@@ -489,6 +489,89 @@ and 2.72.
 - **Replays.** The crash cam replays poses, not stick input through the
   plant, so it cannot drive physics; the scripted pilot is used instead.
 
+## A full room under the contract
+
+2026-10-14, branch w43-perf (COMPLETENESS 46). A full room at High drew
+739 calls (renderer count); split by pass with perf-play's new `--calls`
+(the busiest frame, every renderBufferDirect counted), 751: 557 in the
+main view against the contract's 300, 194 in the sensor inset against
+its 110. Of that, the seven peers were 60 calls each (17 in the scene,
+17 in the ink prepass, 17 in the inset, 9 in the shadow map: four
+palette meshes, the lens, three inks, four rotors, four discs, the name
+tag) and the seven pilot figures, out of view at their stations, 63 in
+the shadow map. After, 368 calls (renderer count), 279 in the main view
+and 105 in the inset at the busiest frame, at every run of three:
+
+- **Inks and discs** (combatcraft.js joinPeerHulls): a peer's inks of
+  every offset are one mesh, its four blur discs one, which no longer
+  turn (a disc is round; turning it moved only where its sides fall).
+  Near model 17 calls a pass to 10 with the rest.
+- **The far model** (combatcraft.js peerFarModel, peers.js farSwitch,
+  PEER_FAR_SHARE): a peer under 1 % of its view's height, 9 px of a
+  900 px view, draws its palettes, lens, motors and rotors as one palette
+  mesh, both sides, the rotors standing still, and keeps its ink, discs
+  and tag: 4 calls in the scene and the inset, 3 in the prepass, 1 in the
+  shadow map. A thermal draw takes a second cut, the meshes of no thermal
+  kind joined and the motors apart, so a far quad keeps its hot motors in
+  the IR inset. The choice is made per camera as three draws (an object
+  marked isLOD, first in the peer's group), so the inset, a mirror and
+  the war's cutaway each judge it at their own lens. A peer whose wreck is
+  attached keeps its near model (src/render/wreck.js wreckHold), which is
+  the one the wreck cuts. The seven of the row are at 23 to 104 m, 0.19 to
+  0.87 % of a 90 degree view.
+- **The name tag** (peers.js nameTag) is on layer 1, drawn and never
+  inked (so not in the war cutaway's picture in picture either, whose
+  camera draws layer 0 only, as it draws no sky or water): on layer 0 the ink prepass drew it in its own material as a
+  2 m quad square to the craft, writing depth and no normal, so whatever
+  stood behind it lost its ink. And it is thermalHide'd: a sprite has
+  none of the thermal chunks, so the IR picture drew the name's colours
+  as temperatures, up to 1.37 units (137 C) over the tag's rectangle.
+- **The pilot figure** (peers.js buildPilotFigure): its torso, forearms,
+  transmitter and antenna one palette mesh, its face and cap peak
+  another, the crown and the legs as before: 10 meshes to 5, 9 shadow
+  casters to 4.
+
+Pixels, an in page A/B (tmp/, not committed: the base tree's peers.js
+beside this one in one page, the shell's camera layers, buildComposer's
+real chain read back from the canvas, its prepass target, and
+renderThermal as floats), A B A B, eight views from 0.5 m to 90 m (a
+figure 1 m to 60 m), A/A and B/B 0 px in every case:
+
+| Case | Pixels different, all views and passes, two runs | Where |
+| --- | --- | --- |
+| 7 inch stock | 10 | 0.5 m: 2 final (by 3 levels), 1 prepass, 1 thermal; 2 m: 1 prepass (by 1): the inks joined across offsets |
+| 7 inch, every finish | 14 | as stock, and 30 m: 2 final by 2 (far model) |
+| 7 inch, wear 50 | 18 | as stock, and 30 m and 60 m: 4 final by 1 (far) |
+| 7 inch, finishes and 10 layers | 20 | as stock, and 30 m and 60 m: 5 final by 1 (far) |
+| 10 inch, finishes | 28 | 0.5 m: 3 final by 2, 1 prepass, 1 thermal; 60 m: 6 final (one by 38, the rest by 1 to 3), 1 prepass, 2 thermal (far) |
+| interceptor | 0 | |
+| the five under the swiss2 look | 22 to 42 | as above, and 30 m to 90 m: 1 to 9 final by 1 to 23, 1 to 4 thermal (far) |
+| four pilot figures | 0 final, 0 prepass | thermal only: 2 500 to 5 050 px over the figure, each 1 float ulp (3e-8 of a unit) |
+
+Against the base tree with only the tag's two fixes in it; the tag's own
+change is a run of its own (base against base with the tag moved): the
+prepass loses the tag's rectangle (29 039 px at 2 m), the final picture
+gains the ink it hid (3 400 to 5 000 px by 1 to 38 levels, the horizon's
+ink line where the rectangle crossed it), and the thermal picture loses
+the tag (7 118 px at 2 m, by up to 1.37).
+
+The far model against the near one at every size (PEER_FAR_SHARE set to
+1 for the run only), props still in both: a stock 7 inch from 3 m (9.5 %
+of the view) to 30 m 0 px but at 20 m (7 final, one by 77 levels) and
+25 m (2 by 1), the thermal 1 to 3 px; a finished one
+or the 10 inch at most 139 px, by at most 4 levels, at 10 %. What the
+far model gives up that the A/B cannot show is the props turning, and
+at 1 % a 7 inch's props are 4 px across.
+
+The other checks: render:golden 257 ok; check:combat-models 131 of 131;
+paint:workshop 121 passed; livery:layers 27 passed; kits:quads 33
+passed; hangar:garage 26 passed; surfaces:room all passed; crashcam
+selftest ok; foot:twopage 15 passed; rooms:wrecks 12 passed and
+midair:twopage 12 passed (against a Node rooms server, edge/rooms/node.js,
+in place of wrangler); replay:peers 18 passed, 1 failed ("B trails its
+smoke in the replay's slalom", 19 puffs at 0.67 s), which fails the same
+on the base tree (17 puffs at 0.58 s).
+
 ## P3, throughput: what was measured, what was built, what was not
 
 2026-10-05, after #422, #419 and #426, main at 41978c28. Every number

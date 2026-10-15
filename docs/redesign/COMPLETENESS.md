@@ -774,7 +774,9 @@ not add one, because its frame times on this box's shared card measure
 the other lanes (docs/BUDGETS.md: alps-low at Low 49 ms a frame with the
 card 100 % busy, 6.1 ms at 25 %). A pacer check needs a quiet card.
 
-**46. Performance budgets. PARTIAL.** docs/BUDGETS.md is one table:
+**46. Performance budgets. PARTIAL (the full room within the contract
+since 2026-10-14; a war row at mission 1's peak stage open).**
+docs/BUDGETS.md is one table:
 the menu (`title`), each world (`alps-low`, `swiss-low`, `itaipu-stream`,
 `interior-ops`), the war at full load (`itaipu-war`) and a full room
 (`peers`: seven more pilots' 7 inches in view, from perf-play on the
@@ -786,22 +788,31 @@ at a ceiling set from the measurement beside it by `perf -- --budgets`
 and never held, and so are the attackers alive in the war's window (1,
 in stage 1, Eyes: the window is early in mission 1, not at its peak) and the peers in view (7). The contract is the main view's at
 High, 300 calls and 2.5 M triangles (4.0 M at Itaipu), the thermal inset
-apart (docs/BUDGETS.md, The contract, 2026-10-13): every world's and
-the war's main view is within it, while a full room is 739 calls as a
-whole frame at High, unsplit, about two and a half times it: a stock
-peer's fixed parts are joined into palette meshes (src/render/combatcraft.js
-`paletteFixed`, 40 meshes to 16) and a peer wearing a finish joins the
-same way, and what is left is a palette mesh per offset and render state,
-the lens, the inks, four rotors and four discs (docs/BUDGETS.md, the
-`peers` rows, retaken 2026-10-14); the ceilings hold today's cost, not
-the contract. Texture megabytes are not
+apart at 110 calls (docs/BUDGETS.md, The contract, 2026-10-13): every
+world's and the war's main view is within it, and since branch w43-perf
+so is a full room: 368 calls as a whole frame at High (739 before), 279
+in the main view and 105 in the inset at the busiest frame (perf-play
+`--calls`, which splits a frame by pass; 557 and 194 before). A peer's
+inks and blur discs are one mesh each (src/render/combatcraft.js
+joinPeerHulls), a peer under 1 % of its view's height draws a far model,
+its palettes, lens, motors and rotors as one mesh, the rotors still
+(combatcraft.js peerFarModel, src/render/peers.js PEER_FAR_SHARE, the
+documented rule; a thermal draw keeps the motors apart for their heat),
+its name tag left the ink prepass and the thermal picture, and a pilot
+figure is five meshes, not ten. Pixels: an in page A/B against the base
+tree, 0 to 42 px different per case over eight views and three passes
+(docs/PERF.md, A full room under the contract). A peer nearer than
+about 23 m in the row's view draws its near model, 10 calls a pass. The
+ceilings hold today's cost; whether a row is within the contract is
+the column "Over the written contract". Texture megabytes are not
 measured and cannot be from here: three's `renderer.info.memory` counts
 textures, WebGL has no query for what one holds on the card, and
 perf-play's upload bytes are a frame's uploads, not what stays
 allocated. The peers' GPU floor moves by half between runs on the shared
-card, so it is held from the highest of three. **Done:** a full room
-under the contract at High (a peer's craft batched), and a war row at
-mission 1's peak stage. Size M. Phase 30.
+card, so it is held from the highest of three. Checks: `perf --
+--budgets` (local), `render:golden`, `check:combat-models`,
+`kits:quads`, `rooms:wrecks` (local). **Done:** a war row at mission
+1's peak stage. Size S. Phase 30.
 
 **47. Object pooling. EXISTS.** Explosions, debris, breakage pieces,
 smoke, attackers and war markers are fixed pools or instanced meshes that
@@ -1186,17 +1197,27 @@ a pad, a low end GPU, a high refresh display). **Done:** a table in
 docs/DEVICES.md, one row per device and date, filled when someone flies
 one; the owner's machines and the Pocket first. Size S. Phase 30.
 
-**71. Frame-rate targets. PARTIAL.** Two targets are written: the
+**71. Frame-rate targets. PARTIAL (the number is the owner's; what it
+drives is built).** Two targets are written: the
 owner's 90 frames per second, which the dynamic resolution holds
 (src/render/dynres.js `TARGET_HZ = 90`, perf-play.js `BUDGET_MS`), and 60
 at 1080p on a five year old mid range laptop (budget.js 4, ITAIPU-PLAN.md
-570). Both are in docs/BUDGETS.md. No minimum is defined (the pacer
-floors the render scale, not frames per second) and no reference
-machine is named; the tiers name eras only (Low "Steam Deck and similar
-handhelds", Medium "a 2020-era laptop with integrated graphics", High
-"a 2021-era PC or a strong laptop"). **Done:** the owner's decision on a
-minimum frame rate and a named recommended machine, written in
-docs/BUDGETS.md. Owner decision pending. Size S. Phase 29.
+570). Both are in docs/BUDGETS.md. The minimum is one constant,
+src/render/floor.js `FLOOR_FPS`, null and marked the owner's floor,
+pending, with the measured candidates beside it; set, the shell says
+once a world in flight when the 95th percentile frame of the last 600
+is under it, naming the Graphics preset below (perf.floor_lower and
+perf.floor_lowest, en and es), and never under the pilot's own cap
+(built 2026-10-14, w43-perf; `perf:floor:selftest`). docs/BUDGETS.md,
+The floor, reads every row's frame p95 at Low, Medium and High on this
+box's GPU 1 against 30 and 60: 30 holds everywhere, 60 everywhere but a
+full room above Low (measured on a busy card); on the Jetson AGX Orin
+at Low 30 holds in three of five worlds. No reference machine is named;
+the tiers name eras only (Low "Steam Deck and similar handhelds", Medium
+"a 2020-era laptop with integrated graphics", High "a 2021-era PC or a
+strong laptop"). **Done:** the owner's number in `FLOOR_FPS` and a named
+recommended machine, written in docs/BUDGETS.md. Owner decision pending.
+Size S. Phase 29.
 
 ## 17. Progression and groups (items 72 to 77)
 
