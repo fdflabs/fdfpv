@@ -438,7 +438,7 @@ console.log('each save point writes its key, and nothing else writes');
     u.persistSettings = Ui.prototype.persistSettings;
     const p = Object.create(Progress.prototype);
     Object.assign(p, {
-      ui: u, show: () => {}, toast: () => {}, flight: new EventLog(), folded: 0, bests: [], run: challengeRun(),
+      ui: u, show: () => {}, toast: () => {}, flight: new EventLog(), runLog: [], folded: 0, bests: [], run: challengeRun(),
       watch: new RunWatch(), simMs: 0, wasCrashed: false, heldTrack: null, placeWorld: null, placeSkip: null, lesson: null,
     });
     return p;
