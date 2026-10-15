@@ -49,6 +49,7 @@ import { PLACES } from '../places.js';
 import { M3_AT } from '../routes.js';
 import { CLASSES } from './interior-1.js';
 import { FILMS, briefingMs } from '../films/index.js';
+import { M3_CLOCK } from '../clock.js';
 
 /* A grid point (km east, km north) in ops frame metres. */
 const G = (e, n) => [Math.round(e * 1000 - ORIGIN[0]), Math.round(n * 1000 - ORIGIN[1])];
@@ -98,6 +99,9 @@ export default {
    * cut it is, so a host's skip waits for everyone to have seen it. */
   filmMs: briefingMs('interior-3'),
   film: { id: FILMS['int3-intro'].id, version: FILMS['int3-intro'].version },
+  /* The hours of the day on the room clock (clock.js M3_CLOCK): a screen
+   * moves the sun by it. */
+  clock: M3_CLOCK,
   /* Thermal matters more as the light goes (MISSIONS.md M3). */
   sensor: { palette: 'arctic' },
   /* The forward feed's loss past the ridge, until the relay holds
