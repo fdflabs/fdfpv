@@ -759,9 +759,11 @@ Built 14 October, against the code (war:stages flies it on the room;
 - **The lines that could say more, said (w43-voice-orin).**
   `itaipu-3-s4-dark` is the table's "Lights are on in town." again (the
   towns are lit when The Dark opens). `itaipu-3-s2-clear` ("The light's
-  going.") stays true. Both, `itaipu-3-s3-back`, and every other CREST
-  and DESPACHO line of this mission were built on the Orin
-  (CREDITS.md, Where the voices are built).
+  going.") stays true. Both and `itaipu-3-s3-back` were built on the
+  Orin; the rule that the mission's other CREST and DESPACHO lines are
+  built there too (CREDITS.md, Where the voices are built) is not met
+  yet: their Orin build waits on the Orin's GPU lease, and until it is
+  merged (tools/voice/orin.py) those lines are the desktop's takes.
 - **The Dark has a swarm up the gorge onto the west penstocks.** As
   written above, with nobody flying, the mission was won: the yard and two
   intakes leave 9 800 MW over the 9 700 floor. With the swarm the game is
