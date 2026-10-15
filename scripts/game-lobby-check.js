@@ -398,7 +398,7 @@ try {
    * is drawn on a later tick, and an Escape before it did nothing). */
   await intoLobby(a, `.gate-card${cardSel}`);
   await a.until("window.__rooms().phase === 'open' && window.__ui.inLobby && window.__ui.inLobby()", 60000).catch(() => {});
-  const quick = await a.evaluate("({ lobby: Boolean(window.__ui.inLobby && window.__ui.inLobby()), panel: Boolean(window.__ui.warLobbyOn), phase: window.__rooms().phase, screen: window.__ui.screen, dialog: !document.querySelector('.name-dialog').hidden })");
+  const quick = await a.evaluate("({ lobby: Boolean(window.__ui.inLobby && window.__ui.inLobby()), panel: Boolean(window.__ui.warLobbyOn), phase: window.__rooms().phase, screen: window.__ui.screen, dialog: document.querySelector('.name-dialog').hidden ? false : document.querySelector('.name-dialog').textContent.slice(0, 160) })");
   await a.tap('Escape');
   await a.until("window.__ui.onGate() && window.__rooms().phase === 'idle'", 15000).catch(() => {});
   check(`Escape the moment a card's lobby is up (panel drawn: ${quick.panel}): out of the room, its hub's cards again`,
