@@ -91,8 +91,8 @@ Each stage table below says which dials it turns.
    | NE | the east shore, the Brazilian bank | `east-shore-low`, `east-shore-high` (new) |
    | HIGH | high over the islands, any side | `high-east`, `high-west`, `high-yard` (built), `high-north` (new) |
    | WATER | on the reservoir's surface | `surface-east`, `surface-gates` (built), `surface-mid`, `surface-west-arm` (new) |
-   | GORGE | up the gorge from the south, under the rims | `gorge`, `gorge-yard` (built), `gorge-left-rim` (new) |
-   | RIVER | on the river below the dam | `river-surface`, `river-west-bank` (new; mission 5) |
+   | GORGE | up the gorge from the south, under the rims | `gorge`, `gorge-yard`, `gorge-left-rim` (built; the last in mission 5) |
+   | RIVER | on the river below the dam | `river-surface`, `river-west-bank` (built, mission 5: the carrier's, on the water at 103.5 m) |
    | LINES | along the 500 kV corridors | `corridor-west`, `corridor-east` (new; missions 3 and 6) |
 
 2. **Composition.** A group may list alternatives (`fpv` or `loiter`,
@@ -307,7 +307,10 @@ changing that one field and redeploying the rooms server. Missions 1 to
 4 are available: the owner released all four on 2026-10-15, so the
 campaign plays in order. First Light had gone back to `development` on
 2026-10-07 (PR #666, the owner: no narration, under construction until
-it was as finished as The Interior's Mission 1); 5 to 7 are `soon`.
+it was as finished as The Interior's Mission 1). Mission 5, The River
+Below, is `development` since branch w46-m5 (2026-10-15): built, shown
+Under development, held until the owner has flown it. 6 and 7 are
+`soon`.
 
 ### 2.1 Release status (checked against the tree 2026-10-13, batch/2026-10-14 f0c06cbb6)
 
@@ -336,6 +339,18 @@ claim it: spotting (T1.8). Districts coming back after the reroute
 (`itaipu-3-s3-back`). The light falling across the mission (T1.11) is built since
 branch w39-daynight (14 October): see M3's as-built notes for the lines
 that may now say more. Released 2026-10-15 with the rest of Act 1.
+
+Mission 5, The River Below, built on branch w46-m5 (2026-10-15) and
+held in development until the owner has flown it, has against this
+table: 4 stages and 3 twists, 4 title keys; 2 objectives
+(`war.obj.protect_penstocks`, `war.obj.itaipu_5.carrier`); the table's
+13 radio ids, `itaipu-5-op` and the film's 4, all voiced en and es on
+the Orin; no guide lines (M5 writes none); the nudge and the objective
+cards; every briefing fact, its length 7 to 14 min measured; its film
+`river-below` and no outro (none written); voiced debriefs; seeded GORGE,
+RIVER and HIGH sectors, war:routes PASS; the consent; Contain with
+`itaipu-5-op`. What it adds to the engine and what it does not build is
+M5's as built below.
 
 Mission 4's column is checked against branch w39-mission-4 (2026-10-14):
 war:stages, war:routes, war:harness, war:legacy, war:radio, war:nudge,
@@ -1058,6 +1073,64 @@ objective. Targets: the penstocks and the downstream face (built
 | 2 | Up the Gorge | beat 12 s | protect(penstocks) | swarm on `gorge-left-rim`; Hunters at `enter+[25,40]` | `cleared` |
 | 3 | The Source | beat 15 s; the carrier appears on RIVER (route seeded) | kill(carrier) | the carrier and its launched swarms; the twist at `enter+[30,50]` | `killed(carrier)` and `cleared` |
 | 4 | Clear the River | beat 20 s | protect(penstocks) | convergence: swarms on both GORGE routes, Strikers from RIVER low, Loiterers HIGH onto penstocks | `cleared` |
+
+Built 15 October, against the code (branch w46-m5; `itaipu-5.js`,
+war:stages flies it on the room), held at `release: 'development'`:
+
+- **The carrier** (T1.6, T1.7, `routes.js` KIND, `edge/rooms/war.js`
+  launch): a 12 m grey hull at 7 m/s, weaving 10 m, parking where its
+  route ends, two detonations (op `hurt` on the first; a penetrator
+  takes it in one). While it lives it launches its spawn's `launch`
+  group from its deck at its pose then, judged in order with the
+  detonations, so a carrier killed first launches nothing at any lag.
+  The interval is the Pilots line's, 50 s at one pilot to 35 s at eight,
+  straight between, not a seeded draw in 35 to 50 (the two lines of M5
+  disagree; the per pilot one is the more exact). Each launch goes for
+  the next of the penstocks, so a source left alive loses the mission
+  (war:stages, nobody shooting); a launched swarm's formation opens from
+  the one deck over its climb.
+- **The RIVER routes** stay where the war's floor (`itaipu-height.bin`)
+  is the river's 103.5 m (the map's water.json `river`): a band 200 to
+  250 m wide inside the drawn outline, from 1.3 km downriver to the
+  gorge's head. `river-west-bank` runs 30 m inside the band's west edge,
+  well inside the real bank. war:routes holds a floating kind to the
+  water its route is on and flies every launch from every 5 s of a
+  carrier's flight.
+- **Strikers from RIVER low** fly `river-low` or `river-west-low`, 31.5
+  m over the river, named RIVER for the bearing call by the spawn's
+  `sector`; the RIVER family itself is the carrier's surface routes.
+- **Loiterers HIGH** circle south of the dam (`high-south`,
+  `high-south-east`): from the north, as the other missions' high
+  routes come, the dive onto the downstream face met the dam's upstream
+  face first (war:routes).
+- **The twists.** A: the second hull 30 to 50 s in on the other RIVER
+  route; the stage's `silent` draws which hull launches nothing, and
+  with no spotting (T1.8) nothing tells the squad which, so the
+  objective is both. B: the launch's `then`, Hunters at their clearance
+  over the deck, once every one of its first swarm was killed (a first
+  swarm let through keeps it on swarms). C: every swarm twice the size;
+  every attacker is marked at any range already, so "marked from its
+  birth" changes nothing on the screen. The twist's line is cued at the
+  carrier's birth in C (CARANCHO marks it then), at the second hull in
+  A, at the first Hunters in B.
+- **The radio**: the table's 13 lines, `itaipu-5-op` and the film's four,
+  voiced en and es on the Orin (CARANCHO `am_puck`, `pm_alex`). In twist
+  A `itaipu-5-s3-carrier` ("It's launching") waits for the first launch,
+  since the first hull may be the silent one. M5 writes no guide lines,
+  so the mission has none (missions 1 to 4 have 7 to 9).
+- **Bots** (scripts/war-balance.js): a good or average pilot goes for a
+  carrier first, as a pilot who reads the objective would; without it a
+  solo squad chased the swarms forever and never ended the stage.
+- **Length** 7 to 14 minutes: ten good bot games end 8.0 to 13.5 minutes
+  after the go, against section 2's guess of 11 to 15.
+- **The film** is `films/river-below.js` (INTROS.md 5.5), with no smoke
+  downriver in shot 1 and shot 3's own rider near the face for 8 s (the
+  film's header says why). The campaign card's line is the Briefing
+  above, as The Long Night's is its own.
+- **Not built**: the carrier's two hit burn (its first hit throws half
+  its death's pieces, no fire), spotting (T1.8), the music cues (no
+  mission has its five layers), and an outro film (INTROS.md writes none
+  for M5).
 
 ### The twist (stage 3)
 

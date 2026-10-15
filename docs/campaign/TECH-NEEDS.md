@@ -152,6 +152,14 @@ New targets (`map.targets` and the mission's MW table):
 and breacher are unmarked grey hulls, bigger than a sea drone);
 `src/ui/warmarkers.js` labels them (NODRIZA/CARRIER, ROMPEDOR/BREACHER).
 
+**The carrier is built** (branch w46-m5, 2026-10-15, mission 5): the
+kind appended to KINDS, its 12 m hull and marker, and its spawn's
+`launch` judged by the room in order with the detonations. A child's
+route starts at its birth's `from`, the carrier's pose at the launch,
+which the room computes once and sends, rather than every screen
+planning from a runtime point. The interval runs by pilots (MISSIONS.md
+M5's as built says why). The breacher is not built.
+
 ### T1.7 Hit points
 
 `KIND[k].hp` (default 1). A detonation on an attacker with hp over 1
@@ -159,6 +167,11 @@ decrements it and sends `{ op: 'hurt', id, at, by, hp }` instead of
 `dead`; the defender is spent as today; a `penetrator` warhead removes
 all of a kind's hp in one hit. Kills, assists and earned airframes count
 on the death only. The harness's bands hold for the decrement.
+
+**Built** (branch w46-m5): `routes.js` hpOf, `edge/rooms/war.js`
+detonate, with the hits kept in the match (`m.hurt`) for a restore, and
+`{ op: 'hurt', ids, hp, at, by, p }` (a boom may hurt several); war:stages
+holds two booms, the second pilot credited, and a penetrator's one.
 
 ### T1.8 Spotting
 

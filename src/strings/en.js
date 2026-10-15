@@ -4032,7 +4032,7 @@ export default {
   "campaign.m.night": "The Long Night",
   "campaign.m.night_blurb": "They'll come in the dark. Boats you can't see and drones that hunt pilots, not concrete. Trust your markers. Fly in pairs. Hold until sunrise.",
   "campaign.m.river": "The River Below",
-  "campaign.m.river_blurb": "Day two. The flight downriver is out of birds, and the attack comes up the gorge now. Something on the water is launching it. Find the source.",
+  "campaign.m.river_blurb": "Carancho's flight held the river below all night. They're out of birds. Everything coming up the gorge is ours now, and something down there is launching it. Find the source.",
   "campaign.m.corridor": "The Corridor",
   "campaign.m.corridor_blurb": "They have stopped hitting the dam and started hitting the lines. If the corridors go, the towns go dark. Spread out.",
   "campaign.m.breach": "Breach",

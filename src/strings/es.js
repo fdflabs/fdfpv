@@ -4037,7 +4037,7 @@ export default {
   "campaign.m.night": "La noche larga",
   "campaign.m.night_blurb": "Van a venir en la oscuridad. Lanchas que no se ven y drones que cazan pilotos, no hormigón. Confíen en los marcadores. Vuelen de a dos. Aguanten hasta el amanecer.",
   "campaign.m.river": "El río de abajo",
-  "campaign.m.river_blurb": "Día dos. La escuadrilla río abajo se quedó sin aparatos, y el ataque ahora sube por el cañón. Algo en el agua lo está lanzando. Encuentren el origen.",
+  "campaign.m.river_blurb": "La escuadrilla Carancho sostuvo el río toda la noche. Se quedaron sin aparatos. Todo lo que suba por el cañón ahora es nuestro, y algo allá abajo lo está lanzando. Encuentren el origen.",
   "campaign.m.corridor": "El corredor",
   "campaign.m.corridor_blurb": "Dejaron de atacar la represa y empezaron con las líneas. Si caen los corredores, los pueblos quedan a oscuras. Despliéguense.",
   "campaign.m.breach": "Brecha",
