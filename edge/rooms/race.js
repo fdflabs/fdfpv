@@ -30,7 +30,10 @@
  * room orders them. It cannot see a gate as the racer does, but it holds
  * the racer's poses, and a pass or finish they contradict is not counted
  * (edge/rooms/anticheat.js, the witness): a pass is dropped, a finish
- * retires the racer. A claim the poses have not reached yet waits for
+ * retires the racer, and the race's row for it says why (standings `why`,
+ * the witness's reason, on a refused row only), so the racer's page shows
+ * the retirement instead of resending a finish the room will not take. A
+ * claim the poses have not reached yet waits for
  * them (pending), so a pass may be relayed a frame or two after it
  * arrived.
  *
@@ -151,6 +154,7 @@ export class RoomRace {
      * { id, trackId, laps, goAt, racers: [seat], state: 'on'|'results',
      *   progress: { seat: { lap, gate, t, points } },
      *   finish: { seat: { ms, lap, points } }, out: { seat: 'retired'|'left' },
+     *   why: { seat: the witness's reason } for a finish it refused,
      *   results: [...] }
      */
     this.race = null;
@@ -230,6 +234,8 @@ export class RoomRace {
         t: f ? f.ms : p.t,
         points: f ? f.points : p.points,
         out: r.out[seat] || null,
+        /* A race kept before `why` existed has none. */
+        ...(r.why && r.why[seat] ? { why: r.why[seat] } : {}),
       };
     }));
   }
@@ -381,13 +387,14 @@ export class RoomRace {
 
   /* A finish the witness let through, or the racer's retirement when it
    * refused it. */
-  takeFinish(core, c, refused) {
+  takeFinish(core, c, verdict) {
     const r = this.race;
     if (!r || r.state !== 'on' || r.id !== c.race || r.finish[c.seat] || r.out[c.seat]) {
       return [];
     }
-    if (refused) {
+    if (verdict !== 'ok') {
       r.out[c.seat] = 'retired';
+      r.why = { ...r.why, [c.seat]: verdict };
     } else {
       r.finish[c.seat] = { ms: c.p.t, lap: c.p.lap, points: c.p.points };
     }
@@ -420,7 +427,7 @@ export class RoomRace {
       const ok = verdict === 'ok';
       this.witness.record({ seat: c.seat, at: c.at, finish: c.kind === 'finish' }, verdict);
       if (c.kind === 'finish') {
-        out.push(...this.takeFinish(core, c, !ok));
+        out.push(...this.takeFinish(core, c, verdict));
       } else if (ok) {
         out.push(...this.takePass(core, c));
       }

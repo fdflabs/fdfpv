@@ -3262,6 +3262,7 @@ export default {
   "roomrace.results_over": "Race over",
   "roomrace.results_waiting": "Waiting for the others",
   "roomrace.your_time": "Your time",
+  "roomrace.refused_laps_not_flown": "Retired: your aircraft was not seen flying the laps of that finish, so it was not counted.",
   "roomrace.dnf": "Did not finish",
   "roomrace.place_of": "Place {place} of {n}",
   "roomrace.fly_on": "Fly the track",

@@ -1250,6 +1250,17 @@ in the room's ms, unrounded, and flies the plant to it. Check:
 `rooms:selftest`, AI racers section: every AI claim within one pose
 interval of its newest pose (was 204 to 1730 ms past it before the fix,
 -1.7 to 30.3 ms after), the witness refusing none.
+**Fixed** (2026-10-15, w44-roomsfix): a refused finish left the page
+out of step: it still showed its own time and place and resent the
+finish every 1.5 s, which the room dropped. The race's row for a racer
+whose finish was refused now carries the witness's reason (`why`, on
+that row only, additive, ROOM_LEVEL 4), and src/share/roomrace.js takes
+the room's row over its own finish: out, no resend; the results screen
+says why (roomrace.refused_laps_not_flown, en and es). Checks:
+`rooms:selftest`, race witness section (the cheater's page: out, one
+finish sent, was five); `rooms:racetwopage` local, a third race whose
+finish from B the room refuses (B out with the reason line, 0 resent
+in 4.5 s, was 9).
 
 ## 15. Telemetry and diagnostics (items 63 to 67)
 

@@ -205,12 +205,17 @@ export function createRoomRace(send) {
       if (!(race.racers || []).includes(seat)) {
         return 'spectating';
       }
+      /* The room's row first: a finish it refused (edge/rooms/race.js
+       * `why`) is out, whatever this page sent. */
       const row = myRow();
-      if (finishMsg || (row && row.ms != null)) {
+      if (row && row.ms != null) {
         return 'finished';
       }
       if (retired || (row && row.out)) {
         return 'out';
+      }
+      if (finishMsg) {
+        return 'finished';
       }
       return roomNow != null && roomNow >= race.goAt ? 'racing' : 'countdown';
     },
@@ -277,7 +282,7 @@ export function createRoomRace(send) {
         return;
       }
       const row = myRow();
-      if (row && row.ms != null) {
+      if (row && (row.ms != null || row.out)) {
         return;
       }
       if (roomNow - finishSentAt >= FINISH_RESEND_MS) {
@@ -340,7 +345,7 @@ export function createRoomRace(send) {
       });
       if (finishMsg && mine()) {
         const me = rows.find((r) => r.seat === seat);
-        if (me && me.ms == null) {
+        if (me && me.ms == null && !me.out) {
           Object.assign(me, { ms: finishMsg.ms, lap: finishMsg.lap, t: finishMsg.ms, points: finishMsg.points, gate: 0 });
         }
       }

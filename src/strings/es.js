@@ -3267,6 +3267,7 @@ export default {
   "roomrace.results_over": "Carrera terminada",
   "roomrace.results_waiting": "Esperando a los demás",
   "roomrace.your_time": "Tu tiempo",
+  "roomrace.refused_laps_not_flown": "Abandonaste: no se vio a tu aeronave volar las vueltas de esa llegada, así que no contó.",
   "roomrace.dnf": "No terminó",
   "roomrace.place_of": "Puesto {place} de {n}",
   "roomrace.fly_on": "Volar la pista",

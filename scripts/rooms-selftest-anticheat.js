@@ -49,6 +49,7 @@ import { fileURLToPath } from 'node:url';
 
 import { HERE_MS, RoomCore, TICK_MS } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { FINISH_RESEND_MS, createRoomRace } from '../src/share/roomrace.js';
 import { CLAIM_WINDOW_MS, Witness, gateDistance } from '../edge/rooms/anticheat.js';
 import { PLANE_REACH, Race } from '../src/game/race.js';
 import { simPosToThree } from '../src/render/frame.js';
@@ -244,6 +245,25 @@ function roomHalf(check) {
       `${relayed(e, 0, seat).map((m) => `${m.lap}:${m.gate}`).join(' ')}; ${w.flags.map((x) => x.why).join(' ')}`);
     check('and a finish of laps it never flew retires it from the race', race.out[seat] === 'retired' && !race.finish[seat], JSON.stringify(race.out));
     check('nobody is removed from the room for it', e.r.seats.has(e.socks[1]) && !e.socks[1].closed, `seated ${e.r.seats.has(e.socks[1])}`);
+    /* The cheater's page (src/share/roomrace.js) read the room's word on
+     * its finish: out, the reason on its row, and no finish resent. */
+    const told = e.socks[1].got.filter((m) => m.type === 'race' && m.race).at(-1);
+    const sent = [];
+    const rr = createRoomRace((m) => sent.push(m));
+    rr.onWelcome({ seat, race: { ...told.race, state: 'on', standings: [] } });
+    const roomNow = e.r.roomMs(e.clock);
+    for (let lap = 0; lap < LAPS; lap += 1) {
+      rr.pass({ lapDone: true, gate: 1 }, roomNow);
+    }
+    rr.onMessage(told);
+    for (let k = 1; k <= 4; k += 1) {
+      rr.frame(roomNow + k * FINISH_RESEND_MS);
+    }
+    const mine = told.race.standings.find((row) => row.seat === seat);
+    check('the room tells the page why: its row retired, laps_not_flown, and the page shows itself out and stops resending the finish',
+      mine.out === 'retired' && mine.why === 'laps_not_flown' && rr.role(roomNow) === 'out'
+      && sent.filter((m) => m.op === 'finish').length === 1 && rr.standings().find((row) => row.seat === seat).ms == null,
+      `${JSON.stringify(mine)}; role ${rr.role(roomNow)}; ${sent.filter((m) => m.op === 'finish').length} finish sent`);
   }
   {
     const e = room(['interceptor', 'interceptor']);

@@ -23,7 +23,9 @@
  * through each opening), A quicker than B, and both results screens must
  * show the same order and the same times, and each its debrief
  * (docs/DEBRIEF.md): its place, and the replay row. Then A races again (the
- * rematch) and ends it early. Pictures in outdir, which is not in the
+ * rematch) and ends it early. With the local server, a third race whose
+ * finish from B the room refuses: B shows itself retired, says why, and
+ * stops resending it. Pictures in outdir, which is not in the
  * repository: a picture is evidence for one round.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -307,6 +309,62 @@ try {
   const e = await state(b);
   check('the host ends it, and both have the unfinished results', e.standings.length === 2 && e.standings.every((r) => r.ms == null));
   await shot(b, '6-b-ended');
+
+  if (localRooms) {
+    /*
+     * A finish the room refuses (edge/rooms/anticheat.js): the page must
+     * take the room's word, show itself retired with the reason, and stop
+     * resending. The room's verdict on B's finish is forced in this
+     * process, since a page flying the real shell flies its laps; the
+     * witness's own refusals are rooms:selftest's negative controls. B is
+     * quicker this time, so A is still racing while B's finish is judged.
+     */
+    const core = [...localRooms.env.ROOMS.objects.values()].map((o) => o.host.core).find((c) => c && c.race.race);
+    const bSeat = (await state(b)).standings.find((r) => r.seat !== 1).seat;
+    const judge = core.race.witness.judge.bind(core.race.witness);
+    let refusedAt = null;
+    core.race.witness.judge = (claim, roomNow) => {
+      if (claim.finish && claim.seat === bSeat) {
+        refusedAt = Date.now();
+        return 'laps_not_flown';
+      }
+      return judge(claim, roomNow);
+    };
+    const finish = core.race.finish.bind(core.race);
+    const resent = [];
+    core.race.finish = (c, s, msg, now) => {
+      if (s.seat === bSeat && refusedAt != null) {
+        resent.push(Date.now() - refusedAt);
+      }
+      return finish(c, s, msg, now);
+    };
+    await a.evaluate("window.__roomRaceDo('race-start', 1); true");
+    for (const p of [a, b]) {
+      await p.until("window.__roomRace().role === 'racing'", 30000);
+    }
+    let bThrows = 0;
+    while ((await state(b)).role === 'racing' && bThrows < 6) {
+      await throwThrough(b);
+      bThrows += 1;
+    }
+    await b.until("window.__roomRace().role === 'out'", 10000).catch(() => {});
+    /* Three resend intervals (roomrace.js FINISH_RESEND_MS) with A still
+     * racing. */
+    await b.sleep(4500);
+    const ob = await state(b);
+    const mine = ob.standings.find((r) => r.seat === bSeat);
+    const meta = await b.evaluate("document.querySelector('.results-hero-meta') ? document.querySelector('.results-hero-meta').textContent : ''");
+    check('a finish the room refuses: the page is out, its row retired with the room\'s reason, while the others race on',
+      refusedAt != null && ob.race.state === 'on' && ob.role === 'out' && mine && mine.out === 'retired' && mine.why === 'laps_not_flown' && mine.ms == null,
+      JSON.stringify({ refused: refusedAt != null, state: ob.race.state, role: ob.role, row: mine }));
+    check('its results screen says why it was retired', ob.results && /^Retired: .*not counted\.$/.test(meta), meta);
+    check('and it stops resending the finish the room refused', resent.length === 0, `${resent.length} resent, at ${resent.join(', ')} ms after the refusal`);
+    await shot(b, '7-b-finish-refused');
+    core.race.finish = finish;
+    core.race.witness.judge = judge;
+    await a.evaluate("window.__roomRaceDo('race-end'); true");
+    await b.until("window.__roomRace().race.state === 'results'", 20000);
+  }
 
   const errs = [...a.errors, ...b.errors].filter((x) => !x.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
