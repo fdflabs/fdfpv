@@ -95,9 +95,12 @@ const FONT = 'ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace';
 
 /* Threat by kind (src/share/war/routes.js KINDS): 2 comes for pilots, 1
  * for the dam, 0 for neither directly. The carrier is the dam's: what it
- * launches goes for the penstocks (mission 5). */
+ * launches goes for the penstocks (mission 5). A carrier spotted
+ * (roomwar's `spotted`, edge/rooms/war.js spot) is marked for what the
+ * spotter saw: `launching`, the dam's, or `silent`, a hull that launches
+ * nothing (mission 5's twist A), neither's. */
 const THREAT = {
-  hunter: 2, strike: 1, loiter: 1, fpv: 1, scout: 0, boat: 0, decoy: 0, carrier: 1,
+  hunter: 2, strike: 1, loiter: 1, fpv: 1, scout: 0, boat: 0, decoy: 0, carrier: 1, launching: 1, silent: 0,
 };
 /* A decoy is marked as a Striker until it is this close (mission 3). */
 const DECOY_M = 300;
@@ -388,7 +391,7 @@ export function createWarMarkers(camera, view) {
       const dy = y - a.p[1];
       const dz = z - a.p[2];
       const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      const kind = a.kind === 'decoy' && d > DECOY_M ? 'strike' : a.kind;
+      const kind = a.kind === 'decoy' && d > DECOY_M ? 'strike' : a.spotted ?? a.kind;
       const k = KINDS.indexOf(kind);
       kindOf[i] = k < 0 ? UNKNOWN : k;
       threat[i] = THREAT[kind] ?? 0;

@@ -3902,6 +3902,8 @@ export default {
   "war.mark.boat": "DRON NAVAL",
   "war.mark.decoy": "SEÑUELO",
   "war.mark.carrier": "NODRIZA",
+  "war.mark.launching": "LANZANDO",
+  "war.mark.silent": "CASCO VACÍO",
   "war.mission.drill": "Práctica",
   "war.mission.practice": "Entrenamiento",
   "war.stage.practice.pass": "Un Striker",

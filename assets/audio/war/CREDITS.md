@@ -325,6 +325,7 @@ CREST, MIRADOR and TALLER, its story, debriefs, Contain line and film,
 | itaipu-5-s3-order | `voice/en/itaipu-5-s3-order.webm`, `voice/en/itaipu-5-s3-order.mp3`, `voice/es/itaipu-5-s3-order.webm`, `voice/es/itaipu-5-s3-order.mp3` |
 | itaipu-5-s3-dead | `voice/en/itaipu-5-s3-dead.webm`, `voice/en/itaipu-5-s3-dead.mp3`, `voice/es/itaipu-5-s3-dead.webm`, `voice/es/itaipu-5-s3-dead.mp3` |
 | itaipu-5-ta-turn | `voice/en/itaipu-5-ta-turn.webm`, `voice/en/itaipu-5-ta-turn.mp3`, `voice/es/itaipu-5-ta-turn.webm`, `voice/es/itaipu-5-ta-turn.mp3` |
+| itaipu-5-ta-spot | `voice/en/itaipu-5-ta-spot.webm`, `voice/en/itaipu-5-ta-spot.mp3`, `voice/es/itaipu-5-ta-spot.webm`, `voice/es/itaipu-5-ta-spot.mp3` |
 | itaipu-5-tb-turn | `voice/en/itaipu-5-tb-turn.webm`, `voice/en/itaipu-5-tb-turn.mp3`, `voice/es/itaipu-5-tb-turn.webm`, `voice/es/itaipu-5-tb-turn.mp3` |
 | itaipu-5-tc-turn | `voice/en/itaipu-5-tc-turn.webm`, `voice/en/itaipu-5-tc-turn.mp3`, `voice/es/itaipu-5-tc-turn.webm`, `voice/es/itaipu-5-tc-turn.mp3` |
 | itaipu-5-s4-last | `voice/en/itaipu-5-s4-last.webm`, `voice/en/itaipu-5-s4-last.mp3`, `voice/es/itaipu-5-s4-last.webm`, `voice/es/itaipu-5-s4-last.mp3` |

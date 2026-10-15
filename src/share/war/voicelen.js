@@ -497,6 +497,7 @@ export default Object.freeze({
   'itaipu-5-s3-dead': { en: 2.415, es: 2.305 },
   'itaipu-5-s3-order': { en: 2.585, es: 3.295 },
   'itaipu-5-s4-last': { en: 3.075, es: 3.635 },
+  'itaipu-5-ta-spot': { en: 3.905, es: 4.345 },
   'itaipu-5-ta-turn': { en: 3.565, es: 4.445 },
   'itaipu-5-tb-turn': { en: 2.835, es: 3.335 },
   'itaipu-5-tc-turn': { en: 5.635, es: 5.895 },

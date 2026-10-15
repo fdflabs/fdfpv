@@ -15,6 +15,8 @@
  *   - the pilot's own FPV camera: a marker or an arrow for every one
  *   - mission 5's carrier: tagged CARRIER in orange, its model a hull
  *     bigger than a sea drone's
+ *   - a spotted carrier: LAUNCHING in orange, the silent one EMPTY HULL
+ *     in yellow
  *   - an attacker the room says is hurt (a carrier hit once) burns,
  *     fire and smoke from the explosions' layer, only while it lives
  *   - held up the gorge, a Hunter the room has on this seat (its
@@ -474,6 +476,15 @@ try {
     mk.update(list, 0, [{ type: 'born', agents: [{ id: 1, kind: 'carrier', target: null }] }], null, 0, 400, 0);
     await null;
     const m = mk.shown().marks.find((k) => k.id === 1);
+    /* Spotted (roomwar's spotted): marked for what the spotter saw. */
+    const spotted = async (how) => {
+      mk.update([{ ...list[0], spotted: how }], 0, [], null, 0, 400, 0);
+      await null;
+      const s = mk.shown().marks.find((k) => k.id === 1);
+      return s ? [s.tag, s.colour] : null;
+    };
+    const launching = await spotted('launching');
+    const silent = await spotted('silent');
     mk.clear();
     const size = (kind) => {
       const g = attackerGeometry(kind);
@@ -481,11 +492,14 @@ try {
       const b = g.boundingBox;
       return [b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z].map((v) => Math.round(v * 100) / 100);
     };
-    return { tag: m ? m.tag : null, colour: m ? m.colour : null, carrier: size('carrier'), boat: size('boat'), death: Boolean(DEATH.carrier) };
+    return { tag: m ? m.tag : null, colour: m ? m.colour : null, carrier: size('carrier'), boat: size('boat'), death: Boolean(DEATH.carrier), launching, silent };
   })()`);
   check('a carrier is marked CARRIER in orange, and drawn as a hull longer and higher than a sea drone, with its pieces to throw',
     carrier.tag === 'CARRIER' && carrier.colour === '#ff8a1f' && carrier.carrier[2] > carrier.boat[2] && carrier.carrier[1] > carrier.boat[1] && carrier.death,
     JSON.stringify(carrier));
+  check('a spotted carrier is marked for what was seen: LAUNCHING in orange, the silent one EMPTY HULL in yellow',
+    JSON.stringify(carrier.launching) === JSON.stringify(['LAUNCHING', '#ff8a1f']) && JSON.stringify(carrier.silent) === JSON.stringify(['EMPTY HULL', '#ffe040']),
+    JSON.stringify({ launching: carrier.launching, silent: carrier.silent }));
   /* A hull hit once and alive burns (MISSIONS.md M5, its two hit burn):
    * on this shell, an attacker the room says is hurt (the `hurt` op, as a
    * carrier's first detonation sends it) draws the explosions' fire and

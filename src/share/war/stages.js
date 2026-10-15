@@ -109,6 +109,8 @@
  *   skip    a trigger: a spawn not yet born when it has fired is dropped
  *           (stage 5's "the twists that did not fire": { visited })
  *   group   a name the triggers count it by
+ *   spot    true: a pilot can spot it (edge/rooms/war.js spot, SPOT_M for
+ *           SPOT_MS); 'birth': spotted as it is born, by nobody here
  *
  * n and per size it by the pilots here when it is announced (index.js
  * waveSize), as ever.
@@ -134,6 +136,11 @@
  *   { left: n, group?, kind? }     n of them gone on their own (a Scout
  *                                  done with its orbit)
  *   { born: { group?, kind? } }    the first of them born (its t0)
+ *   { spot: { group?, kind?, silent? } }
+ *                                  the first of them spotted (a spawn's
+ *                                  `spot`, war.js), only a hull that
+ *                                  launches nothing with silent true,
+ *                                  only one that does with false
  *   { down: { group?, kind? } }    every one born and every one killed
  *                                  (warhead or power line): scoutsDown
  *   { gone: { group?, kind? } }    every one born and every one gone,
@@ -458,6 +465,7 @@ export function slotKind(w, d, k, seed, entry) {
  *                  (a warhead), 'wire', 'arrive' (at its target, or
  *                  through at a lost round's end) or 'leave'
  *   { t, e: 'down', target }   a target hit for the first time
+ *   { t, e: 'spot', id, kind, group, silent }   spotted (war.js spot)
  *   { t, e: 'spend', seat }
  * A target's fall and an opening are also the match's (m.downAt,
  * m.breaches), for the triggers that ask whether one ever happened.
@@ -558,6 +566,10 @@ export function fired(trig, ctx) {
   }
   if (trig.born) {
     const ts = chosen(st, trig.born, 'born').map((x) => x.t).filter((t) => t <= f);
+    return ts.length ? Math.min(...ts) : null;
+  }
+  if (trig.spot) {
+    const ts = chosen(st, trig.spot, 'spot').filter((x) => x.t <= f && (trig.spot.silent == null || x.silent === trig.spot.silent)).map((x) => x.t);
     return ts.length ? Math.min(...ts) : null;
   }
   if (trig.down) {

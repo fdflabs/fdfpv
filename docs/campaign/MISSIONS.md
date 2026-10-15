@@ -344,7 +344,7 @@ Mission 5, The River Below, built on branch w46-m5 (2026-10-15) and
 held in development until the owner has flown it, has against this
 table: 4 stages and 3 twists, 4 title keys; 2 objectives
 (`war.obj.protect_penstocks`, `war.obj.itaipu_5.carrier`); the table's
-13 radio ids, `itaipu-5-op` and the film's 4, all voiced en and es on
+14 radio ids, `itaipu-5-op` and the film's 4, all voiced en and es on
 the Orin; no guide lines (M5 writes none); the nudge and the objective
 cards; every briefing fact, its length 7 to 14 min measured; its film
 `river-below` and no outro (none written); voiced debriefs; seeded GORGE,
@@ -1104,15 +1104,35 @@ war:stages flies it on the room), held at `release: 'development'`:
   routes come, the dive onto the downstream face met the dam's upstream
   face first (war:routes).
 - **The twists.** A: the second hull 30 to 50 s in on the other RIVER
-  route; the stage's `silent` draws which hull launches nothing, and
-  with no spotting (T1.8) nothing tells the squad which, so the
-  objective is both. B: the launch's `then`, Hunters at their clearance
-  over the deck, once every one of its first swarm was killed (a first
-  swarm let through keeps it on swarms). C: every swarm twice the size;
-  every attacker is marked at any range already, so "marked from its
-  birth" changes nothing on the screen. The twist's line is cued at the
-  carrier's birth in C (CARANCHO marks it then), at the second hull in
-  A, at the first Hunters in B.
+  route; the stage's `silent` draws which hull launches nothing, and a
+  pilot who flies close finds out which (Spotting, below); the
+  objective stays both. B: the launch's `then`, Hunters at their
+  clearance over the deck, once every one of its first swarm was killed
+  (a first swarm let through keeps it on swarms). C: every swarm twice
+  the size, and the hull spotted at its birth, Carancho's mark. The
+  twist's line is cued at the carrier's birth in C (CARANCHO marks it
+  then), at the second hull in A, at the first Hunters in B.
+- **Spotting** (built 15 October, branch w46-m5b; the design says only
+  "the spotters find out which" and "marked from its birth", so this is
+  the smallest rule that gives both a meaning, decided by the lane): a
+  carrier's spawn is `spot`, and a pilot here within 450 m of it for 1.5
+  s without a break spots it for everybody (`edge/rooms/war.js` spot,
+  judged at the room's frontier as a region trigger is; `{ op: 'spot',
+  ids, at, by, silent }`, kept in the match and the view's `spotted`, so
+  a late joiner and a restore agree). Every screen then marks the hull
+  for what the spotter saw: LAUNCHING / LANZANDO (orange), or EMPTY HULL /
+  CASCO VACÍO (yellow, no threat to the dam) for twist A's silent one,
+  where an unspotted hull reads CARRIER / NODRIZA (`src/ui/warmarkers.js`).
+  Twist C's hull is `spot: 'birth'`: spotted at its birth by nobody here,
+  the same mark from its first frame. In twist A, once the silent hull
+  is spotted and the second is on the water, MIRADOR says which
+  (`itaipu-5-ta-spot`, the trigger `{ spot: { silent: true } }`,
+  `stages.js`). What T1.8 asks and this does not: only carriers are
+  spotted (no second caller for every attacker yet, and doing it for
+  every one would change missions 1 to 4's games); every war aircraft
+  spots, since only combat drones fly in wars (owner, 3 October) and
+  none of T1.8's spotter airframes is one; and the range is the straight
+  line, with no rim between them modelled.
 - **The burn** (built 15 October, branch w46-m5b): a carrier hit once
   and alive burns until its last hit, the explosions' own fire puffs and
   smoke column at a rate over its deck (`src/render/explosion.js` burn,
@@ -1123,8 +1143,11 @@ war:stages flies it on the room), held at `release: 'development'`:
 - **The radio**: the table's 13 lines, `itaipu-5-op` and the film's four,
   voiced en and es on the Orin (CARANCHO `am_puck`, `pm_alex`). In twist
   A `itaipu-5-s3-carrier` ("It's launching") waits for the first launch,
-  since the first hull may be the silent one. M5 writes no guide lines,
-  so the mission has none (missions 1 to 4 have 7 to 9).
+  since the first hull may be the silent one. MIRADOR's spotting call
+  `itaipu-5-ta-spot` was added on branch w46-m5b and built on the Orin
+  with the rest of the mission's lines, so MIRADOR is one voice. M5
+  writes no guide lines, so the mission has none (missions 1 to 4 have 7
+  to 9).
 - **Bots** (scripts/war-balance.js): a good or average pilot goes for a
   carrier first, as a pilot who reads the objective would; without it a
   solo squad chased the swarms forever and never ended the stage.
@@ -1134,9 +1157,9 @@ war:stages flies it on the room), held at `release: 'development'`:
   downriver in shot 1 and shot 3's own rider near the face for 8 s (the
   film's header says why). The campaign card's line is the Briefing
   above, as The Long Night's is its own.
-- **Not built**: spotting (T1.8), the guide lines (M5 writes none), the
-  music cues (no mission has its five layers, and music is off by the
-  owner's decision), and an outro film (INTROS.md writes none for M5).
+- **Not built**: the guide lines (M5 writes none), the music cues (no
+  mission has its five layers, and music is off by the owner's
+  decision), and an outro film (INTROS.md writes none for M5).
 
 ### The twist (stage 3)
 
@@ -1203,6 +1226,7 @@ where the fight is, so the squad must split.
 | itaipu-5-s3-dead | `killed(carrier)` | TALLER | firm | That's the nest. Aguyje. | Ese era el nido. Aguyje. |
 | itaipu-5-ta-turn | twist A | MIRADOR | urgent | A second hull. One of them isn't launching anything. | Un segundo casco. Uno de los dos no lanza nada. |
 | itaipu-5-tb-turn | twist B | MIRADOR | urgent | It's launching Hunters now. They want you. | Ahora está lanzando cazadores. Los quieren a ustedes. |
+| itaipu-5-ta-spot | twist A, the silent hull spotted and the second on the water | MIRADOR | urgent | Eyes on it. That hull is empty. The other one is launching. | Lo tengo a la vista. Ese casco está vacío. El que lanza es el otro. |
 | itaipu-5-tc-turn | twist C | CARANCHO | urgent | Crest, Carancho. One last bird up. I've got eyes on the hull, marking it. Beleza, go. | Cresta, Carancho. Último aparato arriba. Tengo el casco a la vista, lo marco. Beleza, vayan. |
 | itaipu-5-s4-last | stage 4 opens | CREST | firm | Whatever it launched is still coming. Clear the river. | Lo que lanzó todavía viene. Limpien el río. |
 | debrief-itaipu-5-win | won | CARANCHO | calm | Crest, Carancho. River's quiet. Thanks for covering us. | Cresta, Carancho. El río está tranquilo. Gracias por cubrirnos. |

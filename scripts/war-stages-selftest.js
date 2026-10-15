@@ -99,7 +99,7 @@ function lint(mission) {
   if (ids.size !== stages.length) {
     out.push('two stages share an id');
   }
-  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'born', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'held', 'visited', 'contained', 'all', 'any'];
+  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'born', 'spot', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'held', 'visited', 'contained', 'all', 'any'];
   /* A target spec's ids: a working set's every target it may draw. */
   const targetsOf = (spec, where) => {
     if (spec && typeof spec === 'object' && !Array.isArray(spec)) {
@@ -2017,6 +2017,7 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
       const born = [];
       const dead = [];
       const hurt = [];
+      const spots = [];
       const clocks = [];
       runOne({
         pilots,
@@ -2042,16 +2043,20 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
             dead.push(m);
           } else if (m.op === 'hurt') {
             hurt.push(m);
+          } else if (m.op === 'spot') {
+            spots.push(m);
           }
         },
       });
       games.push({
-        pilots, seed, views, cues, born, dead, hurt, clocks,
+        pilots, seed, views, cues, born, dead, hurt, spots, clocks,
       });
     }
   }
   const order = [];
   const bad = [];
+  const spotSeen = [];
+  const spotBad = [];
   const twists = new Set();
   const groupOf = (twist, a) => stagesM5.find((x) => x.id === twist)?.spawns.find((w) => w.si === a.wave)?.group;
   for (const g of games) {
@@ -2130,6 +2135,26 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
     if (missing.length || others.length) {
       bad.push(`${label}: never said ${missing.join(',')}; said another twist's ${others.join(',')}`);
     }
+    /* Spotting: only a carrier; twist C's at its birth by nobody, the
+     * others' by a pilot here; a hull spotted silent never launched, and
+     * at most one is; MIRADOR's call on it in twist A only, and in it
+     * whenever the silent one was spotted with the second hull out and
+     * a hull still to kill. */
+    const hullIds = new Set(hulls.map((h) => h.id));
+    const silentSpots = g.spots.filter((m) => m.silent[0]);
+    const carrier2 = hulls.find((h) => groupOf(twist, h) === 'carrier-2');
+    const firstDown = Math.max(...hulls.map((h) => g.dead.find((m) => m.ids.includes(h.id))?.at ?? Infinity));
+    const callDue = twist === 'two-hulls' && silentSpots.length && carrier2 && Math.max(silentSpots[0].at, carrier2.t0) + 1000 < firstDown;
+    if (g.spots.some((m) => m.ids.length !== 1 || !hullIds.has(m.ids[0]))
+      || (twist === 'last-bird' && !(g.spots.length === 1 && g.spots[0].by === 0 && g.spots[0].at === hulls[0].t0 && !g.spots[0].silent[0]))
+      || (twist !== 'last-bird' && g.spots.some((m) => !(m.by > 0)))
+      || silentSpots.length > 1 || silentSpots.some((m) => launched.has(m.ids[0])) || (twist !== 'two-hulls' && silentSpots.length)
+      || (callDue && !said.includes('itaipu-5-ta-spot')) || (twist !== 'two-hulls' && said.includes('itaipu-5-ta-spot'))) {
+      spotBad.push(`${label}: spotting: ${JSON.stringify(g.spots.map((m) => [m.ids[0], m.at, m.by, m.silent[0]]))}, said ta-spot ${said.includes('itaipu-5-ta-spot')}, due ${Boolean(callDue)}`);
+    }
+    if (twist === 'two-hulls') {
+      spotSeen.push(`${label}: ${g.spots.map((m) => `${m.silent[0] ? 'silent' : 'launching'} by ${m.by}`).join(', ') || 'none'}`);
+    }
     /* Two detonations each: a carrier killed by a boom was hurt first. */
     for (const h of hulls) {
       const d = g.dead.find((m) => m.ids.includes(h.id));
@@ -2146,6 +2171,9 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
   check('the twists as M5: two hulls, at most one of them launching; Hunters only once its first swarm is killed; Carancho\'s last bird, every swarm twice the size',
     bad.filter((x) => /two hulls|hunters-launched|last-bird/.test(x)).length === 0, bad.filter((x) => /two hulls|hunters-launched|last-bird/.test(x)).join(' | '));
   check('a carrier killed by warheads took two', bad.filter((x) => /one boom/.test(x)).length === 0, bad.filter((x) => /one boom/.test(x)).join(' | '));
+  console.log(`    two hulls spotted: ${spotSeen.join('; ') || 'no two-hulls game'}`);
+  check('spotting: only carriers; twist C\'s marked at its birth by Carancho, the others by a pilot; a hull spotted silent never launches; MIRADOR says so in twist A only',
+    spotBad.length === 0, spotBad.join(' | '));
   check('every stage\'s story said: the swarm, the pattern, the source and its kill, the twist\'s own line and no other twist\'s, the last stage\'s',
     bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
@@ -2408,8 +2436,8 @@ console.log('launches: a carrier\'s children, born at its pose while it lives (T
   });
   const far = (i) => () => [4000 + 50 * i, Y, 4000];
   /* A game: pilots far off, `act(e, hull)` once the carrier is born. */
-  const play = (mission, act, until = 130000) => {
-    const e = warRoom(mission, { n: 2, seed: 0.4 });
+  const play = (mission, act, until = 130000, dev = false) => {
+    const e = warRoom(mission, { n: 2, seed: 0.4, dev });
     e.paths[0] = far(0);
     e.paths[1] = far(1);
     e.fly(GO + 4000);
@@ -2484,6 +2512,65 @@ console.log('launches: a carrier\'s children, born at its pose while it lives (T
     }
   }
   check('two hulls with silent: in every game one launches and one does not, and over five seeds each is the quiet one', quiet.size === 2, [...quiet].join(','));
+  /* Spotting (war.js spot): the two hulls spottable, a cue on the silent
+   * one's spot. Pilot 0 300 m over where they park for a second (too
+   * short), away, then back for three: both spotted SPOT_MS after it came
+   * back, by its seat, the silent one said so, and the cue at its spot. */
+  /* Under The River Below's own id and routes, so a screen (which plans
+   * from its own build's mission) can draw them. */
+  const spotted = {
+    ...MISSIONS['itaipu-5'],
+    contain: undefined,
+    sectors: {},
+    stages: [stage([
+      { ...two.stages[0].spawns[0], route: 'river-surface', launch: { ...LAUNCH, route: 'river-launch' }, spot: true },
+      { ...two.stages[0].spawns[1], route: 'river-west-bank', az: undefined, launch: { ...LAUNCH, route: 'river-launch' }, spot: true },
+    ], { silent: ['hull-a', 'hull-b'], cues: [{ when: { spot: { silent: true } }, radio: 'spot-test' }] })],
+  };
+  const sp = play(spotted, (e, hull) => {
+    const hb = e.of(0, 'born').flatMap((m) => m.agents).filter((a) => a.kind === 'carrier');
+    const ps = hb.map((h) => poseAt(planAgent(spotted, h), hull.t0 + 25000).p);
+    const over = [0, 1, 2].map((i) => ps.reduce((sum, q) => sum + q[i], 0) / ps.length);
+    over[1] += 300;
+    e.paths[0] = (t) => ((t >= hull.t0 + 20000 && t < hull.t0 + 21000) || (t >= hull.t0 + 25000 && t < hull.t0 + 28000) ? over : far(0)());
+  }, 50000, true);
+  const spBorn = sp.e.of(0, 'born').flatMap((m) => m.agents);
+  const spHulls = spBorn.filter((a) => a.kind === 'carrier');
+  const spLaunching = new Set(spBorn.filter((a) => a.parent != null).map((a) => a.parent));
+  const spOps = sp.e.of(0, 'spot');
+  const seat0 = sp.e.view().scores.find((x) => x.seat !== sp.e.view().scores[1]?.seat)?.seat;
+  const spCue = sp.e.of(0, 'cue').flatMap((m) => m.cues).find((c) => c.radio === 'spot-test');
+  const silentOp = spOps.find((m) => m.silent[0]);
+  check('spotting: near for less than SPOT_MS spots nothing; back for longer, both hulls spotted SPOT_MS after it came back, by its seat',
+    spOps.length === 2 && spOps.every((m) => m.ids.length === 1 && m.at >= sp.hull.t0 + 25000 + 1500 && m.at <= sp.hull.t0 + 25000 + 1500 + 100 && m.by > 0)
+    && spHulls.every((h) => spOps.some((m) => m.ids[0] === h.id)), JSON.stringify({ ops: spOps.map((m) => [m.ids[0], m.at - sp.hull.t0, m.by, m.silent[0]]), seat0 }));
+  check('spotting: the hull that launches nothing is spotted silent, the other not, and the cue on the silent one\'s spot comes at it',
+    spLaunching.size === 1 && silentOp && !spLaunching.has(silentOp.ids[0]) && spOps.filter((m) => m.silent[0]).length === 1
+    && spCue && spCue.at === silentOp.at && sp.e.view().spotted[silentOp.ids[0]] === 'silent',
+    JSON.stringify({ launching: [...spLaunching], silent: silentOp && silentOp.ids, cue: spCue, view: sp.e.view().spotted }));
+  /* A screen draws what was spotted; one that joins after, the same. */
+  const screenOf = (i) => {
+    const c = createRoomWar(() => {});
+    for (const m of sp.e.socks[i].got) {
+      if (m && m.type === 'welcome') {
+        c.onWelcome(m);
+      } else if (m && m.type === 'war') {
+        c.onMessage(m);
+      }
+    }
+    return c.attackersAt(sp.e.clock).filter((x) => x.kind === 'carrier').map((x) => `${x.id}:${x.spotted}`).join(',');
+  };
+  sp.e.join(2);
+  sp.e.fly(sp.e.clock + 200);
+  check('spotting: a screen marks each hull for what was spotted, and a pilot who joins after marks the same',
+    screenOf(1) === spHulls.map((h) => `${h.id}:${h.id === silentOp?.ids[0] ? 'silent' : 'launching'}`).join(',') && screenOf(2) === screenOf(1), `${screenOf(1)} | ${screenOf(2)}`);
+  /* `spot: 'birth'`: spotted as it is born, by nobody here. */
+  const atBirth = test([{ ...one.stages[0].spawns[0], spot: 'birth' }]);
+  const ab = play(atBirth, () => {}, 5000);
+  const abOps = ab.e.of(0, 'spot');
+  check('spot \'birth\': spotted as it is born, by 0, not silent, the op after its birth',
+    abOps.length === 1 && abOps[0].ids[0] === ab.hull.id && abOps[0].at === ab.hull.t0 && abOps[0].by === 0 && abOps[0].silent[0] === false
+    && ab.e.socks[0].got.findIndex((m) => m && m.op === 'spot') > ab.e.socks[0].got.findIndex((m) => m && m.op === 'born'), JSON.stringify(abOps));
   /* A store and a restore after a launch and a hurt change nothing after
    * it: the match keeps each carrier's next launch and its hits. */
   const mid = (e, hull) => {

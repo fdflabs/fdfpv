@@ -35,12 +35,15 @@
  * or over the floor, lost the instant it falls under, and a lost mission
  * restarts from the stage it was lost in (war.js, two stars at most).
  *
- * WHAT IS NOT BUILT of M5. Spotting (TECH-NEEDS T1.8), so in twist A no
- * spotter finds out which hull launches: the squad must kill both. Every
- * attacker is marked at any range already (src/ui/warmarkers.js), so twist
- * C's "marked from its birth" changes nothing on the screen; its escort
- * twice the size is built. The carrier's two hit burn is half its death's
- * pieces on the first hit (src/render/attackers.js hurt), no fire.
+ * SPOTTING (MISSIONS.md M5's as built): a carrier is `spot`, so a pilot
+ * who stays within 450 m of it for 1.5 s spots it for everybody
+ * (edge/rooms/war.js spot), and every screen marks it for what it is:
+ * LAUNCHING, or EMPTY HULL for twist A's silent one (src/ui/warmarkers.js);
+ * MIRADOR says which once the silent one is spotted and the second hull is
+ * on the water. Twist C's hull is spotted at its birth (`spot: 'birth'`),
+ * the same mark: Carancho's. Both hulls stay the objective. A hurt carrier
+ * burns, the explosions' fire and smoke over its deck, until its last hit
+ * (src/render/explosion.js burn).
  *
  * THE RADIO is the stages' cues (MISSIONS.md M5 Radio: CARANCHO, CREST,
  * MIRADOR, TALLER), the countdown's two lines, CARANCHO's and CREST's,
@@ -135,9 +138,12 @@ const HUNT_S = 150;
 const LAUNCH = {
   kind: 'fpv', n: 3, per: 1, route: 'river-launch', target: PENSTOCKS, spread: 10, group: 'launched', every: [50, 35],
 };
-/* The carrier itself: on a RIVER route, drawn, its launch its own. */
+/* The carrier itself: on a RIVER route, drawn, its launch its own; a
+ * pilot who stays near it spots it (`spot`, edge/rooms/war.js: 450 m for
+ * 1.5 s), and from then every screen marks it for what it is, LAUNCHING
+ * or, twist A's silent one, EMPTY HULL (src/ui/warmarkers.js). */
 const CARRIER = {
-  at: [2, 4], kind: 'carrier', n: 1, per: 0, route: { sector: 'RIVER' }, group: 'carrier', launch: LAUNCH,
+  at: [2, 4], kind: 'carrier', n: 1, per: 0, route: { sector: 'RIVER' }, group: 'carrier', launch: LAUNCH, spot: true,
 };
 /* The Source's kill objective, on the HUD once the carrier is born. */
 const KILL = (done) => ({
@@ -254,11 +260,13 @@ export default withWaves({
       ],
       objectives: [KILL({ all: [DOWN, { down: { group: 'carrier-2' } }] })],
       /* MIRADOR calls the hull "launching" only once one is: the first
-       * hull may be the silent one. */
+       * hull may be the silent one. Once a pilot has spotted the silent
+       * one and the second is on the water, MIRADOR says which. */
       cues: [
         { when: { born: { group: 'launched' } }, radio: 'itaipu-5-s3-carrier' },
         { when: { born: { group: 'launched' } }, at: 4, radio: 'itaipu-5-s3-order', skip: { objective: 'carrier', is: 'done' } },
         { when: { born: { group: 'carrier-2' } }, at: 2, radio: 'itaipu-5-ta-turn' },
+        { when: { all: [{ spot: { silent: true } }, { born: { group: 'carrier-2' } }] }, at: 1, radio: 'itaipu-5-ta-spot', skip: { objective: 'carrier', is: 'done' } },
         { when: { objective: 'carrier', is: 'done' }, radio: 'itaipu-5-s3-dead' },
         STAGE_LOST,
       ],
@@ -291,12 +299,13 @@ export default withWaves({
       }, 'clear', BEAT(20, 20)),
     },
     {
-      /* Twist C: Carancho's last bird marks the hull; its escort, every
-       * swarm it launches, is twice the size. */
+      /* Twist C: Carancho's last bird marks the hull, spotted as it is
+       * born, the same mark a pilot's spot gives; its escort, every swarm
+       * it launches, is twice the size. */
       id: 'last-bird',
       round: true,
       title: 'war.stage.itaipu_5.source',
-      spawns: [{ ...CARRIER, launch: { ...LAUNCH, n: 6, per: 2 } }],
+      spawns: [{ ...CARRIER, spot: 'birth', launch: { ...LAUNCH, n: 6, per: 2 } }],
       objectives: [KILL(DOWN)],
       /* CARANCHO first: the hull is his to mark, then MIRADOR has it. */
       cues: [

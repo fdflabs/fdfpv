@@ -3897,6 +3897,8 @@ export default {
   "war.mark.boat": "SEA DRONE",
   "war.mark.decoy": "DECOY",
   "war.mark.carrier": "CARRIER",
+  "war.mark.launching": "LAUNCHING",
+  "war.mark.silent": "EMPTY HULL",
   "war.mission.drill": "Drill",
   "war.mission.practice": "Practice",
   "war.stage.practice.pass": "One Striker",

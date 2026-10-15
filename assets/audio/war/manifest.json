@@ -31184,6 +31184,60 @@
     }
    },
    "machine": "orin"
+  },
+  "itaipu-5-ta-spot.en": {
+   "text": "Eyes on it. That hull is empty. The other one is launching.",
+   "speaker": "mirador",
+   "seconds": 3.905,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1703105539,
+     "heard": "Eyes on it. That hull is empty. The other one is launching.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17700,
+     "sha256": "6a976ef72a24ef281790d296613e5f8912509e2a32472368cf0343535bd66a08"
+    },
+    "mp3": {
+     "bytes": 17180,
+     "sha256": "f04ee3f26f58babbdf812675648ac2a1c9efcb2956a572e2a60951cc1ce5fed5"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-ta-spot.es": {
+   "text": "Lo tengo a la vista. Ese casco está vacío. El que lanza es el otro.",
+   "speaker": "mirador",
+   "seconds": 4.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1599592282,
+     "heard": "Lo tengo a la vista. Ese casco está vacío, el que lanza es el otro.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19562,
+     "sha256": "7951cdcaedce53d58052a60b59bea78b86f99afcad0518eb08dd142025caa63d"
+    },
+    "mp3": {
+     "bytes": 18476,
+     "sha256": "dd48582fba64ad15cb554821ae1e3357218779a608d38de74a757112bb222867"
+    }
+   },
+   "machine": "orin"
   }
  },
  "models": {

@@ -196,6 +196,15 @@
  *                                             of more than one hp,
  *                                             routes.js KIND, TECH-NEEDS
  *                                             T1.7): hp each one's left
+ *   { type: 'war', op: 'spot', ids, at, by, silent }
+ *                                             these spotted (a spawn's
+ *                                             `spot`: SPOT_M for
+ *                                             SPOT_MS, by that seat; at
+ *                                             birth, by 0, for `spot:
+ *                                             'birth'`): silent each
+ *                                             one's, true for a hull that
+ *                                             launches nothing (a stage's
+ *                                             drawn `silent`)
  *   { type: 'war', op: 'boom', seat, at, p }  a defender detonated: that
  *                                             seat breaks its own craft
  *   { type: 'war', op: 'damage', seq, at, target, chunks, fell, openings,
@@ -325,6 +334,11 @@ export function launchEvery(launch, pilots) {
 /* An assist: within this of a kill's point, in the ASSIST_MS before it. */
 export const ASSIST_M = 50;
 export const ASSIST_MS = 3000;
+/* SPOTTING (MISSIONS.md M5's as built, TECH-NEEDS T1.8's numbers): a
+ * pilot here within SPOT_M of an attacker its spawn names `spot`, for
+ * SPOT_MS without a break, spots it for everybody. */
+export const SPOT_M = 450;
+export const SPOT_MS = 1500;
 
 /*
  * A pilot's loadout ({ type: 'war', op: 'loadout', loadout }), before the
@@ -901,6 +915,10 @@ export class RoomWar {
        * lived (a carrier, TECH-NEEDS T1.7), by id, so a screen that joins
        * draws it hurt as the others do; the `hurt` op tells the change. */
       hurt: Object.fromEntries(m.agents.filter((a) => m.hurt?.[a.id]).map((a) => [a.id, hpOf(a.kind) - m.hurt[a.id]])),
+      /* Each attacker alive that was spotted, by id: 'silent' for a hull
+       * that launches nothing, else 'launching', so a screen that joins
+       * marks it as the others do; the `spot` op tells it. */
+      spotted: Object.fromEntries(m.agents.filter((a) => m.spot?.[a.id]?.at != null).map((a) => [a.id, m.spot[a.id].silent ? 'silent' : 'launching'])),
     };
   }
 
@@ -1502,6 +1520,7 @@ export class RoomWar {
       return [];
     }
     const born = [];
+    const spots = [];
     for (const d of dueSpawns(mission, st, roomNow + BIRTH_LEAD_MS)) {
       const w = d.w;
       const t0 = d.t;
@@ -1545,6 +1564,15 @@ export class RoomWar {
         if (w.launch && w.group !== st.silent) {
           (m.launches ??= {})[id] = { next: t0 + launchEvery(w.launch, n0), k: 0, first: null };
         }
+        /* One a pilot can spot (`spot`), or spotted as it is born
+         * (`spot: 'birth'`, The River Below's twist C: Carancho marks
+         * it), kept in the match (m.spot) and never on the birth. */
+        if (w.spot) {
+          (m.spot ??= {})[id] = { silent: Boolean(w.launch) && w.group === st.silent };
+          if (w.spot === 'birth') {
+            spots.push(this.spotted(a, t0, 0));
+          }
+        }
         born.push(a);
       }
       if (slotKind(w, d, 0, m.seed, st.entry) === 'scout') {
@@ -1555,7 +1583,78 @@ export class RoomWar {
     if (!born.length) {
       return [];
     }
-    return this.broadcast(core, { type: 'war', op: 'born', agents: born });
+    return [
+      ...this.broadcast(core, { type: 'war', op: 'born', agents: born }),
+      ...spots.flatMap((x) => this.broadcast(core, x)),
+    ];
+  }
+
+  /* Attacker a spotted at room ms t by seat `by` (0 for none): kept, on
+   * the stage's log for its triggers ({ spot }), and the op to send. */
+  spotted(a, t, by) {
+    const m = this.match;
+    const s = m.spot[a.id];
+    delete s.from;
+    s.at = t;
+    s.by = by;
+    note(m.stage, {
+      t, e: 'spot', id: a.id, kind: a.kind, group: this.groupOf(a), silent: s.silent,
+    });
+    return {
+      type: 'war', op: 'spot', ids: [a.id], at: t, by, silent: [s.silent],
+    };
+  }
+
+  /*
+   * Spotting at the judgement's frontier: each attacker that can be
+   * spotted and is not yet, with a pilot here within SPOT_M of it now,
+   * near since the first frontier that had one (m.spot[id].from), spotted
+   * once that is SPOT_MS ago, by the nearest; a frontier with none starts
+   * it again. The range is the line between them only: a rim in between
+   * is not modelled (T1.8 asks for the ground's line of sight). Returns
+   * the ops to send.
+   */
+  spot(core) {
+    const m = this.match;
+    if (!m.spot) {
+      return [];
+    }
+    const f = m.f;
+    const here = this.players(core);
+    const pilots = [];
+    for (const d of this.flying(core)) {
+      const p = here.includes(d.seat) ? trackPose(d.track, f, {}) : null;
+      if (p) {
+        pilots.push({ seat: d.seat, p: [p.px, p.py, p.pz] });
+      }
+    }
+    const out = [];
+    for (const a of m.agents) {
+      const s = m.spot[a.id];
+      const x = this.live.get(a.id);
+      if (!s || s.at != null || !x) {
+        continue;
+      }
+      const q = trackPose(x.track, f, {});
+      let near = null;
+      let nearD = SPOT_M;
+      for (const o of q ? pilots : []) {
+        const d = Math.hypot(o.p[0] - q.px, o.p[1] - q.py, o.p[2] - q.pz);
+        if (d <= nearD) {
+          near = o.seat;
+          nearD = d;
+        }
+      }
+      if (near == null) {
+        delete s.from;
+        continue;
+      }
+      s.from ??= f;
+      if (f - s.from >= SPOT_MS) {
+        out.push(...this.broadcast(core, this.spotted(a, s.from + SPOT_MS, near)));
+      }
+    }
+    return out;
   }
 
   /* A birth record made an attacker of the match: whether it flies into
@@ -1750,6 +1849,9 @@ export class RoomWar {
       const judged = this.judge(core, roomNow);
       dirty ||= judged.dirty;
       out.push(...judged.out);
+      const spots = this.spot(core);
+      dirty ||= spots.length > 0;
+      out.push(...spots);
       const told = this.containTold(core);
       dirty ||= told.length > 0;
       out.push(...told);
@@ -1942,6 +2044,9 @@ export class RoomWar {
       }
       if (m.launches) {
         delete m.launches[id];
+      }
+      if (m.spot) {
+        delete m.spot[id];
       }
     }
   }

@@ -195,6 +195,17 @@ dormant (no signal, decision 9):
   already walks; report it in `war:harness` against the 60 ms a second
   budget (WARFARE-PLAN 4.4).
 
+**Built for mission 5 only** (branch w46-m5b, 2026-10-15; MISSIONS.md M5
+Spotting): a spawn's `spot` makes its attackers spottable, 450 m for 1.5
+s by any war seat (no spotter airframe flies in a war), the line of
+sight not modelled; `{ op: 'spot', ids, at, by, silent }`, the view's
+`spotted`, and the trigger `{ spot: { group?, kind?, silent? } }`. Only
+mission 5's carriers carry it; the marker reads what was spotted
+(LAUNCHING, EMPTY HULL). Not built: every attacker spotted, the decoy
+read for everybody, the `spot` objective, the CPU report. The cost now
+is one distance per spottable hull per seat per tick (two hulls at
+most).
+
 ### T1.9 Target states for the story
 
 - **Working gates** (M2): a per match subset drawn by T1.3; while the
