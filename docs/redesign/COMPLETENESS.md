@@ -37,7 +37,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 24 BUILT (since built by a phase), 20
+in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
 PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -1159,15 +1159,31 @@ Phase 27.
 
 ## 18. Structure and words (items 78 to 84)
 
-**78. Content ownership hierarchy. PARTIAL.** Distinct in code: the
-account (account.js; `accounts`, tracks-api/migrations/0002), the pilot
-(name and key, pilot.js, identity.js), the room (rooms.js, edge/rooms),
-the mission, the aircraft, the world, the build. Blurred: the party is
-the room (no separate party, item 77); "session" means three things
-(src/share/trackseat.js is the track seat, the account has session tokens,
-and the redesign's session is the room). **Done:** item 83's glossary
-fixes the words; session.js renamed to what it holds in a pure rename PR.
-Size S. Phase 24.
+**78. Content ownership hierarchy. BUILT (phase 24, then 2026-10-14
+w43-content).** The gap as first written is closed: the glossary fixes
+the words (item 83, docs/SPANISH-GLOSSARY.md "The game's nouns",
+`lint:nouns`) and session.js is src/share/trackseat.js, renamed in a pure
+rename (PLAN.md phase 24). The owners are distinct in code: the account
+(account.js; `accounts`, tracks-api/migrations/0002), the pilot (name and
+key, pilot.js, identity.js), the room (rooms.js, edge/rooms), which is
+also the party (item 77), the mission, the aircraft, the world, the
+build. Extended by the lead's round 7 brief, 2026-10-14, beyond the item
+as first written: one place says who owns each content kind,
+docs/CONTENT-OWNERS.md, the shipped kinds (airframes, worlds and their
+posters, tracks, missions, films, liveries, voice lines, music, strings,
+tunes) each under the one registry module that lists it, and the content
+a pilot makes (tracks, times, liveries, progress, builds, replays) under
+the pilot key, the account or the browser. `content:owners` (CI,
+scripts/content-owners.js) pairs every file in each of the 15 places with
+its owner's registry: an unregistered file is an orphan, a registered id
+with no file is missing, and the support modules beside content are named
+with a reason; 2238 files today, none orphaned (one reference file kept on
+purpose, configs/betaflight-default.diff, is named as support). It also
+fails when the doc loses a row or a check the doc cites stops running in
+CI, and twenty negative controls each fail. Not swept, on purpose:
+textures, fonts and art under assets/ and string keys nothing reads, both
+named at run time. Checks: `content:owners`, `lint:nouns`,
+`trackseat:selftest` (CI).
 
 **79. Stable IDs. EXISTS.** Every airframe, world, mission, challenge,
 mode and preset has an id apart from its shown name, and shown names are

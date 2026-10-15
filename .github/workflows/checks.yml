@@ -624,6 +624,9 @@ jobs:
       - run: npm run aircraft:folder
       # Each folder's class and roles, held to its flags (scripts/airframes-check.js).
       - run: npm run airframes:check
+      # Every content file registered under its owner, nothing orphaned
+      # (docs/CONTENT-OWNERS.md, scripts/content-owners.js).
+      - run: npm run content:owners
       # The plant's FW_* tables in src/native/plant_wing.c are generated
       # from aircraft/<id>/plant.json: folder and C agree both ways, and a
       # changed folder and a changed C each fail (scripts/aircraft-ctable.js).
