@@ -93,7 +93,7 @@ Each stage table below says which dials it turns.
    | WATER | on the reservoir's surface | `surface-east`, `surface-gates` (built), `surface-mid`, `surface-west-arm` (new) |
    | GORGE | up the gorge from the south, under the rims | `gorge`, `gorge-yard`, `gorge-left-rim` (built; the last in mission 5) |
    | RIVER | on the river below the dam | `river-surface`, `river-west-bank` (built, mission 5: the carrier's, on the water at 103.5 m) |
-   | LINES | along the 500 kV corridors | `corridor-west`, `corridor-east` (new; missions 3 and 6) |
+   | LINES | along the 500 kV corridors | `corridor-west`, `corridor-south` (built, mission 3); mission 6's own along the two corridors it defends, `corridor-west-near`, `corridor-west-far`, `corridor-east-near`, `corridor-east-far`, `corridor-east-wires` (built) |
 
 2. **Composition.** A group may list alternatives (`fpv` or `loiter`,
    `strike` or a `strike` and `decoy` mix); the seed picks one. The radio
@@ -315,8 +315,9 @@ campaign plays in order. First Light had gone back to `development` on
 2026-10-07 (PR #666, the owner: no narration, under construction until
 it was as finished as The Interior's Mission 1). Mission 5, The River
 Below, is `development` since branch w46-m5 (2026-10-15): built, shown
-Under development, held until the owner has flown it. 6 and 7 are
-`soon`.
+Under development, held until the owner has flown it. Mission 6, The
+Corridor, is `development` since branch w47-m6 (2026-10-15), held the
+same way. 7 is `soon`.
 
 ### 2.1 Release status (checked against the tree 2026-10-13, batch/2026-10-14 f0c06cbb6)
 
@@ -357,6 +358,15 @@ w46-m5b); the nudge and the objective cards; every briefing fact, its length 7 t
 RIVER and HIGH sectors, war:routes PASS; the consent; Contain with
 `itaipu-5-op`. What it adds to the engine and what it does not build is
 M5's as built below.
+
+Mission 6, The Corridor, built on branch w47-m6 (2026-10-15) and held in
+development until the owner has flown it: 4 stages, 3 twists and 2
+islandings, 4 title keys; its objectives (the towers, a spot objective
+for each of Spread Thin's four groups, the yard, each twist's, each
+corridor's islanding hold); the nudge and the objective cards; its
+length 11 to 19 min measured; seeded NW and WATER sectors and its own
+LINES routes, war:routes PASS. Its radio, guide and film are M6's as
+built below.
 
 Mission 4's column is checked against branch w39-mission-4 (2026-10-14):
 war:stages, war:routes, war:harness, war:legacy, war:radio, war:nudge,
@@ -1297,6 +1307,69 @@ spotter mechanic (T1.8) are the mission's core.
 | 2 | Spread Thin | beat 12 s | protect(towers); spot(each group) | groups on as many corridor sectors at once as the pilot rule (1.6) allows; Loiterers HIGH | `cleared` |
 | 3 | The Yard Again | beat 15 s | protect(yard, towers) | the twist; decoys on the yard from NW | `cleared` |
 | 4 | Islanding | beat 15 s; DESPACHO asks to island the grid | hold(the last intact corridor, 120 s) | convergence on the intact corridor from both ends | `held` and `cleared` |
+
+Built 15 October, against the code (branch w47-m6; `itaipu-6.js`,
+war:stages flies it on the room), held at `release: 'development'`:
+
+- **The towers** (TECH-NEEDS T1.6) are OpenStreetMap's, where the map
+  stands them (`src/share/war/itaipu-towers.js`, written by
+  `scripts/war-targets.js`): the west corridor is the double circuit
+  line west from the right bank yard (ten towers, `tower-w-0` at the
+  yard to `tower-w-9` at the hero square's edge), the east corridor IPU
+  60Hz FI1 from the powerhouse (nineteen, `tower-e-0` by the powerhouse
+  to `tower-e-18` by the Foz do Iguacu substation; FI2 to FI4 run beside
+  it and are not targets). Each is aimed at 8 m over its ground and hit
+  within its base's 10 m. Each is worth what its line carries, once a
+  line: the west 933 MW (two of the six circuits OSM runs out of the
+  yard, of its 2 800), FI1 1 750 (one of the four lines that carry the
+  ten 60 Hz units' 7 000). A tower hit puts out the town nearest it as a
+  struck line does (grid.js): the west's Hernandarias south or west, the
+  east's Vila C or Foz's north east. No fire or smoke is drawn on a
+  tower: the towers are the mission's targets, not the map's.
+- **Golden Hour**: Strikers along the west corridor onto its near towers,
+  then 10 to 20 s after they are gone along the east one.
+- **Spread Thin** (1.6, sectors at once): four corridor groups, the west
+  and east corridors' near and far towers (`lane` 0 to 3), as many at
+  once as the pilots have sectors, the rest each 30 s after the lane it
+  waits for is gone; a Loiterer high over each corridor. Each group has
+  its spot objective (TECH-NEEDS T1.8 as extended here: any of the
+  mission's attackers is spottable, 450 m for 1.5 s, and a spotted decoy
+  reads DECOY for everybody). The light runs from the golden hour to
+  night across its first four minutes, so the rest is flown at night
+  with the towns lit.
+- **The Yard Again**: decoys and a Striker onto the yard from the west
+  arm, a route each drawn from the family (a mix drew no Striker for a
+  solo pilot, and with nobody shooting the mission was won), and the
+  twist.
+- **The twists.** A: boats on the east intakes (First Light's WATER
+  routes). B: Strikers inside the east corridor at its conductors'
+  height, crossing FI1 at two mid spans where the phases hang (204.3 and
+  209.4 m), each crossing taking one at 0.3 (a spawn's `strikeP`, three
+  times the hazard's 0.1), so about half are lost to the lines; they go
+  for `tower-e-1` and `tower-e-0`. C: a Scout circling high over the east
+  corridor; the stage waits for it down, gone home or 80 s, as First
+  Light's Eyes.
+- **Islanding** goes to the corridor with no tower down when stage 3
+  ends; when both or neither are, the seed draws one (in the bot games
+  both corridors always had a tower down by then). **The hold is four
+  minutes, not 120 s**, for Lights Out's reason: nothing of the stage
+  reaches a tower sooner than 64 s after its birth, and at a solo
+  pilot's pace the last arrivals come 178 s (east) and 210 s (west) in.
+  Its Strikers converge from both ends of the corridor (the west's from
+  its outer end and over the reservoir's west arm onto the yard end; the
+  east's from the Foz substation and over the east arm onto the
+  powerhouse end) and a Loiterer comes high. Held, the hold's `island`
+  keeps the towns its towers feed lit whatever the rest of the grid
+  loses (grid.js ISLANDED); a tower of that corridor hit later still
+  puts its own town out. The crash cam's replay shows an islanding as
+  Lights Out's restore (its file keeps no `island`).
+- **Bots** (scripts/war-balance.js) as ever: ten good games, all won,
+  each with both corridors' lines down and the output 11 317 MW; they do
+  not fly kilometres down a corridor to a tower they cannot reach in
+  time.
+- **Length** 11 to 19 minutes: ten good bot games end 11.9 to 18.8
+  minutes after the go, a solo pilot's 16.8 to 18.8 (Spread Thin's four
+  lanes one at a time), against section 2's guess of 12 to 16.
 
 ### The twist (stage 3)
 

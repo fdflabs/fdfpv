@@ -149,7 +149,7 @@ console.log('war: Act 1, mission 2 (held in development here; released 2026-10-1
     b.say(0, { type: 'war', op: 'start', mission: 'itaipu-2' });
     check('a host not on the list, with the owner seated, is refused unreleased', b.last(0, (m) => m.type === 'war' && m.error)?.error === 'unreleased' && !b.r.war.on());
     const c = room('itaipu', `${OWNER}`, [OWNER]);
-    c.say(0, { type: 'war', op: 'start', mission: 'itaipu-6' });
+    c.say(0, { type: 'war', op: 'start', mission: 'itaipu-7' });
     check('a mission only planned (soon) never starts, list or not', c.last(0, (m) => m.type === 'war' && m.error) != null && !c.r.war.on());
     check('the lobby offers mission 2 to the allowlisted host only', a.r.war.startable('itaipu-2', a.r) && !b.r.war.startable('itaipu-2', b.r) && !a.r.war.startable('itaipu-2'));
   });
@@ -299,7 +299,7 @@ console.log('create');
     map: 'itaipu', mode: 'war', mission: 'itaipu-2', public: true,
   }, '', 5);
   check('released (the owner, 2026-10-15): a public war room for mission 2 is made, with no list', released.status === 200, `${released.status}`);
-  const soon = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-6' }, `${OWNER}`, 4);
+  const soon = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-7' }, `${OWNER}`, 4);
   check('one naming a mission only planned is refused', soon.status === 400 || soon.status === 403, `${soon.status}`);
 }
 

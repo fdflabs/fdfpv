@@ -53,10 +53,10 @@
  *            down and stay lit through every west unit lost; a tower of
  *            theirs hit still cuts its own; A and B agree bit for bit; a
  *            late joiner agrees; not islanded, they stay dark. The crash
- *            cam's replay is not held to it: its clip keeps a restore as
- *            { at, districts } (src/replay/file.js version 20), so an
- *            islanding replays as a restore, and a tower's hit only on a
- *            mission that names towers
+ *            cam's replay of the towers' hits is the live frames, bit for
+ *            bit; an islanding it is not held to: its clip keeps a restore
+ *            as { at, districts } (src/replay/file.js version 20), so an
+ *            islanding replays as a restore
  *
  *   replay   A's frames recorded as the crash cam records them (src/
  *            replay/warrec.js, fed the view and the deaths as src/replay/
@@ -425,9 +425,7 @@ console.log('before: a reroute that held before the yard was hit');
 
 /* The Corridor's towers and its islanding (MISSIONS.md M6): a tower on
  * the east corridor hit, the yard hit, the last corridor's towns islanded,
- * every west unit lost, then a tower of the islanded corridor hit. The
- * view names a mission this build has; the grid reads only the hits and
- * the restores. */
+ * every west unit lost, then a tower of the islanded corridor hit. */
 const ISLAND = ['hernandarias-s', 'hernandarias-w'];
 const ISLAND_AT = 40000;
 const I_END = 140000;
@@ -442,7 +440,7 @@ function corridor(islandAt) {
     if (hit) {
       down = [...down, hit.target];
     }
-    ticks.push({ t, msgs: [rview(down, restores(t)), ...(hit ? [dead(t, hit.target, true)] : [])] });
+    ticks.push({ t, msgs: [{ type: 'war', war: { ...rview(down, restores(t)).war, id: 'm-corridor-1', mission: 'itaipu-6' } }, ...(hit ? [dead(t, hit.target, true)] : [])] });
   }
   return ticks;
 }
@@ -534,6 +532,13 @@ const differs = (r) => {
   const r = replayed(reroute(10000, null), R_END);
   const d = differs(r);
   check('the failed reroute\'s replay keeps none and is its live frames, bit for bit', !('restores' in r.war.world[0]) && d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+}
+
+{
+  const r = replayed(corridor(null), I_END);
+  const d = differs(r);
+  check('the towers\' replay, not islanded, is its live frames, bit for bit', d.n === 0 && r.war.world[0].hits.some((h) => h.target === 'tower-e-12'),
     `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
 }
 
