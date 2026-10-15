@@ -81,11 +81,15 @@ import { CEL_LOOK } from './alps/look.js';
 export const SPAWN = { x: 0, z: 40, yaw: 0 };
 
 /* Alpine haze: the sky the field flies under, a longer fog so the far
- * ridges dissolve rather than end, and a camera that can see them. */
-const HORIZON = 0xe9eef5;
+ * ridges dissolve rather than end, and a camera that can see them. The
+ * fog was 9000 m deep and near white: the range beyond the valley's head,
+ * five to twelve kilometres off, went to a flat grey wall from the strip
+ * and at cruise. 12000 m keeps the far peaks' outline, and the haze goes
+ * a little blue, as air over a kilometre deep does against dark rock. */
+const HORIZON = 0xdde5ef;
 const SUN_DIR = new THREE.Vector3(0.45, 0.62, 0.64).normalize();
 const FOG_NEAR = 1200;
-const FOG_FAR = 9000;
+const FOG_FAR = 12000;
 const CAMERA_FAR = 14000;
 
 /*

@@ -342,8 +342,15 @@ export function farRange(far, look) {
   const geo = new THREE.PlaneGeometry(far.size, far.size, far.n, far.n);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.getAttribute('position');
+  for (let k = 0; k < pos.count; k += 1) {
+    pos.setY(k, far.data[k]);
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  const normal = geo.getAttribute('normal');
   const colour = new Float32Array(pos.count * 3);
   const rock = new THREE.Color(0x7d7b77);
+  const darkRock = new THREE.Color(0x5e5c5a);
   const snow = new THREE.Color(0xf4f6fa);
   const green = new THREE.Color(0x4f7a3a);
   const forest = new THREE.Color(0x2f4a26);
@@ -352,18 +359,25 @@ export function farRange(far, look) {
     const x = pos.getX(k);
     const z = pos.getZ(k);
     const h = far.data[k];
-    pos.setY(k, h);
-    const t = smoothstep(1300, 1900, h + 200 * fbm(x / 900, z / 900, 2));
+    /* How steep the face is, 0 flat to 1 sheer: snow lies on the ledges
+     * and the shoulders and slides off the faces, and a steep face is
+     * bare rock well under the tree line, so the far peaks read by their
+     * ridges rather than as one smooth height gradient. */
+    const steep = 1 - normal.getY(k);
+    const t = smoothstep(1300, 1900, h + 200 * fbm(x / 900, z / 900, 2)) * (1 - smoothstep(0.18, 0.3, steep));
     /* The lower slopes in forest and pasture, as the valley's own are. */
     c.copy(green).lerp(forest, smoothstep(0.38, 0.55, fbm(x / 600 + 4.2, z / 600 + 1.3, 2)) * (1 - smoothstep(450, 750, h)));
-    c.lerp(rock, smoothstep(450, 1000, h)).lerp(snow, t);
+    c.lerp(rock, Math.max(smoothstep(450, 1000, h), smoothstep(0.12, 0.22, steep)));
+    c.lerp(darkRock, smoothstep(0.2, 0.35, steep) * smoothstep(300, 900, h) * 0.8);
+    /* Light and dark buttresses a few hundred metres across, so a face a
+     * kilometre wide is not one flat grey. */
+    c.multiplyScalar(1 + 0.22 * fbm(x / 450 + 7.1, z / 450 + 2.9, 2));
+    c.lerp(snow, t);
     colour[k * 3] = c.r;
     colour[k * 3 + 1] = c.g;
     colour[k * 3 + 2] = c.b;
   }
-  pos.needsUpdate = true;
   geo.setAttribute('color', new THREE.BufferAttribute(colour, 3));
-  geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, look.parts('far-range', { rim: 0.1 }));
   mesh.name = 'far-range';
   return { mesh, height: far.height };
