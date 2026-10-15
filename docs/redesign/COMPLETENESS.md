@@ -1261,6 +1261,14 @@ says why (roomrace.refused_laps_not_flown, en and es). Checks:
 finish sent, was five); `rooms:racetwopage` local, a third race whose
 finish from B the room refuses (B out with the reason line, 0 resent
 in 4.5 s, was 9).
+**Built** (2026-10-15, w44-roomsfix): the witness's verdicts are in the
+VM's health (edge/rooms/health.js, GET /v2/admin/health): `race.claims`
+and `race.refused` since the process started, the UTC day's
+(`day.raceClaims`, `day.raceRefused`), and each room's since it woke
+(`perRoom` rows), so a refusal in production is seen. Checks:
+`rooms:selftest`, scale section (two rooms, one waking with a fresh
+witness: 26 judged, 4 refused); `rooms:server` (the fields on the live
+route).
 
 ## 15. Telemetry and diagnostics (items 63 to 67)
 

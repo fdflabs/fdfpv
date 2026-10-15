@@ -959,7 +959,9 @@ its memory and its egress, not a bill of requests.
   pilots, rooms, messages and bytes a second each way for the server and
   per room (a private room without its code), this process's CPU and the
   host's, the loop's p50, p99 and worst delay, memory, and the UTC day's
-  totals (egress, messages, pilot hours, room hours, the peak, refusals).
+  totals (egress, messages, pilot hours, room hours, the peak, refusals),
+  and the race witness's claims judged and refused (edge/rooms/
+  anticheat.js), for the server, the day and each room.
 - **The valve**: while this process averages half the core over 10 s, or
   the loop's p99 delay averages 20 ms, or its resident size passes 200 MB,
   a new public room is refused (503 `busy` on a create, and on a quick

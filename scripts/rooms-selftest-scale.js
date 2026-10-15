@@ -30,8 +30,9 @@ import {
   HERE_MS, INTEREST, RoomCore, TICK_MS, interestEvery,
 } from '../edge/rooms/core.js';
 import {
-  BUSY_CPU, BUSY_LAG_MS, BUSY_RSS, BUSY_S, CALM_S, Valve,
+  BUSY_CPU, BUSY_LAG_MS, BUSY_RSS, BUSY_S, CALM_S, Health, Valve, roomCounters,
 } from '../edge/rooms/health.js';
+import { Witness } from '../edge/rooms/anticheat.js';
 import {
   DELAY_MS, DELAY_SLEW, PeerTrack, SEND_MS, nearWeight,
 } from '../src/game/peer.js';
@@ -227,6 +228,43 @@ export async function scaleSection(check) {
     && feed(calm, CALM_S - 1) === true && feed(calm, 1) === false, `${v.closings} closings`);
   v = new Valve();
   check('memory near the unit\'s ceiling closes it at once', feed({ ...calm, rss: BUSY_RSS }, 1) === true);
+
+  /* The race witness's verdicts in the health report: two rooms racing,
+   * one of them hibernating and waking with a fresh witness. */
+  {
+    const one = { counters: roomCounters(), pilots: 2, meta: { public: true, code: 'RACE01', map: 'swiss2' }, activity: null, witness: new Witness() };
+    const two = { counters: roomCounters(), pilots: 1, meta: { public: false, code: 'RACE02', map: 'swiss2' }, activity: null, witness: new Witness() };
+    let rooms = [one, two];
+    const h = new Health(() => rooms);
+    h.stop();
+    const verdicts = (w, ok, refused) => {
+      for (let k = 0; k < ok; k += 1) {
+        w.record({ seat: 1, at: k, finish: false }, 'ok');
+      }
+      for (let k = 0; k < refused; k += 1) {
+        w.record({ seat: 2, at: k, finish: k === 0 }, k === 0 ? 'laps_not_flown' : 'gate_not_flown');
+      }
+    };
+    verdicts(one.witness, 10, 2);
+    verdicts(two.witness, 4, 0);
+    h.sample();
+    verdicts(one.witness, 5, 1);
+    h.sample();
+    h.sample();
+    /* Room two slept and woke: a new core, a new witness, counting from 0. */
+    two.witness = new Witness();
+    verdicts(two.witness, 3, 1);
+    h.sample();
+    const rep = h.report();
+    const row = (code) => rep.perRoom.find((r) => r.room === code);
+    check('the health report counts the race witness\'s refusals: the server\'s and the day\'s totals, each room\'s since it woke',
+      rep.race.claims === 26 && rep.race.refused === 4 && rep.day.raceClaims === 26 && rep.day.raceRefused === 4
+      && row('RACE01').raceClaims === 18 && row('RACE01').raceRefused === 3 && row('private').raceClaims === 4 && row('private').raceRefused === 1,
+      JSON.stringify({ race: rep.race, day: [rep.day.raceClaims, rep.day.raceRefused], perRoom: rep.perRoom.map((r) => [r.room, r.raceClaims, r.raceRefused]) }));
+    rooms = [{ counters: roomCounters(), pilots: 1, meta: null, activity: null, witness: null }];
+    h.sample();
+    check('a room with nothing loaded has no witness, and the totals stand', h.report().race.claims === 26 && h.report().race.refused === 4);
+  }
 
   console.log('scale: the admin route and the busy refusals (edge/rooms/front.js)');
   const s = server();

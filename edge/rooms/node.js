@@ -647,7 +647,9 @@ export async function startRooms({
   };
   env.HEALTH = new Health(() => [...env.ROOMS.objects.values()].map((room) => {
     const core = room.host.core;
-    return { counters: room.counters, pilots: core ? core.people().length : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null };
+    return {
+      counters: room.counters, pilots: core ? core.people().length : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null, witness: core ? core.race.witness : null,
+    };
   }));
 
   /* A room this process holds has its core in memory (host.js load, run by
