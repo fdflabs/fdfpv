@@ -31,8 +31,10 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RIM_KINDS, RunWatch, awardBests, awardChallenge, awardFirsts, awardLap, awardMedal, bestKind, findItem, fits, foldEvents, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, CHALLENGES, RIM_KINDS, RunWatch, awardAircraftChallenges, awardBests, awardChallenge, awardFirsts, awardLap, awardMedal, awardPlace,
+  bestKind, challengeAmounts, findItem, fits, foldEvents, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
+import { placeKey, placesAt, placesOf } from '../game/discovery.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog, feedRunWatch } from '../game/events.js';
 import { itemById } from '../game/economy.js';
@@ -43,6 +45,7 @@ import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 import { el } from './dom.js';
 import { formatTime } from './format.js';
+import { challengeNote, challengeTitle } from './challengewords.js';
 
 /* How long a toast stays up, ms, and how many are on screen at once. */
 const TOAST_MS = 3600;
@@ -230,6 +233,11 @@ export class Progress {
     this.wasCrashed = false;
     /* The avionics camera's primary track as last logged (contact). */
     this.heldTrack = null;
+    /* The world this flight's places are looked for in, and the ids not
+     * to look for: found already, or the flight began inside them
+     * (src/game/discovery.js); null until the flight's first tick. */
+    this.placeWorld = null;
+    this.placeSkip = null;
     this.toasts = [];
     /* Every toast shown, newest last, for a check to read. */
     this.log = [];
@@ -292,6 +300,7 @@ export class Progress {
     this.flight = new EventLog({ roomNow });
     this.folded = 0;
     this.heldTrack = null;
+    this.placeSkip = null;
     this.flight.append('spawned', simMs);
   }
 
@@ -302,10 +311,23 @@ export class Progress {
     const from = this.folded;
     const { at, counted } = foldEvents(this.state, this.flight.events, from);
     const won = awardBests(this.state, this.flight.events, from);
+    const done = awardAircraftChallenges(this.state, this.flight.events, from);
     this.folded = at;
-    if (counted || won.length) {
+    if (counted || won.length || done.length) {
       this.save();
     }
+    /* One award an aircraft challenge, its toast its own; the run's
+     * debrief says it as a record line (src/game/debrief.js withBests). */
+    let one = [];
+    for (const e of done) {
+      if (e.type === 'aircraft_challenge') {
+        this.show(one);
+        this.bests.push({ key: `challenge:${e.key}`, airframe: e.airframe, id: e.id });
+        one = [];
+      }
+      one.push(e);
+    }
+    this.show(one);
     /* One award a best: its toast says that best alone. */
     let award = [];
     for (const e of won) {
@@ -319,8 +341,9 @@ export class Progress {
     this.show(award);
   }
 
-  /* The bests this run set, for its debrief (src/game/debrief.js
-   * withBests), which may be drawn more than once. */
+  /* The bests this run set and the aircraft challenges it did, for its
+   * debrief (src/game/debrief.js withBests), which may be drawn more than
+   * once. */
   runBests() {
     return this.bests.slice();
   }
@@ -515,12 +538,40 @@ export class Progress {
     const landings = this.watch.landings;
     this.award(this.watch.tick(state));
     if (this.watch.landings > landings) {
-      this.event('landing', { airframe: this.airframe });
+      this.event('landing', { airframe: this.airframe, airMs: this.watch.lastAirMs });
       this.foldFlight();
     }
+    this.lookForPlaces(state);
     if (this.lesson) {
       this.lesson.tick(state);
       this.lessonNews();
+    }
+  }
+
+  /*
+   * DISCOVERY: a place of the world flown into is found and paid once
+   * (progress.js awardPlace). `state.world` is the world's registry id,
+   * `state.pos` the craft in the map's frame and `state.agl` its height
+   * over what is under it. On a flight's first tick the places it began
+   * inside are set aside, so a spawn or a placement finds nothing.
+   */
+  lookForPlaces({ world, pos, agl, crashed }) {
+    if (!placesOf(world).length || crashed || !pos) {
+      return;
+    }
+    if (this.placeSkip === null || this.placeWorld !== world) {
+      this.placeWorld = world;
+      const found = placesOf(world).filter((p) => this.state.places && this.state.places[placeKey(world, p.id)]).map((p) => p.id);
+      this.placeSkip = new Set([...found, ...placesAt(world, pos, agl)]);
+      return;
+    }
+    for (const id of placesAt(world, pos, agl, this.placeSkip)) {
+      this.placeSkip.add(id);
+      const events = awardPlace(this.state, world, id);
+      if (events.length) {
+        this.save();
+        this.show(events);
+      }
     }
   }
 
@@ -571,6 +622,8 @@ export class Progress {
     const firsts = events.filter((e) => e.type === 'first');
     const medal = events.find((e) => e.type === 'medal');
     const best = events.find((e) => e.type === 'best' && e.xp > 0);
+    const place = events.find((e) => e.type === 'place');
+    const feat = events.find((e) => e.type === 'aircraft_challenge');
     const levels = events.filter((e) => e.type === 'level');
     const up = levels.length ? levels[levels.length - 1].level : 0;
     const info = levelInfo(this.state.xp);
@@ -580,6 +633,25 @@ export class Progress {
         icon: '\u25CF',
         kicker: str('progress.toast_medal'),
         title: str(`medal.${medal.medal}`),
+        xp: xp ? xp.xp : 0,
+        frac: info.frac,
+      });
+    } else if (place) {
+      this.toast({
+        cls: `first${up ? ' level' : ''}`,
+        icon: up ? String(up) : '\u2691',
+        kicker: up ? str('progress.toast_place_level', { n: up }) : str('progress.toast_place'),
+        title: str(`discovery.place.${place.world}.${place.id}`),
+        sub: str(`discovery.place.${place.world}.${place.id}_fact`),
+        xp: xp ? xp.xp : 0,
+        frac: info.frac,
+      });
+    } else if (feat) {
+      this.toast({
+        cls: `challenge${up ? ' level' : ''}`,
+        icon: '\u2713',
+        kicker: up ? str('progress.toast_challenge_level', { n: up }) : str('progress.toast_challenge'),
+        title: str('progress.item_on', { item: challengeTitle(feat.airframe, feat.id), plane: airframeById(feat.airframe).name }),
         xp: xp ? xp.xp : 0,
         frac: info.frac,
       });
@@ -838,6 +910,10 @@ export class Progress {
     });
     box.append(sw);
 
+    if (challengeAmounts(h.id)) {
+      box.append(el('h3', 'hangar-h', str('progress.this_aircraft', { plane: airframeById(h.id).name })));
+      box.append(this.aircraftList(h.id));
+    }
     const ctx = { airframe: h.id, fixedWing: Boolean(airframeById(h.id).fixedWing), power: this.powerKind(h) };
     const here = CHALLENGES.filter((c) => fits(c, ctx) && c.plane);
     const rest = CHALLENGES.filter((c) => !here.includes(c));
@@ -868,6 +944,23 @@ export class Progress {
   powerKind(h) {
     const option = h.power && h.power.options ? h.power.options.find((o) => o.id === h.choice.option) : null;
     return option ? option.kind : null;
+  }
+
+  /* The aircraft's own three (progress.js AIRCRAFT_CHALLENGE_IDS), with
+   * the amounts its class gives, each done or its XP. */
+  aircraftList(airframe) {
+    const box = el('div', 'pg-list');
+    const family = liveryKey(airframe);
+    for (const id of AIRCRAFT_CHALLENGE_IDS) {
+      const done = Boolean(this.state.aircraftChallenges && this.state.aircraftChallenges[`${family}:${id}`]);
+      const row = el('div', `pg-ch${done ? ' done' : ' here'}`);
+      row.dataset.challenge = `${family}:${id}`;
+      const words = el('div', 'pg-ch-words');
+      words.append(el('span', 'pg-ch-title', challengeTitle(airframe, id)), el('span', 'pg-ch-note', challengeNote(airframe, id)));
+      row.append(el('span', 'pg-ch-mark', done ? '\u2713' : ''), words, el('span', 'pg-ch-xp', done ? str('progress.done') : str('progress.xp_gain', { n: number(AIRCRAFT_CHALLENGE_XP) })));
+      box.append(row);
+    }
+    return box;
   }
 
   challengeList(list, here) {

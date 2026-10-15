@@ -299,13 +299,22 @@ export function withPosted(d, posted) {
  * lap's and a run's on a race's debrief, a round's points on its game's.
  * A best of another activity's kind is not this screen's to say. Each
  * line is { what, kind, now, before, improved: true }, `before` null for
- * the first on its key. Pure: a new record.
+ * the first on its key. An aircraft challenge the run did (runBests'
+ * `challenge:<family>:<id>` entries, progress.js awardAircraftChallenge)
+ * is said on whichever debrief follows it, as { what, kind: 'challenge',
+ * airframe, id, improved: true }, after the bests. Pure: a new record.
  */
 const BEST_LINES = { lap: 'debrief.best_lap', run: 'debrief.best_run', combat: 'debrief.best_score', tag: 'debrief.best_score' };
 const BESTS_FOR = { race: ['lap', 'run'], roomrace: ['lap'], combat: ['combat'], tag: ['tag'] };
 
 export function withBests(d, bests) {
   const kinds = BESTS_FOR[d.activity] ?? [];
+  const done = new Map();
+  for (const b of bests || []) {
+    if (typeof b.key === 'string' && b.key.startsWith('challenge:') && typeof b.airframe === 'string' && typeof b.id === 'string') {
+      done.set(b.key, { what: 'debrief.challenge_done', kind: 'challenge', airframe: b.airframe, id: b.id, improved: true });
+    }
+  }
   /* A key bettered twice in one run (a lap, then a faster one) is one
    * line: the best held before the run and the last one set. */
   const byKey = new Map();
@@ -318,7 +327,7 @@ export function withBests(d, bests) {
     const before = held ? held.before : Number.isFinite(b.before) ? b.before : null;
     byKey.set(b.key, { what: BEST_LINES[kind], kind, now: b.now, before, improved: true });
   }
-  const lines = [...byKey.values()];
+  const lines = [...byKey.values(), ...done.values()];
   return lines.length ? { ...d, records: [...lines, ...d.records] } : d;
 }
 

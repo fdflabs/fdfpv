@@ -161,7 +161,7 @@ class ViaLog {
     this.wasCrashed = Boolean(state.crashed);
     const landings = this.watch.landings;
     const out = this.watch.tick(state);
-    if (this.watch.landings > landings) this.event('landing', { airframe: this.airframe });
+    if (this.watch.landings > landings) this.event('landing', { airframe: this.airframe, airMs: this.watch.lastAirMs });
     return out;
   }
 }
@@ -247,6 +247,11 @@ for (const ctx of [
   const count = (t) => types.filter((x) => x === t).length;
   check(`${ctx.airframe}: one crash on the crash flag's edge`, count('crash') === 1);
   check(`${ctx.airframe}: the landings RunWatch judged`, count('landing') === via.watch.landings && count('landing') >= 1, `${count('landing')} vs ${via.watch.landings}`);
+  /* A landing's time in the air: from the take off that began its
+   * flight to its touchdown, so it is never longer than the log. */
+  const airs = via.flight.events.filter((e) => e.type === 'landing').map((e) => e.airMs);
+  check(`${ctx.airframe}: each landing carries its time in the air, whole and inside the flight`,
+    airs.every((ms) => Number.isFinite(ms) && ms >= 2000 && ms <= via.simMs), airs.join());
   check(`${ctx.airframe}: every gate and lap`, count('gate') === 18 && count('lap') === 4);
   check(`${ctx.airframe}: sixty steps of contact are four touches`, count('touch') === 4, String(count('touch')));
   check(`${ctx.airframe}: on the sim clock, in order`, via.flight.events.every((e, i, all) => e.seq === i && (i === 0 || e.simMs >= all[i - 1].simMs)));
@@ -312,8 +317,8 @@ console.log('the shell\'s producers');
     && ui.includes("this.watch.touch(kind);\n    this.event('touch', { kind });")
     && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });\n    const done = feedRunWatch(this.watch, lapped);"));
   check('and a lesson judges the lap from that same event', ui.includes('this.lesson.lap(lapped, ghostMs);'));
-  check('and logs a crash and a landing from its tick',
-    ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe })"));
+  check('and logs a crash and a landing, with its time in the air, from its tick',
+    ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe, airMs: this.watch.lastAirMs })"));
   check('a spawn starts a flight', /function resetCraft[\s\S]*?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
   check('so does a developer hook putting the craft somewhere, so no lap across it is a best',
     /devHooks\.__placeCraft = [\s\S]{0,1600}?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
