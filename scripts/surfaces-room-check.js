@@ -125,7 +125,7 @@ try {
   await a.sleep(500);
   const tiersA = await a.evaluate('window.__craft().tiers');
   check('R3 B is told the room flies stock surfaces', told, String(told));
-  check('R3 A flies stock', JSON.stringify(tiersA) === JSON.stringify([1, 1, 1, 0, 0, 0]), JSON.stringify(tiersA));
+  check('R3 A flies stock', JSON.stringify(tiersA) === JSON.stringify([1, 1, 1, 0, 0, 0, 1, 1, 1]), JSON.stringify(tiersA));
   await b.until('(() => { const q = window.__rooms().peers[0]; return Boolean(q && q.parts && !q.parts.surfaces); })()', 15000).catch(() => {});
   await b.sleep(1000);
   const after = await peerA(b);

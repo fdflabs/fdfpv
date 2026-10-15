@@ -145,6 +145,31 @@ everyone is back in the lobby. Fly with friends is gone.
 | Drop in | **exists**, except a race on, whose newcomer waits for the next |
 | Spectator slots | **partial** (section 25) |
 | Party persistence | **exists** in the room: the next round, the next mission, everyone stays (FLOW-AUDIT rule 8) |
+| Local play | **decided, 2026-10-14 (the lead)**: no split screen; two devices in one Friends room (below) |
+
+**Local play is two devices in one room** (COMPLETENESS item 74, with
+the measurement). One page is one pilot: one pad picked
+(src/input/padpick.js), one pointer lock, one keyboard, one camera. A
+second plant in a page already runs (the AI opponent,
+src/game/aiopponent.js), so the plant is not the limit; the frame is: a
+second full view drawn on GPU 1 took `swiss-low` at High from 12.4 ms to
+25.2 ms a frame and from 298 to 512 draw calls, about twice the main
+view's contract (docs/BUDGETS.md). How two people in one place fly
+together today:
+
+1. On the first device, Make a room in the title's rooms panel, Who
+   joins: Friends, then The world and Game; the room shows its six letter
+   invite code, and Enter on the code copies a link that opens the room.
+2. On the second device (another computer, a laptop, a Steam Deck), All
+   rooms in the title's rooms panel, Join with a code, and type the code;
+   or open the link.
+3. Each device is its own pilot with its own controller, paint and
+   view; the host starts the round from the lobby as in any room.
+
+Without the internet, the rooms server runs on a machine on the LAN
+(edge/rooms/node.js) and each page is opened with
+`?rooms=http://<that machine>:<port>`, the game itself served on the LAN
+too; this path is in the code and not checked end to end.
 
 ## 6. Session architecture
 

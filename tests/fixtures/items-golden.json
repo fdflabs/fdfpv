@@ -30417,7 +30417,7 @@
      "id": "tricks:a-noop~4",
      "label": "Power Matty",
      "value": "300",
-     "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto de lado.",
+     "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1,5 giros de flip. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
@@ -30585,7 +30585,7 @@
      "id": "tricks:a-noop~25",
      "label": "Segmented Flips/Rolls",
      "value": "75",
-     "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation otra vez en el mismo sentido, tras una pausa. Visto de lado.",
+     "note": "Fiable. Principiante. Medio giro de rotación, luego medio giro de rotación otra vez en el mismo sentido, tras una pausa. Visto de lado.",
      "action": "noop",
      "drives": {}
     },
@@ -30593,7 +30593,7 @@
      "id": "tricks:a-noop~26",
      "label": "Invert Rewind",
      "value": "75",
-     "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto de lado.",
+     "note": "Fiable. Principiante. Medio giro de rotación, luego medio giro de rotación de vuelta en el otro sentido. Visto de lado.",
      "action": "noop",
      "drives": {}
     },

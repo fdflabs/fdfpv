@@ -68,6 +68,33 @@ with no model added: the licence check above holds for them unchanged.
 The generated files are GPLv3 as part of this repository, the same as
 the text they are spoken from.
 
+### Where the voices are built
+
+Since 2026-10-14 every voice build runs on the Jetson AGX Orin
+(`tools/voice/jetson.sh build`), not on the desktop's GPU, by the
+owner's call ("do all the voice stuff on the jetson"). The lead accepted
+the Orin's take with its measured difference: the same pins, models,
+seeds and settings give a Kokoro reference clip at correlation 0.991 to
+the desktop's and a Chatterbox take that is not the desktop's (one
+compared line: correlation 0.70), so the Orin cannot rebuild an old file
+byte for byte, and a seed pinned on the desktop picks another take
+there. Its radio wav is brought back and encoded here, with the
+desktop's ffmpeg, as every other file; its manifest entry says
+`"machine": "orin"`. The Orin is shared: a build there holds its GPU
+lease first (`~/gpu-lease/gpu-lease wait`, then `acquire`, `release`
+after), and does not fit beside a ComfyUI video job (about 14 GB more
+on 61 GB, measured 2026-10-14: the box reached 60.9 GB).
+
+The rule that keeps it one cast: within one mission, one speaker sounds
+like one voice. A mission that gets a new or changed line has every line
+of that speaker that belongs to that mission (its `itaipu-N-` story and
+guide lines, its debriefs, its films) built again on the Orin, not only
+the new one; a mission with no new line keeps its desktop files. Lines
+shared by every mission (the `intro`, `wave`, `hit`, `kill`, `signal`,
+`rack`, `end`, `stage` and `contain` groups) stay desktop builds, so in a
+rebuilt mission CREST's shared calls are the desktop's take of the same
+voice: the one place the rule is not met, and known.
+
 <!-- voice table: written by tools/voice/check.py --fix from lines.json -->
 | Line | Files |
 | --- | --- |
@@ -215,7 +242,7 @@ the text they are spoken from.
 | itaipu-3-s3-despacho | `voice/en/itaipu-3-s3-despacho.webm`, `voice/en/itaipu-3-s3-despacho.mp3`, `voice/es/itaipu-3-s3-despacho.webm`, `voice/es/itaipu-3-s3-despacho.mp3` |
 | itaipu-3-s3-half | `voice/en/itaipu-3-s3-half.webm`, `voice/en/itaipu-3-s3-half.mp3`, `voice/es/itaipu-3-s3-half.webm`, `voice/es/itaipu-3-s3-half.mp3` |
 | itaipu-3-s3-done | `voice/en/itaipu-3-s3-done.webm`, `voice/en/itaipu-3-s3-done.mp3`, `voice/es/itaipu-3-s3-done.webm`, `voice/es/itaipu-3-s3-done.mp3` |
-| itaipu-3-s3-down | `voice/en/itaipu-3-s3-down.webm`, `voice/en/itaipu-3-s3-down.mp3`, `voice/es/itaipu-3-s3-down.webm`, `voice/es/itaipu-3-s3-down.mp3` |
+| itaipu-3-s3-back | `voice/en/itaipu-3-s3-back.webm`, `voice/en/itaipu-3-s3-back.mp3`, `voice/es/itaipu-3-s3-back.webm`, `voice/es/itaipu-3-s3-back.mp3` |
 | itaipu-3-s3-failed | `voice/en/itaipu-3-s3-failed.webm`, `voice/en/itaipu-3-s3-failed.mp3`, `voice/es/itaipu-3-s3-failed.webm`, `voice/es/itaipu-3-s3-failed.mp3` |
 | itaipu-3-ta-turn | `voice/en/itaipu-3-ta-turn.webm`, `voice/en/itaipu-3-ta-turn.mp3`, `voice/es/itaipu-3-ta-turn.webm`, `voice/es/itaipu-3-ta-turn.mp3` |
 | itaipu-3-ta-why | `voice/en/itaipu-3-ta-why.webm`, `voice/en/itaipu-3-ta-why.mp3`, `voice/es/itaipu-3-ta-why.webm`, `voice/es/itaipu-3-ta-why.mp3` |
@@ -262,6 +289,8 @@ the text they are spoken from.
 | itaipu-4-s3-pairs | `voice/en/itaipu-4-s3-pairs.webm`, `voice/en/itaipu-4-s3-pairs.mp3`, `voice/es/itaipu-4-s3-pairs.webm`, `voice/es/itaipu-4-s3-pairs.mp3` |
 | itaipu-4-s3-cover | `voice/en/itaipu-4-s3-cover.webm`, `voice/en/itaipu-4-s3-cover.mp3`, `voice/es/itaipu-4-s3-cover.webm`, `voice/es/itaipu-4-s3-cover.mp3` |
 | itaipu-4-s3-down | `voice/en/itaipu-4-s3-down.webm`, `voice/en/itaipu-4-s3-down.mp3`, `voice/es/itaipu-4-s3-down.webm`, `voice/es/itaipu-4-s3-down.mp3` |
+| itaipu-4-ta-turn | `voice/en/itaipu-4-ta-turn.webm`, `voice/en/itaipu-4-ta-turn.mp3`, `voice/es/itaipu-4-ta-turn.webm`, `voice/es/itaipu-4-ta-turn.mp3` |
+| itaipu-4-ta-why | `voice/en/itaipu-4-ta-why.webm`, `voice/en/itaipu-4-ta-why.mp3`, `voice/es/itaipu-4-ta-why.webm`, `voice/es/itaipu-4-ta-why.mp3` |
 | itaipu-4-tb-turn | `voice/en/itaipu-4-tb-turn.webm`, `voice/en/itaipu-4-tb-turn.mp3`, `voice/es/itaipu-4-tb-turn.webm`, `voice/es/itaipu-4-tb-turn.mp3` |
 | itaipu-4-tb-why | `voice/en/itaipu-4-tb-why.webm`, `voice/en/itaipu-4-tb-why.mp3`, `voice/es/itaipu-4-tb-why.webm`, `voice/es/itaipu-4-tb-why.mp3` |
 | itaipu-4-tc-turn | `voice/en/itaipu-4-tc-turn.webm`, `voice/en/itaipu-4-tc-turn.mp3`, `voice/es/itaipu-4-tc-turn.webm`, `voice/es/itaipu-4-tc-turn.mp3` |
@@ -274,6 +303,7 @@ the text they are spoken from.
 | itaipu-4-g-boat | `voice/en/itaipu-4-g-boat.webm`, `voice/en/itaipu-4-g-boat.mp3`, `voice/es/itaipu-4-g-boat.webm`, `voice/es/itaipu-4-g-boat.mp3` |
 | itaipu-4-g-intakes | `voice/en/itaipu-4-g-intakes.webm`, `voice/en/itaipu-4-g-intakes.mp3`, `voice/es/itaipu-4-g-intakes.webm`, `voice/es/itaipu-4-g-intakes.mp3` |
 | itaipu-4-g-hunters | `voice/en/itaipu-4-g-hunters.webm`, `voice/en/itaipu-4-g-hunters.mp3`, `voice/es/itaipu-4-g-hunters.webm`, `voice/es/itaipu-4-g-hunters.mp3` |
+| itaipu-4-g-dark | `voice/en/itaipu-4-g-dark.webm`, `voice/en/itaipu-4-g-dark.mp3`, `voice/es/itaipu-4-g-dark.webm`, `voice/es/itaipu-4-g-dark.mp3` |
 | itaipu-4-g-yard | `voice/en/itaipu-4-g-yard.webm`, `voice/en/itaipu-4-g-yard.mp3`, `voice/es/itaipu-4-g-yard.webm`, `voice/es/itaipu-4-g-yard.mp3` |
 | itaipu-4-g-scout | `voice/en/itaipu-4-g-scout.webm`, `voice/en/itaipu-4-g-scout.mp3`, `voice/es/itaipu-4-g-scout.webm`, `voice/es/itaipu-4-g-scout.mp3` |
 | itaipu-4-g-all | `voice/en/itaipu-4-g-all.webm`, `voice/en/itaipu-4-g-all.mp3`, `voice/es/itaipu-4-g-all.webm`, `voice/es/itaipu-4-g-all.mp3` |

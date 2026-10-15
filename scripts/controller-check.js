@@ -27,6 +27,9 @@
  *  7. An EdgeTX radio: recognised, no Expo, the built-in layout greyed
  *     until calibrated; the wizard opened here comes back here, and Keys
  *     and buttons backs out to here.
+ *  7b. Hot plugging with the Controller screen open: the radio pulled
+ *     redraws it on the keyboard with a notice, and plugged back in
+ *     redraws it on the radio with a notice naming it, no picker.
  *  8. Rates per aircraft class: own rates on the interceptor, the Cub
  *     chosen in the picker flies stock and the profile keeps the quad's
  *     under multirotor; the interceptor chosen again has them back. The
@@ -255,6 +258,33 @@ try {
   await page.tap('Escape');
   await page.until("window.__ui.screen !== 'controls'", 5000);
   check('Back from Keys and buttons is the Controller', await page.evaluate("window.__ui.screen === 'controller'"), await page.evaluate('window.__ui.screen'));
+
+  console.log('7b. hot plugging on the Controller screen (COMPLETENESS 15)');
+  /* What the open screen shows, read off the DOM: a row drawn once and
+   * never again would still read right through ui.items(). */
+  const drawn = (label) => page.evaluate(`(() => {
+    const row = [...document.querySelectorAll('[role="option"]')].find((r) => (r.querySelector('.row-label') || {}).textContent === ${JSON.stringify(label)});
+    return row ? row.textContent : null;
+  })()`);
+  const chooseLabel = await page.evaluate("(window.__ui.items().find((it) => it.action === 'choosepad') || {}).label || ''");
+  check('the Choose joystick row shows the radio', /RadioMaster Pocket/.test(await drawn(chooseLabel) || ''), await drawn(chooseLabel));
+  await page.evaluate('window.__pads.length = 0; true');
+  const redrawnGone = await page.until(`(() => {
+    const row = [...document.querySelectorAll('[role="option"]')].find((r) => (r.querySelector('.row-label') || {}).textContent === ${JSON.stringify(chooseLabel)});
+    return Boolean(row) && /Keyboard/.test(row.textContent);
+  })()`, 5000).then(() => true, () => false);
+  check('the radio pulled: the open screen is drawn again, on the keyboard', redrawnGone, await drawn(chooseLabel));
+  check('no Dead zone row with no device', JSON.parse(await row("it.label === 'Dead zone'")) === null);
+  const goneBanner = await page.evaluate('window.__ui.bannerText');
+  check('the notice says the keys fly until it is back', goneBanner === 'The controller is gone. The keys fly until it is back.', goneBanner);
+  check('and the screen stays the Controller', await page.evaluate("window.__ui.screen === 'controller'"), await page.evaluate('window.__ui.screen'));
+  await page.evaluate(`window.__pads.push(${JSON.stringify(PADS.radio)}); true`);
+  await page.until("window.__ui.padInfo.device === 'radio'", 10000);
+  await page.sleep(300);
+  check('plugged back in: drawn again with the radio', /RadioMaster Pocket/.test(await drawn(chooseLabel) || ''), await drawn(chooseLabel));
+  const backBanner = await page.evaluate('window.__ui.bannerText');
+  check('the notice names it', backBanner === 'Flying on RadioMaster Pocket Joystick.', backBanner);
+  check('no picker for its own return', await page.evaluate("window.__ui.screen === 'controller'"), await page.evaluate('window.__ui.screen'));
 
   console.log('8. rates per aircraft class');
   const pickCraft = (id) => page.evaluate(`(() => {

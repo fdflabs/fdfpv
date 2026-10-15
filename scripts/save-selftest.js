@@ -10,8 +10,9 @@
  * language, best laps) once as it is and once after openSave, and the two
  * answers must be the same, as must every key a reader owns. Then a
  * second open must change nothing; a blob that does not parse is kept as
- * .corrupt and its .prev put back; a newer version is not touched; and
- * the envelope written into an empty store reads back as itself.
+ * .corrupt and its .prev put back; a newer version is not touched; the
+ * envelope written into an empty store reads back as itself; and each save
+ * point in save.js's table writes its key, and only when it should.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -54,6 +55,7 @@ class Storage {
   constructor(entries = {}) {
     this.map = new Map(Object.entries(entries));
     this.refuse = false;
+    this.writes = 0;
   }
 
   get length() { return this.map.size; }
@@ -64,10 +66,14 @@ class Storage {
 
   setItem(k, v) {
     if (this.refuse) throw new Error('QuotaExceededError');
+    this.writes += 1;
     this.map.set(String(k), String(v));
   }
 
-  removeItem(k) { this.map.delete(k); }
+  removeItem(k) {
+    this.writes += 1;
+    this.map.delete(k);
+  }
 
   clear() { this.map.clear(); }
 
@@ -227,6 +233,36 @@ console.log('a broken blob is kept as .corrupt and its backup put back');
   }
 }
 
+console.log('the pilot is told once what was put back and what starts fresh');
+{
+  const good = FIXTURE['v3-profile'];
+  const en = (await import('../src/strings/en.js')).default;
+  const es = (await import('../src/strings/es.js')).default;
+  for (const { key, part } of Object.values(save.SECTIONS).flat().filter((e) => e.shape)) {
+    check(`${key} is named to the pilot in en and es`, Boolean(part && en[part] && es[part]), part);
+  }
+  for (const id of ['save.notice_title', 'save.notice_restored', 'save.notice_lost', 'save.notice_kept']) {
+    check(`${id} is in en and es`, Boolean(en[id] && es[id]));
+  }
+  check('a clean boot says nothing', save.saveNotice(save.openSave(new Storage(good))) === null);
+  {
+    const store = new Storage(good);
+    save.openSave(store);
+    store.setItem(SETTINGS_KEY, '{"airframe":');
+    store.setItem('webfpv.builds.v1', '[]');
+    store.removeItem('webfpv.builds.v1.prev');
+    const said = save.saveNotice(save.openSave(store));
+    check('a blob put back is said as put back', show(said?.restored) === show(['save.part_settings']), show(said));
+    check('a blob with no backup is said as starting fresh', show(said?.lost) === show(['save.part_builds']), show(said));
+    const again = save.openSave(store);
+    check('the next boot says nothing', save.saveNotice(again) === null, show(again));
+    check('though the blob still broken is still reported', again.quarantined.includes('webfpv.builds.v1') && again.known.includes('webfpv.builds.v1'));
+    check('and its .corrupt is the broken text', store.getItem('webfpv.builds.v1.corrupt') === '[]');
+    store.setItem('webfpv.builds.v1', '"other"');
+    check('a blob broken differently is said again', show(save.saveNotice(save.openSave(store))?.lost) === show(['save.part_builds']));
+  }
+}
+
 console.log('a newer save and refusing storage are left alone');
 {
   const store = new Storage({ ...FIXTURE['v3-profile'], [save.VERSION_KEY]: String(save.SAVE_VERSION + 1), [SETTINGS_KEY]: '{broken' });
@@ -328,6 +364,249 @@ console.log('reset settings and reset progress each keep the other half');
     return readAll(e).settings.progress.unlockAll === false;
   })());
   check('the fixture really had progress to lose', blob.progress.xp === 740);
+}
+
+console.log('each save point writes its key, and nothing else writes');
+{
+  /*
+   * The table of SAVE POINTS in src/share/save.js's header, row by row:
+   * each trigger is called as the game calls it, against a store of its
+   * own, and must write the row's key; the readers and a change that is
+   * not one must write nothing. Where a trigger lives in the shell
+   * (src/main.js, too big to run here) the call chain is held by its
+   * source, and the writer it ends in is run.
+   */
+  const { Ui } = await import('../src/ui/ui.js');
+  const { Progress } = await import('../src/ui/progress-ui.js');
+  const { EventLog } = await import('../src/game/events.js');
+  const { freshProgress } = await import('../src/game/progress.js');
+  const { createCampaignStore, emptyCampaign, cleanCampaign } = await import('../src/game/campaign.js');
+  const { Race } = await import('../src/game/race.js');
+  const { saveSettings } = await import('../src/ui/settings.js');
+  const { saveBuilds } = await import('../src/ui/builds.js');
+  const { saveStickMap, forgetStickMap, savePadChoice } = await import('../src/input/stickstore.js');
+  const { writePilotName } = await import('../src/share/pilot.js');
+  const { writeSharedKey } = await import('../src/share/sharedkeys.js');
+  const { keepRecords } = await import('../src/share/records.js');
+  const src = (rel) => readFileSync(join(root, rel), 'utf8');
+  const good = FIXTURE['v3-profile'];
+  /* The keys written between two dumps, as a sorted list. */
+  const changed = (a, b) => [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => a[k] !== b[k]).sort();
+  /* Runs `fn` on a fresh opened copy of the profile; returns the keys it
+   * wrote (changed or removed) and how many writes it made. */
+  async function written(fn, entries = good) {
+    const store = new Storage(entries);
+    save.openSave(store);
+    current = store;
+    const before = store.dump();
+    store.writes = 0;
+    await fn(store);
+    /* The best lap is written when the page is idle (race.js saveRecord),
+     * a timer in Node. */
+    await new Promise((r) => { setTimeout(r, 5); });
+    return { keys: changed(before, store.dump()), writes: store.writes, store };
+  }
+  const covered = new Set();
+  function point(name, got, keys) {
+    keys.forEach((k) => covered.add(k));
+    check(`${name}: writes ${keys.join(', ')}`, show(got.keys) === show([...keys].sort()), show(got.keys));
+  }
+  function none(name, got) {
+    check(`${name}: writes nothing`, got.writes === 0, `${got.writes} writes: ${show(got.keys)}`);
+  }
+
+  /* settings blob: every settings change, through the Ui. */
+  const ui = () => ({ settings: loadSettings() });
+  point('a settings change (Ui.persistSettings)', await written(() => {
+    const u = ui();
+    u.settings.musicLevel = u.settings.musicLevel === 0 ? 1 : 0;
+    Ui.prototype.persistSettings.call(u);
+  }), [SETTINGS_KEY]);
+  check('and the row (Ui.writeSettings) saves through saveSettings',
+    /writeSettings\(\) \{\s*saveSettings\(this\.settings\)/.test(src('src/ui/menucontrols.js')));
+  none('reading the settings', await written(() => { loadSettings(); }));
+
+  /* progression: Progress.save is Ui.persistSettings. A Progress without
+   * its toasts, the pilot's own progress under it, driven the way the
+   * shell drives it: a run seated (startRun), frames (tick), gates passed
+   * (gatePass); each pays through progress.js awardFlight, the one place
+   * an achievement is paid, and saves when anything was. */
+  const { RunWatch, challengeRun } = await import('../src/game/progress.js');
+  const progress = () => {
+    const u = ui();
+    u.settings.progress = u.settings.progress ?? freshProgress(false);
+    u.persistSettings = Ui.prototype.persistSettings;
+    const p = Object.create(Progress.prototype);
+    Object.assign(p, {
+      ui: u, show: () => {}, toast: () => {}, flight: new EventLog(), runLog: [], folded: 0, bests: [], run: challengeRun(),
+      watch: new RunWatch(), simMs: 0, wasCrashed: false, heldTrack: null, placeWorld: null, placeSkip: null, lesson: null,
+    });
+    return p;
+  };
+  const progressOf = (store) => JSON.parse(store.getItem(SETTINGS_KEY)).progress;
+  /* A flight on `p`'s seated run: AIRBORNE_MS and more in the air, then
+   * down past LANDED_MS, which RunWatch counts as a landing. */
+  const flyAndLand = (p, battery = 'ok') => {
+    const t0 = p.simMs;
+    for (let ms = t0 + 100; ms <= t0 + 3000; ms += 100) p.tick({ simMs: ms, crashed: false, grounded: false, power: null, battery });
+    for (let ms = t0 + 3100; ms <= t0 + 4500; ms += 100) p.tick({ simMs: ms, crashed: false, grounded: true, power: null, battery });
+  };
+  {
+    const got = await written((store) => {
+      const p = progress();
+      p.setUnlockAll(!p.state.unlockAll);
+      check('Unlock all is what was stored', progressOf(store).unlockAll === p.state.unlockAll);
+    });
+    point('Unlock all', got, [SETTINGS_KEY]);
+  }
+  {
+    /* The profile without its hoops_10, so ten gates in a row pay it. */
+    const blob = JSON.parse(good[SETTINGS_KEY]);
+    delete blob.progress.challenges.hoops_10;
+    const undone = { ...good, [SETTINGS_KEY]: JSON.stringify(blob) };
+    const gates = (p, n) => {
+      p.startRun({ airframe: 'interceptor', fixedWing: false, power: 'electric' });
+      for (let i = 0; i < n; i += 1) p.gatePass();
+    };
+    none('nine gates in a row', await written(() => { gates(progress(), 9); }, undone));
+    point('a challenge done (hoops_10)', await written((store) => {
+      gates(progress(), 10);
+      check('and the challenge is stored', progressOf(store).challenges.hoops_10 === true);
+    }, undone), [SETTINGS_KEY]);
+    const again = await written(() => { gates(progress(), 20); }, undone);
+    check('the same challenge twice writes once', again.writes === 1, `${again.writes}`);
+  }
+  point('a landing counted', await written((store) => {
+    const p = progress();
+    p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
+    flyAndLand(p);
+    check('and the landing is stored', Object.values(progressOf(store).landings ?? {}).some((n) => n > 0));
+  }), [SETTINGS_KEY]);
+  point('a challenge paid on a landing (deadstick)', await written((store) => {
+    const p = progress();
+    p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
+    flyAndLand(p, 'warning');
+    check('and the challenge is stored', progressOf(store).challenges.deadstick === true);
+  }), [SETTINGS_KEY]);
+  none('frames in the air with nothing to count', await written(() => {
+    const p = progress();
+    p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
+    for (let ms = 100; ms <= 3000; ms += 100) p.tick({ simMs: ms, crashed: false, grounded: false, power: null, battery: 'ok' });
+  }));
+  none('a flight with nothing to count', await written(() => {
+    const p = progress();
+    p.foldFlight();
+  }));
+  none('asking for firsts with none due', await written(() => {
+    const p = progress();
+    p.checkFirsts();
+    p.checkFirsts();
+  }, (() => {
+    /* The first ask pays what the profile already holds; a second store
+     * opened after it has nothing due. */
+    const s = new Storage(good);
+    current = s;
+    progress().checkFirsts();
+    return s.dump();
+  })()));
+
+  /* campaign: a commit of the campaign store. */
+  point('a campaign commit', await written((store) => {
+    const u = ui();
+    const camp = createCampaignStore(u.settings, () => saveSettings(u.settings));
+    const state = camp.load();
+    state.seen = { ...state.seen, w43: 1 };
+    camp.save(state);
+    check('and what is stored is the clean campaign', show(JSON.parse(store.getItem(SETTINGS_KEY)).campaign) === show(cleanCampaign(state)));
+  }), [SETTINGS_KEY]);
+  none('loading the campaign', await written(() => {
+    const u = ui();
+    createCampaignStore(u.settings, () => saveSettings(u.settings)).load();
+  }));
+  check('an empty campaign reads clean', show(cleanCampaign(emptyCampaign())) === show(emptyCampaign()));
+
+  /* flight time: committed by the shell while flying, at a respawn, and
+   * when the page is hidden or left, into the settings blob. */
+  {
+    const main = src('src/main.js');
+    const commit = /function commitFlightTime\(\) \{[\s\S]*?\n  \}/.exec(main)?.[0] ?? '';
+    check('flight time is committed into the settings (commitFlightTime)', commit.includes('ui.settings.flightTime = record') && commit.includes('ui.persistSettings()'));
+    const leaving = /const pageLeaving = \(\) => \{[\s\S]*?\};/.exec(main)?.[0] ?? '';
+    check('and when the page is hidden or left (pageLeaving)', leaving.includes('commitFlightTime()')
+      && main.includes("window.addEventListener('pagehide', pageLeaving)") && /if \(document\.hidden\) \{\s*pageLeaving\(\);/.test(main));
+  }
+
+  /* controllers. */
+  point('a calibration accepted', await written(() => { saveStickMap('w43-pad', { axes: [0, 1, 2, 3] }); }), ['fdfpv.stick_maps.v2']);
+  point('a calibration forgotten', await written(() => {
+    forgetStickMap(Object.keys(JSON.parse(good['fdfpv.stick_maps.v2']).maps ?? {})[0]);
+  }), ['fdfpv.stick_maps.v2']);
+  point('a pad chosen', await written(() => { savePadChoice({ kind: 'pad', id: 'w43 pad', index: 1 }); }), ['fdfpv.pad.v1']);
+  {
+    const got = await written(() => { savePadChoice({ kind: 'auto' }); });
+    check('back to automatic: the pad key is removed', got.keys.includes('fdfpv.pad.v1') && got.store.getItem('fdfpv.pad.v1') === null, show(got.keys));
+  }
+  none('reading the pad and its calibration', await written(() => {
+    const pad = loadPadChoice();
+    loadStickMap(pad && pad.id ? deviceKey(pad.id) : 'none');
+  }));
+
+  /* aircraft: a build saved, renamed or deleted, through the Ui. */
+  const shell = () => Object.assign(Object.create(Ui.prototype), { settings: loadSettings(), buildList: loadBuilds() });
+  {
+    point('a build saved', await written(() => {
+      const id = shell().addBuild('W43', 'timber1500', {}).id;
+      check('and it reads back', loadBuilds().some((b) => b.id === id && b.name === 'W43'));
+    }), [BUILDS_KEY]);
+    /* The profile's own build, b1. */
+    point('a build renamed', await written(() => {
+      shell().renameBuild('b1', 'Race night');
+      check('and the new name reads back', loadBuilds().find((b) => b.id === 'b1')?.name === 'Race night');
+    }), [BUILDS_KEY]);
+    none('a rename the name rules refuse', await written(() => { shell().renameBuild('b1', ''); }));
+    point('a build deleted', await written(() => {
+      shell().removeBuild('b1');
+      check('and it is gone', !loadBuilds().some((b) => b.id === 'b1'));
+    }), [BUILDS_KEY]);
+  }
+  none('reading the builds', await written(() => { loadBuilds(); }));
+
+  /* voice: a voice chat choice. */
+  {
+    const voice = src('src/ui/voiceui.js');
+    check('a voice choice writes fdfpv.voice (voiceui.js writePrefs)', /function writePrefs\(p\) \{[\s\S]*?localStorage\.setItem\(PREFS_KEY/.test(voice) && voice.includes("PREFS_KEY = 'fdfpv.voice'"));
+    covered.add('fdfpv.voice');
+  }
+
+  /* records: a new best lap, and only a new best. */
+  const race = (bestMs) => {
+    const r = Object.create(Race.prototype);
+    Object.assign(r, { key: 'webfpv.best.w43', bestMs, lapPoints: 0, splits: [], log: [], laps: [], lap: 0 });
+    return r;
+  };
+  point('a new best lap', await written(() => { race(50000).closeLap(41000, false, 0); }), ['webfpv.best.w43']);
+  point('a first lap on a course', await written(() => { race(null).closeLap(52000, false, 0); }), ['webfpv.best.w43']);
+  none('a slower lap', await written(() => { race(41000).closeLap(45000, false, 0); }));
+  none('an equal lap', await written(() => { race(41000).closeLap(41000, false, 0); }));
+  none('a record from the account no better than this one', await written(() => {
+    keepRecords({ 'webfpv.best.a1b2c3.4.2.interceptor': '45000' });
+  }));
+  point('a better record from the account', await written(() => {
+    keepRecords({ 'webfpv.best.a1b2c3.4.2.interceptor': '40000' });
+  }), ['webfpv.best.a1b2c3.4.2.interceptor']);
+
+  /* player. */
+  point('the name set', await written(() => { writePilotName('W43 Pilot'); }), ['webfpv.pilot.name']);
+  none('a name the board would refuse', await written(() => { writePilotName('x'); }));
+  point('the language chosen', await written((store) => { writeSharedKey(LANG_KEY, store.getItem(LANG_KEY) === 'en' ? 'es' : 'en'); }), [LANG_KEY, 'webfpv.lang']);
+
+  /* this module: once per boot, and a second boot writes nothing. */
+  none('opening the save a second time', await written(() => { save.openSave(); }));
+
+  for (const { key } of Object.values(save.SECTIONS).flat()) {
+    check(`${key} has a save point here`, covered.has(key));
+  }
+  check('nothing saves on beforeunload', !src('src/main.js').includes('beforeunload'));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

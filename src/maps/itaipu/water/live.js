@@ -36,6 +36,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { logError } from '../../../share/crashrecord.js';
+
 /* Main thread time a frame may spend stepping, ms: at 1.17 ms a step in
  * Chrome (docs/FLOOD.md) some 154 steps a second at 60 frames, three
  * times the room's 50. */
@@ -146,7 +148,7 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
       /* Loud: the map goes on without its water, and says why. */
       state = 'failed';
       error = String(e && e.message ? e.message : e);
-      console.error(`[flood] could not start: ${error}`);
+      logError('physics', `[flood] could not start: ${error}`);
     }
   };
   const hear = (e) => {

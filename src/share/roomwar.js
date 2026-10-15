@@ -26,7 +26,8 @@
  * taken it off by then.
  *
  * What the shell reads: view() (the room's: state, wave, output, rack,
- * scores; on the watch seat never a result), attackersAt(roomMs),
+ * scores, the war's uid; a result only on a seat that flew the war,
+ * never on the watch seat), attackersAt(roomMs),
  * takeEvents(), and mine() for this pilot's own score row. What it sends: start(mission) and end(), the host's.
  *
  * Pure: no DOM, no timers, no three.js, the room clock handed in, so a
@@ -61,9 +62,10 @@ const KEEP_MS = 3000;
 const LIVE = new Set(['countdown', 'live']);
 
 /* The view a seat holds: the watch seat's never with a result, whose
- * stars and credits the campaign pays whoever holds it
+ * stars and credits the campaign pays whoever holds it, once per uid
  * (src/ui/campaign.js observe); the room sends it none (core.js
- * watchedView), and a room from before might. */
+ * watchedView), nor to a seat that did not fly the war (war.js flew),
+ * and a room from before might. */
 function held(view, seat) {
   return seat === WATCH_SEAT && view && view.result != null ? { ...view, result: null } : view;
 }

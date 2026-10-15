@@ -225,6 +225,9 @@ room relays it in a `0x21` batch.
 | `hit` | r to c | the referee's mid air contact (section 6) |
 | `race` | r to c | countdown start time, results |
 | `report`, `kick`, `track` | c to r | a report with a reason id; a host's kick; a host's track |
+| `war` | r to c | the war's view (edge/rooms/war.js view), on every change and in the welcome: its `uid`, the war's id across every room (warUid), and its `result` only to a seat whose pilot flew the war (war.js flew), never to a watcher; a page pays a result once per uid (src/ui/campaign.js) |
+| `ops` | r to c | an ops match's view (edge/rooms/ops.js view, docs/campaign/interior/CONTRACT-P0.md 4.1), on every change and in the welcome: its `uid` (warUid, kind `o`), and its `result` only to a seat whose pilot took part (ops.js took: seated while it was on, by token), never to a watcher; a page pays a result once per uid (src/ui/opscampaign.js) |
+| `fail` | c to r to c | `map` the page could not build; the room relays `{ seat, map }` and counts that seat out of every game until its profile is on the room's world again (edge/rooms/core.js) |
 
 A **profile** is `{ airframe, livery, parts, figure }`. `livery` is the
 entry `normaliseEntry` returns for that plane (`configs/liveries.js`),
@@ -296,7 +299,12 @@ One owner per system, so every screen shows the same answer
 | Trick Battle scores | the runner's client (src/game/score.js), trusted | only from the runner, inside its run; whole, in range, never going down (jam.js) | `jam:selftest` |
 | Poses | the pilot's client, sanity checked | speed, the world's limit, an impossible count (safety.js) | `rooms:selftest` |
 | Race gate passes and finishes | the racer's client, trusted inside bounds | a racer of this race, lap, gate and time in range (race.js passOf); a published lap is checked again by geometry (src/game/verify.js checkLap) | `rooms:selftest`, `lap:selftest` |
+| Who flew a war, and so is paid its result | the room (war.js flew, by seat token) | everything: the page pays only a result the room sent it, once per war uid | `rooms:selftest`, `campaign:selftest` |
+| Who took part in an ops match, and so is paid its result | the room (ops.js took, by seat token, kept in the match's `pilots`) | everything: the page pays only a result the room sent it, once per match uid | `rooms:selftest`, `campaign:selftest` |
 | A war airframe lost | the pilot's client, trusted | a player of the match (war.js `lost`) | `war:harness` |
+| An ops match: contacts, the sites' alertness, the boundary, stages, its end | the room (ops.js) | everything, on its grid of room time from the pilots' poses and camera aims | `interior:stages`, `interior:m2`, `interior:m3` |
+| An ops capture (an item photographed) | the pilot's client asks, the room decides (ops.js capture) | an item asked of this seat, its time inside the match and not ahead of the room, and the room's own pose of the seat then | `interior:stages`, `interior:m2` |
+| A world that will not load | the pilot's client, trusted | the room's own world only; the seat counted out of every game, and of a start's count (core.js fielded), until its profile stands on that world again | `rooms:selftest` |
 
 Race passes stay scored by the racer: the room has 30 Hz poses, the
 racer every physics step, and the board already checks every published
@@ -951,7 +959,9 @@ its memory and its egress, not a bill of requests.
   pilots, rooms, messages and bytes a second each way for the server and
   per room (a private room without its code), this process's CPU and the
   host's, the loop's p50, p99 and worst delay, memory, and the UTC day's
-  totals (egress, messages, pilot hours, room hours, the peak, refusals).
+  totals (egress, messages, pilot hours, room hours, the peak, refusals),
+  and the race witness's claims judged and refused (edge/rooms/
+  anticheat.js), for the server, the day and each room.
 - **The valve**: while this process averages half the core over 10 s, or
   the loop's p99 delay averages 20 ms, or its resident size passes 200 MB,
   a new public room is refused (503 `busy` on a create, and on a quick

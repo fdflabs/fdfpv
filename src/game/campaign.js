@@ -5,7 +5,8 @@
  * takes into the war (docs/WARFARE-PLAN.md; the war itself is the room's,
  * edge/rooms/war.js).
  *
- * THE STATE is { v: 1, missions, earned, owned, equipped, films, flags }:
+ * THE STATE is { v: 1, missions, earned, owned, equipped, films, flags,
+ * wars }:
  *
  *   missions  { missionId: { stars 0..3, won, credits } }, the best of
  *             every result the room gave for that mission: most stars, won
@@ -22,6 +23,11 @@
  *             result set (The Interior's M1_SYMBOL_CAPTURED and the rest,
  *             docs/campaign/interior/MISSIONS.md 1.10), which later
  *             missions and the endings read
+ *   wars      the ids of the wars and the ops matches whose result was
+ *             paid (the room's uid, edge/rooms/war.js warUid, ops.js
+ *             view), sorted, the newest PAID_KEEP: a match is paid once
+ *             whenever its result is first seen, a reload at the result
+ *             card included (payResult)
  *
  * CREDITS TO SPEND are earned less what owned cost: spending is not a
  * number of its own but the prices paid, so two computers that bought
@@ -33,7 +39,7 @@
  * with two copies: the most stars per mission, the higher earned total,
  * the union of owned upgrades, the newer seen cut of each film, every
  * flag either has (true stays true; a word flag, the final choice, keeps
- * the incoming copy's, as equipped does). Two computers that each spent the same
+ * the incoming copy's, as equipped does), and both lists of wars paid. Two computers that each spent the same
  * credits on different things keep both: the balance goes below zero and
  * nothing more can be bought until it is earned back, which is the one
  * outcome that loses neither purchase. An earned total is the higher of
@@ -241,8 +247,28 @@ const ID = /^[a-z0-9-]{1,40}$/;
 
 export function emptyCampaign() {
   return {
-    v: 1, missions: {}, earned: 0, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {},
+    v: 1, missions: {}, earned: 0, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {}, wars: [],
   };
+}
+
+/*
+ * The wars and ops matches paid that are kept. A room keeps only its last
+ * match of each, so a result can be seen again only while its room lives
+ * and has started no other; a pilot who has flown this many since cannot
+ * still be looking at one. Each id is about 30 bytes.
+ */
+export const PAID_KEEP = 64;
+const WAR_UID = /^[A-Za-z0-9-]{1,64}$/;
+
+/* A list of war and ops ids, plausible, once each, sorted oldest first
+ * past their kind's letter (warUid: 'w' a war, 'o' an ops match, the
+ * start's time next), the newest PAID_KEEP: sorted whole, every ops id
+ * would sort before every war id and be the first dropped, then paid
+ * again. */
+const order = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const byStart = (a, b) => order(a.slice(1), b.slice(1)) || order(a, b);
+function warList(ids) {
+  return [...new Set(ids.filter((id) => typeof id === 'string' && WAR_UID.test(id)))].sort(byStart).slice(-PAID_KEEP);
 }
 
 /* A plausible flag: the script's names (M1_SYMBOL_CAPTURED), and a word
@@ -287,6 +313,7 @@ export function cleanCampaign(raw) {
       }
     }
   }
+  out.wars = Array.isArray(raw.wars) ? warList(raw.wars) : [];
   return out;
 }
 
@@ -355,6 +382,24 @@ export function applyResult(state, missionId, result) {
     }
   }
   return next;
+}
+
+/* Whether the war with the room's id `uid` has been paid. */
+export function paidWar(state, uid) {
+  return state.wars.includes(uid);
+}
+
+/* The state after the result of war `uid`, once: applyResult the first
+ * time that war's result is seen, the state as it was every time after,
+ * whether this page saw the war begin or only its end. */
+export function payResult(state, uid, missionId, result) {
+  const next = cleanCampaign(state);
+  if (paidWar(next, uid)) {
+    return next;
+  }
+  const paid = applyResult(next, missionId, result);
+  paid.wars = warList([...paid.wars, uid]);
+  return paid;
 }
 
 /* Why an upgrade cannot be bought now, or null when it can. */
@@ -451,6 +496,7 @@ export function mergeCampaign(incoming, held) {
     const y = b.flags[name];
     out.flags[name] = x === true || y === true ? true : (x ?? y);
   }
+  out.wars = warList([...a.wars, ...b.wars]);
   return out;
 }
 

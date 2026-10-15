@@ -464,14 +464,194 @@ coloured. Still at High about two and a half times the 300 call
 contract. Left a peer: the palettes per offset (the camera head and
 payload sit off the origin, and moving vertices into the group's frame
 lands them a float rounding off), the lens, the inks, four rotors and
-four discs. Not joined: a craft with a region in a finish (finish.js
-wraps that region's material in a shader of its own, which draws before
-any palette, a newer material, where it drew between the parts it
-touches: a pack and a brass standoff swapped 1 px at 60 m); joining it
-needs the finish per palette entry.
+four discs. Until 2026-10-15 a craft with a region in a finish (or any
+wear, an underside or a pattern) was not joined at all, 40 meshes: the
+finish wraps that region's material in a shader of its own, which drew
+before any palette, a newer material, where it drew between the parts it
+touches (a pack and a brass standoff swapped 1 px at 60 m). Since
+branch w40-perf-finish the finish rides per palette entry
+(finish.js finishPalette: each number the finish chunk reads looked up
+by the vertex's entry, the identity for an entry in no finish), so a
+finished peer joins as a stock one does, 40 meshes to 16. Pixels: an in
+page A/B (tmp/, not committed) of the same peer joined against not, scene,
+normal and thermal passes as floats, A B A B, eight views 0.5 m to 90 m,
+and once under the swiss2 look: 0 pixels different in eight cases that
+wear the twelve finishes between them, wear 0.3 to 0.8, undersides, all
+four patterns and two layers, on the 7 inch, the 10 inch and the
+interceptor; a control (every finish against none) differed by 5 447 px
+at 1 m. perf-play `peers` at High with the seven wire pilots sent a
+finished livery (gloss, chrome, matte, wear 40; a local patch, not a
+row), two runs a tree on GPU 1: 1 411 calls before, 739 after, the stock
+room's; frame mean 10.96 and 8.46 ms to 6.54 and 6.43, render submit
+9.07 and 7.02 ms to 4.77 and 4.59, GPU median 5.92 and 4.35 ms to 2.90
+and 2.72.
 - **GPU 1.** See above.
 - **Replays.** The crash cam replays poses, not stick input through the
   plant, so it cannot drive physics; the scripted pilot is used instead.
+
+## A full room under the contract
+
+2026-10-14, branch w43-perf (COMPLETENESS 46). A full room at High drew
+739 calls (renderer count); split by pass with perf-play's new `--calls`
+(the busiest frame, every renderBufferDirect counted), 751: 557 in the
+main view against the contract's 300, 194 in the sensor inset against
+its 110. Of that, the seven peers were 60 calls each (17 in the scene,
+17 in the ink prepass, 17 in the inset, 9 in the shadow map: four
+palette meshes, the lens, three inks, four rotors, four discs, the name
+tag) and the seven pilot figures, out of view at their stations, 63 in
+the shadow map. After, 368 calls (renderer count), 279 in the main view
+and 105 in the inset at the busiest frame, at every run of three:
+
+- **Inks and discs** (combatcraft.js joinPeerHulls): a peer's inks of
+  every offset are one mesh, its four blur discs one, which no longer
+  turn (a disc is round; turning it moved only where its sides fall).
+  Near model 17 calls a pass to 10 with the rest.
+- **The far model** (combatcraft.js peerFarModel, peers.js farSwitch,
+  PEER_FAR_SHARE): a peer under 1 % of its view's height, 9 px of a
+  900 px view, draws its palettes, lens, motors and rotors as one palette
+  mesh, both sides, the rotors standing still, and keeps its ink, discs
+  and tag: 4 calls in the scene and the inset, 3 in the prepass, 1 in the
+  shadow map. A thermal draw takes a second cut, the meshes of no thermal
+  kind joined and the motors apart, so a far quad keeps its hot motors in
+  the IR inset. The choice is made per camera as three draws (an object
+  marked isLOD, first in the peer's group), so the inset, a mirror and
+  the war's cutaway each judge it at their own lens. A peer whose wreck is
+  attached keeps its near model (src/render/wreck.js wreckHold), which is
+  the one the wreck cuts. The seven of the row are at 23 to 104 m, 0.19 to
+  0.87 % of a 90 degree view.
+- **The name tag** (peers.js nameTag) is on layer 1, drawn and never
+  inked (so not in the war cutaway's picture in picture either, whose
+  camera draws layer 0 only, as it draws no sky or water): on layer 0 the ink prepass drew it in its own material as a
+  2 m quad square to the craft, writing depth and no normal, so whatever
+  stood behind it lost its ink. And it is thermalHide'd: a sprite has
+  none of the thermal chunks, so the IR picture drew the name's colours
+  as temperatures, up to 1.37 units (137 C) over the tag's rectangle.
+- **The pilot figure** (peers.js buildPilotFigure): its torso, forearms,
+  transmitter and antenna one palette mesh, its face and cap peak
+  another, the crown and the legs as before: 10 meshes to 5, 9 shadow
+  casters to 4.
+
+Pixels, an in page A/B (tmp/, not committed: the base tree's peers.js
+beside this one in one page, the shell's camera layers, buildComposer's
+real chain read back from the canvas, its prepass target, and
+renderThermal as floats), A B A B, eight views from 0.5 m to 90 m (a
+figure 1 m to 60 m), A/A and B/B 0 px in every case:
+
+| Case | Pixels different, all views and passes, two runs | Where |
+| --- | --- | --- |
+| 7 inch stock | 10 | 0.5 m: 2 final (by 3 levels), 1 prepass, 1 thermal; 2 m: 1 prepass (by 1): the inks joined across offsets |
+| 7 inch, every finish | 14 | as stock, and 30 m: 2 final by 2 (far model) |
+| 7 inch, wear 50 | 18 | as stock, and 30 m and 60 m: 4 final by 1 (far) |
+| 7 inch, finishes and 10 layers | 20 | as stock, and 30 m and 60 m: 5 final by 1 (far) |
+| 10 inch, finishes | 28 | 0.5 m: 3 final by 2, 1 prepass, 1 thermal; 60 m: 6 final (one by 38, the rest by 1 to 3), 1 prepass, 2 thermal (far) |
+| interceptor | 0 | |
+| the five under the swiss2 look | 22 to 42 | as above, and 30 m to 90 m: 1 to 9 final by 1 to 23, 1 to 4 thermal (far) |
+| four pilot figures | 0 final, 0 prepass | thermal only: 2 500 to 5 050 px over the figure, each 1 float ulp (3e-8 of a unit) |
+
+Against the base tree with only the tag's two fixes in it; the tag's own
+change is a run of its own (base against base with the tag moved): the
+prepass loses the tag's rectangle (29 039 px at 2 m), the final picture
+gains the ink it hid (3 400 to 5 000 px by 1 to 38 levels, the horizon's
+ink line where the rectangle crossed it), and the thermal picture loses
+the tag (7 118 px at 2 m, by up to 1.37).
+
+The far model against the near one at every size (PEER_FAR_SHARE set to
+1 for the run only), props still in both: a stock 7 inch from 3 m (9.5 %
+of the view) to 30 m 0 px but at 20 m (7 final, one by 77 levels) and
+25 m (2 by 1), the thermal 1 to 3 px; a finished one
+or the 10 inch at most 139 px, by at most 4 levels, at 10 %. What the
+far model gives up that the A/B cannot show is the props turning, and
+at 1 % a 7 inch's props are 4 px across.
+
+The other checks: render:golden 257 ok; check:combat-models 131 of 131;
+paint:workshop 121 passed; livery:layers 27 passed; kits:quads 33
+passed; hangar:garage 26 passed; surfaces:room all passed; crashcam
+selftest ok; foot:twopage 15 passed; rooms:wrecks 12 passed and
+midair:twopage 12 passed (against a Node rooms server, edge/rooms/node.js,
+in place of wrangler); replay:peers 18 passed, 1 failed ("B trails its
+smoke in the replay's slalom", 19 puffs at 0.67 s), which fails the same
+on the base tree (17 puffs at 0.58 s).
+
+## The war at its peak
+
+2026-10-14, branch w44-perfwar (COMPLETENESS 46). perf-play's new
+`itaipu-war-peak` (docs/BUDGETS.md, the row of that name) flies mission
+1's last stage, First Light, in a full private room: eight pilots
+enlisted, so every wave is sized for eight, 45 to 49 attackers alive at
+most in a second, the seven defenders' 7 inches 20 to 102 m in front of
+the camera, the dam, a burst of ten explosions every ten seconds. A
+wire pilot (perf-play wirePilot) now sends nothing until it has a path
+and then from the room's now: a pilot joined minutes before its path,
+as these are, sent the whole wait's poses late, off the room's clock,
+and the room removed it (edge/rooms/safety.js pose, close 4010).
+
+Before, at High: 379 calls (renderer count), the busiest frame by pass
+419, 299 in the main view and 120 in the sensor inset, over the inset's
+110. After: 361, the busiest frame 381, 278 and 103, in every one of
+three runs. What went, none of it a pixel the pilot sees in the main
+view:
+
+- **Empty instanced meshes** (src/render/attackers.js drawCount,
+  paradrops.js, breakage.js): three r160 issues a draw for an
+  InstancedMesh of count 0, a call of no instances in every pass. The
+  Scouts' kind after the Scouts are gone, the Paradrops field with no
+  drop down (four meshes, in every world) and the dam's breakage before
+  any hit are hidden while empty: 16 calls in the main view, 7 in the
+  inset.
+- **Attacker kinds out of view** (attackers.js drawCount): a kind's
+  instanced mesh had frustum culling off, since the geometry's own
+  sphere is a metre round the origin and its instances kilometres off.
+  It is now culled by a sphere round all its instances, taken again
+  every update (three's InstancedMesh.computeBoundingSphere): a kind
+  with nothing in a camera's view issues no draw there. No attacker is
+  dropped or simplified, so no fight range applies: an attacker in a
+  view is drawn exactly as before, at every range. 6 calls in the main
+  view and 3 in the inset in the row's view.
+- **Name tags in the sensor's own picture** (src/render/sensorview.js
+  sensorHide, peers.js nameTag): the radiance draw, the inset's colour
+  picture when the composer is not drawn, leaves the tags out, as the
+  thermal draw already did (thermalHide) and the war cutaway's camera
+  does (layer 0 only). A picture taken from the composer keeps them, and
+  the main view is unchanged. 7 calls in the inset.
+
+Pixels. Empty and culled meshes, an in page A/B (tmp/, not committed:
+the base tree's attackers.js, paradrops.js and breakage.js beside these
+in one page, buildComposer's chain and renderThermal, SwiftShader):
+52 attackers of five kinds 40 m to 2 km from the camera, a Scout kind
+emptied, an empty drop field and empty breakage, eight views (70 and 12
+degree lenses, from the crest, beside the swarm and from 2 km up), the final
+picture, the ink prepass and the thermal picture, A B A B: 0 px
+different in every view and pass, A/A and B/B 0, the attackers' own
+pixels in every view (3 to 504 px, the control: the same view with the
+attackers hidden); calls per composed frame 42 before, 19 to 27 after,
+per thermal frame 14 before, 2 to 6 after.
+
+The name tag in the radiance picture (480 by 270, the row's 90 degree
+camera, a stock 7 inch, the tag drawn and not, SwiftShader), what the
+inset gives up: 834 px, 81 by 15, at 3 m; 118 px, 26 by 5, at 10 m; 42
+px, 14 by 3, at 20 m; 20 px, 10 by 2, at 30 m; 4 px, 4 by 1, at 90 m.
+At the row's 20 to 102 m a tag is 3 rows tall or less, no letter
+legible; nearer than about 10 m it is 5 rows or more. A defender's name
+stays in the main view, and peermarks (src/ui/peermarks.js) names any
+peer under 30 px tall with its range.
+
+Held: `perf -- --budgets` on the new rows at every tier, calls,
+triangles, textures and the floor passing (High 360 calls, 2.91 M, 96
+textures, floor 2.53 ms on GPU 1 57 % busy, 2026-10-15 00:19; a run at
+23:44 on a card held 100 % busy by another process drew 3 frames, the
+war gone to the lobby, and is not a measurement; the row now fails a
+run whose window left First Light). `itaipu-war` and `peers` at High
+under their old ceilings: calls, triangles and textures within;
+`peers` 358 calls (368 written). `itaipu-war`, base tree and this one
+in turn, A B A B, GPU 1 34 to 38 % busy, 2026-10-15 00:35 to 00:38:
+279 calls and a floor of 1.72 ms both times on the base, 273 and 1.70
+to 1.71 here, under its 321 and 2.01; its two runs with the card 100 %
+busy read 3.65 and 5.54 ms. The other checks: render:golden 257 ok; check:combat-models 131
+of 131; war:grid PASS; war:twopage 25 passed; sensor:check PASS;
+thermal:physics PASS; check:avionics-layout 147 passed; hercules:room
+PASS; paradrop:selftest holds.
+war:card stops at its mission 1 Play click (a null element) on this
+tree and on the base tree alike.
 
 ## P3, throughput: what was measured, what was built, what was not
 

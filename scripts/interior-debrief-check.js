@@ -120,6 +120,10 @@ async function shot(name) {
   const r = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
   await writeFile(join(outDir, name), Buffer.from(r.data, 'base64'));
 }
+/* The run's logged results (src/game/events.js mission_end), newest
+ * last: the debrief's facts are read from these (COMPLETENESS.md item
+ * 26, src/game/debrief.js fromOps), so each is logged before it shows. */
+const LOGGED = "window.__ui.progress.runEvents().filter((e) => e.type === 'mission_end').map(({ mission, match, state, won, stars, earned, paid }) => ({ mission, match, state, won, stars, earned, paid }))";
 const view = (id, over) => ({
   state: 'live',
   id,
@@ -225,7 +229,9 @@ try {
   check('a required item nobody captured: the analyst reconstruction, marked', k1.shelters && k1.shelters.kind === 'rec' && /Not a capture/.test(d1.text));
   check('an optional item nobody captured: not captured', k1.burned && k1.burned.kind === 'missing');
   check('the star earned, and the next mission\'s state', /★ {2}HISTORICAL SYMBOL/.test(d1.text) && /Eyes in the Forest · Available/.test(d1.text), d1.text.slice(0, 200));
-  check('no play again on a win', !d1.buttons.includes('again') && d1.buttons.includes('continue'));
+  check('no play again from a checkpoint on a win', !d1.buttons.includes('again') && d1.buttons.includes('continue'));
+  check('the host\'s one press after a win: Next mission first, then Play again from the start, Continue last (COMPLETENESS 76)',
+    d1.buttons[0] === 'next' && d1.buttons[1] === 'restart' && d1.buttons.at(-1) === 'continue' && /NEXT MISSION: Eyes in the Forest/.test(d1.text), d1.buttons.join());
   /* The flight's facts (docs/DEBRIEF.md) under the stills: this page
    * never flew, so no clip and no replay button, never a dead one. */
   const facts1 = await page.evaluate(`JSON.stringify([...document.querySelectorAll('.debrief-facts dt')].map((n, i) => [n.textContent, document.querySelectorAll('.debrief-facts dd')[i].textContent]))`);
@@ -235,6 +241,10 @@ try {
   const hud1 = await page.evaluate('window.__crash().condition');
   check('and the aircraft\'s condition, the HUD\'s word', f1.Aircraft === { operational: 'Operational', impaired: 'Impaired', destroyed: 'Destroyed' }[hud1], `${f1.Aircraft} (${hud1})`);
   check('no flight, no clip: no replay button', !d1.buttons.includes('replay'), d1.buttons.join());
+  const log1 = await page.evaluate(LOGGED);
+  check('the result is in the run\'s log, once, paid, and the facts say its stars: won, one earned',
+    log1.length === 1 && log1[0].mission === 'interior-1' && log1[0].state === 'won' && log1[0].won === true && log1[0].earned === 1 && log1[0].stars === 1 && log1[0].paid === true
+    && f1.Stars === `${log1[0].earned} of ${/^1 of (\d+)$/.exec(f1.Stars || '')?.[1]}`, JSON.stringify(log1));
   const prog = await page.evaluate("(window.__ui.settings.campaign && window.__ui.settings.campaign.missions['interior-1']) || null");
   const flags = await page.evaluate('(window.__ui.settings.campaign && window.__ui.settings.campaign.flags) || null');
   check('the result goes into the synced progress: stars and the script\'s flag', prog && prog.won === true && prog.stars === 1 && flags && flags.M1_SYMBOL_CAPTURED === true, JSON.stringify({ prog, flags }));
@@ -263,6 +273,9 @@ try {
   check('WITHOUT the symbol: the reconstruction frame in its place', k2.symbol && k2.symbol.kind === 'rec', JSON.stringify(k2.symbol));
   check('the failure said with its reason', /MISSION FAILED · The contacts were lost/.test(d2.text), d2.text.slice(0, 120));
   check('the host may play again from the checkpoint', d2.buttons.includes('again'));
+  const log2 = await page.evaluate(LOGGED);
+  check('the lost match\'s result is logged as its own, lost, nothing earned, paid', log2.length === 2 && log2[1].state === 'lost' && log2[1].won === false && log2[1].earned === 0 && log2[1].paid === true
+    && log2[1].match !== log2[0].match, JSON.stringify(log2));
   await shot('debrief-lost-no-symbol.png');
   /*
    * REACHABLE BY A REAL POINTER. The calls above click from script, which
@@ -347,10 +360,16 @@ try {
   check('Mission 2: its star and the next mission\'s state', /★ {2}FIND EVERY OBSERVATION POST/.test(dm2.text) && /No Man's Land · Available/.test(dm2.text), dm2.text.slice(0, 240));
   const prog2 = await page.evaluate("(window.__ui.settings.campaign && window.__ui.settings.campaign.missions['interior-2']) || null");
   const flags2 = await page.evaluate('(window.__ui.settings.campaign && window.__ui.settings.campaign.flags) || null');
+  const log3 = await page.evaluate(LOGGED).then((l) => l.filter((e) => e.mission === 'interior-2'));
+  check('Mission 2: its result logged once, won, two earned, paid', log3.length === 1 && log3[0].state === 'won' && log3[0].earned === 2 && log3[0].paid === true, JSON.stringify(log3));
   check('Mission 2: its stars and flags go into the synced progress', prog2 && prog2.won === true && prog2.stars === 2 && flags2 && flags2.M2_ALL_WATCHERS_FOUND === true && flags2.M2_SECOND_CAMP_UNDETECTED === true, JSON.stringify({ prog2, flags2 }));
   await shot('debrief-m2-won.png');
-  await page.evaluate("(document.querySelector('.debrief button[data-act=\"continue\"]').click(), true)");
+  await page.evaluate("(document.querySelector('.debrief button[data-act=\"next\"]').click(), true)");
   await page.sleep(300);
+  const sentNext = await page.evaluate('window.__ops.sent().slice(-1)[0]');
+  check('the host\'s Next mission sends the start of the campaign\'s next, with its film, and closes the debrief',
+    sentNext && sentNext.op === 'start' && sentNext.mission === 'interior-3' && sentNext.intro === true && !sentNext.from && !(await page.evaluate('window.__debrief().open')),
+    JSON.stringify(sentNext));
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

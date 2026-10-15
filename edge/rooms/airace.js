@@ -48,6 +48,11 @@
  * tick and at most warhunt.js GAP_MS of it: a stall longer than that is
  * not caught up, so its clock falls behind the room's by the rest, and its
  * times are its own clock's, as a person's are measured by the person.
+ * The clock is kept as the room's ms, fractions and all, and the plant
+ * flown to it: the plant steps whole ms and the tick is 33 and a third,
+ * so stepping each tick's elapsed time from where the plant stopped
+ * rounded up two thirds of a ms a tick, and its passes ran ahead
+ * of its poses by about 20 ms a second of race.
  *
  * WHAT IT SENDS. Every pass its Race scores becomes the message a page
  * sends for its own (src/share/roomrace.js pass), handed to the room's
@@ -568,6 +573,8 @@ class Racer {
     this.lapsDone = 0;
     this.said = false;
     this.flownTo = 0;
+    /* The race's ms on its own clock (THE CLOCK), unrounded. */
+    this.clockMs = 0;
     /* The race's ms at which this.op's clock read zero: its passes are
      * times since the race's go on its own clock, across its rebirths. */
     this.bornMs = 0;
@@ -580,6 +587,7 @@ class Racer {
     this.lapsDone = 0;
     this.said = false;
     this.flownTo = 0;
+    this.clockMs = 0;
     this.place(entry, 0);
   }
 
@@ -600,6 +608,7 @@ class Racer {
       lapsDone: this.lapsDone,
       said: this.said,
       flownTo: this.flownTo,
+      clockMs: this.clockMs,
       bornMs: this.bornMs,
       op: Object.fromEntries(OP_KEPT.map((k) => [k, structuredClone(op[k])])),
       race: Object.fromEntries(RACE_KEPT.map((k) => [k, structuredClone(op.race[k])])),
@@ -615,6 +624,8 @@ class Racer {
     this.lapsDone = kept.lapsDone;
     this.said = kept.said;
     this.flownTo = kept.flownTo;
+    /* A store from before the clock was kept flies on from its plant's. */
+    this.clockMs = kept.clockMs ?? kept.bornMs + kept.op.ms;
     this.place(entry, kept.bornMs);
     const { sim, journal } = this.seated;
     const region = kit.zlib.inflateRawSync(kept.region);
@@ -804,7 +815,8 @@ export class AiRace {
     const op = racer.op;
     const out = [];
     const since = racer.flownTo || r.goAt;
-    op.stepTo(op.ms + Math.min(GAP_MS, Math.max(0, roomNow - since)));
+    racer.clockMs += Math.min(GAP_MS, Math.max(0, roomNow - since));
+    op.stepTo(racer.clockMs - racer.bornMs);
     racer.flownTo = roomNow;
     if (racer.said) {
       racer.passes.length = 0;

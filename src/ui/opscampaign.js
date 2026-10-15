@@ -15,7 +15,15 @@
  * no shop: platforms unlock by mission.
  *
  * It also records a finished match's result into the synced campaign
- * progress (applyResult: stars and the script's flags), once per match.
+ * progress (applyResult: stars and the script's flags), once per match:
+ * by the room's id for it (the view's uid, edge/rooms/ops.js), kept in
+ * the save (src/game/campaign.js payResult), so a reload, a reconnect or
+ * a late join into the debrief pays a match this page never saw end, and
+ * pays it once. The room decides who is paid: it sends the result only to
+ * the seats whose pilot took part (ops.js took), never to a watcher or a
+ * pilot first seated after the end. A room from before uid is paid as it
+ * always was: once per match key, remembered in memory, and only from the
+ * debrief a page saw the end of.
  *
  * Campaign agnostic: the campaign is a list of { id, key, release, label }
  * and its words are string keys under `ops.campaign.<campaign>`.
@@ -37,9 +45,10 @@
  */
 
 import {
-  MAX_STARS, applyResult, cardLabel, createCampaignStore, released, starsOf,
+  MAX_STARS, applyResult, cardLabel, createCampaignStore, paidWar, payResult, released, starsOf,
 } from '../game/campaign.js';
 import { str } from '../strings/index.js';
+import { nextMission } from './continuity.js';
 
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -69,6 +78,15 @@ function starRow(n) {
   return row;
 }
 
+/* The states a match ends in (edge/rooms/ops.js finish). */
+const ENDS = ['won', 'lost', 'ended'];
+
+/* A match's identity in the log and the save: the room's uid for it, or
+ * `key` (the room's code and match id) for a room from before uid. */
+export function matchOf(key, view) {
+  return view?.uid || key;
+}
+
 /* The word a mission's card shows: held while in development (the
  * owner flies it before it opens), else its card label or release. */
 export function missionState(m, dev = false) {
@@ -95,7 +113,10 @@ export function createOpsCampaignScreen({
   const cur = () => store.load();
   const k = (rest) => `ops.campaign.${campaign.id}.${rest}`;
   let isOpen = false;
-  /* Matches whose result is in the progress already. */
+  /* Matches whose result is in the progress already, by uid (or key, a
+   * room from before uid): the save holds the uids, this spares a look
+   * at it on every ops message (src/main.js opsPaid calls record on each
+   * while a result shows). */
   const recorded = new Set();
 
   function close() {
@@ -113,8 +134,14 @@ export function createOpsCampaignScreen({
       api.open();
       return;
     }
+    /* Agreed: a session of this campaign, home's Continue holds it
+     * (src/ui/continuity.js), the campaign's id its activity's. */
+    ui.settings.lastActivity = campaign.id;
+    ui.persistSettings();
     play(m);
   }
+
+  const playable = () => missions.filter((m) => missionState(m, devMissions) === 'available').map((m) => m.id);
 
   function missionCard(m, i) {
     const card = el('div', 'campaign-mission');
@@ -178,18 +205,60 @@ export function createOpsCampaignScreen({
     },
     close,
     isOpen: () => isOpen && !ui.nameDialog.hidden,
-    /* A finished match of one of this campaign's missions, once: its
-     * stars and flags into the synced progress. */
+    /*
+     * A finished match: of one of this campaign's missions, paid once
+     * per uid (key, the room's code and match id, for a room from before
+     * uid), its stars and flags into the synced progress; and of any
+     * mission, its result logged (src/game/events.js mission_end) where
+     * this run's log has none for it, so its debrief reads it there
+     * (src/game/debrief.js fromOps). One this entry did not pay (paid
+     * before, by uid, or with no result for this seat) is logged unpaid,
+     * which nothing counts.
+     */
     record(key, view) {
-      if (recorded.has(key) || !view || !view.result || !missions.some((m) => m.id === view.mission)) {
+      if (!view || !(view.result || ENDS.includes(view.state))) {
         return;
       }
-      recorded.add(key);
-      store.save(applyResult(cur(), view.mission, {
-        won: view.result.won === true, stars: view.result.stars ?? 0, credits: 0, flags: view.result.flags ?? {},
-      }));
-      ui.progress.event('mission_end', { mission: view.mission, won: view.result.won === true, stars: Number.isFinite(view.result.stars) ? view.result.stars : 0, airframe: ui.progress.airframe });
+      const id = matchOf(key, view);
+      let paid = false;
+      if (!recorded.has(id) && view.result && missions.some((m) => m.id === view.mission)) {
+        recorded.add(id);
+        paid = !(view.uid && paidWar(cur(), view.uid));
+      }
+      if (paid) {
+        const res = {
+          won: view.result.won === true, stars: view.result.stars ?? 0, credits: 0, flags: view.result.flags ?? {},
+        };
+        store.save(view.uid ? payResult(cur(), view.uid, view.mission, res) : applyResult(cur(), view.mission, res));
+      } else if (ui.progress.runEvents().some((e) => e.type === 'mission_end' && e.match === id)) {
+        return;
+      }
+      const won = view.result ? view.result.won === true : view.state === 'won';
+      ui.progress.event('mission_end', {
+        mission: view.mission,
+        match: id,
+        won,
+        state: won ? 'won' : view.state === 'ended' ? 'ended' : 'lost',
+        stars: view.result && Number.isFinite(view.result.stars) ? view.result.stars : 0,
+        earned: view.result && Array.isArray(view.result.starIds) ? view.result.starIds.length : 0,
+        paid,
+        airframe: ui.progress.airframe,
+      });
       ui.progress.foldFlight();
+    },
+    playable,
+    /* Home's Continue (src/ui/continuity.js): the mission this pilot goes
+     * on with, { id, name }, or null; and its Play, consent first. */
+    nextMission() {
+      const ids = playable();
+      const m = nextMission(missions, cur(), (id) => ids.includes(id));
+      return m ? { id: m.id, name: str(k(`m.${m.key}`)) } : null;
+    },
+    playMission(id) {
+      const m = missions.find((x) => x.id === id);
+      if (m && playable().includes(id)) {
+        go(m);
+      }
     },
     /* The mission after `id` in the campaign and the word its card shows,
      * or null at the end. */

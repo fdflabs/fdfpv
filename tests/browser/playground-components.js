@@ -103,7 +103,12 @@ function debriefFacts(d) {
 }
 
 const ROUTE = { points: [[0, 0], [40, 30]], distanceM: 1240, topM: 18, marks: [] };
-const RACE = { aircraft: 'whoop65', log: [{ n: 1, ms: 41200 }, { n: 2, ms: 39480 }, { n: 3, ms: 40110 }], flightMs: 128000, totalS: 5400, route: ROUTE, replay: { ok: true, why: null } };
+/* A run's log as the shell writes a race's laps into it (src/game/events.js
+ * lap and lap_void), which the debrief reads. */
+const lapRow = (seq, ms) => (Number.isFinite(ms)
+  ? { seq, type: 'lap', simMs: seq * 40000, roomMs: null, ms, airframe: 'whoop65', medal: null, kind: 'built', course: 'track:t', n: seq, of: 3 }
+  : { seq, type: 'lap_void', simMs: seq * 40000, roomMs: null, ms: null, reason: 'wreck' });
+const RACE = { aircraft: 'whoop65', events: [lapRow(1, 41200), lapRow(2, 39480), lapRow(3, 40110)], flightMs: 128000, totalS: 5400, route: ROUTE, replay: { ok: true, why: null } };
 
 /*
  * The components. `kinds` says which of KINDS an entry answers; `states`
@@ -350,7 +355,7 @@ export const COMPONENTS = [
     states: [
       ['record beaten, operational', debriefFacts(fromRace({ ...RACE, recordAtStart: 40000, condition: 'operational' }))],
       ['record stands, impaired', debriefFacts(fromRace({ ...RACE, recordAtStart: 38900, condition: 'impaired' }))],
-      ['no clean lap, destroyed', debriefFacts(fromRace({ ...RACE, log: [{ n: 1, ms: null, reason: 'wreck' }], recordAtStart: 38900, condition: 'destroyed' }))],
+      ['no clean lap, destroyed', debriefFacts(fromRace({ ...RACE, events: [lapRow(1, null)], recordAtStart: 38900, condition: 'destroyed' }))],
     ],
   },
   /* What the design system names and the game does not have. */

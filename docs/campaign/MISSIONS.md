@@ -220,33 +220,50 @@ war:stages' Contain section, 2026-10-14), with what each point became:
   missions 1 to 4 have it; the drill and Training's practice do not.
 - The gantries are war targets worth 0 MW (`GANTRIES`): `gantry-intakes`
   at the east intake gantry the dam builds (its survey, t 817.6 on the
-  crest), `gantry-spillway` over the gate row's middle, a placeholder:
-  the map builds no spillway gantry yet (T1.6).
+  crest), `gantry-spillway` at the spillway gantry the dam builds astride
+  the bridge deck over the middle pier, between gate-6 and gate-7 (the
+  dam's `crane()` at the intake gantries' span, height and paint: an
+  estimate, no photograph here shows Itaipu's). war:targets holds both to
+  the built map's survey, to the millimetre (w39-contain-2). The
+  stoplogs' descent is not drawn.
 - Point 3: the first group born after an opening whose kind can reach the
   crest (Strikers, Loiterers and a decoy among them) turns at the gantry;
   a swarm up the gorge or a boat keeps its target. A gantry hit while it
   closes nothing costs nothing.
 - Point 5: nothing is restored, and the stars are capped by the existing
   `held` criterion (an opening loses its target, so its stage is
-  damaged). The contract's zero size opening event and the flood
-  draining are not built (the flood solver's side, outside the engine):
-  the water keeps running on screen after `contain-held`.
+  damaged). At the hold the room tells the opening again at zero size
+  (an op 'damage' by `stoplogs`, kept for a late joiner), and the flood
+  shuts a gate's hole: its link passes the leaf's lip alone and a notch's
+  cells stand again (`src/maps/itaipu/water/flood.js`). The stoplogs stay
+  down, so a hole torn there later passes nothing. An intake's or a
+  penstock's opening has no place in the flood yet (it is counted, not
+  dropped), so there is no water of theirs to stop.
 - Point 6: `why: 'shutdown'` (T1.12); the end banner says so
   (`war.lost_shutdown`); the lose debrief line is still the output
   floor's.
 - Point 8: an opening made in the lost stage is undone with it; one made
   before it closes again from the restart's go, and the next group turns
   again.
-- Point 4 holds through the `cleared` trigger. Every exit of missions 1
-  to 3 that is not a loss waits on it; The Long Night's do not: Hunters
-  moves on when its groups are gone (the closure runs on into the next
-  stage), and Before Dawn is won when its groups are gone, so M4 can be
-  won with a closure still running.
+- Point 4 holds through the `cleared` trigger in missions 1 to 3, and in
+  The Long Night's Hunters and Before Dawn, which end on their groups
+  gone, through `{ contained: true }` (no closure open; war.js's stage
+  hook): every exit that is not a loss waits for the closure.
 - `STING` is not sent: no mission has a music cue path for it yet.
-- M2's spill hold does not pause while the spillway gantry closes a gate
-  (M2, If the face opens): the two run side by side.
+- M2's spill hold pauses while the spillway gantry closes a gate (M2, If
+  the face opens; the objective's `pause`, stages.js): its clock stands,
+  the HUD shows the time held standing, and its half and its end move by
+  the pause. The spill's hoists keep opening through it. An intake's
+  closure pauses nothing.
 - `contain-river` is DESPACHO's in every mission, as the table says, so
-  in missions 1 and 2 DESPACHO speaks before mission 3 introduces it.
+  in missions 1 and 2 DESPACHO speaks before mission 3 introduces it. A
+  CREST variant for missions 1 and 2 is proposed below
+  (`contain-river-crest`), text only: not voiced and not wired. Held on
+  purpose (w43-voice-orin): voices are built on the Orin now, and a new
+  CREST line in missions 1 and 2 means every CREST line of both built
+  again there (CREDITS.md, Where the voices are built): 50 lines, 31 of
+  them takes a person picked and pinned, 10 of them in the released
+  First Light's and the Spillway's films. That is the owner's to order.
 - A turned group's last leg to the crest is flown by no route check
   (war:routes flies each spawn's own targets).
 
@@ -255,6 +272,7 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 | contain-breach | `opening` | CREST | urgent | Water through the face. Lowering the stoplogs. Protect the gantry. | Entra agua por la cara. Bajando las ataguías. Protejan la grúa. |
 | contain-retarget | the first group born after an opening | MIRADOR | urgent | They've seen it. They're turning for the crane. | Lo vieron. Están girando hacia la grúa. |
 | contain-river | after contain-breach | DESPACHO | calm | The riverbank below was cleared the first night. Nobody is down there. Just close it. | La ribera de abajo se despejó la primera noche. No hay nadie. Solo ciérrenla. |
+| contain-river-crest | after contain-breach, missions 1 and 2 (proposed) | CREST | calm | Nobody's below us. The riverbank was cleared the first night. Just close it. | No hay nadie abajo. La ribera se despejó la primera noche. Solo ciérrenla. |
 | contain-half | the closure at half | TALLER | firm | Stoplogs halfway down. Keep them off my crane. | Las ataguías van por la mitad. Que no lleguen a mi grúa. |
 | contain-held | closure `held` | CREST | calm | Closed. The face is closed. Back to it. | Cerrada. La cara está cerrada. A lo nuestro. |
 | contain-lost | gantry hit while open | CREST | calm | We can't close it. Shutting the plant down. All pilots, pull back to high ground. | No la podemos cerrar. Paramos la central. Todos los pilotos, repliéguense a lo alto. |
@@ -266,7 +284,7 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 | 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 9 to 13 min |
 | 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min (13.1 to 17.4 measured with bot squads when the face opens: 1.9's closures hold a stage up to 2.5 min each) |
 | 3 | itaipu-3 | Lights Out | Day 1, dusk into dark | decoys; Despacho; lights going out and coming back | 10 to 14 min |
-| 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 11 to 15 min |
+| 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 11 to 16 min |
 | 5 | itaipu-5 | The River Below | Day 2, morning | a new axis; the carrier | 11 to 15 min |
 | 6 | itaipu-6 | The Corridor | Day 2, dusk | towers; spotters; split the squad | 12 to 16 min |
 | 7 | itaipu-7 | Breach | Day 3, before dawn | breachers; the dam opens, or does not | 14 to 20 min |
@@ -302,18 +320,19 @@ branch w39-mission-3):
 | Stages with titles, en and es | 5 stages and 3 twists, 5 title keys | 6 stages and twists, 6 titles | 4 stages and 3 twists, 4 titles | 5 stages and 2 twists, 5 title keys |
 | Objectives on the HUD, en and es | 7 | 9 | 6 (the reroute a 240 s hold) | 6, and STAND BY over stage 1 |
 | Story radio cued, en and es, voiced | 31 ids, all in lines.json, all voiced en and es | 31 ids, all voiced | 23 `itaipu-3-*` ids, all voiced; DESPACHO's first lines | 22 story ids and 2 debriefs, all voiced en and es (31 with the guide) |
-| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | 7 `itaipu-3-g-*` | 7 `itaipu-4-g-*` |
+| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | 7 `itaipu-3-g-*` | 8 `itaipu-4-g-*` |
 | Nudge, objective cards | yes (`nudge`, warhud.js `objectiveCards`) | yes | yes | yes |
 | Briefing facts (title, line, first objective, map, aircraft, length, pilots, room) | all (briefing.js) | all | all; length 12 to 15 min, measured | all |
 | Intro film, outro film | `first-light`, `first-light-outro` | `spillway`, `spillway-outro` | `lights-out`, `lights-out-outro` | `long-night`, `long-night-outro` |
 | Win and lose debrief lines | voiced | voiced | voiced, new text (the loss DESPACHO's) | voiced (rewritten to M4) |
 | Seeded sectors and routes | yes; war:routes PASS | yes | yes (NW, LINES, HIGH, N); war:routes PASS | yes; war:routes PASS |
 | Consent before the first war room | `war.consent_*`, en and es (every war mission) | same | same | same |
-| If the face opens (1.9 Contain) and the `-op` line | built (`contain.js`), `itaipu-1-op` voiced en and es | built, `itaipu-2-op` voiced; the spill's pause during a closure not built | built, `itaipu-3-op` voiced | built, `itaipu-4-op` voiced |
+| If the face opens (1.9 Contain) and the `-op` line | built (`contain.js`), `itaipu-1-op` voiced en and es | built, `itaipu-2-op` voiced; the spill's hold pauses during a closure | built, `itaipu-3-op` voiced | built, `itaipu-4-op` voiced; Hunters and Before Dawn wait for a closure |
 
 Mission 3 also lacks what the world does not do yet, so its lines do not
-claim it: districts coming back after the reroute (T1.10) and spotting
-(T1.8). The light falling across the mission (T1.11) is built since
+claim it: spotting (T1.8). Districts coming back after the reroute
+(T1.10) are built since branch w40-grid-restore, and DESPACHO says so
+(`itaipu-3-s3-back`). The light falling across the mission (T1.11) is built since
 branch w39-daynight (14 October): see M3's as-built notes for the lines
 that may now say more. Its release stays `development` (the owner's
 gate).
@@ -710,12 +729,24 @@ Built 14 October, against the code (war:stages flies it on the room;
   nothing of the stage reaches the yard sooner than 99 s after its birth
   (routes.js plans), and at one pilot's pace the swarm arrives 201 to
   233 s in. A yard already down when Reroute opens cannot fail the hold;
-  DESPACHO then says what is true (`itaipu-3-s3-down`).
-- **Nothing comes back.** T1.10 is not built, so the reroute changes no
-  district and no line says it does; `itaipu-3-s3-back` was not made.
-  When this was written the mission played at `golden` (T1.11's
-  fallback), and stage 4's line says the sun is almost down, not that
-  the towns are lit.
+  DESPACHO then says what is true (`itaipu-3-s3-back`).
+- **The lights come back, built 14 October (w40-grid-restore, T1.10).**
+  The reroute's hold, once done, feeds four of the right bank's towns
+  round the yard (`itaipu-3.js` `REROUTED`): the half of the eight the
+  yard puts out that the side keeps longest (`grid.js` keep 0.55 and
+  under), so Hernandarias is among them, far from the dam first, the
+  near one last: Ciudad del Este, Hernandarias' far district, Acaray,
+  Hernandarias' south. A yard already down: they come back 700 ms apart,
+  each flickering back over 1.8 s, from the hold's end. A yard standing:
+  nothing changes on screen, and a hit on it in The Dark puts out only
+  the other four. A failed hold restores nothing. The yard's own lights
+  stay out.
+- **The line says what comes back (w43-voice-orin).** When the hold is
+  done with the yard already down, `itaipu-3-s3-back` plays: "Reroute
+  complete. Bringing half the right bank back up. Hernandarias last."
+  (the Spanish opens on the verb and names no town, for the reasons the
+  table's notes give). It replaced `itaipu-3-s3-down`, "What went dark
+  stays dark tonight", voiced before T1.10, which is gone.
 - **Dusk into dark, built 14 October (w39-daynight).** Each Reroute
   twist carries `daytime: { to: 'night', ms: HOLD_MS }`: the room's clock
   runs from the golden hour to night over the four minute hold, without
@@ -725,12 +756,14 @@ Built 14 October, against the code (war:stages flies it on the room;
   its four minutes (a failed hold, cleared early) steps the light from
   where it had got to straight to night as The Dark opens: a visible
   step, the price of a clock that is the stage's.
-- **Lines that may now say more (proposed, not changed: a voice build
-  is the mission lane's).** `itaipu-3-s4-dark` could go back to the
-  table's "Lights are on in town." (the towns are lit when The Dark
-  opens). `itaipu-3-s2-clear` ("The light's going.") stays true.
-  `itaipu-3-s3-back` and `itaipu-3-s3-down`'s "stays dark" wait on
-  T1.10, which is still the grid's.
+- **The lines that could say more, said (w43-voice-orin).**
+  `itaipu-3-s4-dark` is the table's "Lights are on in town." again (the
+  towns are lit when The Dark opens). `itaipu-3-s2-clear` ("The light's
+  going.") stays true. Both and `itaipu-3-s3-back` were built on the
+  Orin; the rule that the mission's other CREST and DESPACHO lines are
+  built there too (CREDITS.md, Where the voices are built) is not met
+  yet: their Orin build waits on the Orin's GPU lease, and until it is
+  merged (tools/voice/orin.py) those lines are the desktop's takes.
 - **The Dark has a swarm up the gorge onto the west penstocks.** As
   written above, with nobody flying, the mission was won: the yard and two
   intakes leave 9 800 MW over the 9 700 floor. With the swarm the game is
@@ -777,7 +810,7 @@ gantries (twist C); interceptors on the stream.
 ### Set pieces
 
 The towns lighting up at stage 4; a district flickering out if the yard
-is hit (built); the lights coming back after the reroute.
+is hit (built); the lights coming back after the reroute (built, T1.10).
 
 ### Music
 
@@ -807,7 +840,7 @@ and the closure run at the same time.
 | itaipu-3-s3-despacho | stage 3 opens | DESPACHO | calm | Crest, Dispatch. Starting the reroute. I need the yard standing until I call it. | Cresta, Despacho. Empezamos a redirigir. Necesito la subestación en pie hasta que avise. |
 | itaipu-3-s3-half | hold at half | DESPACHO | calm | Halfway. The far towns are moved. Hernandarias is next. | Vamos por la mitad. Los pueblos lejanos ya están. Sigue Hernandarias. |
 | itaipu-3-s3-done | `held` | DESPACHO | calm | Reroute complete. If you lose the yard now, the right bank stays lit. | Redirección completa. Si ahora pierden la subestación, la margen derecha sigue con luz. |
-| itaipu-3-s3-back | `held` after a yard hit | DESPACHO | calm | Reroute complete. Bringing the right bank back up. | Redirección completa. Volviendo a encender la margen derecha. |
+| itaipu-3-s3-back | `held` after a yard hit | DESPACHO | calm | Reroute complete. Bringing half the right bank back up. Hernandarias last. | Terminé de redirigir. Vuelvo a encender la mitad de la margen derecha. Los de cerca, al final. |
 | itaipu-3-ta-turn | twist A | MIRADOR | urgent | Tight pack, all decoys on the scope. That's too neat. One of them is real. | Grupo cerrado, todos señuelos en pantalla. Demasiado prolijo. Uno es real. |
 | itaipu-3-tb-turn | twist B | MIRADOR | urgent | The yard run is noise. Real ones over open water, heading for the west intakes. | Lo de la subestación es ruido. Los reales vienen por agua abierta, hacia las tomas del oeste. |
 | itaipu-3-tc-turn | twist C | MIRADOR | urgent | Contacts on the line corridor, under the wires. | Contactos en el corredor de las líneas, bajo los cables. |
@@ -895,7 +928,7 @@ Built 14 October, against the code (war:stages flies it on the room):
   bot games end between 05:20 and 06:28, and the result stands at the
   hour reached. The world is built at the briefing for both ends; the
   moon stands where the morning's sun will rise.
-- **Twist A, built 14 October (w39-daynight), not drawn.** `itaipu-4.js`
+- **Twist A, built 14 October (w39-daynight), drawn since w43-voice-orin.** `itaipu-4.js`
   `STATION_DARK`: a stage with `stationDark: true`, whose attackers draw
   their error as if every scout were dead, and from whose start the
   dam's own lights (the crest, the powerhouse, the spillway, the dams
@@ -904,21 +937,26 @@ Built 14 October, against the code (war:stages flies it on the room):
   north on the middle intakes as cover, a swarm up the gorge on the
   middle penstocks as the twist (close defence in the dark); objective
   `war.obj.itaipu_4.station`, en and es. war:stages flies it both ways.
-  It is not among the mission's stages yet because its radio is not
-  voiced and the twist is a trade the squad hears made. To draw it: voice
-  `itaipu-4-ta-turn` (the table's), a `-ta-why` and a guide `-g-dark`, add
-  them as its cues, put the stage in `stages` and `'station-dark'` in
-  Hunters' pick, and record war:legacy's itaipu-4 games again (the
-  bots' loiter point is the middle of every wave's targets, so a stage
-  more moves them).
+  Hunters draws it among three (`station-dark`, `towns`, `dark-scout`).
+  Its radio, all CREST, so the twist adds no speaker to the mission:
+  `itaipu-4-ta-turn` (the table's) a second in, as the lights go;
+  `itaipu-4-ta-why` "Now they have to come close to see. Watch the
+  gorge." / "Ahora tienen que acercarse para ver. Atentos al cañón." as
+  the swarm is born; and the guide `itaipu-4-g-dark` "Protect the middle
+  penstocks. The swarm comes up the gorge. Fly low and take it up
+  close." / "Protejan las tuberías del medio. El enjambre sube por el
+  cañón. Vuelen bajo y tómenlo de cerca." 4 s later. war:legacy's
+  itaipu-4 games were recorded again (the bots' loiter point is the
+  middle of every wave's targets, so a stage more moves them).
 - **Lines that may now say more (proposed, not changed).**
   `itaipu-4-s5-near` ("Not long to sunrise now.") is cued 45 s into
   Before Dawn, while the ramp is still full night, so it stays right as
   it is; the table's "sky going grey" would fit a cue some 120 s in.
   `itaipu-4-tc-why` ("before the dawn") and `debrief-itaipu-4-win`
   ("Sunrise") stay true.
-- **Length** 11 to 15 minutes: ten good bot games end 11.0 to 14.9
-  minutes after the go.
+- **Length** 11 to 16 minutes: with twist A in the draw ten good bot
+  games end 12.1 to 15.6 minutes after the go, the closures' waits apart
+  (11.0 to 14.9 before it).
 
 ### The twist (stage 4)
 
@@ -982,6 +1020,7 @@ holds the gantry in the dark, by markers, with Hunters about.
 | itaipu-4-s3-hunt | stage 3, Hunters born | MIRADOR | urgent | Fast movers out of the gorge. They're not heading for the dam. | Rápidos saliendo del cañón. No van hacia la represa. |
 | itaipu-4-s3-pairs | after s3-hunt | CREST | urgent | Hunters. Pairs. Nobody flies alone tonight. | Cazadores. De a dos. Esta noche nadie vuela solo. |
 | itaipu-4-ta-turn | twist A | CREST | firm | Killing the station lights. Their aim goes with them. So does ours. | Apagando las luces de la central. Se les va la puntería. A nosotros también. |
+| itaipu-4-ta-why | twist A, the swarm born | CREST | firm | Now they have to come close to see. Watch the gorge. | Ahora tienen que acercarse para ver. Atentos al cañón. |
 | itaipu-4-tb-turn | twist B | DESPACHO | calm | Crest, the right bank is on one feed tonight. Please keep the yard. | Cresta, la margen derecha está con una sola alimentación esta noche. Por favor cuiden la subestación. |
 | itaipu-4-tc-turn | twist C | MIRADOR | urgent | Something circling over the islands. No lights. That's a scout. | Algo da vueltas sobre las islas. Sin luces. Es un explorador. |
 | itaipu-4-s5-grey | stage 5 `enter+45` | MIRADOR | calm | Sky's going grey in the east. Almost there. | El cielo se aclara al este. Ya casi. |

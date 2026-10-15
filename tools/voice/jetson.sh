@@ -11,6 +11,12 @@
 #     tools/voice/jetson.sh setup             venv, torch, cuDNN, the locked deps
 #     tools/voice/jetson.sh build ARGS...     build.py ARGS with that environment
 #
+# Hold the Orin's GPU lease (~/gpu-lease/gpu-lease acquire) for a build:
+# the box is shared, and a build beside a ComfyUI video job does not fit
+# in its memory. Build with --out a folder of its own holding a copy of
+# manifest.json, bring that folder's manifest.json and _work/<id>-<lang>.wav
+# back, and run orin.py here: it encodes them and fills the manifest.
+#
 # The model caches (Kokoro, Chatterbox, Whisper at build.py's revisions)
 # are copied from the desktop's ~/.cache/huggingface/hub with
 # `rsync -aL --exclude blobs` (the desktop's blobs are links into a shared
@@ -38,9 +44,10 @@
 # and setting the same, Kokoro's reference clip already differs (same
 # length and loudness, correlation 0.991), so Chatterbox clones a voice
 # that is not bit for bit the committed one, and ffmpeg there is 4.4, not
-# the desktop's 8.0, so even the same wav encodes to other bytes. Whether
-# the Orin's voice counts as the same voice is the owner's decision
-# (docs/AUDIO.md is unchanged until it is made).
+# the desktop's 8.0, so even the same wav encodes to other bytes. The
+# Orin's voice is accepted, with that difference, and is where every
+# voice build runs now; assets/audio/war/CREDITS.md (Where the voices are
+# built) has the rule that keeps a mission's speaker one voice.
 #
 # This file is part of the Paraguayan Drone Combat Simulator.
 #

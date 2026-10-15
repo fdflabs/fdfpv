@@ -38,6 +38,7 @@
     "perf:latency": "node scripts/perf-latency.js",
     "ratepresets:selftest": "node scripts/ratepresets-selftest.js",
     "perf:peers": "node scripts/perf-peers.js",
+    "perf:floor:selftest": "node scripts/perf-floor-selftest.js",
     "lint:presets": "node scripts/preset-lint.js",
     "lint:catalog": "node scripts/fc-catalog-lint.js",
     "fc-catalog:selftest": "node scripts/fc-catalog-selftest.js",
@@ -89,6 +90,7 @@
     "check:wall": "node scripts/wall-check.js",
     "airframes:selftest": "node scripts/airframes-selftest.js",
     "airframes:check": "node scripts/airframes-check.js",
+    "content:owners": "node scripts/content-owners.js",
     "aircraft:folder": "node scripts/aircraft-folder-selftest.js",
     "aircraft:ctable": "node scripts/aircraft-ctable.js",
     "check:roof": "node scripts/roof-check.js --map=swiss2 && node scripts/roof-check.js --map=alps && node scripts/headwall-check.js",
@@ -607,6 +609,8 @@
     "clientreport:check": "node scripts/clientreport-check.js",
     "sharedkeys:selftest": "node scripts/sharedkeys-selftest.js",
     "save:selftest": "node scripts/save-selftest.js",
+    "save:notice": "node scripts/save-notice-check.js",
+    "offline:check": "node scripts/offline-check.js",
     "flighttime:check": "node scripts/flighttime-check.js",
     "retired:selftest": "node scripts/retired-maps-selftest.js",
     "retired:aircraft": "node scripts/retired-aircraft-selftest.js",
@@ -618,6 +622,7 @@
     "foot:walk": "node scripts/foot-walk-check.js",
     "foot:twopage": "node scripts/foot-two-page.js",
     "lint:dashes": "node scripts/dash-lint.js",
+    "lint:console": "node scripts/console-lint.js",
     "lint:owner-rules": "node scripts/owner-rules-lint.js",
     "lint:physics-sources": "node scripts/physics-sources-lint.js",
     "physics-sources:selftest": "node scripts/physics-sources-selftest.js",
@@ -636,7 +641,7 @@
     "kits:planes": "node scripts/kits-planes-check.js"
   },
   "dependencies": {
-    "nodemailer": "10.0.15",
+    "nodemailer": "10.0.16",
     "ws": "8.22.0"
   },
   "devDependencies": {

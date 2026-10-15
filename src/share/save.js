@@ -43,10 +43,13 @@
  * always at the stored saveVersion, so a restored blob never needs the
  * migrations again. A backup doubles its blob; the largest, the settings
  * blob, is held under the account's 512 kB (tracks-api/limits.js
- * PROGRESS_MAX_CHARS), well inside an origin's storage.
+ * PROGRESS_MAX_CHARS), well inside an origin's storage. The pilot is
+ * told, once, in words, what was put back and what starts fresh
+ * (saveNotice, shown by src/main.js at boot).
  *
- * SAVE POINTS. Writes happen on change, never on exit, and there is no
- * beforeunload save and none is needed:
+ * SAVE POINTS. Writes happen on change, and there is no beforeunload
+ * save. The one write at exit is flight time's last seconds, since the
+ * clock holds up to ten seconds before it commits:
  *
  *   settings blob   saveSettings (src/ui/settings.js), through
  *                   Ui.persistSettings, on every settings change, and so:
@@ -54,19 +57,34 @@
  *                   landing or a crash counted (src/ui/progress-ui.js)
  *   campaign        a commit of the campaign store (createCampaignStore,
  *                   src/game/campaign.js), a film seen, a result applied
- *   controllers     a calibration accepted, a pad chosen
+ *   flight time     every ten seconds held in flight, when a flight
+ *                   stops, at a respawn, and when the page is hidden or
+ *                   left (commitFlightTime and pageLeaving, src/main.js)
+ *   voice           a voice chat choice (writePrefs, src/ui/voiceui.js)
+ *   controllers     a calibration accepted or forgotten, a pad chosen
  *                   (src/input/stickstore.js)
- *   aircraft        a build saved, renamed or deleted (src/ui/builds.js)
- *   records         a new best lap (src/game/race.js)
+ *   aircraft        a build saved, renamed or deleted (Ui.storeBuild and
+ *                   Ui.removeBuild, src/ui/ui.js, into src/ui/builds.js)
+ *   records         a new best lap, never an equal or slower one
+ *                   (src/game/race.js), a better one from the account
+ *                   (keepRecords, src/share/records.js)
  *   player          the name set (src/share/pilot.js), the language
  *                   chosen (src/share/sharedkeys.js)
  *   this module     the version, the backups and the quarantine, once per
  *                   boot (openSave, called from src/boot.js)
  *
- * Known gap (COMPLETENESS.md item 2): a war mission's stars and credits
- * are applied only while the client watched the room before its result
- * appeared, so a reload at the result card loses them. Closing it changes
- * what a pilot is paid and is not done here.
+ * scripts/save-selftest.js runs each row's trigger and holds it to its
+ * key, and each reader to writing nothing.
+ *
+ * A WAR'S RESULT is a campaign save point whoever's page sees it first:
+ * the room sends it to every seat that flew the war, with the war's uid
+ * (edge/rooms/war.js flew, warUid), and the page pays it once per uid,
+ * kept in the campaign's `wars` (src/game/campaign.js payResult), so a
+ * reload, a reconnect or a late join into the result card is paid and
+ * paid once (COMPLETENESS.md item 2). AN OPS MATCH'S RESULT (The
+ * Interior's) is the same: sent to every seat whose pilot took part
+ * (edge/rooms/ops.js took, the view's uid), paid once per uid in the
+ * same list (src/ui/opscampaign.js record).
  *
  * Boot imports this before anything heavy, so it imports only modules
  * that import nothing. The key names are written out as boot.js writes
@@ -99,20 +117,21 @@ const isObject = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
 
 /*
  * Section to its keys. `shape` marks a JSON blob and says what a good one
- * is; such a key is backed up and quarantined. A key without one is plain
- * text and is carried as it is stored.
+ * is; such a key is backed up and quarantined, and `part` is the string
+ * that names it to the pilot when it was (saveNotice). A key without a
+ * shape is plain text and is carried as it is stored.
  */
 export const SECTIONS = {
   settings: [
-    { key: 'webfpv.settings.v3', shape: isObject },
-    { key: 'fdfpv.voice', shape: isObject },
+    { key: 'webfpv.settings.v3', shape: isObject, part: 'save.part_settings' },
+    { key: 'fdfpv.voice', shape: isObject, part: 'save.part_voice' },
   ],
   controllers: [
-    { key: 'fdfpv.stick_maps.v2', shape: isObject },
-    { key: 'fdfpv.pad.v1', shape: isObject },
+    { key: 'fdfpv.stick_maps.v2', shape: isObject, part: 'save.part_sticks' },
+    { key: 'fdfpv.pad.v1', shape: isObject, part: 'save.part_pad' },
   ],
   aircraft: [
-    { key: 'webfpv.builds.v1', shape: isObject },
+    { key: 'webfpv.builds.v1', shape: isObject, part: 'save.part_builds' },
   ],
   player: [
     { key: 'webfpv.pilot.name' },
@@ -212,10 +231,16 @@ export function migrate(save) {
 }
 
 /* A blob that does not read well goes to .corrupt; its .prev, if good,
- * takes its place. Returns whether it was restored. */
+ * takes its place. One already kept as it is (a blob with no backup stays
+ * broken until its reader next writes) is `known`: the pilot was told. */
 function quarantine(storage, entry, report) {
   const { key } = entry;
-  storage.setItem(`${key}.corrupt`, storage.getItem(key));
+  const text = storage.getItem(key);
+  if (storage.getItem(`${key}.corrupt`) === text) {
+    report.known.push(key);
+  } else {
+    storage.setItem(`${key}.corrupt`, text);
+  }
   report.quarantined.push(key);
   const prev = readBlob(storage, { key: `${key}.prev`, shape: entry.shape });
   if (prev === undefined || prev === CORRUPT) return;
@@ -241,10 +266,14 @@ function backUp(storage, entry) {
  * Once per boot, before any reader: quarantine, migrate, back up. Never
  * throws: storage that refuses (private mode, a full quota) leaves the
  * readers to fall back as they always have, and the refusal is in the
- * report. Returns { from, to, quarantined, restored, failed }.
+ * report. Returns { from, to, quarantined, restored, known, failed }:
+ * `known` is the quarantined keys whose broken text was already kept on
+ * an earlier boot.
  */
 export function openSave(storage = null) {
-  const report = { from: null, to: null, quarantined: [], restored: [], failed: [] };
+  const report = {
+    from: null, to: null, quarantined: [], restored: [], known: [], failed: [],
+  };
   const step = (what, fn) => {
     try {
       fn();
@@ -279,6 +308,23 @@ export function openSave(storage = null) {
     step(`back up ${entry.key}`, () => backUp(storage, entry));
   }
   return report;
+}
+
+/*
+ * What the pilot is told of an openSave report (COMPLETENESS 3): the
+ * parts put back from their last good copy, and the parts that start
+ * fresh with none, as SECTIONS' `part` string ids; null when nothing new
+ * was quarantined. A blob kept broken on an earlier boot is not news, so
+ * the same broken blob is said once, not on every boot.
+ */
+export function saveNotice(report) {
+  const parts = new Map(BLOBS.map((e) => [e.key, e.part]));
+  const fresh = report.quarantined.filter((k) => !report.known.includes(k));
+  if (!fresh.length) return null;
+  return {
+    restored: fresh.filter((k) => report.restored.includes(k)).map((k) => parts.get(k)),
+    lost: fresh.filter((k) => !report.restored.includes(k)).map((k) => parts.get(k)),
+  };
 }
 
 /*

@@ -74,10 +74,12 @@ import { dropsSection } from './rooms-selftest-drops.js';
 import { footSection } from './rooms-selftest-foot.js';
 import { watchSection, watchStateSection } from './rooms-selftest-watch.js';
 import { warSection } from './rooms-selftest-war.js';
+import { opsSection } from './rooms-selftest-ops.js';
 import { botsSection } from './rooms-selftest-bots.js';
 import { aiRaceSection } from './rooms-selftest-airace.js';
+import { anticheatSection } from './rooms-selftest-anticheat.js';
 import {
-  emptyRoomSection, gameLobbySection, lobbyReadySection, warLobbySection,
+  emptyRoomSection, gameLobbySection, loadFailSection, lobbyReadySection, sessionStatesSection, warLobbySection,
 } from './rooms-selftest-gamelobby.js';
 import { RoomTag } from '../edge/rooms/tag.js';
 import { Track, hullFor as tagHullFor } from '../src/game/midair.js';
@@ -2008,12 +2010,16 @@ console.log('catch the ace: starting a match');
 combatSection(check);
 jamSection(check);
 warSection(check);
+opsSection(check);
 warLobbySection(check);
 gameLobbySection(check);
 lobbyReadySection(check);
 botsSection(check);
 await aiRaceSection(check);
+await anticheatSection(check);
 emptyRoomSection(check);
+loadFailSection(check);
+sessionStatesSection(check);
 sessionSection(check);
 weatherSection(check);
 stockSurfacesSection(check);

@@ -98,6 +98,7 @@ import { partLabel, PART_KINDS } from '../../configs/parts.js';
 import { airframeById, retiredAirframe } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
 import { pageVersion } from '../ui/update.js';
+import { logWarn } from '../share/crashrecord.js';
 
 /* The keyboard key that opens the replay; the pad's button is the
  * pilot's `replay` binding (src/input/actions.js, X by default). */
@@ -654,7 +655,7 @@ export function createCrashCam(host) {
     war.takeEvents = () => {
       const evs = take();
       const v = war.view();
-      warRing.world(war.match(), v.mission, v.down, war.on(), clock());
+      warRing.world(war.match(), v.mission, v.down, war.on(), clock(), v.restores, v.stationDark);
       for (const ev of evs) {
         if (ev.type === 'born') {
           warRing.born(v.mission, ev.agents);
@@ -2214,7 +2215,7 @@ export function createCrashCam(host) {
       return decodeReplay(bytes, known());
     } catch (err) {
       if (err instanceof ReplayFileError) {
-        console.warn('replay refused:', err.message);
+        logWarn('save', 'replay refused:', err.message);
         const retired = err.map && host.retiredMapName(err.map);
         if (retired) {
           throw new Error(str('replay.map_retired', { map: retired }));

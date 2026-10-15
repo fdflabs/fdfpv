@@ -153,10 +153,14 @@
  * else is refused 'world'.
  *
  * What the room sends, to everybody, its watchers too (core.js watch;
- * their view's result null, core.js watchedView):
+ * their view's result null, core.js watchedView, and so is that of a
+ * seat that did not fly the war, flew):
  *
  *   { type: 'war', war }                      the view (view()), on every
- *                                             change and in each welcome
+ *                                             change and in each welcome;
+ *                                             its uid the war's id across
+ *                                             every room (warUid), which a
+ *                                             page pays a result once by
  *   { type: 'war', op: 'born', agents }       [{ id, kind, route, t0, k,
  *                                             n, err, target, wire?,
  *                                             meet? }], routes.js
@@ -266,18 +270,18 @@ import {
   RESULT_MS, allBorn, arm, beatOf, crossings, draw, drawSets, dueCues, dueSpawns, enter, exitDue, failedAny, gatesOf, leftBy, nextDue, note, objectives, objectivesView, roundsOf, slotKind, worthOf,
   stagesOf, target as exitTarget, wavesOf,
 } from '../../src/share/war/stages.js';
-import { madeFor, modeById } from '../../src/share/modes.js';
+import { madeFor, modeById, sessionOf } from '../../src/share/modes.js';
 import { released } from '../../src/game/campaign.js';
 import { wireStrike } from '../../src/share/war/wires.js';
 import { contactAt } from '../../src/share/war/contact.js';
 import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
 import {
-  attackerCharge, blast, defenderCharge, leafMoved,
+  attackerCharge, blast, defenderCharge, healthOf, leafMoved,
 } from '../../src/share/war/damage.js';
 import { openAt } from '../../src/share/war/hoist.js';
 import {
-  GANTRIES, TURNS, closureFor, gantriesAt, lastHeld, linesDue, objectivesOf, openAt as containOpen, restartAt, retargetFor, runningAt,
+  GANTRIES, TURNS, closureFor, gantriesAt, lastHeld, linesDue, objectivesOf, openAt as containOpen, pausesOf, restartAt, retargetFor, runningAt, shutDue,
 } from '../../src/share/war/contain.js';
 import { REST, leafTurn } from '../../src/share/war/leaf.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
@@ -286,7 +290,7 @@ import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
 import { POSE_MAX_SPEED } from './safety.js';
 import { Hunters, loadHeight } from './warhunt.js';
-import { HERE_MS, interestEvery } from './core.js';
+import { HERE_MS, interestEvery, watchedView } from './core.js';
 
 export { MISSIONS, RESULT_MS };
 
@@ -362,6 +366,21 @@ export function resultOf(mission, m) {
     won, stars, credits: 100 * stars + 10 * kills, criteria,
   };
 }
+/*
+ * A war's id across every room, the one a page pays its result once by
+ * (src/game/campaign.js payResult): match ids count from 1 in each room
+ * and a code is used again, so the wall clock ms the match started is in
+ * it (m.startedAt; the room's birth, meta.epoch, for a match stored
+ * before it had one). Fixed width, so ids sort by when the war started:
+ * a page keeps the newest it paid (PAID_KEEP) by sorting them past the
+ * first letter, and never reads one apart. kind: that letter, 'w' a war's,
+ * 'o' an ops match's (ops.js view), whose ids count apart from the war's
+ * in the same room, so the two never meet in one save's list.
+ */
+export function warUid(meta, m, kind = 'w') {
+  return `${kind}${String(m.startedAt ?? meta.epoch ?? 0).padStart(13, '0')}-${meta.code ?? ''}-${String(m.id).padStart(6, '0')}`;
+}
+
 /* The most stars a mission restarted from its lost stage can earn. */
 export const RESTART_STARS = 2;
 
@@ -561,8 +580,8 @@ export class RoomWar {
     this.meta = meta;
     this.devMissions = options.devMissions === true;
     /*
-     * { id, mission, seed, goAt, state: 'briefing'|'countdown'|'live'|
-     *   'won'|'lost'|'ended', briefAt (the room ms a briefing's film
+     * { id, startedAt (wall clock ms, warUid), mission, seed, goAt,
+     *   state: 'briefing'|'countdown'|'live'|'won'|'lost'|'ended', briefAt (the room ms a briefing's film
      *   starts, WORLD_LEAD_MS after the briefing for a mission with a time
      *   of its own unless every pilot's world already stands, worldsUp;
      *   or null), why, f, wave (the next to be born), output,
@@ -744,7 +763,14 @@ export class RoomWar {
     return Boolean(m) && (m.state === 'briefing' || m.state === 'countdown' || m.state === 'live');
   }
 
+  /* The match as every client sees it, with its named state (modes.js
+   * sessionOf) as it stands now. */
   view(core) {
+    const v = this.shown(core);
+    return { ...v, session: sessionOf('war', v, core.roomNow()) };
+  }
+
+  shown(core) {
     const m = this.match;
     if (!m) {
       return { state: 'lobby' };
@@ -760,6 +786,7 @@ export class RoomWar {
     return {
       state: m.state,
       id: m.id,
+      uid: warUid(this.meta, m),
       mission: m.mission,
       goAt: m.goAt,
       briefAt: m.briefAt ?? null,
@@ -801,7 +828,7 @@ export class RoomWar {
         music: m.stage.music,
         /* Its own, then a closure's hold on its gantry (contain.js). */
         objectives: [...objectivesView({
-          mission, m, st: m.stage, f: m.f,
+          mission, m, st: m.stage, f: m.f, pauses: (gantry) => pausesOf(m.contain, gantry),
         }), ...objectivesOf(m.contain, m.stage.at, m.f)],
         /* What the seed chose for each spawn (stages.js enter). */
         draws: m.stage.due.map((d) => ({
@@ -819,6 +846,10 @@ export class RoomWar {
        * `stationDark` stage this match entered, its path's), dark to the
        * match's end for every screen (src/main.js), or null. */
       stationDark: m.path?.find((x) => this.stages().find((y) => y.id === x.id)?.stationDark === true)?.at ?? null,
+      /* The grid rerouted round the yard (src/share/war/grid.js WHAT
+       * COMES BACK): [{ at, districts }], a restoring hold's, from the
+       * stages' path entries, so a checkpoint and a store keep them. */
+      restores: (m.path ?? []).flatMap((x) => x.restores ?? []).map(({ at, districts }) => ({ at, districts: districts.slice() })),
       /* The gantries closing an opening, or waiting to (contain.js). */
       contain: gantriesAt(m.contain, m.f),
       airframes: this.airframes(),
@@ -831,6 +862,8 @@ export class RoomWar {
         seat: Number(seat), kills: p.kills, assists: p.assists, mw: p.mw, gone: !here.has(Number(seat)),
       })).sort((a, b) => b.kills - a.kills || b.mw - a.mw || a.seat - b.seat),
       why: m.why,
+      /* Ended by the room for too few players here (core.js settleGames). */
+      abandoned: Boolean(m.abandoned),
       endAt: m.endAt,
       result: m.state === 'won' || m.state === 'lost' || m.state === 'ended' ? resultOf(mission, m) : null,
       /* A lost match's stage to play again from, and a match that is such
@@ -846,8 +879,27 @@ export class RoomWar {
     };
   }
 
-  welcome(core) {
-    return { war: this.view(core) };
+  /* s: the seat welcomed; its view carries the result only if it flew
+   * the war (flew), as changed() sends it. */
+  welcome(core, s) {
+    const v = this.view(core);
+    return { war: this.flew(s) ? v : watchedView(v) };
+  }
+
+  /*
+   * Whether seat s's pilot flew the match: enlisted in it at any point,
+   * by token, its entry at a seat or put away (a pilot who left, or came
+   * back after the end, which enlists nobody). A watcher, a pilot who sat
+   * it out unconsented and one who first came after the end did not.
+   * The war's result is paid to these seats' pages and no others
+   * (src/ui/campaign.js observe).
+   */
+  flew(s) {
+    const m = this.match;
+    if (!m || !s || !s.token) {
+      return false;
+    }
+    return Object.values(m.players).some((p) => p.token === s.token) || Object.hasOwn(m.away ?? {}, s.token);
   }
 
   /* Every seat and every watcher (core.js watch): a watcher draws the
@@ -856,9 +908,10 @@ export class RoomWar {
     return core.everyone(JSON.stringify(msg));
   }
 
-  /* The view, a watcher's with no result (core.js viewed). */
+  /* The view, with no result for a watcher or a seat that did not fly
+   * the war (core.js viewed, flew). */
   changed(core) {
-    return [this.store(), ...core.viewed('war', this.view(core))];
+    return [this.store(), ...core.viewed('war', this.view(core), (s) => this.flew(s))];
   }
 
   error(conn, error) {
@@ -981,7 +1034,7 @@ export class RoomWar {
       return [];
     }
     return [...core.seats.values()]
-      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token))
+      .filter((t) => m.players[t.seat] && (m.players[t.seat].token == null || m.players[t.seat].token === t.token) && !core.failed(t))
       .map((t) => t.seat);
   }
 
@@ -1083,11 +1136,12 @@ export class RoomWar {
     return this.match ? this.changed(core) : [];
   }
 
-  abandon(core, now) {
+  abandon(core, now, abandoned = false) {
     if (!this.on()) {
       return [];
     }
     this.finish(Math.min(this.match.f, core.roomMs(now)), 'ended', 'end');
+    this.match.abandoned = abandoned;
     return this.changed(core);
   }
 
@@ -1147,6 +1201,7 @@ export class RoomWar {
     const goAt = (briefAt ?? Math.ceil(core.roomMs(now))) + (briefAt == null ? 0 : briefingMs(mission)) + COUNTDOWN_MS + (mission.prepMs ?? 0);
     this.match = {
       id: this.nextId,
+      startedAt: now,
       mission: mission.id,
       seed: Math.floor(this.random() * 4294967296) >>> 0,
       goAt,
@@ -1211,8 +1266,12 @@ export class RoomWar {
         restarted: cp.id,
       });
     }
+    /* A pilot whose page could not build the world (core.js fail) is
+     * not enlisted: it waits for the next match. */
     for (const t of core.seats.values()) {
-      this.enlist(t);
+      if (!core.failed(t)) {
+        this.enlist(t);
+      }
     }
     /* The working sets (stages.js drawSets), drawn as the match starts
      * so its film shows the same as its stages, for the pilots enlisted;
@@ -1260,7 +1319,7 @@ export class RoomWar {
    * world at the mission's time, so its film can start with no lead. */
   worldsUp(core, mission) {
     const time = timeOfMission(mission);
-    return [...core.seats.values()].every((t) => {
+    return [...core.seats.values()].filter((t) => !core.failed(t)).every((t) => {
       const w = this.worlds.get(t.seat);
       return w && w.token === t.token && w.map === mission.map && w.time === time;
     });
@@ -1594,6 +1653,9 @@ export class RoomWar {
       const after = this.containTold(core);
       dirty ||= after.length > 0;
       out.push(...after);
+      const shut = this.containShut(core);
+      dirty ||= shut.length > 0;
+      out.push(...shut);
       const moved = this.leafWatch(core);
       dirty ||= moved.length > 0;
       out.push(...moved);
@@ -2027,6 +2089,7 @@ export class RoomWar {
     const out = [];
     const turnOf = (id) => this.leafTurnAt(structures[id], id, t);
     for (const r of blast(structures, m.wreck, at, w, mm(t), turnOf)) {
+      r.openings = this.stoplogged(r.target, r.openings);
       /* Where its leaf stood when its holes were last told. */
       if (r.openings.length && structures[r.target].frame.hinge) {
         m.wreck[r.target].leafOpen = this.gateOpen(structures[r.target], r.target, t);
@@ -2100,7 +2163,9 @@ export class RoomWar {
       if (!r) {
         continue;
       }
-      const e = { seq: m.damage.length, ...r, p: null, by: 'hoist' };
+      const e = {
+        seq: m.damage.length, ...r, openings: this.stoplogged(id, r.openings), p: null, by: 'hoist',
+      };
       m.damage.push(e);
       out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
     }
@@ -2192,6 +2257,13 @@ export class RoomWar {
       cleared: !m.agents.some((a) => a.kind !== 'scout') && !containOpen(m.contain, f),
       lastGone: held == null ? m.lastGone : Math.max(m.lastGone ?? held, held),
       allOut: here.length > 0 && !here.some((seat) => this.stillFlying(seat, roomNow)),
+      /* { contained: true }: no closure open, since the last was held
+       * (or the entry): an exit that is not a loss waits on it where it
+       * does not wait on `cleared` (The Long Night's, which end on their
+       * groups gone). */
+      /* A hold's pause (stages.js): the gantry it names closing. */
+      pauses: (gantry) => pausesOf(m.contain, gantry),
+      trigger: (trig) => (trig.contained ? (containOpen(m.contain, f) ? null : Math.max(st.at, held ?? st.at)) : undefined),
     };
   }
 
@@ -2224,6 +2296,18 @@ export class RoomWar {
     const objWas = JSON.stringify(st.obj);
     objectives(ctx);
     let dirty = JSON.stringify(st.obj) !== objWas;
+    /* A hold that reroutes (an objective's `restore`, TECH-NEEDS T1.10)
+     * feeds its districts round the yard from the room ms it held, the
+     * moment its line is cued, not the stage's exit, which waits on the
+     * sky being clear too. Kept on the stage's own path entry, the last
+     * (enterStage pushes it). */
+    const entry = m.path?.at(-1);
+    for (const o of this.stages()[st.idx].objectives ?? []) {
+      if (entry && o.restore && st.obj[o.id]?.state === 'done' && !(entry.restores ?? []).some((r) => r.id === o.id)) {
+        (entry.restores ??= []).push({ id: o.id, at: st.obj[o.id].t, districts: o.restore.slice() });
+        dirty = true;
+      }
+    }
     const cues = dueCues(ctx);
     if (cues.length) {
       dirty = true;
@@ -2418,6 +2502,54 @@ export class RoomWar {
     if (c) {
       (m.contain ??= []).push(c);
     }
+  }
+
+  /*
+   * Each closure held by now has its opening told again at zero size, at
+   * its hold (MISSIONS.md 1.9 point 5, contain.js shutDue): an op 'damage'
+   * with no chunks, kept with the match's damage for a late joiner, which
+   * the flood takes as the hole shut (src/maps/itaipu/water/flood.js).
+   * The stoplogs stay down, so the target's later holes, and its holes
+   * moved with its leaf, are told at zero size (stoplogged). An opening the room recorded with no hole (a
+   * breach without damage) sends nothing.
+   */
+  containShut(core) {
+    const m = this.match;
+    const structures = STRUCTURES[this.mission().map];
+    const out = [];
+    for (const x of shutDue(m.contain, m.f)) {
+      const st = m.wreck?.[x.c.target];
+      if (!st || !st.open) {
+        continue;
+      }
+      st.shut = x.until;
+      const e = {
+        seq: m.damage.length,
+        target: x.c.target,
+        at: x.until,
+        chunks: [],
+        fell: [],
+        openings: [{ ...st.open, at: x.until, width_m: 0, height_m: 0 }],
+        down: false,
+        health: structures?.[x.c.target] ? healthOf(structures[x.c.target], st) : null,
+        cut: [],
+        p: null,
+        by: 'stoplogs',
+      };
+      m.damage.push(e);
+      out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
+    }
+    return out;
+  }
+
+  /* A target's openings as told: at zero size once its stoplogs are down
+   * (containShut), so its holes still move with its leaf and are told
+   * where they are, but pass no water. The wreck keeps their real size. */
+  stoplogged(id, openings) {
+    if (this.match.wreck?.[id]?.shut == null) {
+      return openings;
+    }
+    return openings.map((o) => ({ ...o, width_m: 0, height_m: 0 }));
   }
 
   /* The closures' lines now due (contain.js linesDue), told as a stage's

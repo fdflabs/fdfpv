@@ -45,6 +45,7 @@
 import { plural, str } from '../strings/index.js';
 import { allowanceOf, roundOf, spentOf } from './warround.js';
 import { WATCH_SEAT } from '../share/roomrace.js';
+import { missionEndActions } from '../game/debrief.js';
 import en from '../strings/en.js';
 
 const GREEN = '#7dff9a';
@@ -235,10 +236,14 @@ export function waveStatus(v, mission, roomNow) {
 
 /*
  * nameOf(seat) is the seat's picker name, or this pilot's own. restart
- * { host(), go(v), back() }: whether this pilot hosts the room, what the
- * end banner's button does, and the seconds until the room's lobby takes
- * every pilot back (null outside a lobby), when the button is a notice
- * instead.
+ * { host(), go(v, act), back(), next(v) }: whether this pilot hosts the
+ * room, what the end banner's buttons do (act one of
+ * src/game/debrief.js missionEndActions), the seconds until the room's
+ * lobby takes every pilot back (null outside a lobby), and the mission
+ * after v's this host may start, { id, name } or null. The host's buttons
+ * stand over the lobby's seconds too (COMPLETENESS 76): one press starts
+ * the next mission or the same again, and the room brings everyone; every
+ * other pilot reads the seconds, or that the host restarts.
  */
 export function createWarHud(nameOf, restart = null) {
   let box = null;
@@ -253,6 +258,10 @@ export function createWarHud(nameOf, restart = null) {
   let banner = null;
   let status = null;
   let again = null;
+  let nextBtn = null;
+  let backNote = null;
+  /* The host's presses on the banner as shown: missionEndActions. */
+  let ends = [];
   let lastView = null;
   let shown = '';
   let lostOutput = 0;
@@ -362,11 +371,20 @@ export function createWarHud(nameOf, restart = null) {
       background: GREEN, color: '#04100a', textShadow: 'none', pointerEvents: 'auto',
     }, banner);
     again.className = 'war-restart';
-    again.addEventListener('click', () => {
-      if (restart && restart.host() && restart.back() == null && lastView) {
-        restart.go(lastView);
+    nextBtn = el({
+      marginTop: '10px', fontSize: '20px', letterSpacing: '0.12em', padding: '10px 22px', cursor: 'pointer',
+      background: GREEN, color: '#04100a', textShadow: 'none', pointerEvents: 'auto', display: 'none',
+    }, banner);
+    nextBtn.className = 'war-next';
+    backNote = el({ marginTop: '10px', fontSize: '16px', letterSpacing: '0.12em', display: 'none' }, banner);
+    const press = (kind) => {
+      const act = ends.find((a) => a.act === kind);
+      if (act && restart && restart.host() && lastView) {
+        restart.go(lastView, act);
       }
-    });
+    };
+    again.addEventListener('click', () => press('again'));
+    nextBtn.addEventListener('click', () => press('next'));
   }
 
   /* The stage's text over its objectives: each a mark (open, done,
@@ -665,9 +683,10 @@ export function createWarHud(nameOf, restart = null) {
     allowWas = allow;
     const next = waveStatus(v, mission, roomNow);
     const back = restart ? restart.back() : null;
-    const host = Boolean(restart && restart.host()) && back == null;
+    const host = Boolean(restart && restart.host());
+    const after = host && v.state === 'won' && restart.next ? restart.next(v) : null;
     const stage = v.state === 'live' && v.stage ? v.stage : null;
-    const key = JSON.stringify([next && next.text, host, back, v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow,
+    const key = JSON.stringify([next && next.text, host, back, after && after.id, v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow,
       stage && stage.text, stage && stage.objectives,
       stage && (stage.objectives ?? []).some((o) => o.heldFrom != null) ? Math.floor(roomNow / 1000) : 0]);
     if (key === shown) {
@@ -748,8 +767,13 @@ export function createWarHud(nameOf, restart = null) {
        * counts every twist's branch (First Light's last stage is its
        * seventh, the Spillway's third its fifth). */
       const stageN = v.round ?? (v.checkpoint ? v.checkpoint.n + 1 : 1);
-      again.textContent = back != null ? str('war.back_lobby', { n: back })
-        : !host ? str('war.restart_wait') : fromStage ? str('war.restart_stage', { n: stageN }) : str('war.restart');
+      ends = missionEndActions({ host, state: v.state, checkpoint: Boolean(v.checkpoint), next: after ? after.id : null });
+      again.textContent = !host ? (back != null ? str('war.back_lobby', { n: back }) : str('war.restart_wait'))
+        : fromStage ? str('war.restart_stage', { n: stageN }) : str('war.restart');
+      nextBtn.style.display = ends[0] && ends[0].act === 'next' ? 'block' : 'none';
+      nextBtn.textContent = after ? str('war.next_mission', { name: after.name }) : '';
+      backNote.style.display = host && back != null ? 'block' : 'none';
+      backNote.textContent = host && back != null ? str('war.back_lobby', { n: back }) : '';
       again.style.cursor = host ? 'pointer' : 'default';
       again.style.background = host ? GREEN : 'transparent';
       again.style.color = host ? '#04100a' : DIM;
@@ -777,6 +801,8 @@ export function createWarHud(nameOf, restart = null) {
       status: status && status.style.display !== 'none' ? status.textContent : '',
       objectives: box && box.style.display !== 'none' && goals && goals.style.display !== 'none' ? [...goals.children].map((c) => c.textContent) : [],
       restart: banner && banner.style.display !== 'none' ? again.textContent : '',
+      next: banner && banner.style.display !== 'none' && nextBtn.style.display !== 'none' ? nextBtn.textContent : '',
+      back: banner && banner.style.display !== 'none' && backNote.style.display !== 'none' ? backNote.textContent : '',
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
       subtitle: subEl && subEl.style.display !== 'none' ? subEl.textContent : '',
       splashSeen,

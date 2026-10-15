@@ -55,11 +55,14 @@ export function createTrainingScreen({ ui, passed, fly }) {
     const card = el('div', 'campaign-mission');
     card.dataset.lesson = l.id;
     const done = passed(l.id);
-    card.dataset.state = done ? 'passed' : 'open';
+    /* The lesson a session or a reload interrupted (src/ui/progress-ui.js
+     * lessonNotice), its Fly from step 1 as any lesson's. */
+    const cut = !done && ui.progress && ui.progress.interrupted === l.id;
+    card.dataset.state = done ? 'passed' : cut ? 'interrupted' : 'open';
     const top = el('div', 'campaign-mission-top');
     top.append(el('span', 'campaign-n', str('training.lesson_n', { n: i + 1 })));
-    if (done) {
-      top.append(el('span', 'campaign-tag', str('training.passed')));
+    if (done || cut) {
+      top.append(el('span', 'campaign-tag', str(done ? 'training.passed' : 'training.interrupted')));
     }
     card.append(top);
     card.append(el('div', 'campaign-name', str(`training.lesson.${l.id}`)));

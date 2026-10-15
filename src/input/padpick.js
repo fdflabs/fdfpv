@@ -11,7 +11,10 @@
  * hide a pad until something on it moves. A single new pad with no choice
  * made is simply taken; two or more, at boot or on a hotplug, queue the
  * picker; the chosen pad vanishing while another is still plugged in
- * queues it too. The shell takes the queue and opens the screen.
+ * queues it too. The shell takes the queue and opens the screen. A loss
+ * of the chosen device is reported once, and so is the first device to
+ * fly after it (the same one on any port, or another taken or picked), so
+ * the shell can say both.
  *
  * The picker asks the pilot to move the one they want. Whichever pad moves
  * furthest from where it rested, for long enough, becomes the candidate,
@@ -107,10 +110,18 @@ export class PadRoster {
     /* Set when the chosen device, present a moment ago, is gone; taken
      * once by InputManager.poll. */
     this.lost = false;
+    /* True from that loss until a device flies again (or the pilot picks
+     * the keyboard); `back` is then set, taken once like `lost`. */
+    this.gone = false;
+    this.back = false;
   }
 
   setChoice(choice) {
     this.choice = choice;
+    if (!choice || choice.kind !== 'pad') {
+      this.gone = false;
+      this.back = false;
+    }
     savePadChoice(choice);
     this.onChoice();
   }
@@ -132,6 +143,19 @@ export class PadRoster {
     }
     const sameName = pads.filter((gp) => gp.id === c.id);
     return sameName.length === 1 ? sameName[0] : null;
+  }
+
+  /* The chosen device is here: after a loss, that is its return, and a
+   * picker queued for its absence and not yet opened has nothing to ask. */
+  markPresent() {
+    if (this.gone) {
+      this.gone = false;
+      this.back = true;
+    }
+    if (this.queued === 'missing') {
+      this.queued = null;
+    }
+    this.present = true;
   }
 
   /* The pad in use: none when the pilot chose the keyboard or their pad is
@@ -165,9 +189,12 @@ export class PadRoster {
   track() {
     const pads = connectedPads();
     const keys = new Set(pads.map(padKey));
+    /* The chosen device plugged back in is its return, not a newcomer to
+     * ask about: only the others count as arrivals. */
+    const mine = this.match(pads);
     let arrived = 0;
-    for (const k of keys) {
-      arrived += this.seen.has(k) ? 0 : 1;
+    for (const gp of pads) {
+      arrived += this.seen.has(padKey(gp)) || gp === mine ? 0 : 1;
     }
     const hadAny = this.seen.size > 0;
     this.seen = keys;
@@ -178,18 +205,19 @@ export class PadRoster {
       this.queued = hadAny ? 'hotplug' : 'boot';
       return;
     }
-    if (arrived && pads.length === 1 && !this.match(pads)) {
+    if (arrived && pads.length === 1 && !mine) {
       this.chooseDevice(pads[0]);
     }
     if (!this.choice || this.choice.kind !== 'pad') {
       return;
     }
     if (this.match(pads)) {
-      this.present = true;
+      this.markPresent();
       return;
     }
     if (this.present) {
       this.lost = true;
+      this.gone = true;
     }
     if (this.present && pads.length >= 1) {
       this.queued = this.queued || 'missing';
@@ -288,7 +316,7 @@ export class PadRoster {
       return false;
     }
     this.chooseDevice(gp);
-    this.present = true;
+    this.markPresent();
     this.close('accepted');
     return true;
   }

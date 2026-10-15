@@ -38,7 +38,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { DISTRICTS, darkFrom, levelAt } from './grid.js';
+import { DISTRICTS, changesFrom, levelOf } from './grid.js';
+import { stationOrder } from './stationdark.js';
 
 /* A hit target burns this long, room ms, then smokes. */
 export const FIRE_MS = 20000;
@@ -57,10 +58,14 @@ export function burnAt(at, t) {
 
 /*
  * One match's world as the replay keeps it: { from, off, hits: [{ target,
- * at }], cuts: [{ at, x, z }] }, a hit for each arrival on a target, at
- * null for one from before this screen heard of it, off the room ms the
- * war stopped being fought (the targets are whole again on screen from
- * then, src/main.js warFinish) or null.
+ * at }], cuts: [{ at, x, z }], restores?: [{ at, districts }] }, a hit for
+ * each arrival on a target, at null for one from before this screen heard
+ * of it, off the room ms the war stopped being fought (the targets are
+ * whole again on screen from then, src/main.js warFinish) or null, the
+ * restores the view's (grid.js WHAT COMES BACK), absent for none, so its
+ * lights come back as the live screen's did, and stationDark the view's
+ * order putting the station's lights out (stationdark.js), absent for
+ * none (clip v21 keeps it, warrec.js world()).
  * `damage` the match's damage events in the order heard. At room ms t:
  * { targets: { id: state } of every target not 'ok', levels: a
  * Float32Array a district, damage: the events by t, openings: every
@@ -70,10 +75,14 @@ export function burnAt(at, t) {
  * object the caller keeps per match.
  */
 export function matchAt(m, t, cache) {
-  if (!cache.from) {
-    cache.from = darkFrom(
-      m.hits.map((h) => ({ target: h.target, at: h.at === null ? -Infinity : h.at })),
+  if (!cache.changes) {
+    /* A target lost to what broke goes out from its damage event, as a
+     * hit does (grid.js createGrid hear). */
+    const lost = m.damage.filter((d) => d.down === true).map((d) => ({ target: d.target, at: d.at }));
+    cache.changes = changesFrom(
+      [...m.hits.map((h) => ({ target: h.target, at: h.at === null ? -Infinity : h.at })), ...lost],
       m.cuts,
+      m.restores ?? [],
     );
     cache.levels = new Float32Array(DISTRICTS.length);
     cache.openings = m.damage.flatMap((d) => d.openings);
@@ -99,8 +108,9 @@ export function matchAt(m, t, cache) {
   }
   const damage = m.damage.filter((d) => d.at <= t);
   for (let i = 0; i < DISTRICTS.length; i += 1) {
-    cache.levels[i] = levelAt(cache.from[i], i, t);
+    cache.levels[i] = levelOf(cache.changes[i], i, t);
   }
+  stationOrder(cache.levels, m.stationDark ?? null, t);
   /* The match's gate state, whole (hoist.js places each entry). */
   return {
     targets, levels: cache.levels, damage, openings: cache.openings, gates: m.gates && m.gates.length ? m.gates : null,

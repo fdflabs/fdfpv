@@ -29,6 +29,10 @@ seven facts in the same order, under the activity's own head:
    stored by race.js), the run score against the pilot's best posted one,
    and the aircraft's total flight time after this flight (#392,
    src/share/flighttime.js). "Improved" or "still stands", with the delta.
+   First among them, a "New best" line for each best the run set
+   (docs/redesign/PROGRESSION.md 3.1, src/game/debrief.js withBests): a
+   lap's and a run's on a race, a lap's on a room race, a match's points
+   on Catch the Ace!, each with the new value and the one it replaced.
 7. **Next action.** Under the cursor: Fly again first; then Watch the
    replay; then the activity's next (Next mission, Change aircraft, Back to
    the lobby); Title last. Enter takes the highlighted one, Escape goes
@@ -77,7 +81,7 @@ normalises its inputs; one renderer reads the record.
   route: { points: [[x, z], ...] (<= 240), distanceM, topM, marks: [[x, z], ...] } | null,
   time: { flightMs, runMs|null },
   accuracy: [{ what: string key, n, of }],
-  records: [{ what: string key, now, before, improved: bool|null }],
+  records: [{ what: string key, now, before, improved: bool|null, kind? }],
   replay: { ok: bool, why: string key|null },
   next: [action ids, in order],
 }
@@ -96,9 +100,10 @@ already exists: race.js's track record, the freestyle board answer
 
 ## What it does NOT do
 
-- No event bus (COMPLETENESS item 25, phase 22); the builders read today's
-  end of run state. When the bus lands, the builders fold it instead and
-  the record and the screen stay as they are.
+- No end of run state for a fact that is an event: the builders read the
+  run's event log (src/game/events.js, COMPLETENESS items 25 and 26) for
+  laps, tricks, bails, an ops result and a room game's points; what is
+  measured (time, route, replay, condition) is handed in.
 - No XP, currency or rewards: that is the progression lane (items 17, 25).
   The record has no reward field until that lane asks for one.
 - No new stored best (a freestyle personal best kept locally would be new

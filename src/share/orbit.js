@@ -55,6 +55,7 @@ import {
   withCaptureLock,
   whenVisible,
 } from './orbitcache.js';
+import { logError } from './crashrecord.js';
 
 const view = document.getElementById('view');
 const statusLine = document.getElementById('status');
@@ -331,5 +332,5 @@ async function start() {
 start().catch((e) => {
   say(e.message || str('orbit.the_preview_failed'));
   window.__orbitError = String(e.message || e);
-  console.error(e);
+  logError('render', e);
 });

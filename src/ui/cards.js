@@ -67,6 +67,7 @@ import {
 } from './ui.js';
 import { WAYS } from './ways.js';
 import { btn, el } from './widgets.js';
+import { logWarn } from '../share/crashrecord.js';
 
 /*
  * How long the room must go untouched before a world preview may start
@@ -171,6 +172,11 @@ function gateLinks(ui, links) {
   for (const link of links) {
     const b = btn(`gate-link gate-card-${link.key}${link.continue ? ' gate-card-continue' : ''}`, link.label);
     b.tabIndex = -1;
+    /* Continue on a campaign names the mission it goes on with. */
+    if (link.title) {
+      b.title = link.title;
+      b.dataset.mission = link.mission;
+    }
     b.addEventListener('click', (e) => {
       /* The card under it would take the click as a press of the hub. */
       e.stopPropagation();
@@ -977,7 +983,7 @@ export const cardMethods = {
     };
     fill().catch((e) => {
       if (!isAbort(e)) {
-        console.warn(e);
+        logWarn('render', e);
       }
     });
   },

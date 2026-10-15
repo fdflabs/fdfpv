@@ -54,6 +54,36 @@ export function standings(round) {
   return round.scores.slice().sort((a, b) => b.points - a.points || b.cuts - a.cuts || b.links - a.links || a.seat - b.seat);
 }
 
+/* The results screen (ui.showRoomResults) of a round over in a room made
+ * for combat: the standings, this pilot's points, the winner, the one
+ * with the most points (standings' order), when anybody scored. */
+export function combatResultsView(round, me, nameOf) {
+  const rows = standings(round);
+  const mine = rows.findIndex((r) => r.seat === me);
+  const winner = rows.length && rows[0].points > 0 ? rows[0].seat : null;
+  let head = str('combat.hud_over');
+  if (winner != null && winner === me) {
+    head = str('combat.results_won');
+  } else if (winner != null) {
+    head = str('combat.results_winner', { name: nameOf(winner) });
+  }
+  return {
+    kicker: str('combat.card'),
+    head,
+    heroCap: str('combat.your_points'),
+    heroTime: mine >= 0 ? String(rows[mine].points) : '0',
+    heroMeta: mine >= 0 ? str('roomrace.place_of', { place: mine + 1, n: rows.length }) : '',
+    win: winner != null && winner === me,
+    rows: rows.map((r, i) => ({
+      label: str('roomrace.row', { place: i + 1, name: nameOf(r.seat) }),
+      time: plural('count.points', r.points),
+      tag: r.seat === winner ? str('combat.winner_tag') : '',
+      me: r.seat === me,
+      out: false,
+    })),
+  };
+}
+
 /* nameOf(seat) is the seat's picker name, or this pilot's own. */
 export function createCombatHud(nameOf) {
   let box = null;

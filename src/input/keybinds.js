@@ -41,6 +41,7 @@
 
 import { ACTIONS as TABLE } from './actions.js';
 import { BINDINGS_VERSION, bindingTable } from './bindings.js';
+import { logWarn } from '../share/crashrecord.js';
 
 export const KEYBINDS_VERSION = BINDINGS_VERSION;
 
@@ -74,7 +75,7 @@ export const emptyKeybinds = table.empty;
 export function normaliseKeybinds(raw) {
   const onN = (m) => Boolean(m) && typeof m === 'object' && Object.values(m).includes('KeyN');
   if (raw && typeof raw === 'object' && (onN(raw.all) || Object.values(raw.by || {}).some(onN))) {
-    console.warn('keybinds: a binding on N is dropped; N is push to talk');
+    logWarn('input', 'keybinds: a binding on N is dropped; N is push to talk');
   }
   return table.normalise(raw);
 }

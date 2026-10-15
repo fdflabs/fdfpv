@@ -23,7 +23,10 @@
 import {
   ACT1, INTERIOR, INTERIOR_CAMPAIGN, UPGRADES, actOf, opsCampaignOf, applyResult, cardLabel, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
   emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, released, seenFilm, spent, starsOf, totalStars, unlocked,
+  PAID_KEEP, paidWar, payResult,
 } from '../src/game/campaign.js';
+import { createCampaignScreen } from '../src/ui/campaign.js';
+import { createOpsCampaignScreen } from '../src/ui/opscampaign.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -209,6 +212,162 @@ check('none once it matches, none after the go', !loadoutDue({ state: 'briefing'
   && !loadoutDue({ state: 'live', loadouts: {} }, 1, l));
 check('a result is read when whole', same(resultOf({ result: { stars: 2, credits: 225, won: true } }), { stars: 2, credits: 225, won: true }));
 check('no result from a view without one or a broken one', resultOf({}) === null && resultOf({ result: { stars: 2 } }) === null && resultOf(null) === null);
+
+console.log('a war\'s result is paid once, by the room\'s id for it (phase 19, COMPLETENESS 2)');
+{
+  const UID = 'w1760000000000-W4RR00-000001';
+  const won = { won: true, stars: 2, credits: 220 };
+  const once = payResult(fresh, UID, 'itaipu-1', won);
+  const twice = payResult(once, UID, 'itaipu-1', { won: true, stars: 3, credits: 330 });
+  check('paid the first time: the stars, the credits, the war kept', starsOf(once, 'itaipu-1') === 2 && once.earned === 220 && paidWar(once, UID)
+    && same(once.wars, [UID]));
+  check('paid nothing the second time, whatever it says', same(twice, once));
+  const other = payResult(once, 'w1760000999000-W4RR00-000002', 'itaipu-1', won);
+  check('another war of the same mission is paid', other.earned === 440 && other.wars.length === 2);
+  check('the wars paid survive a clean, junk does not', same(cleanCampaign({ wars: [UID, 'no spaces', 7, UID, null] }).wars, [UID])
+    && same(cleanCampaign({ wars: 'x' }).wars, []) && same(cleanCampaign({}).wars, []));
+  check('merge keeps the wars either computer paid, sorted, and is idempotent',
+    same(mergeCampaign(other, once).wars, other.wars) && same(mergeCampaign(once, other).wars, other.wars)
+    && same(mergeCampaign(mergeCampaign(once, other), other), mergeCampaign(once, other)));
+  let many = fresh;
+  for (let i = 0; i < PAID_KEEP + 5; i += 1) {
+    many = payResult(many, `w${String(1760000000000 + i).padStart(13, '0')}-ROOM${i}-000001`, 'itaipu-1', { won: false, stars: 0, credits: 0 });
+  }
+  check(`the newest ${PAID_KEEP} wars are kept, and a newer one paid still counts as paid`, many.wars.length === PAID_KEEP
+    && many.wars[0].includes('ROOM5-') && paidWar(many, many.wars.at(-1)));
+}
+{
+  /* The page's half (src/ui/campaign.js observe) on a fake shell: its
+   * settings are the save, a reload is a new screen over them. */
+  const events = [];
+  const settings = {};
+  const shell = () => ({
+    settings,
+    persistSettings() {},
+    nameDialog: { hidden: true },
+    progress: { airframe: 'cub1400', event(type, e) { events.push(type); }, foldFlight() {}, checkFirsts() {} },
+  });
+  const screen = () => createCampaignScreen({
+    ui: shell(), enterWarRoom: () => null, send: () => {}, view: () => null, room: () => ({ phase: 'idle' }),
+  });
+  const UID = 'w1760000000000-W4RR00-000003';
+  const res = { won: true, stars: 2, credits: 240, criteria: [] };
+  const live = { id: 3, uid: UID, mission: 'itaipu-1', state: 'live', result: null };
+  const done = { ...live, state: 'won', result: res };
+  const a = screen();
+  a.observe(live, 'W4RR00');
+  a.observe(done, 'W4RR00');
+  a.observe(done, 'W4RR00');
+  check('a page that saw it begin is paid at its end, once', a.state().earned === 240 && same(a.state().wars, [UID])
+    && same(events, ['mission_start', 'mission_end']), events.join());
+  const b = screen();
+  b.observe(done, 'W4RR00');
+  b.observe(done, 'W4RR00');
+  check('a reload at the result card pays nothing more, and logs no second mission_end', b.state().earned === 240
+    && events.filter((x) => x === 'mission_end').length === 1, events.join());
+  delete settings.campaign;
+  const c = screen();
+  c.observe(done, 'W4RR00');
+  check('a page that saw only the end (a reload, a reconnect, a late join into the result) is paid it', c.state().earned === 240
+    && starsOf(c.state(), 'itaipu-1') === 2 && events.filter((x) => x === 'mission_end').length === 2, events.join());
+  c.observe({ ...done, uid: 'w1760000000000-W4RR00-000004', id: 4, result: null }, 'W4RR00');
+  check('a decided war the room sent no result for (a watcher, a seat that did not fly it) pays nothing', c.state().earned === 240
+    && events.filter((x) => x === 'mission_end').length === 2);
+  delete settings.campaign;
+  const old = screen();
+  old.observe({ id: 5, mission: 'itaipu-1', state: 'won', result: res }, 'OLD000');
+  check('a room from before uid: a war first seen decided pays nothing, as before', old.state().earned === 0);
+  old.observe({ id: 6, mission: 'itaipu-1', state: 'live', result: null }, 'OLD000');
+  old.observe({ id: 6, mission: 'itaipu-1', state: 'won', result: res }, 'OLD000');
+  old.observe({ id: 6, mission: 'itaipu-1', state: 'won', result: res }, 'OLD000');
+  check('and one seen undecided is paid once', old.state().earned === 240 && same(old.state().wars, []));
+}
+
+console.log('an ops match\'s result is paid once, by the room\'s id for it (the war\'s rule, COMPLETENESS 2)');
+{
+  /* The page's half (src/ui/opscampaign.js record) on a fake shell, as
+   * the war's above: a reload is a new screen over the same settings, and
+   * a new page's run log. Every result seen is logged for its debrief
+   * (COMPLETENESS 26); `paid` says whether that entry paid it, and only a
+   * paid one is a match completed (progress.js foldEvents). */
+  const events = [];
+  const settings = {};
+  const shell = () => {
+    const run = [];
+    return {
+      settings,
+      persistSettings() {},
+      nameDialog: { hidden: true },
+      progress: {
+        airframe: 'bramor2300',
+        event(type, data = {}) {
+          const e = { type, ...data };
+          run.push(e);
+          events.push(e);
+        },
+        runEvents: () => run.slice(),
+        foldFlight() {},
+        checkFirsts() {},
+      },
+    };
+  };
+  const screen = () => createOpsCampaignScreen({
+    ui: shell(), campaign: INTERIOR_CAMPAIGN, missions: INTERIOR, consented: async () => true, play: () => {},
+  });
+  const ends = () => events.filter((x) => x.type === 'mission_end' && x.paid).length;
+  const seen = () => events.filter((x) => x.type === 'mission_end' && !x.paid).length;
+  const UID = 'o1760000000000-OPS000-000001';
+  const res = { won: true, stars: 2, starIds: ['a', 'b'], flags: { M1_SYMBOL_CAPTURED: true }, restarted: null };
+  const live = { id: 1, uid: UID, mission: 'interior-1', state: 'live', result: null };
+  const done = { ...live, state: 'won', result: res };
+  const a = screen();
+  a.record('OPS000:1', live);
+  a.record('OPS000:1', done);
+  a.record('OPS000:1', done);
+  check('a page that saw it end is paid once: the stars, the flags, the uid kept, one mission_end',
+    starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2 && cleanCampaign(settings.campaign).flags.M1_SYMBOL_CAPTURED === true
+    && same(cleanCampaign(settings.campaign).wars, [UID]) && ends() === 1 && seen() === 0, JSON.stringify(events));
+  const b = screen();
+  b.record('OPS000:1', done);
+  b.record('OPS000:1', done);
+  check('a reload at the debrief pays nothing more, and logs no second paid mission_end: its debrief\'s is logged once, seen, not paid', ends() === 1 && seen() === 1
+    && starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2, JSON.stringify(events));
+  delete settings.campaign;
+  const c = screen();
+  c.record('OPS000:1', done);
+  check('a page that saw only the end (a reload, a reconnect, a late join into the debrief) is paid it',
+    starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2 && cleanCampaign(settings.campaign).flags.M1_SYMBOL_CAPTURED === true && ends() === 2, JSON.stringify(events));
+  c.record('OPS000:1', { ...done, result: { ...res, stars: 3 } });
+  const d = screen();
+  d.record('OPS000:1', { ...done, result: { ...res, stars: 3 } });
+  check('a second sighting pays nothing, on that page or a fresh one, whatever it says', ends() === 2 && seen() === 2
+    && starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2, JSON.stringify(events));
+  d.record('OPS000:2', { ...done, id: 2, uid: 'o1760000000000-OPS000-000002', result: null });
+  check('an ended match the room sent no result for (a watcher, a pilot first seated after the end) pays nothing',
+    ends() === 2 && seen() === 3 && cleanCampaign(settings.campaign).wars.length === 1);
+  d.record('OPS000:3', { ...done, id: 3, uid: 'o1760000000000-OPS000-000003', mission: 'itaipu-1' });
+  check('a match of another campaign\'s mission is not this screen\'s to pay', ends() === 2 && seen() === 4 && cleanCampaign(settings.campaign).wars.length === 1);
+  delete settings.campaign;
+  const old = screen();
+  old.record('OLD000:4', { id: 4, mission: 'interior-1', state: 'won', result: res });
+  old.record('OLD000:4', { id: 4, mission: 'interior-1', state: 'won', result: res });
+  check('a room from before uid: paid once per match key from the debrief, as before, and no uid kept',
+    ends() === 3 && starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2 && same(cleanCampaign(settings.campaign).wars, []));
+}
+{
+  /* The war's and the ops' ids share the save's list, kept by the start's
+   * time past their kind's letter: an ops match paid after many wars is
+   * not the first dropped, and is not paid again. */
+  const OPS = `o${String(1760000000000 + 1000).padStart(13, '0')}-OPS000-000001`;
+  let both = payResult(fresh, OPS, 'interior-1', { won: true, stars: 1, credits: 0 });
+  for (let i = 0; i < PAID_KEEP + 5; i += 1) {
+    both = payResult(both, `w${String(1760000000000 + i).padStart(13, '0')}-ROOM${i}-000001`, 'itaipu-1', { won: false, stars: 0, credits: 0 });
+  }
+  check(`after ${PAID_KEEP + 5} older wars the newer ops match is still kept as paid, the oldest wars dropped`, both.wars.length === PAID_KEEP
+    && paidWar(both, OPS) && both.wars.at(-1) === OPS && !both.wars.some((id) => id.includes('ROOM0-')), both.wars.slice(-2).join());
+  check('and a clean or a merge keeps that order', same(cleanCampaign(JSON.parse(JSON.stringify(both))).wars, both.wars)
+    && same(mergeCampaign(both, fresh).wars, both.wars));
+}
 
 console.log('the account blob');
 const one = { v: 1, data: { campaign: pc }, stamps: {} };

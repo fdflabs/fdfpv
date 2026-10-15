@@ -388,6 +388,38 @@ async function roundRows(seatA, seatB, goAt) {
 /* The pips past four and, past six, a count: the HUD's own rule, on a
  * view no round of mission 1 reaches in a check's time (a pilot with five
  * kills in a round), so the module is driven directly. */
+/* The end banner's host presses (COMPLETENESS 76), on views no check
+ * reaches cheaply (a win with a next mission, a lobby's seconds), so the
+ * module is driven directly: the host reads Next mission over Restart,
+ * with the lobby's seconds under them, and a press hands its act back;
+ * another pilot reads only the seconds. */
+async function endRule() {
+  const got = await a.evaluate(`(async () => {
+    const { createWarHud } = await import('/src/ui/warhud.js');
+    const pressed = [];
+    const make = (host) => createWarHud(() => 'X', {
+      host: () => host, back: () => 6, next: () => ({ id: 'itaipu-2', name: 'The Spillway' }), go: (v, act) => pressed.push(act),
+    });
+    const v = { state: 'won', output: 14000, floor: 7700, wave: 2, waves: 2, alive: 0, rack: 1, rackMax: 1, scores: [], mission: 'itaipu-1' };
+    const host = make(true);
+    host.update(v, 1, 0, 14000);
+    const h = host.shown();
+    const buttons = [...document.querySelectorAll('.war-next')].filter((e) => e.getClientRects().length > 0);
+    buttons.at(-1).click();
+    host.update(null);
+    const other = make(false);
+    other.update(v, 2, 0, 14000);
+    const o = other.shown();
+    other.update(null);
+    return { h: { restart: h.restart, next: h.next, back: h.back }, o: { restart: o.restart, next: o.next, back: o.back }, pressed };
+  })()`);
+  check('a won mission\'s banner: the host reads Next mission over Restart, the lobby\'s seconds under them, and Next hands its mission back',
+    got.h.next === 'NEXT MISSION: The Spillway' && got.h.restart === 'RESTART MISSION' && got.h.back === 'BACK TO THE LOBBY IN 6'
+    && JSON.stringify(got.pressed) === '[{"act":"next","mission":"itaipu-2"}]', JSON.stringify(got));
+  check('and another pilot reads only the lobby\'s seconds, no button of its own', got.o.restart === 'BACK TO THE LOBBY IN 6' && got.o.next === '' && got.o.back === '',
+    JSON.stringify(got.o));
+}
+
 async function pipsRule() {
   const got = await a.evaluate(`(async () => {
     const { createWarHud } = await import('/src/ui/warhud.js');
@@ -751,6 +783,7 @@ try {
 
   if (MAIN) {
     await pipsRule();
+    await endRule();
   }
 
   await a.evaluate("window.__warDo('end')");
@@ -767,6 +800,18 @@ try {
     check('and the war left B\'s own crash damage setting as it was: off', ownAfter === false, `setting ${ownAfter}`);
     const l = await linkSame();
     check('and the radio link was never touched, the war\'s hits and warheads and all', l.ok, l.detail);
+    /* The host's one press on the end banner (COMPLETENESS 76): the same
+     * mission again, and the room brings B along. */
+    const endedId = ea.view.id;
+    const hostRow = await a.evaluate("(() => { const b = [...document.querySelectorAll('.war-restart')].find((e) => e.getClientRects().length > 0); if (b) { b.click(); } return b ? b.textContent : null; })()");
+    const AGAIN = `['briefing', 'countdown', 'live'].includes(window.__war().view.state) && window.__war().view.id > ${endedId}`;
+    for (const p of pages) {
+      await p.until(AGAIN, 20000).catch(() => {});
+    }
+    const again = await Promise.all(pages.map((p) => p.evaluate('window.__war().view')));
+    check('one press on the host\'s banner starts the mission again, and B is in it too', hostRow === 'RESTART MISSION'
+      && again.every((v) => v.id > endedId && v.mission === ea.view.mission && ['briefing', 'countdown', 'live'].includes(v.state)),
+    JSON.stringify({ hostRow, again: again.map((v) => ({ id: v.id, state: v.state, mission: v.mission })) }));
   }
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));

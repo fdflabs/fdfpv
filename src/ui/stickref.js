@@ -32,6 +32,7 @@
  */
 
 import { COLUMN as C, parseCsv } from '../share/controlrec.js';
+import { logWarn } from '../share/crashrecord.js';
 
 export class StickRef {
   constructor() {
@@ -163,7 +164,7 @@ export function pickStickRef(ref, done) {
     try {
       ref.loadCsv(await file.text(), file.name.replace(/\.csv$/i, ''));
     } catch (e) {
-      console.warn(`stickref: ${file.name} refused: ${e.message}`);
+      logWarn('input', `stickref: ${file.name} refused: ${e.message}`);
       ref.clear();
       ref.status = 'refused';
     }

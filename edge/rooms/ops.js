@@ -22,7 +22,9 @@
  * change, { type: 'ops', op: 'cue', cues } filtered per seat by who hears
  * each line, and { type: 'ops', error } to a refused sender. A watcher
  * (core.js watch) is sent the view with no result and the lines told to
- * all.
+ * all, and so is a seat whose pilot did not take part in the match
+ * (took). The view's uid is the match's id across every room (war.js
+ * warUid, kind 'o'), which a page pays the result once by.
  *
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. The match is plain data, handed
@@ -74,6 +76,8 @@ import {
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
+import { warUid } from './war.js';
+import { watchedView } from './core.js';
 
 export { MISSIONS };
 
@@ -173,6 +177,11 @@ export class RoomOps {
     if (this.match && !this.missions[this.match.mission]) {
       this.match = null;
     }
+    /* A match stored before `pilots`: those it still held are the ones
+     * known to have taken part. */
+    if (this.match && !this.match.pilots) {
+      this.match.pilots = [...new Set(Object.values(this.match.tokens ?? {}))];
+    }
   }
 
   store() {
@@ -218,6 +227,7 @@ export class RoomOps {
     return {
       state: m.state,
       id: m.id,
+      uid: warUid(this.meta, m, 'o'),
       mission: m.mission,
       campaign: mission.campaign ?? null,
       goAt: m.goAt,
@@ -273,14 +283,32 @@ export class RoomOps {
     };
   }
 
-  welcome(core) {
-    return { ops: this.view(core) };
+  /* s: the seat welcomed; its view carries the result only if its pilot
+   * took part (took), as changed() sends it. */
+  welcome(core, s) {
+    const v = this.view(core);
+    return { ops: this.took(s) ? v : watchedView(v) };
   }
 
-  /* The view to every seat, and to every watcher with no result (core.js
-   * viewed): a watcher sees the match and holds no debrief of it. */
+  /*
+   * Whether seat s's pilot took part in the match: seated while it was on
+   * at any point, by token (every seat at the start, a joiner since,
+   * enlist), here now or gone, back after the end included. The
+   * Interior's squad leaves no seat out (players) and its consent is the
+   * page's (src/main.js), so this is all it asks. A watcher and a pilot
+   * first seated after the end did not. The result is paid to these
+   * seats' pages and no others (src/ui/opscampaign.js record).
+   */
+  took(s) {
+    const m = this.match;
+    return Boolean(m && s && s.token && m.pilots.includes(s.token));
+  }
+
+  /* The view to every seat that took part, and to every other seat and
+   * every watcher with no result (core.js viewed): those see the match
+   * and hold no debrief of it. */
   changed(core) {
-    return [this.store(), ...core.viewed('ops', this.view(core))];
+    return [this.store(), ...core.viewed('ops', this.view(core), (s) => this.took(s))];
   }
 
   error(conn, error, why = undefined) {
@@ -323,6 +351,7 @@ export class RoomOps {
       roles.leave(m.roles, mission.roles, s.seat, roomNow);
     }
     m.tokens[s.seat] = s.token;
+    m.pilots = [...new Set([...m.pilots, s.token])];
     delete m.away[s.seat];
     roles.join(m.roles, mission.roles, s.seat, roomNow);
   }
@@ -469,6 +498,7 @@ export class RoomOps {
     const seed = cp ? cp.seed : Math.floor(this.random() * 4294967296) >>> 0;
     const m = {
       id: this.nextId,
+      startedAt: now,
       mission: mission.id,
       seed,
       goAt,
@@ -502,6 +532,9 @@ export class RoomOps {
        * seat holds and does not fly count (liveHolds). */
       holds: {},
       tokens: {},
+      /* Every token seated in the match at any point, never pruned
+       * (took); tokens is only who holds each seat now. */
+      pilots: [],
       away: {},
       checkpoint: null,
       restarted: null,
@@ -533,6 +566,7 @@ export class RoomOps {
     for (const s of seats) {
       m.tokens[s.seat] = s.token;
     }
+    m.pilots = [...new Set(seats.map((s) => s.token))];
     for (const r of this.seats.values()) {
       r.crashed = false;
     }

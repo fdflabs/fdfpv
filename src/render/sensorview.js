@@ -83,6 +83,22 @@ export const INSET_SIZES = {
   large: [640, 400],
 };
 
+/*
+ * Materials a sensor's own picture leaves out, as the thermal draw leaves
+ * out thermalHide's: a name tag (src/render/peers.js), a label put over
+ * the scene and not light any camera takes. Hidden for the radiance draw
+ * only; a picture taken from the composer is the main view's, tags and
+ * all. In a war's full room at High the seven tags were 7 of the inset's
+ * 120 calls, each 1 to 3 of its 270 rows tall at 20 to 100 m, no letter
+ * legible (docs/PERF.md, The war at its peak).
+ */
+const sensorHidden = new Set();
+export function sensorHide(material) {
+  sensorHidden.add(material);
+  material.addEventListener('dispose', () => sensorHidden.delete(material));
+  return material;
+}
+
 /* Seconds for the gain to move most of the way to a new scene. */
 const AGC_TAU = 0.6;
 
@@ -847,8 +863,20 @@ export function createSensorView(renderer, { onInset } = {}) {
           scene.onBeforeRender = hook;
         }
       } else {
-        renderer.setRenderTarget(rt);
-        renderer.render(scene, camera);
+        const was = [...sensorHidden].map((m) => m.visible);
+        for (const m of sensorHidden) {
+          m.visible = false;
+        }
+        try {
+          renderer.setRenderTarget(rt);
+          renderer.render(scene, camera);
+        } finally {
+          let k = 0;
+          for (const m of sensorHidden) {
+            m.visible = was[k];
+            k += 1;
+          }
+        }
       }
     } finally {
       renderer.shadowMap.autoUpdate = auto;

@@ -27,6 +27,29 @@
  *            A once A's cascade is over
  *   reset    a new match (another view id) lights everything again
  *
+ * and a second sequence, Lights Out's reroute (MISSIONS.md M3, TECH-NEEDS
+ * T1.10): the yard hit, then the view's restore of four right bank towns
+ * (as itaipu-3.js's reroute names them, far first), then five west
+ * units lost one by one:
+ *
+ *   restore  the four come back after the restore and the yard's other
+ *            districts stay dark; each comes back CASCADE_MS after the
+ *            one before it, in the order named, flickering (both on and
+ *            off) for FLICKER_MS before it is lit; A and B agree bit for
+ *            bit; the restore changes no earlier moment; a screen that
+ *            joins after it has the same lit; a unit lost later sheds a
+ *            fed town by its keep (Ciudad del Este at half the side)
+ *   control  the same sequence without the restore (a failed reroute,
+ *            which the room records nothing for) brings nothing back
+ *   before   a restore before the yard is hit keeps the four lit through
+ *            the hit, the yard's other districts going out as before
+ *   replay   A's frames recorded as the crash cam records them (src/
+ *            replay/warrec.js, fed the view and the deaths as src/replay/
+ *            crashcam.js tapWar feeds it) and replayed (worldAt, src/
+ *            share/war/world.js matchAt): at every row the replay's
+ *            levels are the live frame's, bit for bit, so the four come
+ *            back in the order named; the failed reroute's replay too
+ *
  *   node scripts/war-grid-check.js
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -46,9 +69,11 @@
  */
 
 import { createRoomWar } from '../src/share/roomwar.js';
+import { checkWar, createWarRing, worldAt } from '../src/replay/warrec.js';
 import {
   createGrid, DISTRICTS, CASCADE_MS, FLICKER_MS, districtIndex,
 } from '../src/share/war/grid.js';
+import { STATION_DARK_DISTRICTS, stationOrder } from '../src/share/war/stationdark.js';
 
 let failed = 0;
 const check = (name, ok, detail = '') => {
@@ -100,10 +125,31 @@ const EXPECT = [
   { at: END - 1, dark: ['dam-0', 'spillway', 'dam-2', 'vila-c', 'yard', ...PY_TOWNS, 'foz-north'] },
 ];
 
-function client() {
+/* `ring`, a warrec.js ring of a row a frame, records each frame as the
+ * crash cam does: the view and the room ms when the shell takes the
+ * events, then each death. */
+function client(ring = null) {
   const war = createRoomWar(() => {});
   const grid = createGrid();
   war.onWelcome({ seat: 1, war: { state: 'lobby' } });
+  let row = 0;
+  const take = (t) => {
+    const evs = war.takeEvents();
+    if (ring) {
+      const v = war.view();
+      ring.begin(row);
+      row += 1;
+      ring.world(war.match(), v.mission, v.down, war.on(), t, v.restores, v.stationDark);
+      for (const ev of evs) {
+        if (ev.type === 'dead') {
+          ring.dead(ev);
+        } else if (ev.type === 'damage') {
+          ring.damage(ev);
+        }
+      }
+    }
+    return evs;
+  };
   return {
     war,
     grid,
@@ -113,10 +159,11 @@ function client() {
       }
     },
     /* One frame of the shell at room ms t: its events heard, then the
-     * levels read (src/main.js roomWarFrame). */
+     * levels read (src/main.js roomWarFrame), under the view's order to
+     * put the station's lights out (warLiveWorld). */
     frame(t) {
-      grid.hear(war.takeEvents(), war.view());
-      return grid.levels(war.view(), t).slice();
+      grid.hear(take(t), war.view());
+      return stationOrder(grid.levels(war.view(), t).slice(), war.view().stationDark, t);
     },
     state(t) {
       return grid.state(war.view(), t);
@@ -230,6 +277,257 @@ console.log('reset: the next match');
   A.c.deliver([{ type: 'war', war: { state: 'live', id: 'm-night-2', mission: 'itaipu-4', down: [] } }]);
   const lv = A.c.frame(END + 1000);
   check('every district lit again', lv.every((v) => v === 1), `${lv.filter((v) => v !== 1).length} not lit`);
+}
+
+/* Lights Out's reroute (MISSIONS.md M3). */
+const RESTORED = ['ciudad-del-este', 'hernandarias-far', 'acaray', 'hernandarias-s'];
+const UNFED = PY_TOWNS.filter((id) => !RESTORED.includes(id));
+const R_MATCH = 'm-dusk-1';
+const rview = (down, restores) => ({
+  type: 'war',
+  war: {
+    state: 'live', id: R_MATCH, mission: 'itaipu-3', goAt: 0, output: 14000, floor: 9700, down, restores,
+  },
+});
+const BACK_AT = 60000;
+const R_END = 150000;
+/* The ticks of a match whose yard falls at `yardAt` and whose reroute
+ * holds at `holdAt` (null: it fails, and the room records no restore). */
+function reroute(yardAt, holdAt) {
+  const restores = (t) => (holdAt != null && t >= holdAt ? [{ at: holdAt, districts: RESTORED }] : []);
+  const ticks = [];
+  let down = [];
+  const events = [{ t: yardAt, target: 'yard-right' }, ...[0, 1, 2, 3, 4].map((u) => ({ t: 90000 + 10000 * u, target: `intake-${u}` }))];
+  for (const t of [0, yardAt, ...(holdAt != null ? [holdAt] : []), ...events.slice(1).map((e) => e.t)].sort((a, b) => a - b)) {
+    const hit = events.find((e) => e.t === t);
+    if (hit) {
+      down = [...down, hit.target];
+    }
+    ticks.push({ t, msgs: [rview(down, restores(t)), ...(hit ? [dead(t, hit.target, true)] : [])] });
+  }
+  return ticks;
+}
+function runTicks(ticks, lag, step, swap, end, ring = null) {
+  const c = client(ring);
+  const inbox = ticks.map((k) => ({ t: k.t + lag, msgs: swap ? [...k.msgs].reverse() : k.msgs }));
+  const frames = [];
+  let t = 0;
+  let k = 0;
+  while (t < end) {
+    while (inbox.length && inbox[0].t <= t) {
+      c.deliver(inbox.shift().msgs);
+    }
+    frames.push({ t, levels: c.frame(t) });
+    t += step(k);
+    k += 1;
+  }
+  return { frames, c };
+}
+const darkAt = (c, t) => {
+  const s = c.state(t);
+  return Object.keys(s).filter((id) => s[id] === 'dark').sort();
+};
+const same = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+
+console.log('restore: the yard hit, the reroute holds, four towns come back');
+{
+  const ticks = reroute(10000, BACK_AT);
+  const RA = runTicks(ticks, 0, () => 16, false, R_END);
+  const RB = runTicks(ticks, 230, (k) => jitter[k % jitter.length], true, R_END);
+  const settled = BACK_AT + RESTORED.length * CASCADE_MS + FLICKER_MS;
+  const before = darkAt(RA.c, BACK_AT - 1);
+  check('before the restore the yard and every right bank town are dark', same(before, ['yard', ...PY_TOWNS]), `dark ${before.join(', ')}`);
+  const after = darkAt(RA.c, settled);
+  check(`after it the four are lit (${RESTORED.join(', ')}), the yard and the other four dark`, same(after, ['yard', ...UNFED]), `dark ${after.join(', ')}`);
+  const changes = RA.c.grid.changes(RA.c.war.view());
+  const starts = RESTORED.map((id) => changes[districtIndex(id)].find((x) => x.on)?.at);
+  check('each comes back CASCADE_MS after the one before, in the order named, from the restore',
+    starts.every((at, k) => at === BACK_AT + k * CASCADE_MS), `starts ${starts.join(', ')}`);
+  for (const id of RESTORED) {
+    const i = districtIndex(id);
+    const f = changes[i].find((x) => x.on).at;
+    const seen = RA.frames.filter((fr) => fr.t >= f && fr.t < f + FLICKER_MS).map((fr) => fr.levels[i]);
+    const on = seen.filter((v) => v > 0).length;
+    const off = seen.filter((v) => v === 0).length;
+    const dim = RA.frames.filter((fr) => fr.t < f && fr.t > f - 1000).every((fr) => fr.levels[i] === 0);
+    const lit = RA.frames.filter((fr) => fr.t >= f + FLICKER_MS && fr.t < 100000).every((fr) => fr.levels[i] === 1);
+    /* The hit's flicker played backwards: rarer near the start, as the
+     * hit's is near its end. */
+    const half = (lo, hi) => seen.slice(Math.floor(lo * seen.length), Math.floor(hi * seen.length)).filter((v) => v > 0).length;
+    check(`${id} dark, flickers back, then lit`, dim && on > 0 && off > 0 && lit && half(0, 0.5) < half(0.5, 1),
+      `${on} frames on and ${off} off over its ${FLICKER_MS} ms, ${half(0, 0.5)} on in the first half and ${half(0.5, 1)} in the second`);
+  }
+  const heardBy = (t) => ticks.every((k) => k.t > t || k.t + 230 <= t);
+  let compared = 0;
+  let differ = 0;
+  for (const fb of RB.frames) {
+    if (!heardBy(fb.t)) {
+      continue;
+    }
+    compared += 1;
+    const la = RA.c.grid.levels(RA.c.war.view(), fb.t);
+    differ += la.some((v, i) => v !== fb.levels[i]) ? 1 : 0;
+  }
+  check('A and B the same levels, bit for bit, through the restore', compared > 2000 && differ === 0, `${compared} of B's frames compared, ${differ} differ`);
+  let back = 0;
+  for (const fa of RA.frames) {
+    const now = RA.c.grid.levels(RA.c.war.view(), fa.t);
+    back += now.some((v, i) => v !== fa.levels[i]) ? 1 : 0;
+  }
+  check('the restore and the later losses never change what an earlier moment showed', back === 0, `${back} of ${RA.frames.length} frames changed`);
+  const C = client();
+  C.war.onWelcome({ seat: 3, war: ticks.find((k) => k.t === BACK_AT).msgs[0].war });
+  C.frame(settled);
+  check('a screen that joins after the restore has the same districts dark', same(darkAt(C, settled), darkAt(RA.c, settled)),
+    `C ${darkAt(C, settled).join(', ')}`);
+  /* Five west units lost (90 to 130 s): the side at 0.5, under Ciudad del
+   * Este's keep of 0.55, over the other three's; the first quarter of the
+   * dam's own lights with them (its units 0 to 4). */
+  const shed = darkAt(RA.c, R_END - 1);
+  check('a unit lost after the restore sheds a fed town by its keep: Ciudad del Este at half the side, the other three lit',
+    same(shed, ['yard', ...UNFED, 'ciudad-del-este', 'dam-0']), `dark ${shed.join(', ')}`);
+}
+
+console.log('control: the reroute fails, nothing comes back');
+{
+  const ticks = reroute(10000, null);
+  const RA = runTicks(ticks, 0, () => 16, false, R_END);
+  const at = [BACK_AT + RESTORED.length * CASCADE_MS + FLICKER_MS, R_END - 1].map((t) => darkAt(RA.c, t));
+  check('the yard and every right bank town stay dark to the end (the dam\'s first quarter too, once its units go)',
+    same(at[0], ['yard', ...PY_TOWNS]) && same(at[1], ['yard', ...PY_TOWNS, 'dam-0']), at.map((d) => d.join(' ')).join(' | '));
+  check('and no district ever comes back on', RA.c.grid.changes(RA.c.war.view()).every((c) => c.every((x) => !x.on)));
+}
+
+console.log('before: a reroute that held before the yard was hit');
+{
+  const ticks = reroute(70000, 20000);
+  const RA = runTicks(ticks, 0, () => 16, false, 90000);
+  const d = darkAt(RA.c, 70000 + 10 * CASCADE_MS + FLICKER_MS);
+  check('the four stay lit through the hit, the yard and the other four go out', same(d, ['yard', ...UNFED]), `dark ${d.join(', ')}`);
+  const flick = RESTORED.filter((id) => RA.frames.some((fr) => fr.levels[districtIndex(id)] !== 1));
+  check('and never so much as flicker', flick.length === 0, flick.join(', '));
+}
+
+console.log('replay: the crash cam\'s replay of the match, against its live frames');
+/* A's frames recorded and replayed; the rows, their room ms and levels. */
+function replayed(ticks, end) {
+  const rows = Math.ceil(end / 16);
+  const ring = createWarRing(rows);
+  const live = runTicks(ticks, 0, () => 16, false, end, ring);
+  const war = ring.clip(0, live.frames.length);
+  checkWar(war, live.frames.length);
+  const caches = new Map();
+  const frames = live.frames.map((f, k) => ({ t: war.clock[k], levels: worldAt(war, live.frames.length, k, 0, caches).levels.slice() }));
+  return { live: live.frames, war, frames };
+}
+const differs = (r) => {
+  let n = 0;
+  let first = '';
+  r.frames.forEach((f, k) => {
+    const l = r.live[k];
+    const i = f.t === l.t ? f.levels.findIndex((v, j) => v !== l.levels[j]) : 0;
+    if (f.t !== l.t || i >= 0) {
+      n += 1;
+      first ||= `row ${k} at ${l.t}: ${DISTRICTS[i].id} replay ${f.levels[i]}, live ${l.levels[i]}`;
+    }
+  });
+  return { n, first };
+};
+{
+  const r = replayed(reroute(10000, BACK_AT), R_END);
+  const kept = r.war.world[0].restores;
+  check('the clip keeps the view\'s restore, once', JSON.stringify(kept) === JSON.stringify([{ at: BACK_AT, districts: RESTORED }]), JSON.stringify(kept));
+  const d = differs(r);
+  check('at every row the replay\'s levels are the live frame\'s, bit for bit, through the restore and the later losses', d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+  /* The room ms each comes back at in the replay: its first row lit to
+   * stay after the restore. */
+  const lit = RESTORED.map((id) => {
+    const i = districtIndex(id);
+    const k = r.frames.findIndex((f, j) => f.t >= BACK_AT && r.frames.slice(j).every((g) => g.t >= 100000 || g.levels[i] > 0));
+    return k < 0 ? null : r.frames[k].t;
+  });
+  const dark = RESTORED.every((id) => r.frames.filter((f) => f.t > 10000 + 10 * CASCADE_MS + FLICKER_MS && f.t < BACK_AT).every((f) => f.levels[districtIndex(id)] === 0));
+  check('in the replay the four are dark until the restore and come back in the order named', dark && lit.every((t, k) => t !== null && (k === 0 || t > lit[k - 1])),
+    lit.map((t, k) => `${RESTORED[k]} ${t}`).join(', '));
+}
+{
+  const r = replayed(reroute(10000, null), R_END);
+  const d = differs(r);
+  check('the failed reroute\'s replay keeps none and is its live frames, bit for bit', !('restores' in r.war.world[0]) && d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+}
+
+/* The Long Night's twist A (src/share/war/missions/itaipu-4.js
+ * STATION_DARK, not in the draw yet): the view names the room ms the
+ * station's lights went out by order from the stage's entry on, and the
+ * recorder keeps it with the match as tapWar does (warrec.js THE
+ * ORDER). */
+const SD_AT = 30000;
+const SD_END = 60000;
+function stationDarkTicks() {
+  const sview = (down, stationDark) => ({
+    type: 'war',
+    war: {
+      state: 'live', id: 'm-night-sd', mission: 'itaipu-4', goAt: 0, output: 14000, floor: 7700, down, stationDark,
+    },
+  });
+  return [
+    { t: 0, msgs: [sview([], null)] },
+    { t: 10000, msgs: [sview(['intake-14'], null), dead(10000, 'intake-14', true)] },
+    { t: SD_AT, msgs: [sview(['intake-14'], SD_AT)] },
+  ];
+}
+{
+  const r = replayed(stationDarkTicks(), SD_END);
+  const settled = r.live.filter((f) => f.t >= SD_AT + FLICKER_MS);
+  check('live, the station\'s own districts are dark once the order\'s flicker is over',
+    settled.length > 0 && settled.every((f) => STATION_DARK_DISTRICTS.every((i) => f.levels[i] === 0)),
+    STATION_DARK_DISTRICTS.map((i) => DISTRICTS[i].id).join(', '));
+  check('the clip keeps the view\'s order with its match', r.war.world[0].stationDark === SD_AT, String(r.war.world[0].stationDark));
+  const d = differs(r);
+  check('at every row the recorded clip\'s replay is the live frame\'s, bit for bit, through the order', d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+  const blind = { ...r.war, world: r.war.world.map(({ stationDark, ...m }) => m) };
+  const caches = new Map();
+  const bare = differs({ ...r, frames: r.live.map((f, k) => ({ t: blind.clock[k], levels: worldAt(blind, r.live.length, k, 0, caches).levels.slice() })) });
+  check('the same clip without the order differs from the live frames (the control)', bare.n > 0, `${bare.n} rows differ`);
+}
+
+/* A target lost to what a warhead broke, on an arrival that missed it
+ * (edge/rooms/war.js strike: its `down` is the blast's, not the aim's):
+ * the room's damage event as it sends it, `by` the attacker's kind. */
+const LOST_AT = 10000;
+const LOST_END = 30000;
+function lostTicks() {
+  const lview = (down) => ({
+    type: 'war',
+    war: {
+      state: 'live', id: 'm-night-lost', mission: 'itaipu-4', goAt: 0, output: 14000, floor: 7700, down,
+    },
+  });
+  return [
+    { t: 0, msgs: [lview([])] },
+    {
+      t: LOST_AT,
+      msgs: [lview(['intake-14']), dead(LOST_AT, 'intake-14', false), {
+        type: 'war', op: 'damage', seq: 0, at: LOST_AT, target: 'intake-14', chunks: [0, 1], fell: [1], openings: [], down: true, health: 0, p: [0, 200, 0], by: 'strike', cut: [],
+      }],
+    },
+  ];
+}
+{
+  const ring = createWarRing(Math.ceil(LOST_END / 16));
+  const n = runTicks(lostTicks(), 0, () => 16, false, LOST_END, ring).frames.length;
+  const kept = ring.clip(0, n).world[0].damage;
+  check('the clip keeps the room\'s damage event as the room sends it (by the attacker\'s kind)', ring.stats.damageDropped === 0 && kept.length === 1 && kept[0].by === 'strike',
+    `${kept.length} kept, ${ring.stats.damageDropped} dropped`);
+  const r = replayed(lostTicks(), LOST_END);
+  const out = DISTRICTS.filter((x, i) => r.live.at(-1).levels[i] === 0).map((x) => x.id);
+  check('live, the lost intake\'s districts go out from the damage event alone', out.length > 0, `dark ${out.join(', ')}`);
+  const d = differs(r);
+  check('at every row the replay\'s levels are the live frame\'s, bit for bit, the loss read from the damage event', d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
 }
 
 if (failed) {

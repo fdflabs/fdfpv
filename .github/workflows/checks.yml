@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: true
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       # ws, the one dependency: rooms:server starts the VM's rooms server,
@@ -134,6 +134,9 @@ jobs:
       # No em or en dash in any text the repository holds (CLAUDE.md),
       # outside vendor/.
       - run: npm run lint:dashes
+      # No bare console.warn or console.error in src/: each goes through
+      # logWarn or logError, so the bug report's log holds it (COMPLETENESS 65).
+      - run: npm run lint:console
       - run: npm run lint:owner-rules
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).
@@ -193,10 +196,10 @@ jobs:
   shard-2:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm ci
@@ -390,10 +393,10 @@ jobs:
   shard-3:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm ci
@@ -485,10 +488,16 @@ jobs:
       # The frame loop frame by frame on a virtual clock against its record
       # (scripts/loop-golden.js). 95 s locally on the software rasteriser.
       - run: npm run loop:golden
-      # Two pages in a public room: chat, emotes, mute, report and undo
-      # (scripts/rooms-safety-two-page.js), on a rooms server of its own.
-      # 126 s locally on the software rasteriser.
-      - run: npm run rooms:safety
+      # rooms:safety (two pages in a public room: chat, emotes, mute,
+      # report and undo, scripts/rooms-safety-two-page.js) stays a local
+      # check: 126 s here on the software rasteriser. On a 2-core software
+      # runner each page draws a frame every 10 to 20 s (pinned to 2 cores
+      # here, 2026-10-15), under the slowest page a room holds (one frame in
+      # 5 s, edge/rooms/core.js HOLD_MS), so whether B draws A after the
+      # mute is chance: it failed so on release/2026-10-15a and here at
+      # e2caf982f too. A page that slow is not a product signal.
+      # tools/local-ci.sh runs the local-only lines.
+      # local-only: rooms:safety
       # Every screen on five phones and tablets, in English and Spanish:
       # every row reachable, no word cut (scripts/device-check.js). 73 to
       # 126 s locally. On the lightest shard by measured time (shard-3,
@@ -500,14 +509,19 @@ jobs:
       # server plus AI fill never read calm), so the lead and the lanes run
       # it before a release instead (2026-10-13).
       # local-only: modes:card
+      # replay:world (a match's map replayed against the live frames) stays
+      # local too: 169 s on 20 cores and a GPU here, 66 s of it fixed waits
+      # on the room clock, and it boots Itaipu, whose data this shard does
+      # not check out (2026-10-14).
+      # local-only: replay:world
 
   shard-4:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm ci
@@ -559,7 +573,7 @@ jobs:
       # Itaipu's map data is its own public repository, not this one; the
       # daytime checks fly Itaipu, so they read it at a pinned commit
       # (tests/lib/server.js serves FDFPV_ITAIPU_DATA as itaipu-data/).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: fdflabs/fdfpv-itaipu-data
           ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
@@ -619,6 +633,9 @@ jobs:
       - run: npm run aircraft:folder
       # Each folder's class and roles, held to its flags (scripts/airframes-check.js).
       - run: npm run airframes:check
+      # Every content file registered under its owner, nothing orphaned
+      # (docs/CONTENT-OWNERS.md, scripts/content-owners.js).
+      - run: npm run content:owners
       # The plant's FW_* tables in src/native/plant_wing.c are generated
       # from aircraft/<id>/plant.json: folder and C agree both ways, and a
       # changed folder and a changed C each fail (scripts/aircraft-ctable.js).
@@ -648,10 +665,10 @@ jobs:
   shard-5:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm ci
@@ -677,7 +694,7 @@ jobs:
       # the Swiss valley's field unseen. About 40 s.
       # lint:memory boots every world, Itaipu among them, whose data is its
       # own public repository (see the daytime steps in shard-4).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: fdflabs/fdfpv-itaipu-data
           ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad

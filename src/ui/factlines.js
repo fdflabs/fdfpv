@@ -25,6 +25,7 @@ import { formatScore } from '../game/score.js';
 import { splitDuration } from '../share/flighttime.js';
 import { str } from '../strings/index.js';
 import { formatRunClock, formatTime, lengthText } from './format.js';
+import { challengeTitle } from './challengewords.js';
 
 function hoursText(s) {
   const { h, m } = splitDuration(s);
@@ -39,6 +40,16 @@ function hoursText(s) {
 function recordText(r) {
   if (r.what === 'debrief.aircraft_time') {
     return hoursText(r.now);
+  }
+  /* An aircraft challenge this run did (withBests): which one. */
+  if (r.kind === 'challenge') {
+    return challengeTitle(r.airframe, r.id);
+  }
+  /* A best this run set (src/game/debrief.js withBests): the new value
+   * and the one it replaced. */
+  if (r.kind) {
+    const value = r.kind === 'lap' || r.kind === 'run' ? formatTime : (n) => String(n);
+    return r.before == null ? str('debrief.best_first', { now: value(r.now) }) : str('debrief.best_beat', { now: value(r.now), before: value(r.before) });
   }
   if (r.what === 'debrief.run_best' && r.improved) {
     return str('debrief.board_best_new', { now: formatScore(r.now) });

@@ -35,7 +35,7 @@
 import { AIRFRAME_IDS, airframeById, landPlaneOf, retiredAirframe } from '../../configs/airframes.js';
 import { cleanCampaign, MAX_STARS, ACT1, INTERIOR } from '../game/campaign.js';
 import { MEDAL_STEPS } from '../game/medals.js';
-import { levelInfo } from '../game/progress.js';
+import { bestKind, bestsMap, levelInfo } from '../game/progress.js';
 import { flightTotals } from '../share/flighttime.js';
 import { countTotals } from '../share/pilotcounts.js';
 import { currentLocale, plural, str } from '../strings/index.js';
@@ -66,6 +66,16 @@ function planeName(id) {
 /* Every landing on every aircraft (src/game/progress.js COUNTED). */
 function landingTotal(by) {
   return Object.values(by || {}).reduce((n, v) => n + (Number.isInteger(v) && v > 0 ? v : 0), 0);
+}
+
+/* The bests (src/game/progress.js BESTS) a mode line shows: Track Day's
+ * count of laps and runs, Streamer Combat's highest round on any world.
+ * Catch the Ace! keeps the best its line already shows (pilotCounts). */
+function bestsShown(stored) {
+  const all = Object.entries(bestsMap(stored));
+  const times = all.filter(([k]) => bestKind(k) === 'lap' || bestKind(k) === 'run').length;
+  const combat = all.filter(([k]) => bestKind(k) === 'combat').reduce((n, [, v]) => Math.max(n, v), 0);
+  return { race: times, combat };
 }
 
 /* The numbers, from the settings and the wallet last held (null when
@@ -110,6 +120,7 @@ export function pilotStats(settings, wallet = null) {
     flights: counts.flights,
     landings: landingTotal(progress.landings),
     games: { tag: counts.tag, jam: counts.jam },
+    bests: bestsShown(progress.bests),
     tokens: wallet && Number.isFinite(wallet.balance) ? wallet.balance : null,
   };
 }
@@ -180,6 +191,12 @@ export function paintPilotStats(host, st) {
     const game = st.games[id];
     if (game && game.played > 0) {
       m.append(el('span', 'gate-stats-mode-game', str('stats.game', { won: num(game.won), played: num(game.played), best: num(game.best) })));
+    }
+    const bests = st.bests ? st.bests[id] : 0;
+    if (id === 'race' && bests > 0) {
+      m.append(el('span', 'gate-stats-mode-game', plural('stats.bests', bests, { n: num(bests) })));
+    } else if (id === 'combat' && bests > 0) {
+      m.append(el('span', 'gate-stats-mode-game', str('stats.best_score', { best: num(bests) })));
     }
     modes.append(m);
   });

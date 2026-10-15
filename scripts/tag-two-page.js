@@ -302,10 +302,19 @@ try {
   const kept = await Promise.all(pages.map((p) => p.evaluate(`(() => {
     const t = window.__roomTag();
     const mine = t.standings.find((r) => r.seat === window.__rooms().seat);
-    return { seat: window.__rooms().seat, points: mine ? mine.points : null, slots: Object.values(window.__ui.settings.pilotCounts || {}).map((x) => x.tag || {}) };
+    const line = ((window.__ui.resultsDebrief || {}).accuracy || []).find((x) => x.what === 'debrief.points');
+    const round = window.__ui.progress.flight.events.filter((e) => e.type === 'round' && e.game === 'tag').pop();
+    return {
+      seat: window.__rooms().seat, points: mine ? mine.points : null, slots: Object.values(window.__ui.settings.pilotCounts || {}).map((x) => x.tag || {}),
+      shown: line ? line.n : null, logged: round ? round.points : null,
+    };
   })()`)));
   check('each page kept the match: played once, won on A only, its best its own points', kept.every((k) => k.slots.length === 1
     && k.slots[0].played === 1 && (k.slots[0].won || 0) === (k.seat === v.winner ? 1 : 0) && (k.slots[0].best || 0) === k.points), JSON.stringify(kept));
+  /* The debrief's points are read from the flight's event log, the round
+   * logged as the room ended it (src/game/debrief.js fromRoom,
+   * COMPLETENESS.md item 26), and they are the room's. */
+  check('each page\'s debrief says its points from its log, the room\'s own', kept.every((k) => k.shown === k.points && k.logged === k.points && Number.isInteger(k.points)), JSON.stringify(kept.map((k) => [k.points, k.logged, k.shown])));
   await shot(a, 'a-results');
   await shot(b, 'b-results');
   await shot(c, 'c-results');

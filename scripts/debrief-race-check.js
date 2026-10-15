@@ -213,8 +213,42 @@ async function run(lang, track) {
     say(Boolean(f) && f.clear, `the facts cover none of the hero, the laps or the menu: ${f && f.box}`);
     const want = ['debrief.air_time', 'debrief.distance', 'debrief.top', 'debrief.clean_laps', 'debrief.condition', 'debrief.track_record', 'debrief.aircraft_time'].map((k) => t[k]);
     say(f && JSON.stringify(f.dts) === JSON.stringify(want), `its lines in order: ${f && f.dts.join(' | ')}`);
+    /* Every gate was reached by __placeCraft, a developer hook: each
+     * placement starts a new flight in the event log, so no lap or run of
+     * this ring is a best (docs/redesign/PROGRESSION.md 3.1), though its
+     * laps are logged with their course and their place in the run. */
+    const dev = await page.evaluate(`(() => {
+      const p = window.__ui.progress;
+      const laps = p.flight.events.filter((e) => e.type === 'lap');
+      return { bests: Object.keys(window.__ui.settings.progress.bests || {}).length, shown: p.runBests().length, lap: laps.length ? laps[laps.length - 1] : null, want: window.__ui.settings.laps };
+    })()`);
+    say(dev.bests === 0 && dev.shown === 0 && Boolean(dev.lap) && typeof dev.lap.course === 'string' && dev.lap.n === dev.want && dev.lap.of === dev.want && f && !f.dts.includes(t['debrief.best_lap']),
+      `a run flown by placing the craft sets no best and shows no New best line: ${JSON.stringify(dev)}`);
     say(f && f.dds[0] !== '0:00' && /^\d+:\d\d$/.test(f.dds[0]), `time in the air counted: ${f && f.dds[0]}`);
     say(f && f.dds[3] === t['debrief.n_of'].replace('{n}', '3').replace('{of}', '3'), `clean laps: ${f && f.dds[3]}`);
+    /* From the log (COMPLETENESS.md item 26): every gate was a placement,
+     * so each lap closed in a flight of its own, and the run's log still
+     * holds race.js's three rows; the debrief rebuilt from a JSON round
+     * trip of it is the one shown. */
+    const fromLog = await page.evaluate(`(async () => {
+      const m = await import('/src/game/debrief.js');
+      const d = window.__ui.resultsDebrief;
+      const events = JSON.parse(JSON.stringify(window.__ui.progress.runEvents()));
+      const rec = d.records.find((r) => r.what === 'debrief.track_record');
+      const total = d.records.find((r) => r.what === 'debrief.aircraft_time');
+      const again = m.withBests(m.fromRace({
+        aircraft: d.aircraft, fixedWing: d.fixedWing, events, recordAtStart: rec ? rec.before : null, flightMs: d.time.flightMs, totalS: total ? total.now : NaN,
+        route: d.route, replay: d.replay, landed: d.result.landed, condition: d.condition,
+      }), window.__ui.progress.runBests());
+      const rows = events.filter((e) => e.type === 'lap' || e.type === 'lap_void');
+      return {
+        rows: rows.map((e) => e.ms), race: window.__race().log.map((r) => r.ms), flights: events.filter((e) => e.type === 'spawned').length,
+        runMs: d.time.runMs, best: window.__race().bestLapMs(), same: JSON.stringify(again) === JSON.stringify(d),
+      };
+    })()`);
+    say(fromLog.rows.length === 3 && JSON.stringify(fromLog.rows) === JSON.stringify(fromLog.race) && fromLog.flights > 3 && fromLog.runMs === fromLog.best,
+      `the laps shown are the run's logged rows, race.js's own, over ${fromLog.flights} flights: ${JSON.stringify(fromLog)}`);
+    say(fromLog.same, 'the debrief rebuilt from a JSON round trip of the run\'s log is the one shown');
     const hud = await page.evaluate('window.__crash().condition');
     say(f && f.dds[4] === t[`debrief.cond_${hud}`], `the aircraft's condition is the HUD's word, ${hud}: ${f && f.dds[4]}`);
     say(f && f.points > 5, `the route is drawn from above: ${f && f.points} points`);

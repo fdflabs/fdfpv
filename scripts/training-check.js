@@ -10,7 +10,11 @@
  * Stabilised on the valley, says the lesson in a toast and holds its
  * judge. In flight, put in the air by the dev hook, the judge reads the
  * craft's heading every frame (the turn steps count it). Pressing another
- * card ends the lesson. Gates passes on a casual sky track's lap, judged
+ * card ends the lesson. Interrupted (docs/redesign/TRAINING.md 10): the
+ * tab hidden in Turns' flight pauses it and holds the lesson at its step,
+ * said; Resume flies on in it; a crash says it starts again, once; a
+ * reload mid lesson leaves it, its settings back, said on the next load,
+ * and the page marks it Interrupted. Gates passes on a casual sky track's lap, judged
  * from the lap event in the flight's log, and not on a built track's. A
  * lap lesson's pass is stored with its time and
  * the page says Passed, also after a reload. A Defence lesson with no
@@ -22,8 +26,9 @@
  * on Itaipu for the practice (itaipu-practice), the pilot's remembered
  * Who joins for the war untouched, the lesson held; the practice started
  * there goes live on its one stage, a Striker born. Working together,
- * First Light being held in development, says so and makes no room. No
- * page error.
+ * First Light being held in development, says so and makes no room.
+ * Then Turns held and a combat room joined: a session that is not the
+ * lesson's ends it, said. No page error.
  * Pictures in outdir.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -144,6 +149,50 @@ try {
   await shot(page, 'flying');
 
   check('Turns draws no aid', await page.evaluate('window.__aids().glide === null && !window.__aids().gateCue'));
+
+  /* INTERRUPTIONS (docs/redesign/TRAINING.md 10). The tab hidden in the
+   * lesson's flight: paused, the lesson held at its step and said so;
+   * Resume flies on with the same lesson. A crash says the steps start
+   * again, once. A reload mid lesson says it was interrupted, and the
+   * page marks it. */
+  const LESSON_NOW = "(() => { const w = window.__ui.progress.lesson; return { screen: window.__ui.screen, lesson: w ? w.lesson.id : null, step: w ? w.step : null, sub: (window.__ui.progress.log.at(-1) || {}).sub || '' }; })()";
+  const stepBefore = await page.evaluate('window.__ui.progress.lesson.step');
+  await page.evaluate("(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); return true; })()");
+  await page.sleep(400);
+  const hid = await page.evaluate(LESSON_NOW);
+  check('the tab hidden in a lesson\'s flight pauses it, the lesson held at its step, and says so',
+    hid.screen === 'paused' && hid.lesson === 'first_turns' && hid.step === stepBefore && hid.sub === `Held at step ${stepBefore + 1} of 2: Resume carries on from there.`, JSON.stringify(hid));
+  await shot(page, 'lesson-held');
+  await page.evaluate("(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); window.__ui.act('resume'); return true; })()");
+  await page.until("window.__craftState().mode === 'flight'", 15000).catch(() => {});
+  const back = await page.evaluate(`({ ...${LESSON_NOW}, mode: window.__craftState().mode })`);
+  check('Resume flies on in the same lesson and step', back.mode === 'flight' && back.lesson === 'first_turns' && back.step === stepBefore, JSON.stringify(back));
+  const crashSays = await page.evaluate(`(() => {
+    const p = window.__ui.progress;
+    const n = p.log.length;
+    for (let i = 0; i < 5; i += 1) {
+      p.tick({ simMs: p.simMs + 16, crashed: true, grounded: true, heading: 0 });
+    }
+    return p.log.slice(n).map((t) => t.sub);
+  })()`);
+  check('a crash says the lesson starts again, once', JSON.stringify(crashSays) === JSON.stringify(['Crashed: the lesson starts again from step 1.']), JSON.stringify(crashSays));
+  await page.evaluate('(location.reload(), true)');
+  await page.sleep(1000);
+  await page.until('!!window.__shellReady && !!window.__training', 300000);
+  const reloaded = await page.evaluate(`({
+    subs: window.__ui.progress.log.map((t) => t.title + ': ' + t.sub),
+    lesson: window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null,
+    held: (() => { const s = window.__ui.settings; return [s.airframe, s.tune, s.flightMode, s.weather].join(); })(),
+  })`);
+  check('a reload mid lesson: the lesson left, its settings back, and the next load says it was interrupted',
+    !reloaded.lesson && reloaded.held === heldBefore && reloaded.subs.includes('Turns: Interrupted at step 1 of 2 when the page closed. Fly it again from Learn to fly.'), JSON.stringify(reloaded));
+  await page.evaluate('(window.__training.open(), true)');
+  await page.until("!!document.querySelector('.training-box')", 15000).catch(() => {});
+  const cut = await page.evaluate("(() => { const n = document.querySelector('[data-lesson=\"first_turns\"]'); return n ? [n.dataset.state, (n.querySelector('.campaign-tag') || {}).textContent || '', !n.querySelector('.campaign-play').disabled] : null; })()");
+  check('and the page marks it Interrupted, its Fly there', cut && cut[0] === 'interrupted' && cut[1] === 'Interrupted' && cut[2], JSON.stringify(cut));
+  await shot(page, 'lesson-interrupted');
+  await page.evaluate("(window.__training.close(), true)");
+  await page.until('window.__map && window.__map().ready', 400000);
 
   /* THE GLIDE PATH: Land, flown from the page, put on the approach. */
   await page.evaluate("window.__ui.show('title'); true");
@@ -353,6 +402,23 @@ try {
   const closed = await war.evaluate("({ sub: (window.__ui.progress.log.at(-1) || {}).sub || '', code: window.__rooms().code, lesson: window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null })");
   check('Working together while First Light is in development says it is not open, makes no room and holds no lesson',
     closed.sub === 'First Light is not open yet: this lesson opens with it.' && closed.code === room.code && closed.lesson === null, JSON.stringify(closed));
+
+  /* A SESSION THAT IS NOT THE LESSON'S (TRAINING.md 10): Turns held, then
+   * a room joined as an invite's code joins one, a combat room's welcome:
+   * the lesson is left and says so. The practice above kept its own. */
+  await war.evaluate("window.__ui.show('title'); true");
+  await war.sleep(300);
+  await war.evaluate('(window.__training.open(), true)');
+  await war.until("!!document.querySelector('.training-box')", 15000);
+  await click(war, '[data-lesson="first_turns"] .campaign-play');
+  await war.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'first_turns'", 15000).catch(() => {});
+  const turnsHeld = await war.evaluate("window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null");
+  const other = await war.evaluate("window.__roomCreate({ map: 'swiss2', mode: 'combat', public: false })");
+  await war.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(other)}`, 30000).catch(() => {});
+  await war.until('window.__ui.progress.lesson === null', 10000).catch(() => {});
+  const left = await war.evaluate("({ lesson: window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null, mode: window.__rooms().mode, said: window.__ui.progress.log.map((t) => t.title + ': ' + t.sub) })");
+  check('a session that is not the lesson\'s ends it and says so',
+    turnsHeld === 'first_turns' && left.lesson === null && left.said.includes('Turns: Left for another session. Fly it again from Learn to fly.'), JSON.stringify({ turnsHeld, ...left, said: left.said.slice(-2) }));
 } catch (e) {
   check('the Defence run finished', false, e.stack || String(e));
 }

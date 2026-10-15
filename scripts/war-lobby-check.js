@@ -26,9 +26,13 @@
  *     restarts from the lost stage, max 2 stars"): the host's Start now
  *     restarts from that stage, two stars at most; Restart from the
  *     beginning, a row only then, starts from the briefing with every
- *     star; after a win Start now starts fresh. The Spillway the same
+ *     star; after a win, its outro played to the end before the lobby
+ *     (the banner's seconds count from the film's end), Start now starts
+ *     fresh. The Spillway the same
  *     (this check's room starts missions in development), and the
  *     campaign's start, its loadout, from the lost stage too.
+ *   After a win the host's lobby has Next mission, one press to the
+ *     next one's briefing, the room's mission moving with it.
  *   Campaign Play makes a lobby too.
  *
  * Pictures of the lobby at 1920 by 1080 and 390 by 844 in outdir (not in
@@ -60,6 +64,8 @@ import { LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { stagesOf } from '../src/share/war/stages.js';
+import { FILMS, briefingMs } from '../src/share/war/films/index.js';
+import { filmMs } from '../src/share/war/film.js';
 import { WAR_AIRFRAMES, WAR_DEFAULT } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -239,8 +245,13 @@ try {
 
   /* B FINDS IT AND JOINS. */
   const rowAction = `friends-room-${code}`;
+  /* The rooms panel's All rooms (src/ui/roombrowser.js, lobby:rooms),
+   * as a pilot opens Rooms: the friends way in with the world kept. The
+   * friends way alone seats its own world (swiss2), and the swap that
+   * ends after Rooms opened put B on the title (2 of 3 runs at load 10
+   * to 18, 2026-10-15). */
   const openRooms = async () => {
-    await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");
+    await b.evaluate("(() => { window.__ui.act('lobby:rooms'); return true; })()");
     await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(rowAction)})`, 30000).catch(() => {});
   };
   await openRooms();
@@ -364,16 +375,23 @@ try {
     const row = (action) => window.__ui.items().find((it) => it.action === action) || null;
     const s = row('friends-war-start');
     const f = row('friends-war-fresh');
-    return { start: s && s.label, fresh: f && { label: f.label, note: f.note } };
+    const n = row('friends-war-next');
+    return { start: s && s.label, fresh: f && { label: f.label, note: f.note }, next: n && n.label };
   })()`;
   const WAR = '(() => { const v = window.__war().view; return { state: v.state, mission: v.mission, restarted: v.restarted ?? null }; })()';
   const press = async (action) => {
     await a.evaluate(`(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)})); return true; })()`);
     await a.tap('Enter');
   };
-  /* The host back in its lobby after the end banner, the war `state`. */
+  /* The host back in its lobby after the end banner, the war `state`.
+   * A win with an outro plays it first, every key the film's, and the
+   * banner's seconds count from its end (62c7af95e, docs/campaign/
+   * FIRST-LIGHT-OUTRO.md, the owner 2026-10-08): the film's length is
+   * waited for on top. */
+  const outroMs = (id) => (MISSIONS[id] && MISSIONS[id].outro ? filmMs(FILMS[MISSIONS[id].outro]) : 0);
   const hostBack = async (state) => {
-    await a.until(`${IN_LOBBY} && window.__war().view.state === ${JSON.stringify(state)}`, 20000).catch(() => {});
+    const film = state === 'won' ? outroMs(await a.evaluate('window.__war().view.mission')) : 0;
+    await a.until(`${IN_LOBBY} && window.__war().view.state === ${JSON.stringify(state)}`, 20000 + film).catch(() => {});
     await a.sleep(500);
     return a.evaluate(ROWS);
   };
@@ -404,8 +422,19 @@ try {
   const capped = winNow(code);
   check(`and won from there, every criterion met, it earns ${RESTART_STARS} stars`, capped && capped.won && capped.stars === RESTART_STARS
     && capped.criteria.every((c) => c.met), JSON.stringify(capped));
+  /* The outro has the screen past the banner's 8 s: the lobby waits for
+   * the film's end, so the host is never on a lobby whose rows the film
+   * keeps from every press. */
+  await a.until("window.__warIntro() && String(window.__warIntro().for).startsWith('outro:')", 15000).catch(() => {});
+  await a.sleep(10000);
+  const under = await a.evaluate("({ film: (window.__warIntro() || {}).for || null, screen: window.__ui.screen })");
+  check('the win\'s outro still playing past the banner\'s 8 s, and the host not yet put in the lobby under it', /^outro:/.test(under.film || '')
+    && under.screen !== 'friends', JSON.stringify(under));
   const wonRows = await hostBack('won');
   check('after the win: Start now, and no Restart from the beginning', wonRows.start === 'Start now' && wonRows.fresh === null, JSON.stringify(wonRows));
+  /* COMPLETENESS 76: the banner's seconds are over, and the lobby has the
+   * host's Next mission, one press, beside Start now. */
+  check('and the host\'s lobby has Next mission: The Spillway, mission 2 being playable here', wonRows.next === 'Next mission: The Spillway', JSON.stringify(wonRows));
   await press('friends-war-start');
   await a.until("window.__war().view.state === 'briefing'", 15000).catch(() => {});
   const afterWin = await a.evaluate(WAR);
@@ -420,6 +449,10 @@ try {
   const over = await a.evaluate(WAR);
   check('Restart from the beginning after the loss: mission 1 from its briefing, not a restart', over.state === 'briefing' && over.mission === 'itaipu-1'
     && over.restarted === null, JSON.stringify(over));
+  /* Won once flown, past its briefing: a win in the briefing ended the
+   * match at its go, still to come, and its outro waited for the room's
+   * clock to reach it, over the lobby. */
+  await a.until("window.__war().view.state === 'live'", briefingMs(MISSIONS['itaipu-1']) + 30000).catch(() => {});
   const full = winNow(code);
   check('and won from there, every criterion met, it earns all 3 stars', full && full.won && full.stars === 3, JSON.stringify(full));
 
@@ -452,6 +485,22 @@ try {
   const spillAgain = await a.evaluate(WAR);
   check('and back on the Spillway, Start now restarts it from the stage it was lost in', spillAgain.state === 'countdown' && spillAgain.mission === 'itaipu-2'
     && spillAgain.restarted === 'channel', JSON.stringify(spillAgain));
+  await endIt();
+  setMission('itaipu-1');
+
+  /* NEXT MISSION from the lobby, one press (COMPLETENESS 76): First Light
+   * won, the host's row starts the Spillway from its briefing, and the
+   * room's mission moves with it. */
+  await flyLive('itaipu-1');
+  winNow(code);
+  const nextRows = await hostBack('won');
+  await press('friends-war-next');
+  await a.until("window.__war().view.state === 'briefing'", 15000).catch(() => {});
+  const nextWar = await a.evaluate(WAR);
+  const nextLine = await a.evaluate("(document.querySelector('.war-lobby-mission') || {}).textContent || ''");
+  check('First Light won again: the host\'s Next mission starts mission 2 from its briefing, the lobby\'s mission now mission 2', nextRows.next === 'Next mission: The Spillway'
+    && nextWar.state === 'briefing' && nextWar.mission === 'itaipu-2' && nextWar.restarted === null && (roomOf(code).core.meta.mission === 'itaipu-2'),
+    JSON.stringify({ nextRows, nextWar, nextLine, meta: roomOf(code).core.meta.mission }));
   await endIt();
   setMission('itaipu-1');
 

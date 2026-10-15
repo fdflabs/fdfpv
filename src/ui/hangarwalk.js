@@ -41,6 +41,7 @@ import { listClips } from '../replay/store.js';
 import { fetchHangar, fetchWallet, readWallet, signedIn } from '../share/account.js';
 import { hubWays } from './ways.js';
 import { el } from './dom.js';
+import { logWarn } from '../share/crashrecord.js';
 
 /*
  * What each station opens, and its prompt's words. A station whose screen
@@ -192,7 +193,7 @@ export const walkMethods = {
         if (w.mine) {
           w.mine.chart = paintChart(wallet);
         }
-      }, (err) => console.warn('hangar paint chart:', err.message));
+      }, (err) => logWarn('network', 'hangar paint chart:', err.message));
     }
     this.show('walk');
     renderPrompt(this);

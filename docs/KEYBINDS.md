@@ -98,6 +98,37 @@ button stands for a key.
 No module outside `src/input` reads a device: `lint:input` fails first on
 `getGamepads`, `.buttons[` or `.axes[` anywhere else under `src`.
 
+## Plugging and unplugging (COMPLETENESS 15)
+
+The roster (`PadRoster`, src/input/padpick.js) is polled, not trusted to
+`gamepadconnected`. The pilot's device is remembered by id and port, and
+found again by id alone on another port. A lone new device is taken; a
+new one beside another queues the joystick picker; the chosen device
+coming back is its return, never a question.
+
+- In flight, solo, losing the device pauses the run; in a room the craft
+  flies on centred sticks and a held throttle (item 18). Either way a
+  notice says so.
+- On a menu or the pause menu, the notice says the keys fly until the
+  device is back, and nothing else changes.
+- In a replay, the replay plays on with the same notice; a picker the
+  hotplug queued waits for it to close. If the device is still gone when
+  the run comes back on screen, it is answered then as a loss in flight.
+- A device flying again after a loss says so by name, and whether its own
+  calibration came with it: each device keeps its calibration, dead zone
+  and expo under its own id (src/input/stickstore.js), loaded when it
+  flies. Pad buttons are one binding for every standard pad
+  (`settings.padbinds`), so they need no restoring.
+- The Controller screen is drawn again when the device changes under it.
+
+Checks: `input:selftest` (CI) drives the roster through a radio plugged in
+after launch, pulled, back on another port with its calibration, another
+taken, the first back beside it and picked, a blip between two frames, and
+the keyboard chosen meanwhile; `input:trace` (CI) pins the picker frame by
+frame; `lint:input` (local) pulls and replugs a pad in flight, on the
+pause menu and in a replay; `controller:check` (local) with the Controller
+screen open.
+
 ## What it does not do
 
 - Radio switches as action buttons.

@@ -12,13 +12,14 @@
  *     SIM_GPU=1 node scripts/perf-play.js [OUT_DIR] [--scenarios=itaipu-war,swiss-low,wing-cruise]
  *         [--seconds=30] [--preset=high] [--pace=free|raf] [--cap=90]
  *         [--mode=quality|balanced|performance] [--objects] [--alloc] [--buffers] [--gctrace]
- *         [--budgets]
+ *         [--budgets] [--calls]
  *
  * --budgets holds each scenario's run to its row at the preset in
  * docs/BUDGETS.md (draw calls, triangles, live textures, GPU floor) and
  * exits 1 on a row over its ceiling or a run with no row; that table's
  * rows are title (the menu), alps-low, swiss-low, itaipu-stream,
- * interior-ops, itaipu-war and peers at each of the three presets.
+ * interior-ops, itaipu-war, itaipu-war-peak and peers at each of the
+ * three presets.
  *
  * Writes OUT_DIR/perf-play.json (every frame's numbers) and prints a table
  * per scenario. OUT_DIR defaults to a folder under the system temp dir; the
@@ -73,7 +74,9 @@
  * every draw by mesh (`scene:<top>/<mesh>`, `draw ...:<top>/<mesh>`) with
  * the mesh's onBeforeRender and onAfterRender, as swiss2-perf.js does:
  * a diagnostic, its hundreds of queries a frame cost time of their own,
- * so its frame times are not comparable with a run without it.
+ * so its frame times are not comparable with a run without it. --calls
+ * counts the draw calls of the window's busiest frame by pass and by mesh
+ * (`<pass> | <top>/<mesh>`): what renderer.info's one number is made of.
  *
  * Long tasks come from a PerformanceObserver, the garbage rate from the
  * JS heap (performance.memory) falling between two frames, and each
@@ -103,6 +106,9 @@
  * 1000 / 30 ms on the room clock, as scripts/perf-peers.js's pilot), each
  * circling in front of the page's craft, which sits on its pad. Their
  * browsers are not run: one browser at a time, on purpose (docs/PERF.md).
+ * `itaipu-war-peak` is the same seven in a war room, enlisted at the go,
+ * the war skipped to mission 1's last stage (First Light) and timed once
+ * every one of its waves is born.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -143,7 +149,7 @@ const BUDGET_MS = 1000 / 90;
 
 const opts = {
   scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1, cap: 0, mode: '', objects: false, alloc: false, buffers: false, gctrace: false,
-  budgets: false,
+  budgets: false, calls: false,
 };
 const positional = [];
 for (const a of process.argv.slice(2)) {
@@ -414,8 +420,15 @@ const INSTRUMENT = /* js */ `(() => {
     PP.wasmMs = 0;
     PP.renderMs = 0;
     if (timing) { frameSegs = []; label = 'other'; seg('other'); }
+    PP.tally = rec && PP.wantTally ? new Map() : null;
     for (const { cb } of list) {
       try { cb(t0); } catch (e) { setTimeout(() => { throw e; }); }
+    }
+    if (PP.tally) {
+      let n = 0;
+      for (const v of PP.tally.values()) { n += v; }
+      if (!PP.busiest || n > PP.busiest.n) { PP.busiest = { n, by: [...PP.tally].sort((a, b) => b[1] - a[1]) }; }
+      PP.tally = null;
     }
     let segs = null;
     if (timing) { seg(null); segs = frameSegs; frameSegs = null; }
@@ -499,6 +512,12 @@ const INSTRUMENT = /* js */ `(() => {
        * named after what needed it. */
       const rbd = r.renderBufferDirect;
       r.renderBufferDirect = function (camera, scene, geometry, material, object, group) {
+        if (PP.tally) {
+          let top = object;
+          while (top.parent && top.parent.parent) { top = top.parent; }
+          const k = label + ' | ' + (top === object ? '' : (top.name || top.type) + '/') + (object.name || object.type);
+          PP.tally.set(k, (PP.tally.get(k) || 0) + 1);
+        }
         PP.drawing = object;
         PP.drawingMat = material;
         return rbd.call(this, camera, scene, geometry, material, object, group);
@@ -732,7 +751,7 @@ async function climb(page, pilot) {
 
 /* A pilot on the wire, seated in room `code` and clock synced, sending
  * whatever `path(t)` says at room time t, 30 times a second. */
-async function wirePilot(origin, code, k) {
+async function wirePilot(origin, code, k, map = 'alps') {
   const c = { ws: null, offset: null, bestRtt: Infinity, seq: 0, path: null, timer: null };
   c.roomNow = () => Date.now() + c.offset;
   await new Promise((done, fail) => {
@@ -740,7 +759,7 @@ async function wirePilot(origin, code, k) {
     c.ws = ws;
     ws.on('open', () => ws.send(JSON.stringify({
       type: 'hello', proto: PROTO, build: 'perf-play', level: ROOM_LEVEL, war: WAR_JOIN, name: [3, 5, 40 + k],
-      profile: { airframe: '7inch', map: 'alps', figure: 2, livery: null, parts: null },
+      profile: { airframe: '7inch', map, figure: 2, livery: null, parts: null },
     })));
     ws.on('message', (data, binary) => {
       const text = binary ? '' : data.toString();
@@ -756,9 +775,11 @@ async function wirePilot(origin, code, k) {
         c.bestRtt = wall - m.c;
         c.offset = m.s + c.bestRtt / 2 - wall;
       } else if (m.type === 'refused') {
+        c.refused = text;
         fail(new Error(`perf-play: wire pilot ${k} refused: ${text}`));
       }
     });
+    ws.on('close', (code, reason) => { c.closed = `${code} ${reason}`; });
     ws.on('error', fail);
     setTimeout(() => fail(new Error(`perf-play: no welcome for wire pilot ${k} in 20 s`)), 20000);
   });
@@ -768,7 +789,14 @@ async function wirePilot(origin, code, k) {
   }
   let next = Math.ceil(c.roomNow() / (1000 / 30)) * (1000 / 30);
   c.timer = setInterval(() => {
-    for (; c.path && next <= c.roomNow(); next += 1000 / 30) {
+    /* Silent until it has a path, and then from now: the poses of the
+     * wait, sent late, would be off the room's clock, which removes a
+     * seat that sends enough of them (edge/rooms/safety.js pose). */
+    if (!c.path) {
+      next = Math.ceil(c.roomNow() / (1000 / 30)) * (1000 / 30);
+      return;
+    }
+    for (; next <= c.roomNow(); next += 1000 / 30) {
       const t = Math.round(next);
       const f = c.path(t);
       c.seq = (c.seq + 1) & 0xffff;
@@ -843,6 +871,127 @@ const SCENARIOS = {
       return true;
     })`,
     summary: "(() => { const w = window.__war(); return { state: w.view.state, mission: w.view.mission || null, fx: w.fx, booms: w.log.filter((e) => e.type === 'boom').length, attackers: window.__PP.war }; })()",
+  },
+  /* Defend the Paraná, mission 1, at its peak: a full private room (the
+   * page and PRIVATE_CAP - 1 wire pilots, all enlisted at the go, so
+   * every wave is sized for eight) taken to stage 5, First Light,
+   * through the room's developer skip (edge/rooms/war.js devOp), and the
+   * window opened once every spawn of the stage is born. The page hovers
+   * 30 m over its start, holding its heading, with the seven defenders'
+   * 7 inches circling 20 to 100 m in front of it in the chase camera's
+   * view, as the peers row has them; explosions as itaipu-war's. */
+  'itaipu-war-peak': {
+    map: 'itaipu',
+    airframe: '7inch',
+    async setup() {
+      const dir = await mkdtemp(join(tmpdir(), 'perf-rooms-'));
+      const port = await freePort();
+      const server = await startRooms({ db: join(dir, 'rooms.db'), port, devMissions: true });
+      const pilots = [];
+      return {
+        origin: `http://127.0.0.1:${port}`,
+        pilots,
+        url: `/index.html?rooms=${encodeURIComponent(`http://127.0.0.1:${port}`)}`,
+        async stop() {
+          for (const c of pilots) {
+            clearInterval(c.timer);
+            c.ws.close();
+          }
+          await server.stop();
+          await rm(dir, { recursive: true, force: true });
+        },
+      };
+    },
+    async start(page, env) {
+      const code = await page.evaluate("window.__roomCreate({ map: 'itaipu' })");
+      await page.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
+      for (let k = 1; k < PRIVATE_CAP; k += 1) {
+        env.pilots.push(await wirePilot(env.origin, code, k, 'itaipu'));
+      }
+      await page.until(`window.__rooms().peers.length === ${PRIVATE_CAP - 1}`, 30000);
+      await page.evaluate("window.__ui.act('friends'); true");
+      await page.sleep(500);
+      await page.evaluate("window.__warDo('start', 'itaipu-1')");
+      await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
+      await page.until("window.__war().view.state === 'live' && window.__map().id === 'itaipu' && window.__map().ready", 600000);
+      const enlisted = await page.evaluate('(window.__war().view.scores || []).length');
+      if (enlisted !== PRIVATE_CAP) {
+        throw new Error(`perf-play: itaipu-war-peak: ${enlisted} of ${PRIVATE_CAP} pilots in the war`);
+      }
+      await climb(page, PILOT(30, QUAD(0, 0)));
+      const me = await page.evaluate('(() => { const c = window.__craftState(); const d = window.__PP.camera.getWorldDirection(window.__PP.camera.position.clone()); return { x: c.worldX, y: c.worldY, z: c.worldZ, fx: d.x, fz: d.z }; })()');
+      const n = Math.hypot(me.fx, me.fz) || 1;
+      const fx = me.fx / n;
+      const fz = me.fz / n;
+      env.pilots.forEach((c, i) => {
+        const k = i + 1;
+        const ahead = 20 + 10 * k;
+        const side = (k % 2 ? -1 : 1) * 4 * k;
+        c.path = circlePath(me.x + fx * ahead - fz * side, me.y + 4 + 2 * k, me.z + fz * ahead + fx * side, 8, 12, c.roomNow(), k);
+      });
+      /* Each skip leaves the stage by its first way on that is not a loss;
+       * the next is refused ('off') through the round's result beat, so
+       * each waits for the next stage to be live. */
+      for (let hop = 0; hop < 6; hop += 1) {
+        const at = await page.evaluate('(() => { const v = window.__war().view; return v.stage ? v.stage.id : null; })()');
+        if (at === 'first-light') {
+          break;
+        }
+        await page.evaluate("window.__warDo('skip')");
+        await page.sleep(1000);
+        const err = await page.evaluate('window.__war().error');
+        if (err != null) {
+          throw new Error(`perf-play: itaipu-war-peak: skip from ${at} refused: ${JSON.stringify(err)}`);
+        }
+        await page.until(`(() => { const v = window.__war().view; return v.state !== 'live' || (v.stage && v.stage.id !== ${JSON.stringify(at)} && v.roundState === 'live'); })()`, 120000);
+      }
+      const where = await page.evaluate('(() => { const v = window.__war().view; return { state: v.state, stage: v.stage && v.stage.id }; })()');
+      if (where.state !== 'live' || where.stage !== 'first-light') {
+        throw new Error(`perf-play: itaipu-war-peak: not at First Light: ${JSON.stringify(where)}`);
+      }
+      await page.until("(() => { const v = window.__war().view; return v.state !== 'live' || v.stage.draws.every((d) => d.born || d.skipped); })()", 180000);
+      const inView = await page.evaluate(`(() => {
+        const cam = window.__PP.camera;
+        const v = cam.position.clone();
+        return window.__rooms().peers.filter((p) => { if (!p.drawn) { return false; } v.set(p.at[0], p.at[1], p.at[2]).project(cam); return Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1; }).length;
+      })()`);
+      if (inView !== PRIVATE_CAP - 1) {
+        const peers = await page.evaluate("JSON.stringify({ peers: window.__rooms().peers.map((p) => ({ seat: p.seat, drawn: p.drawn, flags: p.flags, status: p.status, at: p.at, wreck: p.wreck })), down: window.__war().view.down, me: window.__PP.camera.position.toArray() })");
+        const wire = JSON.stringify(env.pilots.map((c) => ({ closed: c.closed ?? null, refused: c.refused ?? null })));
+        throw new Error(`perf-play: itaipu-war-peak: ${inView} of ${PRIVATE_CAP - 1} defenders drawn in the camera's view: ${peers}, wire ${wire}`);
+      }
+    },
+    during: /* js */ `(async (seconds) => {
+      const P = globalThis.__PP;
+      P.war = { alive: 0, least: Infinity, stage: null, states: [] };
+      P.peers = { inView: Infinity, nearM: Infinity, farM: 0, fov: P.camera.fov };
+      const v = P.camera.position.clone();
+      const seen = (at) => { v.set(at[0], at[1], at[2]).project(P.camera); return Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1; };
+      const sample = setInterval(() => {
+        const w = window.__war();
+        const n = w.drawn.list.length;
+        const st = w.view.stage ? w.view.stage.id : null;
+        P.war = {
+          alive: Math.max(P.war.alive, n), least: Math.min(P.war.least, n), stage: st,
+          states: P.war.states.includes(w.view.state) ? P.war.states : [...P.war.states, w.view.state],
+        };
+        const ps = window.__rooms().peers.filter((p) => p.drawn);
+        const m = ps.map((p) => P.camera.position.distanceTo(v.set(p.at[0], p.at[1], p.at[2])));
+        P.peers = {
+          inView: Math.min(P.peers.inView, ps.filter((p) => seen(p.at)).length), nearM: Math.min(P.peers.nearM, ...m), farM: Math.max(P.peers.farM, ...m), fov: P.camera.fov,
+        };
+      }, 1000);
+      setTimeout(() => clearInterval(sample), seconds * 1000);
+      for (let t = 5; t < seconds; t += 10) {
+        await new Promise((done) => setTimeout(done, t === 5 ? 5000 : 10000));
+        window.__warFxBurst(10);
+      }
+      return true;
+    })`,
+    /* A window the war left (a lost output, a starved page that let the
+     * room end it) is not the row's load: the run fails, as the peers
+     * row's does with a peer out of view. */
+    summary: "(() => { const w = window.__war(); const P = window.__PP; if (P.war.states.join() !== 'live' || P.war.stage !== 'first-light' || w.view.state !== 'live') { throw new Error(`itaipu-war-peak: the war left First Light in the window: ${JSON.stringify({ seen: P.war, now: w.view.state })}`); } return { state: w.view.state, stage: w.view.stage && w.view.stage.id, output: w.view.output, fx: w.fx, booms: w.log.filter((e) => e.type === 'boom').length, attackers: P.war, kinds: w.drawn.counts, defenders: P.peers }; })()",
   },
   /* The Interior, Mission 1, The Old War, from its card in a private
    * room on a rooms server this run starts (missions in development
@@ -965,12 +1114,16 @@ const SCENARIOS = {
     },
     during: /* js */ `(async (seconds) => {
       const P = globalThis.__PP;
-      P.peers = { drawn: 0, least: Infinity, inView: Infinity };
+      P.peers = { drawn: 0, least: Infinity, inView: Infinity, nearM: Infinity, farM: 0, fov: P.camera.fov };
       const v = P.camera.position.clone();
       const seen = (at) => { v.set(at[0], at[1], at[2]).project(P.camera); return Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1; };
       const sample = setInterval(() => {
         const ps = window.__rooms().peers.filter((p) => p.drawn);
-        P.peers = { drawn: Math.max(P.peers.drawn, ps.length), least: Math.min(P.peers.least, ps.length), inView: Math.min(P.peers.inView, ps.filter((p) => seen(p.at)).length) };
+        const m = ps.map((p) => P.camera.position.distanceTo(v.set(p.at[0], p.at[1], p.at[2])));
+        P.peers = {
+          drawn: Math.max(P.peers.drawn, ps.length), least: Math.min(P.peers.least, ps.length), inView: Math.min(P.peers.inView, ps.filter((p) => seen(p.at)).length),
+          nearM: Math.min(P.peers.nearM, ...m), farM: Math.max(P.peers.farM, ...m), fov: P.camera.fov,
+        };
       }, 1000);
       setTimeout(() => clearInterval(sample), seconds * 1000);
       return true;
@@ -1475,6 +1628,9 @@ async function runScenario(id) {
         samplingInterval: 16384, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true,
       }, page.sessionId);
     }
+    if (opts.calls) {
+      await page.evaluate('(window.__PP.wantTally = true, window.__PP.busiest = null, true)');
+    }
     if (opts.objects) {
       const n = await page.evaluate('window.__PP.tagObjects()');
       console.log(`  objects: ${n} meshes tagged`);
@@ -1486,6 +1642,7 @@ async function runScenario(id) {
     const gcEvents = trace ? await trace.stop() : null;
     const loadAfter = gpuLoad();
     const s = summarise(raw);
+    s.busiest = opts.calls ? await page.evaluate('window.__PP.busiest') : null;
     s.profile = profileTop(profile, s.seconds);
     s.alloc = heap ? allocTop(heap, s.seconds) : null;
     s.gcTrace = gcEvents ? gcTraceOf(gcEvents) : null;
@@ -1507,6 +1664,12 @@ async function runScenario(id) {
     s.textures = await page.evaluate('window.__gpuMemory().textures');
     s.consoleErrors = page.errors.filter((e) => !String(e).startsWith('network:')).slice(0, 5);
     console.log(table(id, s));
+    if (s.busiest) {
+      const byPass = new Map();
+      for (const [k, v] of s.busiest.by) { const p = k.slice(0, k.indexOf(' | ')); byPass.set(p, (byPass.get(p) || 0) + v); }
+      console.log(`  calls      busiest frame ${s.busiest.n}: ${[...byPass].map(([p, v]) => `${p} ${v}`).join(', ')}`);
+      for (const [k, v] of s.busiest.by) { console.log(`             ${v} ${k}`); }
+    }
     for (const [name, g] of Object.entries(s.grass)) {
       console.log(`  ${name}: tiles built ${g.built} (${g.forced} in the frame that needed them), ${f(g.buildMs, 0)} ms in all, ${f(g.buildMs / Math.max(1, g.built), 2)} ms a tile, worst frame since the build ${f(g.maxFrameMs, 1)} ms, pending ${g.pending}`);
     }

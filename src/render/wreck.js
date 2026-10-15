@@ -174,6 +174,9 @@ export function createWreck() {
       }
     }
     cut = null;
+    if (craft && craft.userData.wreckHold) {
+      craft.userData.wreckHold(false);
+    }
   }
 
   /*
@@ -185,6 +188,11 @@ export function createWreck() {
   function attach(craftGroup, partTable, discs) {
     reset();
     craft = craftGroup;
+    /* A peer with a far model is cut and drawn in its near one
+     * (src/render/peers.js farSwitch). */
+    if (craft && craft.userData.wreckHold) {
+      craft.userData.wreckHold(true);
+    }
     table = partTable || [];
     skip = new Set(discs || []);
     boxes = table.map((p) => {

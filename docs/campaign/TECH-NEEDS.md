@@ -146,7 +146,7 @@ New targets (`map.targets` and the mission's MW table):
 | Target | Ids | MW | Source |
 | --- | --- | --- | --- |
 | 500 kV towers | `tower-w-0..`, `tower-e-0..` along the two corridors | the line's share (agree with grid.js: a west corridor tower cuts its district as a wire strike does today) | the spans in `src/share/war/itaipu-wires.js` / OSM; `scripts/war-targets.js` writes them |
-| Emergency gantries | `gantry-intakes` (serves every intake and penstock), `gantry-spillway` (every gate) | 0 (hold targets, not output) | built as war targets for Contain (`src/share/war/contain.js` GANTRIES, 2026-10-14): `gantry-intakes` at the east intake gantry the dam builds, `gantry-spillway` a placeholder over the gate row. Still the map package's: the spillway gantry's model and collider, and the stoplogs' descent animation on both |
+| Emergency gantries | `gantry-intakes` (serves every intake and penstock), `gantry-spillway` (every gate) | 0 (hold targets, not output) | built as war targets for Contain (`src/share/war/contain.js` GANTRIES, 2026-10-14): `gantry-intakes` at the east intake gantry the dam builds, `gantry-spillway` at the spillway gantry the dam builds over the bridge deck's middle pier (model and collider, w39-contain-2), both held to the map by war:targets. Still the map package's: the stoplogs' descent animation on both |
 
 `src/render/attackers.js` needs a model for each new kind (the carrier
 and breacher are unmarked grey hulls, bigger than a sea drone);
@@ -205,16 +205,28 @@ both deterministic and stored:
 
 `war:grid` gains both cases.
 
-**Status, 14 October (w39-daynight):**
+**Status, 14 October (w39-daynight; the restore w40-grid-restore):**
 
-- Restore: **not built**, and left to the grid's lane. `grid.js`
-  `darkFrom` only ever puts a district out, `createGrid` has no restore
-  path, and the room sends no restore event (`edge/rooms` has no
-  `op: 'restore'`). The lights renderer is ready for it: night.js draws
-  each district at whatever level `setPower` hands it, so a grid that
-  brings a district back lights it again (`daytime:ramp` cuts every
-  district at night and gives them back: 36.5 lamp pixels per 10 000,
-  0.3 cut, 37.6 back).
+- Restore: **built**, as a view field, not a room op. A hold objective
+  with `restore: [district ids]` (M3's reroute, `itaipu-3.js`
+  `REROUTED`) feeds those town districts round the switchyard from the
+  room ms it is done (`edge/rooms/war.js` stageStep, the moment its line
+  is cued, not the stage's exit, which also waits on the sky being
+  clear). It is kept on the stage's `path` entry, so a store and a
+  checkpoint restart from a later stage keep it, and the view's
+  `restores` is `[{ at, districts }]`. `grid.js` `changesFrom` keeps a
+  list of changes a district (out, back, out again), `levelOf` reads it:
+  a fed town is no longer put out by the yard, so if it was dark it comes
+  back, in the order named, `CASCADE_MS` (700 ms) apart, each over
+  `FLICKER_MS` (1 800 ms) of the hit's flicker played backwards. A unit
+  lost later still sheds it by its `keep`, and a struck line still cuts
+  it. `darkFrom` is unchanged for its callers. No restore when the hold
+  fails. M6's islanding can use the same field. night.js needed no
+  change: `daytime:ramp` hands the map the grid's own levels for the yard
+  down and then the restore, the four drawn at full level and the other
+  four out, 29.0 lamp pixels per 10 000 to 35.4. Not built: the replay
+  (`src/share/war/world.js` `matchAt`) reads `darkFrom`, so a replayed
+  Lights Out keeps the restored towns dark.
 - Station dark by order: **built**, as a stage field, not a room event.
   A stage with `stationDark: true` gives its attackers their `err` as if
   every scout were dead (`edge/rooms/war.js` births), and the view's
@@ -224,9 +236,13 @@ both deterministic and stored:
   station bus but the two switchyards, which are the grid's) out from
   then with `grid.js` `levelAt`'s flicker (`src/share/war/stationdark.js`).
   M4's twist A is `itaipu-4.js` `STATION_DARK`, flown by `war:stages`
-  both ways, and not yet among the mission's stages: its radio is not
+  both ways, and drawn among The Long Night's twists since its radio was
   voiced (MISSIONS.md M4).
-- `war:grid` is unchanged: `grid.js` was not touched.
+- `war:grid` gains the restore (the four back after the reroute, in
+  order, flickering, bit for bit on two screens, a late joiner agreeing,
+  a later unit loss shedding one again), its negative control (a failed
+  reroute brings nothing back) and a reroute held before the yard falls
+  (the four never flicker). `war:stages` flies it on the room.
 
 ### T1.11 Time of day per mission, and across one
 
@@ -289,7 +305,9 @@ built and what is not, MISSIONS.md 1.9 "As built"). Differences from the
 list below: a mission runs it by its `contain: { op }` (missions 1 to 4;
 not the drill or Training's practice); the retarget is recorded on the
 closure (`m.contain[].retarget`), not in `m.draws`; the zero size opening
-event, the flood draining and the stoplogs' animation are not built.
+event is sent at the hold and the flood shuts a gate's hole (w39-contain-2;
+intakes and penstocks have no place in the flood yet); the stoplogs'
+animation is not built.
 
 Decided 2 October: the dam can open in any mission (MISSIONS.md 1.9).
 No per mission flag; the damage model's openings are live everywhere.

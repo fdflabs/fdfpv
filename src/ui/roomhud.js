@@ -78,7 +78,8 @@ export function resultsView(rr, nameOf) {
     head: str(won ? 'roomrace.results_won' : (final ? 'roomrace.results_over' : 'roomrace.results_waiting')),
     heroCap: str(flown ? 'roomrace.your_time' : 'roomrace.dnf'),
     heroTime: flown ? formatTime(me.ms) : '',
-    heroMeta: me ? str('roomrace.place_of', { place: me.place, n: rows.length }) : '',
+    /* A finish the room refused says why (edge/rooms/race.js `why`). */
+    heroMeta: me && me.why ? str(`roomrace.refused_${me.why}`) : (me ? str('roomrace.place_of', { place: me.place, n: rows.length }) : ''),
     win: won,
     rows: rows.map((row) => ({
       label: str('roomrace.row', { place: row.place, name: nameOf(row.seat) }),

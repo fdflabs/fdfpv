@@ -40,6 +40,8 @@ adds, so nobody builds a second lobby.
    v
  END: results or the war's round card, then back to the LOBBY,
       nobody ready (FLOW rule 12)                           [exists]
+   | the host's one press there: the same again, or after a
+   | won mission the next; the room's start brings everyone [built]
    |
    | Leave (lobby, pause, results): the hub, out of the room (FLOW rule 5)
    v
@@ -123,6 +125,32 @@ lap of the arena.
 - **Abandon.** A round with fewer of its players here than its game's
   minimum ends after ABANDON_MS (10 s, core.js settleGames), never in an
   empty room, whose games stand paused for their pilots to come back.
+- **A world that will not load.** A page that cannot build the room's
+  world tells the room (`{ type: 'fail', map }`, edge/rooms/core.js
+  fail) and is not summoned to it again; the room counts the seat out of
+  every game and the lobby's flags until its profile stands on the world
+  again, and the others see why it is not flying. Held by `rooms:selftest`.
+- **Who counts at a start.** A host starting Catch the Ace or a Trick
+  Battle in passing, where two are its least, counts only the pilots on
+  the room's world and not failed, the AI pilots among them (core.js
+  fielded): a pilot still building the world or whose world would not
+  build is not a second pilot, and the start is refused as `alone`
+  rather than run a round the room abandons ABANDON_MS later. A round
+  already on keeps the looser count (present: not failed). Held by
+  `rooms:selftest`.
+- **Again and next.** On the end screen the host has one press to go
+  on, and the room's start brings every pilot here into it, from the
+  end screen, the lobby or the air (COMPLETENESS 76): Race again, Play
+  again and Battle again lead the race's, the Ace's and the Trick
+  Battle's results (src/main.js roomResultsRows); the war's end banner
+  has Restart (from the lost stage after a loss that kept one) and,
+  after a win, Next mission when the host may start it, over the lobby's
+  seconds too (src/ui/warhud.js); the ops debrief has the same, Play
+  again from the checkpoint or from the start, and Next mission
+  (src/ui/debrief.js), every other pilot's debrief closing as the new
+  match begins. Which presses, in order: src/game/debrief.js
+  missionEndActions. Streamer Combat has no end screen of its own: its
+  room goes straight back to the lobby, whose start row is the press.
 - **A seat another tab took** (close 4005) is final for the tab that lost
   it: it says so and never retries (src/share/rooms.js FINAL).
 

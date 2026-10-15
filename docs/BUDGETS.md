@@ -19,13 +19,53 @@ Two targets are written in the tree, and they differ:
   section 13), since 2026-10-13 the main view's, with Itaipu's at 4.0 M
   and the thermal inset held apart (The contract, below).
 
-No minimum is written anywhere. The pacer has no frame rate floor: what
-it floors is the render scale (0.75 in Balanced, 0.5 in Performance,
-dynres.js `MODES`), not frames a second. No reference machine is named;
+No minimum is set. The pacer has no frame rate floor: what it floors is
+the render scale (0.75 in Balanced, 0.5 in Performance, dynres.js
+`MODES`), not frames a second. The floor's constant and what the shell
+does under it are built and wait for the number (The floor, below). No reference machine is named;
 the three tiers name eras (src/strings/en.js): Low "Steam Deck and
 similar handhelds", Medium "a 2020-era laptop with integrated graphics",
 High "a 2021-era PC or a strong laptop". A minimum and a named machine
 are the owner's to set.
+
+## The floor
+
+The minimum frame rate is the owner's to set (COMPLETENESS 71). What is
+built round it: one constant, src/render/floor.js `FLOOR_FPS`, null
+until set and marked "owner's floor, pending", and the one thing the
+shell does under it once set: in flight, the first time the 95th
+percentile drawn frame of the last 600 is over 1000 / FLOOR_FPS ms, a
+notice once a world, "Under 30 fps here. Graphics Medium may hold it."
+(or "at the lowest Graphics" at Low), in English and Spanish. Not while
+the pilot's own frame cap is at or under the floor, not across a pause.
+A warning and not an automatic step down: a preset change rebuilds the
+world, and dynamic resolution (src/render/dynres.js) already buys back
+what pixels can. Held by `perf:floor:selftest` (scripts/perf-floor-selftest.js).
+While FLOOR_FPS is null nothing fires.
+
+"Holds" is the 95th percentile frame, as the Jetson's table below reads
+it: what a pilot feels as stutter. The candidates, from the table's own
+frame p95 column (ms, this box's RTX 3060 Ti on GPU 1, shared, the busy
+share in the table):
+
+| Row | Low p95 | Medium p95 | High p95 | 30 fps (33.3 ms) | 60 fps (16.7 ms) |
+| --- | --- | --- | --- | --- | --- |
+| `title` | 1.3 | 1.9 | 2.1 | every tier | every tier |
+| `alps-low` | 3.2 | 4.1 | 4.6 | every tier | every tier |
+| `swiss-low` | 8.2 | 11.9 | 11.7 | every tier | every tier |
+| `itaipu-stream` | 8.5 | 10.7 | 12.0 | every tier | every tier |
+| `interior-ops` | 8.4 | 7.3 | 7.7 | every tier | every tier |
+| `itaipu-war` | 8.0 | 9.2 | 9.5 | every tier | every tier |
+| `peers` | 13.9 | 18.6 | 21.7 | every tier | Low only (card 55 to 81 % busy) |
+| `itaipu-war-peak` | 9.4 | 11.4 | 9.8 | every tier | every tier |
+
+On this box 30 holds everywhere, 60 everywhere but a full room above
+Low, taken while other lanes held the card. On the Jetson AGX Orin
+(below) only Low was measured: 30 holds by p95 in the menu, the Alps and
+Itaipu, not in the Swiss valley or the Interior, and 60 in the menu and
+the Alps. The owner fills FLOOR_FPS; the machine it is read on is the
+other half of the decision (below, The owner's decision, proposed
+words).
 
 ## The table
 
@@ -44,6 +84,16 @@ One row per perf-play scenario (scripts/perf-play.js) per tier:
   perf-play on the room's wire (hello, clock pings, a pose 30 times a
   second), not seven browsers, so the row is what drawing a room costs
   one page.
+- `itaipu-war-peak`: the war at its peak, Defend the Paraná mission 1
+  in a full private room on Itaipu: the page's 7 inch and seven more
+  pilots, all eight enlisted at the go, so every wave is sized for
+  eight; the war taken through the room's developer skip to the last
+  stage, First Light (the three axes and the two twists that did not
+  fire), and timed once every one of its waves is born. The page hovers
+  30 m over its start holding its heading; the seven defenders' 7 inches
+  circle 20 to 100 m in front of it, all seven in the view in every
+  second (the run stops if not), on the wire as the `peers` row's are;
+  explosions as `itaipu-war`'s, a burst of ten every ten seconds.
 
 Each was flown once for 15 s, `--mode=quality` (resolution held at the
 preset's), 1600 by 900, on main's tree at b4b2d9628 plus phase 29,
@@ -117,9 +167,12 @@ GPU floor (docs/PERF.md, proposed budgets).
 | `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 1.14 (<= 1.31) 2026-10-14 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.46 (<= 1.69) 2026-10-14 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.74 (<= 2.01) 2026-10-14 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M | 1 alive, stage `eyes` |
-| `peers` | low | 381 (<= 438) | 1.31 (<= 1.51) | 16 (<= 19) | 1.46 (<= 1.68) 2026-10-14 | 1.4 | 3.4 / 5.3 | 26 %, 10.7 | within | 7 peers |
-| `peers` | medium | 726 (<= 835) | 2.43 (<= 2.80) | 18 (<= 21) | 2.99 (<= 3.44) 2026-10-14 | 5.8 | 11.5 / 20.1 | 30 %, 11.1 | within | 7 peers |
-| `peers` | high | 739 (<= 850) | 2.43 (<= 2.80) | 29 (<= 34) | 2.90 (<= 3.34) 2026-10-14 | 4.6 | 8.5 / 10.6 | 18 %, 14.2 | over: 739 calls, the whole frame against the main view's 300 (not split) | 7 peers |
+| `itaipu-war-peak` | low | 186 (<= 214) | 1.63 (<= 1.88) | 76 (<= 88) | 1.45 (<= 1.67) 2026-10-14 | 2.8 | 5.5 / 9.4 | 44 %, 6.0 | within | 45 to 49 alive, stage `first-light`; 7 defenders in view |
+| `itaipu-war-peak` | medium | 274 (<= 316) | 2.56 (<= 2.95) | 84 (<= 97) | 2.13 (<= 2.45) 2026-10-14 | 3.7 | 7.6 / 11.4 | 67 %, 10.7 | within | 45 to 49 alive, stage `first-light`; 7 defenders in view |
+| `itaipu-war-peak` | high | 361 (<= 416) | 2.91 (<= 3.35) | 96 (<= 111) | 2.48 (<= 2.86) 2026-10-14 | 4.0 | 6.8 / 9.8 | 46 %, 5.9 | within: main view 278 calls, inset 103 (busiest frame by pass, `--calls`); 2.91 M triangles the whole frame (<= 4.0 M) | 45 to 49 alive, stage `first-light`; 7 defenders in view |
+| `peers` | low | 199 (<= 229) | 1.31 (<= 1.51) | 16 (<= 19) | 1.37 (<= 1.68) 2026-10-14 | 1.4 | 6.6 / 13.9 | 68 %, 14.6 | within | 7 peers |
+| `peers` | medium | 355 (<= 409) | 2.43 (<= 2.80) | 18 (<= 21) | 2.01 (<= 3.44) 2026-10-14 | 2.1 | 9.2 / 18.6 | 55 %, 14.3 | within | 7 peers |
+| `peers` | high | 368 (<= 424) | 2.43 (<= 2.80) | 29 (<= 34) | 1.47 (<= 3.34) 2026-10-14 | 2.0 | 8.9 / 21.7 | 81 %, 10.1 | within: main view 279 calls, inset 105 (busiest frame by pass, `--calls`); 2.43 M triangles the whole frame | 7 peers |
 
 The draw calls of `title` and `alps-low` at every tier were retaken on
 2026-10-13 after the Alps' draws were merged (branch w38-perf: the
@@ -167,11 +220,78 @@ src/render/combatcraft.js paletteFixed: a stock 7 inch 40 meshes to
 settings, each tier three times: 381 at Low, 726 at Medium, 739 at High
 in every run (max of the run; averages 378, 716, 729), triangles and
 textures unchanged, and the ceilings moved down to 1.15 times that.
-The row's seven peers send no livery, so these are stock peers; a peer
-wearing a finish keeps its meshes (docs/PERF.md). At High a full room
-is still about two and a half times the main view's 300 calls: what is
-left a peer is a palette mesh per offset and render state,
-the lens, the inks, four rotors and four discs.
+The row's seven peers send no livery, so these are stock peers. Since
+2026-10-15 (branch w40-perf-finish) a peer wearing a finish joins as a
+stock one does, its finish per palette entry: the row flown at High with
+the seven in a finished livery (a local patch) drew 1 411 calls before
+and 739 after, the stock row's (docs/PERF.md).
+
+And again 2026-10-14 after branch w43-perf (docs/PERF.md, A full room
+under the contract): a peer's inks and its four blur discs are one mesh
+each, a peer under 1 % of the view's height draws its far model (its
+palettes, lens, motors and rotors as one mesh; src/render/peers.js
+PEER_FAR_SHARE), its name tag left the ink prepass and the thermal
+picture, and a pilot figure is five meshes, not ten. On GPU 1 through
+run-check.sh with `--budgets --calls`, the same run settings, each tier
+three times between 21:48 and 21:58 local (Low twice more to 21:57): 199 at Low, 355 at Medium, 368
+at High in every run (max of the run; averages 196, 350, 363), triangles
+and textures unchanged, the call ceilings moved down to 1.15 times that.
+Split by pass (perf-play `--calls`, the busiest frame), High is 279
+calls in the main view (shadow 69, scene 103, ink prepass 92, bloom and
+grade 15) and 105 in the sensor inset: within the contract's 300 and
+110. Before, the busiest frame was 751: 557 and 194. The seven are at
+23 to 104 m in a 90 degree view, 0.19 to 0.87 % of its height, so all
+seven draw the far model; a peer nearer than about 23 m is 10 calls a
+pass (the near model), not 5.
+
+GPU 1 was 55 to 100 % busy with other lanes' checks through these runs,
+so the frame times are worse than the 2026-10-14 ones and say nothing
+about this change; they are the quietest run's, with its busy share. The
+GPU floor ceilings are left where they were (not raised): the floors
+read 0.88 to 1.89 ms at Low, 1.35 to 2.01 at Medium, 1.45 to 1.47 at
+High; the 1.89 was the one run of five at Low that failed its 1.68
+ceiling, on a card 100 % busy, and two more Low runs at 76 to 95 % read
+0.93 and 0.94. The written floor is the highest of the passing runs.
+
+The `itaipu-war-peak` rows were flown 2026-10-14 between 22:48 and
+23:15 local on GPU 1, through run-check.sh with `--calls`, on
+batch/2026-10-15 at f608be0c3 plus branch w44-perfwar, the same run
+settings, each tier three times (Low, Medium, High, then again twice):
+draw calls, triangles and textures within 1 call and 0.002 M of each
+other in every run; the calls column is the most of the three. At most
+45 to 49 attackers alive in a second of a run's window and at least 37
+to 44 (at its end Loiterers 9, Strikers 13, FPV quads 15 or 22, up to 5
+boats and up to 3 Hunters: which twists are left is the seed's), the
+war live and the output whole (14 000 MW) through every window, the
+seven defenders 20 to 102 m from the camera. GPU 1 opened 44 to 100 % busy,
+the host's load 5.9 to 11.6. The GPU floor moved as the peers row's
+does: 1.36 to 2.15 ms at Low, 2.07 to 2.46 at Medium, 2.45 to 5.99 at
+High, the highest of each on a card 100 % busy as the run opened; the
+floor is written at the highest of the runs that opened with the card
+under 100 % and held 15 % over it, and the GPU median and frame times
+are the quietest run's.
+
+Before branch w44-perfwar the row at High drew 379 calls (renderer
+count), and its busiest frame by pass 419: 299 in the main view and 120
+in the sensor inset, over the inset's 110 (one run, 2026-10-14, ended
+22:29, GPU 1 95 % busy). Of the 17 calls cut from the inset, the seven
+name tags were 7, Paradrops' empty field 4, the dam's empty breakage 2,
+the Scouts' empty kind 1 and three attacker kinds wholly outside the
+inset's view 3; of the 22 cut from the main view, Paradrops 8, attacker
+kinds 8 (the Scouts and three out of view, each in the scene and the
+water's mirror) and breakage 6 (the shadow map's 2 with them). three
+r160 issues a draw for an instanced mesh of count 0, and an instanced
+mesh with frustum culling off is drawn wherever it is. In the row's view
+only the Loiterers are in frame; the rest fly behind and beside it. A
+kind in frame costs 2 calls in the main view and 1 in the inset however
+many fly (measured, above), so the peak's other four kinds (Strikers,
+FPV quads, boats, Hunters) in frame at once would be 286 and 107, still
+within 300 and 110. Since w44-perfwar an empty or wholly out of view attacker
+kind, an empty Paradrops field and empty breakage draw nothing, and a
+sensor's own colour picture draws no name tags (docs/PERF.md, The war
+at its peak). The other rows' calls drop by those empties too (the
+Paradrops field is in every world); they were not retaken, and their
+ceilings, which only hold the cost from growing, stand.
 
 The ceilings above hold today's whole frame cost from growing; whether
 a row is within the contract is the column "Over the written
@@ -249,16 +369,20 @@ the most attackers alive in any second of its 15 s window and the stage
 then (perf-play samples `__war()` once a second): 1, in mission 1's
 first stage, Eyes (a Scout, and a Striker 25 to 40 s in), at every
 tier on 2026-10-14, so it is not the mission's peak (First Light, stage
-5); a row at that stage is a war row
-of its own, flown through the room's developer skip. The peers' figure
-is how many of the seven were drawn in the camera's view in every
-second.
+5). The peak is the `itaipu-war-peak` row: eight pilots enlisted, stage
+5 through the room's developer skip, at most 45 to 49 attackers alive
+in a second of its window. The peers'
+figure, and `itaipu-war-peak`'s defenders, is how many of the seven
+were drawn in the camera's view in every second.
 
 ## The check
 
     SIM_GPU=1 node scripts/perf-play.js OUT --scenarios=title,alps-low,swiss-low --preset=high --seconds=15 --mode=quality --budgets
 
 or `~/.cache/run-check.sh <worktree> perf -- OUT --scenarios=... --preset=... --seconds=15 --mode=quality --budgets`.
+`--calls` (a diagnostic) also counts the busiest frame's draw calls by
+pass and by mesh: the main view is every pass but `draw
+render/sensorview`, which is the inset.
 `--budgets` reads this table and fails the run on any held column over
 its ceiling, or on a scenario with no row at the preset. One run per tier
 and per set of scenarios; a set of all three Itaipu and Interior

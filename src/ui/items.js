@@ -1005,10 +1005,14 @@ function resultsRows(ui, s) {
   if (ui.roomResults && ui.roomResultsRows) {
     /* The replay right under the room's way back into the air (Fly on),
      * above the room's own rows. */
+    /* Then another aircraft for the room's next round (COMPLETENESS 76),
+     * the one the room will seat named (a war's, in a war room). */
     const rows = ui.roomResultsRows();
-    const replay = replayRow(ui.resultsDebrief);
+    const shown = ui.craftShown ? ui.craftShown(s) : s.airframe;
+    const craft = { label: str('carousel.change_aircraft'), value: airframeById(shown).short, action: 'hangar-aircraft', note: str('debrief.change_aircraft_note') };
+    const after = [replayRow(ui.resultsDebrief), craft].filter(Boolean);
     const at = rows.findIndex((it) => it.action === 'restart');
-    return replay && at >= 0 ? [...rows.slice(0, at + 1), replay, ...rows.slice(at + 1)] : rows;
+    return at >= 0 ? [...rows.slice(0, at + 1), ...after, ...rows.slice(at + 1)] : rows;
   }
   const again = { label: str('ui.fly_again'), action: 'restart', primary: true };
   if (ui.osdMode === 'freestyle') {

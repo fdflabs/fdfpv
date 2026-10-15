@@ -53,6 +53,7 @@ import { readAccount } from './pilot.js';
 import { RoomClock } from './roomclock.js';
 import { clockOf } from './daytime.js';
 import { API_ORIGIN, SITE_HOSTS } from './api.js';
+import { fetchFrom, reachable } from './offline.js';
 
 /* edge/rooms/node.js on the owner's VM, behind Caddy (deploy/vm/README.md),
  * at the origin src/share/api.js names. */
@@ -674,7 +675,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
      * room.daytime the creator's time of day (a TIME_NAMES name) or null.
      * Resolves to its code; throws Error('name') for a name the server
      * refused, Error('signin') before anything is made for a pilot who
-     * has not signed in. */
+     * has not signed in, Error('unreachable') when the request never got
+     * an answer (src/share/offline.js counts the rooms down). */
     async create(map, friendly = false, room = {}) {
       if (gated(null)) {
         throw new Error('signin');
@@ -683,14 +685,19 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       if (!origin) {
         throw new Error('noserver');
       }
-      const res = await fetch(`${origin}/v2/create`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          map, friendly: Boolean(friendly), public: room.public === true, name: room.name ?? null, mode: room.mode ?? null, mission: room.mission ?? null,
-          daytime: room.daytime ?? null,
-        }),
-      });
+      let res;
+      try {
+        res = await fetchFrom('rooms', `${origin}/v2/create`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            map, friendly: Boolean(friendly), public: room.public === true, name: room.name ?? null, mode: room.mode ?? null, mission: room.mission ?? null,
+            daytime: room.daytime ?? null,
+          }),
+        });
+      } catch (e) {
+        throw new Error('unreachable');
+      }
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !normaliseCode(body.code)) {
         throw new Error(body.error || `http ${res.status}`);
@@ -742,8 +749,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         phase, reason, code, publicMap, welcome, attempt, attempts: RETRY_MS.length,
       };
     },
+    /* A rooms server to offer: one is configured and can be reached, or
+     * this tab is in a room or on its way back into one, whose own retries
+     * (RETRY_MS) say how that is going. */
     available() {
-      return Boolean(roomsOrigin());
+      return Boolean(roomsOrigin()) && (phase === 'open' || phase === 'connecting' || reachable('rooms'));
     },
     /* The room clock now, ms, or null before it is known. */
     roomNow() {
@@ -774,6 +784,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     /* The host moves the room to another world (edge/rooms/core.js world). */
     sendWorld(map) {
       sendText({ type: 'world', map });
+    },
+    /* This page could not build world `map`, the room's (edge/rooms/core.js
+     * fail): the room counts this seat out of its round. */
+    sendFail(map) {
+      sendText({ type: 'fail', map });
     },
     /* The host sets the room's air (edge/rooms/core.js weather). */
     sendWeather(preset) {

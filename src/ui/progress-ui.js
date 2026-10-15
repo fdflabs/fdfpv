@@ -4,9 +4,11 @@
  * in Settings, all over src/game/progress.js, which is the arithmetic.
  *
  * The shell (src/main.js) tells a Progress what happens in a run, through
- * startRun, gatePass, touch, lap and tick; Progress keeps the pilot's
- * progress in settings.progress, stores it on every change, and says
- * what it earned in a toast: a lap's XP, a challenge done, a level, and
+ * startRun, gatePass, touch, lap and tick; Progress logs each as the
+ * flight's events (src/game/events.js), pays what the log earned through
+ * the one fold (progress.js awardFlight), keeps the pilot's progress in
+ * settings.progress, stores it on every change, and says what it earned
+ * in a toast: a lap's XP, a challenge done, a level, and
  * each thing that level opens. The toasts are the one thing here drawn in
  * flight, so they take no pointer and sit clear of the OSD's corners.
  *
@@ -31,17 +33,21 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardFirsts, awardLap, awardMedal, findItem, fits, foldEvents, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, CHALLENGES, RIM_KINDS, RunWatch, awardFlight,
+  bestKind, challengeAmounts, challengeRun, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
+import { placeKey, placesAt, placesOf } from '../game/discovery.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
-import { EventLog, feedRunWatch } from '../game/events.js';
+import { EventLog } from '../game/events.js';
 import { itemById } from '../game/economy.js';
-import { LessonWatch, certsEarned, passesOf } from '../game/training.js';
+import { LessonWatch, certsEarned, lessonById, lessonFliesIn, passesOf } from '../game/training.js';
 import { readWallet } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 import { el } from './dom.js';
+import { formatTime } from './format.js';
+import { challengeNote, challengeTitle } from './challengewords.js';
 
 /* How long a toast stays up, ms, and how many are on screen at once. */
 const TOAST_MS = 3600;
@@ -64,6 +70,18 @@ export function itemName(it) {
     return str(it.name.key, it.name.vars);
   }
   return it.id;
+}
+
+/* A best's words: the lap or the run with its time, or the points. */
+export function bestTitle(best) {
+  const kind = bestKind(best.key);
+  if (kind === 'lap') {
+    return str('progress.best_lap', { time: formatTime(best.now) });
+  }
+  if (kind === 'run') {
+    return str('progress.best_run', { n: Number(best.key.split(':')[1]), time: formatTime(best.now) });
+  }
+  return str('progress.best_score', { n: number(best.now) });
 }
 
 function kindWord(kind) {
@@ -199,20 +217,68 @@ function injectStyle() {
  * THE CONTROLLER, one per Ui: `ui` is the Ui (its settings, its store and
  * its sounds), `host` its root.
  */
+/*
+ * The lesson in flight, { id, step }, kept in storage from its Fly until it
+ * is passed or left, so the next load knows a reload or a closed browser
+ * interrupted it (docs/redesign/TRAINING.md 10). Without storage nothing
+ * is kept and nothing is said.
+ */
+const LESSON_IN_FLIGHT_KEY = 'fdfpv.lessonInFlight';
+
+function keepLessonInFlight(w) {
+  try {
+    if (w) {
+      localStorage.setItem(LESSON_IN_FLIGHT_KEY, JSON.stringify({ id: w.lesson.id, step: w.step }));
+    } else {
+      localStorage.removeItem(LESSON_IN_FLIGHT_KEY);
+    }
+  } catch (e) {
+    /* No storage: a reload says nothing of it. */
+  }
+}
+
+function takeLessonInFlight() {
+  try {
+    const was = JSON.parse(localStorage.getItem(LESSON_IN_FLIGHT_KEY) || 'null');
+    localStorage.removeItem(LESSON_IN_FLIGHT_KEY);
+    return was && typeof was.id === 'string' && Number.isInteger(was.step) && was.step >= 0 ? was : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export class Progress {
   constructor(ui, host) {
     this.ui = ui;
     this.host = host;
     this.watch = new RunWatch();
+    /* The run's state as the challenges read it (progress.js
+     * challengeRun), carried across the flights of one run: a recovery or
+     * a placement starts a new log, not a new run. */
+    this.run = challengeRun();
     /* This flight's events (src/game/events.js), and the sim clock as the
      * last tick gave it, for the calls that do not carry one. */
     this.flight = new EventLog();
+    /* Every event of this run's flights, in order: a run outlives its
+     * flights (a recovery, a seat swap, a placement each start a new
+     * log), and its debrief reads what the whole run did (runEvents).
+     * Forgotten with the bests, at a new run. In memory only. */
+    this.runLog = [];
     /* How far into this flight's log progress has counted. */
     this.folded = 0;
+    /* The bests this run set (progress.js awardBest's `best` events), for
+     * its debrief to say (runBests); a new run (the sim clock back to its
+     * start, src/main.js reset) forgets them. */
+    this.bests = [];
     this.simMs = 0;
     this.wasCrashed = false;
     /* The avionics camera's primary track as last logged (contact). */
     this.heldTrack = null;
+    /* The world this flight's places are looked for in, and the ids not
+     * to look for: found already, or the flight began inside them
+     * (src/game/discovery.js); null until the flight's first tick. */
+    this.placeWorld = null;
+    this.placeSkip = null;
     this.toasts = [];
     /* Every toast shown, newest last, for a check to read. */
     this.log = [];
@@ -259,39 +325,91 @@ export class Progress {
     this.save();
   }
 
-  /* The run the shell just seated: which plane on which power. */
+  /* The run the shell just seated: which plane on which power, and
+   * whether the crash flag is up as it is seated (ctx.crashed). */
   startRun(ctx) {
     this.watch.start(ctx);
+    this.event('seated', {
+      airframe: ctx.airframe, fixedWing: Boolean(ctx.fixedWing), power: ctx.power ?? null, smallestPack: Boolean(ctx.smallestPack), crashed: Boolean(ctx.crashed),
+    });
   }
 
   /* A new flight from the spawn at sim time `simMs`; `roomNow` the room
-   * clock while in a room. The last flight's log ends here. */
+   * clock while in a room. The last flight's log is folded to its end and
+   * ends here. */
   startFlight(simMs, roomNow = null) {
+    this.foldFlight();
+    if (simMs <= 0 || simMs < this.simMs) {
+      this.bests = [];
+      this.runLog = [];
+    }
     this.simMs = simMs;
     this.flight.end(simMs);
     this.flight = new EventLog({ roomNow });
     this.folded = 0;
     this.heldTrack = null;
-    this.flight.append('spawned', simMs);
+    this.placeSkip = null;
+    this.event('spawned');
   }
 
-  /* This flight's events not yet folded into progress, folded
-   * (progress.js foldEvents) and stored when any was. */
+  /* This run's events, every flight's since the run began, for its
+   * debrief (src/game/debrief.js fromRace, fromFree, fromOps): a copy,
+   * so a debrief drawn twice reads the same. */
+  runEvents() {
+    return this.runLog.slice();
+  }
+
+  /*
+   * This flight's events not yet folded, paid (progress.js awardFlight,
+   * the one place an achievement is paid), stored when anything was, and
+   * each award said in its own toast. A best and an aircraft challenge
+   * are kept for the run's debrief too (src/game/debrief.js withBests).
+   * Returns the awards' events.
+   */
   foldFlight() {
-    const { at, counted } = foldEvents(this.state, this.flight.events, this.folded);
+    /* A sync answered by a server older than progress v2 can hand back
+     * progress without the map. */
+    if (!this.state.firsts || typeof this.state.firsts !== 'object') {
+      this.state.firsts = {};
+    }
+    const { at, counted, awards } = awardFlight(this.state, this.flight.events, this.folded, this.run, {
+      campaign: this.ui.settings.campaign,
+      seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
+    });
     this.folded = at;
-    if (counted) {
+    if (counted || awards.length) {
       this.save();
     }
+    for (const group of awards) {
+      for (const e of group) {
+        if (e.type === 'best') {
+          this.bests.push(e);
+        } else if (e.type === 'aircraft_challenge') {
+          this.bests.push({ key: `challenge:${e.key}`, airframe: e.airframe, id: e.id });
+        }
+      }
+      this.show(group);
+    }
+    return awards.flat();
+  }
+
+  /* The bests this run set and the aircraft challenges it did, for its
+   * debrief (src/game/debrief.js withBests), which may be drawn more than
+   * once. */
+  runBests() {
+    return this.bests.slice();
   }
 
   /* A Streamer Combat round or a Catch the Ace! match this pilot had a
    * seat in, ended by the room, on world `world` (src/main.js): logged,
-   * folded, and its first paid now rather than at the next flight time. */
+   * folded, and its first paid now rather than at the next flight time.
+   * `more.points` is this pilot's in the room's final standings, which a
+   * best is read from; a best of this game's last round is forgotten
+   * first, so a debrief says only this round's. */
   roundFinished(game, world, more = {}) {
+    this.bests = this.bests.filter((b) => bestKind(b.key) !== game);
     const round = this.event('round', { game, world, ...more });
     this.foldFlight();
-    this.checkFirsts();
     if (this.lesson) {
       this.lesson.round(round);
       this.lessonNews();
@@ -350,6 +468,9 @@ export class Progress {
   /* One event into this flight's log at the last tick's sim time. */
   event(type, data = {}) {
     const e = this.flight.append(type, this.simMs, data);
+    if (e) {
+      this.runLog.push(e);
+    }
     if (type === 'mission_end') {
       this.feedLesson(e);
     }
@@ -364,6 +485,9 @@ export class Progress {
   startLesson(lesson) {
     this.lesson = lesson ? new LessonWatch(lesson) : null;
     this.lessonStep = 0;
+    this.lessonCrashes = 0;
+    this.interrupted = null;
+    keepLessonInFlight(this.lesson);
     if (lesson) {
       this.toast({
         cls: 'lap', icon: '1', kicker: str('training.toast_lesson'),
@@ -374,6 +498,7 @@ export class Progress {
 
   endLesson() {
     this.lesson = null;
+    keepLessonInFlight(null);
     if (this.onLessonEnd) {
       this.onLessonEnd();
     }
@@ -384,9 +509,56 @@ export class Progress {
     return this.lesson ? this.lesson.lesson.aid ?? null : null;
   }
 
-  /* After a lesson call: a toast for each step done, and the pass. */
+  /*
+   * INTERRUPTIONS (docs/redesign/TRAINING.md 10, COMPLETENESS item 55),
+   * each said in a toast under the lesson's name. The pause menu holds the
+   * lesson (its judge counts on the sim clock, stopped while paused); a
+   * crash starts it again (lessonNews); a session that is not its own, or
+   * the page gone, leaves it, and the page marks it Interrupted.
+   */
+  lessonNotice(id, key, vars = {}) {
+    this.toast({ cls: 'lap', icon: '!', kicker: str('training.toast_lesson'), title: str(`training.lesson.${id}`), sub: str(key, vars) });
+  }
+
+  /* The pause menu opened over a lesson's flight (src/ui/actions.js). */
+  lessonPaused() {
+    const w = this.lesson;
+    if (w && !w.passed) {
+      this.lessonNotice(w.lesson.id, 'training.interrupt_held', { n: w.step + 1, of: w.lesson.steps.length });
+    }
+  }
+
+  /* A room's welcome, activity `mode` (src/main.js roomSessionWelcome). */
+  roomJoined(mode) {
+    const w = this.lesson;
+    if (!w || lessonFliesIn(w.lesson, mode)) {
+      return;
+    }
+    this.interrupted = w.lesson.id;
+    this.lessonNotice(w.lesson.id, 'training.interrupt_room');
+    this.endLesson();
+  }
+
+  /* At load: the lesson the last page was flying when it went, said and
+   * marked on the Learn to fly page until a lesson is flown again. */
+  lessonReloaded() {
+    const was = takeLessonInFlight();
+    const lesson = was ? lessonById(was.id) : null;
+    if (!lesson) {
+      return;
+    }
+    this.interrupted = lesson.id;
+    this.lessonNotice(lesson.id, 'training.interrupt_reload', { n: Math.min(was.step, lesson.steps.length - 1) + 1, of: lesson.steps.length });
+  }
+
+  /* After a lesson call: a toast for each step done, a crash's restart,
+   * and the pass. */
   lessonNews() {
     const w = this.lesson;
+    if (w && w.crashes > this.lessonCrashes) {
+      this.lessonCrashes = w.crashes;
+      this.lessonNotice(w.lesson.id, 'training.interrupt_crash');
+    }
     if (!w || w.step === this.lessonStep) {
       return;
     }
@@ -412,8 +584,10 @@ export class Progress {
         this.toast({ cls: 'challenge', icon: '\u2605', kicker: str('training.toast_cert'), title: str(`training.cert.${track}`) });
       }
       this.lesson = null;
+      keepLessonInFlight(null);
       return;
     }
+    keepLessonInFlight(w);
     if (w.step > this.lessonStep) {
       this.toast({ cls: 'lap', icon: String(w.step + 1), kicker: str('training.toast_step', { n: w.step + 1, of: total }), title: str(`training.lesson.${w.lesson.id}`) });
     }
@@ -421,18 +595,16 @@ export class Progress {
   }
 
   gatePass() {
-    this.award(feedRunWatch(this.watch, this.event('gate')));
+    this.event('gate');
+    this.foldFlight();
     if (this.lesson) {
       this.lesson.gatePass();
       this.lessonNews();
     }
   }
 
+  /* Folded with the next fold: a touch pays nothing by itself. */
   touch(kind) {
-    /* Direct, not through the logged event: the log keeps one touch per
-     * run of contact, and a startRun inside that run would leave RunWatch
-     * never told of it. */
-    this.watch.touch(kind);
     this.event('touch', { kind });
     if (this.lesson && RIM_KINDS.includes(kind)) {
       this.lesson.rim();
@@ -441,35 +613,53 @@ export class Progress {
 
   /* A lap closed on `course`, { key, kind }; `ms` its time, `ghostMs`
    * the ghost's it was flown against, and `medal` the one it reached on a
-   * course with medals (src/game/medals.js), each null when there is none. */
-  lap(course, { ms = null, ghostMs = null, medal = null } = {}) {
-    const events = awardLap(this.state, course);
-    const won = medal ? awardMedal(this.state, course.key, medal) : [];
-    const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind });
-    const done = feedRunWatch(this.watch, lapped);
+   * course with medals (src/game/medals.js), each null when there is none;
+   * `n` and `of` the lap's place in a solo run and the run's laps, null in
+   * a room, so a run's best is read from the log (progress.js bestsOf). */
+  lap(course, { ms = null, ghostMs = null, medal = null, n = null, of = null } = {}) {
+    const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });
     this.foldFlight();
-    this.save();
-    this.show(events);
-    this.show(won);
-    this.award(done);
     if (this.lesson) {
       this.lesson.lap(lapped, ghostMs);
       this.lessonNews();
     }
   }
 
+  /* A row of the race's log that pays nothing (src/game/events.js
+   * lap_void): a lap voided, `ms` null and `reason` why, or a test
+   * flight's lap off a casual track, its time and 'test'. */
+  lapVoid(ms, reason) {
+    this.event('lap_void', { ms, reason });
+  }
+
+  /* A bail the freestyle scorer counted, `cause` 'crash', 'wreck' or
+   * 'bounce' (src/main.js scoreCrash), and a trick it took, `id` its
+   * name and `score` its points: the debrief's, paying nothing. */
+  bail(cause) {
+    this.event('bail', { cause });
+  }
+
+  trick(id, score) {
+    this.event('trick', { id, score });
+  }
+
   tick(state) {
     this.simMs = state.simMs;
+    const logged = this.flight.events.length;
     /* Its own edge: startRun clears RunWatch's flag mid crash. */
     if (state.crashed && !this.wasCrashed) {
       this.event('crash', { airframe: this.airframe });
-      this.foldFlight();
     }
     this.wasCrashed = Boolean(state.crashed);
     const landings = this.watch.landings;
-    this.award(this.watch.tick(state));
+    for (const edge of this.watch.tick(state)) {
+      this.event(edge);
+    }
     if (this.watch.landings > landings) {
-      this.event('landing', { airframe: this.airframe });
+      this.event('landing', { airframe: this.airframe, airMs: this.watch.lastAirMs });
+    }
+    this.lookForPlaces(state);
+    if (this.flight.events.length > logged) {
       this.foldFlight();
     }
     if (this.lesson) {
@@ -479,41 +669,40 @@ export class Progress {
   }
 
   /*
-   * The firsts the pilot's own record now shows and has not been paid
-   * for (progress.js awardFirsts): a mission's win and stars from the
-   * campaign, an aircraft's milestones from the flight time. Asked after
-   * whatever can make one: flight time committed, a war result recorded,
-   * a sync that brought another computer's, and once at start, which is
-   * how a profile from before firsts (progress v1) is paid, once.
+   * DISCOVERY: a place of the world flown into is logged `found`, and
+   * the fold pays it once (progress.js awardFlight, awardPlace).
+   * `state.world` is the world's registry id, `state.pos` the craft in
+   * the map's frame and `state.agl` its height over what is under it. On
+   * a flight's first tick the places it began inside are set aside, so a
+   * spawn or a placement finds nothing.
    */
-  checkFirsts() {
-    /* A sync answered by a server older than progress v2 can hand back
-     * progress without the map. */
-    if (!this.state.firsts || typeof this.state.firsts !== 'object') {
-      this.state.firsts = {};
+  lookForPlaces({ world, pos, agl, crashed }) {
+    if (!placesOf(world).length || crashed || !pos) {
+      return;
     }
-    const events = awardFirsts(this.state, {
-      campaign: this.ui.settings.campaign,
-      seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
-      lessons: this.state.lessons,
-      flown: this.state.lessonsFlown,
-      played: this.state.played,
-    });
-    if (events.length) {
-      this.save();
-      this.show(events);
+    if (this.placeSkip === null || this.placeWorld !== world) {
+      this.placeWorld = world;
+      const found = placesOf(world).filter((p) => this.state.places && this.state.places[placeKey(world, p.id)]).map((p) => p.id);
+      this.placeSkip = new Set([...found, ...placesAt(world, pos, agl)]);
+      return;
     }
-    return events;
+    for (const id of placesAt(world, pos, agl, this.placeSkip)) {
+      this.placeSkip.add(id);
+      this.event('found', { world, id });
+    }
   }
 
-  award(ids) {
-    for (const id of ids) {
-      const events = awardChallenge(this.state, id);
-      if (events.length) {
-        this.save();
-        this.show(events);
-      }
-    }
+  /*
+   * The firsts the pilot's own record now shows and has not been paid
+   * for: a mission's win and stars from the campaign, an aircraft's
+   * milestones from the flight time. Asked after whatever can make one
+   * outside a flight's log: flight time committed, a war result recorded,
+   * a sync that brought another computer's, and once at start, which is
+   * how a profile from before firsts (progress v1) is paid, once. Paid
+   * by the same fold as the rest (foldFlight).
+   */
+  checkFirsts() {
+    return this.foldFlight();
   }
 
   /* The events of an award, as toasts: one for what earned the XP, which
@@ -524,6 +713,9 @@ export class Progress {
     const ch = events.find((e) => e.type === 'challenge');
     const firsts = events.filter((e) => e.type === 'first');
     const medal = events.find((e) => e.type === 'medal');
+    const best = events.find((e) => e.type === 'best' && e.xp > 0);
+    const place = events.find((e) => e.type === 'place');
+    const feat = events.find((e) => e.type === 'aircraft_challenge');
     const levels = events.filter((e) => e.type === 'level');
     const up = levels.length ? levels[levels.length - 1].level : 0;
     const info = levelInfo(this.state.xp);
@@ -533,6 +725,34 @@ export class Progress {
         icon: '\u25CF',
         kicker: str('progress.toast_medal'),
         title: str(`medal.${medal.medal}`),
+        xp: xp ? xp.xp : 0,
+        frac: info.frac,
+      });
+    } else if (place) {
+      this.toast({
+        cls: `first${up ? ' level' : ''}`,
+        icon: up ? String(up) : '\u2691',
+        kicker: up ? str('progress.toast_place_level', { n: up }) : str('progress.toast_place'),
+        title: str(`discovery.place.${place.world}.${place.id}`),
+        sub: str(`discovery.place.${place.world}.${place.id}_fact`),
+        xp: xp ? xp.xp : 0,
+        frac: info.frac,
+      });
+    } else if (feat) {
+      this.toast({
+        cls: `challenge${up ? ' level' : ''}`,
+        icon: '\u2713',
+        kicker: up ? str('progress.toast_challenge_level', { n: up }) : str('progress.toast_challenge'),
+        title: str('progress.item_on', { item: challengeTitle(feat.airframe, feat.id), plane: airframeById(feat.airframe).name }),
+        xp: xp ? xp.xp : 0,
+        frac: info.frac,
+      });
+    } else if (best) {
+      this.toast({
+        cls: `best${up ? ' level' : ''}`,
+        icon: up ? String(up) : '\u2191',
+        kicker: up ? str('progress.toast_best_level', { n: up }) : str('progress.toast_best'),
+        title: bestTitle(best),
         xp: xp ? xp.xp : 0,
         frac: info.frac,
       });
@@ -782,6 +1002,10 @@ export class Progress {
     });
     box.append(sw);
 
+    if (challengeAmounts(h.id)) {
+      box.append(el('h3', 'hangar-h', str('progress.this_aircraft', { plane: airframeById(h.id).name })));
+      box.append(this.aircraftList(h.id));
+    }
     const ctx = { airframe: h.id, fixedWing: Boolean(airframeById(h.id).fixedWing), power: this.powerKind(h) };
     const here = CHALLENGES.filter((c) => fits(c, ctx) && c.plane);
     const rest = CHALLENGES.filter((c) => !here.includes(c));
@@ -812,6 +1036,23 @@ export class Progress {
   powerKind(h) {
     const option = h.power && h.power.options ? h.power.options.find((o) => o.id === h.choice.option) : null;
     return option ? option.kind : null;
+  }
+
+  /* The aircraft's own three (progress.js AIRCRAFT_CHALLENGE_IDS), with
+   * the amounts its class gives, each done or its XP. */
+  aircraftList(airframe) {
+    const box = el('div', 'pg-list');
+    const family = liveryKey(airframe);
+    for (const id of AIRCRAFT_CHALLENGE_IDS) {
+      const done = Boolean(this.state.aircraftChallenges && this.state.aircraftChallenges[`${family}:${id}`]);
+      const row = el('div', `pg-ch${done ? ' done' : ' here'}`);
+      row.dataset.challenge = `${family}:${id}`;
+      const words = el('div', 'pg-ch-words');
+      words.append(el('span', 'pg-ch-title', challengeTitle(airframe, id)), el('span', 'pg-ch-note', challengeNote(airframe, id)));
+      row.append(el('span', 'pg-ch-mark', done ? '\u2713' : ''), words, el('span', 'pg-ch-xp', done ? str('progress.done') : str('progress.xp_gain', { n: number(AIRCRAFT_CHALLENGE_XP) })));
+      box.append(row);
+    }
+    return box;
   }
 
   challengeList(list, here) {

@@ -20,7 +20,8 @@
  *   3  Hunters      Hunters out of the gorge for the pilots, and Strikers
  *                   from the north 20 to 35 s in as cover, onto the
  *                   intakes while the squad is busy with them
- *   4  The Turn     one of two twists, drawn: B, the towns, Strikers down
+ *   4  The Turn     one of three twists, drawn: A, Station dark (STATION_DARK
+ *                   below); B, the towns, Strikers down
  *                   the west arm onto the switchyard, the right bank's
  *                   districts at stake in the dark (grid.js puts them out
  *                   on a hit), under a Loiterer onto the intakes; C, a
@@ -40,8 +41,8 @@
  * restarts from the stage it was lost in (war.js, two stars at most).
  *
  * TWIST A (Station dark: the crest's floodlights off by order, and the
- * stage's groups given their error as if a Scout were dead) is built,
- * STATION_DARK below, but not among the stages until its radio is voiced.
+ * stage's groups given their error as if a Scout were dead) is
+ * STATION_DARK below.
  *
  * THE DAWN rises across stage 5 (TECH-NEEDS T1.11): Before Dawn's
  * `daytime` runs the room's clock from the night to the morning
@@ -141,14 +142,8 @@ const DAWN_MS = 240000;
  * for everyone from the stage's start to the mission's end (the
  * view's stationDark, src/main.js). A swarm up the gorge onto the
  * penstocks, close defence in the dark, under Strikers from the north.
- * NOT IN THE DRAW YET: its radio (itaipu-4-ta-turn, -ta-why and the
- * guide's -g-dark, MISSIONS.md M4 Radio) is not voiced, and a trade
- * the squad does not hear made is not the twist MISSIONS.md wrote;
- * once the lines are, it goes into `stages` and 'station-dark' into
- * Hunters' pick, and war:legacy's recorded games of this mission are
- * taken again (the bots loiter at the middle of every wave's targets,
- * scripts/war-balance.js damOf, so a stage more moves them). Until then
- * war:stages flies it (scripts/war-stages-selftest.js).
+ * CREST makes the trade out loud as the stage opens (itaipu-4-ta-turn),
+ * since the lights go then; the why and the guide wait for the swarm.
  */
 export const STATION_DARK = {
   id: 'station-dark',
@@ -166,7 +161,12 @@ export const STATION_DARK = {
   objectives: [{
     id: 'twist', text: 'war.obj.itaipu_4.station', kind: 'kill', show: { born: { group: 'twist' } }, done: { down: { group: 'twist' } }, fail: { leaked: 1, group: 'twist' },
   }],
-  cues: [STAGE_LOST],
+  cues: [
+    { at: 1, radio: 'itaipu-4-ta-turn' },
+    { when: { born: { group: 'twist' } }, radio: 'itaipu-4-ta-why' },
+    { when: { born: { group: 'twist' } }, at: 4, radio: 'itaipu-4-g-dark', skip: { down: { group: 'twist' } } },
+    STAGE_LOST,
+  ],
   exits: exits({ cleared: true }, 'before-dawn', BEAT(20, 20)),
 };
 
@@ -183,9 +183,11 @@ export default withWaves({
   map: 'itaipu',
   /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);
    * Operations' briefing shows it (src/ui/briefing.js). From the room:
-   * war:stages' ten good bot games end 11.0 to 14.9 minutes after the go
-   * (2026-10-14), against MISSIONS.md's first guess of 12 to 16. */
-  estimatedMinutes: [11, 15],
+   * war:stages' ten good bot games end 12.1 to 15.6 minutes after the go,
+   * the closures' waits apart, with twist A in the draw (2026-10-14;
+   * 11.0 to 14.9 before it), against MISSIONS.md's first guess of 12 to
+   * 16. */
+  estimatedMinutes: [11, 16],
   targets,
   output: 14000,
   floorMw: 7700,
@@ -304,10 +306,11 @@ export default withWaves({
        * HUNT_S have passed. A Hunter lives until it is killed (warhunt.js
        * steers it home when it has nobody to chase), so a stage that
        * waited for every one of them to die would never end for a squad
-       * that kept away from them. */
+       * that kept away from them. Not while the face is closing
+       * (MISSIONS.md 1.9 point 4): it waits for the closure's hold. */
       exits: exits({
-        all: [{ gone: { group: 'cover' } }, { any: [{ down: { group: 'hunters' } }, { time: HUNT_S }] }],
-      }, { pick: ['towns', 'dark-scout'] }, BEAT(15, 15)),
+        all: [{ gone: { group: 'cover' } }, { any: [{ down: { group: 'hunters' } }, { time: HUNT_S }] }, { contained: true }],
+      }, { pick: ['station-dark', 'towns', 'dark-scout'] }, BEAT(15, 15)),
     },
     {
       id: 'towns',
@@ -362,6 +365,7 @@ export default withWaves({
         all: [{ any: [{ down: { group: 'twist' } }, { left: 1, group: 'twist' }, { time: 80 }] }, { cleared: true }],
       }, 'before-dawn', BEAT(20, 20)),
     },
+    STATION_DARK,
     {
       id: 'before-dawn',
       round: true,
@@ -396,11 +400,13 @@ export default withWaves({
       ],
       /* The last: lost or held, the mission is won if the output is still
        * over the floor when it ends (as First Light's). Its Hunters, as
-       * stage 3's, end it when they are down or HUNT_S have passed. */
+       * stage 3's, end it when they are down or HUNT_S have passed, and
+       * a closure running holds it as stage 3's. */
       exits: exits({
         all: [
           ...['boats', 'high', 'face', 'swarm'].map((group) => ({ gone: { group } })),
           { any: [{ down: { group: 'hunters' } }, { time: HUNT_S }] },
+          { contained: true },
         ],
       }, 'won', 0, 'waves'),
     },

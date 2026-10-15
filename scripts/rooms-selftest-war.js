@@ -1103,6 +1103,59 @@ export function warSection(check) {
       && !away.of(0, 'dead').some((d) => d.scouts) && bornL.length === 2 && bornL.every((a) => a.err === 0), `${left.length} left, ${JSON.stringify(bornL)}`);
   }
 
+  console.log('war: who is paid a result (phase 19)');
+  {
+    /* A decoy war: two pilots at the go, a third seated mid war, a
+     * watcher, a fourth seated after the end, and the second back after
+     * the end on its token. */
+    const m = testMission([{ at: 1, kind: 'decoy', n: 1, route: 'r', target: 'a' }], { r: [[-1200, Y, 0], [-600, Y, 0]] });
+    const e = warRoom({ mission: m });
+    e.paths[0] = hover([900, Y, -900]);
+    e.paths[1] = hover([900, Y, -950]);
+    e.fly(COUNTDOWN_MS + 500);
+    e.join(2);
+    e.paths[2] = hover([900, Y, -1000]);
+    e.flags[2] = () => FLAG_AIRBORNE;
+    const w = { name: 'watcher', address: '10.9.9.200', got: [] };
+    e.apply(e.r.open(w, e.clock));
+    e.apply(e.r.message(w, JSON.stringify({
+      type: 'hello', proto: PROTO, build: 't', name: [9, 9, 29], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
+    }), e.clock, w.address, () => 'f'.repeat(32)));
+    e.fly(COUNTDOWN_MS + 1000 + (1200 / KIND.decoy.speed) * 1000 + 20000);
+    const late = e.view(2);
+    const uid = late.uid;
+    check('the war ends won, and its view names it by a uid of the room: its start, its code and its id',
+      late.state === 'won' && /^w\d{13}-W4RR00-000001$/.test(uid ?? ''), JSON.stringify({ state: late.state, uid }));
+    check('a pilot seated mid war flew it: its view carries the result and the uid', e.r.war.flew(e.r.seats.get(e.socks[2]))
+      && late.result && late.result.won === true && Number.isFinite(late.result.stars) && Number.isFinite(late.result.credits),
+      JSON.stringify(late.result));
+    const watchedWar = w.got.filter((x) => x && x.type === 'war' && x.war).at(-1)?.war;
+    check('a watcher is told the war and its uid, never its result', watchedWar && watchedWar.state === 'won' && watchedWar.uid === uid
+      && watchedWar.result === null && w.got.filter((x) => x && x.type === 'war' && x.war).every((x) => x.war.result == null));
+    const after = e.join(3);
+    const welcome = after.got.find((x) => x && x.type === 'welcome');
+    check('a pilot first seated after the end never enlisted: its welcome has the decided war, its uid, no result',
+      welcome.war.state === 'won' && welcome.war.uid === uid && welcome.war.result === null && !e.r.war.flew(e.r.seats.get(after)),
+      JSON.stringify(welcome.war.result));
+    const token = e.socks[1].got.find((x) => x && x.type === 'welcome').token;
+    e.apply(e.r.close(e.socks[1], e.clock));
+    const back = { name: 'back', address: '10.9.9.2', got: [] };
+    e.apply(e.r.open(back, e.clock));
+    e.apply(e.r.message(back, JSON.stringify({
+      type: 'hello', proto: PROTO, build: 't', token, name: [1, 1, 21], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null },
+    }), e.clock, back.address, () => 'e'.repeat(32)));
+    const again = back.got.find((x) => x && x.type === 'welcome');
+    check('a pilot who flew it, back on its token after the end (a reload at the result card): the welcome carries the result and the uid',
+      again && again.token === token && again.war.uid === uid && again.war.result && again.war.result.won === true,
+      JSON.stringify(again && again.war.result));
+    const c = createRoomWar(() => {});
+    c.onWelcome(again);
+    check('and that page\'s war view holds it, for the campaign to pay', c.view().uid === uid && c.view().result?.won === true);
+    const later = e.r.war.changed(e.r).filter((x) => x.send);
+    const to = (conn) => JSON.parse(later.find((x) => x.send === conn).data).war;
+    check('every view sent after: the result to the seats that flew it (the late one, the one back), none to the one that did not or to the watcher',
+      to(e.socks[0]).result && to(e.socks[2]).result && to(back).result && to(after).result === null && to(w).result === null);
+  }
   console.log('war: hunters');
   {
     const m = testMission([{ at: 1, kind: 'hunter', n: 1, route: 'h' }], { h: [[400, Y, 0]] });

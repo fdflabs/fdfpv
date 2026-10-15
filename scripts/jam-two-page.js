@@ -187,6 +187,21 @@ try {
     && (k.slots[0].best || 0) === Math.round(ev.runs.filter((r) => r.seat === k.seat).reduce((m, r) => Math.max(m, r.total), 0))), JSON.stringify(kept));
   await shot(a, 'a-results');
   await shot(b, 'b-results');
+  /* The host's one press to the same battle again (COMPLETENESS 76): it
+   * leads A's results and is not on B's, and the room puts both pilots
+   * in the next match. */
+  const rowsOf = (p) => p.evaluate('window.__ui.roomResultsRows().map((r) => r.action)');
+  const [aRows, bRows] = [await rowsOf(a), await rowsOf(b)];
+  check('the host\'s results lead with Battle again, the same runs, and the other pilot\'s have none',
+    aRows[0] === `friends-jam-${SECONDS}` && !bRows.some((x) => x.startsWith('friends-jam-')), JSON.stringify({ aRows, bRows }));
+  await a.evaluate(`(window.__ui.act(${JSON.stringify(aRows[0])}), true)`);
+  const NEXT = `window.__roomJam().view.id > ${ev.id} && window.__roomJam().view.state === 'turn'`;
+  for (const p of pages) {
+    await p.until(NEXT, 20000).catch(() => {});
+  }
+  const next = await Promise.all(pages.map(jamOf));
+  check('one press: both pilots are in the next battle, every seat in its turns', next.every((t) => t.view.id > ev.id && t.view.state === 'turn'
+    && t.view.order.length === 2 && t.view.seconds === SECONDS), JSON.stringify(next.map((t) => ({ id: t.view.id, state: t.view.state, order: t.view.order }))));
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
 } catch (e) {

@@ -1044,7 +1044,7 @@
    {
     "action": "fc-back",
     "id": "fc:a-fc-back",
-    "label": "Exit",
+    "label": "Salir",
     "note": "Sale de esta pantalla. Escape hace lo mismo.",
     "rowClass": "fc-btn"
    },
@@ -3179,7 +3179,7 @@
    },
    {
     "cls": "row fc-btn",
-    "text": "Exit"
+    "text": "Salir"
    },
    {
     "cls": "row row-info row-grey fc-section",
@@ -9198,7 +9198,7 @@
     "action": "noop",
     "id": "tricks:a-noop~4",
     "label": "Power Matty",
-    "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1.5 turns de flip. Visto de lado.",
+    "note": "Fiable. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando 1,5 giros de flip. Visto de lado.",
     "value": "300"
    },
    {
@@ -9267,139 +9267,153 @@
    {
     "action": "noop",
     "id": "tricks:a-noop~14",
+    "label": "Immelmann Turn",
+    "note": "Fiable. Novato. Media vuelta alrededor de un riel, entrando por debajo, llevando medio giro de flip, luego medio giro de roll. Visto de lado.",
+    "value": "250"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~15",
     "label": "Power Flip",
     "note": "Fiable. Intermedio. Una vuelta completa alrededor de un riel, entrando por debajo, llevando dos giros completos de flip. Visto de lado.",
     "value": "350"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~15",
+    "id": "tricks:a-noop~16",
     "label": "Power Roll",
     "note": "Exigente. Avanzado. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de roll. Visto de lado.",
     "value": "450"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~16",
+    "id": "tricks:a-noop~17",
     "label": "Inverted 360 Powerloop",
     "note": "Exigente. Maestro. Una vuelta completa alrededor de un riel, entrando por debajo, llevando un giro completo de flip y un giro completo de yaw spin. Visto de lado.",
     "value": "650"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~17",
+    "id": "tricks:a-noop~18",
     "label": "Flip Stall Rewind",
     "note": "Fiable. Novato. Un giro completo de flip, tras una pausa. Visto de lado.",
     "value": "275"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~18",
+    "id": "tricks:a-noop~19",
     "label": "360 Stall Rewind",
     "note": "Fiable. Novato. Un giro completo de roll, tras una pausa. Visto desde atrás.",
     "value": "275"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~19",
+    "id": "tricks:a-noop~20",
     "label": "Split-S",
     "note": "Exigente. Principiante. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip. Visto de lado.",
     "value": "100"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~20",
+    "id": "tricks:a-noop~21",
     "label": "Split Yaw",
     "note": "Exigente. Intermedio. Media vuelta alrededor de un riel, entrando por encima, llevando medio giro de roll y medio giro de flip y medio giro de yaw spin. Visto de lado.",
     "value": "300"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~21",
+    "id": "tricks:a-noop~22",
     "label": "Yaw Spin",
     "note": "Fiable. Principiante. Un giro completo o más alrededor de un poste, con el poste fijo en la pantalla. Visto desde arriba.",
     "value": "50"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~22",
+    "id": "tricks:a-noop~23",
     "label": "Flip",
     "note": "Fiable. Principiante. Un giro completo de flip. Visto de lado.",
     "value": "50"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~23",
+    "id": "tricks:a-noop~24",
     "label": "Roll",
     "note": "Fiable. Principiante. Un giro completo de roll. Visto desde atrás.",
     "value": "50"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~24",
-    "label": "Invert Rewind",
-    "note": "Fiable. Principiante. Medio giro de rotation, luego medio giro de rotation de vuelta en el otro sentido. Visto de lado.",
+    "id": "tricks:a-noop~25",
+    "label": "Segmented Flips/Rolls",
+    "note": "Fiable. Principiante. Medio giro de rotación, luego medio giro de rotación otra vez en el mismo sentido, tras una pausa. Visto de lado.",
     "value": "75"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~25",
+    "id": "tricks:a-noop~26",
+    "label": "Invert Rewind",
+    "note": "Fiable. Principiante. Medio giro de rotación, luego medio giro de rotación de vuelta en el otro sentido. Visto de lado.",
+    "value": "75"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~27",
     "label": "Vanny Roll",
     "note": "Fiable. Principiante. Medio giro de yaw spin, luego un giro completo de roll, luego medio giro de yaw spin otra vez en el mismo sentido. Visto desde arriba.",
     "value": "125"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~26",
+    "id": "tricks:a-noop~28",
     "label": "Double Flip",
     "note": "Fiable. Principiante. Dos giros completos de flip. Visto de lado.",
     "value": "150"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~27",
+    "id": "tricks:a-noop~29",
     "label": "Double Roll",
     "note": "Fiable. Principiante. Dos giros completos de roll. Visto desde atrás.",
     "value": "150"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~28",
+    "id": "tricks:a-noop~30",
     "label": "Juicy Flick",
     "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~29",
+    "id": "tricks:a-noop~31",
     "label": "Snapback",
     "note": "Fiable. Novato. Medio giro de flip, luego medio giro de roll. Visto de lado.",
     "value": "200"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~30",
+    "id": "tricks:a-noop~32",
     "label": "Rubik's Cube",
     "note": "Fiable. Intermedio. Medio giro de roll, luego un giro completo de flip, luego medio giro de roll otra vez en el mismo sentido. Visto de lado.",
     "value": "325"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~31",
+    "id": "tricks:a-noop~33",
     "label": "Cubik's Rube",
     "note": "Fiable. Intermedio. Medio giro de flip, luego un giro completo de roll, luego medio giro de flip otra vez en el mismo sentido. Visto de lado.",
     "value": "325"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~32",
+    "id": "tricks:a-noop~34",
     "label": "Inverted Yaw Spin",
     "note": "Fiable. Avanzado. Un giro completo de yaw spin, boca abajo. Visto desde arriba.",
     "value": "400"
    },
    {
     "action": "noop",
-    "id": "tricks:a-noop~33",
+    "id": "tricks:a-noop~35",
     "label": "Inverted Yaw Tracking",
     "note": "Fiable. Avanzado. Medio giro de roll, luego un giro completo de yaw spin de vuelta en el otro sentido, boca abajo, luego medio giro de roll. Visto desde arriba.",
     "value": "425"
@@ -9460,6 +9474,10 @@
    },
    {
     "cls": "row",
+    "text": "Immelmann Turn250"
+   },
+   {
+    "cls": "row",
     "text": "Power Flip350"
    },
    {
@@ -9497,6 +9515,10 @@
    {
     "cls": "row",
     "text": "Roll50"
+   },
+   {
+    "cls": "row",
+    "text": "Segmented Flips/Rolls75"
    },
    {
     "cls": "row",
@@ -10179,6 +10201,46 @@
    {
     "i": 32,
     "id": "tricks:a-noop~33",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 33,
+    "id": "tricks:a-noop~34",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 34,
+    "id": "tricks:a-noop~35",
     "to": "tricks",
     "calls": [
      [

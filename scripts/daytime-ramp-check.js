@@ -27,6 +27,11 @@
  *             by the grid (setPower, as src/share/war/grid.js hands the
  *             room's outages in), the lamp pixels go with them, and come
  *             back when the grid gives them back
+ *   restore   Lights Out's reroute (grid.js WHAT COMES BACK): the yard
+ *             down, the right bank's towns out; the hold done, the four
+ *             it feeds back at full level and the other four still out,
+ *             the levels the grid's own (createGrid, as src/main.js hands
+ *             them to the map), and the lamp pixels come back with them
  *   picture   the frame at each end is the world built at that end's
  *             within a tenth of a stop of mean light (the moon's
  *             direction aside, at night within a stop)
@@ -57,7 +62,8 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 import {
   TIME_HOUR, hourAfter, isNightSun, sunSinAt,
 } from '../src/share/daytime.js';
-import { DISTRICTS } from '../src/share/war/grid.js';
+import { DISTRICTS, CASCADE_MS, FLICKER_MS, createGrid } from '../src/share/war/grid.js';
+import LIGHTS_OUT from '../src/share/war/missions/itaipu-3.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -293,6 +299,29 @@ async function ramp(from, to, ends) {
       const back = await picture(p);
       check(`every district cut at night puts its lights out (${(out.lamps * 1e4).toFixed(1)} lamp pixels per 10 000 against ${(endPic.lamps * 1e4).toFixed(1)}), and they come back with the grid (${(back.lamps * 1e4).toFixed(1)})`,
         outState.lamps === 0 && out.lamps < endPic.lamps / 4 && back.lamps > endPic.lamps * 0.75);
+
+      /* Lights Out's reroute: the yard down since before this screen
+       * heard, then the hold's restore at HELD, its towns' levels read
+       * once its cascade back is over. */
+      const fed = LIGHTS_OUT.stages.find((x) => x.id === 'reroute-pack').objectives.find((o) => o.id === 'reroute').restore;
+      const HELD = 1000000;
+      const grid = createGrid();
+      const gridView = (restores) => ({ id: 'ramp-restore', down: ['yard-right'], restores });
+      const power = async (levels) => {
+        await p.evaluate(`(window.__mapScene().userData.itaipu.look.setPower(${JSON.stringify(Array.from(levels))}), "")`);
+        await frames(p, 30);
+        return { pic: await picture(p), drawn: JSON.parse(await p.evaluate('JSON.stringify(window.__mapScene().userData.itaipu.look.night().levels())')) };
+      };
+      const yardOut = await power(grid.levels(gridView([]), HELD - 1));
+      const restored = await power(grid.levels(gridView([{ at: HELD, districts: fed }]), HELD + fed.length * CASCADE_MS + FLICKER_MS));
+      const py = DISTRICTS.map((d, i) => (d.bus === 'py' ? i : -1)).filter((i) => i >= 0);
+      const fedI = fed.map((id) => DISTRICTS.findIndex((d) => d.id === id));
+      const drawnOk = py.every((i) => yardOut.drawn[i] === 0)
+        && py.every((i) => restored.drawn[i] === (fedI.includes(i) ? 1 : 0));
+      check(`the reroute: the yard down puts the right bank's towns out (${(yardOut.pic.lamps * 1e4).toFixed(1)} lamp pixels per 10 000), the hold done brings back ${fed.join(', ')} at full level, the other four still out (${(restored.pic.lamps * 1e4).toFixed(1)})`,
+        drawnOk && restored.pic.lamps > yardOut.pic.lamps,
+        `drawn ${py.map((i) => `${DISTRICTS[i].id} ${yardOut.drawn[i]}>${restored.drawn[i]}`).join(', ')}`);
+      await p.evaluate(`(window.__mapScene().userData.itaipu.look.setPower(${JSON.stringify(DISTRICTS.map(() => 1))}), "")`);
     }
     check('no page error', quiet(p).length === 0, quiet(p).slice(0, 3).join(' | ').slice(0, 600));
   } finally {

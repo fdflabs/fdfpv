@@ -67,18 +67,23 @@ const GANTRY_MID_M = 11;
  *                    t 817.6 m along the main dam's crest frame from
  *                    (-352.9, -1826.5) toward (636.7, -1610.5) (the dam's
  *                    survey, sites.intakeGantries, as src/maps/itaipu/
- *                    spawns.js records it), s -18 m across it, between
- *                    the deck's upstream edge by the intakes (intake-19
- *                    stands at s -28.8) and the crane's downstream legs
- *                    (INTAKE_CRANE.down, s -8.4)
- *   gantry-spillway  no gantry is built over the spillway yet (T1.6 asks
- *                    the map for its model, collider and stoplogs): the
- *                    middle of the gate row in plan (gate-6 and gate-7),
- *                    at the bridge deck's crest, until the map has one
+ *                    spawns.js records it), its middle across the deck
+ *                    (sites.intakeGantries' x and z), between the
+ *                    portal's upstream legs by the intakes and its
+ *                    downstream legs (INTAKE_CRANE.down, s -8.4)
+ *   gantry-spillway  the spillway's gantry the dam builds astride the
+ *                    bridge deck over the middle pier, between gate-6 and
+ *                    gate-7: u 0 and d -7, the deck's middle (SPILL.deck
+ *                    -10.5 to -3.5), in the chute's frame from (-967.0,
+ *                    -1008.5) toward (-805.3, -553.4) (dam.json's
+ *                    spillway chute axis; sites.spillwayGantry), its legs
+ *                    as tall as the intake gantry's
+ *
+ * war:targets --check holds both to the built map's sites.
  */
 export const GANTRIES = Object.freeze({
-  'gantry-intakes': { mw: 0, at: [449.732, CREST_Y + GANTRY_MID_M, -1669.733], r: 12 },
-  'gantry-spillway': { mw: 0, at: [-969.177, CREST_Y + GANTRY_MID_M, -1014.625], r: 12 },
+  'gantry-intakes': { mw: 0, at: [449.734, CREST_Y + GANTRY_MID_M, -1669.769], r: 12 },
+  'gantry-spillway': { mw: 0, at: [-969.344, CREST_Y + GANTRY_MID_M, -1015.096], r: 12 },
 });
 
 /* The part of a target id ('intake' of 'intake-7'). */
@@ -196,6 +201,25 @@ export function objectivesOf(list, stageAt, f) {
     }
     return out;
   });
+}
+
+/* The closures held by f whose opening has not been told shut yet, each
+ * marked told ('shut' in its said, which a restart clears for one it
+ * opens again): the room sends each one's opening again at zero size at
+ * its hold (1.9 point 5, war.js containShut). */
+export function shutDue(list, f) {
+  return schedule(list).filter((x) => x.until <= f && x.c.lost == null && !x.c.said.includes('shut')).map((x) => {
+    x.c.said.push('shut');
+    return x;
+  });
+}
+
+/* The room ms windows gantry `gantry` lowers stoplogs in, [[from,
+ * until]], one after another: a hold paused by it (stages.js `pause`,
+ * MISSIONS.md M2: the spill's hold while the spillway's gantry closes a
+ * gate). A closure lost loses the mission, so it pauses nothing. */
+export function pausesOf(list, gantry) {
+  return schedule(list).filter((x) => x.c.gantry === gantry && x.c.lost == null).map((x) => [x.from, x.until]);
 }
 
 /* The gantries closing or waiting to at f, for the radar's ring. */

@@ -186,6 +186,21 @@ export async function aiRaceSection(check) {
     let below = 0;
     let poses = 0;
     let quads = 0;
+    /* Each AI claim against the newest pose its seat had sent when the
+     * claim came: the crossing lies between two of its poses, and its
+     * Race may see it a few ms after the newest (it judges every
+     * OBSTACLE_STEP), so the claim is within one pose interval of it,
+     * either side. Before 2026-10-15 a pass ran about 20 ms a second of
+     * race ahead (airace.js THE CLOCK). */
+    const ahead = [];
+    const claim = e.r.race.claim.bind(e.r.race);
+    e.r.race.claim = (core, c, now) => {
+      const last = ai.includes(c.seat) ? e.r.race.witness.seats.get(c.seat)?.last : null;
+      if (last) {
+        ahead.push({ seat: c.seat, at: c.at, pose: last.t });
+      }
+      return claim(core, c, now);
+    };
     const t0 = performance.now();
     const endAt = e.clock + COUNTDOWN_MS + (LAPS + 2) * entry.lap.durationMs + 10000;
     while (e.clock < endAt && race.state === 'on') {
@@ -229,6 +244,18 @@ export async function aiRaceSection(check) {
     check('the results order them with the person, the person last', results.length === FILL_TO && results.at(-1).seat === me
       && results.slice(0, -1).every((row) => ai.includes(row.seat) && row.ms != null),
       results.map((row) => `${row.seat}:${row.ms}`).join(' '));
+    /* The AI pilots fly the real plant through the real gates, scored by
+     * the shell's own Race: the race's witness (edge/rooms/anticheat.js)
+     * judges their claims as a person's, and must refuse none. */
+    e.r.race.claim = claim;
+    const gaps = ahead.map((a) => a.at - a.pose);
+    const worst = ahead.reduce((m, a) => (Math.abs(a.at - a.pose) > Math.abs(m.at - m.pose) ? a : m), ahead[0] ?? { at: 0, pose: 0 });
+    check(`each AI pilot's pass is stamped at the room time its pose crossed the gate: within one pose interval (${TICK_MS.toFixed(1)} ms) of its newest pose`,
+      ahead.length >= ai.length * LAPS * e.r.race.track.gates && gaps.every((g) => Math.abs(g) <= TICK_MS),
+      `${ahead.length} claims, ${Math.min(...gaps).toFixed(1)} to ${Math.max(...gaps).toFixed(1)} ms past the newest pose; the worst, seat ${worst.seat}: claim ${worst.at} against pose ${worst.pose}`);
+    const w = e.r.race.witness;
+    check('the room\'s witness decided every AI pilot\'s pass and finish on its poses and refused none', w.judged >= ai.length * LAPS * e.r.race.track.gates && w.flagged === 0,
+      `${w.judged} decided, ${w.flagged} refused ${JSON.stringify(w.flags)}`);
     const batches = e.socks[0].got.filter((m) => m instanceof Uint8Array && m[0] === TYPE_BATCH);
     for (const b of batches) {
       for (const p of decodeBatch(b).poses) {

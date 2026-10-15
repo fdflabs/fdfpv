@@ -33,7 +33,10 @@
  *                 twist adds its own objective once it is born. A yard hit
  *                 inside the hold fails it and damages the stage (no third
  *                 star). A yard already down when the stage opens cannot
- *                 fail it: the reroute then only moves what is left
+ *                 fail it. A hold that is done feeds four of the right
+ *                 bank's towns round the yard (REROUTED): if the yard
+ *                 was down they come back on, and if it stands a later
+ *                 hit on it no longer puts them out
  *   4  The Dark   Loiterers onto the yard from HIGH, Strikers salted with
  *                 decoys onto the west intakes from the north, and a swarm
  *                 up the gorge onto the west penstocks, so a squad that
@@ -48,9 +51,7 @@
  * the golden hour and Reroute's `daytime` runs the room's clock into the
  * night over the hold (src/share/daytime.js missionClock).
  *
- * Not built, and not said (MISSIONS.md 2.1): the reroute bringing
- * districts back (T1.10): a dark district stays dark. Nor the spotters
- * of T1.8, and a decoy group's
+ * Not built (MISSIONS.md 2.1): the spotters of T1.8, and a decoy group's
  * share is one mix whatever the pilots (MISSIONS.md's 1 to 1 for one
  * pilot and 3 to 1 for eight need a mix by pilots).
  *
@@ -109,6 +110,16 @@ const LIE = [['decoy', 2], ['strike', 1]];
  * 233 s. Four minutes holds every arrival of the stage at every pace. */
 const HOLD_MS = 240000;
 
+/* What the reroute feeds round the yard once its hold is done (grid.js
+ * WHAT COMES BACK; MISSIONS.md M3: "Despacho brings back half of them,
+ * the near ones last"): of the eight right bank towns the yard puts out,
+ * the four the side keeps longest (grid.js keep 0.55 and under), so
+ * Hernandarias is among them (itaipu-3-s3-half: "The far towns are moved.
+ * Hernandarias is next."). Far from the dam first: Ciudad del Este 11.5
+ * km, Hernandarias' far district 9.1, Acaray 7.5, Hernandarias' south
+ * 4.6, from the middle of the dam's four quarter seeds. */
+const REROUTED = ['ciudad-del-este', 'hernandarias-far', 'acaray', 'hernandarias-s'];
+
 /* A stage's way out as mission 1's (itaipu-1.js exits). */
 const BEAT = (lo, hi) => [lo * 1000, hi * 1000];
 function exits(when, to, after, why) {
@@ -143,7 +154,7 @@ function reroute(id, twist, objective, cues) {
       },
     ],
     objectives: [{
-      id: 'reroute', text: 'war.obj.itaipu_3.reroute', kind: 'hold', ms: HOLD_MS, targets: YARD, fail: { hit: YARD },
+      id: 'reroute', text: 'war.obj.itaipu_3.reroute', kind: 'hold', ms: HOLD_MS, targets: YARD, fail: { hit: YARD }, restore: REROUTED,
     }, {
       id: 'twist', kind: 'kill', show: { born: { group: 'twist' } }, done: { down: { group: 'twist' } }, fail: { leaked: 1, group: 'twist' }, ...objective,
     }],
@@ -152,10 +163,11 @@ function reroute(id, twist, objective, cues) {
       { at: 2, radio: 'itaipu-3-g-reroute' },
       { when: { held: 'reroute', f: 0.5 }, radio: 'itaipu-3-s3-half' },
       /* Held with the yard standing, or held with it already down (it
-       * fell before the stage, so nothing could fail the hold): nothing
-       * comes back on (TECH-NEEDS T1.10), and the second line says so. */
+       * fell before the stage, so nothing could fail the hold): then
+       * the restore brings half the right bank back (T1.10), and the
+       * line says so. */
       { when: { objective: 'reroute', is: 'done' }, skip: { destroyed: YARD }, radio: 'itaipu-3-s3-done' },
-      { when: { all: [{ objective: 'reroute', is: 'done' }, { destroyed: YARD }] }, radio: 'itaipu-3-s3-down' },
+      { when: { all: [{ objective: 'reroute', is: 'done' }, { destroyed: YARD }] }, radio: 'itaipu-3-s3-back' },
       { when: { objective: 'reroute', is: 'failed' }, radio: 'itaipu-3-s3-failed' },
       ...cues,
       STAGE_LOST,

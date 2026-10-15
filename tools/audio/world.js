@@ -162,8 +162,10 @@ export async function renderScene(sc, { voices, guard = false, loadBudget } = {}
   const stems = { other: [new Float32Array(len), new Float32Array(len)], fx: [new Float32Array(len), new Float32Array(len)] };
   const outs = [0, 1, 2].map(() => [new Float32Array(QUANTUM), new Float32Array(QUANTUM)]);
   /* limiterIn: the sum's peak where the live graph's limiter sees it,
-   * before the master. */
-  const stats = { voicedMax: 0, beddedMax: 0, limiterIn: 0, stepMax: 0 };
+   * before the master. voiceQuanta: the voices and ambience voices
+   * rendered, summed over quanta, the work the load guard sheds counted
+   * rather than timed (a shared host's load decides a timing). */
+  const stats = { voicedMax: 0, beddedMax: 0, limiterIn: 0, stepMax: 0, voiceQuanta: 0 };
   const t0 = performance.now();
   for (let off = 0; off < len; off += QUANTUM) {
     globalThis.currentTime = off / RATE;
@@ -186,6 +188,7 @@ export async function renderScene(sc, { voices, guard = false, loadBudget } = {}
     stats.voicedMax = Math.max(stats.voicedMax, proc.stats.voiced);
     stats.stepMax = proc.stats.stepMax;
     stats.beddedMax = Math.max(stats.beddedMax, proc.stats.bedded);
+    stats.voiceQuanta += proc.stats.voiced + proc.stats.beds;
   }
   const ms = performance.now() - t0;
   return { channels: [L, R], stems, rate: RATE, seconds: sc.seconds, ms, stats };
@@ -483,8 +486,9 @@ async function main() {
         check(`${id}: two alike correlate at most ${BARS.repeatCorrMax}`, cb <= BARS.repeatCorrMax, cb.toFixed(3));
       }
       /* The load guard's hot path, forced: a budget no machine meets, so
-       * it sheds every step; the war must still sound, clean, and cost
-       * less than at full detail. */
+       * it sheds every step; the war must still sound, clean, and render
+       * fewer voices than at full detail. The cost in seconds is printed
+       * for a person only: it is a wall clock, and a loaded host flips it. */
       const full = await renderScene(SCENES['war-full']);
       const hot = await renderScene(SCENES['war-full'], { guard: true, loadBudget: 1e-9 });
       const mh = measure(hot.channels, hot.rate);
@@ -492,7 +496,8 @@ async function main() {
       check('the load guard, forced hot, sheds to its last step', hot.stats.stepMax === 3, `step ${hot.stats.stepMax}`);
       check('the load guard, forced hot: still heard, within 6 LU of full detail', Math.abs(mh.lufs - mf.lufs) <= 6, `${mh.lufs} against ${mf.lufs} LUFS`);
       check('the load guard, forced hot: no NaN, infinity or subnormal, true peak at most -1 dBTP', mh.nonFinite === 0 && mh.subnormal === 0 && mh.truePeakDbtp <= BARS.truePeakMax, `${mh.nonFinite}, ${mh.subnormal}, ${mh.truePeakDbtp} dBTP`);
-      check('the load guard, forced hot: cheaper than full detail', hot.ms < full.ms, `${(hot.ms / 1000 / hot.seconds).toFixed(3)} against ${(full.ms / 1000 / full.seconds).toFixed(3)} s/s`);
+      check('the load guard, forced hot: renders fewer voices than full detail', hot.stats.voiceQuanta < full.stats.voiceQuanta, `${hot.stats.voiceQuanta} against ${full.stats.voiceQuanta} voice quanta`);
+      console.log(`the load guard, forced hot: cost ${(hot.ms / 1000 / hot.seconds).toFixed(3)} against ${(full.ms / 1000 / full.seconds).toFixed(3)} s/s (information, not a bar)`);
       /* And two engines: the same kind on the same circle, two ids. */
       for (const kind of ['strike', 'fpv', 'boat', 'car', 'bus']) {
         const sc = calibrationScene(kind);

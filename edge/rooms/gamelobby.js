@@ -28,11 +28,12 @@
  * screen): until then the flags are kept and no time runs, and the times
  * are settled again when a pilot comes onto the grid (core.js).
  *
- * A round on has no lobby: a pilot who joins then is in it (war.js late
- * join; combat.js seat() gives a newcomer paper; tag.js pose() makes a
- * newcomer a hunter; free flight is just flying). A race on is the one
- * that cannot be joined: it went off a grid, and its racers were the ones
- * on it. When the round starts every flag is cleared, so its end finds the
+ * A round on has no lobby: a pilot who joins then is in it where its
+ * game's allowDropIn (src/share/modes.js, read by core.js join) says so
+ * (war.js late join; combat.js arrive() gives a newcomer paper; tag.js
+ * makes a newcomer a hunter; free flight is just flying). A race on and a
+ * jam on cannot be joined: a race went off a grid, and its racers were the
+ * ones on it; a jam's turns were set at its start. When the round starts every flag is cleared, so its end finds the
  * room back in the lobby with nobody ready. Free flight has no end: its
  * round is on from its first start until the room is empty.
  *
@@ -77,7 +78,7 @@
 import { MISSIONS } from '../../src/share/war/missions/index.js';
 import { GOALS, GOAL_MAX, GOAL_MIN } from '../../src/share/roomtag.js';
 import { RUN_SECONDS, RUN_SECONDS_DEFAULT } from '../../src/share/roomjam.js';
-import { MODES, ROUND_MINUTES, modeById, modeOfWire } from '../../src/share/modes.js';
+import { MODES, ROUND_MINUTES, modeById, modeOfWire, sessionOf } from '../../src/share/modes.js';
 
 export const LOBBY_COUNTDOWN_MS = 5000;
 export const LOBBY_DEADLINE_MS = 45000;
@@ -182,7 +183,7 @@ const GAMES = {
   },
   free: {
     set: null,
-    show: (core) => ({ live: core.gameLobby.live }),
+    show: (core) => ({ live: core.gameLobby.live, session: sessionOf('free', { live: core.gameLobby.live }, core.roomNow()) }),
     can: () => true,
     on: (core) => core.gameLobby.live,
     start: (core) => {
@@ -272,9 +273,10 @@ export class RoomGameLobby {
    * are. */
   settle(core, now, arm) {
     /* The people: an AI pilot is never asked to be ready, nor a pilot
-     * sitting the war out. */
+     * sitting the war out, nor one whose page could not build the room's
+     * world (core.js fail). */
     const out = this.out(core);
-    const here = new Set(core.people().map((s) => s.seat).filter((seat) => !out.has(seat)));
+    const here = new Set(core.people().filter((s) => !out.has(s.seat) && !core.failed(s)).map((s) => s.seat));
     for (const seat of this.ready) {
       if (!here.has(seat)) {
         this.ready.delete(seat);
@@ -303,7 +305,7 @@ export class RoomGameLobby {
       return [];
     }
     if (msg.op === 'ready' && typeof msg.ready === 'boolean') {
-      if (msg.ready === this.ready.has(s.seat) || this.out(core).has(s.seat)) {
+      if (msg.ready === this.ready.has(s.seat) || this.out(core).has(s.seat) || core.failed(s)) {
         return [];
       }
       if (msg.ready) {

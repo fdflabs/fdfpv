@@ -32,7 +32,7 @@ import { Loading, planStages } from './ui/loading.js';
 import { MAP_BUILD_MS } from './maps/build-cost.js';
 import { retiredMap } from './maps/retired.js';
 import { SIM_WINDOW, claimWindowName } from './share/windows.js';
-import { logWarn, watchPageErrors } from './share/crashrecord.js';
+import { logError, logWarn, watchPageErrors } from './share/crashrecord.js';
 import { moveIn } from './share/move.js';
 import { openSave } from './share/save.js';
 
@@ -134,17 +134,20 @@ async function carryStorage() {
 }
 
 /* The save's version, quarantine and backups, after the move brings the
- * guest's storage in and before anything reads it (share/save.js). */
+ * guest's storage in and before anything reads it (share/save.js). The
+ * report goes on to main.js, which tells the pilot: the strings are not
+ * loaded yet here. */
 function openStorage() {
   const opened = openSave();
   if (opened.quarantined.length || opened.failed.length) {
     logWarn('save', 'save: a blob was kept as .corrupt or storage refused a step; see localStorage *.corrupt', opened);
   }
+  return opened;
 }
 
 async function launch() {
   await carryStorage();
-  openStorage();
+  const saveReport = openStorage();
 
   const { mapId, retiredFrom } = resolveLink(linkedMap());
   const titleMap = mapId ? null : TITLE_WORLD;
@@ -176,12 +179,12 @@ async function launch() {
 
   const shell = await import('./main.js');
   await shell.boot({
-    loading, bootStart: pageT0, mapId, titleMap, retiredFrom,
+    loading, bootStart: pageT0, mapId, titleMap, retiredFrom, saveReport,
   });
 }
 
 launch().catch((err) => {
   loading.fail(err.message ?? String(err));
   /* Also on the console, where checks and bug reports look for it. */
-  console.error(err);
+  logError('ui', err);
 });

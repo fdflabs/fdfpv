@@ -177,9 +177,10 @@ try {
     window.__warHear(m);
     return t;
   })()`);
-  const strike = mission.waves.find((w) => w.kind === 'strike');
+  /* An agent as a room births it: one route and one target, where a
+   * stage's spawn names a sector and a list (stages.js draws them). */
   const born = (id, t) => hear({
-    type: 'war', op: 'born', agents: [{ id, kind: 'strike', route: strike.route, t0: t, k: 0, n: 1, err: 0, target: strike.target }],
+    type: 'war', op: 'born', agents: [{ id, kind: 'strike', route: 'reservoir-west', t0: t, k: 0, n: 1, err: 0, target: 'yard-right' }],
   });
   /* A gate hoisted toward 14 m open from now (hoist.js: half a metre a
    * minute), as the match's gate state would. */
@@ -190,7 +191,7 @@ try {
   const torn6 = gate6.chunks.map((c, i) => i).filter((i) => gate6.chunks[i].r).slice(0, 4);
   const opening6 = openingOf('gate-6', gate6, gate6.chunks.map((c, i) => torn6.includes(i)), 0);
   const originAt = await hear({
-    type: 'war', op: 'damage', seq: 899, at: 0, target: 'gate-6', chunks: torn6, fell: [], openings: [opening6], down: false, health: 0.8, p: gate6.chunks[torn6[0]].c, by: 0, cut: [],
+    type: 'war', op: 'damage', seq: 899, at: 0, target: 'gate-6', chunks: torn6, fell: [], openings: [opening6], down: false, health: 0.8, p: gate6.chunks[torn6[0]].c, by: 'strike', cut: [],
   });
   await a.sleep(45000);
   let t = await now();
@@ -230,7 +231,7 @@ try {
   const torn = gate.chunks.map((c, i) => i).filter((i) => gate.chunks[i].r).slice(0, 4);
   const opening = openingOf('gate-4', gate, gate.chunks.map((c, i) => torn.includes(i)), t);
   const breachAt = await hear({
-    type: 'war', op: 'damage', seq: 900, at: 0, target: 'gate-4', chunks: torn, fell: [], openings: [opening], down: false, health: 0.8, p: gate.chunks[torn[0]].c, by: 0, cut: [],
+    type: 'war', op: 'damage', seq: 900, at: 0, target: 'gate-4', chunks: torn, fell: [], openings: [opening], down: false, health: 0.8, p: gate.chunks[torn[0]].c, by: 'strike', cut: [],
   });
   /* Long enough for the water to pass several snapshot steps (host.js). */
   await a.sleep(6000);

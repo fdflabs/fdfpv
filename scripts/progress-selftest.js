@@ -26,12 +26,17 @@
 import {
   CHALLENGES, FIRST_LAP_XP, LAP_XP, LEVEL_XP, PLANE_LEVELS, RunWatch, STARTER_PLANES, STREAK_HOOPS,
   FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, everyFirst, firstsOf,
+  BESTS, BEST_MARGIN, BEST_XP, awardBest, awardBests, bestsOf,
   COUNTED, PLAYED_GAMES, WORLDS, countOf, foldEvents, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
+  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, BEST_GLIDE, CASUAL_LAP_M, LANDING_STREAK, PLACE_XP,
+  aircraftChallengesOf, awardAircraftChallenge, awardAircraftChallenges, awardPlace, challengeAmounts,
+  awardFlight, challengeRun, challengesOn,
 } from '../src/game/progress.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { POWER } from '../configs/power.js';
 import { EventLog } from '../src/game/events.js';
+import { emptyCampaign, payResult } from '../src/game/campaign.js';
 import { mergeBlobs } from '../src/share/progressmerge.js';
 import { PROPS } from '../configs/hangar-parts.js';
 import { liveryKey, schemesFor } from '../configs/liveries.js';
@@ -107,6 +112,21 @@ const reloaded = normaliseProgress(JSON.parse(JSON.stringify(seededV1)));
 check('a reload of the paid profile pays nothing', awardFirsts(reloaded, { campaign: warVet, seconds: flown }).length === 0);
 const third = awardFirsts(reloaded, { campaign: { missions: { 'itaipu-1': { stars: 3, won: true } } }, seconds: flown });
 check('a better result pays only what is new', same(third.filter((e) => e.type === 'first').map((e) => e.key), ['mission:itaipu-1:star3']));
+{
+  /* A war's result paid by the room's id for it (src/game/campaign.js
+   * payResult): seen twice, across a reload, its firsts are paid once. */
+  const uid = 'w1760000000000-W4RR00-000001';
+  const r = { won: true, stars: 2, credits: 220 };
+  const seenOnce = payResult(emptyCampaign(), uid, 'itaipu-1', r);
+  const seenAgain = payResult(JSON.parse(JSON.stringify(seenOnce)), uid, 'itaipu-1', r);
+  const p = freshProgress();
+  const first = awardFirsts(p, { campaign: seenOnce, seconds: {} }).filter((e) => e.type === 'first').map((e) => e.key).sort();
+  const xp = p.xp;
+  check('a war paid by its id: its win and stars are firsts once, and the same war seen again after a reload pays no XP',
+    same(first, ['mission:itaipu-1:star1', 'mission:itaipu-1:star2', 'mission:itaipu-1:win'])
+    && awardFirsts(normaliseProgress(JSON.parse(JSON.stringify(p))), { campaign: seenAgain, seconds: {} }).length === 0
+    && seenAgain.earned === seenOnce.earned && xp === FIRST_XP.win + 2 * FIRST_XP.star, `${first.join()} ${xp}`);
+}
 check('an unknown mission or aircraft pays nothing: the list is finite', firstsOf({ campaign: { missions: { 'my-own-1': { won: true, stars: 3 } } }, seconds: { notaplane: 1e6 } }).length === 0);
 const everything = firstsOf({
   campaign: { missions: Object.fromEntries([...Array(12)].map((_, i) => [i < 7 ? `itaipu-${i + 1}` : `interior-${i - 6}`, { won: true, stars: 99 }])) },
@@ -193,18 +213,43 @@ const bomb = { airframe: 'bombshell1118', fixedWing: true, power: 'glow', smalle
 const slow = { airframe: 'slowstick1180', fixedWing: true, power: 'electric', smallestPack: true };
 const quad = { airframe: 'interceptor', fixedWing: false, power: null, smallestPack: false };
 
-/* A run of `steps`, each { t, ...tick } or an action name, gathering the
- * challenges it came true on. */
+/* A run of `steps`, each { t, ...tick } or an action name, logged as
+ * src/ui/progress-ui.js Progress logs them (RunWatch detecting the crash,
+ * engine and battery edges and the landings), gathering the challenges
+ * the rows find in the log (challengesOn). */
 function run(ctx, steps) {
   const w = new RunWatch();
   w.start(ctx);
-  const got = new Set();
+  const log = new EventLog();
+  let simMs = 0;
+  let was = false;
+  log.append('seated', 0, { ...ctx, crashed: false });
   const base = { crashed: false, grounded: false, power: null, battery: 'ok' };
   for (const s of steps) {
-    const out = typeof s === 'string' ? (s === 'pass' ? w.gatePass() : s === 'lap' ? w.lap() : (w.touch(s.slice(6)), [])) : w.tick({ ...base, ...s });
-    out.forEach((id) => got.add(id));
+    if (s === 'pass') {
+      log.append('gate', simMs);
+    } else if (s === 'lap') {
+      log.append('lap', simMs, { ms: 1, airframe: ctx.airframe, medal: null });
+    } else if (typeof s === 'string') {
+      log.append('touch', simMs, { kind: s.slice(6) });
+    } else {
+      const state = { ...base, ...s };
+      simMs = state.simMs;
+      if (state.crashed && !was) {
+        log.append('crash', simMs, { airframe: ctx.airframe });
+      }
+      was = state.crashed;
+      const landings = w.landings;
+      for (const edge of w.tick(state)) {
+        log.append(edge, simMs);
+      }
+      if (w.landings > landings) {
+        log.append('landing', simMs, { airframe: ctx.airframe, airMs: w.lastAirMs });
+      }
+    }
   }
-  return got;
+  const r = challengeRun();
+  return new Set(log.events.flatMap((e) => challengesOn(r, e)));
 }
 check('any lap is the first lap, even a quad\'s', run(quad, ['lap']).has('first_course'));
 check('a Timber lap with no touch is clean', run(timber, ['pass', 'pass', 'lap']).has('timber_clean'));
@@ -235,6 +280,174 @@ check('not a hop: under 2 s in the air is not a flight', !run(timber, [{ simMs: 
 check('not on a glow plane', !run(kadetSmall, [{ simMs: 0, battery: 'warning' }, ...flight({ battery: 'warning' })]).has('deadstick'));
 check('the Bombshell glides home after the engine quits', run(bomb, [{ simMs: 0, power: out }, ...flight({ power: out })]).has('bombshell_glide'));
 check('not with the engine running', !run(bomb, flight({ power: running })).has('bombshell_glide'));
+check('a row per challenge, each on one event type with a condition', CHALLENGES.every((c) => ['gate', 'lap', 'landing'].includes(c.on) && typeof c.when === 'function'));
+check('a log with no seat judges nothing: no row fits no aircraft', challengesOn(challengeRun(), { type: 'lap' }).length === 0);
+
+/*
+ * THE ONE FOLD (awardFlight, COMPLETENESS.md item 28): recorded logs fed
+ * in, and exactly which achievements it pays, in order, each once.
+ */
+console.log('the one fold: a log in, exactly these achievements out');
+{
+  const say = (g) => {
+    const e = g[0];
+    if (e.type === 'xp') return `lap${e.why.first ? ' first' : ''}`;
+    if (e.type === 'challenge') return `challenge:${e.id}`;
+    if (e.type === 'medal') return `medal:${e.medal}`;
+    if (e.type === 'best') return `best:${e.key}`;
+    if (e.type === 'aircraft_challenge') return `aircraft:${e.key}`;
+    if (e.type === 'place') return `place:${e.world}:${e.id}`;
+    if (e.type === 'first') return `first:${g.filter((x) => x.type === 'first').map((x) => x.key).join('+')}`;
+    return e.type;
+  };
+  const timber = { airframe: 'timber1500', fixedWing: true, power: 'electric', smallestPack: false, crashed: false };
+  const log = new EventLog();
+  log.append('spawned', 0);
+  log.append('seated', 0, timber);
+  for (let g = 1; g <= STREAK_HOOPS; g += 1) log.append('gate', g * 4000);
+  log.append('lap', 45000, { ms: 44000, airframe: 'timber1500', medal: 'silver', kind: 'built', course: 'track:t1', n: 1, of: 1 });
+  log.append('found', 50000, { world: 'itaipu', id: 'main_dam' });
+  log.append('battery_low', 60000);
+  log.append('landing', 400000, { airframe: 'timber1500', airMs: 330000 });
+  const outside = { campaign: null, seconds: { timber1500: 700 } };
+  const p = freshProgress();
+  const r = challengeRun();
+  const once = awardFlight(p, log.events, 0, r, outside);
+  const got = once.awards.map(say);
+  const want = [
+    'challenge:hoops_10', 'lap first', 'medal:silver', 'best:lap:plane:track:t1', 'best:run:1:plane:track:t1',
+    'challenge:first_course', 'challenge:timber_clean', 'place:itaipu:main_dam',
+    'aircraft:timber1500:endurance', 'challenge:deadstick', 'first:aircraft:timber1500:flight+aircraft:timber1500:ten',
+  ];
+  check('a flight: these, in log order, the firsts last', same(got, want), got.join(' | '));
+  check('the fold took the whole log, and counted its lap and landing', once.at === log.events.length && once.counted === 2 && p.laps.timber1500 === 1 && p.landings.timber1500 === 1);
+  check('the XP is the sum of what it paid', p.xp === once.awards.flat().filter((e) => e.type === 'xp').reduce((n, e) => n + e.xp, 0));
+  const again = awardFlight(p, log.events, once.at, r, outside);
+  check('folded again from where it stopped: nothing', again.awards.length === 0 && again.counted === 0 && again.at === once.at);
+  const xp = p.xp;
+  const replayed = awardFlight(p, log.events, 0, challengeRun(), outside);
+  check('the whole log again from the start: no achievement twice, only the lap\'s own XP (a lap pays every time, its course\'s first once)',
+    same(replayed.awards.map(say), ['lap']) && p.xp === xp + LAP_XP.built, replayed.awards.map(say).join(' | '));
+  check('no outside facts: no firsts read', awardFlight(freshProgress(), log.events, 0, challengeRun(), null).awards.every((g) => g[0].type !== 'first'));
+  /* The debrief's words (src/game/events.js lap_void, bail, trick,
+   * COMPLETENESS.md item 26) between every event of the same flight: the
+   * fold pays exactly the same, counts the same and gives the same XP. */
+  const words = [
+    ['lap_void', { ms: null, reason: 'wreck' }], ['bail', { cause: 'bounce' }], ['trick', { id: 'Power Loop', score: 480 }],
+    ['lap_void', { ms: 39000, reason: 'test' }], ['bail', { cause: 'crash' }],
+  ];
+  const noisy = new EventLog();
+  log.events.forEach((e, i) => {
+    const { seq, type, simMs, roomMs, ...data } = e;
+    noisy.append(type, simMs, data);
+    const [w, d] = words[i % words.length];
+    noisy.append(w, simMs, d);
+  });
+  const pn = freshProgress();
+  const quiet = awardFlight(pn, noisy.events, 0, challengeRun(), outside);
+  check('the debrief\'s words between every event: the same achievements, counts and XP', same(quiet.awards.map(say), want) && quiet.counted === 2
+    && pn.xp === awardFlight(freshProgress(), log.events, 0, challengeRun(), outside).awards.flat().filter((e) => e.type === 'xp').reduce((n, e) => n + e.xp, 0)
+    && same(pn.laps, { timber1500: 1 }) && same(pn.crashes, {}), quiet.awards.map(say).join(' | '));
+
+  /* A thousand seeded random flights folded with and without the
+   * debrief's words between their events: the same achievements, in the
+   * same order, and the same progress after. */
+  let seed = 20261014;
+  const rand = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  };
+  const pick = (list) => list[Math.floor(rand() * list.length)];
+  const seats = [timber, { ...timber, airframe: 'slowstick1180' }, { ...timber, airframe: 'bombshell1118', power: 'glow' }, { airframe: 'interceptor', fixedWing: false, power: null, smallestPack: false, crashed: false }];
+  let alike = 0;
+  let paidAll = 0;
+  let firstOdd = '';
+  for (let k = 0; k < 1000; k += 1) {
+    const plain = new EventLog();
+    const loud = new EventLog();
+    const both = (type, t, data) => {
+      plain.append(type, t, data);
+      loud.append(type, t, data);
+    };
+    let t = 0;
+    let seat = pick(seats);
+    both('spawned', 0);
+    both('seated', 0, seat);
+    for (let n = 0; n < 60; n += 1) {
+      t += 500 + Math.floor(rand() * 4000);
+      const r = rand();
+      if (r < 0.3) both('gate', t);
+      else if (r < 0.45) both('lap', t, { ms: 20000 + Math.floor(rand() * 40000), airframe: seat.airframe, medal: pick([null, 'bronze', 'silver', 'gold']), kind: pick(['casual', 'built', 'map']), course: pick(['track:a', 'track:b']), n: 1 + Math.floor(rand() * 3), of: pick([null, 3]) });
+      else if (r < 0.5) both('crash', t, { airframe: seat.airframe });
+      else if (r < 0.6) both('landing', t, { airframe: seat.airframe, airMs: Math.floor(rand() * 400000) });
+      else if (r < 0.63) both('battery_low', t);
+      else if (r < 0.66) both('touch', t, { kind: pick(['gate', 'hoop', 'tree']) });
+      else if (r < 0.68) {
+        seat = pick(seats);
+        both('seated', t, seat);
+      }
+      const [w, d] = words[Math.floor(rand() * words.length)];
+      loud.append(w, t, d);
+    }
+    const pa = freshProgress();
+    const pb = freshProgress();
+    const fa = awardFlight(pa, plain.events, 0, challengeRun(), outside);
+    const fb = awardFlight(pb, loud.events, 0, challengeRun(), outside);
+    paidAll += fa.awards.length;
+    if (same(fa.awards.map(say), fb.awards.map(say)) && fa.counted === fb.counted && same(pa, pb)) alike += 1;
+    else if (!firstOdd) firstOdd = `flight ${k}: ${fa.awards.map(say).join()} vs ${fb.awards.map(say).join()}`;
+  }
+  check(`a thousand seeded flights, the debrief's words between their events: the same achievements and progress (${alike} of 1000, ${paidAll} paid)`, alike === 1000 && paidAll > 1000, firstOdd);
+
+  /* A run is carried across its flights: a placement starts a new log,
+   * not a new run, so a third lap after two placements is the third. */
+  const slow = { airframe: 'slowstick1180', fixedWing: true, power: 'electric', smallestPack: false, crashed: false };
+  const q = freshProgress();
+  const carried = challengeRun();
+  const flights = [0, 1, 2].map((k) => {
+    const l = new EventLog();
+    l.append('spawned', k * 100000);
+    if (k === 0) l.append('seated', 0, slow);
+    l.append('lap', k * 100000 + 50000, { ms: 40000, airframe: 'slowstick1180', medal: null, kind: 'built', course: 'track:s', n: 1, of: null });
+    return l.events;
+  });
+  const paid = flights.map((events) => awardFlight(q, events, 0, carried, null).awards.map(say).filter((x) => x.startsWith('challenge')));
+  check('three laps over three flights of one run: the Slow Stick\'s three on the third', same(paid, [['challenge:first_course'], [], ['challenge:slowstick_three']]), JSON.stringify(paid));
+  const reseat = challengeRun();
+  const l2 = new EventLog();
+  l2.append('spawned', 0);
+  l2.append('seated', 0, slow);
+  l2.append('lap', 50000, { ms: 40000, airframe: 'slowstick1180', medal: null, kind: 'built', course: 'track:s', n: 1, of: null });
+  l2.append('lap', 90000, { ms: 40000, airframe: 'slowstick1180', medal: null, kind: 'built', course: 'track:s', n: 1, of: null });
+  l2.append('seated', 95000, slow);
+  l2.append('lap', 140000, { ms: 40000, airframe: 'slowstick1180', medal: null, kind: 'built', course: 'track:s', n: 1, of: null });
+  check('a new seat is a new run: two laps, a refit, one more is not three', !l2.events.flatMap((e) => challengesOn(reseat, e)).includes('slowstick_three'));
+  const dead = (rows) => {
+    const l = new EventLog();
+    l.append('seated', 0, timber);
+    rows.forEach(([type, t, data]) => l.append(type, t, data));
+    const rr = challengeRun();
+    return l.events.flatMap((e) => challengesOn(rr, e));
+  };
+  const landing = ['landing', 9000, { airframe: 'timber1500', airMs: 6000 }];
+  check('dead stick from the log: LOW BATTERY then a landing', same(dead([['battery_low', 1000], landing]), ['deadstick']));
+  check('a crash after LOW BATTERY spoils it', dead([['battery_low', 1000], ['crash', 2000, { airframe: 'timber1500' }], landing]).length === 0);
+  check('a crash before it does not', same(dead([['crash', 500, { airframe: 'timber1500' }], ['battery_low', 1000], landing]), ['deadstick']));
+  const bombshell = { airframe: 'bombshell1118', fixedWing: true, power: 'glow', smallestPack: false, crashed: false };
+  const glide = (rows) => {
+    const l = new EventLog();
+    l.append('seated', 0, bombshell);
+    rows.forEach(([type, t, data]) => l.append(type, t, data));
+    const rr = challengeRun();
+    return l.events.flatMap((e) => challengesOn(rr, e));
+  };
+  check('the Bombshell\'s glide from the log: the engine out, then a landing', same(glide([['engine_out', 1000], ['landing', 9000, { airframe: 'bombshell1118', airMs: 6000 }]]), ['bombshell_glide']));
+  check('seated mid crash reads as a crash: the next lap is not clean', (() => {
+    const rr = challengeRun();
+    challengesOn(rr, { type: 'seated', ...timber, crashed: true });
+    return !challengesOn(rr, { type: 'lap' }).includes('timber_clean');
+  })());
+}
 
 /*
  * COUNTS PER AIRCRAFT (PROGRESSION.md 5 and 9, COMPLETENESS.md 27):
@@ -312,6 +525,15 @@ console.log('landings, crashes, laps, kills and missions, from the event log');
     same(ms.missionsStarted, { cub1400: 2, timber1500: 1 }) && same(ms.missionsCompleted, { cub1400: 2 })
     && countOf(ms, 'mission_end', 'cub1400') === 2 && mf.counted === 5 && mAgain.counted === 0 && ms.xp === 0,
     JSON.stringify([ms.missionsStarted, ms.missionsCompleted, mf.counted, mAgain.counted]));
+  /* An Interior match's result logged for its debrief though this entry
+   * paid nothing (paid before, by its uid; src/ui/opscampaign.js record)
+   * is not completed again. */
+  const mu = freshProgress();
+  const mul = new EventLog();
+  mul.append('mission_end', 1000, { mission: 'interior-1', match: 'u1', won: true, state: 'won', stars: 1, earned: 1, paid: true, airframe: 'cub1400' });
+  mul.append('mission_end', 2000, { mission: 'interior-1', match: 'u1', won: true, state: 'won', stars: 1, earned: 1, paid: false, airframe: 'cub1400' });
+  const muf = foldEvents(mu, mul.events);
+  check('a result logged unpaid counts nowhere, the paid one once', same(mu.missionsCompleted, { cub1400: 1 }) && muf.counted === 1, JSON.stringify([mu.missionsCompleted, muf.counted]));
   check('a fresh profile has no missions counted', same(freshProgress().missionsStarted, {}) && same(freshProgress().missionsCompleted, {}));
   check('a count pays no XP', p.xp === 0);
   const older = normaliseProgress({ v: 2, xp: 300, firsts: { a: true } });
@@ -364,6 +586,250 @@ console.log('room games: a first per game and world');
   const blob = (played) => ({ v: 1, data: { progress: { ...freshProgress(), played } }, stamps: {} });
   check('two computers merge played as the union', same(mergeBlobs(blob({ 'tag:alps': true }), blob({ 'combat:itaipu': true })).data.progress.played, { 'combat:itaipu': true, 'tag:alps': true }));
   check('Unlock all is untouched by a room game first', (() => { const q = freshProgress(true); awardFirsts(q, { played: { 'tag:alps': true } }); return q.unlockAll === true && q.xp === FIRST_XP.game; })());
+}
+
+/*
+ * BESTS (PROGRESSION.md section 3, the lead's decision of 2026-10-14):
+ * per activity and place, set only from a finished, valid run's log, XP
+ * once for the first and a smaller amount for a real improvement.
+ */
+console.log('bests: a personal record per activity and place');
+{
+  const xpOf = (events) => events.filter((e) => e.type === 'xp').reduce((n, e) => n + e.xp, 0);
+  const lapLog = (laps, { start = 0, of = null, course = 'track:t1', airframe = 'timber1500' } = {}) => {
+    const log = new EventLog();
+    log.append('spawned', start);
+    let t = start + 5000;
+    laps.forEach((ms, i) => {
+      t += ms;
+      log.append('lap', t, { ms, airframe, medal: null, kind: 'built', course, n: i + 1, of });
+    });
+    return log;
+  };
+  check('every kind has a direction and a margin', Object.keys(BESTS).every((k) => ['lower', 'higher'].includes(BESTS[k]) && BEST_MARGIN[k] > 0)
+    && same(Object.keys(BESTS).sort(), Object.keys(BEST_MARGIN).sort()));
+  check('a time\'s margin is the clock\'s hundredth, a score\'s one point', BEST_MARGIN.lap === 10 && BEST_MARGIN.run === 10 && BEST_MARGIN.combat === 1 && BEST_MARGIN.tag === 1);
+  check('a better best pays less than the first', BEST_XP.improved > 0 && BEST_XP.improved < BEST_XP.set);
+  check('a fresh profile has no bests', same(freshProgress().bests, {}));
+
+  /* Track Day: a lap per course and aircraft class, lower is better. */
+  const p = freshProgress();
+  const first = awardBests(p, lapLog([42000]).events);
+  check('lap: the first lap on a course sets its best for the class and pays BEST_XP.set',
+    same(p.bests, { 'lap:plane:track:t1': 42000 }) && xpOf(first) === BEST_XP.set && first[0].before === null, JSON.stringify(p.bests));
+  const fold = awardBests(p, lapLog([42000]).events);
+  check('lap: matching it pays nothing and sets nothing', fold.length === 0 && p.bests['lap:plane:track:t1'] === 42000);
+  const slower = awardBests(p, lapLog([43000]).events);
+  check('lap: a slower lap pays nothing and keeps the best', slower.length === 0 && p.bests['lap:plane:track:t1'] === 42000);
+  const creep = awardBests(p, lapLog([41995]).events);
+  check('lap: better by under the margin is kept and pays nothing', creep.length === 1 && creep[0].xp === 0 && xpOf(creep) === 0
+    && p.bests['lap:plane:track:t1'] === 41995, JSON.stringify(creep));
+  const xpBefore = p.xp;
+  const real = awardBests(p, lapLog([41985]).events);
+  check('lap: better by the margin pays BEST_XP.improved, the old value with it',
+    xpOf(real) === BEST_XP.improved && p.xp === xpBefore + BEST_XP.improved && real[0].before === 41995 && real[0].now === 41985, JSON.stringify(real));
+  check('lap: another class on the same course is its own best', xpOf(awardBests(p, lapLog([30000], { airframe: 'interceptor' }).events)) === BEST_XP.set
+    && p.bests['lap:multirotor:track:t1'] === 30000);
+  check('lap: another course is its own best', xpOf(awardBests(p, lapLog([50000], { course: 'track:t2' }).events)) === BEST_XP.set);
+
+  /* A reset mid lap (resetCraft starts a new log; so does a developer
+   * hook putting the craft somewhere): the lap began before this log. */
+  const reset = new EventLog();
+  reset.append('spawned', 100000);
+  reset.append('lap', 101000, { ms: 9000, airframe: 'timber1500', medal: null, kind: 'built', course: 'track:t3', n: 1, of: null });
+  check('reset: a lap longer than its flight so far is no best', bestsOf(reset.events).length === 0);
+  const placed = new EventLog();
+  placed.append('spawned', 0);
+  placed.append('lap', 40000, { ms: 40000, airframe: 'timber1500', medal: null, kind: 'built', course: 'track:t3', n: 1, of: null });
+  check('reset: a lap the length of its whole flight is one (the start is in this log)', bestsOf(placed.events).length === 1);
+  const unlogged = new EventLog();
+  unlogged.append('lap', 40000, { ms: 1000, airframe: 'timber1500', medal: null, kind: 'built', course: 'track:t3', n: 1, of: null });
+  check('reset: a log that does not say where its flight began proves nothing', bestsOf(unlogged.events).length === 0);
+  check('lap: no course, no aircraft or no time is no best',
+    bestsOf(lapLog([40000], { course: null }).events).length === 0 && bestsOf(lapLog([40000], { airframe: null }).events).length === 0);
+
+  /* A solo run: every lap of it closed in one log. */
+  const r = freshProgress();
+  const run = awardBests(r, lapLog([40000, 39000, 41000], { of: 3 }).events);
+  check('run: three laps of a three lap run set the run\'s best, their sum', r.bests['run:3:plane:track:t1'] === 120000, JSON.stringify(r.bests));
+  check('run: and pays BEST_XP.set once for it, besides the lap\'s', run.filter((e) => e.type === 'best' && e.key.startsWith('run:')).length === 1
+    && xpOf(run) === BEST_XP.set + BEST_XP.set + BEST_XP.improved, `${xpOf(run)}`);
+  const recovered = lapLog([39000, 38000], { of: 3 });
+  recovered.events.forEach((e, i) => { if (i > 0) { recovered.events[i] = { ...e, n: e.n + 1 }; } });
+  check('run: a run whose first lap closed in an earlier log (a recovery) is no run best',
+    !bestsOf(recovered.events).some((b) => b.key.startsWith('run:')));
+  check('run: a room\'s laps (no `of`) make no run best', !bestsOf(lapLog([40000, 39000, 41000]).events).some((b) => b.key.startsWith('run:')));
+  check('run: a run under its laps is none yet', !bestsOf(lapLog([40000, 39000], { of: 3 }).events).some((b) => b.key.startsWith('run:')));
+  const better = awardBests(r, lapLog([39000, 39000, 39000], { of: 3 }).events).filter((e) => e.type === 'best' && e.key.startsWith('run:'));
+  check('run: a faster run by the margin pays the improvement', better.length === 1 && better[0].xp === BEST_XP.improved && better[0].before === 120000);
+
+  /* Streamer Combat and Catch the Ace!: a round's points per world. */
+  const g = freshProgress();
+  const round = (game, world, points) => { const log = new EventLog(); log.append('round', 1, { game, world, points }); return log.events; };
+  check('combat: a round\'s points set its world\'s best and pay BEST_XP.set', xpOf(awardBests(g, round('combat', 'alps', 300))) === BEST_XP.set && g.bests['combat:alps'] === 300);
+  check('combat: the same score again pays nothing', awardBests(g, round('combat', 'alps', 300)).length === 0);
+  check('combat: a lower score pays nothing', awardBests(g, round('combat', 'alps', 299)).length === 0 && g.bests['combat:alps'] === 300);
+  check('combat: one point more is a real gain and pays BEST_XP.improved', xpOf(awardBests(g, round('combat', 'alps', 301))) === BEST_XP.improved && g.bests['combat:alps'] === 301);
+  check('tag: higher is better, per world', xpOf(awardBests(g, round('tag', 'itaipu', 5))) === BEST_XP.set && xpOf(awardBests(g, round('tag', 'swiss2', 2))) === BEST_XP.set
+    && xpOf(awardBests(g, round('tag', 'itaipu', 7))) === BEST_XP.improved && same([g.bests['tag:itaipu'], g.bests['tag:swiss2']], [7, 2]));
+  check('rounds: no points, nought, an unknown game or world is no best',
+    bestsOf(round('combat', 'alps', 0)).length === 0 && bestsOf(round('jam', 'alps', 50)).length === 0
+    && bestsOf(round('combat', 'atlantis', 50)).length === 0 && bestsOf([{ type: 'round', game: 'tag', world: 'alps', seq: 0, simMs: 0 }]).length === 0);
+
+  /* Folding from where the last fold stopped finds nothing twice. */
+  const f = freshProgress();
+  const log = lapLog([40000], { of: 2 });
+  const once = awardBests(f, log.events, 0);
+  log.append('lap', 90000, { ms: 39000, airframe: 'timber1500', medal: null, kind: 'built', course: 'track:t1', n: 2, of: 2 });
+  const twice = awardBests(f, log.events, 2);
+  check('a fold from the last one takes only the new laps', once.filter((e) => e.type === 'best').length === 1
+    && same(twice.filter((e) => e.type === 'best').map((e) => e.key), ['lap:plane:track:t1', 'run:2:plane:track:t1']), JSON.stringify(twice.map((e) => e.key)));
+  check('awardBest refuses an unknown kind or a junk value', awardBest(freshProgress(), 'jam:alps', 5).length === 0
+    && awardBest(freshProgress(), 'lap:plane:x', 1.5).length === 0 && awardBest(freshProgress(), 'lap:plane:x', -3).length === 0);
+  check('bests are not firsts: none is on the finite list the tokens are paid from', !everyFirst().some((x) => /^(lap|run|combat|tag):/.test(x.key)));
+  check('Unlock all is untouched by a best', (() => { const q = freshProgress(true); awardBests(q, round('tag', 'alps', 3)); return q.unlockAll === true && q.bests['tag:alps'] === 3; })());
+
+  /* Stored, and the save's migration: additive inside v2, no step. */
+  const v2 = { v: 2, xp: 640, firsts: { 'game:tag:alps': true }, courses: { 'track:t1': true } };
+  const loaded = normaliseProgress(v2);
+  check('migration: a v2 profile from before bests reads as none, everything else kept, no version step',
+    same(loaded.bests, {}) && loaded.xp === 640 && loaded.v === PROGRESS_VERSION && PROGRESS_VERSION === 2 && same(loaded.firsts, v2.firsts), JSON.stringify(loaded));
+  check('migration: a v1 profile walks up and reads bests as none', same(normaliseProgress({ xp: 50 }).bests, {}) && normaliseProgress({ xp: 50 }).v === PROGRESS_VERSION);
+  const junk = normaliseProgress({ bests: { 'lap:plane:t': 40000, 'run:3:plane:t': 120000.5, 'jam:alps': 4, 'combat:alps': 0, 'tag:alps': '9', [`lap:${'x'.repeat(200)}`]: 5 } });
+  check('stored bests keep known kinds with whole positive values; junk is dropped', same(junk.bests, { 'lap:plane:t': 40000 }), JSON.stringify(junk.bests));
+  check('and survive a round trip', same(normaliseProgress(JSON.parse(JSON.stringify(p))).bests, p.bests));
+
+  /* Sync: per key the better of the two, by the key's direction. */
+  const blob = (bests) => ({ v: 1, data: { progress: { ...freshProgress(), bests } }, stamps: {} });
+  const da = { 'lap:plane:t': 41000, 'combat:alps': 200, 'tag:alps': 4 };
+  const db = { 'lap:plane:t': 42000, 'combat:alps': 250, 'run:3:plane:t': 130000 };
+  const m1 = mergeBlobs(blob(da), blob(db)).data.progress.bests;
+  const m2 = mergeBlobs(blob(db), blob(da)).data.progress.bests;
+  check('sync: the lower time and the higher score win, either way round, a key on one side kept',
+    same(m1, { 'combat:alps': 250, 'lap:plane:t': 41000, 'run:3:plane:t': 130000, 'tag:alps': 4 }) && same(m1, m2), JSON.stringify(m1));
+  check('sync: a merge never invents a record', Object.entries(m1).every(([k, v]) => v === da[k] || v === db[k]));
+  /* Flight Club's pilot numbers (src/ui/pilotstats.js, docs/PILOT-STATS.md). */
+  const { pilotStats } = await import('../src/ui/pilotstats.js');
+  const shown = pilotStats({ progress: { xp: 0, bests: { ...da, ...db, 'combat:itaipu': 400, 'jam:alps': 9 } } }).bests;
+  check('pilot stats: Track Day counts its lap and run bests, Streamer Combat shows its highest round', same(shown, { race: 2, combat: 400 }), JSON.stringify(shown));
+  check('pilot stats: a pilot with none shows none', same(pilotStats({}).bests, { race: 0, combat: 0 }));
+  check('sync: a side from before bests loses nothing the other has', same(mergeBlobs(blob(undefined), blob(da)).data.progress.bests, Object.fromEntries(Object.entries(da).sort())));
+}
+
+console.log('discovery (src/game/discovery.js, PROGRESSION.md section 6)');
+{
+  const { PLACES, placeKey, placesAt, placesOf } = await import('../src/game/discovery.js');
+  const { CREST_SPAWN, AIR_SPAWN } = await import('../src/maps/itaipu/spawns.js');
+  const { grantsFrom } = await import('../src/game/economy.js');
+  check('every world with places is a world, with 6 to 12 of them, ids plain',
+    Object.entries(PLACES).every(([w, list]) => WORLDS.includes(w) && list.length >= 6 && list.length <= 12 && list.every((p) => /^[a-z0-9_]{1,40}$/.test(p.id))),
+    Object.entries(PLACES).map(([w, l]) => `${w} ${l.length}`).join());
+  check('every place has a name and a fact in English and in Spanish, the fact one short line',
+    Object.entries(PLACES).every(([w, list]) => list.every((p) => [en, es].every((t) => t[`discovery.place.${w}.${p.id}`] && t[`discovery.place.${w}.${p.id}_fact`]
+      && t[`discovery.place.${w}.${p.id}_fact`].length <= 100))));
+  const apart = Object.values(PLACES).every((list) => list.every((a, i) => list.every((b, j) => i === j || Math.hypot(a.x - b.x, a.z - b.z) > a.r + b.r)));
+  check('a world\'s places are apart: one pass finds one place', apart);
+  check('no Itaipu place is under a spawn: the crest\'s and the air start\'s',
+    placesOf('itaipu').every((p) => [CREST_SPAWN, AIR_SPAWN].every((s) => Math.hypot(s.x - p.x, s.z - p.z) > p.r)));
+  const dam = placesOf('itaipu').find((p) => p.id === 'main_dam');
+  check('found inside its radius, low over it', same(placesAt('itaipu', { x: dam.x + dam.r - 1, z: dam.z }, 10), ['main_dam']));
+  check('not found outside its radius', placesAt('itaipu', { x: dam.x + dam.r + 1, z: dam.z }, 10).length === 0);
+  check('not found higher over it than its radius', placesAt('itaipu', { x: dam.x, z: dam.z }, dam.r + 1).length === 0);
+  check('not found in a world without it, nor with no position', placesAt('alps', { x: dam.x, z: dam.z }, 10).length === 0 && placesAt('itaipu', null, 10).length === 0);
+  check('a place set aside (found, or begun inside) is not found again', placesAt('itaipu', { x: dam.x, z: dam.z }, 10, new Set(['main_dam'])).length === 0);
+  const p = freshProgress();
+  const first = awardPlace(p, 'itaipu', 'main_dam');
+  check('found once: kept, and PLACE_XP paid, the firsts table\'s Flight Club amount', p.places[placeKey('itaipu', 'main_dam')] === true
+    && PLACE_XP === FIRST_XP.game && p.xp === PLACE_XP && first[0].type === 'place', JSON.stringify(first));
+  check('found again: nothing', awardPlace(p, 'itaipu', 'main_dam').length === 0 && p.xp === PLACE_XP);
+  check('a place the world has not: nothing', awardPlace(p, 'itaipu', 'nowhere').length === 0 && awardPlace(p, 'alps', 'main_dam').length === 0 && p.xp === PLACE_XP);
+  check('no tokens: no place is a first, a record of every place found is granted nothing, and places and aircraft challenges add no grant',
+    !everyFirst().some((f) => f.key.startsWith('place')) && grantsFrom({ data: { progress: { places: Object.fromEntries(placesOf('itaipu').map((q) => [placeKey('itaipu', q.id), true])) } } }).length === 0
+    && same(grantsFrom({ data: { progress: { challenges: { deadstick: true } } } }), grantsFrom({ data: { progress: { challenges: { deadstick: true }, places: { 'itaipu:river': true }, aircraftChallenges: { 'cub1400:lap': true } } } })));
+  check('stored: kept through a load and a round trip, junk dropped, an older profile has none',
+    same(normaliseProgress(JSON.parse(JSON.stringify(p))).places, p.places) && same(normaliseProgress({ places: { 'itaipu:x': 'yes', 'itaipu:y': true } }).places, { 'itaipu:y': true })
+    && same(normaliseProgress({ v: 2, xp: 5 }).places, {}));
+  const blob = (places) => ({ v: 1, data: { progress: { ...freshProgress(), places } }, stamps: {} });
+  const m = mergeBlobs(blob({ 'itaipu:main_dam': true }), blob({ 'itaipu:spillway': true })).data.progress.places;
+  check('sync: two computers\' finds are the union, either way round', same(Object.keys(m).sort(), ['itaipu:main_dam', 'itaipu:spillway'])
+    && same(Object.keys(mergeBlobs(blob({ 'itaipu:spillway': true }), blob({ 'itaipu:main_dam': true })).data.progress.places).sort(), Object.keys(m).sort()));
+  check('sync: a side from before discovery loses nothing the other found', mergeBlobs(blob(undefined), blob({ 'itaipu:river': true })).data.progress.places['itaipu:river'] === true);
+}
+
+console.log('the aircraft challenges (PROGRESSION.md section 5)');
+{
+  const { CASUAL } = await import('../src/builder/course.js');
+  const { LESSONS } = await import('../src/game/training.js');
+  const families = AIRFRAMES.filter((a) => a.id === liveryKey(a.id));
+  check('every aircraft has its three, from its class', families.every((a) => challengeAmounts(a.id) !== null), families.filter((a) => !challengeAmounts(a.id)).map((a) => a.id).join());
+  check('a float plane\'s are its land plane\'s; an unknown id has none', same(challengeAmounts('cub1400f'), challengeAmounts('cub1400')) && challengeAmounts('notaplane') === null);
+  check('the casual tracks\' lengths are the builder\'s', CASUAL_LAP_M.quad === CASUAL.gates * CASUAL.quad.spacing && CASUAL_LAP_M.plane === CASUAL.gates * CASUAL.plane.spacing);
+  check('the landing streak is the approaches lesson\'s', LANDING_STREAK === LESSONS.find((l) => l.id === 'wing_approaches').steps.length && LANDING_STREAK === 3);
+  check('every glider has its best glide; a multirotor\'s lap is 360 m at 13 m/s, 28 s',
+    AIRFRAMES.filter((a) => a.class === 'glider').every((a) => Number.isFinite(BEST_GLIDE[a.id])) && challengeAmounts('interceptor').lapMs === 28000);
+  check('a plane\'s lap is 3 200 m at the middle of its stall and top speed, rounded up to the second',
+    challengeAmounts('timber1500').lapMs === Math.ceil(3200 / ((7.2 + 27.2) / 2)) * 1000, String(challengeAmounts('timber1500').lapMs));
+  check('a glider flies 600 s, the rest 300 s', challengeAmounts('nrj1490').airMs === MILESTONE_S.ten * 1000 && challengeAmounts('cub1400').airMs === MILESTONE_S.ten * 500);
+  check('XP only, on the firsts\' scale: a lesson\'s', AIRCRAFT_CHALLENGE_XP === FIRST_XP.lesson && !everyFirst().some((f) => f.key.includes(':landings') || f.key.includes(':endurance')));
+
+  const log = (rows) => {
+    const l = new EventLog();
+    l.append('spawned', 0);
+    for (const [type, simMs, data] of rows) {
+      l.append(type, simMs, data);
+    }
+    return l.events;
+  };
+  const ids = (events) => aircraftChallengesOf(events).map((c) => `${c.airframe}:${c.id}`);
+  const land = (t, airMs = 5000, airframe = 'cub1400') => ['landing', t, { airframe, airMs }];
+  check('three landings in one flight: the streak', same(ids(log([land(10000), land(20000), land(30000)])), ['cub1400:landings']));
+  check('a crash between: no streak', ids(log([land(10000), land(20000), ['crash', 25000, { airframe: 'cub1400' }], land(30000)])).length === 0);
+  check('two aircraft\'s landings are two streaks', ids(log([land(10000), land(20000, 5000, 'timber1500'), land(30000)])).length === 0);
+  check('a float plane lands for its land plane', same(ids(log([land(10000, 5000, 'cub1400f'), land(20000), land(30000, 5000, 'cub1400f')])), ['cub1400:landings']));
+  check('five minutes up, then landed: the endurance', same(ids(log([land(310000, 300000)])), ['cub1400:endurance']));
+  check('a second short: none', ids(log([land(310000, 299999)])).length === 0);
+  check('a flight longer than the log (a placement mid air) is none', ids(log([land(200000, 300000)])).length === 0);
+  check('a glider needs the whole ten minutes', ids(log([land(310000, 300000, 'nrj1490')])).length === 0 && same(ids(log([land(610000, 600000, 'nrj1490')])), ['nrj1490:endurance']));
+  const lap = (t, ms, kind = 'casual', airframe = 'interceptor') => ['lap', t, { ms, airframe, medal: null, kind, course: 'track:c', n: 1, of: 1 }];
+  check('a casual lap under the time: the lap', same(ids(log([lap(40000, 27999)])), ['interceptor:lap']));
+  check('at the time is under it; over, none', same(ids(log([lap(40000, 28000)])), ['interceptor:lap']) && ids(log([lap(40000, 28001)])).length === 0);
+  check('a lap on a built or a world\'s track is not a casual lap', ids(log([lap(40000, 20000, 'built'), lap(80000, 20000, 'map')])).length === 0);
+  check('a lap begun before its log (a reset inside it) is none', ids(log([lap(20000, 27000)])).length === 0);
+  check('a log with no spawn is read as none', aircraftChallengesOf([{ seq: 0, type: 'landing', simMs: 400000, airframe: 'cub1400', airMs: 350000 }]).length === 0);
+
+  const q = freshProgress();
+  const events = log([land(10000), land(20000), land(310000, 280000), lap(400000, 200000, 'casual', 'cub1400')]);
+  const paid = awardAircraftChallenges(q, events);
+  check('earned once: kept per family, AIRCRAFT_CHALLENGE_XP each', same(Object.keys(q.aircraftChallenges).sort(), ['cub1400:landings', 'cub1400:lap'])
+    && q.xp === 2 * AIRCRAFT_CHALLENGE_XP && paid.filter((e) => e.type === 'aircraft_challenge').length === 2, JSON.stringify(q.aircraftChallenges));
+  check('the same log folded again pays nothing', awardAircraftChallenges(q, events).length === 0 && q.xp === 2 * AIRCRAFT_CHALLENGE_XP);
+  check('and on the float plane it is already done', awardAircraftChallenge(q, 'cub1400f', 'lap').length === 0);
+  check('an unknown challenge or aircraft pays nothing', awardAircraftChallenge(q, 'cub1400', 'trick').length === 0 && awardAircraftChallenge(q, 'notaplane', 'lap').length === 0);
+  check('a fold from the last one finds only the new', aircraftChallengesOf(events, events.length - 1).map((c) => c.id).join() === 'lap');
+  check('stored: kept through a round trip; an older profile has none', same(normaliseProgress(JSON.parse(JSON.stringify(q))).aircraftChallenges, q.aircraftChallenges)
+    && same(normaliseProgress({ v: 2, xp: 1 }).aircraftChallenges, {}));
+  const blob = (aircraftChallenges) => ({ v: 1, data: { progress: { ...freshProgress(), aircraftChallenges } }, stamps: {} });
+  const m = mergeBlobs(blob({ 'cub1400:lap': true }), blob({ 'interceptor:landings': true })).data.progress.aircraftChallenges;
+  check('sync: the union of two computers\' challenges', same(Object.keys(m).sort(), ['cub1400:lap', 'interceptor:landings']));
+  check('every challenge has its words in English and Spanish', AIRCRAFT_CHALLENGE_IDS.every((id) => [en, es].every((t) => t[`progress.aircraft.${id}`] && t[`progress.aircraft.${id}_note`]))
+    && [en, es].every((t) => t['debrief.challenge_done'] && t['progress.this_aircraft'] && t['progress.toast_place']));
+
+  /* RunWatch's time in the air: take off to touchdown, a bounce part of it. */
+  const w = new RunWatch();
+  w.start({ airframe: 'cub1400', fixedWing: true, power: 'electric', smallestPack: false });
+  const step = (simMs, grounded) => w.tick({ simMs, crashed: false, grounded, power: null, battery: 'ok' });
+  step(0, true);
+  for (let t = 1000; t < 100000; t += 100) step(t, false);
+  for (let t = 100000; t < 100500; t += 100) step(t, true);
+  for (let t = 100500; t < 301000; t += 100) step(t, false);
+  for (let t = 301000; t <= 303000; t += 100) step(t, true);
+  check('RunWatch: one landing, its time in the air from the take off, the bounce inside it', w.landings === 1 && w.lastAirMs === 300000, `${w.landings} ${w.lastAirMs}`);
+  step(304000, false);
+  step(305000, true);
+  for (let t = 400000; t <= 500000; t += 100) step(t, true);
+  for (let t = 500100; t < 510000; t += 100) step(t, false);
+  for (let t = 510000; t <= 512000; t += 100) step(t, true);
+  check('a hop too short to fly does not start the next flight early', w.landings === 2 && w.lastAirMs === 9900, `${w.landings} ${w.lastAirMs}`);
 }
 
 console.log('certifications (src/game/training.js CERTS)');

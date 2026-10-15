@@ -206,9 +206,10 @@ const fail = (m) => {
 };
 const f1 = (v) => (v == null ? 'n/a' : Number(v).toFixed(1));
 
-function seed(airframe) {
+function seed(airframe, tune) {
   const settings = {
     ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
+    ...(tune ? { tune } : {}),
     airframeAsked: true, map: 'itaipu', graphics: 'low', graphicsAuto: false, crashDamage: true, sound: false,
   };
   return [`try {
@@ -1306,7 +1307,15 @@ const TARGETS = `(async () => {
       }
       return [(col.fax[best] + col.fbx[best]) / 2, (col.fay[best] + col.fby[best]) / 2, (col.faz[best] + col.fbz[best]) / 2];
     };
-    T.push({ name: 'Friendship Bridge arch rib', at: nearest(1.1), dir: perp(along), expect: 'stopped' });
+    /* The rib is flown into from outside the bridge, inwards. The two ribs
+     * are 9 m apart (bridge.js RIB_OFF), so flown across from the other
+     * one a throw D before the target (9 m at 45 m/s, 14 at 70) starts
+     * inside the other rib or crosses it first: along that line the
+     * colliders' gap is 0 from 8 to 10 m before the target. */
+    const rib = nearest(1.1);
+    const out = perp(along);
+    const inwards = (rib[0] - cx) * out[0] + (rib[2] - cz) * out[2] > 0 ? out.map((q) => -q) : out;
+    T.push({ name: 'Friendship Bridge arch rib', at: rib, dir: inwards, expect: 'stopped' });
     T.push({ name: 'Friendship Bridge column', at: nearest(0.7), dir: perp(along), expect: 'stopped' });
   }
   return JSON.stringify(T);
@@ -1676,7 +1685,7 @@ async function pageSweeps(out) {
     await page.close();
   }
   if (ONLY.has('damfly')) {
-    const timber = await openPage({ root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed(DAM_FLY_CRAFT) });
+    const timber = await openPage({ root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed(DAM_FLY_CRAFT, DAM_FLY_TUNE) });
     try {
       await timber.until('window.__shellReady && window.__map && window.__map().ready && window.__map().id === "itaipu"', 300000);
       out.damfly = await damFlights(timber);
@@ -1722,8 +1731,11 @@ async function damRegions() {
   const [nx, nz] = unit(c0, c1);
   const a = [nz, -nx];
   const out = [
+    /* From 260 m down, as the crests': the spillway's gantry stands 30 m
+     * over the bridge (dam/index.js), and a ray begun inside its house
+     * read the house as an invisible wall. */
     {
-      name: 'spillway gates, piers, hoists and bridge', o: c0, a, t: [-186, 186], s: [-16, 46], y: [196, 240], top: 250, step: 1, ystep: 0.5, along: 1, across: 1,
+      name: 'spillway gates, piers, hoists and bridge', o: c0, a, t: [-186, 186], s: [-16, 46], y: [196, 240], top: 260, step: 1, ystep: 0.5, along: 1, across: 1,
     },
     {
       name: 'spillway chute', o: c0, a, t: [-186, 186], s: [46, 490], y: [100, 230], top: 240, step: 2, ystep: 2, along: 10, across: 0,
@@ -1870,6 +1882,11 @@ async function townRays(page) {
  * slab 114 m outside the deck; and, so the fix is not a hole, a pier and
  * the bridge deck flown into. In the chute's frame: u across, d down. */
 const DAM_FLY_CRAFT = 'timber1500';
+/* SAFE Select, the Timber's tune whose centred sticks fly level: since
+ * 702e8a0ee its AS3X is a rate damper that holds no attitude, so on it a
+ * Timber at 30 m/s with the sticks centred zooms 12 m over a flight and
+ * meets the deck's edge over its top instead of at 224 m. */
+const DAM_FLY_TUNE = 'timber-stab';
 /* Each flight is FLY_RUN metres before its point and as far past it,
  * level, at a little throttle so the Timber holds its height, timed on
  * the plant's clock so a loaded machine flies the same flight. */

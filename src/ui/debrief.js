@@ -36,7 +36,7 @@
 import { str } from '../strings/index.js';
 import { rank } from '../share/ops/capture.js';
 import { itemsOf } from '../share/ops/stages.js';
-import { fromOps } from '../game/debrief.js';
+import { fromOps, missionEndActions } from '../game/debrief.js';
 import { factLines } from './factlines.js';
 
 const CSS = `
@@ -269,9 +269,10 @@ export class Debrief {
    * Show the debrief of a finished match once. o: { key (the match's
    * identity: shown once per key), view, mission, seat, host (bool),
    * stills (this seat's, src/avionics/capture.js createStillStore().of),
-   * next ({ id, label } the campaign's next mission and its card word,
-   * or null), flight (this pilot's own flight for the facts:
-   * src/game/debrief.js fromOps; or null) }.
+   * next ({ id, key, label } the campaign's next mission and its card
+   * word, or null; the host's Next mission when 'available'), flight (this pilot's own flight for the facts:
+   * src/game/debrief.js fromOps; or null), events (the run's log, which
+   * holds the match's result) and match (its id there) }.
    */
   show(o) {
     if (o.key === this.shownFor) {
@@ -338,7 +339,7 @@ export class Debrief {
     }
     /* The flight's facts (docs/DEBRIEF.md) under the stills. */
     const record = o.flight ? fromOps({
-      won, ended, items: this.frames, stars: { got: got.size, of: (mission.stars ?? []).length }, flight: o.flight,
+      events: o.events, match: o.match, items: this.frames, starsOf: (mission.stars ?? []).length, flight: o.flight,
     }) : null;
     if (record) {
       const facts = el('dl', 'debrief-facts', box);
@@ -353,13 +354,27 @@ export class Debrief {
       }));
     }
     const row = el('div', 'debrief-row', box);
-    if (!won && view.checkpoint && o.host) {
-      const again = el('button', 'debrief-btn', row, str('ops.debrief.again'));
-      again.type = 'button';
-      again.dataset.act = 'again';
-      again.addEventListener('click', () => {
+    /* The host's one press (COMPLETENESS 76): after a win the next
+     * mission when it is open, then the same again, from the checkpoint
+     * after a loss that kept one (its own act, `again`), else from the
+     * start (`restart`). The room's start brings the squad along. */
+    const next = o.next && o.next.label === 'available' ? o.next : null;
+    const ends = missionEndActions({
+      host: o.host, state: won ? 'won' : ended ? 'ended' : 'lost', checkpoint: Boolean(view.checkpoint), next: next ? next.id : null,
+    });
+    for (const a of ends) {
+      const label = a.act === 'next' ? str('ops.debrief.next_mission', { name: word(`ops.campaign.${skey(camp)}.m.${skey(next.key)}`) })
+        : str(a.from ? 'ops.debrief.again' : 'ops.debrief.restart');
+      const b = el('button', 'debrief-btn', row, label);
+      b.type = 'button';
+      b.dataset.act = a.act === 'next' ? 'next' : a.from ? 'again' : 'restart';
+      b.addEventListener('click', () => {
         this.close();
-        this.act.again();
+        if (a.act === 'next') {
+          this.act.next(a.mission);
+        } else {
+          this.act.again(a.from);
+        }
       });
     }
     if (record && record.replay && record.replay.ok) {

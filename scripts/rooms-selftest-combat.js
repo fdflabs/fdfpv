@@ -331,7 +331,7 @@ function roundSection(check) {
     }
     const fresh = new RoomCore({ ...r.room.meta });
     fresh.combat.restore(kept);
-    const fv = fresh.combat.view();
+    const fv = fresh.combat.view(fresh);
     /* The round ends with A towing all 100: the paper bonus counts it all. */
     recA.links = recA.owed;
     const before = recA.points;
@@ -556,7 +556,7 @@ function roundSection(check) {
     }
     const fresh = new RoomCore({ ...r.room.meta });
     fresh.combat.restore(kept);
-    const v = fresh.combat.view();
+    const v = fresh.combat.view(fresh);
     const a = v.scores.find((x) => x.seat === 1);
     const b = v.scores.find((x) => x.seat === 2);
     check('every change is kept with a store action', kept && kept.round.state === 'on');

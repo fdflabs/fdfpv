@@ -59,7 +59,6 @@ import {
 import { missionTime, waveTarget } from '../src/share/war/missions/index.js';
 import { TIME_HOUR, missionClock } from '../src/share/daytime.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
-import { STATION_DARK } from '../src/share/war/missions/itaipu-4.js';
 import { STATION_DARK_DISTRICTS, stationOrder } from '../src/share/war/stationdark.js';
 import { DISTRICTS, FLICKER_MS } from '../src/share/war/grid.js';
 import { released } from '../src/game/campaign.js';
@@ -99,7 +98,7 @@ function lint(mission) {
   if (ids.size !== stages.length) {
     out.push('two stages share an id');
   }
-  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'born', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'held', 'visited', 'all', 'any'];
+  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'born', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'held', 'visited', 'contained', 'all', 'any'];
   /* A target spec's ids: a working set's every target it may draw. */
   const targetsOf = (spec, where) => {
     if (spec && typeof spec === 'object' && !Array.isArray(spec)) {
@@ -735,6 +734,30 @@ function warRoom(mission, { n = 2, seed = 0.25, dev = false } = {}) {
   return env;
 }
 
+/* How long the face's closures held a bot game's stages past their last
+ * attacker, ms (MISSIONS.md 1.9 point 4: a stage waits for its closure),
+ * time a mission's pacing does not set: its estimatedMinutes leave it
+ * out. */
+function closureWait(g) {
+  const end = g.views.at(-1);
+  const kinds = new Map(g.born.map((a) => [a.id, a.kind]));
+  const entries = [];
+  for (const v of g.views) {
+    if (v.stage && entries.at(-1)?.at !== v.stage.at) {
+      entries.push({ at: v.stage.at });
+    }
+  }
+  return entries.reduce((sum, x, k) => {
+    const until = entries[k + 1]?.at ?? end.endAt;
+    const held = g.cues.filter((c) => c.radio === 'contain-held' && c.at >= x.at && c.at <= until).map((c) => c.at);
+    if (!held.length) {
+      return sum;
+    }
+    const gone = g.dead.filter((m) => m.at >= x.at && m.at <= until && m.ids.some((id) => kinds.get(id) !== 'scout')).map((m) => m.at);
+    return sum + Math.max(0, Math.max(...held) - Math.max(x.at, ...gone));
+  }, 0);
+}
+
 /* What client i was told of the war, as text: the game, message for
  * message. */
 const told = (env, i = 0) => env.socks[i].got.filter((m) => m && m.type === 'war').map((m) => JSON.stringify(m));
@@ -1007,6 +1030,26 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   twice.fly(GO + 130000);
   check('a store and a restore mid closure change nothing after it', JSON.stringify(told(once)) === JSON.stringify(told(twice)), `${told(once).length} vs ${told(twice).length}`);
 
+  /* Held, an opening the room recorded with a hole is told again at zero
+   * size at the hold (1.9 point 5): an op 'damage' by the stoplogs, kept
+   * with the match's damage, which a late joiner is sent (war.js join);
+   * the mission is won at that hold, so no pilot can join after it. */
+  const z = warRoom(contain('scout'));
+  z.fly(GO + 900);
+  const hole = {
+    id: 'gate-2', target: 'gate-2', kind: 'gate', at: GO + 3000, sill: [-1000, 212, -1010], width_m: 4, height_m: 3, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null,
+  };
+  z.r.war.match.wreck['gate-2'] = { gone: [], open: hole };
+  z.r.war.breach('gate-2', GO + 3000);
+  z.fly(GO + 160000);
+  const shut = z.of(0, 'damage').filter((m) => m.by === 'stoplogs');
+  const kept = z.r.war.match.damage.filter((e) => e.by === 'stoplogs');
+  check('held, the opening is told again at zero size at the hold, by the stoplogs, and kept with the match\'s damage for a late joiner',
+    shut.length === 1 && shut[0].at === GO + 153000 && shut[0].openings.length === 1 && shut[0].openings[0].id === 'gate-2' && shut[0].openings[0].width_m === 0 && shut[0].openings[0].height_m === 0
+    && shut[0].openings[0].at === GO + 153000 && shut[0].chunks.length === 0 && kept.length === 1 && kept[0].seq === shut[0].seq
+    && z.r.war.match.wreck['gate-2'].shut === GO + 153000,
+    JSON.stringify([shut, kept.length]));
+
   /* A mission with no `contain` and a structure no gantry closes start none. */
   const c = warRoom({ ...contain('scout'), contain: undefined, id: 'contain-none' });
   c.fly(GO + 900);
@@ -1018,6 +1061,92 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   d.fly(GO + 20000);
   check('no closure without the mission\'s contain, nor for the yard', c.view().state === 'won' && d.view().state === 'won' && !c.of(0, 'cue').length && !d.of(0, 'cue').length,
     `${c.view().state} ${d.view().state}`);
+}
+
+console.log('the room: The Long Night\'s exits wait for a closure too (MISSIONS.md 1.9 point 4)');
+{
+  /* Hunters and Before Dawn end on their groups gone, not `cleared`, so
+   * each holds its own exit for a closure ({ contained: true }). Each is
+   * played from its own entry, M4's stage as written with the stages it
+   * exits to, no floor (the squad far off, everything gets through); a
+   * gate opened a minute in closes 150 s later, after HUNT_S, and the
+   * same stage with no Contain leaves before that. */
+  const m4 = MISSIONS['itaipu-4'];
+  const from = (id, contain) => {
+    const stages = stagesOf(m4);
+    const i = stages.findIndex((x) => x.id === id);
+    return {
+      ...m4, id: `m4-${id}-${contain ? 'contain' : 'plain'}`, floorMw: 0, contain: contain ? m4.contain : undefined, stages: stages.slice(i),
+    };
+  };
+  const play = (id, contain) => {
+    const e = warRoom(from(id, contain));
+    while (e.view().state !== 'live') {
+      e.fly(e.clock + 500);
+    }
+    const go = e.view().goAt;
+    e.fly(go + 900);
+    e.r.war.breach('gate-3', go + 60000);
+    e.fly(go + 600000);
+    const left = e.r.war.log.find((x) => x.what === 'stage' && x.stage === id);
+    const held = e.of(0, 'cue').flatMap((m) => m.cues).filter((c) => c.radio === 'contain-held').map((c) => c.at);
+    return {
+      e, left: left && { ...left, t: left.t - go }, held: held.map((t) => t - go),
+    };
+  };
+  for (const id of ['hunters', 'before-dawn']) {
+    const c = play(id, true);
+    const p = play(id, false);
+    const last = c.held.length ? Math.max(...c.held) : null;
+    check(`${id}: under a closure its exit waits for the last hold, and without one leaves before the gate's (${p.left && p.left.t} ms, ${c.left && c.left.t} ms)`,
+      c.left && p.left && c.held.includes(210000) && c.left.t === last && p.left.t < 210000 && c.left.exit === 0 && p.left.exit === 0,
+      `${JSON.stringify(c.left)} ${JSON.stringify(p.left)} ${JSON.stringify(c.held)}`);
+  }
+  const dawn = play('before-dawn', true).e.view();
+  check('before-dawn: the mission is won only at the hold', dawn.state === 'won' && dawn.why === 'waves', `${dawn.state} ${dawn.why}`);
+}
+
+console.log('the room: the Spillway\'s hold pauses while the spillway\'s gantry closes a gate (MISSIONS.md M2, If the face opens)');
+{
+  /* Open the Gates as written, from its entry, with nobody born (so its
+   * hold is never failed by a hit), a gate opened 30 s in: its closure
+   * runs 30 to 180 s, so the 240 s hold is done at 390 s, its half at
+   * 270 s; the screen is told it paused (no heldFrom) and from when it
+   * counts again. An intake's closure pauses nothing. */
+  const m2 = MISSIONS['itaipu-2'];
+  const stages = stagesOf(m2);
+  const i = stages.findIndex((x) => x.id === 'open-spray');
+  const play = (target, times) => {
+    const e = warRoom({
+      ...m2, id: `m2-pause-${target}`, floorMw: 0, stages: [{ ...stages[i], spawns: [] }, ...stages.slice(i + 1)],
+    });
+    while (e.view().state !== 'live') {
+      e.fly(e.clock + 500);
+    }
+    const go = e.view().goAt;
+    e.fly(go + 900);
+    e.r.war.breach(target, go + 30000);
+    const spill = (t) => {
+      e.fly(go + t);
+      const o = e.view().stage.objectives.find((x) => x.id === 'spill');
+      return {
+        state: o.state, heldMs: o.heldMs, heldFrom: o.heldFrom == null ? null : o.heldFrom - go,
+      };
+    };
+    const at = times.map(spill);
+    const half = e.of(0, 'cue').flatMap((m) => m.cues).find((c) => c.radio === 'itaipu-2-s3-half');
+    return { at, half: half && half.at - go };
+  };
+  const gate = play('gate-3', [100000, 200000, 389000, 391000]);
+  const [paused, running, before, done] = gate.at;
+  check('paused, the hold is told by how long it held and no heldFrom; running again, from when it would have begun',
+    paused.state === 'active' && paused.heldFrom === null && paused.heldMs === 30000 && running.heldMs > 30000 && running.heldFrom === 150000,
+    JSON.stringify([paused, running]));
+  check('held 150 s late: active at 389 s, done at 391 s, its half said at 270 s', before.state === 'active' && done.state === 'done' && gate.half === 270000,
+    JSON.stringify([before, done, gate.half]));
+  const intake = play('intake-3', [241000]);
+  check('an intake\'s closure does not pause it: done by 241 s, its half at 120 s', intake.at[0].state === 'done' && intake.half === 120000,
+    JSON.stringify([intake.at[0], intake.half]));
 }
 
 console.log('the room: a hold that starts when the pilots reach a place');
@@ -1386,26 +1515,7 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
    * (MISSIONS.md 1.9 point 4: a stage waits for its closure), which is
    * time the mission's pacing does not set: shown on its own line. */
   const [lo, hi] = mission.estimatedMinutes;
-  const waitOf = (g) => {
-    const end = g.views.at(-1);
-    const kinds = new Map(g.born.map((a) => [a.id, a.kind]));
-    const entries = [];
-    for (const v of g.views) {
-      if (v.stage && entries.at(-1)?.at !== v.stage.at) {
-        entries.push({ at: v.stage.at });
-      }
-    }
-    return entries.reduce((sum, x, k) => {
-      const until = entries[k + 1]?.at ?? end.endAt;
-      const held = g.cues.filter((c) => c.radio === 'contain-held' && c.at >= x.at && c.at <= until).map((c) => c.at);
-      if (!held.length) {
-        return sum;
-      }
-      const gone = g.dead.filter((m) => m.at >= x.at && m.at <= until && m.ids.some((id) => kinds.get(id) !== 'scout')).map((m) => m.at);
-      return sum + Math.max(0, Math.max(...held) - Math.max(x.at, ...gone));
-    }, 0);
-  };
-  const waits = games.map((g) => waitOf(g) / 60000);
+  const waits = games.map((g) => closureWait(g) / 60000);
   const minutes = games.map((g, k) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000 - waits[k]);
   console.log(`    minutes the closures held a stage: ${waits.map((x) => x.toFixed(1)).join(' ')}`);
   check(`every won game ends ${lo} to ${hi} minutes after the go, the closures' waits apart`, minutes.every((x) => x >= lo && x <= hi),
@@ -1575,16 +1685,28 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
     }
     /* The reroute's hold, settled before the stage leaves, its end said
      * once, the right one: held with the yard standing (done), held with
-     * it already down (down), or failed; and the twist's objective on
+     * it already down (back), or failed; and the twist's objective on
      * the HUD only once the twist is born. */
     const inTwist = g.views.filter((v) => v.stage && v.stage.id === twist);
     const state = inTwist.at(-1)?.stage.objectives.find((o) => o.id === 'reroute')?.state;
     const yardDown = Boolean(inTwist[0]?.down?.includes('yard-right'));
-    const ends = said.filter((id) => /^itaipu-3-s3-(done|down|failed)$/.test(id));
-    const told = state === 'failed' ? 'itaipu-3-s3-failed' : yardDown ? 'itaipu-3-s3-down' : 'itaipu-3-s3-done';
+    const ends = said.filter((id) => /^itaipu-3-s3-(done|back|failed)$/.test(id));
+    const told = state === 'failed' ? 'itaipu-3-s3-failed' : yardDown ? 'itaipu-3-s3-back' : 'itaipu-3-s3-done';
     holds.push(`${state}${yardDown ? '(yard down)' : ''}`);
     if ((state !== 'done' && state !== 'failed') || ends.join() !== told) {
       bad.push(`${label}: the hold left ${state}, said ${ends.join(',')}`);
+    }
+    /* The reroute's restore (TECH-NEEDS T1.10, grid.js WHAT COMES BACK):
+     * a hold that is done feeds its districts round the yard from the room
+     * ms it held, told while the stage still runs and in every view after;
+     * a failed one, nothing. */
+    const hold = stagesOf(mission).find((x) => x.id === twist)?.objectives.find((o) => o.id === 'reroute');
+    const restoreWant = state === 'done' && hold ? JSON.stringify([{ at: inTwist[0].stage.at + hold.ms, districts: hold.restore }]) : '[]';
+    const told3 = g.views.map((v) => JSON.stringify(v.restores));
+    const firstTold = g.views.find((v) => JSON.stringify(v.restores) === restoreWant);
+    if (told3.at(-1) !== restoreWant || told3.some((x) => x !== '[]' && x !== restoreWant)
+      || (restoreWant !== '[]' && firstTold?.stage?.id !== twist)) {
+      bad.push(`${label}: the restore told ${[...new Set(told3)].join(' then ')}, want ${restoreWant} from the hold's end in ${twist}`);
     }
     const twistSi = stagesOf(mission).find((x) => x.id === twist)?.spawns.find((w) => w.group === 'twist')?.si;
     const twistBorn = g.born.find((a) => a.wave === twistSi);
@@ -1602,6 +1724,8 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
     bad.filter((x) => /said/.test(x) && !/hold/.test(x)).length === 0, bad.filter((x) => /said/.test(x) && !/hold/.test(x)).join(' | '));
   check('the reroute\'s hold settles, held or failed, before its stage ends, and DESPACHO says which', bad.filter((x) => /hold/.test(x)).length === 0,
     bad.filter((x) => /hold/.test(x)).join(' | '));
+  check('a hold that is done restores its four towns from the room ms it held, told in its own stage and every view after; a failed one restores nothing',
+    bad.filter((x) => /restore/.test(x)).length === 0, bad.filter((x) => /restore/.test(x)).join(' | '));
   check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective/.test(x)).length === 0,
     bad.filter((x) => /objective/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
@@ -1632,6 +1756,41 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
     return hit && hit.mw === 2800 && stage === 'dusk';
   });
   check('and the yard is its first stage\'s loss, 2 800 MW', yardFirst);
+
+  /* The yard down before Reroute opens, so its hold cannot fail: the
+   * restore comes at the hold's end, and a restart from a stage after it
+   * keeps it (the stage's path entry, which the checkpoint copies). */
+  const hold = stagesOf(mission).find((x) => x.id === 'reroute-pack').objectives.find((o) => o.id === 'reroute');
+  const downHeld = rooms.map((r) => {
+    const views = r.of(0).map((m) => m.war);
+    const rr = views.find((v) => v.stage && /^reroute-/.test(v.stage.id))?.stage;
+    const done = views.some((v) => v.stage?.id === rr?.id && v.stage.objectives.some((o) => o.id === 'reroute' && o.state === 'done'));
+    const want = rr && done ? [{ at: rr.at + hold.ms, districts: hold.restore }] : [];
+    const end = r.view();
+    const told = r.of(0).length;
+    r.say(0, { type: 'war', op: 'start', mission: mission.id, from: 'checkpoint' });
+    const again = r.of(0).slice(told).map((m) => m.war)[0];
+    const keep = end.checkpoint && end.checkpoint.stage === 'dark' ? want : [];
+    return {
+      reroute: rr?.id, done, cp: end.checkpoint?.stage, restores: end.restores, want, again: again?.restores, keep,
+    };
+  });
+  check('the yard down before Reroute: a reroute held restores the four, and a restart from The Dark keeps them (from Reroute, not)',
+    downHeld.some((x) => x.done) && downHeld.every((x) => JSON.stringify(x.restores) === JSON.stringify(x.want)
+      && JSON.stringify(x.again) === JSON.stringify(x.keep)),
+    JSON.stringify(downHeld));
+
+  /* The negative control: Reroute first, the yard standing, nobody
+   * shooting. The twist's Strikers hit the yard inside the hold, which
+   * fails, and nothing is restored. */
+  const failRoom = warRoom({ ...mission, id: 'itaipu-3-failhold-test', stages: [mission.stages.find((x) => x.id === 'reroute-wires'), mission.stages.find((x) => x.id === 'dark')] },
+    { n: 1, seed: 0.3 });
+  failRoom.fly(GO + 420000);
+  const failViews = failRoom.of(0).map((m) => m.war);
+  const failState = failViews.filter((v) => v.stage?.id === 'reroute-wires').at(-1)?.stage.objectives.find((o) => o.id === 'reroute')?.state;
+  check('a reroute that fails (the yard hit inside the hold) restores nothing',
+    failState === 'failed' && failViews.every((v) => Array.isArray(v.restores) && v.restores.length === 0),
+    `hold ${failState}, restores told ${[...new Set(failViews.map((v) => JSON.stringify(v.restores)))].join(' ')}`);
 }
 
 console.log('The Long Night (itaipu-4), flown on the room by bot squads');
@@ -1639,9 +1798,11 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   /* MISSIONS.md M4 as the room plays it, as the Spillway's above. */
   const mission = MISSIONS['itaipu-4'];
   const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
-  const TWISTS = ['towns', 'dark-scout'];
-  const TWIST = { towns: ['itaipu-4-tb-turn', 'itaipu-4-tb-why'], 'dark-scout': ['itaipu-4-tc-turn', 'itaipu-4-tc-why'] };
-  check('The Long Night plays 5 rounds of its 6 round stages', roundsOf(mission) === 5 && stagesOf(mission).filter((x) => x.round).length === 6,
+  const TWISTS = ['station-dark', 'towns', 'dark-scout'];
+  const TWIST = {
+    'station-dark': ['itaipu-4-ta-turn', 'itaipu-4-ta-why'], towns: ['itaipu-4-tb-turn', 'itaipu-4-tb-why'], 'dark-scout': ['itaipu-4-tc-turn', 'itaipu-4-tc-why'],
+  };
+  check('The Long Night plays 5 rounds of its 7 round stages', roundsOf(mission) === 5 && stagesOf(mission).filter((x) => x.round).length === 7,
     `${roundsOf(mission)}`);
   const games = [];
   for (const pilots of [1, 4]) {
@@ -1758,16 +1919,20 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
     bad.filter((x) => /quiet/.test(x)).join(' | '));
   check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective shown/.test(x)).length === 0,
     bad.filter((x) => /objective shown/.test(x)).join(' | '));
-  check('over the ten games both twists are met', twists.size === 2, [...twists].join(','));
+  check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
   const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
   check('the room\'s clock is the mission\'s light: night, the dawn ramp told as Before Dawn opens, and over the end the hour it reached',
     lightOff.length === 0 && games.every((g) => g.clocks.some((c) => c && c.rate > 0 && c.to === TIME_HOUR.morning + 24)), lightOff.join(' | '));
   check('in the bot games too, Before Dawn flies exactly unless the night\'s Scout was killed', bad.filter((x) => /scout/.test(x)).length === 0,
     bad.filter((x) => /scout/.test(x)).join(' | '));
+  /* As the Spillway's, the closures' waits apart: Hunters and Before
+   * Dawn wait for a closure too ({ contained: true }). */
   const [lo, hi] = mission.estimatedMinutes;
-  const minutes = games.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
-  console.log(`    minutes from the go to the end: ${minutes.map((x) => x.toFixed(1)).join(' ')}`);
-  check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi),
+  const waits = games.map((g) => closureWait(g) / 60000);
+  const minutes = games.map((g, k) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000 - waits[k]);
+  console.log(`    minutes from the go to the end: ${games.map((g) => ((g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000).toFixed(1)).join(' ')}`);
+  console.log(`    minutes the closures held a stage: ${waits.map((x) => x.toFixed(1)).join(' ')}`);
+  check(`every won game ends ${lo} to ${hi} minutes after the go, the closures' waits apart`, minutes.every((x) => x >= lo && x <= hi),
     minutes.map((x) => x.toFixed(1)).join(' '));
 
   /* Nobody shooting: the intakes fall stage by stage until the output is
@@ -1830,12 +1995,11 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
 
 console.log('The Long Night\'s twist A, Station dark, on the room');
 {
-  /* Twist A is not among The Long Night's stages until its radio is
-   * voiced (itaipu-4.js STATION_DARK), so it is flown here as the first
-   * stage of a mission of two (it, then Before Dawn), against twist B the
-   * same way: hovering pilots, the same seed. */
+  /* Twist A (itaipu-4.js STATION_DARK) flown as the first stage of a
+   * mission of two (it, then Before Dawn), against twist B the same way:
+   * hovering pilots, the same seed. */
   const M4 = MISSIONS['itaipu-4'];
-  const of = (id) => (id === STATION_DARK.id ? STATION_DARK : M4.stages.find((x) => x.id === id));
+  const of = (id) => M4.stages.find((x) => x.id === id);
   const pair = (id) => ({ ...M4, id: `itaipu-4-${id}-test`, stages: [of(id), of('before-dawn')] });
   const flown = ['station-dark', 'towns'].map((id) => {
     const mission = pair(id);

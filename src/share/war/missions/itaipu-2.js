@@ -136,7 +136,7 @@ function openTheGates(id, twist, objective, cues) {
       },
     ],
     objectives: [{
-      id: 'spill', text: 'war.obj.itaipu_2.spill', kind: 'hold', ms: HOLD_MS, targets: WORKING, open: OPEN_M, fail: { hit: WORKING },
+      id: 'spill', text: 'war.obj.itaipu_2.spill', kind: 'hold', ms: HOLD_MS, targets: WORKING, open: OPEN_M, fail: { hit: WORKING }, pause: 'gantry-spillway',
     }, {
       id: 'twist', kind: 'kill', show: { born: { group: 'twist' } }, done: { down: { group: 'twist' } }, ...objective,
     }],

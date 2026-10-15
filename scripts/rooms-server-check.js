@@ -343,6 +343,10 @@ if (adminSecret) {
     && health.now && Number.isFinite(health.now.cpu) && Number.isFinite(health.now.lagP99Ms) && health.memory.rss > 0 && health.busy === false,
   JSON.stringify(health && { pilots: health.pilots, rooms: health.rooms, now: health.now }));
   check('and a private room is listed without its code', health && health.perRoom.length >= 1 && health.perRoom.every((r) => r.room !== code));
+  check('and the race witness\'s verdicts, the server\'s, the day\'s and each room\'s (none raced here)', health && health.race
+    && health.race.claims === 0 && health.race.refused === 0 && health.day.raceClaims === 0 && health.day.raceRefused === 0
+    && health.perRoom.every((r) => r.raceClaims === 0 && r.raceRefused === 0),
+  JSON.stringify(health && { race: health.race, perRoom: health.perRoom.map((r) => [r.raceClaims, r.raceRefused]) }));
 }
 
 if (adminSecret) {
