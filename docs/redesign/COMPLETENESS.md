@@ -1559,7 +1559,15 @@ the Ace's, the Trick Battle's, combat's) have Change aircraft after the
 replay, the picker seating the aircraft for the room's next round, the
 war's in a war room (src/ui/items.js resultsRows, src/game/debrief.js
 nextActions). Held by `debrief:selftest` (CI) and `game:lobby
---game=combat` (local). Nothing of the item is left unbuilt.
+--game=combat` (local). **The Ace's results after a rebuild fixed**
+(2026-10-16 batch, w45-tail): a page whose world was building across
+the match's end took the results on its first frame, after the lobby's
+return had passed, and they stood over the lobby for good; they are now
+shown only while that return is to come, as combat's (src/main.js
+roomTagFrame). Proved by a probe (B's world rebuilt and held 9 s across
+the end: stuck at base, back in the lobby with it); `game:lobby
+--game=tag` reads the lobby after the Ace's results, as combat's.
+Nothing of the item is left unbuilt.
 
 **77. Party persistence. EXISTS.** The room is the party: its code and
 pilots survive rounds, mission changes and, in private rooms, world

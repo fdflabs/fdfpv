@@ -96,13 +96,15 @@ const GAME = (process.argv.find((a) => a.startsWith('--game=')) || '--game=comba
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', `game-lobby-${GAME}`);
 
 /* Each game: its title card, its world, the panel's word for it, what a
- * round on looks like on a page, how the room ends one, and how long its
+ * round on looks like on a page, its results screen up where it has one
+ * before the lobby, how the room ends one, and how long its
  * start takes to put a pilot in the air (the war's briefing is its 70 s
  * intro, src/share/war/intro.js, then its countdown). */
 const GAMES = {
   combat: {
     card: 'combat', world: 'swiss2', chip: 'Combat', upMs: 60000,
     on: "['countdown', 'on'].includes(window.__combat ? window.__combat().round.state : '')",
+    results: 'window.__combat().results',
     /* Run out, from its countdown as well: on, then over. */
     end: (core, now) => {
       const t = Math.ceil(core.roomMs(now));
@@ -114,6 +116,7 @@ const GAMES = {
   tag: {
     card: 'ace', world: 'swiss2', chip: 'Catch the Ace', upMs: 60000,
     on: "['countdown', 'live'].includes(window.__roomTag().view.state)",
+    results: 'window.__roomTag().results',
     end: (core, now) => core.tag.abandon(core, now),
   },
   jam: {
@@ -576,7 +579,7 @@ try {
      * others' (COMPLETENESS 76): the results, the host's Combat again
      * under the cursor. */
     if (GAME === 'combat') {
-      await a.until('window.__combat().results', 15000).catch(() => {});
+      await a.until(G.results, 15000).catch(() => {});
       const res = await a.evaluate("(() => { const it = window.__ui.items(); return { results: window.__combat().results, here: (it[window.__ui.cursor] || {}).action || null, rows: it.map((x) => x.action || x.label) }; })()");
       check('combat\'s end: its results screen first, the host\'s Combat again under the cursor, Change aircraft among its rows', res.results && res.here === 'friends-lobby-start'
         && res.rows.includes('restart') && res.rows.includes('hangar-aircraft'), JSON.stringify(res));
@@ -730,14 +733,15 @@ try {
     }
     check('both press R: the round on both pages', await a.evaluate(G.on) && await b.evaluate(G.on));
     endRound(code);
-    /* Combat's end shows its results screen first (605006770), also to a
-     * pilot still on the lobby screen when the round ends, which a round
-     * ended in its countdown leaves both on: read at once, the lobby was
-     * the one before the end, and the results came over it a moment
-     * later. Its results first, then the lobby they give way to. */
-    if (GAME === 'combat') {
+    /* Combat's end shows its results screen first (605006770), and the
+     * Ace's too (roomTagFrame), also to a pilot still on the lobby screen
+     * when the round ends, which a round ended in its countdown leaves
+     * both on: read at once, the lobby was the one before the end, and
+     * the results came over it a moment later. Its results first, then
+     * the lobby they give way to. */
+    if (G.results) {
       for (const p of [a, b]) {
-        await p.until('window.__combat().results', 15000).catch(() => {});
+        await p.until(G.results, 15000).catch(() => {});
       }
     }
     for (const p of [a, b]) {

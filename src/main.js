@@ -9376,7 +9376,13 @@ export async function boot({
       recordGameResult('tag', { won: done.winner === mine.seat, score: mine.points });
       ui.progress.roundFinished('tag', worldId(), { points: mine.points });
     }
-    if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+    /* In a room made for the Ace, only while the lobby's return is still
+     * to come, as combat's (combatResults): a page whose world was building
+     * took the end on its first frame after that return, and the results
+     * then stood over the lobby for good (game:lobby --game=tag, B's world
+     * rebuilt across the end, 2026-10-15). */
+    const lobbyGone = lobbyGame() === 'tag' && lobbyBackAt == null;
+    if (done && !lobbyGone && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
         leaveFlightForResults();
       }
