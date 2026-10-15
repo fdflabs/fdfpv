@@ -3875,6 +3875,17 @@
       .campaign-item-text { flex: 1 1 auto; display: grid; gap: 2px; }
       .campaign-item .campaign-buy { flex: 0 0 auto; }
       .campaign-last, .campaign-loadout { margin: 0 0 12px; color: var(--cream); font-size: 14px; }
+      /* The story card before the next mission (src/ui/campaign.js
+         storyCard): a dossier entry, its place and hour over the text, set
+         off from the mission cards by the bright rule down its side. */
+      .campaign-story {
+        margin: 0 0 14px; padding: 12px 14px; background: #0d1012;
+        box-shadow: inset 3px 0 0 var(--pdcs-bright), inset 0 0 0 1px rgba(215, 221, 221, 0.1);
+      }
+      .campaign-story-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-bottom: 6px; }
+      .campaign-story-place { font-family: var(--type-name); font-synthesis: none; color: var(--cream); font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+      .campaign-story-when { color: var(--pdcs-bright); font-size: 13px; letter-spacing: 0.06em; }
+      .campaign-story-text { margin: 0; color: var(--cream); font-family: var(--pdcs-read); font-size: 14px; line-height: 1.5; }
       /*
        * The flight feel question's answers are CHIPS, not a select, because
        * the whole form is meant to be answered in two clicks and a select

@@ -9,7 +9,8 @@
  * 1280x720, 390x844 and 360x640, with the rooms panel above them and
  * clear of them. Its card is one click onto the campaign's page (the
  * owner, 2026-10-03), before any consent or room: Act 1's seven missions
- * with their stars, mission 1 free and playable, missions 2 to 7 marked
+ * with their stars, the story card before mission 1 over them
+ * (docs/campaign/BIBLE.md 10), mission 1 free and playable, missions 2 to 7 marked
  * Campaign, 2 to 4 each waiting on the one before, 5 Under development
  * (The River Below, built and held until the owner has flown it), 6 and
  * 7 Coming soon (the owner released 1 to 4 on 2026-10-15). The shop, with
@@ -26,7 +27,8 @@
  * message. The room's own result for the ended war taken first; then a
  * mission end with no result, as a room from before results gives:
  * nothing paid, a quiet note. A mocked room result, a won one the check
- * can choose: stars and credits on the screen follow it; without
+ * can choose: stars and credits on the screen follow it, and the story
+ * card moves on to mission 2's; without
  * ?missions=dev, back in the room, mission 2, open by the win, is Play,
  * mission 1 too. Then ?missions=dev (this check's own server starts
  * missions in development, DEV_MISSIONS): play mission 2 from the lobby's
@@ -185,6 +187,18 @@ const SCREEN = `(() => {
     }])),
     loadout: (box.querySelector('.campaign-loadout') || {}).textContent || null,
     last: (box.querySelector('.campaign-last') || {}).textContent || null,
+    story: (() => {
+      const c = box.querySelector('.campaign-story');
+      const list = box.querySelector('.campaign-list');
+      return c ? {
+        mission: c.dataset.mission,
+        label: c.querySelector('.campaign-n').textContent,
+        place: c.querySelector('.campaign-story-place').textContent,
+        when: c.querySelector('.campaign-story-when').textContent,
+        text: c.querySelector('.campaign-story-text').textContent,
+        above: Boolean(list) && c.getBoundingClientRect().bottom <= list.getBoundingClientRect().top,
+      } : null;
+    })(),
   };
 })()`;
 
@@ -293,6 +307,12 @@ try {
     && first.missions[4].play === 'Under development' && first.missions[4].release === 'development' && !first.missions[4].playable
     && first.missions.slice(5).every((m) => m.play === 'Coming soon' && m.release === 'soon'), JSON.stringify(first.missions.map((m) => m.play)));
   check('the seeded credits show', first.credits === 'Credits: 1000', first.credits);
+  /* The story card before the mission the pilot goes on with
+   * (docs/campaign/BIBLE.md 10): mission 1's, over the list. */
+  check('the story card before mission 1, its place and hour over its text, above the missions',
+    first.story && first.story.mission === 'itaipu-1' && first.story.label === 'Before mission 1' && first.story.place === 'Itaipu, the crest'
+    && first.story.when === 'Day one, before dawn' && /^A month into a war nobody declared/.test(first.story.text) && first.story.above,
+    JSON.stringify(first.story));
   await shot(page, 'missions');
 
   /* THE SHOP. */
@@ -468,6 +488,8 @@ try {
   check('after the result: two stars on mission 1, 225 more credits, paid once',
     after.missions[0].stars === 2 && after.credits === 'Credits: 325' && after.missions[0].best === 'Best: won, 225 credits', JSON.stringify(after));
   check('the result is said on the screen', after.last === 'Mission 1 won: 2 of 3 stars, 225 credits.', after.last);
+  check('and the story card moves on: before mission 2, the spillway in the afternoon', after.story && after.story.mission === 'itaipu-2'
+    && after.story.label === 'Before mission 2' && after.story.when === 'Day one, afternoon' && /^It rained upstream/.test(after.story.text), JSON.stringify(after.story));
   await shot(page, 'after-result');
 
   /* THE PUBLIC VIEW AFTER THE WIN: the same page without ?missions=dev,

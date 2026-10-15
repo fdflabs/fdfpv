@@ -357,6 +357,15 @@ export function unlocked(state, index) {
   return index === 0 || state.missions[ACT1[index - 1].id]?.won === true;
 }
 
+/* The mission the story goes on with, { mission, n } (n 1 based): Act
+ * 1's first not yet won, whether or not it is released, since the story
+ * card before it is told either way (src/ui/campaign.js); null once every
+ * mission is won. */
+export function storyNext(state) {
+  const i = ACT1.findIndex((m) => state.missions[m.id]?.won !== true);
+  return i < 0 ? null : { mission: ACT1[i], n: i + 1 };
+}
+
 /* Whether the full game gate lets the pilot at a mission, or the shop
  * (index null). */
 export function gateOpen(index) {

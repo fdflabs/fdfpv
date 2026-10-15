@@ -22,7 +22,7 @@
 
 import {
   ACT1, INTERIOR, INTERIOR_CAMPAIGN, UPGRADES, actOf, opsCampaignOf, applyResult, cardLabel, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
-  emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, released, seenFilm, spent, starsOf, totalStars, unlocked,
+  emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, released, seenFilm, spent, starsOf, storyNext, totalStars, unlocked,
   PAID_KEEP, paidWar, payResult,
 } from '../src/game/campaign.js';
 import { createCampaignScreen } from '../src/ui/campaign.js';
@@ -304,6 +304,22 @@ console.log('a war\'s result is paid once, by the room\'s id for it (phase 19, C
   old.observe({ id: 6, mission: 'itaipu-1', state: 'won', result: res }, 'OLD000');
   old.observe({ id: 6, mission: 'itaipu-1', state: 'won', result: res }, 'OLD000');
   check('and one seen undecided is paid once', old.state().earned === 240 && same(old.state().wars, []));
+}
+
+console.log('the story goes on with the first mission not won (docs/campaign/BIBLE.md 10, the arc)');
+{
+  const won = (ids) => ids.reduce((x, id) => applyResult(x, id, { stars: 1, credits: 100, won: true }), emptyCampaign());
+  const at = (st) => { const n = storyNext(st); return n ? `${n.mission.id}:${n.n}` : null; };
+  check('a fresh campaign tells mission 1\'s, a won mission the next one\'s, a lost one its own again, none once all are won',
+    at(emptyCampaign()) === 'itaipu-1:1' && at(won(['itaipu-1'])) === 'itaipu-2:2'
+    && at(applyResult(won(['itaipu-1']), 'itaipu-2', { stars: 0, credits: 10, won: false })) === 'itaipu-2:2'
+    && at(won(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'])) === 'itaipu-5:5'
+    && at(won(ACT1.map((m) => m.id))) === null);
+  const keys = ACT1.slice(0, 5).flatMap((m) => ['', '_place', '_when'].map((x) => `campaign.story.${m.key}${x}`));
+  const missing = keys.filter((k) => !EN[k] || !ES[k] || EN[k] === ES[k]);
+  check('missions 1 to 5 have a story card, its place, hour and text, in English and Spanish', missing.length === 0 && Boolean(EN['campaign.story_label'] && ES['campaign.story_label']), missing.join(', '));
+  const later = ACT1.slice(5).map((m) => `campaign.story.${m.key}`).filter((k) => EN[k]);
+  check('none for missions 6 and 7 (being built; their beats are MISSIONS.md\'s)', later.length === 0, later.join(', '));
 }
 
 console.log('an ops match\'s result is paid once, by the room\'s id for it (the war\'s rule, COMPLETENESS 2)');

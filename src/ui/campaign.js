@@ -3,10 +3,11 @@
  * war room. The state and its rules are src/game/campaign.js; what goes to
  * the room and comes back is src/share/campaignwar.js.
  *
- *   the screen   Act 1's seven missions, their stars and best result, a
- *                Play each, or why not (one not released says Under
- *                development or Coming soon, and keeps its stars); and
- *                the shop. Drawn on the shell's one overlay
+ *   the screen   the story card before the mission the pilot goes on
+ *                with; Act 1's seven missions, their stars and best
+ *                result, a Play each, or why not (one not released says
+ *                Under development or Coming soon, and keeps its stars);
+ *                and the shop. Drawn on the shell's one overlay
  *                (ui.nameDialog, the node askConfirm uses), so the menu's
  *                keys are already held while it is open and closing it is
  *                closeNameDialog, as for every other dialog.
@@ -46,10 +47,10 @@
 
 import {
   ACT1, MAX_STARS, UPGRADES, applyResult, buy, cannotBuy, createCampaignStore, credits, equip, gateOpen, loadoutOf,
-  paidWar, payResult, released, starsOf, totalStars, unlocked,
+  paidWar, payResult, released, starsOf, storyNext, totalStars, unlocked,
 } from '../game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../share/campaignwar.js';
-import { str } from '../strings/index.js';
+import { hasStr, str } from '../strings/index.js';
 import { nextMission } from './continuity.js';
 import { el } from './dom.js';
 
@@ -236,9 +237,33 @@ export function createCampaignScreen({
     return card;
   }
 
+  /* The story card before the mission the pilot goes on with: where,
+   * when, and what has happened (docs/campaign/BIBLE.md 10, the arc).
+   * None where that mission has no story written (6 and 7, being built). */
+  function storyCard() {
+    const next = storyNext(cur());
+    const key = next && `campaign.story.${next.mission.key}`;
+    if (!key || !hasStr(key)) {
+      return null;
+    }
+    const card = el('section', 'campaign-story');
+    card.dataset.mission = next.mission.id;
+    const top = el('div', 'campaign-story-top');
+    top.append(el('span', 'campaign-n', str('campaign.story_label', { n: next.n })));
+    top.append(el('span', 'campaign-story-place', str(`${key}_place`)));
+    top.append(el('span', 'campaign-story-when', str(`${key}_when`)));
+    card.append(top);
+    card.append(el('p', 'campaign-story-text', str(key)));
+    return card;
+  }
+
   function drawMissions(box) {
     head(box, str('campaign.card'));
     box.append(el('p', 'lede', str('campaign.act1_lede')));
+    const story = storyCard();
+    if (story) {
+      box.append(story);
+    }
     const list = el('div', 'campaign-list');
     ACT1.forEach((m, i) => list.append(missionCard(m, i)));
     box.append(list);
