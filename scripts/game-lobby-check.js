@@ -724,6 +724,16 @@ try {
     }
     check('both press R: the round on both pages', await a.evaluate(G.on) && await b.evaluate(G.on));
     endRound(code);
+    /* Combat's end shows its results screen first (605006770), also to a
+     * pilot still on the lobby screen when the round ends, which a round
+     * ended in its countdown leaves both on: read at once, the lobby was
+     * the one before the end, and the results came over it a moment
+     * later. Its results first, then the lobby they give way to. */
+    if (GAME === 'combat') {
+      for (const p of [a, b]) {
+        await p.until('window.__combat().results', 15000).catch(() => {});
+      }
+    }
     for (const p of [a, b]) {
       await p.until(IN_LOBBY, 30000).catch(() => {});
     }
