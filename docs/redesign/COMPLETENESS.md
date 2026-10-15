@@ -1240,6 +1240,16 @@ tab fits stronger motors the room's profile does not carry, and pose
 velocity includes the wind), so safety.js POSE_MAX_SPEED stays the one
 limit; Trick Battle numbers (docs/JAM-PLAN.md, the trust boundary); a
 racer that sends no pose at all is not judged.
+**Fixed** (2026-10-15, w44-roomsfix): AI racers' passes ran ahead of
+their own poses, about 20 ms a second of race (seat 2 of a live race:
+claim 63498 against pose 62366 by its last gate), so their race times
+came out long. The plant steps whole ms and the room's tick is 33.3 ms:
+each tick stepped from where the plant had stopped, rounding up two
+thirds of a ms every tick. edge/rooms/airace.js now keeps the AI clock
+in the room's ms, unrounded, and flies the plant to it. Check:
+`rooms:selftest`, AI racers section: every AI claim within one pose
+interval of its newest pose (was 204 to 1730 ms past it before the fix,
+-1.7 to 30.3 ms after), the witness refusing none.
 
 ## 15. Telemetry and diagnostics (items 63 to 67)
 
