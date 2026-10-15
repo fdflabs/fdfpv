@@ -100,9 +100,10 @@ already exists: race.js's track record, the freestyle board answer
 
 ## What it does NOT do
 
-- No event bus (COMPLETENESS item 25, phase 22); the builders read today's
-  end of run state. When the bus lands, the builders fold it instead and
-  the record and the screen stay as they are.
+- No end of run state for a fact that is an event: the builders read the
+  run's event log (src/game/events.js, COMPLETENESS items 25 and 26) for
+  laps, tricks, bails, an ops result and a room game's points; what is
+  measured (time, route, replay, condition) is handed in.
 - No XP, currency or rewards: that is the progression lane (items 17, 25).
   The record has no reward field until that lane asks for one.
 - No new stored best (a freestyle personal best kept locally would be new

@@ -37,8 +37,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-15, the first verdict
-in each item's heading): 35 EXISTS, 35 BUILT (since built by a phase), 9
-PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
+in each item's heading): 35 EXISTS, 36 BUILT (since built by a phase), 8
 PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -522,8 +521,22 @@ judged from it. Four words added with item 28 (2026-10-15, w43-achieve),
 so the challenges read the run's aircraft and power and discovery reads
 a place found from the log: `seated` (a new run key, its aircraft,
 power and pack), `engine_out` and `battery_low` (the two edges RunWatch
-detects in the frames) and `found` (a named place flown into). The log
-is in memory only, never stored or sent. Check:
+detects in the frames) and `found` (a named place flown into). Three
+more with item 26 (2026-10-15, w44-eventwords), so every debrief fact
+that is an event is read from the log: `lap_void` (a lap race.js's log
+keeps that progression does not count: voided, with its reason, or a
+builder's test flight lap off a casual track, with its time), `bail`
+(every bail freestyle's scorer counts, a hard bounce included, which
+the crash flag's `crash` edge is not) and `trick` (a trick the scorer
+took, its id and points); and an Interior match's `mission_end` now
+carries its match, state, stars earned and whether it paid, logged
+before its debrief shows and, for a match already paid by its uid,
+logged unpaid, which nothing counts (src/game/progress.js foldEvents).
+None of the three pays anything: `events:selftest` runs its thousand
+seeded runs again with them between every call (every answer the
+same), and `progress:selftest` folds a thousand seeded flights with and
+without them (the same achievements and progress). The log is in
+memory only, never stored or sent. Check:
 `events:selftest` (CI). What follows is the gap as first written. There
 are at least six
 separate channels, each with its own vocabulary: the recorder's
@@ -548,29 +561,38 @@ same facts in the same order. Check: `events:selftest` (Node, CI) folds a
 recorded stream and asserts RunWatch gives today's answers from it. Size
 M. Phase 22.
 
-**26. Debrief from events. PARTIAL.** Where it stands (2026-10-15,
-w43-achieve): phase 10's one debrief frame exists (src/game/debrief.js,
-every activity a builder, PLAN.md row 10), and a fact the flight's log
-holds is read from it: a room game's points are its last `round`
-(fromRoom, the round Progress.roundFinished logs as the room ends it),
-held by `debrief:selftest` (CI), which rebuilds a Catch the Ace! debrief
-from the saved log (JSON) and gets the one shown, and by `tag:twopage`
-(local: each of three pages' debrief points are its logged round's and
-the room's). Every other fact is still handed in, and each needs the
-log to carry something it does not, a lead decision: a race's laps need
-a voided lap logged (race.js's `{ ms: null, reason }`, a `lap` row with
-`ms: null`, which touches foldEvents' lap count, the lap XP and the
-first_course row, bestsOf's run and two browser checks that read lap
-events), and every lap logged on a builder's test flight too (Progress
-logs none off a casual track); freestyle's crashes are score.js's bails,
-a hard bounce included, which the log's `crash` (the crash flag's edge)
-is not, so that line would change number, and its tricks are not in the
-log at all (a `trick` word); an ops mission's won and stars are logged
-by src/ui/opscampaign.js after the debrief shows, and not at all on a
-match already paid by its uid; a room's place is the room's order. The
-time in the air, the route, the replay and the condition are measured,
-not events, and stay handed in: a run end event carrying them would make
-a rebuild pass by construction and prove nothing. What follows is the
+**26. Debrief from events. BUILT (phase 10).** Built (2026-10-15,
+w43-achieve and w44-eventwords): phase 10's one debrief frame
+(src/game/debrief.js, every activity a builder, PLAN.md row 10) reads
+every fact that is an event from the log (item 25): a race's laps from
+its run's `lap` and `lap_void` rows (fromRace: clean laps, the run time,
+the record line), freestyle's tricks and crashes from its `trick` and
+`bail` rows (fromFree), an ops mission's result and stars earned from
+its match's `mission_end` (fromOps; src/ui/opscampaign.js record logs it
+before the debrief shows, unpaid for a match already paid, and fromOps
+fails loudly without one), and a room game's points from its last
+`round` (fromRoom). A race and a freestyle run outlive their flights (a
+recovery, a seat swap or a placement each start a new log), so their
+debriefs read the run's events (src/ui/progress-ui.js runEvents, kept
+with the run's bests and forgotten with them, in memory only). Handed in,
+each deliberately: what is measured, not an event (the time in the air,
+the route, the replay, the condition, a plane down and whole at the end,
+a freestyle run's clock), what is worked out from the events by their
+owner (the score, score.js's; a room's places and the war card's kills,
+the room's order), and what the course and the mission are (the record
+chased, the stars there are); a run end event carrying them would make a
+rebuild pass by construction and prove nothing. Checks: `debrief:selftest`
+(CI) keeps the old readers as oracles and, per activity, drives the log
+beside what the screen used to read (five hundred races over one to
+three flights with voided and test flight laps, three hundred scored
+freestyle runs on a real FreestyleScore, the Interior's results through
+opscampaign.js record, a reload at the debrief included) and asserts the
+debrief from the log, and from a JSON round trip of it, is the old one;
+`events:selftest` and `campaign:selftest` (CI) hold the producers;
+`debrief:race`, `debrief:free`, `interior:debrief` and `tag:twopage`
+(local) hold each page's debrief equal to its log's (the race's laps
+over thirteen flights, three tricks landed through the judge's callback,
+each match's logged result, each pilot's round). What follows is the
 gap as first written. The war's round card
 (src/ui/warround.js) reads counters the room accumulates during play
 (`m.roundMw`, war.js 1750; `player.kills`, 1576) and logs each round

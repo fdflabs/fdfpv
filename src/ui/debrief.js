@@ -271,7 +271,8 @@ export class Debrief {
    * stills (this seat's, src/avionics/capture.js createStillStore().of),
    * next ({ id, key, label } the campaign's next mission and its card
    * word, or null; the host's Next mission when 'available'), flight (this pilot's own flight for the facts:
-   * src/game/debrief.js fromOps; or null) }.
+   * src/game/debrief.js fromOps; or null), events (the run's log, which
+   * holds the match's result) and match (its id there) }.
    */
   show(o) {
     if (o.key === this.shownFor) {
@@ -338,7 +339,7 @@ export class Debrief {
     }
     /* The flight's facts (docs/DEBRIEF.md) under the stills. */
     const record = o.flight ? fromOps({
-      won, ended, items: this.frames, stars: { got: got.size, of: (mission.stars ?? []).length }, flight: o.flight,
+      events: o.events, match: o.match, items: this.frames, starsOf: (mission.stars ?? []).length, flight: o.flight,
     }) : null;
     if (record) {
       const facts = el('dl', 'debrief-facts', box);

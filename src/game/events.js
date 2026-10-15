@@ -38,10 +38,29 @@
  *                 both, src/game/training.js), its course's key, and its
  *                 place in a solo run of `of` laps (null in a room): the
  *                 bests are read from these (progress.js bestsOf)
+ *   lap_void {ms, reason}
+ *                 a lap the run's race log keeps that progression does
+ *                 not count (src/main.js voidRaceLap, testLap): a lap
+ *                 voided, ms null and reason why ('wreck', 'swap',
+ *                 'weight', 'replay', src/game/race.js voidLap), or a lap
+ *                 flown on a builder's test flight off a casual track, ms
+ *                 its time and reason 'test'; with `lap`, the rows of
+ *                 race.js's log in order, which a race's debrief reads
+ *                 (src/game/debrief.js fromRace); nothing pays one
  *   touch {kind}  the same; a contact the shell reports every step is one
  *                 event per kind per run of contact (see append)
  *   crash {airframe}
  *                 the crash flag's rising edge (Progress.tick)
+ *   bail {cause}  a freestyle bail, every one the scorer counts (src/game/
+ *                 score.js crash, src/main.js scoreCrash): a crash
+ *                 ('crash'), a wreck ('wreck') or a hard bounce off the
+ *                 ground ('bounce'), which the crash flag's edge, `crash`,
+ *                 is not; freestyle's debrief counts these (debrief.js
+ *                 fromFree)
+ *   trick {id, score}
+ *                 a trick or figure the freestyle scorer took (score.js
+ *                 land, from the trick judge, src/game/trickdetect.js and
+ *                 figuredetect.js): id its name, score its points (net)
  *   engine_out, battery_low
  *                 the engine quitting with fuel in the tank, and LOW
  *                 BATTERY on electric power, each once a run, as
@@ -80,7 +99,15 @@
  *   mission_end {mission, won, stars, airframe}
  *                 a mission's result applied to the save
  *                 (src/ui/campaign.js, src/ui/opscampaign.js); both
- *                 counted per aircraft like a landing
+ *                 counted per aircraft like a landing. An Interior
+ *                 match's carries {match, state, earned, paid} too: the
+ *                 room's id for it, 'won', 'lost' or 'ended', the star
+ *                 ids the room gave it (stars is what they paid, fewer
+ *                 after a restart) and whether this entry paid it; logged
+ *                 before its debrief shows, which reads it (debrief.js
+ *                 fromOps), and logged unpaid (paid false, counted by
+ *                 nothing) for a match already paid by its uid or not
+ *                 this seat's to be paid
  *
  *   found {world, id}
  *                 a named place of the world flown into (src/game/
@@ -119,6 +146,7 @@ export const EVENT_TYPES = Object.freeze([
   'spawned', 'gate', 'lap', 'touch', 'crash', 'landing',
   'objective', 'stage', 'kill', 'hit', 'round', 'joined', 'left',
   'mission_start', 'mission_end', 'contact', 'seated', 'engine_out', 'battery_low', 'found',
+  'lap_void', 'bail', 'trick',
 ]);
 const KNOWN = new Set(EVENT_TYPES);
 /* Fields an event carries itself; data may not overwrite them. */

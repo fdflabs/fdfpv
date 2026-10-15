@@ -226,6 +226,29 @@ async function run(lang, track) {
       `a run flown by placing the craft sets no best and shows no New best line: ${JSON.stringify(dev)}`);
     say(f && f.dds[0] !== '0:00' && /^\d+:\d\d$/.test(f.dds[0]), `time in the air counted: ${f && f.dds[0]}`);
     say(f && f.dds[3] === t['debrief.n_of'].replace('{n}', '3').replace('{of}', '3'), `clean laps: ${f && f.dds[3]}`);
+    /* From the log (COMPLETENESS.md item 26): every gate was a placement,
+     * so each lap closed in a flight of its own, and the run's log still
+     * holds race.js's three rows; the debrief rebuilt from a JSON round
+     * trip of it is the one shown. */
+    const fromLog = await page.evaluate(`(async () => {
+      const m = await import('/src/game/debrief.js');
+      const d = window.__ui.resultsDebrief;
+      const events = JSON.parse(JSON.stringify(window.__ui.progress.runEvents()));
+      const rec = d.records.find((r) => r.what === 'debrief.track_record');
+      const total = d.records.find((r) => r.what === 'debrief.aircraft_time');
+      const again = m.withBests(m.fromRace({
+        aircraft: d.aircraft, fixedWing: d.fixedWing, events, recordAtStart: rec ? rec.before : null, flightMs: d.time.flightMs, totalS: total ? total.now : NaN,
+        route: d.route, replay: d.replay, landed: d.result.landed, condition: d.condition,
+      }), window.__ui.progress.runBests());
+      const rows = events.filter((e) => e.type === 'lap' || e.type === 'lap_void');
+      return {
+        rows: rows.map((e) => e.ms), race: window.__race().log.map((r) => r.ms), flights: events.filter((e) => e.type === 'spawned').length,
+        runMs: d.time.runMs, best: window.__race().bestLapMs(), same: JSON.stringify(again) === JSON.stringify(d),
+      };
+    })()`);
+    say(fromLog.rows.length === 3 && JSON.stringify(fromLog.rows) === JSON.stringify(fromLog.race) && fromLog.flights > 3 && fromLog.runMs === fromLog.best,
+      `the laps shown are the run's logged rows, race.js's own, over ${fromLog.flights} flights: ${JSON.stringify(fromLog)}`);
+    say(fromLog.same, 'the debrief rebuilt from a JSON round trip of the run\'s log is the one shown');
     const hud = await page.evaluate('window.__crash().condition');
     say(f && f.dds[4] === t[`debrief.cond_${hud}`], `the aircraft's condition is the HUD's word, ${hud}: ${f && f.dds[4]}`);
     say(f && f.points > 5, `the route is drawn from above: ${f && f.points} points`);

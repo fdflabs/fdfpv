@@ -174,7 +174,7 @@ import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilm
 import { spotFilm } from './share/ops/spotfilm.js';
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
 import { Debrief } from './ui/debrief.js';
-import { createOpsCampaignScreen } from './ui/opscampaign.js';
+import { createOpsCampaignScreen, matchOf } from './ui/opscampaign.js';
 import { createTrainingScreen } from './ui/training.js';
 import { INTERIOR, INTERIOR_CAMPAIGN } from './game/campaign.js';
 import { SIZE as CONTACT_SIZE, centreOf } from './share/ops/contacts.js';
@@ -909,14 +909,21 @@ export async function boot({
     const mission = roomOps.mission();
     const match = roomOps.match();
     /* The watch seat has no debrief: no flight, no capture, nothing to
-     * record (its banner says the end, warWatchBanner). */
-    if (!mission || !match || roomOps.watcher()) {
+     * record (its banner says the end, warWatchBanner). Nor a match not
+     * ended: an outro stopped by the host's next start resolves its done
+     * over the new match, which has no result to log or show. */
+    if (!mission || !match || roomOps.watcher() || !['won', 'lost', 'ended'].includes(v.state)) {
       return;
     }
     rolesBoard.close();
     const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
+    /* Its result in the log first: the debrief reads it from there
+     * (src/game/debrief.js fromOps). */
+    interiorScreen.record(match, v);
     debrief.show({
       key: match, view: v, mission, seat: roomOps.seat(), host: opsHost() === roomOps.seat(), stills: stills.of(match), next: interiorScreen.next(v.mission),
+      events: ui.progress.runEvents(),
+      match: matchOf(match, v),
       flight: {
         aircraft: runAirframe,
         fixedWing,
@@ -927,7 +934,6 @@ export async function boot({
         condition: conditionOf(crashFlags, fixedWing),
       },
     });
-    interiorScreen.record(match, v);
   }
   /* A result the room sent this seat, paid once per match uid as it
    * arrives, though this page never saw the end and has no world up (a
@@ -3570,6 +3576,19 @@ export async function boot({
   /* Gates, laps and the best lap. A freestyle map gets one too, empty, so
    * the code that asks it questions never has to ask whether it exists. */
   let race = new Race(view.gates, 'full');
+  /* Where this race's rows begin in the run's log (Progress.runEvents):
+   * a course taken off or put back mid run (seatSwapCourse) is a new
+   * race in the same run, and its debrief reads only its own laps. */
+  let raceLogAt = 0;
+  /* A lap voided, logged with why (src/game/events.js lap_void) when
+   * race.js kept a row for it: a lap was open, on a course. */
+  function voidRaceLap(reason, key, wallMs) {
+    const rows = race.log.length;
+    race.voidLap(str(key), wallMs);
+    if (race.log.length > rows) {
+      ui.progress.lapVoid(null, reason);
+    }
+  }
   /* The in-sim builder, once a world it can build in is seated. Declared up
    * here because the ghost below asks whether a run is its test flight. See
    * buildHost. */
@@ -3612,7 +3631,10 @@ export async function boot({
    * reader of the detector only, so a recorded flight replays the same. */
   let jamScore = null;
   const trickDetector = new TrickDetector((trick) => {
-    score.land(trick);
+    const took = score.land(trick);
+    if (took) {
+      ui.progress.trick(took.name, took.net);
+    }
     if (jamScore) {
       jamScore.land(trick);
     }
@@ -3625,8 +3647,11 @@ export async function boot({
   let figureCraft = false;
   /* The checks land a trick as a detector would (scripts/callouts-check.js). */
   devHooks.__trickLand = (trick) => trickDetector.onTrick({ endMs: simTimeMs, ...trick });
-  function scoreCrash() {
+  /* A bail, logged with its cause (src/game/events.js bail): every one
+   * the scorer counts is the freestyle debrief's. */
+  function scoreCrash(cause) {
     score.crash();
+    ui.progress.bail(cause);
     if (jamScore) {
       jamScore.crash();
     }
@@ -13295,9 +13320,9 @@ export async function boot({
     if (view.mode === 'freestyle') {
       trickDetector.reset();
       figureDetector.reset();
-      scoreCrash();
+      scoreCrash('wreck');
     }
-    race.voidLap(str('main.wrecked_lap_over'), nowWall);
+    voidRaceLap('wreck', 'main.wrecked_lap_over', nowWall);
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
   }
 
@@ -13838,7 +13863,7 @@ export async function boot({
     if (view.mode === 'freestyle') {
       trickDetector.reset();
       figureDetector.reset();
-      scoreCrash();
+      scoreCrash('crash');
     }
     dropTurtle();
     sim.rest();
@@ -14016,6 +14041,7 @@ export async function boot({
     runRoute.reset();
     resetCraft(null);
     race.reset();
+    raceLogAt = 0;
     /* Scored or free flight is re-read every run: the pilot switches it on
      * the Freestyle screen between runs. The detector restarts with the
      * clock so the two agree on when a trick happened. */
@@ -14346,7 +14372,7 @@ export async function boot({
     seatRestHeight(to, !inAir && onWater);
 
     if (midLap) {
-      race.voidLap(str('carousel.lap_void'), performance.now());
+      voidRaceLap('swap', 'carousel.lap_void', performance.now());
     }
 
     /* The craft, parked at the spot on its heading, which is also a fresh
@@ -14462,6 +14488,7 @@ export async function boot({
      * the race is made from the view, as adoptLoadedView makes it. */
     await seatMapCourse();
     race = new Race(view.gates, 'full', raceOpts(view.recordSuffix ?? ''));
+    raceLogAt = ui.progress.runEvents().length;
     if (!fits) {
       notice = {
         text: str('main.the_craft_does_not_fit_through_every_gate', { craft: to.short }),
@@ -15213,7 +15240,7 @@ export async function boot({
     runWeight = weight;
     runGravityScale = scale;
     if (midLap) {
-      race.voidLap(str('main.weight_changed_lap_voided'), performance.now());
+      voidRaceLap('weight', 'main.weight_changed_lap_voided', performance.now());
     }
   }
 
@@ -15543,6 +15570,7 @@ export async function boot({
       aircraft: runAirframe,
       fixedWing,
       summary,
+      events: ui.progress.runEvents(),
       flightMs: runAirMs,
       totalS: aircraftSecondsNow(),
       route: runRoute.snapshot(),
@@ -18994,7 +19022,7 @@ export async function boot({
       if (hard) {
         trickDetector.reset();
         figureDetector.reset();
-        scoreCrash();
+        scoreCrash('bounce');
       } else {
         /* The ground is not tappable (TrickDetector.bump). */
         trickDetector.bump(undefined, false);
@@ -19226,6 +19254,11 @@ export async function boot({
     ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passed);
     if (!race.freestyle && build && build.testing && race.laps.length > lapsBefore) {
       noteBuilderLap(race.lastLapMs);
+      /* Progress counts none off a casual track; the debrief still reads
+       * it from the log (src/game/events.js lap_void). */
+      if (!ui.progress.isCasual(build.docId)) {
+        ui.progress.lapVoid(race.lastLapMs, 'test');
+      }
     }
     if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {
       if (passed) {
@@ -19269,7 +19302,7 @@ export async function boot({
       ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), withBests(fromRace({
         aircraft: runAirframe,
         fixedWing: Boolean(airframeById(runAirframe).fixedWing),
-        log: race.log,
+        events: ui.progress.runEvents().slice(raceLogAt),
         recordAtStart: race.recordAtStart,
         flightMs: runAirMs,
         totalS: aircraftSecondsNow(),
@@ -22205,7 +22238,7 @@ export async function boot({
     }
     trickDetector.reset();
     figureDetector.reset();
-    race.voidLap(str('replay.lap_void'), nowWall);
+    voidRaceLap('replay', 'replay.lap_void', nowWall);
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     mode = 'flight';
     ui.show('flight');
