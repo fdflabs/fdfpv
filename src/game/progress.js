@@ -907,13 +907,6 @@ export function awardPlace(progress, world, id) {
   return [{ type: 'place', world, id }, ...addXp(progress, PLACE_XP, { kind: 'place', key })];
 }
 
-/* How many of a world's places are found, of how many. */
-export function placesFound(progress, world) {
-  const all = placesOf(world);
-  const found = isRecord(progress && progress.places) ? progress.places : {};
-  return { n: all.filter((p) => found[placeKey(world, p.id)] === true).length, of: all.length };
-}
-
 /*
  * THE AIRCRAFT CHALLENGES (PROGRESSION.md section 5, the lead's decision
  * of 2026-10-15): three on every aircraft, the same three stories for

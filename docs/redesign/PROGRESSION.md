@@ -200,9 +200,11 @@ per aircraft (by family: a float plane's is its land plane's), XP only,
 `AIRCRAFT_CHALLENGE_XP` 60 (a lesson's first, the lane's call on the
 firsts' scale), kept in `progress.aircraftChallenges` as
 '<family>:<challenge>', shown in the hangar's Challenges tab first, under
-the aircraft's name, and as a "Challenge complete" line on the debrief of
-the run that did it (src/game/debrief.js withBests), Free Flight's
-included.
+the aircraft's name, as a toast when it is done, and as a "Challenge
+complete" line on the debrief that follows it, where one does (the race,
+the room race, a room game's end, the scored freestyle run;
+src/game/debrief.js withBests). Free Flight with scoring off has no
+debrief, so there the toast is the notice.
 
 | Challenge | Read from | multirotor | plane | wing | glider |
 | --- | --- | --- | --- | --- | --- |

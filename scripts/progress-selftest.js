@@ -30,7 +30,7 @@ import {
   COUNTED, PLAYED_GAMES, WORLDS, countOf, foldEvents, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
   AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, BEST_GLIDE, CASUAL_LAP_M, LANDING_STREAK, PLACE_XP,
-  aircraftChallengesOf, awardAircraftChallenge, awardAircraftChallenges, awardPlace, challengeAmounts, placesFound,
+  aircraftChallengesOf, awardAircraftChallenge, awardAircraftChallenges, awardPlace, challengeAmounts,
 } from '../src/game/progress.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { POWER } from '../configs/power.js';
@@ -540,7 +540,6 @@ console.log('discovery (src/game/discovery.js, PROGRESSION.md section 6)');
     && PLACE_XP === FIRST_XP.game && p.xp === PLACE_XP && first[0].type === 'place', JSON.stringify(first));
   check('found again: nothing', awardPlace(p, 'itaipu', 'main_dam').length === 0 && p.xp === PLACE_XP);
   check('a place the world has not: nothing', awardPlace(p, 'itaipu', 'nowhere').length === 0 && awardPlace(p, 'alps', 'main_dam').length === 0 && p.xp === PLACE_XP);
-  check('found and of how many', same(placesFound(p, 'itaipu'), { n: 1, of: placesOf('itaipu').length }));
   check('no tokens: no place is a first, a record of every place found is granted nothing, and places and aircraft challenges add no grant',
     !everyFirst().some((f) => f.key.startsWith('place')) && grantsFrom({ data: { progress: { places: Object.fromEntries(placesOf('itaipu').map((q) => [placeKey('itaipu', q.id), true])) } } }).length === 0
     && same(grantsFrom({ data: { progress: { challenges: { deadstick: true } } } }), grantsFrom({ data: { progress: { challenges: { deadstick: true }, places: { 'itaipu:river': true }, aircraftChallenges: { 'cub1400:lap': true } } } })));
