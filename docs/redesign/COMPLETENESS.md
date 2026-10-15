@@ -37,7 +37,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-15, the first verdict
-in each item's heading): 35 EXISTS, 39 BUILT (since built by a phase), 5
+in each item's heading): 35 EXISTS, 40 BUILT (since built by a phase), 4
 PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
