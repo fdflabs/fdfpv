@@ -55,6 +55,13 @@ export function usingLabel(info) {
   return info && info.using && info.using !== 'Keyboard' ? info.using : str('ui.keyboard');
 }
 
+/* What the Controller screen's device rows are drawn from: when it
+ * changes (a device plugged in or pulled out, another picked, a
+ * calibration saved or dropped) the open screen is drawn again. */
+export function controllerKey(info) {
+  return info ? [info.using, info.count, info.device, info.profile, info.calibrated].join('|') : '';
+}
+
 /* What src/input/padprofiles.js recognised, and the built-in layout it
  * stands for: the device's preset. */
 function deviceRows(info) {

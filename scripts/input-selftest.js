@@ -1641,6 +1641,95 @@ heading('phase 20: the flying device goes mid flight');
   check('and the keyboard flies meanwhile, centred', t.im.channels.roll === 0 && t.im.firstGamepad() === null);
 }
 
+heading('item 15: hot plugging, the device registry');
+{
+  /* Nothing at launch, then radio A plugged in, calibrated (yaw moved to
+   * axis 4, a 6 percent dead zone), pulled, plugged back on another port,
+   * pulled again with radio B taking over, and A back beside B, picked by
+   * the picker. Each device must fly its own calibration every time. */
+  const list = [];
+  const b = new Bench(list);
+  b.run(100);
+  check('nothing plugged in at launch: the keyboard flies, nothing queued',
+    b.im.firstGamepad() === null && b.im.takePadPickQueue() === null && /keyboard/.test(b.im.source), b.im.source);
+  const a = radio([0, 0, -1, 0, 0, -1], 4, 'Radio A (Vendor: 1209 Product: 4f54)');
+  list.push(a);
+  b.run(100);
+  check('one radio plugged in after launch is taken, with no picker',
+    b.im.firstGamepad() === a && b.im.padChoice.kind === 'pad' && b.im.padChoice.id === a.id && b.im.takePadPickQueue() === null);
+  check('a first plug in is not a return: nothing to say', b.im.takeDeviceBack() === null && b.im.takeDeviceLoss() === false);
+  b.im.map.yaw = { ...b.im.map.yaw, axis: 4 };
+  check('A calibrated and its feel set, both stored', b.im.saveMap() === true && b.im.setFeel({ deadZone: 6 }) === true);
+
+  list.length = 0;
+  b.tick();
+  check('A pulled: the loss once, no return, the keyboard flies',
+    b.im.takeDeviceLoss() === true && b.im.takeDeviceLoss() === false && b.im.takeDeviceBack() === null && b.im.firstGamepad() === null);
+  b.run(200);
+  check('meanwhile A\'s calibration stays loaded, nothing queued with no device left',
+    b.im.mapKey === deviceKey(a.id) && b.im.map.yaw.axis === 4 && b.im.takePadPickQueue() === null);
+
+  const a2 = { ...a, index: 2, axes: a.axes.slice(), buttons: a.buttons.map((x) => ({ ...x })) };
+  list.push(a2);
+  b.tick();
+  const back = b.im.takeDeviceBack();
+  check('A back on port 3: it flies again, its return said once with its name and calibration',
+    b.im.firstGamepad() === a2 && show(back) === show({ name: 'Radio A', calibrated: true }) && b.im.takeDeviceBack() === null, show(back));
+  check('and its own calibration and dead zone fly, with no picker',
+    b.im.map.stored && b.im.map.yaw.axis === 4 && b.im.feel.deadZone === 6 && b.im.takePadPickQueue() === null, show({ yaw: b.im.map.yaw, feel: b.im.feel }));
+
+  list.length = 0;
+  b.tick();
+  b.im.takeDeviceLoss();
+  const radioB = radio([0, 0, -1, 0, 0, -1], 4, 'Radio B (Vendor: 1209 Product: 4f55)');
+  list.push(radioB);
+  b.run(32);
+  const tookB = b.im.takeDeviceBack();
+  check('A pulled and B plugged in alone: B is taken and said, uncalibrated',
+    b.im.firstGamepad() === radioB && show(tookB) === show({ name: 'Radio B', calibrated: false }), show(tookB));
+  check('B flies its own (built-in) map, not A\'s', b.im.mapKey === deviceKey(radioB.id) && !b.im.map.stored && b.im.map.yaw.axis === 3, show(b.im.map.yaw));
+
+  const a3 = { ...a, index: 1, axes: a.axes.slice(), buttons: a.buttons.map((x) => ({ ...x })) };
+  radioB.index = 0;
+  list.push(a3);
+  b.tick();
+  check('A plugged in beside B: the picker is queued as a hotplug, B still flies, no loss',
+    b.im.takePadPickQueue() === 'hotplug' && b.im.firstGamepad() === radioB && b.im.takeDeviceLoss() === false);
+  check('the picker opens', b.im.startPadPick('hotplug') === true);
+  a3.axes[0] = 0.9;
+  a3.timestamp += 1;
+  b.run(400);
+  b.run(32);
+  a3.buttons[0].pressed = true;
+  b.run(32);
+  a3.buttons[0].pressed = false;
+  a3.axes[0] = 0;
+  b.run(32);
+  check('A picked by its own A button: A flies, on its calibration and dead zone again',
+    b.im.padPick === null && b.im.firstGamepad() === a3 && b.im.map.stored && b.im.map.yaw.axis === 4 && b.im.feel.deadZone === 6,
+    show({ pick: Boolean(b.im.padPick), choice: b.im.padChoice, yaw: b.im.map.yaw }));
+  check('a switch is not a return: nothing said', b.im.takeDeviceBack() === null);
+
+  /* A cable that blips between two frames: pulled and back before the
+   * shell asks. */
+  list.splice(list.indexOf(a3), 1);
+  b.tick();
+  list.push(a3);
+  b.tick();
+  const blip = { lost: b.im.takeDeviceLoss(), back: b.im.takeDeviceBack(), flying: b.im.firstGamepad() === a3, queued: b.im.takePadPickQueue() };
+  check('A pulled and back between two frames: neither is reported', show(blip) === show({ lost: false, back: null, flying: true, queued: null }), show(blip));
+
+  /* The keyboard picked while A is gone: A coming back is no return. */
+  list.splice(list.indexOf(a3), 1);
+  b.tick();
+  b.im.takeDeviceLoss();
+  b.im.takePadPickQueue();
+  b.im.setPadChoice({ kind: 'none' });
+  list.push(a3);
+  b.tick();
+  check('the keyboard picked while A was gone: no return is said when A is plugged back in', b.im.takeDeviceBack() === null);
+}
+
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} passed`);
 for (const f of failures) {
   console.log(`  FAIL ${f}`);

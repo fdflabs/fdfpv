@@ -10923,6 +10923,9 @@ export async function boot({
   /* The seated world's note, held for the next flight. See showCourseNotes. */
   let heldNotes = null;
   let padPickReturn = 'title';
+  /* The flying device went while the run was off screen (a replay), and
+   * has not come back: the run's return answers it as a loss in flight. */
+  let padGone = false;
   /* The wizard hands the pilot back to the screen it was opened from:
    * Settings, the Controller screen, or the title (the Hangar's card and
    * the new pilot's controller question both open it from there). */
@@ -16010,6 +16013,12 @@ export async function boot({
       input.requestPadPick(reason);
       return;
     }
+    /* A replay keeps the screen, which still reads 'flight': a hotplug's
+     * picker waits for it to close, then opens over the paused run. */
+    if (mode === 'replay' && reason !== 'menu') {
+      input.requestPadPick(reason);
+      return;
+    }
     if (ui.screen === 'padpick') {
       return;
     }
@@ -20361,18 +20370,7 @@ export async function boot({
     /* Read once: guidedPrompt retires the guided flag as a side effect. */
     const guidedText = (ui.guided && !crashflipOn && !turtleRecover && lastUpz >= 0) ? guidedPrompt(race) : '';
     ui.setPadInfo(input.padSummary());
-    /* The flying device went (input.noteDeviceLoss). Solo pauses; a room
-     * cannot stop its world, so it flies on centred sticks and a held
-     * throttle and says so. A picker queued with it opens after this. */
-    if (input.takeDeviceLoss() && mode === 'flight' && ui.screen === 'flight') {
-      if (inRoom()) {
-        flashNotice(str('input.device_lost_room'), 6000);
-      } else {
-        ui.act('pause');
-        ui.show('paused');
-        flashNotice(str('input.device_lost_solo'), 6000);
-      }
-    }
+    padLossFrame();
     const queuedPick = input.takePadPickQueue();
     if (queuedPick) {
       openPadPick(queuedPick);
@@ -20405,6 +20403,43 @@ export async function boot({
     if (ui.screen === 'rates') {
       const ch = input.channels;
       ui.paintRates({ roll: ch.roll, pitch: ch.pitch, yaw: ch.yaw });
+    }
+  }
+
+  /*
+   * The flying device went (input.noteDeviceLoss) or came back. In flight,
+   * solo pauses; a room cannot stop its world, so it flies on centred
+   * sticks and a held throttle and says so. A loss in a replay waits for
+   * the run to come back on screen and is answered then, unless a device
+   * flies again first; anywhere else (a menu, the pause) it is said, and
+   * the keys fly when the pilot does. A device flying again says which,
+   * and whether its own calibration came with it (input.followDevice). A
+   * picker queued with either opens after this.
+   */
+  function padLossFrame() {
+    const lost = input.takeDeviceLoss();
+    const back = input.takeDeviceBack();
+    if (lost) {
+      padGone = mode === 'flight' || mode === 'replay';
+    }
+    if (back) {
+      padGone = false;
+      flashNotice(str(back.calibrated ? 'input.device_back_calibrated' : 'input.device_back', { name: back.name }), 4000);
+    }
+    if (mode !== 'flight' && mode !== 'replay') {
+      padGone = false;
+    }
+    if (padGone && mode === 'flight' && ui.screen === 'flight') {
+      padGone = false;
+      if (inRoom()) {
+        flashNotice(str('input.device_lost_room'), 6000);
+      } else {
+        ui.act('pause');
+        ui.show('paused');
+        flashNotice(str('input.device_lost_solo'), 6000);
+      }
+    } else if (lost) {
+      flashNotice(str('input.device_lost_menu'), 6000);
     }
   }
 

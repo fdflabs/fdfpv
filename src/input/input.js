@@ -113,6 +113,9 @@ export class InputManager {
     this.padKeysDown = new Set();
     /* Set when the flying device went; takeDeviceLoss reads it once. */
     this.deviceLost = false;
+    /* { name, calibrated } when a device flies again after that loss;
+     * takeDeviceBack reads it once. */
+    this.deviceBack = null;
     this.stickMode = DEFAULT_STICK_MODE;
     this.keyboard = new KeyboardSticks(this.stickMode);
     this.mouseStick = new MouseStick();
@@ -748,6 +751,33 @@ export class InputManager {
     return lost;
   }
 
+  /*
+   * A device flies again after a loss: the same one replugged (on any
+   * port), or another taken or picked. Read after followDevice, so
+   * `calibrated` says whether the map now flying is its own stored one.
+   * A loss the shell has not taken yet (a blip between two frames) and its
+   * return cancel out: neither is reported. `gp` is read before the
+   * roster's poll, so a device taken in that poll is reported on the next.
+   */
+  noteDeviceBack(gp) {
+    if (!this.roster.back || !gp) {
+      return;
+    }
+    this.roster.back = false;
+    if (this.deviceLost) {
+      this.deviceLost = false;
+      return;
+    }
+    this.deviceBack = { name: shortPadName(gp.id), calibrated: Boolean(this.map && this.map.stored) };
+  }
+
+  /* { name, calibrated } once after a device came back, else null. */
+  takeDeviceBack() {
+    const back = this.deviceBack;
+    this.deviceBack = null;
+    return back;
+  }
+
   /* ----------------------------------------------- actions by name */
 
   /* The chosen device when the browser maps it to the W3C standard
@@ -873,6 +903,7 @@ export class InputManager {
     this.roster.track();
     this.noteDeviceLoss();
     this.followDevice(gp);
+    this.noteDeviceBack(gp);
     this.followDefaultMap(gp);
     this.measureRates(gp, dtMs);
     const next = this.readSource(gp, dtMs);
