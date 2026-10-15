@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-15, the first verdict
-in each item's heading): 35 EXISTS, 27 BUILT (since built by a phase), 17
+in each item's heading): 35 EXISTS, 28 BUILT (since built by a phase), 16
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -915,7 +915,7 @@ Home's order is untouched (Flight Club first, #386) and nothing opens on
 its own. Check: `modes:card` (local) reloads after a Track Day and finds
 the Continue link. Size S. Phase 27.
 
-**58. Quit and abandon. PARTIAL.** The room keeps the mission and the
+**58. Quit and abandon. BUILT.** The room keeps the mission and the
 lost stage across a reload (war.js 1071, 963); a war with nobody left
 ends after 10 s (`abandon`, war.js 950); leaving is not scored as a
 failure. Missing: a written rule, and the result lost when the client was
@@ -923,7 +923,18 @@ not watching (item 2). **Done:** the rule written in SESSIONS.md
 (leaving mid mission keeps the room's checkpoint for the others; the
 leaver keeps stars already earned; nothing is lost but the round in
 progress), and item 2's fix. Check: phase 19's `campaign:check` case.
-Size S. Phases 19 and 21.
+Size S. Phases 19 and 21. **Built** (checked against the tree 2026-10-15,
+w43-sessions): the rule is SESSIONS.md 3, "Pause, leaving and abandon"
+(a drop keeps its seat RESEAT_MS, leaving mid mission keeps the room's
+checkpoint, abandon after ABANDON_MS, never in an empty room, a world
+that will not load, who counts at a start); item 2's fix is w41's: the
+room sends a war's or an ops match's result to every seat that flew it,
+and the page pays it once per uid in the save, whether or not it saw the
+end. Held by `rooms:selftest` (who is sent the result, the abandon, the
+load failure), `campaign:selftest` (an end seen alone pays, once across
+a reload) and `interior:coop` (local: a reload at the end). The
+`campaign:check` browser case is not added: its Node half is
+`campaign:selftest`'s (PLAN.md row 19).
 
 ## 14. Online safety (items 59 to 62)
 
