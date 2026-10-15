@@ -26,7 +26,9 @@
  *     restarts from the lost stage, max 2 stars"): the host's Start now
  *     restarts from that stage, two stars at most; Restart from the
  *     beginning, a row only then, starts from the briefing with every
- *     star; after a win Start now starts fresh. The Spillway the same
+ *     star; after a win, its outro played to the end before the lobby
+ *     (the banner's seconds count from the film's end), Start now starts
+ *     fresh. The Spillway the same
  *     (this check's room starts missions in development), and the
  *     campaign's start, its loadout, from the lost stage too.
  *   Campaign Play makes a lobby too.
@@ -60,6 +62,8 @@ import { LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { stagesOf } from '../src/share/war/stages.js';
+import { FILMS, briefingMs } from '../src/share/war/films/index.js';
+import { filmMs } from '../src/share/war/film.js';
 import { WAR_AIRFRAMES, WAR_DEFAULT } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -376,9 +380,15 @@ try {
     await a.evaluate(`(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)})); return true; })()`);
     await a.tap('Enter');
   };
-  /* The host back in its lobby after the end banner, the war `state`. */
+  /* The host back in its lobby after the end banner, the war `state`.
+   * A win with an outro plays it first, every key the film's, and the
+   * banner's seconds count from its end (62c7af95e, docs/campaign/
+   * FIRST-LIGHT-OUTRO.md, the owner 2026-10-08): the film's length is
+   * waited for on top. */
+  const outroMs = (id) => (MISSIONS[id] && MISSIONS[id].outro ? filmMs(FILMS[MISSIONS[id].outro]) : 0);
   const hostBack = async (state) => {
-    await a.until(`${IN_LOBBY} && window.__war().view.state === ${JSON.stringify(state)}`, 20000).catch(() => {});
+    const film = state === 'won' ? outroMs(await a.evaluate('window.__war().view.mission')) : 0;
+    await a.until(`${IN_LOBBY} && window.__war().view.state === ${JSON.stringify(state)}`, 20000 + film).catch(() => {});
     await a.sleep(500);
     return a.evaluate(ROWS);
   };
@@ -409,6 +419,14 @@ try {
   const capped = winNow(code);
   check(`and won from there, every criterion met, it earns ${RESTART_STARS} stars`, capped && capped.won && capped.stars === RESTART_STARS
     && capped.criteria.every((c) => c.met), JSON.stringify(capped));
+  /* The outro has the screen past the banner's 8 s: the lobby waits for
+   * the film's end, so the host is never on a lobby whose rows the film
+   * keeps from every press. */
+  await a.until("window.__warIntro() && String(window.__warIntro().for).startsWith('outro:')", 15000).catch(() => {});
+  await a.sleep(10000);
+  const under = await a.evaluate("({ film: (window.__warIntro() || {}).for || null, screen: window.__ui.screen })");
+  check('the win\'s outro still playing past the banner\'s 8 s, and the host not yet put in the lobby under it', /^outro:/.test(under.film || '')
+    && under.screen !== 'friends', JSON.stringify(under));
   const wonRows = await hostBack('won');
   check('after the win: Start now, and no Restart from the beginning', wonRows.start === 'Start now' && wonRows.fresh === null, JSON.stringify(wonRows));
   await press('friends-war-start');
@@ -425,6 +443,10 @@ try {
   const over = await a.evaluate(WAR);
   check('Restart from the beginning after the loss: mission 1 from its briefing, not a restart', over.state === 'briefing' && over.mission === 'itaipu-1'
     && over.restarted === null, JSON.stringify(over));
+  /* Won once flown, past its briefing: a win in the briefing ended the
+   * match at its go, still to come, and its outro waited for the room's
+   * clock to reach it, over the lobby. */
+  await a.until("window.__war().view.state === 'live'", briefingMs(MISSIONS['itaipu-1']) + 30000).catch(() => {});
   const full = winNow(code);
   check('and won from there, every criterion met, it earns all 3 stars', full && full.won && full.stars === 3, JSON.stringify(full));
 

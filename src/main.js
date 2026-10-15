@@ -203,6 +203,7 @@ import { stationOrder } from './share/war/stationdark.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
 import { FILMS as WAR_FILMS, filmFor } from './share/war/films/index.js';
+import { filmMs } from './share/war/film.js';
 import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
@@ -6140,10 +6141,26 @@ export async function boot({
     warOutroFrame(v);
   }
 
+  /* The ms of view v's outro still to play on the room's clock, 0 when
+   * there is none. */
+  const warOutroMs = new Map();
+  function warOutroLeftMs(v) {
+    const outro = v && v.state === 'won' && v.endAt != null ? WAR_MISSIONS[v.mission]?.outro : null;
+    const now = roomLinkState.roomNow();
+    if (!outro || now == null) {
+      return 0;
+    }
+    if (!warOutroMs.has(outro)) {
+      warOutroMs.set(outro, filmMs(WAR_FILMS[outro]));
+    }
+    return Math.max(0, v.endAt + warOutroMs.get(outro) - now);
+  }
+
   /* A mission's outro (its `outro`, First Light's) on a win, once per
    * match, on the room's clock from the end, so every pilot sees the same
    * frame; in the mission's own world as it stands, its damage and all.
-   * A new match, a restart or the lobby ends it. */
+   * A new match or a restart ends it; the lobby waits for its end
+   * (gameLobbyFrame). */
   const warOutroOn = (v) => warIntro !== null && String(warIntroFor).startsWith('outro:') && v.state === 'won';
   function warOutroFrame(v) {
     const outro = WAR_MISSIONS[v.mission]?.outro;
@@ -6372,6 +6389,17 @@ export async function boot({
   function gameLobbyFrame(wallMs) {
     lobbyReadyHeard(wallMs);
     lobbySeenFrame(wallMs);
+    /* A win's outro (warOutroFrame) has the screen and every key while it
+     * plays, and the end banner comes after it (docs/campaign/
+     * FIRST-LIGHT-OUTRO.md): the banner's seconds count from the film's
+     * end on the room's clock, which the film runs on from endAt, also
+     * when its world came up late and it began part way. Counted from the
+     * win, the lobby came up under the film, its rows dead to the host's
+     * presses and the banner's Next mission never seen. */
+    const filmLeft = lobbyBackAt != null ? warOutroLeftMs(roomWar.view()) : 0;
+    if (filmLeft > 0) {
+      lobbyBackAt = Math.max(lobbyBackAt, wallMs + filmLeft + LOBBY_BACK_MS);
+    }
     if (lobbyBackAt != null && wallMs >= lobbyBackAt) {
       lobbyBackAt = null;
       if (gameLobby() && (mode === 'flight' || mode === 'paused')) {
