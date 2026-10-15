@@ -44,6 +44,10 @@
  *   - a strike that lands while the pilot is down (the pause menu: no
  *     row recorded) is in the replay, its explosion burning at its age at
  *     the first row after the pilot is back (warrec.js THE EXPLOSIONS)
+ *   - a hull hurt in the clip (version 22, warrec.js HURT AND SPOTTED)
+ *     burns in the replay's scene (warscene.js) from the row the live
+ *     frame first drew it hurt, while it plays forward: none before
+ *     it, none on a still frame, and its spot rides on it as drawn
  *   - closed, the map is the live war's again, the newest live frame's
  *   - no page error
  *
@@ -144,6 +148,54 @@ const a = await openPage({
 try {
   await a.until('window.__shellReady === true', 300000);
   await a.until('window.__map && window.__map().ready && window.__crashCam', 600000);
+  /* The replay's scene on this page's three.js: one of The River Below's
+   * hulls (a real birth, war-balance.js seed 2), hurt and spotted at row
+   * HURT of a clip at 60 fps, played forward a row a frame. */
+  const burn = await a.evaluate(`(async () => {
+    const THREE = await import('three');
+    const { createWarScene } = await import('/src/replay/warscene.js');
+    const HURT = 30;
+    const n = 330;
+    const t0 = 217019;
+    const room = Float64Array.from({ length: n }, (_, k) => t0 + 1000 + k * 16);
+    const war = {
+      agents: [{
+        mission: 'itaipu-5',
+        a: { id: 22, kind: 'carrier', route: 'river-surface', t0, k: 0, n: 1, err: 0, target: null, wave: 4, sector: 'RIVER' },
+        last: null,
+        hurt: [{ at: room[HURT], hp: 1 }],
+        spotted: { at: room[HURT], how: 'silent' },
+      }],
+      room, slots: 0, hunters: new Float32Array(0),
+    };
+    const scene = createWarScene(war, n, new THREE.Group());
+    const fx = () => { const b = scene.summary().booms; return b ? b.burnFire + b.burnSmoke : null; };
+    const alive = () => { const b = scene.summary().booms; return b ? b.hotLive + b.smokeLive : null; };
+    const out = { rows: [] };
+    for (let k = 0; k < n; k += 1) {
+      scene.frame(k, 0, 1 / 60, 1);
+      const d = scene.heard().list.find((x) => x.id === 22);
+      out.rows.push({ k, puffs: fx(), hp: d ? d.hp ?? null : 'gone', spotted: d ? d.spotted ?? null : 'gone' });
+    }
+    out.alive = alive();
+    const before = fx();
+    for (let j = 0; j < 30; j += 1) {
+      scene.frame(n - 1, 0, 0, 0);
+    }
+    out.still = fx() - before;
+    scene.dispose();
+    return out;
+  })()`);
+  const r = burn.rows;
+  const lit = r.find((x) => x.puffs > 0);
+  check('a hull hurt in the clip burns in the replay from its row on, playing forward, and not before; a still frame adds nothing',
+    r.slice(0, 30).every((x) => x.puffs === 0 && x.hp === null && x.spotted === null) && r.slice(30).every((x) => x.hp === 1 && x.spotted === 'silent')
+      /* BURN's 10.5 puffs a second over the 5 s hurt: about 52, 20
+       * more than four deviations below; and some still alive at its
+       * end (11 measured, 2026-10-15), where a scene that cleared its
+       * air each frame had none. */
+      && lit && lit.k >= 30 && r.at(-1).puffs >= 20 && burn.alive >= 3 && burn.still === 0,
+    `first puff at row ${lit ? lit.k : 'none'}, ${r.at(-1).puffs} puffs over ${r.length - 30} rows hurt, ${burn.alive} alive at the end, ${burn.still} on a still frame`);
   await a.tap('KeyZ');
   await a.evaluate("window.__roomCreate({ map: 'itaipu' })");
   await a.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);

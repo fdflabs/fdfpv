@@ -203,6 +203,18 @@
  * written as the version before, byte for byte, and versions 1 to 20 are
  * read without them: their replay leaves the station lit.
  *
+ * Version 22 keeps a war's hurt hulls and spotted attackers (src/replay/
+ * warrec.js HURT AND SPOTTED): an agent of the war header's `agents` may
+ * hold `hurt`, [{ at, hp }], each hp it was drawn with from the room ms
+ * that first drew it, and `spotted`, { at, how }. A build before this
+ * one refuses an agent with a fourth key as a damaged file, so a file is
+ * version 22 when an agent has either, and only then, and that build
+ * refuses it by its version. Its columns are the newest layout's, so it
+ * needs the sticks and the animation clock, and its version is past
+ * 18's, so it has the build. Every other clip is written as the version
+ * before, byte for byte, and versions 1 to 21 are read without them:
+ * their replay draws every hull whole and none spotted.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -249,7 +261,9 @@ import {
   OPP_POSE_N, ROW_N as OPP_ROW_N, STICK_W as OPP_STICK_W, checkOpponent,
 } from './opponent.js';
 
-export const FILE_VERSION = 21;
+export const FILE_VERSION = 22;
+/* A clip with a war's hurt or spotted attackers. */
+const MARKS_VERSION = 22;
 /* A clip with a war's map as the room sends it: an order putting the
  * station's lights out, or a damage event by an attacker's kind. */
 const ROOM_SENT_VERSION = 21;
@@ -293,7 +307,7 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
 /* The deploy stamp's own characters (scripts/stamp-version.js), which
  * names a commit in 12 of them. */
 const BUILD_RE = /^[A-Za-z0-9._-]{1,40}$/;
@@ -333,8 +347,20 @@ function roomSent(m) {
     || (Array.isArray(m.damage) && m.damage.some((d) => d && typeof d === 'object' && typeof d.by === 'string')));
 }
 
+/* Whether a war's agent needs version 22: hurt or spotted. Read on a
+ * header not yet checked, so it trusts no shape. */
+function marked(x) {
+  return Boolean(x) && typeof x === 'object' && (x.hurt !== undefined || x.spotted !== undefined);
+}
+
 /* The lowest version whose columns hold what a clip has. */
 function layoutVersion(clip) {
+  if (clip.war && Array.isArray(clip.war.agents) && clip.war.agents.some(marked)) {
+    if (!clip.sticks || !clip.anim) {
+      throw new Error('a clip with a war\'s hurt or spotted attackers and no sticks or no animation clock');
+    }
+    return MARKS_VERSION;
+  }
   if (clip.war && clip.war.world && clip.war.world.some(roomSent)) {
     if (!clip.sticks || !clip.anim) {
       throw new Error('a clip with a war\'s map as the room sends it and no sticks or no animation clock');
@@ -1041,6 +1067,14 @@ export function decodeReplay(buf, known = null) {
   }
   if (version === ROOM_SENT_VERSION && !sent) {
     throw new ReplayFileError(`a version ${ROOM_SENT_VERSION} file without its war's map as the room sends it`);
+  }
+  const marks = header.war !== undefined && header.war !== null && typeof header.war === 'object' && Array.isArray(header.war.agents)
+    && header.war.agents.some(marked);
+  if (version < MARKS_VERSION && marks) {
+    throw new ReplayFileError(`a war's hurt or spotted attackers in a file older than version ${MARKS_VERSION}`);
+  }
+  if (version === MARKS_VERSION && !marks) {
+    throw new ReplayFileError(`a version ${MARKS_VERSION} file without its war's hurt or spotted attackers`);
   }
   if (version < 16 && header.sticks !== undefined) {
     throw new ReplayFileError('sticks in a file older than version 16');

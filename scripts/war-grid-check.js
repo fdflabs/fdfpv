@@ -49,6 +49,14 @@
  *            share/war/world.js matchAt): at every row the replay's
  *            levels are the live frame's, bit for bit, so the four come
  *            back in the order named; the failed reroute's replay too
+ *   marks    The River Below (itaipu-5) as the room plays it (war-balance.js
+ *            runOne, four bot pilots, seed 2: two hulls, each spotted, one
+ *            silent, each hit once and burning), its messages framed at 60
+ *            fps into the real client and recorded as tapWar records it
+ *            (warrec.js HURT AND SPOTTED): at every row the replay's
+ *            attackers have the hp (the burn) and the spot (the mark) the
+ *            live frame drew, the same ids; without them the same clip
+ *            differs (the control)
  *
  *   node scripts/war-grid-check.js
  *
@@ -68,8 +76,14 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { readFileSync } from 'node:fs';
 import { createRoomWar } from '../src/share/roomwar.js';
-import { checkWar, createWarRing, worldAt } from '../src/replay/warrec.js';
+import {
+  checkWar, createWarRing, warAt, worldAt,
+} from '../src/replay/warrec.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
+import { runOne } from './war-balance.js';
+import { SPAWN } from './war-legacy-games.js';
 import {
   createGrid, DISTRICTS, CASCADE_MS, FLICKER_MS, districtIndex,
 } from '../src/share/war/grid.js';
@@ -528,6 +542,108 @@ function lostTicks() {
   const d = differs(r);
   check('at every row the replay\'s levels are the live frame\'s, bit for bit, the loss read from the damage event', d.n === 0,
     `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+}
+
+console.log('marks: The River Below\'s hulls hurt and spotted, replayed against their live frames');
+{
+  const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
+  const inbox = [];
+  runOne({
+    pilots: 4, skill: 'good', seed: 2, floorBuf, spawn: SPAWN, mission: MISSIONS['itaipu-5'], record: (m, now) => inbox.push({ m, now }),
+  });
+  const ops = (op) => inbox.filter((x) => x.m.type === 'war' && x.m.op === op).map((x) => x.m);
+  const end = inbox.at(-1).now;
+  const n = Math.ceil(end / 16) + 1;
+  const ring = createWarRing(n);
+  /* The shell's frame (src/main.js roomWarFrame): the events taken as
+   * tapWar takes them, then attackersAt drawn at the room ms. */
+  const war = createRoomWar(() => {});
+  const live = [];
+  const pick = (list) => list.map((a) => ({
+    id: a.id, kind: a.kind, ...(a.hp != null ? { hp: a.hp } : {}), ...(a.spotted != null ? { spotted: a.spotted } : {}),
+  }));
+  let i = 0;
+  for (let k = 0; k < n; k += 1) {
+    const t = k * 16;
+    while (i < inbox.length && inbox[i].now <= t) {
+      const { m } = inbox[i];
+      if (m.type === 'welcome') {
+        war.onWelcome(m);
+      } else if (m.type === 'war') {
+        war.onMessage(m);
+      }
+      i += 1;
+    }
+    ring.begin(k);
+    const evs = war.takeEvents();
+    const v = war.view();
+    ring.world(war.match(), v.mission, v.down, war.on(), t, v.restores, v.stationDark);
+    for (const ev of evs) {
+      if (ev.type === 'born') {
+        ring.born(v.mission, ev.agents);
+      } else if (ev.type === 'dead') {
+        ring.dead(ev);
+      } else if (ev.type === 'damage') {
+        ring.damage(ev);
+      }
+    }
+    const list = war.attackersAt(t);
+    ring.draw(war.live() ? t : null, list);
+    live.push(war.live() ? pick(list) : []);
+  }
+  const hurt = ops('hurt');
+  const spots = ops('spot');
+  check('the room hit both hulls once and spotted both, one silent, the other launching',
+    hurt.length === 2 && spots.length === 2 && spots.some((m) => m.silent[0]) && spots.some((m) => !m.silent[0]),
+    `hurt ${hurt.map((m) => `${m.ids}@${m.at}`).join(' ')}, spot ${spots.map((m) => `${m.ids}${m.silent[0] ? ' silent' : ' launching'}@${m.at}`).join(' ')}`);
+  const clip = ring.clip(0, n);
+  checkWar(clip, n);
+  const hulls = clip.agents.filter((x) => x.a.kind === 'carrier');
+  check('the clip keeps each hull\'s hp and spot once, at the room ms of the first frame that drew it',
+    hulls.length === 2 && hulls.every((x) => x.hurt && x.hurt.length === 1 && x.hurt[0].hp === 1 && x.spotted)
+      && hulls.every((x) => live.findIndex((row) => row.some((a) => a.id === x.a.id && a.hp === 1)) * 16 === x.hurt[0].at),
+    JSON.stringify(hulls.map((x) => ({ id: x.a.id, hurt: x.hurt, spotted: x.spotted }))));
+  /* Per row: whether each attacker drawn on both has the same hp and
+   * spot, and, apart, whether the same ones are drawn. A launch's birth
+   * is heard a room tick after its t0 and a replay draws it from t0
+   * (warAt), so a row or two after each launch the replay draws children
+   * the live frame did not yet: counted and shown, not this change's. */
+  const differ = (w) => {
+    const plans = new Map();
+    let bad = 0;
+    let first = '';
+    let burning = 0;
+    let marked = 0;
+    const early = [];
+    for (let k = 0; k < n; k += 1) {
+      const got = pick(warAt(w, n, k, 0, plans));
+      const want = live[k];
+      burning += want.some((a) => a.hp != null) ? 1 : 0;
+      marked += want.some((a) => a.spotted) ? 1 : 0;
+      const ids = new Set(want.map((a) => a.id));
+      const both = (list) => JSON.stringify(list.filter((a) => ids.has(a.id) && got.some((b) => b.id === a.id)));
+      if (both(got) !== both(want)) {
+        bad += 1;
+        first ||= `row ${k} at ${k * 16}: replay ${both(got).slice(0, 200)}, live ${both(want).slice(0, 200)}`;
+      }
+      if (got.map((a) => a.id).join() !== want.map((a) => a.id).join()) {
+        early.push(k);
+      }
+    }
+    return {
+      bad, first, burning, marked, early,
+    };
+  };
+  const d = differ(clip);
+  check('at every row each attacker drawn has the hp (its burn) and the spot (its mark) the live frame drew it with', d.bad === 0 && d.burning > 0 && d.marked > 0,
+    `${n} rows, ${d.bad} differ, ${d.burning} rows with a hull burning, ${d.marked} with one marked${d.first ? ` (first: ${d.first})` : ''}`);
+  const launches = ops('born').filter((m) => m.agents[0].parent != null).map((m) => m.agents[0].t0);
+  check('the attackers drawn are the live frame\'s at every row but the few after a launch, whose children the replay draws from their t0',
+    d.early.every((k) => launches.some((t0) => k * 16 >= t0 && k * 16 < t0 + 100)),
+    `${d.early.length} rows draw children the live frame had not heard yet (rows ${d.early.join(', ')}; launches at ${launches.join(', ')})`);
+  const blind = { ...clip, agents: clip.agents.map(({ hurt: h, spotted: s, ...x }) => x) };
+  const c = differ(blind);
+  check('the same clip without them differs from the live frames (the control)', c.bad > 0, `${c.bad} rows differ`);
 }
 
 if (failed) {
