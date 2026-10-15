@@ -122,6 +122,7 @@ const GAMES = {
   jam: {
     card: 'jam', world: 'swiss2', chip: 'Trick Battle', upMs: 60000,
     on: "['turn', 'run'].includes(window.__roomJam().view.state)",
+    results: 'window.__roomJam().results',
     end: (core, now) => core.jam.abandon(core, now),
   },
   war: {
@@ -734,11 +735,11 @@ try {
     check('both press R: the round on both pages', await a.evaluate(G.on) && await b.evaluate(G.on));
     endRound(code);
     /* Combat's end shows its results screen first (605006770), and the
-     * Ace's too (roomTagFrame), also to a pilot still on the lobby screen
-     * when the round ends, which a round ended in its countdown leaves
-     * both on: read at once, the lobby was the one before the end, and
-     * the results came over it a moment later. Its results first, then
-     * the lobby they give way to. */
+     * Ace's and the Trick Battle's too (roomTagFrame, roomJamFrame), also
+     * to a pilot still on the lobby screen when the round ends, which a
+     * round ended in its countdown leaves both on: read at once, the
+     * lobby was the one before the end, and the results came over it a
+     * moment later. Its results first, then the lobby they give way to. */
     if (G.results) {
       for (const p of [a, b]) {
         await p.until(G.results, 15000).catch(() => {});

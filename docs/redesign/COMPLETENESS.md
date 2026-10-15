@@ -1575,6 +1575,15 @@ shown only while that return is to come, as combat's (src/main.js
 roomTagFrame). Proved by a probe (B's world rebuilt and held 9 s across
 the end: stuck at base, back in the lobby with it); `game:lobby
 --game=tag` reads the lobby after the Ace's results, as combat's.
+**The Trick Battle's results after a rebuild fixed** (2026-10-16 batch,
+w46-results): the same read, the same probe (B stuck on its results at
+base, back in the lobby with it); the Ace's and the Trick Battle's
+results now share one guard (src/main.js lobbyBackGone), and `game:lobby
+--game=jam` reads the lobby after the Trick Battle's results. The room
+race needs none: its results come only to a pilot whose run ends in
+raceFrame, which runs before the lobby's return in the same frame and is
+taken to the lobby by it (the probe, the racing page held 9 s across the
+end, rebuilt or with its frames stopped: in the lobby both times).
 Nothing of the item is left unbuilt.
 
 **77. Party persistence. EXISTS.** The room is the party: its code and

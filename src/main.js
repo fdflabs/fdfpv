@@ -6512,6 +6512,19 @@ export async function boot({
     const st = roomLinkState.state();
     lobbyReady.frame(gameLobby(), st.phase === 'open' && st.welcome ? st.welcome.seat : null, wallMs);
   }
+  /* Whether, in a room made for `game`, the lobby's return after its end
+   * has passed already: its results are shown only while that return is
+   * to come, as combat's (combatResults). A page whose world was building
+   * across the end took it on its first frame after the return
+   * (gameLobbyFrame runs before the games' frames), and the results then
+   * stood over the lobby for good (game:lobby, B's world rebuilt and held
+   * 9 s across the end: the Ace's and the Trick Battle's,
+   * 2026-10-15). A room's race shows its results only to a pilot whose
+   * run ends in raceFrame, before gameLobbyFrame in the same frame, which
+   * then takes them to the lobby, so it needs none. */
+  function lobbyBackGone(game) {
+    return lobbyGame() === game && lobbyBackAt == null;
+  }
   function gameLobbyFrame(wallMs) {
     lobbyReadyHeard(wallMs);
     lobbySeenFrame(wallMs);
@@ -9376,13 +9389,7 @@ export async function boot({
       recordGameResult('tag', { won: done.winner === mine.seat, score: mine.points });
       ui.progress.roundFinished('tag', worldId(), { points: mine.points });
     }
-    /* In a room made for the Ace, only while the lobby's return is still
-     * to come, as combat's (combatResults): a page whose world was building
-     * took the end on its first frame after that return, and the results
-     * then stood over the lobby for good (game:lobby --game=tag, B's world
-     * rebuilt across the end, 2026-10-15). */
-    const lobbyGone = lobbyGame() === 'tag' && lobbyBackAt == null;
-    if (done && !lobbyGone && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+    if (done && !lobbyBackGone('tag') && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
         leaveFlightForResults();
       }
@@ -9444,7 +9451,7 @@ export async function boot({
       const best = (done.runs || []).filter((r) => r.seat === seat).reduce((a, r) => Math.max(a, r.total), 0);
       recordGameResult('jam', { won: (done.winners || []).includes(seat), score: best });
     }
-    if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+    if (done && !lobbyBackGone('jam') && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
         leaveFlightForResults();
       }
