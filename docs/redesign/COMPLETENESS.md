@@ -954,11 +954,41 @@ signed result. Not before an economy with a price exists. Size M. Phase 31.
 else, by design (src/share/stats.js 11 to 20: no address, no user agent,
 no pilot, no timestamp sent). No `mode_selected`, `mission_started`,
 `mission_abandoned`, `tutorial_completed`. **Done:** an owner decision
-(section 19). If yes: the same three event rule kept, with the session
+(section 21). If yes: the same three event rule kept, with the session
 event carrying the activity and the flush event counting missions
 started, completed and abandoned as day totals, no new identifiers.
 Check: `stats` keeps its refusal list; a Node selftest asserts the new
 fields are counts. Size S. Phase 23, if decided.
+
+Checked 2026-10-14 (w43-telemetry), nothing built: privacy.html's Site
+statistics names what the board counts (pilots, sessions, laps, flight
+time, crashes; country, aircraft, input, map), and neither the activity
+nor a mission count is in it, so under its own rule (change the page in
+the same pull request as what is kept) nothing new may leave before the
+owner's yes. Nothing is built ahead of it either: a fold with no sender
+is a switch nobody sets. The yes is one change in two repositories, all
+three parts in the same release:
+
+- here, src/share/stats.js: the session event gains `activity`, the
+  mode registry's id (src/share/modes.js, a fixed list); the flush event
+  gains `started`, `finished` and `abandoned`, the missions since the
+  previous flush, folded from the gameplay log's `mission_start` and
+  `mission_end` (src/game/events.js; a start with no end when the flight
+  closes is abandoned), capped in `PER_FLUSH` like laps. No mission id,
+  no result, no stars, no time. `stats:selftest` asserts the four new
+  fields are an id from the registry and three integers, and its
+  refusal list stands as it is.
+- the board's repository: public/stats.js kept in step, and its event
+  validator taking the four fields and counting them per day.
+- privacy.html, both languages, Site statistics' first sentence:
+  "The board counts pilots, sessions, laps, flight time, crashes and
+  missions started, finished and given up as totals per day, with the
+  country as two letters and the aircraft, input, map and activity as
+  one of a fixed list." and "El tablero cuenta pilotos, sesiones,
+  vueltas, tiempo de vuelo, choques y misiones empezadas, terminadas y
+  abandonadas como totales por día, con el país en dos letras y la
+  aeronave, el control, el mapa y la actividad de una lista fija."
+  with its Last changed date.
 
 **64. Crash reporting. BUILT (phase 23); sending unasked is the owner's
 decision.** Built (2026-10-13, w38-save-events): the bug report carries
@@ -971,7 +1001,7 @@ sent only inside a bug report the pilot files with F8 (src/share/bugs.js,
 `submitBug`, ui.js 5807), with up to four screenshots. Nothing is sent on
 its own, and the report carries no build version. **Done:** the bug
 report carries the build and the last 50 recorded errors; whether errors
-are also sent unasked is an owner decision (section 19). Check: phase
+are also sent unasked is an owner decision (section 21). Check: phase
 23's `bugs:selftest`. Size S. Phase 23.
 
 **65. Structured logs. BUILT (phase 23).** Built (2026-10-13,
