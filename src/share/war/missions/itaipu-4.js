@@ -177,7 +177,7 @@ export default withWaves({
   order: 4,
   key: 'night',
   free: false,
-  release: 'development',
+  release: 'available',
   /* A string key (src/strings): The Long Night. */
   title: 'war.mission.itaipu_4',
   map: 'itaipu',

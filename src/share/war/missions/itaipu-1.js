@@ -156,7 +156,7 @@ export default withWaves({
   order: 1,
   key: 'intakes',
   free: true,
-  release: 'development',
+  release: 'available',
   /* A string key (src/strings): First Light. */
   title: 'war.mission.itaipu_1',
   map: 'itaipu',

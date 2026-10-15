@@ -237,13 +237,14 @@ const SEED = `(() => {
 
 const dir = mkdtempSync(join(tmpdir(), 'game-lobby-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-/* The war: devMissions, and the page's ?missions=dev, since its mission 1
- * is in development (held since 2026-10-07, e6481c40a; src/game/campaign.js
- * released). Its room is then private, the one kind the server makes for
- * a mission in development (6e84e9619), so while WAR_HELD the rows expect
- * a Friends room no panel lists, joined by its code, as campaign:check's
- * do; once mission 1 is released they expect a public room on the panels
- * again. */
+/* The war: devMissions, and the page's ?missions=dev, for a build whose
+ * mission 1 is in development (it was from 2026-10-07, e6481c40a, until
+ * the owner released Act 1 on 2026-10-15; src/game/campaign.js released).
+ * Its room is then private, the one kind the server makes for a mission
+ * in development (6e84e9619), so while WAR_HELD the rows expect a Friends
+ * room no panel lists, joined by its code; released, they expect a public
+ * room on the panels. The page reads the build's release, so no check
+ * can hold it here (scripts/lib/held.js reaches this process only). */
 const WAR_HELD = GAME === 'war' && ACT1[0].release === 'development';
 const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0, devMissions: GAME === 'war' });
 const rooms = `http://127.0.0.1:${server.port}`;
@@ -463,17 +464,21 @@ try {
   };
   const who0 = await a.evaluate(WHO);
   if (GAME === 'war') {
-    /* Mission 1 is in development (see the server's start above), so the
-     * room is private whatever is chosen, and reads Friends with its code:
-     * the release gate, not the row. Solo still hides the code, on the row
-     * and on the briefing's Room fact. */
+    /* While WAR_HELD mission 1 is in development (see the server's start
+     * above), so the room is private whatever is chosen, and reads Friends
+     * with its code: the release gate, not the row. Released (the owner,
+     * 2026-10-15), Public is a public room with no code row. Solo hides
+     * the code either way, on the row and on the briefing's Room fact. */
     const ROOM_FACT = "[...document.querySelectorAll('.war-brief-facts dd')].map((n) => n.textContent)[4] || ''";
-    check('the briefing\'s Who joins row, a choice: Friends, the mission in development keeping the room private, its code shown', who0 && who0.choice && who0.value === 'friends' && who0.public === false && who0.codeRow && who0.here === 'friends-lobby-ready', JSON.stringify(who0));
+    check(WAR_HELD ? 'the briefing\'s Who joins row, a choice: Friends, the mission in development keeping the room private, its code shown'
+      : 'the briefing\'s Who joins row, a choice: Public, mission 1 released, the room public, no code row', who0 && who0.choice && who0.here === 'friends-lobby-ready'
+      && (WAR_HELD ? who0.value === 'friends' && who0.public === false && who0.codeRow : who0.value === 'public' && who0.public === true && !who0.codeRow), JSON.stringify(who0));
     const solo = await pickWho('solo');
     const fact = await a.evaluate(ROOM_FACT);
     check('Solo: a fresh private room, no code on the row or in the briefing\'s Room fact, remembered', solo && solo.code !== who0.code && solo.public === false && !solo.codeRow && solo.remembered === 'solo' && !fact.includes(solo.code) && /Solo|nobody/i.test(fact), `${JSON.stringify(solo)} ${fact}`);
     const pub = await pickWho('public');
-    check('Public: remembered, and still a private room for a mission in development, its code shown again', pub && pub.code !== solo.code && pub.public === false && pub.codeRow && pub.remembered === 'public', JSON.stringify(pub));
+    check(WAR_HELD ? 'Public: remembered, and still a private room for a mission in development, its code shown again' : 'Public: remembered, a fresh public room again, no code row',
+      pub && pub.code !== solo.code && pub.remembered === 'public' && (WAR_HELD ? pub.public === false && pub.codeRow : pub.public === true && !pub.codeRow), JSON.stringify(pub));
     code = pub.code;
     /* A mission in no act is named by its own title, never as Act 1's
      * first (main.js missionLine); mission 1 is "Mission 1: First Light". */

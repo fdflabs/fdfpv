@@ -162,7 +162,7 @@ export default withWaves({
   order: 2,
   key: 'spillway',
   free: false,
-  release: 'development',
+  release: 'available',
   /* A string key (src/strings): The Spillway. */
   title: 'war.mission.itaipu_2',
   map: 'itaipu',

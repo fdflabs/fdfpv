@@ -45,6 +45,7 @@ import { LOBBY_COUNTDOWN_MS, LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.j
 import { FLAG_AIRBORNE, PROTO, encodePose } from '../src/share/roomwire.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
+import { withHeld } from './lib/held.js';
 import { stagesOf } from '../src/share/war/stages.js';
 import { modeById } from '../src/share/modes.js';
 import { createLobbyReady } from '../src/share/roomlobby.js';
@@ -188,26 +189,46 @@ export function warLobbySection(check) {
      * room never takes a mission in development, by its word, and a room
      * stored set to one before the gate is the first it may start again,
      * not a lobby whose every start is refused. With every mission of Act
-     * 1 held (the owner, 2026-10-07) that is the drill, which no campaign
-     * holds back (campaign.js released); a check's own room (dev) is
-     * mission 1. */
-    const e = lobbyRoom();
-    check('with mission 1 held, a room made for it says the drill in its lobby', e.lobby(0).mission === 'itaipu-drill', JSON.stringify(e.lobby(0)));
-    e.say(0, { type: 'lobby', op: 'mission', mission: 'itaipu-2' });
-    check('the host cannot set mission 2 while it is in development: refused, said why, the lobby keeps the drill',
-      e.socks[0].got.some((m) => m.type === 'refused' && m.why === 'war_unreleased') && e.lobby(1).mission === 'itaipu-drill'
-      && e.r.meta.mission === 'itaipu-1', JSON.stringify(e.lobby(1)));
-    const stored = lobbyRoom({ mission: 'itaipu-3' });
-    check('a room stored set to mission 3 says the drill in its lobby', stored.lobby(0).mission === 'itaipu-drill', JSON.stringify(stored.lobby(0)));
-    stored.at(100);
-    stored.ready(0);
-    stored.ready(1);
-    stored.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    /* A mission in no act has no story to tell: no 2030 film, straight
-     * to its countdown (gamelobby.js briefed); an act's keeps its
-     * briefing (mission 2's below). */
-    check('and its lobby starts the drill, straight to its countdown: no briefing film', stored.war().state === 'countdown' && stored.war().mission === 'itaipu-drill',
-      JSON.stringify({ state: stored.war().state, mission: stored.war().mission }));
+     * 1 held (as the owner held them from 2026-10-07 until their release
+     * on 2026-10-15; held here by scripts/lib/held.js) that is the drill,
+     * which no campaign holds back (campaign.js released); a check's own
+     * room (dev) is mission 1. */
+    withHeld(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'], () => {
+      const e = lobbyRoom();
+      check('with mission 1 held, a room made for it says the drill in its lobby', e.lobby(0).mission === 'itaipu-drill', JSON.stringify(e.lobby(0)));
+      e.say(0, { type: 'lobby', op: 'mission', mission: 'itaipu-2' });
+      check('the host cannot set mission 2 while it is in development: refused, said why, the lobby keeps the drill',
+        e.socks[0].got.some((m) => m.type === 'refused' && m.why === 'war_unreleased') && e.lobby(1).mission === 'itaipu-drill'
+        && e.r.meta.mission === 'itaipu-1', JSON.stringify(e.lobby(1)));
+      const stored = lobbyRoom({ mission: 'itaipu-3' });
+      check('a room stored set to mission 3 says the drill in its lobby', stored.lobby(0).mission === 'itaipu-drill', JSON.stringify(stored.lobby(0)));
+      stored.at(100);
+      stored.ready(0);
+      stored.ready(1);
+      stored.at(100 + LOBBY_COUNTDOWN_MS + 100);
+      /* A mission in no act has no story to tell: no 2030 film, straight
+       * to its countdown (gamelobby.js briefed); an act's keeps its
+       * briefing (mission 2's below). */
+      check('and its lobby starts the drill, straight to its countdown: no briefing film', stored.war().state === 'countdown' && stored.war().mission === 'itaipu-drill',
+        JSON.stringify({ state: stored.war().state, mission: stored.war().mission }));
+      check('a check\'s own room (dev) made for held mission 1 says mission 1', lobbyRoom({ dev: true }).lobby(0).mission === 'itaipu-1');
+    });
+    /* Released to every pilot (the owner, 2026-10-15): the VM's room
+     * keeps the mission it was made for, its host may set another, and a
+     * room stored set to mission 3 starts mission 3's briefing. */
+    const live = lobbyRoom();
+    check('released: a room with no developer flag made for mission 1 says mission 1', live.lobby(0).mission === 'itaipu-1', JSON.stringify(live.lobby(0)));
+    live.say(0, { type: 'lobby', op: 'mission', mission: 'itaipu-2' });
+    check('released: its host sets mission 2, nothing refused', live.lobby(1).mission === 'itaipu-2' && live.r.meta.mission === 'itaipu-2'
+      && !live.socks[0].got.some((m) => m.type === 'refused'), JSON.stringify(live.lobby(1)));
+    const kept = lobbyRoom({ mission: 'itaipu-3' });
+    check('released: a room stored set to mission 3 says mission 3', kept.lobby(0).mission === 'itaipu-3', JSON.stringify(kept.lobby(0)));
+    kept.at(100);
+    kept.ready(0);
+    kept.ready(1);
+    kept.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    check('released: and its lobby starts mission 3 with its briefing', kept.war().state === 'briefing' && kept.war().mission === 'itaipu-3',
+      JSON.stringify({ state: kept.war().state, mission: kept.war().mission }));
     const practice = lobbyRoom({ mission: 'itaipu-practice' });
     practice.at(100);
     practice.ready(0);
@@ -215,7 +236,6 @@ export function warLobbySection(check) {
     practice.at(100 + LOBBY_COUNTDOWN_MS + 100);
     check('a room set to Training\'s practice starts it the same way, no briefing film', practice.war().state === 'countdown' && practice.war().mission === 'itaipu-practice',
       JSON.stringify({ state: practice.war().state, mission: practice.war().mission }));
-    check('a check\'s own room (dev) made for mission 1 says mission 1', lobbyRoom({ dev: true }).lobby(0).mission === 'itaipu-1');
   }
   {
     const e = lobbyRoom({ dev: true });
