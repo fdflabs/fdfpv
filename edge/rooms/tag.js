@@ -297,8 +297,9 @@ export class RoomTag {
     if (!Number.isInteger(msg.goal) || msg.goal < GOAL_MIN || msg.goal > GOAL_MAX) {
       return this.error(conn, 'goal');
     }
-    /* Alone only in a room made for it (the mode registry, core.js games()). */
-    if (core.seats.size < minPlayersFor('tag', core.meta.mode)) {
+    /* Alone only in a room made for it (the mode registry, core.js games()),
+     * the others counted on the room's world (core.js fielded). */
+    if (core.fielded() < minPlayersFor('tag', core.meta.mode)) {
       return this.error(conn, 'alone');
     }
     /* A whole room millisecond: the judgement steps on them. */

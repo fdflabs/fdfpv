@@ -128,6 +128,14 @@ lap of the arena.
   fail) and is not summoned to it again; the room counts the seat out of
   every game and the lobby's flags until its profile stands on the world
   again, and the others see why it is not flying. Held by `rooms:selftest`.
+- **Who counts at a start.** A host starting Catch the Ace or a Trick
+  Battle in passing, where two are its least, counts only the pilots on
+  the room's world and not failed, the AI pilots among them (core.js
+  fielded): a pilot still building the world or whose world would not
+  build is not a second pilot, and the start is refused as `alone`
+  rather than run a round the room abandons ABANDON_MS later. A round
+  already on keeps the looser count (present: not failed). Held by
+  `rooms:selftest`.
 - **A seat another tab took** (close 4005) is final for the tab that lost
   it: it says so and never retries (src/share/rooms.js FINAL).
 

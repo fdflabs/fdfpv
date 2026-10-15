@@ -772,6 +772,28 @@ export function loadFailSection(check) {
       g.on() && !Object.hasOwn(g.match.players, 3) && !g.players(e.r).includes(3) && (mode !== 'jam' || !g.match.order.includes(3)),
       JSON.stringify(Object.keys(g.match.players)));
   }
+  {
+    /* A start in passing counts the pilots on the room's world and not
+     * failed (core.js fielded): with the only other one failed, or still
+     * on another world, the host is alone, and the room refuses rather
+     * than start a round it would abandon ABANDON_MS later. */
+    const e = lobbyRoom({ mode: null, mission: null });
+    const errors = (type) => e.socks[0].got.filter((m) => m.type === type && m.error).map((m) => m.error).join();
+    e.at(100);
+    fail(e, 1);
+    e.say(0, { type: 'tag', op: 'start', goal: 5 });
+    e.say(0, { type: 'jam', op: 'start', seconds: 45 });
+    check('with the other pilot failed, tag and jam in passing are refused as alone, nothing on, nothing to abandon',
+      !e.r.tag.on() && !e.r.jam.on() && errors('tag') === 'alone' && errors('jam') === 'alone' && e.r.abandoned.size === 0,
+      JSON.stringify({ tag: errors('tag'), jam: errors('jam') }));
+    e.say(1, { type: 'profile', profile: { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null } });
+    e.say(0, { type: 'tag', op: 'start', goal: 5 });
+    check('one on another world is not counted either', !e.r.tag.on() && errors('tag') === 'alone,alone', errors('tag'));
+    e.at(1200);
+    e.say(1, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null } });
+    e.say(0, { type: 'tag', op: 'start', goal: 5 });
+    check('standing on the room\'s world again, the start goes', e.r.tag.on(), errors('tag'));
+  }
 }
 
 /* The named session states (src/share/modes.js sessionOf, COMPLETENESS 4):

@@ -33,8 +33,8 @@ a week or more) and its phase (PLAN.md section 5).
 means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
-**Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 24 BUILT (since built by a phase), 20
+**Counts over the 83 items with a verdict** (2026-10-15, the first verdict
+in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -161,7 +161,7 @@ that boots with a broken blob and reads the notice. Size S. Phase 19.
 
 ## 2. Sessions and multiplayer (items 4 to 11)
 
-**4. Session lifecycle. PARTIAL.** The room server owns every state, but
+**4. Session lifecycle. BUILT.** The room server owns every state, but
 there is no one named state machine. The lobby is derived from data (a
 `ready` set, `countdownAt`, `deadlineAt`, edge/rooms/gamelobby.js 175 to
 190; 5 s countdown, 45 s deadline, 78, 79), and each game keeps its own
@@ -221,6 +221,23 @@ lobby's flags, and not present for ABANDON_MS; the others are told
 profile stands on the room's world again. `rooms:selftest` (a load
 failure counted out). No browser case: a bad `?map=` fails at boot
 before any socket, and nothing cheap forces an in room build to fail.
+**The start's count built** (2026-10-15 batch, w43-sessions): a failed
+seat still counted toward the `alone` check of a start in passing (tag.js
+and jam.js read `core.seats.size`), so a host could start a round the
+room abandoned ABANDON_MS later. Decided: a start counts the seats on the
+room's world and not failed, bots included (edge/rooms/core.js fielded);
+a round on keeps present(). Held by `rooms:selftest` (a load failure
+counted out: refused alone with the other failed, then on another world,
+then the start goes once it stands on the room's world). Combat started
+in passing has no alone check at all, and `rooms:server` holds a host
+alone starting one (its restart section): left as it is, a combat round
+alone in passing still ends ABANDON_MS later. Not moved onto the named
+states, on purpose: the rooms panel's `activity()` says what a joiner
+meets (a countdown, a round on with its wave or round number, a lobby
+with its ready count), which the named states do not carry, and the
+HUD's branches read finer states again (the war's briefing film, a
+race's countdown); neither would gain from the move. Every other part of
+the Done above is built.
 
 **5. Host migration. N/A.** Rooms are server authoritative: one RoomCore
 is "the only owner of the room's state" (edge/rooms/core.js 21), so there

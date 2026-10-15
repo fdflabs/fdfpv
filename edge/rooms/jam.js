@@ -170,7 +170,7 @@ export class RoomJam {
     if (!RUN_SECONDS.includes(msg.seconds)) {
       return this.error(conn, 'seconds');
     }
-    if (core.seats.size < minPlayersFor('jam', core.meta.mode)) {
+    if (core.fielded() < minPlayersFor('jam', core.meta.mode)) {
       return this.error(conn, 'alone');
     }
     const players = {};

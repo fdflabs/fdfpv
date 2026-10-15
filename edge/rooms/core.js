@@ -513,6 +513,16 @@ export class RoomCore {
     return t.failed != null && t.failed === this.meta.map;
   }
 
+  /* The seats a start counts toward its game's minimum (tag.js and jam.js
+   * start, their 'alone'): on the room's world and not failed, the bots
+   * too. Stricter than present(), which a round already on keeps: a
+   * pilot still building the world, or one whose world would not build,
+   * is not yet a second pilot, and a round started on one would be
+   * abandoned ABANDON_MS later (settleGames). */
+  fielded() {
+    return [...this.seats.values()].filter((t) => !this.failed(t) && t.profile.map === this.meta.map).length;
+  }
+
   present(players) {
     const here = new Set([...this.seats.values()].filter((t) => !this.failed(t)).map((t) => t.seat));
     return players.filter((seat) => here.has(seat)).length;
