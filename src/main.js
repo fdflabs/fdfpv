@@ -8780,7 +8780,7 @@ export async function boot({
       place: me ? me.place : null,
       of: rows.length,
       final,
-      points: me && activity !== 'roomrace' ? me.points : null,
+      events: ui.progress.flight.events,
       flightMs: runAirMs,
       totalS: aircraftSecondsNow(),
       route: runRoute.snapshot(),

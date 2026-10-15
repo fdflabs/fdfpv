@@ -523,7 +523,30 @@ same facts in the same order. Check: `events:selftest` (Node, CI) folds a
 recorded stream and asserts RunWatch gives today's answers from it. Size
 M. Phase 22.
 
-**26. Debrief from events. PARTIAL.** The war's round card
+**26. Debrief from events. PARTIAL.** Where it stands (2026-10-15,
+w43-achieve): phase 10's one debrief frame exists (src/game/debrief.js,
+every activity a builder, PLAN.md row 10), and a fact the flight's log
+holds is read from it: a room game's points are its last `round`
+(fromRoom, the round Progress.roundFinished logs as the room ends it),
+held by `debrief:selftest` (CI), which rebuilds a Catch the Ace! debrief
+from the saved log (JSON) and gets the one shown, and by `tag:twopage`
+(local: each of three pages' debrief points are its logged round's and
+the room's). Every other fact is still handed in, and each needs the
+log to carry something it does not, a lead decision: a race's laps need
+a voided lap logged (race.js's `{ ms: null, reason }`, a `lap` row with
+`ms: null`, which touches foldEvents' lap count, the lap XP and the
+first_course row, bestsOf's run and two browser checks that read lap
+events), and every lap logged on a builder's test flight too (Progress
+logs none off a casual track); freestyle's crashes are score.js's bails,
+a hard bounce included, which the log's `crash` (the crash flag's edge)
+is not, so that line would change number, and its tricks are not in the
+log at all (a `trick` word); an ops mission's won and stars are logged
+by src/ui/opscampaign.js after the debrief shows, and not at all on a
+match already paid by its uid; a room's place is the room's order. The
+time in the air, the route, the replay and the condition are measured,
+not events, and stay handed in: a run end event carrying them would make
+a rebuild pass by construction and prove nothing. What follows is the
+gap as first written. The war's round card
 (src/ui/warround.js) reads counters the room accumulates during play
 (`m.roundMw`, war.js 1750; `player.kills`, 1576) and logs each round
 (`this.log.push({ what: 'round', ... })`, 1924), which is event shaped.

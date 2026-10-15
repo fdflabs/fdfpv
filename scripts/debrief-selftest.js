@@ -25,6 +25,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { EventLog } from '../src/game/events.js';
 import { CONDITIONS, createRoute, fromFree, fromOps, fromRace, fromRoom, nextActions, replayState, ROUTE_MAX, withBests, withPosted } from '../src/game/debrief.js';
 import { factLines } from '../src/ui/factlines.js';
 import { useLocale } from '../src/strings/index.js';
@@ -170,11 +171,36 @@ const ok = { ok: true, why: null };
   check('room: first when called is won', won.result.kind === 'won' && won.accuracy[0].what === 'debrief.place' && won.accuracy[0].n === 1 && won.accuracy[0].of === 4);
   const wait = fromRoom({ activity: 'roomrace', aircraft: 'whoop65', place: 1, of: 4, final: false, flightMs: 90000, totalS: 100, replay: ok });
   check('room: first while others finish is not yet won', wait.result.kind === 'complete');
-  const lost = fromRoom({ activity: 'tag', aircraft: 'cub1400', fixedWing: true, place: 3, of: 3, final: true, points: 7, flightMs: 1, totalS: 1, replay: ok });
+  const tagLog = (points) => [{ seq: 0, type: 'spawned', simMs: 0, roomMs: null }, { seq: 1, type: 'round', simMs: 1, roomMs: null, game: 'tag', world: 'alps', points }];
+  const lost = fromRoom({ activity: 'tag', aircraft: 'cub1400', fixedWing: true, place: 3, of: 3, final: true, events: tagLog(7), flightMs: 1, totalS: 1, replay: ok });
   check('room: a later place when called is lost, points counted', lost.result.kind === 'lost' && lost.accuracy[1].what === 'debrief.points' && lost.accuracy[1].n === 7 && lost.accuracy[1].of === null);
   const none = fromRoom({ activity: 'combat', aircraft: 'x', place: null, of: 0, final: true, flightMs: 1, totalS: NaN, replay: ok });
   check('room: no standing, no place line, no time line', none.accuracy.length === 0 && none.records.length === 0 && none.result.kind === 'complete');
   check('room: the room rows lead', JSON.stringify(won.next) === '["room","replay","title"]');
+}
+
+/*
+ * FROM THE LOG (COMPLETENESS.md item 26): a fact the flight's log holds is
+ * read from it, so the debrief rebuilt from the saved log (JSON, as a
+ * log is) is the one shown. Recorded as src/ui/progress-ui.js logs it.
+ */
+{
+  const log = new EventLog();
+  log.append('spawned', 0);
+  log.append('seated', 0, { airframe: 'cub1400', fixedWing: true, power: 'electric', smallestPack: false, crashed: false });
+  log.append('round', 61000, { game: 'tag', world: 'alps', points: 3 });
+  log.append('crash', 70000, { airframe: 'cub1400' });
+  log.append('round', 181000, { game: 'tag', world: 'alps', points: 9 });
+  log.append('round', 190000, { game: 'race', world: 'alps', pilots: 4 });
+  const side = { aircraft: 'cub1400', fixedWing: true, place: 1, of: 3, final: true, flightMs: 175000, totalS: 900, route: null, replay: ok, condition: 'operational' };
+  const shown = fromRoom({ activity: 'tag', ...side, events: log.events });
+  const saved = JSON.parse(JSON.stringify(log.events));
+  check('log: a tag debrief rebuilt from the saved log is the one shown', JSON.stringify(fromRoom({ activity: 'tag', ...side, events: saved })) === JSON.stringify(shown));
+  check('log: its points are the last tag round\'s, not an earlier one\'s or another game\'s', shown.accuracy[1].what === 'debrief.points' && shown.accuracy[1].n === 9);
+  const race = fromRoom({ activity: 'roomrace', ...side, events: saved });
+  check('log: a room race\'s round carries its grid, not points: no points line', race.accuracy.length === 1 && race.accuracy[0].what === 'debrief.place');
+  check('log: no round of the game in the log, no points line', fromRoom({ activity: 'combat', ...side, events: saved }).accuracy.length === 1
+    && fromRoom({ activity: 'tag', ...side }).accuracy.length === 1);
 }
 
 /* An ops mission. */
@@ -207,7 +233,7 @@ const ok = { ok: true, why: null };
   check('bests: a first best has no old value', d.records[1].before === null && d.records[1].now === 41000);
   check('bests: none set leaves the record as it was', withBests(race, []) === race && withBests(race, null) === race);
   check('bests: pure, the record it was given is unchanged', race.records[0].what === 'debrief.track_record');
-  const tag = withBests(fromRoom({ activity: 'tag', aircraft: 'cub1400', place: 1, of: 2, final: true, points: 5, flightMs: 1, totalS: 1, replay: ok }), bests);
+  const tag = withBests(fromRoom({ activity: 'tag', aircraft: 'cub1400', place: 1, of: 2, final: true, events: [{ seq: 0, type: 'round', simMs: 1, roomMs: null, game: 'tag', world: 'alps', points: 5 }], flightMs: 1, totalS: 1, replay: ok }), bests);
   check('bests: a tag match shows its points best only', tag.records.length === 2 && tag.records[0].what === 'debrief.best_score' && tag.records[0].kind === 'tag' && tag.records[0].now === 5);
   check('bests: a room race shows its lap best, never a run (a room has no solo run)', withBests({ ...race, activity: 'roomrace' }, bests).records.filter((r) => r.kind).map((r) => r.kind).join() === 'lap');
   check('bests: JSON safe', JSON.stringify(JSON.parse(JSON.stringify(d))) === JSON.stringify(d));
