@@ -35,11 +35,13 @@
  *                 event per kind per run of contact (see append)
  *   crash {airframe}
  *                 the crash flag's rising edge (Progress.tick)
- *   landing {airframe}
+ *   landing {airframe, airMs}
  *                 RunWatch's landing: down and whole after a real flight,
  *                 on the run's aircraft (progression counts landings,
  *                 crashes and laps per aircraft, src/game/progress.js
- *                 foldEvents)
+ *                 foldEvents); airMs the flight's time in the air, from
+ *                 its take off to this touchdown, which the aircraft
+ *                 challenges read (progress.js aircraftChallengesOf)
  *   kill {airframe, victim, mission}
  *                 an attacker the war's room credited to this pilot's
  *                 warhead (edge/rooms/war.js dead `credited`, read by

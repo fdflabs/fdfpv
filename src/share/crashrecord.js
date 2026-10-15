@@ -56,8 +56,10 @@ const MESSAGE_CHARS = 200;
 const WHERE_CHARS = 160;
 
 /* The log's closed list of categories (COMPLETENESS 65): what part of
- * the game a warning came from. */
-export const LOG_CATEGORIES = Object.freeze(['input', 'network', 'physics', 'ai', 'mission', 'render', 'save', 'audio']);
+ * the game a warning came from. The checklist's eight, and `ui` for the
+ * shell's own screens and loads (the page failing to boot, the builder
+ * not loading, an aircraft swap), which none of the eight describes. */
+export const LOG_CATEGORIES = Object.freeze(['input', 'network', 'physics', 'ai', 'mission', 'render', 'save', 'audio', 'ui']);
 /* Warnings kept, newest last. */
 export const LOG_MAX = 50;
 /* How much of the log one report carries, newest first until it is full.

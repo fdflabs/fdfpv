@@ -32,7 +32,7 @@ import { Loading, planStages } from './ui/loading.js';
 import { MAP_BUILD_MS } from './maps/build-cost.js';
 import { retiredMap } from './maps/retired.js';
 import { SIM_WINDOW, claimWindowName } from './share/windows.js';
-import { logWarn, watchPageErrors } from './share/crashrecord.js';
+import { logError, logWarn, watchPageErrors } from './share/crashrecord.js';
 import { moveIn } from './share/move.js';
 import { openSave } from './share/save.js';
 
@@ -183,5 +183,5 @@ async function launch() {
 launch().catch((err) => {
   loading.fail(err.message ?? String(err));
   /* Also on the console, where checks and bug reports look for it. */
-  console.error(err);
+  logError('ui', err);
 });

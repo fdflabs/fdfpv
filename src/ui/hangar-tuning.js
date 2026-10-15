@@ -59,6 +59,7 @@ import { currentLocale, str } from '../strings/index.js';
 import { el } from './dom.js';
 import { flownTiers, tierBlock, tierThrowsDeg } from '../../configs/surfaces.js';
 import { lockOf } from '../game/progress.js';
+import { logError } from '../share/crashrecord.js';
 
 const SECTIONS = ['balance', 'rates', 'stand'];
 const FOCUS = { balance: 'fuselage', rates: 'trim', stand: 'nose' };
@@ -666,7 +667,7 @@ function startStand(h, go) {
       h.changed(T.runDown ? 'stand-measure' : 'stand-run', 'select');
     })
     .catch((e) => {
-      console.error('test stand failed', e);
+      logError('physics', 'test stand failed', e);
     });
 }
 

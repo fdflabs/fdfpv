@@ -67,6 +67,7 @@ import {
 } from './ui.js';
 import { WAYS } from './ways.js';
 import { btn, el } from './widgets.js';
+import { logWarn } from '../share/crashrecord.js';
 
 /*
  * How long the room must go untouched before a world preview may start
@@ -977,7 +978,7 @@ export const cardMethods = {
     };
     fill().catch((e) => {
       if (!isAbort(e)) {
-        console.warn(e);
+        logWarn('render', e);
       }
     });
   },

@@ -29,6 +29,13 @@ this lane ships one section of it and the check named there.
   src/game/progress.js). XP only, never tokens: built courses make the
   list unbounded, so bests stay out of the finite list tokens are paid
   from. Training and the war are left out (section 3.1 says why).
+- **Places and aircraft challenges** (PROGRESSION.md sections 5 and 6,
+  the lead's decision of 2026-10-15): a named place of a world found by
+  flying to it pays 40 XP once (`PLACE_XP`, the Flight Club first's
+  amount); each aircraft's three challenges pay 60 XP once each
+  (`AIRCRAFT_CHALLENGE_XP`, a lesson's). XP only, never tokens: neither
+  is on the finite list tokens are paid from, so `grantCeiling()` is
+  unchanged (4 820).
 - **Tokens** (es: *Fichas*), the hangar's soft currency, shown beside the
   level in the Hangar. Earned two ways only:
   1. **firsts**: the same finite list of firsts that pay XP (a challenge, a

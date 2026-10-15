@@ -84,6 +84,7 @@ import {
 import { filmFor } from '../share/war/films/index.js';
 import { INTRO_MS } from '../share/war/intro.js';
 import { str, currentLocale } from '../strings/index.js';
+import { logWarn } from '../share/crashrecord.js';
 
 export { INTRO_MS };
 
@@ -449,12 +450,12 @@ export function play(scene, camera, opts = {}) {
   const text = fetch(new URL('../../assets/audio/war/lines.json', import.meta.url).href).then((r) => r.json()).then((j) => {
     lines = Object.fromEntries(j.lines.map((l) => [l.id, l[lang] || l.en]));
   });
-  text.catch((e) => console.warn(`warintro: no subtitles: ${e.message}`));
+  text.catch((e) => logWarn('mission', `warintro: no subtitles: ${e.message}`));
   if (ctx) {
     for (const id of new Set(filmLines.map((l) => l.line))) {
       fetch(warVoiceUrl(lang, id, radio.ext)).then((r) => r.arrayBuffer()).then((b) => ctx.decodeAudioData(b)).then((buf) => {
         buffers.set(id, buf);
-      }).catch((e) => console.warn(`warintro: ${id} not decoded: ${e.message}`));
+      }).catch((e) => logWarn('audio', `warintro: ${id} not decoded: ${e.message}`));
     }
   }
 

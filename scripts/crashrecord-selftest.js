@@ -128,7 +128,7 @@ const clock = () => t;
   /* The log of warnings (COMPLETENESS 65). */
   const r = createCrashRecord(clock);
   check('no warnings, no log', r.log() === null);
-  check('the eight categories, closed', LOG_CATEGORIES.join() === 'input,network,physics,ai,mission,render,save,audio'
+  check('the eight categories and ui, closed', LOG_CATEGORIES.join() === 'input,network,physics,ai,mission,render,save,audio,ui'
     && Object.isFrozen(LOG_CATEGORIES));
   let threw = false;
   try {
@@ -153,7 +153,7 @@ const clock = () => t;
   })());
   const long = 'y'.repeat(5000);
   const w = createCrashRecord(clock);
-  for (let i = 0; i < LOG_MAX; i += 1) w.noteLog(LOG_CATEGORIES[i % 8], `${long.slice(0, 150)}#${i}`);
+  for (let i = 0; i < LOG_MAX; i += 1) w.noteLog(LOG_CATEGORIES[i % LOG_CATEGORIES.length], `${long.slice(0, 150)}#${i}`);
   const worst = w.log();
   const chars = JSON.stringify(worst).length;
   check(`a worst case log is ${chars} chars, inside its ${LOG_REPORT_CHARS}`, chars <= LOG_REPORT_CHARS, String(chars));

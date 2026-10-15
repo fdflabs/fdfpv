@@ -25,6 +25,7 @@
 
 import { fetchWorldBytes } from './interior/world.js';
 import { makeOpsWorld } from './interior/ops.js';
+import { logError } from './crashrecord.js';
 
 /* Each ops map's maker, by map id. */
 const MAKERS = Object.freeze({ interior: async () => makeOpsWorld(await fetchWorldBytes()) });
@@ -56,7 +57,7 @@ export function opsWorldOf(map) {
   }, (e) => {
     entry.error = e;
     entry.pending = false;
-    console.error(`ops: the ${map} world could not be built`, e);
+    logError('mission', `ops: the ${map} world could not be built`, e);
   });
   return null;
 }

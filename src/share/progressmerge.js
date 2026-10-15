@@ -26,7 +26,8 @@
  * THE RULES, by section kind:
  *
  *   progress   XP is the higher of the two; courses flown, challenges
- *              done, firsts paid and the rest are flags, and a flag set on
+ *              done, firsts paid, places found, aircraft challenges done
+ *              and the rest are flags, and a flag set on
  *              either side is set; Unlock all is on if either turned it
  *              on; lessons passed and certifications are the union at
  *              the earlier time; medals per course the better of the two;
@@ -150,7 +151,7 @@ export const SYNCED_SECTIONS = {
   records: 'best',
 };
 
-const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual', 'firsts', 'played', 'lessonsFlown'];
+const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual', 'firsts', 'played', 'lessonsFlown', 'places', 'aircraftChallenges'];
 
 function isRecord(o) {
   return Boolean(o) && typeof o === 'object' && !Array.isArray(o);

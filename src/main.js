@@ -351,7 +351,7 @@ import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
 import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
-import { crashRecord } from './share/crashrecord.js';
+import { crashRecord, logError, logWarn } from './share/crashrecord.js';
 import { reportPageErrors } from './share/clientreport.js';
 import { devHooks } from './share/devhooks.js';
 import { stateHash } from './replay/recorder.js';
@@ -1507,7 +1507,7 @@ export async function boot({
     if (activeKey && opsFlownKey && activeKey !== opsFlownKey && opsBegunFor === match && swapLive()) {
       if (!opsHoldBusy) {
         opsHoldSwitch(v, opsFlownKey, activeKey).catch((e) => {
-          console.error('hold switch failed', e);
+          logError('mission', 'hold switch failed', e);
           throw e;
         });
       }
@@ -2705,7 +2705,7 @@ export async function boot({
     } catch (err) {
       /* No IndexedDB, or a picture that will not decode: the wall stays
        * bare, and the console says why. */
-      console.warn('hangar photo wall:', err);
+      logWarn('save', 'hangar photo wall:', err);
       if (walkRoom.view === view) {
         view.setPhotos([]);
       }
@@ -3200,7 +3200,7 @@ export async function boot({
     if (firstWorld === FLOOR_WORLD) {
       throw e;
     }
-    console.error(e);
+    logError('render', e);
     /* A title world that fails is dropped and the seat left alone, since
      * the seat is not what failed (syncWorld builds it later, with its own
      * fallback). A seat that fails moves to the floor. */
@@ -5696,7 +5696,7 @@ export async function boot({
     }).catch((e) => {
       /* No words, no subtitles: the voice still plays. Loud in the
        * console, and tried again with the next line. */
-      console.warn(`war: no subtitles: ${e.message}`);
+      logWarn('mission', `war: no subtitles: ${e.message}`);
       warLineWords = null;
     });
   }
@@ -9950,7 +9950,7 @@ export async function boot({
           syncGhostRow();
         })
         .catch((e) => {
-          console.warn('AI opponent: the plant could not be seated', e);
+          logWarn('ai', 'AI opponent: the plant could not be seated', e);
           if (aiSeat === seat) {
             aiSeat = null;
           }
@@ -10970,6 +10970,9 @@ export async function boot({
   /* The seated world's note, held for the next flight. See showCourseNotes. */
   let heldNotes = null;
   let padPickReturn = 'title';
+  /* The flying device went while the run was off screen (a replay), and
+   * has not come back: the run's return answers it as a loss in flight. */
+  let padGone = false;
   /* The wizard hands the pilot back to the screen it was opened from:
    * Settings, the Controller screen, or the title (the Hangar's card and
    * the new pilot's controller question both open it from there). */
@@ -13873,7 +13876,7 @@ export async function boot({
     plantFaults += 1;
     /* Plant frame position, velocity, attitude and rates as they came back. */
     const got = Array.from(bad.subarray(1, 14)).join(' ');
-    console.error(`plant fault ${plantFaults} after t ${sound[0]} s, wrecked where it last was sound: ${got}`);
+    logError('physics', `plant fault ${plantFaults} after t ${sound[0]} s, wrecked where it last was sound: ${got}`);
     resetCraft(null);
     holdPlantAt([sound[1], sound[2], sound[3], sound[7], sound[8], sound[9], sound[10]], 'plantFault');
     beginClipCrash('plant', nowWall);
@@ -14060,7 +14063,7 @@ export async function boot({
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
       sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null, airUp: weather ? airOut.up : 0,
-      bank: bankOf(stateCurr), slipG: lateralG(statePrev, stateCurr),
+      bank: bankOf(stateCurr), slipG: lateralG(statePrev, stateCurr), world: worldId(),
     });
   }
   /* The craft's speed through the air, m/s: the plant's world velocity
@@ -14766,7 +14769,7 @@ export async function boot({
       /* The old world is gone already, so it is built again, and the
        * settings put back to it, rather than leaving no world at all. The
        * title's own world is not the pilot's seat and never written there. */
-      console.error(e);
+      logError('render', e);
       const roomText = roomWorldFailed(wantId);
       if (!titleWorld) {
         ui.settings.map = before.id;
@@ -14779,7 +14782,7 @@ export async function boot({
         adoptLoadedView(keepPlace, stayMode, stayScreen);
         notice = { text: roomText ?? str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + (roomText ? 8000 : 4200) };
       } catch (e2) {
-        console.error(e2);
+        logError('render', e2);
         loading.fail(str('ui.could_not_be_loaded', { name: entry.name, v2: e.message ?? e }));
       }
     } finally {
@@ -15071,7 +15074,7 @@ export async function boot({
     if (s.tune !== menuTune) {
       menuTune = s.tune;
       configLoadWait = swapTune(s.tune).catch((e) => {
-        console.error(e);
+        logError('physics', e);
       });
     }
     applyRatesSettings(s);
@@ -15335,7 +15338,7 @@ export async function boot({
       if (isLiveConfigLoad(gen)) {
         ui.settings.tune = configId;
         flashNotice(str('main.could_not_be_loaded', { name: entry.name }), 3200);
-        console.error(e);
+        logError('physics', e);
       }
       return null;
     }
@@ -15527,7 +15530,7 @@ export async function boot({
     leaveFlightForResults();
     const summary = score.summary();
     const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
-    ui.showFreestyleResults(summary, fromFree({
+    ui.showFreestyleResults(summary, withBests(fromFree({
       aircraft: runAirframe,
       fixedWing,
       summary,
@@ -15539,7 +15542,7 @@ export async function boot({
        * one still in the air or in pieces when the horn went. */
       landed: fixedWing ? landed && !crashed && !wrecked : null,
       condition: conditionOf(crashFlags, fixedWing),
-    }));
+    }), ui.progress.runBests()));
   }
 
   /* Puts the flight down. A craft left parked upside down (waiting for the
@@ -16057,6 +16060,12 @@ export async function boot({
       input.requestPadPick(reason);
       return;
     }
+    /* A replay keeps the screen, which still reads 'flight': a hotplug's
+     * picker waits for it to close, then opens over the paused run. */
+    if (mode === 'replay' && reason !== 'menu') {
+      input.requestPadPick(reason);
+      return;
+    }
     if (ui.screen === 'padpick') {
       return;
     }
@@ -16277,7 +16286,7 @@ export async function boot({
    * and the recorder starts on the next. */
   function keepControlRec() {
     keepLast(controlRec, { map: ui.settings.map, airframe: ui.settings.airframe })
-      .catch((e) => console.warn('control recorder: last flight not kept', e));
+      .catch((e) => logWarn('save', 'control recorder: last flight not kept', e));
     if (controlRec.on) {
       controlRec.clear();
     }
@@ -16634,7 +16643,7 @@ export async function boot({
       .catch((e) => {
         /* Loud, once, and not retried every frame after: a builder that
          * failed to load is a missing B key, not a broken flight. */
-        console.error('build mode failed to load', e);
+        logError('ui', 'build mode failed to load', e);
       });
   }
 
@@ -18314,7 +18323,7 @@ export async function boot({
         /* The bug report is the one path that carries a fault off this
          * machine, so the first one is kept for it. */
         window.__frameFault = { message, stack: e && e.stack ? String(e.stack) : '', atMs: Math.round(performance.now()) };
-        console.error('frame fault', e);
+        logError('render', 'frame fault', e);
         try {
           ui.setBanner(str('main.the_simulator_hit_a_fault_and', { message }), true);
         } catch (inner) {
@@ -20408,18 +20417,7 @@ export async function boot({
     /* Read once: guidedPrompt retires the guided flag as a side effect. */
     const guidedText = (ui.guided && !crashflipOn && !turtleRecover && lastUpz >= 0) ? guidedPrompt(race) : '';
     ui.setPadInfo(input.padSummary());
-    /* The flying device went (input.noteDeviceLoss). Solo pauses; a room
-     * cannot stop its world, so it flies on centred sticks and a held
-     * throttle and says so. A picker queued with it opens after this. */
-    if (input.takeDeviceLoss() && mode === 'flight' && ui.screen === 'flight') {
-      if (inRoom()) {
-        flashNotice(str('input.device_lost_room'), 6000);
-      } else {
-        ui.act('pause');
-        ui.show('paused');
-        flashNotice(str('input.device_lost_solo'), 6000);
-      }
-    }
+    padLossFrame();
     const queuedPick = input.takePadPickQueue();
     if (queuedPick) {
       openPadPick(queuedPick);
@@ -20452,6 +20450,43 @@ export async function boot({
     if (ui.screen === 'rates') {
       const ch = input.channels;
       ui.paintRates({ roll: ch.roll, pitch: ch.pitch, yaw: ch.yaw });
+    }
+  }
+
+  /*
+   * The flying device went (input.noteDeviceLoss) or came back. In flight,
+   * solo pauses; a room cannot stop its world, so it flies on centred
+   * sticks and a held throttle and says so. A loss in a replay waits for
+   * the run to come back on screen and is answered then, unless a device
+   * flies again first; anywhere else (a menu, the pause) it is said, and
+   * the keys fly when the pilot does. A device flying again says which,
+   * and whether its own calibration came with it (input.followDevice). A
+   * picker queued with either opens after this.
+   */
+  function padLossFrame() {
+    const lost = input.takeDeviceLoss();
+    const back = input.takeDeviceBack();
+    if (lost) {
+      padGone = mode === 'flight' || mode === 'replay';
+    }
+    if (back) {
+      padGone = false;
+      flashNotice(str(back.calibrated ? 'input.device_back_calibrated' : 'input.device_back', { name: back.name }), 4000);
+    }
+    if (mode !== 'flight' && mode !== 'replay') {
+      padGone = false;
+    }
+    if (padGone && mode === 'flight' && ui.screen === 'flight') {
+      padGone = false;
+      if (inRoom()) {
+        flashNotice(str('input.device_lost_room'), 6000);
+      } else {
+        ui.act('pause');
+        ui.show('paused');
+        flashNotice(str('input.device_lost_solo'), 6000);
+      }
+    } else if (lost) {
+      flashNotice(str('input.device_lost_menu'), 6000);
     }
   }
 

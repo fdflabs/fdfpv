@@ -24,6 +24,9 @@ Verdicts:
 - **N/A**: not applicable, or decided otherwise; the decision is cited
   (CLAUDE.md, docs/PILLARS.md, PLAN.md section 6, or the architecture
   that makes the question moot).
+- **DECIDED**: the item asked for a product decision, not a build; the
+  decision is logged with its date, who made it, and the evidence from
+  the tree it rests on.
 
 Each PARTIAL and MISSING item ends with **Done**: what done means here,
 the check that would prove it, its size (S a day or less, M a few days, L
@@ -34,8 +37,8 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-15, the first verdict
-in each item's heading): 35 EXISTS, 28 BUILT (since built by a phase), 16
-PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
+in each item's heading): 35 EXISTS, 32 BUILT (since built by a phase), 12
+PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
 the owner since): no jamming, signal loss or radio breakup (rule 1);
@@ -371,16 +374,32 @@ item 18. Checks: `cloud:selftest`, `rooms:selftest` (CI); `rooms:session`
 
 ## 4. Controllers and input (items 15 to 20)
 
-**15. Controller hot plugging. PARTIAL.** The roster is polled every
-input poll rather than trusted to `gamepadconnected` (input.js 1504 to
-1534): a single new pad is taken, two or more open the picker (`hotplug`),
-the chosen pad reappearing on another port is found by its id
-(`matchPad`, input.js 1452), and Choose joystick switches device without a
-restart (main.js 12585). Missing: no check exercises any of it, and losing
-the only pad is item 18. **Done:** `input:selftest` (CI) drives a fake
-roster through connect after launch, disconnect, reconnect on another
-index and a switch, asserting the chosen device and the queued picker.
-Size S. Phase 20.
+**15. Controller hot plugging. BUILT (w43-hotplug).** The roster is
+polled every input poll rather than trusted to `gamepadconnected`
+(`PadRoster.track`, src/input/padpick.js): a single new pad is taken, a
+new pad beside another queues the picker (`hotplug`), the chosen pad
+reappearing on any port is found by its id (`match`) and is its return,
+not a question, and Choose joystick switches device without a restart.
+Losing the flying device is item 18; its return is reported once
+(`takeDeviceBack`, src/input/input.js) with its name and whether its own
+calibration flies (each device keeps its map, dead zone and expo under its
+id, `followDevice`; pad buttons are one binding for every standard pad, so
+nothing per device to restore there). The shell (main.js `padLossFrame`)
+says each in en and es: lost in flight, item 18's pause or room hold; lost
+on a menu or the pause menu, the keys fly until it is back; lost in a
+replay, the replay plays on and the loss is answered as one in flight when
+the run comes back on screen, unless a device flies first; a hotplug
+picker waits for the replay to close. The Controller screen is drawn again
+when the device changes under it (src/ui/controller.js `controllerKey`).
+Written up in docs/KEYBINDS.md. Checks: `input:selftest` (CI) drives a
+fake roster through a radio plugged in after launch, pulled, back on
+another port with its calibration and dead zone, another radio taken and
+flying its own map, the first back beside it (picker queued) and picked,
+a blip between two frames and the keyboard chosen meanwhile;
+`input:trace` (CI) pins the picker frame by frame; `lint:input` (local)
+pulls and replugs the pad in flight, on the pause menu and in a replay;
+`controller:check` (local) with the Controller screen open. The room
+branch is checked in Node only (it needs a room server).
 
 **16. Controller identification. BUILT (FOUNDATIONS #9).** The device
 is parsed from the browser's id in both browser forms (`parsePadId`,
@@ -989,11 +1008,41 @@ signed result. Not before an economy with a price exists. Size M. Phase 31.
 else, by design (src/share/stats.js 11 to 20: no address, no user agent,
 no pilot, no timestamp sent). No `mode_selected`, `mission_started`,
 `mission_abandoned`, `tutorial_completed`. **Done:** an owner decision
-(section 19). If yes: the same three event rule kept, with the session
+(section 21). If yes: the same three event rule kept, with the session
 event carrying the activity and the flush event counting missions
 started, completed and abandoned as day totals, no new identifiers.
 Check: `stats` keeps its refusal list; a Node selftest asserts the new
 fields are counts. Size S. Phase 23, if decided.
+
+Checked 2026-10-14 (w43-telemetry), nothing built: privacy.html's Site
+statistics names what the board counts (pilots, sessions, laps, flight
+time, crashes; country, aircraft, input, map), and neither the activity
+nor a mission count is in it, so under its own rule (change the page in
+the same pull request as what is kept) nothing new may leave before the
+owner's yes. Nothing is built ahead of it either: a fold with no sender
+is a switch nobody sets. The yes is one change in two repositories, all
+three parts in the same release:
+
+- here, src/share/stats.js: the session event gains `activity`, the
+  mode registry's id (src/share/modes.js, a fixed list); the flush event
+  gains `started`, `finished` and `abandoned`, the missions since the
+  previous flush, folded from the gameplay log's `mission_start` and
+  `mission_end` (src/game/events.js; a start with no end when the flight
+  closes is abandoned), capped in `PER_FLUSH` like laps. No mission id,
+  no result, no stars, no time. `stats:selftest` asserts the four new
+  fields are an id from the registry and three integers, and its
+  refusal list stands as it is.
+- the board's repository: public/stats.js kept in step, and its event
+  validator taking the four fields and counting them per day.
+- privacy.html, both languages, Site statistics' first sentence:
+  "The board counts pilots, sessions, laps, flight time, crashes and
+  missions started, finished and given up as totals per day, with the
+  country as two letters and the aircraft, input, map and activity as
+  one of a fixed list." and "El tablero cuenta pilotos, sesiones,
+  vueltas, tiempo de vuelo, choques y misiones empezadas, terminadas y
+  abandonadas como totales por día, con el país en dos letras y la
+  aeronave, el control, el mapa y la actividad de una lista fija."
+  with its Last changed date.
 
 **64. Crash reporting. BUILT (phase 23); sending unasked is the owner's
 decision.** Built (2026-10-13, w38-save-events): the bug report carries
@@ -1006,16 +1055,20 @@ sent only inside a bug report the pilot files with F8 (src/share/bugs.js,
 `submitBug`, ui.js 5807), with up to four screenshots. Nothing is sent on
 its own, and the report carries no build version. **Done:** the bug
 report carries the build and the last 50 recorded errors; whether errors
-are also sent unasked is an owner decision (section 19). Check: phase
+are also sent unasked is an owner decision (section 21). Check: phase
 23's `bugs:selftest`. Size S. Phase 23.
 
-**65. Structured logs. PARTIAL (phase 23).** Built (2026-10-13,
-w38-save-events): one ring of `{ atMs, cat, msg, count }` in
-src/share/crashrecord.js, 50 lines, the checklist's eight categories
-(`LOG_CATEGORIES`), written by `logWarn` and `logError` and read by the
-bug report; a line repeated counts up instead of filling the ring.
-Check: `crashrecord:selftest` (CI). Missing: 13 sites write it, and 34
-`console.warn` and `console.error` calls elsewhere in src do not. What
+**65. Structured logs. BUILT (phase 23).** Built (2026-10-13,
+w38-save-events; every site 2026-10-14, w43-telemetry): one ring of
+`{ atMs, cat, msg, count }` in src/share/crashrecord.js, 50 lines, the
+checklist's eight categories and `ui` for the shell's own screens and
+loads (`LOG_CATEGORIES`), written by `logWarn` and `logError` and read by
+the bug report; a line repeated counts up instead of filling the ring.
+Every warning and error the game writes goes through them: the 34 bare
+`console.warn` and `console.error` calls left in src were moved onto
+them, the console line unchanged, and `lint:console` (CI,
+scripts/console-lint.js) fails on a new one anywhere in src outside
+crashrecord.js. Checks: `crashrecord:selftest`, `lint:console` (CI). What
 follows is the gap as first written. No log module: 6 `console.warn`, 24
 `console.error`, no categories, no timestamps. **Done:** one ring buffer
 in crashrecord.js of `{ t, cat, msg }` with the checklist's categories
@@ -1111,12 +1164,49 @@ before" (src/share/account.js 2); a guest's progress lives in the browser;
 a guest's room name is three picked words. Checks: `rooms:accounts`,
 `test:tracks` (CI).
 
-**74. Local multiplayer decision. MISSING**, as a decision. Online rooms
-only: one pilot per page (input.js reads one pad), no split screen. LAN
-works by accident: the rooms server runs anywhere
-(edge/rooms/node.js) and `?rooms=` points a page at it (rooms.js 26), with
-no discovery. **Done:** an owner decision (section 19), written into
-PILLARS 5.
+**74. Local multiplayer decision. DECIDED (2026-10-14, the lead, round 7
+w43-content): no split screen; local play is two devices in one Friends
+room.** Written into docs/PILLARS.md section 5 with the how-to. The
+evidence, from the tree and one measurement:
+
+- *Two plants in one page already run.* The solo race's AI opponent is a
+  second dist/sim.wasm on its own plant beside the pilot's
+  (src/game/aiopponent.js header, `seatOpponent` from src/main.js
+  `pickOpponent`), and the launch stand is the precedent. So the plant is
+  not what stops split screen.
+- *Input is one pilot per page.* src/input/padpick.js picks one pad as the
+  pilot's (two or more plugged in open the picker, which keeps one); the
+  mouse is one pointer lock on one canvas (src/main.js
+  `requestPointerLock`); the keyboard is one. A second pilot on one page
+  needs a second input owner through every reader of the action map
+  (item 20), the HUD, the pause menus and the radio.
+- *A second camera costs a second frame.* Measured on GPU 1, 2026-10-14:
+  scripts/perf-play.js at High, `--mode=quality`, `swiss-low` (the 7 inch
+  with its IR inset), 15 s, against a scratch copy of it (not committed)
+  that draws the composer's frame a second time, as a second full view
+  would. One view: frame avg 12.4 ms (p95 15.7), GPU avg 8.85 ms (floor
+  6.78), 298 draw calls and 3.51 M triangles a frame. Drawn twice: frame
+  avg 25.2 ms (p95 30.3), GPU avg 18.4 ms (floor 13.0), 512 calls and
+  5.71 M triangles. 80 fps became 40; 592 of 596 frames missed 60 Hz.
+  A split screen draws each view at half the pixels, which saves fill but
+  not the draw calls and triangles, and the main view's contract is 300
+  calls and 2.5 M triangles at High (docs/BUDGETS.md, 2026-10-13): two
+  main views are about twice it. The IR inset is the scene drawn a
+  second time already, and it is held to 480 by 270 and 110 calls for
+  that reason.
+- *Two devices already work.* A Friends room seats up to eight by its
+  six letter code (`friends.create`, `friends.join`); the seat token is
+  per tab (src/share/rooms.js, sessionStorage), so each device is its
+  own pilot. LAN without the internet is possible in the tree and not
+  checked end to end: the rooms server runs on any machine
+  (edge/rooms/node.js) and `?rooms=http://host:port` points each page
+  at it (src/share/rooms.js `roomsOrigin`), with the game served from a
+  LAN machine too, since an https page may not open an http server's
+  socket. No discovery, by this decision.
+
+Revisit when a pilot asks for couch play and the budget has room for a
+second main view. Checks that hold the parts: `rooms:selftest` (CI),
+`rooms:twopage` (local), `perf --budgets` (local).
 
 **75. Spectator join. BUILT (phase 17).** Built (472c2316b, then
 2026-10-13 w38-watch, w38-watch-state, w38-watch-war): a watch seat in any room
@@ -1178,15 +1268,31 @@ Phase 27.
 
 ## 18. Structure and words (items 78 to 84)
 
-**78. Content ownership hierarchy. PARTIAL.** Distinct in code: the
-account (account.js; `accounts`, tracks-api/migrations/0002), the pilot
-(name and key, pilot.js, identity.js), the room (rooms.js, edge/rooms),
-the mission, the aircraft, the world, the build. Blurred: the party is
-the room (no separate party, item 77); "session" means three things
-(src/share/trackseat.js is the track seat, the account has session tokens,
-and the redesign's session is the room). **Done:** item 83's glossary
-fixes the words; session.js renamed to what it holds in a pure rename PR.
-Size S. Phase 24.
+**78. Content ownership hierarchy. BUILT (phase 24, then 2026-10-14
+w43-content).** The gap as first written is closed: the glossary fixes
+the words (item 83, docs/SPANISH-GLOSSARY.md "The game's nouns",
+`lint:nouns`) and session.js is src/share/trackseat.js, renamed in a pure
+rename (PLAN.md phase 24). The owners are distinct in code: the account
+(account.js; `accounts`, tracks-api/migrations/0002), the pilot (name and
+key, pilot.js, identity.js), the room (rooms.js, edge/rooms), which is
+also the party (item 77), the mission, the aircraft, the world, the
+build. Extended by the lead's round 7 brief, 2026-10-14, beyond the item
+as first written: one place says who owns each content kind,
+docs/CONTENT-OWNERS.md, the shipped kinds (airframes, worlds and their
+posters, tracks, missions, films, liveries, voice lines, music, strings,
+tunes) each under the one registry module that lists it, and the content
+a pilot makes (tracks, times, liveries, progress, builds, replays) under
+the pilot key, the account or the browser. `content:owners` (CI,
+scripts/content-owners.js) pairs every file in each of the 15 places with
+its owner's registry: an unregistered file is an orphan, a registered id
+with no file is missing, and the support modules beside content are named
+with a reason; 2238 files today, none orphaned (one reference file kept on
+purpose, configs/betaflight-default.diff, is named as support). It also
+fails when the doc loses a row or a check the doc cites stops running in
+CI, and twenty negative controls each fail. Not swept, on purpose:
+textures, fonts and art under assets/ and string keys nothing reads, both
+named at run time. Checks: `content:owners`, `lint:nouns`,
+`trackseat:selftest` (CI).
 
 **79. Stable IDs. EXISTS.** Every airframe, world, mission, challenge,
 mode and preset has an id apart from its shown name, and shown names are
@@ -1226,7 +1332,7 @@ picture field: the picker and the hangar draw the model. Checks:
 campaign.js reaches the ops registry), `airframes:check`,
 `aircraft:folder`, `war:stages` (CI).
 
-**81. Feature flags. PARTIAL, missions BUILT (phase 26).** No flags
+**81. Feature flags. BUILT (phase 26).** No flags
 system, decided by the author: one place to hide a row is enough. A war
 mission's gate is its file's `release` (available, development, soon;
 the owner's 2026-10-04 rule), an Interior mission's is its row's `release` in
@@ -1239,7 +1345,17 @@ be switched off (`?rooms=off`). **Built (w38-sessions):** a `hidden`
 field on the mode registry's rows (src/share/modes.js), false on every
 row today; a hidden row draws no card (src/ui/ways.js gateWays) and is
 never home's Continue, and `modes:selftest` (CI) hides the race in a
-registry of its own and sees Track Day's card go and no other.
+registry of its own and sees Track Day's card go and no other. Asked
+again on 2026-10-14 (w43-telemetry: one registry of the non-mission
+flags, read at boot, with `?dev` overrides) and not built, with the
+author's decision kept: the non-mission switches this item names each
+have one home and a check already, the `hidden` field on the mode
+registry (`modes:selftest`), an upgrade's `later` on its row (src/game/campaign.js
+UPGRADES) and the rooms server's `?rooms=off` (src/share/rooms.js), and
+no row is hidden today, so a second registry would be a second place to
+hide the same row with nothing to switch. A `?dev` override of `hidden`
+is worth its line the day a row ships hidden. Checks: `modes:selftest`,
+`campaign:selftest` (CI).
 
 **82. No silent placeholders. EXISTS.** What is not built says so and is
 disabled: "Coming soon" on an unbuilt mission (`campaign.not_built`,
@@ -1328,20 +1444,15 @@ Then phase 28 (dev tools), phase 30 (blocks, device table) and phase 31
 
 Only what is genuinely the owner's; each has a recommendation.
 
-1. **Local multiplayer (item 74).** Online rooms only, LAN through a
-   self hosted rooms server, or split screen and two pilots on one PC?
-   *Recommend:* online rooms, plus a documented LAN path (the rooms
-   server already runs on any machine). Split screen doubles the render
-   cost the budget (item 46) is spent on.
-2. **More analytics (item 63).** stats.js promises three anonymous
+1. **More analytics (item 63).** stats.js promises three anonymous
    events. Adding which activity and how many missions start, finish and
    are abandoned changes that promise. *Recommend:* yes, as day counts
    only, no new identifier, and privacy.html updated in the same PR.
-3. **Errors sent unasked (item 64).** Today an error leaves the browser
+2. **Errors sent unasked (item 64).** Today an error leaves the browser
    only inside a bug report the pilot files. *Recommend:* send the error
    message, file, line and build (no screen, no name) automatically,
    counted per day like stats; privacy.html updated.
-4. **Item 84**, held for discussion as the owner asked.
+3. **Item 84**, held for discussion as the owner asked.
 
 Decided by the author (cheap, reversible, each a line to change):
 controller loss pauses solo and centres the sticks in a room (item 18,
@@ -1349,4 +1460,6 @@ not Betaflight's failsafe, because of standing rule 1); no developer
 console, a documented hook index instead (35); no flags system, a
 `hidden` field (81); signed war results deferred until an economy has a
 price (62); Operations solo stays online (11); a private room may change
-activity, a public one may not (77).
+activity, a public one may not (77). Decided by the lead, 2026-10-14
+(round 7): no split screen, local play is two devices in one Friends
+room, LAN through a self hosted rooms server (74, with its measurement).

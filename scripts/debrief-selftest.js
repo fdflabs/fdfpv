@@ -224,6 +224,22 @@ const ok = { ok: true, why: null };
       && Boolean(was) && was[1] === beat.replace('41.00', '7').replace('42.00', '5'), JSON.stringify([score, was]));
   }
   await useLocale('en');
+
+  /* An aircraft challenge the run did (progress-ui.js runBests'
+   * challenge entries): its line on whichever debrief follows, after the
+   * bests, saying which one in the pilot's language. */
+  const did = [...bests, { key: 'challenge:cub1400:landings', airframe: 'cub1400', id: 'landings' }];
+  const withDid = withBests(race, did);
+  check('challenge: a race says it after its bests', withDid.records.map((r) => r.what).slice(0, 4).join() === 'debrief.best_lap,debrief.best_run,debrief.challenge_done,debrief.track_record');
+  const free = withBests(fromFree({ aircraft: 'cub1400', fixedWing: true, summary: { total: 0, tricks: 0, unique: 0, crashes: 0, durationMs: 1 }, flightMs: 1, totalS: 1, replay: ok }), did);
+  check('challenge: a free flight says it, and no race best', free.records[0].what === 'debrief.challenge_done' && !free.records.some((r) => r.kind === 'lap'));
+  check('challenge: an entry without its aircraft or id is no line', withBests(race, [{ key: 'challenge:cub1400:lap' }]) === race);
+  for (const [lang, label, value] of [['en', 'Challenge complete', '3 landings in one flight'], ['es', 'Desafío completado', '3 aterrizajes en un vuelo']]) {
+    await useLocale(lang);
+    const row = factLines(free).find((l) => l[0] === label);
+    check(`challenge: the row in ${lang}, a gain`, Boolean(row) && row[1] === value && row[2] === 'gain', JSON.stringify(row));
+  }
+  await useLocale('en');
 }
 
 /* The replay row and the fallback next list. */

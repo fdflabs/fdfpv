@@ -14,7 +14,9 @@
  * over navigator.getGamepads before the shell starts, yaw on axis 4 and a
  * still slider on axis 3: the radio AETR gets wrong, because one it gets
  * right exercises none of this. The second boots as a touch device. The
- * third boots with an Xbox pad reporting the standard layout. The fourth
+ * third boots with an Xbox pad reporting the standard layout, and pulls
+ * it and plugs it back in mid flight, on the pause menu and in a replay
+ * (COMPLETENESS 15 and 18). The fourth
  * boots with two EdgeTX radios and the one stick map an older build saved,
  * and reloads, to see each radio keep its own calibration.
  *
@@ -1041,6 +1043,68 @@ async function padLoss(page, ev) {
   check('the pause menu is up and the run is paused', paused && JSON.parse(st).screen === 'paused', st);
   await page.evaluate('window.__pad.connected = true; window.__pad.timestamp += 1; true');
   check('plugged back in, it is the flying device again', await came(page, '!!window.__input.firstGamepad()', 5000));
+  await padHotplug(page, ev);
+}
+
+/* What the shell says, and the screen and mode it is on. */
+const where = (page) => page.evaluate("JSON.stringify({ screen: window.__ui.screen, mode: window.__craftState().mode, banner: window.__ui.bannerText, source: window.__input.stats().source })").then(JSON.parse);
+
+/* The browser's own pair of events comes with each change, as Chrome sends
+ * them; the shell polls the roster and must not need them. */
+const unplug = (page) => page.evaluate("window.__pad.connected = false; window.__pad.timestamp += 1; window.dispatchEvent(new Event('gamepaddisconnected')); true");
+const replug = (page) => page.evaluate("window.__pad.connected = true; window.__pad.timestamp += 1; window.dispatchEvent(new Event('gamepadconnected')); true");
+
+/* COMPLETENESS 15: the pad pulled and plugged back in on the pause menu
+ * and in a replay; each says so (en here; es in strings:selftest), the
+ * keyboard flies meanwhile, and a replay keeps playing, its loss answered
+ * as a pause once the run is back on screen. */
+async function padHotplug(page, ev) {
+  heading('hot plugging on the pause menu and in a replay');
+  const BACK = /^Flying on Xbox Wireless Controller/;
+  const LOST_MENU = 'The controller is gone. The keys fly until it is back.';
+  const LOST_SOLO = 'The controller is gone. Paused: plug it back in, or choose another.';
+  const back = await came(page, `new RegExp(${show(BACK.source)}).test(window.__ui.bannerText)`, 5000);
+  check('back in after the loss in flight: the notice names it, still paused', back && (await where(page)).screen === 'paused', show(await where(page)));
+
+  await unplug(page);
+  const menu = await came(page, `window.__ui.bannerText === ${show(LOST_MENU)}`, 5000);
+  const m = await where(page);
+  check('pulled on the pause menu: the keys fly until it is back, the menu stays', menu && m.screen === 'paused' && m.mode === 'paused' && m.source === 'the keyboard', show(m));
+  await replug(page);
+  check('plugged back in on the menu: the notice names it', await came(page, `new RegExp(${show(BACK.source)}).test(window.__ui.bannerText)`, 5000), (await where(page)).banner);
+
+  await ev("ui.act('resume'); return true;");
+  await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 10000);
+  await page.sleep(1500);
+  await page.evaluate('window.__crashCam.open(); true');
+  check('a replay opens', await came(page, "window.__crashCam.live() && window.__craftState().mode === 'replay'", 10000), show(await where(page)));
+  await unplug(page);
+  const inReplay = await came(page, `window.__ui.bannerText === ${show(LOST_MENU)}`, 5000);
+  await page.sleep(500);
+  const r = await where(page);
+  check('pulled in the replay: the replay plays on, and says the keys fly', inReplay && r.mode === 'replay' && await page.evaluate('window.__crashCam.live()'), show(r));
+  await page.evaluate('window.__crashCam.h().api.close(); true');
+  const paused = await came(page, "window.__ui.screen === 'paused'", 5000);
+  const p = await where(page);
+  check('the replay closed with the pad still gone: the run pauses and says why', paused && p.mode === 'paused' && p.banner === LOST_SOLO, show(p));
+  await replug(page);
+  check('plugged back in: it flies again, and the notice names it',
+    await came(page, `!!window.__input.firstGamepad() && new RegExp(${show(BACK.source)}).test(window.__ui.bannerText)`, 5000), (await where(page)).banner);
+
+  await ev("ui.act('resume'); return true;");
+  await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 10000);
+  await page.sleep(500);
+  await page.evaluate('window.__crashCam.open(); true');
+  await came(page, "window.__craftState().mode === 'replay'", 10000);
+  await unplug(page);
+  await page.sleep(400);
+  await replug(page);
+  await page.sleep(400);
+  await page.evaluate('window.__crashCam.h().api.close(); true');
+  await came(page, "window.__craftState().mode !== 'replay'", 5000);
+  await page.sleep(500);
+  const f = await where(page);
+  check('pulled and plugged back in during a replay: closing it flies on, no pause', f.screen === 'flight' && f.mode === 'flight', show(f));
 }
 
 /* Phase 20: devices are read in src/input only. */
