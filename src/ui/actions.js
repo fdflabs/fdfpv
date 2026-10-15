@@ -40,11 +40,11 @@ import { RATE_DEFAULTS, normaliseRates } from '../../configs/rates.js';
 import { deleteRatePreset, presetMatching, saveRatePreset } from '../../configs/ratepresets.js';
 import { needSignIn } from '../share/account.js';
 import { resetProgress, resetSettings } from '../share/save.js';
-import { ACT1, released } from '../game/campaign.js';
+import { released } from '../game/campaign.js';
+import { MODES } from '../share/modes.js';
 import { freshProgress } from '../game/progress.js';
 import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTrackDocument } from '../share/board.js';
 import { tracksConfigured } from '../share/cloud.js';
-import { MODES, modeById } from '../share/modes.js';
 import { hasFlyableTrack } from '../share/listing.js';
 import { clearShareImport, readShareImport } from '../share/trackseat.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
@@ -52,6 +52,7 @@ import { str } from '../strings/index.js';
 import { duplicateTrack, normalize } from '../trackbuilder/model.js';
 import { deleteTrack, loadMapTrack, saveTrack } from '../trackbuilder/storage.js';
 import { customisable } from './builds.js';
+import { CAMPAIGN_MISSIONS, wayOfActivity } from './continuity.js';
 import { downloadCli } from './fc.js';
 import { fitsAsSegments } from './rows.js';
 import { pickStickRef } from './stickref.js';
@@ -136,7 +137,8 @@ function answerGate(ui, way, picked, keepWorld) {
   /* Every session's card passes here (src/main.js openSession acts it),
    * so this is the activity home's Continue reopens. A way the registry
    * has no card for (the rooms panel's friends, the war's own) leaves the
-   * last one standing. */
+   * last one standing. A campaign's Play records its own
+   * (src/ui/continuity.js). */
   const activity = MODES.find((m) => m.card.way === way.id);
   if (activity) ui.settings.lastActivity = activity.id;
   saveSettings(ui.settings);
@@ -557,6 +559,24 @@ const ACTIONS = {
     ui.show('paused');
     return FALL_THROUGH;
   },
+  /* However the pause menu opens (Escape, the tab hidden, the controller
+   * lost), a lesson in flight is held and says so (TRAINING.md 10). */
+  pause(ui) {
+    if (ui.progress) ui.progress.lessonPaused();
+    return FALL_THROUGH;
+  },
+  /* Continue on a campaign: its next mission's Play, the campaign's
+   * consent and room as that Play's, asked again now rather than kept
+   * from the render, so a result paid since is counted. */
+  'continue-mission'(ui) {
+    const last = ui.continueWay();
+    if (!last) return;
+    if (!last.mission) {
+      ui.pickForWay(last.way.action);
+      return;
+    }
+    ui.campaigns[ui.settings.lastActivity].playMission(last.mission.id);
+  },
 };
 for (const screen of SCREEN_ROWS) {
   ACTIONS[screen] = (ui) => openScreen(ui, screen);
@@ -773,6 +793,17 @@ const ROW_KINDS = [
   }],
 ];
 
+/* An activity's hub link as Continue: in its place, its key kept. With a
+ * campaign's next mission it presses that mission's Play
+ * (continue-mission) rather than opening the campaign's page, and names
+ * the mission in its title; the label stays Continue, no longer than any
+ * it replaces. */
+function continueLink(link, last) {
+  const cont = { ...link, label: str('hub.continue'), continue: true };
+  if (!last.mission) return cont;
+  return { ...cont, action: 'continue-mission', mission: last.mission.id, title: last.mission.name };
+}
+
 /* ---- the methods ---- */
 
 export const actionMethods = {
@@ -862,7 +893,7 @@ export const actionMethods = {
      * card's class (src/ui/cards.js gateLinks) and is the same thing at
      * home and in the hub. */
     const last = this.continueWay();
-    const linksOf = (hub) => own(hub).map((l) => (last && l.action === last.action ? { ...l, label: str('hub.continue'), continue: true } : l));
+    const linksOf = (hub) => own(hub).map((l) => (last && l.action === last.way.action ? continueLink(l, last) : l));
     return HUBS.map((hub) => ({
       label: str(hub.label),
       card: `hub-${hub.id}`,
@@ -876,15 +907,26 @@ export const actionMethods = {
     })).filter((card) => card.links.length > 0);
   },
 
-  /* The card of the activity whose session this pilot last opened, or
-   * null: none yet, an id this build does not know, a hidden one, or the war while no
-   * mission of its campaign is released (src/game/campaign.js), since its
-   * Play would open nothing a pilot may fly. */
+  /* What home's Continue holds, { way, mission }, or null: none yet, an
+   * id this build does not know, a hidden one, or a campaign with no
+   * mission this page may play, since its Play would open nothing a
+   * pilot may fly. `mission` is the campaign's next one
+   * (src/ui/continuity.js), null for any other activity or once every
+   * playable mission is won. A campaign's screen, which knows its release
+   * gate, its unlocks and the owner's, answers through this.campaigns
+   * (main.js installs them); without them, a campaign counts as playable
+   * only while one of its missions is released. */
   continueWay() {
-    const activity = modeById(this.settings.lastActivity);
-    if (!activity || activity.hidden) return null;
-    if (activity.id === 'war' && !ACT1.some((m) => released(m.id))) return null;
-    return WAYS.find((w) => w.id === activity.card.way) ?? null;
+    const activity = this.settings.lastActivity;
+    const way = WAYS.find((w) => w.id === wayOfActivity(activity));
+    if (!way) return null;
+    const campaign = this.campaigns ? this.campaigns[activity] : null;
+    if (campaign) {
+      return campaign.playable().length ? { way, mission: campaign.nextMission() } : null;
+    }
+    const missions = CAMPAIGN_MISSIONS[activity];
+    if (missions && !missions.some((m) => released(m.id))) return null;
+    return { way, mission: null };
   },
 
   /* The Hangar's cards: the aircraft, its customising when it has any,

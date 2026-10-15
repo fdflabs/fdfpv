@@ -48,6 +48,7 @@ import {
   MAX_STARS, applyResult, cardLabel, createCampaignStore, paidWar, payResult, released, starsOf,
 } from '../game/campaign.js';
 import { str } from '../strings/index.js';
+import { nextMission } from './continuity.js';
 
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -124,8 +125,14 @@ export function createOpsCampaignScreen({
       api.open();
       return;
     }
+    /* Agreed: a session of this campaign, home's Continue holds it
+     * (src/ui/continuity.js), the campaign's id its activity's. */
+    ui.settings.lastActivity = campaign.id;
+    ui.persistSettings();
     play(m);
   }
+
+  const playable = () => missions.filter((m) => missionState(m, devMissions) === 'available').map((m) => m.id);
 
   function missionCard(m, i) {
     const card = el('div', 'campaign-mission');
@@ -207,6 +214,20 @@ export function createOpsCampaignScreen({
       store.save(view.uid ? payResult(cur(), view.uid, view.mission, res) : applyResult(cur(), view.mission, res));
       ui.progress.event('mission_end', { mission: view.mission, won: view.result.won === true, stars: Number.isFinite(view.result.stars) ? view.result.stars : 0, airframe: ui.progress.airframe });
       ui.progress.foldFlight();
+    },
+    playable,
+    /* Home's Continue (src/ui/continuity.js): the mission this pilot goes
+     * on with, { id, name }, or null; and its Play, consent first. */
+    nextMission() {
+      const ids = playable();
+      const m = nextMission(missions, cur(), (id) => ids.includes(id));
+      return m ? { id: m.id, name: str(k(`m.${m.key}`)) } : null;
+    },
+    playMission(id) {
+      const m = missions.find((x) => x.id === id);
+      if (m && playable().includes(id)) {
+        go(m);
+      }
     },
     /* The mission after `id` in the campaign and the word its card shows,
      * or null at the end. */

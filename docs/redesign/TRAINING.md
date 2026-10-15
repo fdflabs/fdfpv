@@ -296,3 +296,29 @@ inputs and the flight's event log, each with a near miss that fails.
   `fdfpv.lessonRestore`, so a reload keeps it too) and put back when
   the lesson is left: the next card pressed, or the next load of the
   page. A lesson flown after another keeps the first's starting point.
+
+## 10. Interruptions (COMPLETENESS item 55, 2026-10-14)
+
+What a lesson in flight does when something stops it, by cause. Each
+says so in a toast, in English and Spanish. A lesson is never taken
+back once passed, and the page lists every lesson with Fly whatever
+happened, so any lesson can be flown again from its first step.
+
+| Cause | The lesson | Why |
+| --- | --- | --- |
+| The pause menu, however it opened: Escape, the tab hidden, the flying controller lost in a solo flight (src/main.js pauses each of them) | Held. Resume carries on in the same step, its progress kept. | The judge counts on the sim clock (`simMs`), which stops while paused, so a hold or an airborne step neither gains nor loses time. |
+| The controller lost in a room | Flies on. | The room keeps flying on the keyboard's sticks and says so (input.js `noteDeviceLoss`); the lesson judges what the plant gets, as before. |
+| A crash | Starts again from step 1. | Section 9's rule: a crash ends the flight the steps were counting. |
+| A room joined that is not the lesson's own (an invite, a code, the rooms panel) | Left: ended, its settings put back, marked Interrupted on the page. | Another session: the lesson's aircraft, place and weather are not the room's. A lesson that flies in a room (Racing a pilot in Track Day's, the Defence lessons in the war's) keeps its own room, a reconnect's welcome included. |
+| The page reloaded, or the browser gone | Left the same way, said on the next load. | The flight the step was counting is gone with the page; its settings already go back on that load. |
+
+The lesson in flight is kept under `fdfpv.lessonInFlight` (its id and
+step) from its Fly until it is passed or left, so the next load knows it
+was interrupted. The mark lasts until a lesson is flown again.
+
+Checks: `training:selftest` (a pause held across a gap in the frames, a
+crash's restart counted once, which rooms a lesson keeps, the notices'
+words in both languages); `training:check` (local: the tab hidden in a
+lesson's flight pauses it and holds the lesson, Resume carries on; a
+reload mid lesson says it was interrupted and the page marks it; on the
+Defence page a room joined that is not the lesson's ends it).

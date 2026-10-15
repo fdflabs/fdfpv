@@ -774,6 +774,8 @@ export async function boot({
     }
   }
   restoreLessonSettings();
+  /* And the lesson that load's page was flying, said (TRAINING.md 10). */
+  ui.progress.lessonReloaded();
   /* Every model of a plane is built in the pilot's paint for it
    * (src/render/livery.js, configs/liveries.js), read from the settings as
    * they are when it is built. The boot craft, built above, is a quad. */
@@ -7021,6 +7023,8 @@ export async function boot({
     roomFailedWorld = null;
     roomSeenTarget = roomTargetKey(target);
     roomAsked = { map: null, track: null, at: 0 };
+    /* A lesson flown elsewhere is left for this session (TRAINING.md 10). */
+    ui.progress.roomJoined(modeOfWire(w.mode));
     if (!roomInPlace(target) && MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
       roomNote = str('friends.other_world', { world: mapById(target.world).name });
     }
@@ -8358,6 +8362,8 @@ export async function boot({
     },
   });
   ui.onOpsCampaignCard = () => opsCampaignOpen();
+  /* Home's Continue asks each campaign for its next mission (src/ui/actions.js continueWay). */
+  ui.campaigns = { war: campaign, [INTERIOR_CAMPAIGN.id]: interiorScreen };
   /*
    * LEARN TO FLY: a lesson seats its aircraft and its assist (the tune,
    * Stabilised or Acro) and goes in by the card it is flown from, Free

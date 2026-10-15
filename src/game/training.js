@@ -349,6 +349,16 @@ export function heldTrack(snapshot) {
   return v && !v.stale ? v.id : null;
 }
 
+/*
+ * Whether lesson `lesson` flies in a room of activity `mode` (a registry
+ * id, src/share/modes.js): its own room keeps it (TRAINING.md 10), any
+ * other ends it. Racing a pilot flies in Track Day's, the Defence lessons
+ * in the war's.
+ */
+export function lessonFliesIn(lesson, mode) {
+  return (lesson.room != null && lesson.room === mode) || (lesson.mission != null && mode === 'war');
+}
+
 export function lessonById(id) {
   return LESSONS.find((l) => l.id === id) ?? null;
 }
@@ -372,11 +382,14 @@ export class LessonWatch {
     }
     this.lesson = lesson;
     this.passed = false;
+    /* The crashes that restarted it, for the notice (progress-ui.js). */
+    this.crashes = 0;
     this.restart();
   }
 
   /* Back to the first step: a new lesson, or a crash. */
   restart() {
+    this.crashed = false;
     this.step = 0;
     this.airSince = null;
     this.flew = false;
@@ -438,9 +451,16 @@ export class LessonWatch {
       return true;
     }
     if (crashed) {
+      /* Counted once per crash, however many frames it is reported. */
+      const first = !this.crashed;
       this.restart();
+      this.crashed = true;
+      if (first) {
+        this.crashes += 1;
+      }
       return false;
     }
+    this.crashed = false;
     if (battery && battery !== 'ok') {
       this.lowBattery = true;
     }

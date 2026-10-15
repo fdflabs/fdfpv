@@ -50,6 +50,7 @@ import {
 } from '../game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../share/campaignwar.js';
 import { str } from '../strings/index.js';
+import { nextMission } from './continuity.js';
 import { el } from './dom.js';
 
 const POLL_MS = 250;
@@ -343,6 +344,22 @@ export function createCampaignScreen({
      * made by hand. */
     const code = await enterWarRoom(m.id);
     pending = code ? { mission: m.id, code } : null;
+    /* A room made for it is a session of the war's: home's Continue
+     * holds it (src/ui/continuity.js), which the Defend Itaipu way it
+     * goes in by does not record. */
+    if (code) {
+      ui.settings.lastActivity = 'war';
+      ui.persistSettings();
+    }
+  }
+
+  /* The missions this pilot may start, in order: released, open (the
+   * one before won, or the pilot is the owner) and inside the full
+   * game's gate (Make a room's Mission row, src/ui/roombrowser.js, and
+   * the lobby's). */
+  function playable() {
+    askDev();
+    return ACT1.filter((m, i) => released(m.id, devMissions) && reached(i) && gateOpen(i)).map((m) => m.id);
   }
 
   /* The mission Play chose for the room the pilot is in, or null. */
@@ -476,13 +493,19 @@ export function createCampaignScreen({
     selectedMission,
     follow,
     selectedNumber,
-    /* The missions this pilot may start, in order: released, open (the
-     * one before won, or the pilot is the owner) and inside the full
-     * game's gate (Make a room's Mission row, src/ui/roombrowser.js, and
-     * the lobby's). */
-    playable: () => {
-      askDev();
-      return ACT1.filter((m, i) => released(m.id, devMissions) && reached(i) && gateOpen(i)).map((m) => m.id);
+    playable,
+    /* Home's Continue (src/ui/continuity.js): the mission this pilot goes
+     * on with, { id, name }, or null; and its Play. */
+    nextMission: () => {
+      const ids = playable();
+      const m = nextMission(ACT1, cur(), (id) => ids.includes(id));
+      return m ? { id: m.id, name: str(`campaign.m.${m.key}`) } : null;
+    },
+    playMission: (id) => {
+      const i = ACT1.findIndex((m) => m.id === id);
+      if (i >= 0 && playable().includes(id)) {
+        play1(i);
+      }
     },
     /* For the checks. */
     observe,

@@ -37,7 +37,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-15, the first verdict
-in each item's heading): 35 EXISTS, 32 BUILT (since built by a phase), 12
+in each item's heading): 35 EXISTS, 34 BUILT (since built by a phase), 10
 PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -894,7 +894,35 @@ pause and results (ui.js 7358, 7457). Checks: `wreck:check`,
 
 ## 13. First minutes and returning (items 55 to 58)
 
-**55. Tutorial interruption. PARTIAL.** How to fly can be opened again
+**55. Tutorial interruption. BUILT (phase 8).** Built (2026-10-14,
+w43-return): TRAINING.md section 10 is the rule, by cause, each said in
+a toast in English and Spanish. The pause menu however it opens (Escape,
+the tab hidden, the flying controller lost in a solo flight) holds the
+lesson, and Resume carries on in the same step: the judge counts on the
+sim clock (src/game/training.js LessonWatch), stopped while paused, and
+src/ui/actions.js `pause` says it. A crash starts the steps again
+(section 9's rule), now said once per crash (LessonWatch `crashes`). A
+room joined that is not the lesson's own ends it (src/game/training.js
+`lessonFliesIn`, from src/main.js roomSessionWelcome into
+src/ui/progress-ui.js `roomJoined`); Racing a pilot and the Defence
+lessons keep their rooms. A reload or a closed browser: the lesson in
+flight is kept under `fdfpv.lessonInFlight`, so the next load says it
+was interrupted (`lessonReloaded`); its settings already go back on that
+load. A lesson left either way is marked Interrupted on the Learn to fly
+page, which lists every lesson with Fly for replay, from step 1. The
+lessons themselves (TRAINING.md phases 1 to 5, 26 of them) were built
+by the training lanes before this. Checks: `training:selftest` (CI: a
+pause across a gap in the frames held in its step, a near miss, Turns
+resumed on its second circle, a crash counted once, which rooms a lesson
+keeps, the notices in both languages) and `training:check` (local: the
+tab hidden in a lesson's flight, Resume, a crash's notice, a reload mid
+lesson and the Interrupted mark, a combat room joined over Turns).
+Decided against the first spec (w43-return, 2026-10-14): a retry is from
+step 1, as the lead's crash rule in TRAINING.md section 9 already has it
+(a step's progress belongs to the flight that made it), and lesson one
+is Sticks (`first_sticks`), with the first flight hint left as the hint
+it is. What follows is the gap as first
+written. How to fly can be opened again
 from the menus (ui.js 6497, 7420); the calibration wizard has Cancel and
 Skip (ui.js 4403); the first flight hint retires itself. But the first
 flight hint cannot be replayed, and there are no lessons yet. **Done:**
@@ -916,15 +944,34 @@ once, a radio straight to calibration (PLAN.md 6 item 19). **Done:**
 PLAN.md phase 7. Check: `flow:check` (local) adds the first run question.
 Size M. Phase 7.
 
-**57. Returning-player experience. PARTIAL (phase 27).** Built
+**57. Returning-player experience. BUILT (phase 27).** Built
 (2026-10-13, w38-continue): the last activity kept (settings
 `lastActivity`, synced), and Continue stands in that activity's link on
 its hub, one press into it through openSession with the remembered Who
 joins (src/ui/actions.js, src/ui/cards.js); home's order unchanged;
-hidden for an unknown id, a room game with no server and the war until a
-mission is released. Check: `modes:card` (local). Missing: Operations'
-next unplayed mission kept for Continue. What follows is the gap as
-first written. The last activity is not
+hidden for an unknown id, a room game with no server and a campaign with
+no mission this page may play. Check: `modes:card` (local). Built
+(2026-10-14, w43-return): the campaigns. A campaign's Play records it as
+the last activity (src/ui/campaign.js play1 the war, src/ui/opscampaign.js
+go The Interior, whose card has no registry row: src/ui/continuity.js
+widens `lastActivity` to it, and a build that does not know the id shows
+no Continue, so no migration). Continue on a campaign is its next
+mission's Play, the consent and room as that Play's (action
+`continue-mission`), the mission named in the link's title; the next
+mission is not stored but derived from the synced campaign progress (the
+first this page may play and the pilot has not won), so a reload, a sign
+in and another computer agree on it. With every playable mission won,
+Continue opens the campaign's page. Checks: `campaign:check` (local:
+after mission 1's win and a reload, Continue holds mission 2; another
+computer signed in as the owner gets it by the sync and one click asks
+the consent and makes mission 2's room; The Interior's Play makes it the
+last activity, Continue its mission 1, then mission 2 once 1 is won) and
+`actions:golden` (CI, `continue war|interior campaign:...` cases).
+Before 2026-10-14 the gap was wider than this item said: a campaign's
+Play went in by the Defend Itaipu way, which has no registry card, so the
+war was recorded only by a Who joins change in its lobby, and The
+Interior never. What follows is the gap as first written. The last
+activity is not
 remembered (`this.mode = linkedMode()` reads only the URL, ui.js 3432);
 nothing says "last flown" or "continue". The aircraft and worlds are
 remembered. **Done:** the last activity and, for Operations, the next

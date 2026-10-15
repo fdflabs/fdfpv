@@ -139116,7 +139116,195 @@
     "hangar-controller:controller",
     "hangar-howto:howto"
    ]
-  ]
+  ],
+  "continue war campaign:1 next:m1": [
+   [
+    "race-5inch:way-race-5inch",
+    "freestyle-wing1000:way-freestyle-wing1000",
+    "combat:way-combat",
+    "ace:way-ace",
+    "jam:way-jam",
+    "training:way-training"
+   ],
+   [
+    "campaign:continue-mission:First",
+    "interior:way-interior",
+    "ops-field:field-walk"
+   ],
+   [
+    "hangar-walk:hangar-walk",
+    "hangar-aircraft:hangar-aircraft",
+    "hangar-customise:customise",
+    "hangar-upgrades:campaign-shop",
+    "hangar-controller:controller",
+    "hangar-howto:howto"
+   ]
+  ],
+  "continue war campaign:1 next:m1 press": [
+   [
+    "playMission",
+    "m1"
+   ]
+  ],
+  "continue war campaign:1 next:none": [
+   [
+    "race-5inch:way-race-5inch",
+    "freestyle-wing1000:way-freestyle-wing1000",
+    "combat:way-combat",
+    "ace:way-ace",
+    "jam:way-jam",
+    "training:way-training"
+   ],
+   [
+    "campaign:way-campaign",
+    "interior:way-interior",
+    "ops-field:field-walk"
+   ],
+   [
+    "hangar-walk:hangar-walk",
+    "hangar-aircraft:hangar-aircraft",
+    "hangar-customise:customise",
+    "hangar-upgrades:campaign-shop",
+    "hangar-controller:controller",
+    "hangar-howto:howto"
+   ]
+  ],
+  "continue war campaign:1 next:none press": [
+   [
+    "pickForWay",
+    "way-campaign"
+   ]
+  ],
+  "continue war campaign:0 next:none": [
+   [
+    "race-5inch:way-race-5inch",
+    "freestyle-wing1000:way-freestyle-wing1000",
+    "combat:way-combat",
+    "ace:way-ace",
+    "jam:way-jam",
+    "training:way-training"
+   ],
+   [
+    "campaign:way-campaign",
+    "interior:way-interior",
+    "ops-field:field-walk"
+   ],
+   [
+    "hangar-walk:hangar-walk",
+    "hangar-aircraft:hangar-aircraft",
+    "hangar-customise:customise",
+    "hangar-upgrades:campaign-shop",
+    "hangar-controller:controller",
+    "hangar-howto:howto"
+   ]
+  ],
+  "continue war campaign:0 next:none press": [],
+  "continue interior campaign:1 next:o1": [
+   [
+    "race-5inch:way-race-5inch",
+    "freestyle-wing1000:way-freestyle-wing1000",
+    "combat:way-combat",
+    "ace:way-ace",
+    "jam:way-jam",
+    "training:way-training"
+   ],
+   [
+    "campaign:way-campaign",
+    "interior:continue-mission:Old",
+    "ops-field:field-walk"
+   ],
+   [
+    "hangar-walk:hangar-walk",
+    "hangar-aircraft:hangar-aircraft",
+    "hangar-customise:customise",
+    "hangar-upgrades:campaign-shop",
+    "hangar-controller:controller",
+    "hangar-howto:howto"
+   ]
+  ],
+  "continue interior campaign:1 next:o1 press": [
+   [
+    "playMission",
+    "o1"
+   ]
+  ],
+  "continue interior campaign:1 next:none": [
+   [
+    "race-5inch:way-race-5inch",
+    "freestyle-wing1000:way-freestyle-wing1000",
+    "combat:way-combat",
+    "ace:way-ace",
+    "jam:way-jam",
+    "training:way-training"
+   ],
+   [
+    "campaign:way-campaign",
+    "interior:way-interior",
+    "ops-field:field-walk"
+   ],
+   [
+    "hangar-walk:hangar-walk",
+    "hangar-aircraft:hangar-aircraft",
+    "hangar-customise:customise",
+    "hangar-upgrades:campaign-shop",
+    "hangar-controller:controller",
+    "hangar-howto:howto"
+   ]
+  ],
+  "continue interior campaign:1 next:none press": [
+   [
+    "pickForWay",
+    "way-interior"
+   ]
+  ],
+  "continue interior campaign:0 next:none": [
+   [
+    "race-5inch:way-race-5inch",
+    "freestyle-wing1000:way-freestyle-wing1000",
+    "combat:way-combat",
+    "ace:way-ace",
+    "jam:way-jam",
+    "training:way-training"
+   ],
+   [
+    "campaign:way-campaign",
+    "interior:way-interior",
+    "ops-field:field-walk"
+   ],
+   [
+    "hangar-walk:hangar-walk",
+    "hangar-aircraft:hangar-aircraft",
+    "hangar-customise:customise",
+    "hangar-upgrades:campaign-shop",
+    "hangar-controller:controller",
+    "hangar-howto:howto"
+   ]
+  ],
+  "continue interior campaign:0 next:none press": [],
+  "continue interior campaign:none next:none": [
+   [
+    "race-5inch:way-race-5inch",
+    "freestyle-wing1000:way-freestyle-wing1000",
+    "combat:way-combat",
+    "ace:way-ace",
+    "jam:way-jam",
+    "training:way-training"
+   ],
+   [
+    "campaign:way-campaign",
+    "interior:way-interior",
+    "ops-field:field-walk"
+   ],
+   [
+    "hangar-walk:hangar-walk",
+    "hangar-aircraft:hangar-aircraft",
+    "hangar-customise:customise",
+    "hangar-upgrades:campaign-shop",
+    "hangar-controller:controller",
+    "hangar-howto:howto"
+   ]
+  ],
+  "continue interior campaign:none next:none press": []
  },
  "helpers": {
   "title-race seatMatchesMode": {
