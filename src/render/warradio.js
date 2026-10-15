@@ -109,8 +109,10 @@ export const DUCK_RELEASE_MS = 500;
 /* The target kinds a hit line exists for (lines.json hit-*). */
 const HIT_LINES = { intake: 'hit-intake', penstock: 'hit-penstock', gate: 'hit-gate', 'yard-right': 'hit-yard' };
 /* Waves the radio does not call: a Jammer's jams a signal the war no
- * longer has (docs/WARFARE-PLAN.md 6.1), and no mission spawns one. */
-const QUIET_WAVES = new Set(['jammer']);
+ * longer has (docs/WARFARE-PLAN.md 6.1), and no mission spawns one; a
+ * carrier's birth is its mission's own story line (MISSIONS.md M5,
+ * itaipu-5-s3-carrier), so it has no wave line. */
+const QUIET_WAVES = new Set(['jammer', 'carrier']);
 
 /* An item's entry that is a line, not a pause (a number, seconds). */
 const isLine = (id) => typeof id === 'string';

@@ -29,6 +29,8 @@
  *   hunter  steered by the room (edge/rooms/war.js); its route gives only
  *           where it is born
  *   jammer  the route, then parks at its last point for good ('park')
+ *   carrier the route weaving slowly, then parks where the weave left it
+ *           for good ('park')
  *
  * and any of them but a hunter whose birth record carries `wire` (room
  * ms, edge/rooms/war.js from wires.js wireStrike) flies into a power
@@ -63,7 +65,7 @@
 export const BLAST_M = 6;
 
 /* The kinds, in the order of the AGENTS message's kind byte. */
-export const KINDS = ['scout', 'loiter', 'strike', 'fpv', 'hunter', 'boat', 'jammer', 'decoy'];
+export const KINDS = ['scout', 'loiter', 'strike', 'fpv', 'hunter', 'boat', 'jammer', 'decoy', 'carrier'];
 
 /*
  * Each kind's flight, m/s and metres: speed, the loiterer's dive, the
@@ -84,7 +86,19 @@ export const KIND = {
   jammer: { speed: 3.5, gap: 30 },
   /* A Striker's flight and look, worth nothing where it arrives. */
   decoy: { speed: 26.6, gap: 25 },
+  /* The river's launcher (MISSIONS.md M5, TECH-NEEDS T1.6): 7 m/s, the
+   * table's, written after the 0.7 above; its weave a slow 10 m over 24 s
+   * and two hulls 80 m apart are choices, no craft measured. hp: the
+   * detonations it takes (T1.7), a kind without one takes one. */
+  carrier: {
+    speed: 7, weaveM: 10, weaveMs: 24000, gap: 80, hp: 2,
+  },
 };
+
+/* The detonations an attacker of `kind` takes before it dies. */
+export function hpOf(kind) {
+  return KIND[kind]?.hp ?? 1;
+}
 
 /* How far a scout flies on after its circle before it is gone: 200 s at
  * its speed, as before it was slowed. */
@@ -281,6 +295,13 @@ function planRoute(mission, agent) {
   }
   if (agent.kind === 'jammer') {
     push({ k: 'park', p: endAt, d: [endLeg.d[0], 0, endLeg.d[2]] }, 0);
+    return { t0: agent.t0, tEnd: Infinity, end: 'park', phases };
+  }
+  /* A carrier holds where its weave left it, so it never jumps. */
+  if (agent.kind === 'carrier') {
+    const held = { p: [0, 0, 0], v: [0, 0, 0] };
+    pathAt(phases[phases.length - 1], t, held);
+    push({ k: 'park', p: held.p, d: [endLeg.d[0], 0, endLeg.d[2]] }, 0);
     return { t0: agent.t0, tEnd: Infinity, end: 'park', phases };
   }
   /* A level circle to the left of the path's end, entered on its tangent. */

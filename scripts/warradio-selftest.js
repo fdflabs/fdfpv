@@ -79,13 +79,14 @@ for (const m of Object.values(MISSIONS)) {
     && same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output', mission: m.id }), [r.lose]));
 }
 check('First Light\'s briefing is CREST\'s then TALLER\'s, its own', same(radioOf(MISSIONS['itaipu-1']).brief, ['itaipu-1-s0-brief', 'itaipu-1-s0-rules']));
-for (const kind of KINDS.filter((k) => k !== 'jammer')) {
+for (const kind of KINDS.filter((k) => k !== 'jammer' && k !== 'carrier')) {
   /* A decoy is called as the Striker it looks like. */
   const line = `wave-${kind === 'decoy' ? 'strike' : kind}`;
   check(`a ${kind} wave`, same(say([{ type: 'born', agents: [{ kind }] }], { ...v0, alive: 1 }), [line]));
 }
 check('a jammer wave, which no mission spawns, says nothing', same(say([{ type: 'born', agents: [{ kind: 'jammer' }] }], { ...v0, alive: 1 }), [])
   && same(say([{ type: 'born', agents: [{ kind: 'jammer' }] }], { ...v0, wave: 6, alive: 1 }), []));
+check('a carrier\'s birth, its mission\'s own story line, has no wave call', same(say([{ type: 'born', agents: [{ kind: 'carrier', sector: 'RIVER' }] }], { ...v0, alive: 1 }), []));
 check('the last wave by name, whatever it is', same(say([{ type: 'born', agents: [{ kind: 'strike' }] }], { ...v0, wave: 6, alive: 3 }), ['wave-last']));
 check('this pilot\'s kill, and the next one another take',
   same(say([{ type: 'boom', mine: true }, {

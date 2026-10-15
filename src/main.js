@@ -6720,6 +6720,8 @@ export async function boot({
       }
       if (ev.type === 'dead') {
         warAttackers.dead(ev);
+      } else if (ev.type === 'hurt') {
+        warAttackers.hurt(ev);
       } else if (ev.type === 'boom' && ev.mine) {
         warBoomMine(wallMs);
       }

@@ -677,7 +677,9 @@ const EVENTS = {
   ],
 };
 
-function warRoom(mission, { n = 2, seed = 0.25, dev = false } = {}) {
+function warRoom(mission, {
+  n = 2, seed = 0.25, dev = false, loadouts = {},
+} = {}) {
   const r = new RoomCore({
     code: 'W4RS00', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: 0,
   }, { devMissions: dev });
@@ -730,6 +732,9 @@ function warRoom(mission, { n = 2, seed = 0.25, dev = false } = {}) {
   };
   env.of = (i, op) => env.socks[i].got.filter((m) => m && m.type === 'war' && (op ? m.op === op : m.war));
   env.view = (i = 0) => env.of(i).at(-1).war;
+  for (const [i, loadout] of Object.entries(loadouts)) {
+    env.say(Number(i), { type: 'war', op: 'loadout', loadout });
+  }
   env.say(0, { type: 'war', op: 'start', mission: mission.id });
   return env;
 }
@@ -2077,6 +2082,68 @@ console.log('the room: the practice (itaipu-practice), one Striker at a time');
   e.fly(e.clock + 100);
   const end = e.view();
   check('ended by the host: no win, no stars', end.state === 'ended' && end.result && end.result.won === false && end.result.stars === 0, JSON.stringify(end.result));
+}
+
+console.log('hit points: a carrier takes two detonations, a penetrator\'s one (TECH-NEEDS T1.7)');
+{
+  /* One carrier on a short stretch of the river, parked from about 16 s;
+   * pilot 0 then pilot 1 sit on it, each going off once (a defender that
+   * went off is armed again only after a crash or a spawn, war.js). */
+  const base = MISSIONS['itaipu-1'];
+  const mission = {
+    ...base,
+    id: 'itaipu-hp-test',
+    contain: undefined,
+    sectors: {},
+    stages: [{
+      id: 'hull',
+      round: true,
+      spawns: [{
+        at: 1, kind: 'carrier', n: 1, per: 0, route: 'river-test', group: 'carrier',
+      }],
+      objectives: [],
+      cues: [],
+      exits: [{
+        when: { cleared: true }, to: 'won', after: 0, result: 'auto', clear: 'leave', why: 'waves',
+      }],
+    }],
+    routes: { 'river-test': [[-800, 103.5, 300], [-850, 103.5, 190]] },
+  };
+  const play = (loadouts) => {
+    const e = warRoom(mission, { n: 2, seed: 0.4, loadouts });
+    const far = (i) => () => [4000 + 50 * i, Y, 4000];
+    e.paths[0] = far(0);
+    e.paths[1] = far(1);
+    e.fly(GO + 4000);
+    const born = e.of(0, 'born').flatMap((m) => m.agents);
+    const hull = born.find((a) => a.kind === 'carrier');
+    const plan = planAgent(mission, hull);
+    const at = (t) => poseAt(plan, t).p;
+    const on = at(hull.t0 + 30000);
+    e.paths[0] = () => [on[0], on[1] + 2, on[2]];
+    e.fly(hull.t0 + 34000);
+    const first = { hurt: e.of(0, 'hurt'), dead: e.of(0, 'dead'), live: e.view().state };
+    e.paths[0] = far(0);
+    e.paths[1] = () => [on[0], on[1] + 2, on[2]];
+    e.fly(hull.t0 + 40000);
+    return {
+      hull, plan, first, hurt: e.of(0, 'hurt'), dead: e.of(0, 'dead'), booms: e.of(0, 'boom'), view: e.view(), scores: e.view().scores,
+    };
+  };
+  const g = play({});
+  check('a carrier parks at its route\'s end, where its weave left it, for good', g.hull && g.plan.end === 'park' && g.plan.tEnd === Infinity,
+    JSON.stringify(g.hull));
+  check('the first detonation on it hurts and does not kill: op hurt with 1 hp left, no death, the stage still on', g.first.hurt.length === 1
+    && g.first.hurt[0].ids[0] === g.hull.id && g.first.hurt[0].hp[0] === 1 && g.first.dead.length === 0 && g.first.live === 'live',
+  JSON.stringify(g.first));
+  const kill = g.dead.find((m) => m.ids.includes(g.hull.id));
+  const killer = kill && g.scores.find((x) => x.seat === kill.by);
+  const other = kill && g.scores.find((x) => x.seat !== kill.by);
+  check('the second kills it, credited to the second pilot alone, and the stage clears', g.booms.length === 2 && g.hurt.length === 1 && kill && kill.why === 'boom'
+    && kill.credited.includes(g.hull.id) && killer.kills === 1 && other.kills === 0 && g.view.state === 'won', JSON.stringify({ kill, scores: g.scores, state: g.view.state }));
+  const p = play({ 0: { warhead: 'penetrator' } });
+  const pierced = p.first.dead.find((m) => m.ids.includes(p.hull.id));
+  check('a penetrator\'s hit takes all of it at once: dead by pierce, no hurt', p.first.hurt.length === 0 && pierced && pierced.why === 'pierce', JSON.stringify(p.first));
 }
 
 console.log('legacy: the four missions against their record');

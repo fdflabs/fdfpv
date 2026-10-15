@@ -186,6 +186,12 @@
  *                                             room's;
  *                                             scouts: true on the boom that
  *                                             killed a scout wave's last
+ *   { type: 'war', op: 'hurt', ids, hp, at, by, p }
+ *                                             a boom that hit these and
+ *                                             did not kill them (a kind
+ *                                             of more than one hp,
+ *                                             routes.js KIND, TECH-NEEDS
+ *                                             T1.7): hp each one's left
  *   { type: 'war', op: 'boom', seat, at, p }  a defender detonated: that
  *                                             seat breaks its own craft
  *   { type: 'war', op: 'damage', seq, at, target, chunks, fell, openings,
@@ -261,7 +267,7 @@ import {
   LATE_MS, Track, hullDistance, hullFor, poseAt as trackPose, within,
 } from '../../src/game/midair.js';
 import {
-  BLAST_M, KIND, KINDS, planAgent, poseAt,
+  BLAST_M, KIND, KINDS, hpOf, planAgent, poseAt,
 } from '../../src/share/war/routes.js';
 import {
   MISSIONS, missionTime, waveSize, waveTarget,
@@ -1821,6 +1827,9 @@ export class RoomWar {
     for (const id of ids) {
       this.live.delete(id);
       this.hunters.kill(id);
+      if (m.hurt) {
+        delete m.hurt[id];
+      }
     }
   }
 
@@ -1836,17 +1845,28 @@ export class RoomWar {
     const pierce = warhead === 'penetrator' && !(d.rec.piercedAt > (d.rec.spentAt ?? -Infinity));
     const radius = this.blastOf(d.seat, d.airframe);
     const killed = [];
+    const hurt = [];
     const stalled = [];
     for (const y of this.live.values()) {
       const q = y === x ? c : trackPose(y.track, tc, {});
       const r = q ? Math.hypot(q.px - p[0], q.py - p[1], q.pz - p[2]) : Infinity;
       if (y === x || (!pierce && r <= radius)) {
-        killed.push(y.a);
+        /* A kind of more than one hp takes a detonation each, but a
+         * penetrator's hit takes all of it (TECH-NEEDS T1.7). Its hits so
+         * far are the match's (m.hurt), so a restore keeps them. */
+        const hits = (m.hurt?.[y.a.id] ?? 0) + 1;
+        if (!pierce && hits < hpOf(y.a.kind)) {
+          (m.hurt ??= {})[y.a.id] = hits;
+          hurt.push(y.a);
+        } else {
+          killed.push(y.a);
+        }
       } else if (warhead === 'emp' && !pierce && r <= EMP_M) {
         stalled.push(y);
       }
     }
     killed.sort((a, b) => a.id - b.id);
+    hurt.sort((a, b) => a.id - b.id);
     for (const a of killed) {
       this.noteGone(a, tc, 'kill');
     }
@@ -1862,7 +1882,8 @@ export class RoomWar {
     for (const a of credited) {
       player.mw += a.target != null && a.kind !== 'decoy' ? worthOf(mission, m.stage, m, a.target) : 0;
     }
-    for (const o of fly) {
+    /* Assists, as kills, count on a death only (T1.7). */
+    for (const o of killed.length ? fly : []) {
       if (o.seat === d.seat || !m.players[o.seat]) {
         continue;
       }
@@ -1885,15 +1906,22 @@ export class RoomWar {
     this.remove(ids, true);
     const scoutsDown = Boolean(m.scouts) && scoutsWere < m.scouts.n && m.scouts.killed >= m.scouts.n;
     this.log.push({
-      what: 'boom', t: tc, seat: d.seat, id: x.a.id, ids, decided: roomNow, ...(pierce ? { pierce: true } : {}),
+      what: 'boom', t: tc, seat: d.seat, id: x.a.id, ids, decided: roomNow, ...(pierce ? { pierce: true } : {}), ...(hurt.length ? { hurt: hurt.map((a) => a.id) } : {}),
     });
     const at = p.map(mm);
     const out = pierce ? [] : this.broadcast(core, {
       type: 'war', op: 'boom', seat: d.seat, at: tc, p: at,
     });
-    out.push(...this.broadcast(core, {
-      type: 'war', op: 'dead', ids, credited: credited.map((a) => a.id), at: tc, by: d.seat, why: pierce ? 'pierce' : 'boom', p: at, ...(scoutsDown ? { scouts: true } : {}),
-    }));
+    if (hurt.length) {
+      out.push(...this.broadcast(core, {
+        type: 'war', op: 'hurt', ids: hurt.map((a) => a.id), hp: hurt.map((a) => hpOf(a.kind) - m.hurt[a.id]), at: tc, by: d.seat, p: at,
+      }));
+    }
+    if (ids.length) {
+      out.push(...this.broadcast(core, {
+        type: 'war', op: 'dead', ids, credited: credited.map((a) => a.id), at: tc, by: d.seat, why: pierce ? 'pierce' : 'boom', p: at, ...(scoutsDown ? { scouts: true } : {}),
+      }));
+    }
     if (stalled.length) {
       out.push(...this.stall(core, stalled, tc));
     }

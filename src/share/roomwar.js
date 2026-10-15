@@ -261,6 +261,22 @@ export function createRoomWar(send) {
         adopt(m.agents || []);
       } else if (m.op === 'dead') {
         dead(m);
+      } else if (m.op === 'hurt') {
+        /* A boom these took and lived (edge/rooms/war.js, a kind of more
+         * than one hp): where each one was, for its damage. */
+        const list = [];
+        (m.ids || []).forEach((id, i) => {
+          const x = agents.get(id);
+          const o = x ? poseOf(x, m.at) : null;
+          if (x) {
+            list.push({
+              id, kind: x.a.kind, p: o ? o.p : m.p.slice(), hp: (m.hp || [])[i] ?? null,
+            });
+          }
+        });
+        events.push({
+          type: 'hurt', ids: m.ids || [], agents: list, at: m.at, by: m.by, p: m.p,
+        });
       } else if (m.op === 'stall') {
         /* An EMP stalled these (war.js): their routes wait m.ms from m.at,
          * the same on every screen. */
@@ -373,6 +389,9 @@ export function createRoomWar(send) {
      *     target, hit, mw, mine, kills: [{ id, kind }] }
      *                                          kills: those of ids the room
      *                                          credited to this seat
+     *   { type: 'hurt', ids, agents: [{ id, kind, p, hp }], at, by, p }
+     *                                          a boom these lived through,
+     *                                          hp what each has left
      *   { type: 'boom', seat, at, p, mine }    mine: break this craft
      *   { type: 'scouts', at, by }             that dead was a scout
      *                                          wave's last: later waves

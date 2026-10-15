@@ -94,9 +94,10 @@ const YELLOW = '#ffe040';
 const FONT = 'ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace';
 
 /* Threat by kind (src/share/war/routes.js KINDS): 2 comes for pilots, 1
- * for the dam, 0 for neither directly. */
+ * for the dam, 0 for neither directly. The carrier is the dam's: what it
+ * launches goes for the penstocks (mission 5). */
 const THREAT = {
-  hunter: 2, strike: 1, loiter: 1, fpv: 1, scout: 0, boat: 0, decoy: 0,
+  hunter: 2, strike: 1, loiter: 1, fpv: 1, scout: 0, boat: 0, decoy: 0, carrier: 1,
 };
 /* A decoy is marked as a Striker until it is this close (mission 3). */
 const DECOY_M = 300;

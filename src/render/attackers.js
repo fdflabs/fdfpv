@@ -15,12 +15,14 @@
  * is never named): no insignia, no national markings, no serials. Sizes
  * are the plan's: a 3 m twin boom pusher scout, a 1.2 m X wing tube
  * loitering munition, a 2.5 m pusher delta, 0.25 m quads (the hunter in
- * another paint), a 5 m speedboat and a mast on a raft. Each is built in
+ * another paint), a 5 m speedboat, a mast on a raft and the river's 12 m
+ * launcher (carrier, mission 5). Each is built in
  * the scene body frame (src/render/frame.js: nose -z, top +y, metres) with
  * its centre at the origin, which is the point the room's pose and the
  * blast are measured from; a boat's origin is its waterline.
  *
- * A DEATH is the airframe's own pieces through the crash debris
+ * A HURT (a boom a kind of more than one hp lived through) throws half a
+ * death's pieces. A DEATH is the airframe's own pieces through the crash debris
  * (src/render/debris.js emit, surface -1: a part leaving with nothing
  * under it). Its fire and smoke, and a defender's warhead, are
  * src/render/explosion.js's, which the shell throws beside this.
@@ -123,6 +125,7 @@ const PAINT = {
   hunter: { body: 0x1d1e21, arm: 0xd2541e, prop: 0xe8742e, motor: 0x8c9096, load: 0x9a2a1c },
   boat: { hull: 0x3c4146, deck: 0x5a6066, dark: 0x25282c, motor: 0x1e2023 },
   jammer: { deck: 0x6b5b3e, drum: 0x2b2f33, mast: 0x8a8f94, whip: 0xd0d4d7, box: 0x4a573a },
+  carrier: { hull: 0x5d6166, deck: 0x6e7378, dark: 0x2a2d31, motor: 0x1e2023, rack: 0x3a3d42 },
 };
 
 function scout(c) {
@@ -216,8 +219,37 @@ function jammer(c) {
   return out;
 }
 
+/* The river's launcher (MISSIONS.md M5, TECH-NEEDS T1.6): an unmarked
+ * grey hull, 12 m by 3.6 m, bigger than a sea drone, its deck a launch
+ * rack of cells the swarm lifts out of, a low wheelhouse aft and two
+ * outboards. Its size is a choice: no such craft is measured. */
+function carrier(c) {
+  const deck = [[0, -6], [1.3, -4.4], [1.8, -2.2], [1.8, 6], [-1.8, 6], [-1.8, -2.2], [-1.3, -4.4]];
+  const keel = [[0, -5.6], [0.9, -4.2], [1.2, -2.2], [1.2, 5.9], [-1.2, 5.9], [-1.2, -2.2], [-0.9, -4.2]];
+  const out = [
+    part(slab(deck, 0.7), c.hull, { at: [0, 0.35, 0] }),
+    part(slab(keel, 0.6), c.dark, { at: [0, -0.2, 0] }),
+    part(slab(deck.map(([x, z]) => [x * 0.9, z * 0.92 + 0.2]), 0.06), c.deck, { at: [0, 0.73, 0] }),
+    /* The wheelhouse, aft. */
+    part(box(2.2, 1.2, 1.8), c.deck, { at: [0, 1.36, 3.8] }),
+    part(box(2.24, 0.4, 0.08), c.dark, { at: [0, 1.6, 2.9], rot: [-0.5, 0, 0] }),
+  ];
+  /* The rack: a grid of launch cells forward of the wheelhouse. */
+  for (const x of [-1.05, -0.35, 0.35, 1.05]) {
+    for (const z of [-2.6, -1.6, -0.6, 0.4, 1.4]) {
+      out.push(part(box(0.6, 0.35, 0.85), c.rack, { at: [x, 0.94, z] }));
+    }
+  }
+  /* Two outboards on the transom, the hottest thing aboard. */
+  for (const x of [-0.8, 0.8]) {
+    out.push(part(box(0.4, 0.7, 0.45), c.motor, { at: [x, 0.5, 6.25], heat: 0.8 }));
+    out.push(part(box(0.14, 0.7, 0.16), c.motor, { at: [x, -0.2, 6.3], heat: 0.5 }));
+  }
+  return out;
+}
+
 const BUILD = {
-  scout, loiter, fpv: quad, hunter: quad, boat, jammer,
+  scout, loiter, fpv: quad, hunter: quad, boat, jammer, carrier,
 };
 
 /* The kinds drawn as the Striker; a decoy is one to look at (mission 3). */
@@ -246,6 +278,7 @@ const NAV_LIGHTS = {
   hunter: [[0, 0.03, -0.07, 0xffffff]],
   boat: [[-0.55, 0.32, -1.7, 0xff2a2a], [0.55, 0.32, -1.7, 0x2aff5a], [0, 0.5, 2.5, 0xffffff]],
   jammer: [[0, 2.3, 0, 0xffffff]],
+  carrier: [[-1.3, 0.8, -4.4, 0xff2a2a], [1.3, 0.8, -4.4, 0x2aff5a], [0, 2.0, 4.6, 0xffffff]],
 };
 /* A decoy wears a Striker's lights, exactly (mission 3). */
 NAV_LIGHTS.decoy = NAV_LIGHTS.strike;
@@ -265,6 +298,7 @@ export const DEATH = {
   boat: { shed: 'ply', size: 1.4, speed: 14, emits: 3, spread: 2.0 },
   jammer: { shed: 'ply', size: 1.2, speed: 10, emits: 2, spread: 1.0 },
   decoy: { shed: 'epo', size: 1.4, speed: 38, emits: 3, spread: 1.0 },
+  carrier: { shed: 'ply', size: 2.4, speed: 16, emits: 5, spread: 2.5 },
 };
 
 /* The kind's model: one merged geometry, its colours in vertices. */
@@ -478,6 +512,24 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
         const floorY = floorAt(a.p[0], a.p[2]);
         for (let i = 0; i < d.emits; i += 1) {
           const k = i - (d.emits - 1) / 2;
+          const at = new THREE.Vector3(a.p[0] + k * d.spread, a.p[1], a.p[2] - k * d.spread * 0.5);
+          debris.emit(at, new THREE.Vector3(0, 1, 0), d.speed, -1, d.shed, floorY, 'break');
+        }
+      }
+    },
+
+    /* A roomwar 'hurt' event: a boom an attacker lived through (a kind
+     * of more than one hp) throws some of its pieces, half its death's. */
+    hurt(ev) {
+      if (!debris) {
+        return;
+      }
+      for (const a of ev.agents) {
+        const d = DEATH[a.kind];
+        const floorY = floorAt(a.p[0], a.p[2]);
+        const emits = Math.max(1, Math.floor(d.emits / 2));
+        for (let i = 0; i < emits; i += 1) {
+          const k = i - (emits - 1) / 2;
           const at = new THREE.Vector3(a.p[0] + k * d.spread, a.p[1], a.p[2] - k * d.spread * 0.5);
           debris.emit(at, new THREE.Vector3(0, 1, 0), d.speed, -1, d.shed, floorY, 'break');
         }

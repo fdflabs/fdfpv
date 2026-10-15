@@ -191,8 +191,8 @@ export function warSection(check) {
       && decodeHunts(hunts.subarray(0, hunts.length - 1)) === null);
     check('war is a room game a profile can name', ROOM_GAMES.includes('war')
       && checkProfile({ airframe: 'cub1400', map: 'itaipu', figure: 0, game: 'war' }).game === 'war');
-    check('the kinds are section 3\'s seven and the decoy after them, hunter at index 4', KINDS.length === 8 && KINDS[4] === 'hunter' && KINDS[7] === 'decoy'
-      && KINDS.every((k) => KIND[k].speed > 0));
+    check('the kinds are section 3\'s seven, the decoy and the carrier after them, hunter at index 4', KINDS.length === 9 && KINDS[4] === 'hunter' && KINDS[7] === 'decoy'
+      && KINDS[8] === 'carrier' && KINDS.every((k) => KIND[k].speed > 0));
   }
 
   console.log('war: routes');
@@ -206,7 +206,7 @@ export function warSection(check) {
     /* Every kind, continuous on the millisecond and at its kind's speed. */
     const bad = [];
     for (const kind of KINDS) {
-      const target = kind === 'scout' || kind === 'jammer' || kind === 'hunter' ? null : 'a';
+      const target = kind === 'scout' || kind === 'jammer' || kind === 'hunter' || kind === 'carrier' ? null : 'a';
       const plan = planAgent(m, {
         id: 1, kind, route: 'r', t0: 1000, k: 2, n: 5, err: 0, target,
       });
