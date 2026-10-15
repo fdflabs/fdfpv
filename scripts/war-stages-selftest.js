@@ -2057,6 +2057,7 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
   const bad = [];
   const spotSeen = [];
   const spotBad = [];
+  const guideBad = [];
   const twists = new Set();
   const groupOf = (twist, a) => stagesM5.find((x) => x.id === twist)?.spawns.find((w) => w.si === a.wave)?.group;
   for (const g of games) {
@@ -2135,6 +2136,14 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
     if (missing.length || others.length) {
       bad.push(`${label}: never said ${missing.join(',')}; said another twist's ${others.join(',')}`);
     }
+    /* CREST's guide (MISSIONS.md M5 Guide): the source's and the last
+     * stage's in every game, each twist's own never in another's. */
+    const GUIDE_TWIST = { 'two-hulls': 'itaipu-5-g-hulls', 'hunters-launched': 'itaipu-5-g-deck', 'last-bird': 'itaipu-5-g-escort' };
+    const noGuide = ['itaipu-5-g-source', 'itaipu-5-g-all'].filter((id) => !said.includes(id));
+    const otherGuide = Object.entries(GUIDE_TWIST).filter(([k]) => k !== twist).map(([, id]) => id).filter((id) => said.includes(id));
+    if (noGuide.length || otherGuide.length) {
+      guideBad.push(`${label}: guide: never said ${noGuide.join(',')}; said another twist's ${otherGuide.join(',')}`);
+    }
     /* Spotting: only a carrier; twist C's at its birth by nobody, the
      * others' by a pilot here; a hull spotted silent never launched, and
      * at most one is; MIRADOR's call on it in twist A only, and in it
@@ -2174,6 +2183,8 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
   console.log(`    two hulls spotted: ${spotSeen.join('; ') || 'no two-hulls game'}`);
   check('spotting: only carriers; twist C\'s marked at its birth by Carancho, the others by a pilot; a hull spotted silent never launches; MIRADOR says so in twist A only',
     spotBad.length === 0, spotBad.join(' | '));
+  check('the guide said: the source\'s and the last stage\'s every game, each twist\'s own and no other\'s',
+    guideBad.length === 0, guideBad.join(' | '));
   check('every stage\'s story said: the swarm, the pattern, the source and its kill, the twist\'s own line and no other twist\'s, the last stage\'s',
     bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));

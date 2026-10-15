@@ -345,8 +345,8 @@ held in development until the owner has flown it, has against this
 table: 4 stages and 3 twists, 4 title keys; 2 objectives
 (`war.obj.protect_penstocks`, `war.obj.itaipu_5.carrier`); the table's
 14 radio ids, `itaipu-5-op` and the film's 4, all voiced en and es on
-the Orin; no guide lines (M5 writes none); the nudge and the objective
-cards; every briefing fact, its length 7 to 14 min measured; its film
+the Orin; 8 guide lines `itaipu-5-g-*` (written and voiced on branch
+w46-m5b); the nudge and the objective cards; every briefing fact, its length 7 to 14 min measured; its film
 `river-below` and no outro (none written); voiced debriefs; seeded GORGE,
 RIVER and HIGH sectors, war:routes PASS; the consent; Contain with
 `itaipu-5-op`. What it adds to the engine and what it does not build is
@@ -1144,10 +1144,9 @@ war:stages flies it on the room), held at `release: 'development'`:
   voiced en and es on the Orin (CARANCHO `am_puck`, `pm_alex`). In twist
   A `itaipu-5-s3-carrier` ("It's launching") waits for the first launch,
   since the first hull may be the silent one. MIRADOR's spotting call
-  `itaipu-5-ta-spot` was added on branch w46-m5b and built on the Orin
-  with the rest of the mission's lines, so MIRADOR is one voice. M5
-  writes no guide lines, so the mission has none (missions 1 to 4 have 7
-  to 9).
+  `itaipu-5-ta-spot` and CREST's eight guide lines (Guide, below) were
+  added on branch w46-m5b and built on the Orin with the rest of the
+  mission's lines, so each speaker is one voice.
 - **Bots** (scripts/war-balance.js): a good or average pilot goes for a
   carrier first, as a pilot who reads the objective would; without it a
   solo squad chased the swarms forever and never ended the stage.
@@ -1157,9 +1156,9 @@ war:stages flies it on the room), held at `release: 'development'`:
   downriver in shot 1 and shot 3's own rider near the face for 8 s (the
   film's header says why). The campaign card's line is the Briefing
   above, as The Long Night's is its own.
-- **Not built**: the guide lines (M5 writes none), the music cues (no
-  mission has its five layers, and music is off by the owner's
-  decision), and an outro film (INTROS.md writes none for M5).
+- **Not built**: the music cues (no mission has its five layers, and
+  music is off by the owner's decision), and an outro film (INTROS.md
+  writes none for M5).
 
 ### The twist (stage 3)
 
@@ -1231,6 +1230,24 @@ where the fight is, so the squad must split.
 | itaipu-5-s4-last | stage 4 opens | CREST | firm | Whatever it launched is still coming. Clear the river. | Lo que lanzó todavía viene. Limpien el río. |
 | debrief-itaipu-5-win | won | CARANCHO | calm | Crest, Carancho. River's quiet. Thanks for covering us. | Cresta, Carancho. El río está tranquilo. Gracias por cubrirnos. |
 | debrief-itaipu-5-lose | lost | CREST | calm | The face took too much. Pull back to the crest. | La cara recibió demasiado. Repliéguense a la cresta. |
+
+### Guide
+
+CREST's guide (`itaipu-guide`, written on branch w46-m5b in the voice of
+missions 1 to 4's): what to do now, after each stage's story, each one
+dropped once what it is about is down. Wired in `itaipu-5.js`, built on
+the Orin with Whisper's check.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-5-g-face | stage 1, the swarm born `+7` | CREST | calm | Protect the penstocks on the downstream face. The swarm comes up the gorge. Fly down into the gorge and meet it. | Protejan las tuberías de la cara aguas abajo. El enjambre sube por el cañón. Bajen al cañón y salgan a su encuentro. |
+| itaipu-5-g-rim | stage 2, the swarm born `+3` | CREST | firm | This swarm hugs the east rim. Stay low under the rim and take it before the east penstocks. | Este enjambre va pegado al borde este. Quédense bajo el borde y tómenlo antes de las tuberías del este. |
+| itaipu-5-g-hunters | stage 2, the Hunters born `+4` | CREST | firm | Hunters in the gorge. They chase your bird. Fly in pairs. One draws it, the other takes it. | Cazadores en el cañón. Persiguen su aparato. Vuelen de a dos. Uno lo atrae, el otro lo derriba. |
+| itaipu-5-g-source | stage 3, the carrier born `+11` | CREST | firm | The hull is on the river, far below the face. Fly down the river and hit it twice. | El casco está en el río, muy abajo de la cara. Vuelen río abajo y péguenle dos veces. |
+| itaipu-5-g-hulls | twist A, the second hull born `+6` | CREST | firm | Fly close to each hull. The one that launches nothing gets marked empty. Kill the one that's launching first. | Acérquense a cada casco. El que no lanza nada queda marcado como vacío. Primero maten el que lanza. |
+| itaipu-5-g-deck | twist B, its Hunters born `+4` | CREST | firm | Hunters off its deck. Pairs again, and keep after the hull. | Cazadores desde su cubierta. De a dos otra vez, y sigan tras el casco. |
+| itaipu-5-g-escort | twist C, its first launch `+4` | CREST | firm | Carancho marked the hull for you. Its swarms are twice the size. Hit the hull before it launches again. | Carancho les marcó el casco. Sus enjambres son el doble. Péguenle al casco antes de que lance otra vez. |
+| itaipu-5-g-all | stage 4, the first born `+8` | CREST | firm | Protect the penstocks. Swarms up the gorge, Strikers low on the river, a Loiterer high. The closest to the face first. | Protejan las tuberías. Enjambres por el cañón, drones de ataque bajos sobre el río, un merodeador en altura. Primero el más cercano a la cara. |
 
 ### What the player learns
 

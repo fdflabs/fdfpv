@@ -329,6 +329,14 @@ CREST, MIRADOR and TALLER, its story, debriefs, Contain line and film,
 | itaipu-5-tb-turn | `voice/en/itaipu-5-tb-turn.webm`, `voice/en/itaipu-5-tb-turn.mp3`, `voice/es/itaipu-5-tb-turn.webm`, `voice/es/itaipu-5-tb-turn.mp3` |
 | itaipu-5-tc-turn | `voice/en/itaipu-5-tc-turn.webm`, `voice/en/itaipu-5-tc-turn.mp3`, `voice/es/itaipu-5-tc-turn.webm`, `voice/es/itaipu-5-tc-turn.mp3` |
 | itaipu-5-s4-last | `voice/en/itaipu-5-s4-last.webm`, `voice/en/itaipu-5-s4-last.mp3`, `voice/es/itaipu-5-s4-last.webm`, `voice/es/itaipu-5-s4-last.mp3` |
+| itaipu-5-g-face | `voice/en/itaipu-5-g-face.webm`, `voice/en/itaipu-5-g-face.mp3`, `voice/es/itaipu-5-g-face.webm`, `voice/es/itaipu-5-g-face.mp3` |
+| itaipu-5-g-rim | `voice/en/itaipu-5-g-rim.webm`, `voice/en/itaipu-5-g-rim.mp3`, `voice/es/itaipu-5-g-rim.webm`, `voice/es/itaipu-5-g-rim.mp3` |
+| itaipu-5-g-hunters | `voice/en/itaipu-5-g-hunters.webm`, `voice/en/itaipu-5-g-hunters.mp3`, `voice/es/itaipu-5-g-hunters.webm`, `voice/es/itaipu-5-g-hunters.mp3` |
+| itaipu-5-g-source | `voice/en/itaipu-5-g-source.webm`, `voice/en/itaipu-5-g-source.mp3`, `voice/es/itaipu-5-g-source.webm`, `voice/es/itaipu-5-g-source.mp3` |
+| itaipu-5-g-hulls | `voice/en/itaipu-5-g-hulls.webm`, `voice/en/itaipu-5-g-hulls.mp3`, `voice/es/itaipu-5-g-hulls.webm`, `voice/es/itaipu-5-g-hulls.mp3` |
+| itaipu-5-g-deck | `voice/en/itaipu-5-g-deck.webm`, `voice/en/itaipu-5-g-deck.mp3`, `voice/es/itaipu-5-g-deck.webm`, `voice/es/itaipu-5-g-deck.mp3` |
+| itaipu-5-g-escort | `voice/en/itaipu-5-g-escort.webm`, `voice/en/itaipu-5-g-escort.mp3`, `voice/es/itaipu-5-g-escort.webm`, `voice/es/itaipu-5-g-escort.mp3` |
+| itaipu-5-g-all | `voice/en/itaipu-5-g-all.webm`, `voice/en/itaipu-5-g-all.mp3`, `voice/es/itaipu-5-g-all.webm`, `voice/es/itaipu-5-g-all.mp3` |
 | film-itaipu-4-1 | `voice/en/film-itaipu-4-1.webm`, `voice/en/film-itaipu-4-1.mp3`, `voice/es/film-itaipu-4-1.webm`, `voice/es/film-itaipu-4-1.mp3` |
 | film-itaipu-4-2 | `voice/en/film-itaipu-4-2.webm`, `voice/en/film-itaipu-4-2.mp3`, `voice/es/film-itaipu-4-2.webm`, `voice/es/film-itaipu-4-2.mp3` |
 | film-itaipu-4-3 | `voice/en/film-itaipu-4-3.webm`, `voice/en/film-itaipu-4-3.mp3`, `voice/es/film-itaipu-4-3.webm`, `voice/es/film-itaipu-4-3.mp3` |

@@ -31238,6 +31238,469 @@
     }
    },
    "machine": "orin"
+  },
+  "itaipu-5-g-face.en": {
+   "text": "Protect the penstocks on the downstream face. The swarm comes up the gorge. Fly down into the gorge and meet it.",
+   "speaker": "crest",
+   "seconds": 6.635,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4167168147,
+     "heard": "Protect the penstocks on the downstream face. The swarm comes up the gorge. Fly down into the gorge and meet it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30159,
+     "sha256": "b832881e77ad4c000f7e7fd7f896cf12cdb387242d9258a88bf8f71792cd81ee"
+    },
+    "mp3": {
+     "bytes": 27116,
+     "sha256": "23374e060ada9f5dedf2c79c458bdf833fd2121ca0b64533c20caf20776a6bb5"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-face.es": {
+   "text": "Protejan las tuberías de la cara aguas abajo. El enjambre sube por el cañón. Bajen al cañón y salgan a su encuentro.",
+   "speaker": "crest",
+   "seconds": 6.745,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 970528989,
+     "heard": "Protejan las tuberías de la cara aguas abajo. El enjambre sube por el cañón. Bajen al cañón y salgan a su encuentro.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30722,
+     "sha256": "ad7894ad5ed3af26951ac2e057980260a342184a93d0e275bc7ea0ce2a380044"
+    },
+    "mp3": {
+     "bytes": 28148,
+     "sha256": "45f107d24e2aa30581e8a609678c5a5bc4399ecac904f2555f4cc628c908d9e3"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-rim.en": {
+   "text": "This swarm hugs the east rim. Stay low under the rim and take it before the east penstocks.",
+   "speaker": "crest",
+   "seconds": 5.785,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3576070176,
+     "heard": "This swarm hugs the east rim, stay low under the rim and take it before the east penstocks.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 240
+    },
+    {
+     "attempt": 1,
+     "seed": 3703123151,
+     "heard": "This swarm hugs the east rim. Stay low under the rim and take it before the east penstocks.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26287,
+     "sha256": "ef3742f24464d7821e56a3746548a5b2b41ba2f683a1e350e99c6963bf4574fc"
+    },
+    "mp3": {
+     "bytes": 23276,
+     "sha256": "af60e59393afcc1957c36cd047e008cbf4638edb98bedfc83372f73f031a1620"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-rim.es": {
+   "text": "Este enjambre va pegado al borde este. Quédense bajo el borde y tómenlo antes de las tuberías del este.",
+   "speaker": "crest",
+   "seconds": 6.565,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2414792761,
+     "heard": "Este enjambre va pegado al borde este. Quédense bajo el borde y tómenlo antes de las tuberías del este.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29874,
+     "sha256": "bde41ed4711d64a6cd79544a03d9e5eb02bfdee2a7925723fd6df40b22b947d1"
+    },
+    "mp3": {
+     "bytes": 26780,
+     "sha256": "7beca8548ccbfc2d7733cb8159e288f8b00350aa4a90ea2ff3149d0432dd0cfd"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-hunters.en": {
+   "text": "Hunters in the gorge. They chase your bird. Fly in pairs. One draws it, the other takes it.",
+   "speaker": "crest",
+   "seconds": 5.835,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3002906673,
+     "heard": "Hunters in the gorge, they chase your bird, fly in pairs, one draws it, the other takes it,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26600,
+     "sha256": "a19a374c48e5dcce6ef5705e3ce59cb781edaf188a56dc387d52817c844aa9e3"
+    },
+    "mp3": {
+     "bytes": 23900,
+     "sha256": "7358bffd28ccbe4f13ae0b49a00f6988e022434d8a2802e226a4c9c1414f1943"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-hunters.es": {
+   "text": "Cazadores en el cañón. Persiguen su aparato. Vuelen de a dos. Uno lo atrae, el otro lo derriba.",
+   "speaker": "crest",
+   "seconds": 6.675,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2881971331,
+     "heard": "Cazadores en el cañón. Persiguen su aparato, vuelen de a dos, uno lo atrae, el otro lo derriba.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30315,
+     "sha256": "a13fa6675147eccabac23444f6e3b7cb4c0546243744fa4d6f75d6066314d9dd"
+    },
+    "mp3": {
+     "bytes": 27452,
+     "sha256": "a865d9ca19aa439a235af00170fde948d98b9d2c932ed8a225cf48c0809bdbfc"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-source.en": {
+   "text": "The hull is on the river, far below the face. Fly down the river and hit it twice.",
+   "speaker": "crest",
+   "seconds": 5.095,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1036429523,
+     "heard": "The hull is on the river far below the face, fly down the river and hit it twice.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23318,
+     "sha256": "bc651711181dfcd5061d56559b2272763ede4d9e30110d6544f60df69bc69ce3"
+    },
+    "mp3": {
+     "bytes": 20300,
+     "sha256": "ec0cc65f057a177deb9f21740389e244e5d067f4e0f0b72f732c377d3b881068"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-source.es": {
+   "text": "El casco está en el río, muy abajo de la cara. Vuelen río abajo y péguenle dos veces.",
+   "speaker": "crest",
+   "seconds": 5.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3014684237,
+     "heard": "El casco está en el río, muy abajo de la cara. Vuelen río abajo y péguenle dos veces.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26460,
+     "sha256": "503f205786766e14afe73dd44a4dff928b735acf3b7f198e6a24d01d03faa75f"
+    },
+    "mp3": {
+     "bytes": 24236,
+     "sha256": "c4122cb02f02a8efcec301d465161771117b591e52bc94713df06f39f6b2629e"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-hulls.en": {
+   "text": "Fly close to each hull. The one that launches nothing gets marked empty. Kill the one that's launching first.",
+   "speaker": "crest",
+   "seconds": 6.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1680709954,
+     "heard": "Fly close to each hull. The one that launches nothing gets marked empty. Kill the one that's launching first.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 28634,
+     "sha256": "1ecdd3062c1821ef4715edb57424820ccbec98fd85106f5cfcc46d512d86af8d"
+    },
+    "mp3": {
+     "bytes": 24956,
+     "sha256": "2942d473c4af8db5527f1b1b502a5d446cb2620fe068c7487cb299fc16e20f12"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-hulls.es": {
+   "text": "Acérquense a cada casco. El que no lanza nada queda marcado como vacío. Primero maten el que lanza.",
+   "speaker": "crest",
+   "seconds": 6.475,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 811746455,
+     "heard": "Acérquense a cada casco, el que no lanza nada que él ha marcado como vacío, primero maten el que lanza.",
+     "wer": 0.167,
+     "extra": 2,
+     "missing": [
+      "queda"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1504323951,
+     "heard": "Acérquense a cada casco. El que no lanza nada queda marcado como vacío. Primero maten el que lanza.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 120
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29548,
+     "sha256": "ccdc9f29984f4d89fc92d3d298c17ab17bbcec987f4266be296812b46de96b7c"
+    },
+    "mp3": {
+     "bytes": 27500,
+     "sha256": "46955e554fde7b4c31f9a65f9154c7b072c6c9f8f7ecb3f12c6678164fb9a7fb"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-deck.en": {
+   "text": "Hunters off its deck. Pairs again, and keep after the hull.",
+   "speaker": "crest",
+   "seconds": 3.855,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1904766503,
+     "heard": "Hunters off its deck, pairs again and keep after the hull.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17743,
+     "sha256": "ca5dcfb0eb116782efec1c4156f80420aae6efc9576c87ec1c03fc4456ccc44c"
+    },
+    "mp3": {
+     "bytes": 17036,
+     "sha256": "21fbc0e627921fb58717c91ce13701f0dec7e0632dd1b97359517abceff80b3d"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-deck.es": {
+   "text": "Cazadores desde su cubierta. De a dos otra vez, y sigan tras el casco.",
+   "speaker": "crest",
+   "seconds": 4.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1552509826,
+     "heard": "Cazadores desde su cubierta. De a dos otra vez y sigan tras el casco.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20571,
+     "sha256": "2538f94ae969b96f71b43809ca91b3ce43351110f3f5dc679a771a4b1af205b1"
+    },
+    "mp3": {
+     "bytes": 19076,
+     "sha256": "195311a6f956e38e869f219ed74e1011a9a4ad0e1da7a50192811d34574be648"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-escort.en": {
+   "text": "Carancho marked the hull for you. Its swarms are twice the size. Hit the hull before it launches again.",
+   "speaker": "crest",
+   "seconds": 6.105,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1356077555,
+     "heard": "Carancho marked the hull for you. Its swarms are twice the size. Hit the hull before it launches again.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27722,
+     "sha256": "92d8bc1fc40141ea1cfa1298762cfba9d70c73450beb2740ab1b42838f9b4fb9"
+    },
+    "mp3": {
+     "bytes": 25220,
+     "sha256": "51ccdfd7d6b7606d885b9d9ac3b41bdc899d5c4e6a36929721cb13aeefb1ecbc"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-escort.es": {
+   "text": "Carancho les marcó el casco. Sus enjambres son el doble. Péguenle al casco antes de que lance otra vez.",
+   "speaker": "crest",
+   "seconds": 6.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 116209677,
+     "heard": "Carancho les marcó el casco. Sus enjambres son el doble. Péguenle al casco antes de que lance otra vez.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29259,
+     "sha256": "81a32db04f486c57725751d4ca47c55604865b8715107f275cf0b96fa78be1fa"
+    },
+    "mp3": {
+     "bytes": 26876,
+     "sha256": "dfb2827e9590f4fbad3f04283b93658423217743bd35be745532f7f5e4e74281"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-all.en": {
+   "text": "Protect the penstocks. Swarms up the gorge, Strikers low on the river, a Loiterer high. The closest to the face first.",
+   "speaker": "crest",
+   "seconds": 7.275,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2248758336,
+     "heard": "Protect the penstocks. Swarms up the gorge, strikers low on the river, a loiterer high, the closest to the face first.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 32895,
+     "sha256": "c904d42b598832fda55c657807757a7dd71017ae26a4ec76f9d71cb69742d07b"
+    },
+    "mp3": {
+     "bytes": 29996,
+     "sha256": "b7986a2c1f2a59f94689d154ecc14cb16366fbd28d9cc98527e71226df5ab124"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-all.es": {
+   "text": "Protejan las tuberías. Enjambres por el cañón, drones de ataque bajos sobre el río, un merodeador en altura. Primero el más cercano a la cara.",
+   "speaker": "crest",
+   "seconds": 9.645,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1829770070,
+     "heard": "Protejan las tuberías, enjambres por el cañón, drones de ataque bajo sobre el río, un merodeador en altura, primero el más cercano a la cara.",
+     "wer": 0.04,
+     "extra": 0,
+     "missing": [
+      "bajos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2259386590,
+     "heard": "Protejan las tuberías. Enjambres por el cañón, drones de ataque, bajos sobre el río, un merodeador en altura, primero el más cercano a la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 43677,
+     "sha256": "a79acf011f89453340291fce1e408bc9dbe2e76943c55687c3b2c24317635357"
+    },
+    "mp3": {
+     "bytes": 39572,
+     "sha256": "6a35e8ee0f0b3fa01128bd70e846fb18603d6189d8a41f971be270097ad2f69f"
+    }
+   },
+   "machine": "orin"
   }
  },
  "models": {

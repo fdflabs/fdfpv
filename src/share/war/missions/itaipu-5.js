@@ -47,8 +47,9 @@
  *
  * THE RADIO is the stages' cues (MISSIONS.md M5 Radio: CARANCHO, CREST,
  * MIRADOR, TALLER), the countdown's two lines, CARANCHO's and CREST's,
- * and the debriefs (`radio`). M5 writes no guide lines (`-g-`), so the
- * mission has none; the nudge is CREST's shared one.
+ * the debriefs (`radio`), and CREST's guide (`itaipu-5-g-*`, MISSIONS.md
+ * M5 Guide): what to do now, after each stage's story; the nudge is
+ * CREST's shared one.
  *
  * THE DIALS (MISSIONS.md 1.4), as First Light's: each group's time in a
  * window, the carrier's route on the river, the Loiterer's bearing, the
@@ -158,6 +159,9 @@ const SOURCE_CUES = (at) => [
   { when: { born: { group: 'carrier' } }, at: at + 4, radio: 'itaipu-5-s3-order', skip: DOWN },
   { when: DOWN, radio: 'itaipu-5-s3-dead' },
 ];
+/* CREST's guide on the source, every twist: where the hull is and what it
+ * takes, after the order. */
+const SOURCE_GUIDE = { when: { born: { group: 'carrier' } }, at: 11, radio: 'itaipu-5-g-source', skip: DOWN };
 
 export default withWaves({
   id: 'itaipu-5',
@@ -217,6 +221,7 @@ export default withWaves({
       objectives: [{ id: 'penstocks', text: 'war.obj.protect_penstocks', kind: 'protect' }],
       cues: [
         { when: { born: { group: 'swarm' } }, at: 2, radio: 'itaipu-5-s1-swarm' },
+        { when: { born: { group: 'swarm' } }, at: 7, radio: 'itaipu-5-g-face', skip: { any: [{ down: { group: 'swarm' } }, { leaked: 1, group: 'swarm' }] } },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'gorge', BEAT(12, 12)),
@@ -236,6 +241,8 @@ export default withWaves({
       objectives: [{ id: 'penstocks', text: 'war.obj.protect_penstocks', kind: 'protect' }],
       cues: [
         { at: 1, radio: 'itaipu-5-s2-pattern' },
+        { when: { born: { group: 'swarm' } }, at: 3, radio: 'itaipu-5-g-rim', skip: { down: { group: 'swarm' } } },
+        { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-5-g-hunters', skip: { down: { group: 'hunters' } } },
         STAGE_LOST,
       ],
       /* Over when the swarm is gone and the Hunters are down or HUNT_S
@@ -267,6 +274,8 @@ export default withWaves({
         { when: { born: { group: 'launched' } }, at: 4, radio: 'itaipu-5-s3-order', skip: { objective: 'carrier', is: 'done' } },
         { when: { born: { group: 'carrier-2' } }, at: 2, radio: 'itaipu-5-ta-turn' },
         { when: { all: [{ spot: { silent: true } }, { born: { group: 'carrier-2' } }] }, at: 1, radio: 'itaipu-5-ta-spot', skip: { objective: 'carrier', is: 'done' } },
+        SOURCE_GUIDE,
+        { when: { born: { group: 'carrier-2' } }, at: 6, radio: 'itaipu-5-g-hulls', skip: { objective: 'carrier', is: 'done' } },
         { when: { objective: 'carrier', is: 'done' }, radio: 'itaipu-5-s3-dead' },
         STAGE_LOST,
       ],
@@ -289,7 +298,9 @@ export default withWaves({
       objectives: [KILL(DOWN)],
       cues: [
         ...SOURCE_CUES(3),
+        SOURCE_GUIDE,
         { when: { born: { group: 'launched-hunters' } }, radio: 'itaipu-5-tb-turn' },
+        { when: { born: { group: 'launched-hunters' } }, at: 4, radio: 'itaipu-5-g-deck', skip: DOWN },
         STAGE_LOST,
       ],
       /* Over when the carrier is dead and nothing is left, or its swarms
@@ -311,6 +322,8 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'carrier' } }, at: 1, radio: 'itaipu-5-tc-turn' },
         ...SOURCE_CUES(3),
+        SOURCE_GUIDE,
+        { when: { born: { group: 'launched' } }, at: 4, radio: 'itaipu-5-g-escort', skip: DOWN },
         STAGE_LOST,
       ],
       exits: exits({ all: [DOWN, { cleared: true }] }, 'clear', BEAT(20, 20)),
@@ -334,7 +347,10 @@ export default withWaves({
         },
       ],
       objectives: [{ id: 'penstocks', text: 'war.obj.protect_penstocks', kind: 'protect' }],
-      cues: [{ at: 1, radio: 'itaipu-5-s4-last' }],
+      cues: [
+        { at: 1, radio: 'itaipu-5-s4-last' },
+        { when: { born: {} }, at: 8, radio: 'itaipu-5-g-all' },
+      ],
       /* The last: lost or held, the mission is won if the output is still
        * over the floor when it ends (as First Light's). */
       exits: exits({ cleared: true }, 'won', 0, 'waves'),
