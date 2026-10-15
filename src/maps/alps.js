@@ -107,7 +107,7 @@ const CEL_STYLE = {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(HORIZON);
     scene.fog = new THREE.Fog(HORIZON, FOG_NEAR, FOG_FAR);
-    const sky = skyDome();
+    const sky = skyDome({ sun: SUN_DIR, horizon: HORIZON });
     sky.layers.set(1);
     scene.add(sky);
     camera.far = CAMERA_FAR;
