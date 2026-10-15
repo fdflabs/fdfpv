@@ -73,6 +73,7 @@ import {
   SYNCED_SECTIONS, mergeBlobs, pickSynced, stampChanges,
 } from '../share/progressmerge.js';
 import { tracksOrigin } from '../share/cloud.js';
+import { deviceOnline, onNetwork } from '../share/offline.js';
 import { SETTINGS_KEY, loadSettings, saveSettings } from './settings.js';
 import { keepRecords, readRecords } from '../share/records.js';
 import {
@@ -219,6 +220,9 @@ function clearProgress() {
 export function createAccountUi({ ui, identity, say }) {
   let lastSync = 0;
   let syncing = null;
+  /* A failed send said already: the next is said only after one gets
+   * through, so a server that is down is said once, not every minute. */
+  let failSaid = false;
   /* What the pilot pressed before signing in, run once they have. */
   let pending = null;
   /* The latest nudge, whose timer alone clears what it said. */
@@ -504,9 +508,15 @@ export function createAccountUi({ ui, identity, say }) {
    * computer with no change since its last sync, so applying it loses
    * nothing of this computer's and settles nothing it has not sent. One
    * changed while the pull was out is left for the next sync to send. */
+  /* Offline nothing is sent: what changed stays changed
+   * (progressChanged), and goes when the device is back (onNetwork below);
+   * the shell has said the page is offline (src/main.js). */
   function sync({ loud = false, pull = false } = {}) {
     if (!signedIn() || syncing) {
       return syncing || Promise.resolve(false);
+    }
+    if (!deviceOnline()) {
+      return Promise.resolve(false);
     }
     lastSync = Date.now();
     /* A copy: the settings are changed in place. */
@@ -516,14 +526,17 @@ export function createAccountUi({ ui, identity, say }) {
         return false;
       }
       const changed = merged ? apply(merged, pull ? null : sent) : false;
+      failSaid = false;
       if (loud || changed) {
         say(str('account.synced'));
       }
       return changed;
     }).catch((e) => {
       /* A pull that fails changed nothing on either side, and offline it
-       * would say so every minute: the next sync that sends says it. */
-      if (!pull && (signedIn() || loud)) {
+       * would say so every minute: the next sync that sends says it, once
+       * until one gets through, unless the pilot asked. */
+      if (!pull && (signedIn() || loud) && (loud || !failSaid)) {
+        failSaid = true;
         say(str('account.sync_failed', { why: whyText(e) }));
       }
       return false;
@@ -623,6 +636,15 @@ export function createAccountUi({ ui, identity, say }) {
       if (document.visibilityState === 'visible' && signedIn() && Date.now() - lastSync > SYNC_GAP_MS) {
         sync();
       }
+    });
+    /* Back online: what was held while offline goes at once. */
+    let wasOnline = deviceOnline();
+    onNetwork(() => {
+      const now = deviceOnline();
+      if (now && !wasOnline && signedIn()) {
+        sync();
+      }
+      wasOnline = now;
     });
   }
 

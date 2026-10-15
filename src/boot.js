@@ -134,17 +134,20 @@ async function carryStorage() {
 }
 
 /* The save's version, quarantine and backups, after the move brings the
- * guest's storage in and before anything reads it (share/save.js). */
+ * guest's storage in and before anything reads it (share/save.js). The
+ * report goes on to main.js, which tells the pilot: the strings are not
+ * loaded yet here. */
 function openStorage() {
   const opened = openSave();
   if (opened.quarantined.length || opened.failed.length) {
     logWarn('save', 'save: a blob was kept as .corrupt or storage refused a step; see localStorage *.corrupt', opened);
   }
+  return opened;
 }
 
 async function launch() {
   await carryStorage();
-  openStorage();
+  const saveReport = openStorage();
 
   const { mapId, retiredFrom } = resolveLink(linkedMap());
   const titleMap = mapId ? null : TITLE_WORLD;
@@ -176,7 +179,7 @@ async function launch() {
 
   const shell = await import('./main.js');
   await shell.boot({
-    loading, bootStart: pageT0, mapId, titleMap, retiredFrom,
+    loading, bootStart: pageT0, mapId, titleMap, retiredFrom, saveReport,
   });
 }
 

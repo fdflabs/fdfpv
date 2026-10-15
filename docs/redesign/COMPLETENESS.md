@@ -37,8 +37,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-15, the first verdict
-in each item's heading): 35 EXISTS, 35 BUILT (since built by a phase), 9
-PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
+in each item's heading): 35 EXISTS, 38 BUILT (since built by a phase), 6
 PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -102,9 +101,27 @@ generations 0 to 2, a retired airframe, a seat on the 5 inch) and asserts
 the migrated result and that migrating twice is a no op. Size L. Phase
 19.
 
-**2. Autosave rules. PARTIAL.** The table of save points is
+**2. Autosave rules. BUILT (phase 19).** Built (2026-10-15 batch,
+w43-saves): `save:selftest` (CI) runs each row of save.js's SAVE POINTS
+table as the game calls it, on a store of its own, and holds it to the
+key it writes: a settings change through `Ui.persistSettings`, Unlock
+all, a challenge (twice writes once), a landing counted, a campaign
+commit, a calibration accepted and forgotten, a pad chosen and set back
+to automatic, a build saved, renamed and deleted through the Ui, a new
+best lap and a first lap, a better record from the account, the name,
+the language; and each reader, a slower or equal lap, a refused name, a
+refused rename, a flight with nothing to count, a second ask for firsts
+and a second `openSave` to writing nothing. Every key of the envelope
+must have a save point there, so a new key without one fails. The
+shell's own calls (flight time, `src/main.js` commitFlightTime and
+pageLeaving; the voice prefs, voiceui.js writePrefs) are held by their
+source. Stale, and corrected: the table said "never on exit", but
+flight time's last held seconds are written when the page is hidden or
+left (`pagehide`), as they must be; there is still no `beforeunload`
+save, and the check says so. What follows is the item as it was. The
+table of save points is
 src/share/save.js's header (SAVE POINTS), each with its trigger and its
-file: writes happen on change, never on exit, with no `beforeunload` save
+file: writes happen on change, with no `beforeunload` save
 and none needed. The settings blob on every settings change
 (`saveSettings`, src/ui/settings.js, through `Ui.persistSettings`), and
 with it progression (a lap, a challenge, Unlock all, a first sight, a
@@ -138,11 +155,30 @@ called while a result shows, so a reload at the debrief is paid).
 Held by `rooms:selftest` and `campaign:selftest`.
 **Done:** a table of save points in `save.js`'s header, each with its
 trigger (built), and the war's result paid once per war by an id kept in
-the save (built). Not built: `save:selftest` asserting each trigger
-writes; `campaign:check` (local) adding a reload during the result card.
-Phase 19.
+the save (built), and `save:selftest` asserting each trigger writes
+(built). Not added: `campaign:check` (local) reloading during the result
+card; its Node half is `campaign:selftest`'s (paid once across a
+reload), and The Interior's is `interior:coop`'s. Phase 19.
 
-**3. Recovery from corrupted saves. PARTIAL.** Every read is still
+**3. Recovery from corrupted saves. BUILT (phase 19).** Built
+(2026-10-15 batch, w43-saves): the pilot is told. boot.js hands
+`openSave`'s report to main.js, which shows it once in a dialog (after
+the retired world's, one dialog at a time; ui.askNotice, one button,
+src/ui/dialogs.js) in the pilot's language: what was put back from its
+last good copy and what starts fresh with none, each blob named in
+plain words (save.js SECTIONS `part`: the settings, progress and
+campaign; voice chat choices; stick calibration; joystick choice; the
+planes in My Hangar), and that the unreadable copy is kept in this
+browser (save.js `saveNotice`). Once: a blob with no backup stays
+broken until its reader next writes, so `openSave` reports a broken
+text already kept as `.corrupt` as `known`, and `saveNotice` says only
+what is new. Held by `save:selftest` (CI: each part named in en and es,
+put back and fresh said apart, the next boot silent, a blob broken
+differently said again) and `save:notice` (local: a truncated settings
+blob with a backup, in English, and a broken My Hangar with none, in
+Spanish, each read on screen, closed with one press, the settings read
+as the backup's, and silent after a reload). What follows is the item as
+it was. Every read is still
 wrapped by its own reader (`loadSettings`, `normaliseProgress`,
 `cleanCampaign`, `normaliseBuilds` and the rest), and under them, once
 per boot before any reader runs, src/share/save.js `openSave` keeps each
@@ -159,9 +195,10 @@ restored, no backup leaving the reader's fallback as it was, a broken
 backup not put back, and each reset keeping the other half. Missing: the
 pilot is not told. A quarantine or a refused step is a `logWarn('save',
 ...)` line (src/boot.js `openStorage`), in the bug report's ring and the
-console, never on screen. **Done:** the pilot told once, in words, when a
-blob was quarantined (restored or not), en and es; check: a `save` case
-that boots with a broken blob and reads the notice. Size S. Phase 19.
+console, never on screen (built since, above). **Done:** the pilot told
+once, in words, when a blob was quarantined (restored or not), en and
+es (built); check: a `save` case that boots with a broken blob and reads
+the notice (`save:notice`, built). Size S. Phase 19.
 
 ## 2. Sessions and multiplayer (items 4 to 11)
 
@@ -327,7 +364,37 @@ open tab learns of a new deploy from `version.json` every three minutes
 (src/ui/update.js). Checks: `version:check`, `rooms:selftest` (CI);
 `version:reload` (local).
 
-**11. Offline behaviour. PARTIAL.** Tracks are offline safe ("Saved in
+**11. Offline behaviour. BUILT (phase 6).** Built (2026-10-15 batch,
+w43-saves): one answer for whether the page can reach its servers,
+src/share/offline.js: the device offline (navigator.onLine, the
+`online` event), or online with the rooms server not answering (a fetch
+that fails on the network, from the room list or a card's room, counts
+the rooms down for RETRY_MS, 60 s, or until a fetch gets through or the
+device is back). While cut off, `roomLinkState.available()` is false
+(src/share/rooms.js), so the cards fly solo and the room games leave the
+hubs, the rule a page with no rooms server has had since #372 (stale in
+this item: with `?rooms=off` the cards already flew solo, ui.js
+pickForWay; flow:check holds Free Flight's); Track Day's or Free
+Flight's card pressed as the server stops answering flies solo on the
+same press, a room game's asks to try again (src/main.js onGameCard). The pilot is told once a spell, and once when
+it ends, in en and es (`offline.down`, `offline.back`). The account's
+sync sends nothing offline, what changed staying changed
+(progressChanged), and sends it the moment the device is back rather
+than on the next minute; a failed send is said once until one gets
+through (src/ui/accountui.js). Tracks were already kept and sent on
+`online` (cloud.js). Decided otherwise than the spec below: the room
+games are left off the hubs with the reason said, not drawn disabled,
+the representation the no-server page already had; and a cold load
+offline stays out (CDN, a CLAUDE.md decision), as does a file the page
+has not fetched yet (a tune never flown says it could not be loaded and
+the flight keeps the one it has). Held by `offline:check` (local: its
+own rooms server and a signed in page; the device offline through
+Chromium's network emulation: told once, no room games, Free Flight and
+Track Day each reach a flight, the sync sends and says nothing; back
+online: told, room games back, the held change sent at once; the rooms
+server stopped: the Free Flight card flies solo on its press; the server
+back: after RETRY_MS the card makes its room again, told). What follows
+is the item as it was. Tracks are offline safe ("Saved in
 this browser. It goes online when the connection is back",
 `cloud.offline`; src/share/cloud.js 424 retries on `online`); rooms,
 accounts and the board fail with a sentence (item 14); the loader says

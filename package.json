@@ -609,6 +609,8 @@
     "clientreport:check": "node scripts/clientreport-check.js",
     "sharedkeys:selftest": "node scripts/sharedkeys-selftest.js",
     "save:selftest": "node scripts/save-selftest.js",
+    "save:notice": "node scripts/save-notice-check.js",
+    "offline:check": "node scripts/offline-check.js",
     "flighttime:check": "node scripts/flighttime-check.js",
     "retired:selftest": "node scripts/retired-maps-selftest.js",
     "retired:aircraft": "node scripts/retired-aircraft-selftest.js",
