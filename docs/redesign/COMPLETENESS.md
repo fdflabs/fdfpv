@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 24 BUILT (since built by a phase), 20
+in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -347,16 +347,32 @@ item 18. Checks: `cloud:selftest`, `rooms:selftest` (CI); `rooms:session`
 
 ## 4. Controllers and input (items 15 to 20)
 
-**15. Controller hot plugging. PARTIAL.** The roster is polled every
-input poll rather than trusted to `gamepadconnected` (input.js 1504 to
-1534): a single new pad is taken, two or more open the picker (`hotplug`),
-the chosen pad reappearing on another port is found by its id
-(`matchPad`, input.js 1452), and Choose joystick switches device without a
-restart (main.js 12585). Missing: no check exercises any of it, and losing
-the only pad is item 18. **Done:** `input:selftest` (CI) drives a fake
-roster through connect after launch, disconnect, reconnect on another
-index and a switch, asserting the chosen device and the queued picker.
-Size S. Phase 20.
+**15. Controller hot plugging. BUILT (w43-hotplug).** The roster is
+polled every input poll rather than trusted to `gamepadconnected`
+(`PadRoster.track`, src/input/padpick.js): a single new pad is taken, a
+new pad beside another queues the picker (`hotplug`), the chosen pad
+reappearing on any port is found by its id (`match`) and is its return,
+not a question, and Choose joystick switches device without a restart.
+Losing the flying device is item 18; its return is reported once
+(`takeDeviceBack`, src/input/input.js) with its name and whether its own
+calibration flies (each device keeps its map, dead zone and expo under its
+id, `followDevice`; pad buttons are one binding for every standard pad, so
+nothing per device to restore there). The shell (main.js `padLossFrame`)
+says each in en and es: lost in flight, item 18's pause or room hold; lost
+on a menu or the pause menu, the keys fly until it is back; lost in a
+replay, the replay plays on and the loss is answered as one in flight when
+the run comes back on screen, unless a device flies first; a hotplug
+picker waits for the replay to close. The Controller screen is drawn again
+when the device changes under it (src/ui/controller.js `controllerKey`).
+Written up in docs/KEYBINDS.md. Checks: `input:selftest` (CI) drives a
+fake roster through a radio plugged in after launch, pulled, back on
+another port with its calibration and dead zone, another radio taken and
+flying its own map, the first back beside it (picker queued) and picked,
+a blip between two frames and the keyboard chosen meanwhile;
+`input:trace` (CI) pins the picker frame by frame; `lint:input` (local)
+pulls and replugs the pad in flight, on the pause menu and in a replay;
+`controller:check` (local) with the Controller screen open. The room
+branch is checked in Node only (it needs a room server).
 
 **16. Controller identification. BUILT (FOUNDATIONS #9).** The device
 is parsed from the browser's id in both browser forms (`parsePadId`,

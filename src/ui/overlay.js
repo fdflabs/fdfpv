@@ -38,6 +38,7 @@ import { STICK_MODES, normaliseStickMode, stickCaption } from '../input/stickmod
 import { boardConfigured } from '../share/board.js';
 import { boardFlightSeconds } from '../share/stats.js';
 import { str } from '../strings/index.js';
+import { controllerKey } from './controller.js';
 import { cursorOnLit } from './flywith.js';
 import { formatRunClock, formatTime } from './format.js';
 import { WEIGHT_STOCK, airHintSeen, clampWeight, markAirHintSeen, saveSettings } from './settings.js';
@@ -722,10 +723,15 @@ export const overlayMethods = {
   setPadInfo(info) {
     const before = padTroubleItem(this.padInfo);
     const deviceWas = this.padInfo && this.padInfo.device;
+    const rowsWere = controllerKey(this.padInfo);
     this.padInfo = info || { count: 0, using: str('ui.keyboard') };
     const after = padTroubleItem(this.padInfo);
     const changed = (before ? before.label : '') !== (after ? after.label : '');
     if (changed && this.screen === 'title') {
+      this.renderMenu();
+    }
+    /* The Controller screen follows a plug or unplug while it is open. */
+    if (rowsWere !== controllerKey(this.padInfo) && this.screen === 'controller') {
       this.renderMenu();
     }
     /* The controller question lights the device plugged in, live, and
