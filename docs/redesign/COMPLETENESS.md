@@ -272,7 +272,15 @@ room abandoned ABANDON_MS later. Decided: a start counts the seats on the
 room's world and not failed, bots included (edge/rooms/core.js fielded);
 a round on keeps present(). Held by `rooms:selftest` (a load failure
 counted out: refused alone with the other failed, then on another world,
-then the start goes once it stands on the room's world). Combat started
+then the start goes once it stands on the room's world). **A rebuild
+told** (2026-10-16 batch, w45-tail): a page rebuilding its world drew no
+frame and so told nobody, keeping the room's count and a war briefing's
+lead (war.js worldsUp) on the world it was taking down (B said
+swiss2:morning to the war room through its build of Itaipu). A swap now
+tells the room as it starts: the profile loading, the war's world none;
+fielded leaves out a seat loading. Held by `rooms:selftest` (a pilot
+loading the room's world again is refused alone, then the start goes)
+and `war:lobby` (while B builds it, B tells the room no world). Combat started
 in passing has no alone check at all, and `rooms:server` holds a host
 alone starting one (its restart section): left as it is, a combat round
 alone in passing still ends ABANDON_MS later. Not moved onto the named

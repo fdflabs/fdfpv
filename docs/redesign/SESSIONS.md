@@ -133,7 +133,8 @@ lap of the arena.
 - **Who counts at a start.** A host starting Catch the Ace or a Trick
   Battle in passing, where two are its least, counts only the pilots on
   the room's world and not failed, the AI pilots among them (core.js
-  fielded): a pilot still building the world or whose world would not
+  fielded): a pilot still building the world (its profile loading, told
+  as its swap starts) or whose world would not
   build is not a second pilot, and the start is refused as `alone`
   rather than run a round the room abandons ABANDON_MS later. A round
   already on keeps the looser count (present: not failed). Held by

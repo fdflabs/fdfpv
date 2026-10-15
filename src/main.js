@@ -14969,6 +14969,13 @@ export async function boot({
        * press still going on (a card's mouse up landed on the title's). */
       ui.show(stayScreen === 'friends' ? 'friends' : 'title');
     }
+    /* No frame runs until the new world stands (openFrame), and so neither
+     * does the room's look at this page's world: told now, before the old
+     * one goes, that it is loading and stands on no world, so the room's
+     * counts (core.js fielded) and a briefing's lead (war.js worldsUp) do
+     * not go on the world being taken down. */
+    roomTellProfile();
+    warWorldTell();
     const entry = mapById(wantId);
     loading.run(planStages(['module', 'world', 'frame'], entry.buildMs));
     /* Disposing and building both hold the main thread, so the loading

@@ -520,7 +520,7 @@ export class RoomCore {
    * is not yet a second pilot, and a round started on one would be
    * abandoned ABANDON_MS later (settleGames). */
   fielded() {
-    return [...this.seats.values()].filter((t) => !this.failed(t) && t.profile.map === this.meta.map).length;
+    return [...this.seats.values()].filter((t) => !this.failed(t) && t.profile.map === this.meta.map && t.profile.status !== 'loading').length;
   }
 
   present(players) {

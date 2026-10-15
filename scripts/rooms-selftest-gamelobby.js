@@ -758,6 +758,22 @@ export function loadFailSection(check) {
       JSON.stringify(told(e, 0)));
   }
   {
+    /* A page rebuilding the room's world (a time of day, a graphics level)
+     * says so in its profile, loading, on the world it is taking down: not
+     * a second pilot for a game started in passing until it stands again. */
+    const e = lobbyRoom({ mode: null, mission: null });
+    const loading = (status) => e.say(1, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null, ...(status ? { status } : {}) } });
+    loading('loading');
+    const counted = e.r.fielded();
+    e.say(0, { type: 'tag', op: 'start', goal: 5 });
+    const refused = e.socks[0].got.filter((m) => m.type === 'tag' && m.error).map((m) => m.error).join();
+    check('a pilot loading the room\'s world again is not fielded: a match started in passing is refused alone', counted === 1 && e.r.tag.match === null && refused === 'alone',
+      JSON.stringify({ counted, refused }));
+    loading(null);
+    e.say(0, { type: 'tag', op: 'start', goal: 5 });
+    check('its world standing again, it is: the match starts', e.r.fielded() === 2 && e.r.tag.match && e.r.tag.match.state === 'countdown', String(e.r.fielded()));
+  }
+  {
     /* Every pilot here failed: nobody to play the round, which the room
      * abandons as it does a round its players left. */
     const e = lobbyRoom({ mode: 'combat', mission: null, n: 1 });

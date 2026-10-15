@@ -256,6 +256,24 @@ try {
     await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(rowAction)})`, 30000).catch(() => {});
   };
   await openRooms();
+  /* B's world as B tells the room while B builds the mission's (op
+   * 'world', window.__war().world), sampled from the join until it
+   * stands: while B's map is not ready B stands on no world, and a world
+   * told then (B said swiss2:morning through its build of Itaipu, w45,
+   * 2026-10-15) is one the room would count on. */
+  const told = { down: 0, wrong: [], done: false };
+  const sampleTold = (async () => {
+    while (!told.done) {
+      const w = await b.evaluate("({ told: window.__war().world, ready: window.__map().ready })").catch(() => null);
+      if (w && !w.ready) {
+        told.down += 1;
+        if (w.told !== null && told.wrong.length < 3) {
+          told.wrong.push(w.told);
+        }
+      }
+      await b.sleep(100);
+    }
+  })();
   await b.evaluate(`(() => { window.__ui.act(${JSON.stringify(rowAction)}); return true; })()`);
   await b.until(`${DIALOG} !== null`, 30000).catch(() => {});
   await answer(b, true);
@@ -277,6 +295,10 @@ try {
   const missionWorld = `${MISSIONS['itaipu-1'].map}:${missionTime(MISSIONS['itaipu-1']) ?? 'day'}`;
   const worldUp = `window.__war().world === ${JSON.stringify(missionWorld)} && window.__map().ready`;
   await Promise.all([a, b].map((p) => p.until(worldUp, 120000).catch(() => {})));
+  told.done = true;
+  await sampleTold;
+  check('while B builds it, B tells the room no world: none told on a frame its map was not ready', told.down > 0 && told.wrong.length === 0,
+    JSON.stringify(told));
   const worlds = await Promise.all([a, b].map((p) => p.evaluate("({ told: window.__war().world, ready: window.__map().ready })")));
   check(`both screens build mission 1's world under the lobby and tell the room: ${missionWorld}`, worlds.every((w) => w.told === missionWorld && w.ready),
     JSON.stringify(worlds));
