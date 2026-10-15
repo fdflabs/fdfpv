@@ -5,8 +5,9 @@
  * What happened in a flight was told six ways with six vocabularies (the
  * recorder's event(), audio.event, RunWatch's method calls, the war's room
  * messages, the war server's log, stats.js). This is the one stream the
- * consumers to come read: the debrief (phase 10), progression's counters
- * (phase 11), the challenges as rows (phase 14), the replay's events. It
+ * consumers read: progression's counters (phase 11) and every
+ * achievement (src/game/progress.js awardFlight, item 28), the debrief
+ * (phase 10), the replay's events to come. It
  * is a log that consumers fold, deliberately not a pub/sub of callbacks,
  * so a debrief and a replay read the same facts in the same order.
  *
@@ -23,6 +24,12 @@
  *   spawned       a new flight (src/main.js resetCraft, Progress.startFlight),
  *                 and the craft put somewhere by a developer hook
  *                 (__placeCraft): a lap across either is no best
+ *   seated {airframe, fixedWing, power, smallestPack, crashed}
+ *                 a new run key (Progress.startRun): the aircraft, its
+ *                 power's kind ('electric', 'glow' or null) and whether
+ *                 it is on its smallest pack or tank, and whether the
+ *                 crash flag was up as it was seated; the challenges
+ *                 start over on it (progress.js challengeRun)
  *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js);
  *                 a lap carries {ms, airframe, medal, kind, course, n,
  *                 of}, the medal it reached on a course with medals or
@@ -35,6 +42,10 @@
  *                 event per kind per run of contact (see append)
  *   crash {airframe}
  *                 the crash flag's rising edge (Progress.tick)
+ *   engine_out, battery_low
+ *                 the engine quitting with fuel in the tank, and LOW
+ *                 BATTERY on electric power, each once a run, as
+ *                 RunWatch detects them (Progress.tick)
  *   landing {airframe, airMs}
  *                 RunWatch's landing: down and whole after a real flight,
  *                 on the run's aircraft (progression counts landings,
@@ -71,18 +82,19 @@
  *                 (src/ui/campaign.js, src/ui/opscampaign.js); both
  *                 counted per aircraft like a landing
  *
+ *   found {world, id}
+ *                 a named place of the world flown into (src/game/
+ *                 discovery.js, Progress.lookForPlaces), once a flight
+ *
  * The rest of the vocabulary (objective, stage, hit, joined, left, and
  * the war's rounds) is the war's and the rooms', named now so their
  * producers add rows, not words.
  *
- * RunWatch reads it first: Progress appends gate and lap here and hands
- * RunWatch the event (feedRunWatch), so those challenges are judged from
- * what the log says happened. A touch is logged and told to RunWatch
- * directly, because the log keeps one per run of contact and a new run
- * key (Progress.startRun) inside that run must still hear of it. Its once
- * a frame tick stays a direct call: a frame's state is not an event. A
- * log folded afterwards (feedRunWatch over every event) gives the same
- * answers within one run key.
+ * Every achievement is paid from this log by one fold (progress.js
+ * awardFlight), never from the call that logged the event: a log folded
+ * afterwards pays what the flight paid, once. A frame's state is not an
+ * event, so RunWatch still reads the frames, and what it finds (a
+ * landing, the engine quitting, LOW BATTERY) is logged as one.
  *
  * Pure: no DOM, no storage, no clock of its own. The check runs it in
  * Node (scripts/events-selftest.js).
@@ -106,7 +118,7 @@
 export const EVENT_TYPES = Object.freeze([
   'spawned', 'gate', 'lap', 'touch', 'crash', 'landing',
   'objective', 'stage', 'kill', 'hit', 'round', 'joined', 'left',
-  'mission_start', 'mission_end', 'contact',
+  'mission_start', 'mission_end', 'contact', 'seated', 'engine_out', 'battery_low', 'found',
 ]);
 const KNOWN = new Set(EVENT_TYPES);
 /* Fields an event carries itself; data may not overwrite them. */
@@ -161,15 +173,4 @@ export class EventLog {
     this.ended = true;
     this.endSimMs = Number.isFinite(simMs) ? simMs : null;
   }
-}
-
-/* What RunWatch (src/game/progress.js) makes of one event: the ids of the
- * challenges it says just came true. A type RunWatch does not judge says
- * nothing. */
-export function feedRunWatch(watch, event) {
-  if (!event) return [];
-  if (event.type === 'gate') return watch.gatePass();
-  if (event.type === 'lap') return watch.lap();
-  if (event.type === 'touch') watch.touch(event.kind);
-  return [];
 }

@@ -4,9 +4,11 @@
  * in Settings, all over src/game/progress.js, which is the arithmetic.
  *
  * The shell (src/main.js) tells a Progress what happens in a run, through
- * startRun, gatePass, touch, lap and tick; Progress keeps the pilot's
- * progress in settings.progress, stores it on every change, and says
- * what it earned in a toast: a lap's XP, a challenge done, a level, and
+ * startRun, gatePass, touch, lap and tick; Progress logs each as the
+ * flight's events (src/game/events.js), pays what the log earned through
+ * the one fold (progress.js awardFlight), keeps the pilot's progress in
+ * settings.progress, stores it on every change, and says what it earned
+ * in a toast: a lap's XP, a challenge done, a level, and
  * each thing that level opens. The toasts are the one thing here drawn in
  * flight, so they take no pointer and sit clear of the OSD's corners.
  *
@@ -31,12 +33,12 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, CHALLENGES, RIM_KINDS, RunWatch, awardAircraftChallenges, awardBests, awardChallenge, awardFirsts, awardLap, awardMedal, awardPlace,
-  bestKind, challengeAmounts, findItem, fits, foldEvents, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, CHALLENGES, RIM_KINDS, RunWatch, awardFlight,
+  bestKind, challengeAmounts, challengeRun, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { placeKey, placesAt, placesOf } from '../game/discovery.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
-import { EventLog, feedRunWatch } from '../game/events.js';
+import { EventLog } from '../game/events.js';
 import { itemById } from '../game/economy.js';
 import { LessonWatch, certsEarned, passesOf } from '../game/training.js';
 import { readWallet } from '../share/account.js';
@@ -220,6 +222,10 @@ export class Progress {
     this.ui = ui;
     this.host = host;
     this.watch = new RunWatch();
+    /* The run's state as the challenges read it (progress.js
+     * challengeRun), carried across the flights of one run: a recovery or
+     * a placement starts a new log, not a new run. */
+    this.run = challengeRun();
     /* This flight's events (src/game/events.js), and the sim clock as the
      * last tick gave it, for the calls that do not carry one. */
     this.flight = new EventLog();
@@ -284,14 +290,20 @@ export class Progress {
     this.save();
   }
 
-  /* The run the shell just seated: which plane on which power. */
+  /* The run the shell just seated: which plane on which power, and
+   * whether the crash flag is up as it is seated (ctx.crashed). */
   startRun(ctx) {
     this.watch.start(ctx);
+    this.event('seated', {
+      airframe: ctx.airframe, fixedWing: Boolean(ctx.fixedWing), power: ctx.power ?? null, smallestPack: Boolean(ctx.smallestPack), crashed: Boolean(ctx.crashed),
+    });
   }
 
   /* A new flight from the spawn at sim time `simMs`; `roomNow` the room
-   * clock while in a room. The last flight's log ends here. */
+   * clock while in a room. The last flight's log is folded to its end and
+   * ends here. */
   startFlight(simMs, roomNow = null) {
+    this.foldFlight();
     if (simMs <= 0 || simMs < this.simMs) {
       this.bests = [];
     }
@@ -304,41 +316,38 @@ export class Progress {
     this.flight.append('spawned', simMs);
   }
 
-  /* This flight's events not yet folded into progress, folded
-   * (progress.js foldEvents), their bests awarded (awardBests), and
-   * stored when any was. */
+  /*
+   * This flight's events not yet folded, paid (progress.js awardFlight,
+   * the one place an achievement is paid), stored when anything was, and
+   * each award said in its own toast. A best and an aircraft challenge
+   * are kept for the run's debrief too (src/game/debrief.js withBests).
+   * Returns the awards' events.
+   */
   foldFlight() {
-    const from = this.folded;
-    const { at, counted } = foldEvents(this.state, this.flight.events, from);
-    const won = awardBests(this.state, this.flight.events, from);
-    const done = awardAircraftChallenges(this.state, this.flight.events, from);
+    /* A sync answered by a server older than progress v2 can hand back
+     * progress without the map. */
+    if (!this.state.firsts || typeof this.state.firsts !== 'object') {
+      this.state.firsts = {};
+    }
+    const { at, counted, awards } = awardFlight(this.state, this.flight.events, this.folded, this.run, {
+      campaign: this.ui.settings.campaign,
+      seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
+    });
     this.folded = at;
-    if (counted || won.length || done.length) {
+    if (counted || awards.length) {
       this.save();
     }
-    /* One award an aircraft challenge, its toast its own; the run's
-     * debrief says it as a record line (src/game/debrief.js withBests). */
-    let one = [];
-    for (const e of done) {
-      if (e.type === 'aircraft_challenge') {
-        this.show(one);
-        this.bests.push({ key: `challenge:${e.key}`, airframe: e.airframe, id: e.id });
-        one = [];
+    for (const group of awards) {
+      for (const e of group) {
+        if (e.type === 'best') {
+          this.bests.push(e);
+        } else if (e.type === 'aircraft_challenge') {
+          this.bests.push({ key: `challenge:${e.key}`, airframe: e.airframe, id: e.id });
+        }
       }
-      one.push(e);
+      this.show(group);
     }
-    this.show(one);
-    /* One award a best: its toast says that best alone. */
-    let award = [];
-    for (const e of won) {
-      if (e.type === 'best') {
-        this.show(award);
-        this.bests.push(e);
-        award = [];
-      }
-      award.push(e);
-    }
-    this.show(award);
+    return awards.flat();
   }
 
   /* The bests this run set and the aircraft challenges it did, for its
@@ -358,7 +367,6 @@ export class Progress {
     this.bests = this.bests.filter((b) => bestKind(b.key) !== game);
     const round = this.event('round', { game, world, ...more });
     this.foldFlight();
-    this.checkFirsts();
     if (this.lesson) {
       this.lesson.round(round);
       this.lessonNews();
@@ -488,18 +496,16 @@ export class Progress {
   }
 
   gatePass() {
-    this.award(feedRunWatch(this.watch, this.event('gate')));
+    this.event('gate');
+    this.foldFlight();
     if (this.lesson) {
       this.lesson.gatePass();
       this.lessonNews();
     }
   }
 
+  /* Folded with the next fold: a touch pays nothing by itself. */
   touch(kind) {
-    /* Direct, not through the logged event: the log keeps one touch per
-     * run of contact, and a startRun inside that run would leave RunWatch
-     * never told of it. */
-    this.watch.touch(kind);
     this.event('touch', { kind });
     if (this.lesson && RIM_KINDS.includes(kind)) {
       this.lesson.rim();
@@ -512,15 +518,8 @@ export class Progress {
    * `n` and `of` the lap's place in a solo run and the run's laps, null in
    * a room, so a run's best is read from the log (progress.js bestsOf). */
   lap(course, { ms = null, ghostMs = null, medal = null, n = null, of = null } = {}) {
-    const events = awardLap(this.state, course);
-    const won = medal ? awardMedal(this.state, course.key, medal) : [];
     const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });
-    const done = feedRunWatch(this.watch, lapped);
     this.foldFlight();
-    this.save();
-    this.show(events);
-    this.show(won);
-    this.award(done);
     if (this.lesson) {
       this.lesson.lap(lapped, ghostMs);
       this.lessonNews();
@@ -529,19 +528,23 @@ export class Progress {
 
   tick(state) {
     this.simMs = state.simMs;
+    const logged = this.flight.events.length;
     /* Its own edge: startRun clears RunWatch's flag mid crash. */
     if (state.crashed && !this.wasCrashed) {
       this.event('crash', { airframe: this.airframe });
-      this.foldFlight();
     }
     this.wasCrashed = Boolean(state.crashed);
     const landings = this.watch.landings;
-    this.award(this.watch.tick(state));
+    for (const edge of this.watch.tick(state)) {
+      this.event(edge);
+    }
     if (this.watch.landings > landings) {
       this.event('landing', { airframe: this.airframe, airMs: this.watch.lastAirMs });
-      this.foldFlight();
     }
     this.lookForPlaces(state);
+    if (this.flight.events.length > logged) {
+      this.foldFlight();
+    }
     if (this.lesson) {
       this.lesson.tick(state);
       this.lessonNews();
@@ -549,11 +552,12 @@ export class Progress {
   }
 
   /*
-   * DISCOVERY: a place of the world flown into is found and paid once
-   * (progress.js awardPlace). `state.world` is the world's registry id,
-   * `state.pos` the craft in the map's frame and `state.agl` its height
-   * over what is under it. On a flight's first tick the places it began
-   * inside are set aside, so a spawn or a placement finds nothing.
+   * DISCOVERY: a place of the world flown into is logged `found`, and
+   * the fold pays it once (progress.js awardFlight, awardPlace).
+   * `state.world` is the world's registry id, `state.pos` the craft in
+   * the map's frame and `state.agl` its height over what is under it. On
+   * a flight's first tick the places it began inside are set aside, so a
+   * spawn or a placement finds nothing.
    */
   lookForPlaces({ world, pos, agl, crashed }) {
     if (!placesOf(world).length || crashed || !pos) {
@@ -567,50 +571,21 @@ export class Progress {
     }
     for (const id of placesAt(world, pos, agl, this.placeSkip)) {
       this.placeSkip.add(id);
-      const events = awardPlace(this.state, world, id);
-      if (events.length) {
-        this.save();
-        this.show(events);
-      }
+      this.event('found', { world, id });
     }
   }
 
   /*
    * The firsts the pilot's own record now shows and has not been paid
-   * for (progress.js awardFirsts): a mission's win and stars from the
-   * campaign, an aircraft's milestones from the flight time. Asked after
-   * whatever can make one: flight time committed, a war result recorded,
+   * for: a mission's win and stars from the campaign, an aircraft's
+   * milestones from the flight time. Asked after whatever can make one
+   * outside a flight's log: flight time committed, a war result recorded,
    * a sync that brought another computer's, and once at start, which is
-   * how a profile from before firsts (progress v1) is paid, once.
+   * how a profile from before firsts (progress v1) is paid, once. Paid
+   * by the same fold as the rest (foldFlight).
    */
   checkFirsts() {
-    /* A sync answered by a server older than progress v2 can hand back
-     * progress without the map. */
-    if (!this.state.firsts || typeof this.state.firsts !== 'object') {
-      this.state.firsts = {};
-    }
-    const events = awardFirsts(this.state, {
-      campaign: this.ui.settings.campaign,
-      seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
-      lessons: this.state.lessons,
-      flown: this.state.lessonsFlown,
-      played: this.state.played,
-    });
-    if (events.length) {
-      this.save();
-      this.show(events);
-    }
-    return events;
-  }
-
-  award(ids) {
-    for (const id of ids) {
-      const events = awardChallenge(this.state, id);
-      if (events.length) {
-        this.save();
-        this.show(events);
-      }
-    }
+    return this.foldFlight();
   }
 
   /* The events of an award, as toasts: one for what earned the XP, which

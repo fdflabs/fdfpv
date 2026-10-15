@@ -36,8 +36,8 @@ a week or more) and its phase (PLAN.md section 5).
 means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
-**Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 28 BUILT (since built by a phase), 16
+**Counts over the 83 items with a verdict** (2026-10-15, the first verdict
+in each item's heading): 35 EXISTS, 29 BUILT (since built by a phase), 15
 PARTIAL, 0 MISSING, 3 N/A, 1 DECIDED. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -491,9 +491,14 @@ by birth record and room clock (src/replay/warrec.js); cameras are keys
 **25. Central gameplay event bus. BUILT (phase 22).** Built (2026-10-13,
 w38-save-events): src/game/events.js, the vocabulary below as the frozen
 `EVENT_TYPES`, one append only log per flight on the sim and room
-clocks; RunWatch fed from it (src/ui/progress-ui.js `feedRunWatch`), the
+clocks; every achievement paid from it by one fold (item 28), the
 counts per aircraft folded from it (item 27) and the Defence lessons
-judged from it. The debrief does not read it yet (item 26). Check:
+judged from it. Four words added with item 28 (2026-10-15, w43-achieve),
+so the challenges read the run's aircraft and power and discovery reads
+a place found from the log: `seated` (a new run key, its aircraft,
+power and pack), `engine_out` and `battery_low` (the two edges RunWatch
+detects in the frames) and `found` (a named place flown into). The log
+is in memory only, never stored or sent. Check:
 `events:selftest` (CI). What follows is the gap as first written. There
 are at least six
 separate channels, each with its own vocabulary: the recorder's
@@ -553,7 +558,36 @@ aircraft hours), merged as the higher by progressmerge. Check:
 `progress:selftest` (CI) folds a stream twice and gets one count. Size M.
 Phase 11, after 22.
 
-**28. Achievement triggers. PARTIAL.** Seven challenges (progress.js 141)
+**28. Achievement triggers. BUILT (phase 14).** Built (2026-10-15,
+w43-achieve): one function pays every achievement from the flight's
+event log, src/game/progress.js `awardFlight`: per event in log order a
+lap's XP and its course's first lap (awardLap), its medal (awardMedal),
+the bests (bestsOf), the aircraft challenges (aircraftChallengesOf), the
+seven challenges and a place `found` (awardPlace), then the counts
+(foldEvents) and last the firsts. Each award keeps what it paid, and
+the fold's cursor means a log folded twice pays nothing twice. The
+seven challenges are rows of `CHALLENGES`, each `on` one event type with
+a `when` over the run's state (`challengeRun`, folded by
+`challengesOn`, carried across a run's flights and reset by `seated`);
+RunWatch only detects (a landing, the engine quitting, LOW BATTERY) and
+the log says what it found. src/ui/progress-ui.js Progress logs and
+toasts and pays nothing itself: `foldFlight` is its one call into
+awardFlight, and `checkFirsts` is that fold. The firsts stay read from
+the pilot's record, not the log: a mission's win and stars are the
+campaign's, merged from every computer, an aircraft's milestones its
+flight time, and src/game/economy.js pays tokens from that same list.
+Checks: `events:selftest` (CI) keeps the old judge as an oracle and
+drives it and the log's rows call for call over a recorded flight, a
+new seat inside a contact and a crash, and a thousand seeded random
+runs that fire all seven (every run agrees), and holds the producers in
+progress-ui.js to logging only; `progress:selftest` (CI) feeds recorded
+logs to awardFlight and asserts exactly which achievements fire, in
+order (a hoop streak, a lap's XP and medal, two bests, the first lap
+and the clean Timber lap, a place, the endurance, the dead stick, two
+firsts), then nothing on a second fold, and no achievement twice on the
+whole log again; a run's laps carried over three flights; dead stick,
+the glide and a seat mid crash from the log. What follows is the gap as
+first written. Seven challenges (progress.js 141)
 judged by one class, `RunWatch` (progress.js 450), fed event shaped calls
 from the shell, which is the right shape; but each condition is an `if`
 on its id inside RunWatch (`lap()` at 491, `tick()` at 556). Adding the

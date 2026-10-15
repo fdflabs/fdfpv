@@ -14011,7 +14011,7 @@ export async function boot({
     const ctx = progressRun();
     if (ctx.key !== progressKey) {
       progressKey = ctx.key;
-      ui.progress.startRun(ctx);
+      ui.progress.startRun({ ...ctx, crashed });
     }
     ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
       agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
