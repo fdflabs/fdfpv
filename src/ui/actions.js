@@ -558,6 +558,12 @@ const ACTIONS = {
     ui.show('paused');
     return FALL_THROUGH;
   },
+  /* However the pause menu opens (Escape, the tab hidden, the controller
+   * lost), a lesson in flight is held and says so (TRAINING.md 10). */
+  pause(ui) {
+    if (ui.progress) ui.progress.lessonPaused();
+    return FALL_THROUGH;
+  },
   /* Continue on a campaign: its next mission's Play, the campaign's
    * consent and room as that Play's, asked again now rather than kept
    * from the render, so a result paid since is counted. */

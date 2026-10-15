@@ -22,7 +22,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CERTS, GLIDE, LESSONS, LessonWatch, SKIPS, EIGHT_BANK, LESSON_SETTINGS, SLIP_G, applyLesson, heldSettings, restoreSettings, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf, heldTrack } from '../src/game/training.js';
+import { CERTS, GLIDE, LESSONS, LessonWatch, lessonFliesIn, SKIPS, EIGHT_BANK, LESSON_SETTINGS, SLIP_G, applyLesson, heldSettings, restoreSettings, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf, heldTrack } from '../src/game/training.js';
 import { EventLog } from '../src/game/events.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
@@ -448,6 +448,47 @@ expect('two tracks at once', certsEarned({ ...allOf('racing'), ...allOf('multiro
   restoreSettings(u, held, seat, ok);
   expect('the same aircraft is not seated again', u.seats, undefined);
   expect('nothing held, nothing to put back', restoreSettings(u, null, seat, ok) || restoreSettings(u, 'x', seat, ok), false);
+}
+
+/* INTERRUPTIONS (docs/redesign/TRAINING.md 10). The pause menu holds a
+ * lesson: no frames reach the judge and the sim clock stops, so the
+ * frames after Resume carry on from the same step and the same sim ms. */
+{
+  const tickAt = (w, from, ms, s) => {
+    let t = from;
+    for (; t < from + ms; t += FRAME_MS) {
+      w.tick({ simMs: t, crashed: false, grounded: false, agl: 10, pos: { x: 0, y: 10, z: 0 }, heading: s ? s(t) : 0 });
+    }
+    return t;
+  };
+  const hold = new LessonWatch(lessonById('quad_throttle'));
+  let t = tickAt(hold, 0, 3000);
+  const paused = { step: hold.step, holdSince: hold.holdSince };
+  t = tickAt(hold, t, 2100);
+  expect('pause: a 5 s hold, 3 s before the pause and 2.1 s after, passes in its step', paused.step === 0 && paused.holdSince != null && hold.passed, true);
+  const short = new LessonWatch(lessonById('quad_throttle'));
+  tickAt(short, tickAt(short, 0, 3000), 1800);
+  expect('pause: 3 s and 1.8 s after it is not 5 s', short.passed, false);
+  const turns = new LessonWatch(lessonById('first_turns'));
+  const rate = (from, r) => (tt) => ((tt - from) / 1000) * r;
+  t = tickAt(turns, 0, 8400, rate(0, CIRCLE));
+  const afterLeft = turns.step;
+  tickAt(turns, t, 8400, rate(t, -CIRCLE));
+  expect('pause: Turns paused after its left circle resumes on the right one and passes', afterLeft === 1 && turns.passed, true);
+  const crashes = new LessonWatch(lessonById('first_takeoff'));
+  let ct = 0;
+  for (const seg of [air(5000), { ...crash, ms: 400 }, air(3000), crash, air(1000)]) {
+    for (const end = ct + seg.ms; ct < end; ct += FRAME_MS) {
+      crashes.tick({ simMs: ct, crashed: Boolean(seg.crashed), grounded: Boolean(seg.grounded) });
+    }
+  }
+  expect('crash: each crash restarts the steps and is counted once, however many frames report it', [crashes.crashes, crashes.step].join(), '2,0');
+  expect('rooms: Racing a pilot keeps Track Day\'s, not Streamer Combat\'s', [lessonFliesIn(lessonById('race_pilot'), 'race'), lessonFliesIn(lessonById('race_pilot'), 'combat')].join(), 'true,false');
+  expect('rooms: a Defence lesson keeps the war\'s', LESSONS.filter((l) => l.track === 'defence').every((l) => lessonFliesIn(l, 'war')), true);
+  expect('rooms: a solo lesson keeps none', ['race', 'war', 'combat', 'tag', 'jam', 'free'].some((m) => lessonFliesIn(lessonById('first_turns'), m)), false);
+  for (const k of ['training.interrupted', 'training.interrupt_held', 'training.interrupt_crash', 'training.interrupt_room', 'training.interrupt_reload']) {
+    expect(`${k} en and es`, typeof en[k] === 'string' && typeof es[k] === 'string' && en[k] !== es[k], true);
+  }
 }
 
 console.log(failed ? `FAIL, ${failed} case(s)` : `PASS, ${LESSONS.length} lessons judged`);

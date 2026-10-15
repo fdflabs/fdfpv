@@ -36,7 +36,7 @@ import {
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog, feedRunWatch } from '../game/events.js';
 import { itemById } from '../game/economy.js';
-import { LessonWatch, certsEarned, passesOf } from '../game/training.js';
+import { LessonWatch, certsEarned, lessonById, lessonFliesIn, passesOf } from '../game/training.js';
 import { readWallet } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
@@ -212,6 +212,36 @@ function injectStyle() {
  * THE CONTROLLER, one per Ui: `ui` is the Ui (its settings, its store and
  * its sounds), `host` its root.
  */
+/*
+ * The lesson in flight, { id, step }, kept in storage from its Fly until it
+ * is passed or left, so the next load knows a reload or a closed browser
+ * interrupted it (docs/redesign/TRAINING.md 10). Without storage nothing
+ * is kept and nothing is said.
+ */
+const LESSON_IN_FLIGHT_KEY = 'fdfpv.lessonInFlight';
+
+function keepLessonInFlight(w) {
+  try {
+    if (w) {
+      localStorage.setItem(LESSON_IN_FLIGHT_KEY, JSON.stringify({ id: w.lesson.id, step: w.step }));
+    } else {
+      localStorage.removeItem(LESSON_IN_FLIGHT_KEY);
+    }
+  } catch (e) {
+    /* No storage: a reload says nothing of it. */
+  }
+}
+
+function takeLessonInFlight() {
+  try {
+    const was = JSON.parse(localStorage.getItem(LESSON_IN_FLIGHT_KEY) || 'null');
+    localStorage.removeItem(LESSON_IN_FLIGHT_KEY);
+    return was && typeof was.id === 'string' && Number.isInteger(was.step) && was.step >= 0 ? was : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export class Progress {
   constructor(ui, host) {
     this.ui = ui;
@@ -408,6 +438,9 @@ export class Progress {
   startLesson(lesson) {
     this.lesson = lesson ? new LessonWatch(lesson) : null;
     this.lessonStep = 0;
+    this.lessonCrashes = 0;
+    this.interrupted = null;
+    keepLessonInFlight(this.lesson);
     if (lesson) {
       this.toast({
         cls: 'lap', icon: '1', kicker: str('training.toast_lesson'),
@@ -418,6 +451,7 @@ export class Progress {
 
   endLesson() {
     this.lesson = null;
+    keepLessonInFlight(null);
     if (this.onLessonEnd) {
       this.onLessonEnd();
     }
@@ -428,9 +462,56 @@ export class Progress {
     return this.lesson ? this.lesson.lesson.aid ?? null : null;
   }
 
-  /* After a lesson call: a toast for each step done, and the pass. */
+  /*
+   * INTERRUPTIONS (docs/redesign/TRAINING.md 10, COMPLETENESS item 55),
+   * each said in a toast under the lesson's name. The pause menu holds the
+   * lesson (its judge counts on the sim clock, stopped while paused); a
+   * crash starts it again (lessonNews); a session that is not its own, or
+   * the page gone, leaves it, and the page marks it Interrupted.
+   */
+  lessonNotice(id, key, vars = {}) {
+    this.toast({ cls: 'lap', icon: '!', kicker: str('training.toast_lesson'), title: str(`training.lesson.${id}`), sub: str(key, vars) });
+  }
+
+  /* The pause menu opened over a lesson's flight (src/ui/actions.js). */
+  lessonPaused() {
+    const w = this.lesson;
+    if (w && !w.passed) {
+      this.lessonNotice(w.lesson.id, 'training.interrupt_held', { n: w.step + 1, of: w.lesson.steps.length });
+    }
+  }
+
+  /* A room's welcome, activity `mode` (src/main.js roomSessionWelcome). */
+  roomJoined(mode) {
+    const w = this.lesson;
+    if (!w || lessonFliesIn(w.lesson, mode)) {
+      return;
+    }
+    this.interrupted = w.lesson.id;
+    this.lessonNotice(w.lesson.id, 'training.interrupt_room');
+    this.endLesson();
+  }
+
+  /* At load: the lesson the last page was flying when it went, said and
+   * marked on the Learn to fly page until a lesson is flown again. */
+  lessonReloaded() {
+    const was = takeLessonInFlight();
+    const lesson = was ? lessonById(was.id) : null;
+    if (!lesson) {
+      return;
+    }
+    this.interrupted = lesson.id;
+    this.lessonNotice(lesson.id, 'training.interrupt_reload', { n: Math.min(was.step, lesson.steps.length - 1) + 1, of: lesson.steps.length });
+  }
+
+  /* After a lesson call: a toast for each step done, a crash's restart,
+   * and the pass. */
   lessonNews() {
     const w = this.lesson;
+    if (w && w.crashes > this.lessonCrashes) {
+      this.lessonCrashes = w.crashes;
+      this.lessonNotice(w.lesson.id, 'training.interrupt_crash');
+    }
     if (!w || w.step === this.lessonStep) {
       return;
     }
@@ -456,8 +537,10 @@ export class Progress {
         this.toast({ cls: 'challenge', icon: '\u2605', kicker: str('training.toast_cert'), title: str(`training.cert.${track}`) });
       }
       this.lesson = null;
+      keepLessonInFlight(null);
       return;
     }
+    keepLessonInFlight(w);
     if (w.step > this.lessonStep) {
       this.toast({ cls: 'lap', icon: String(w.step + 1), kicker: str('training.toast_step', { n: w.step + 1, of: total }), title: str(`training.lesson.${w.lesson.id}`) });
     }
