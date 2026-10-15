@@ -303,10 +303,11 @@ shown Coming soon). The row is the mission file's own `release`
 (`src/share/war/missions/itaipu-N.js`), which `actOf` reads into `ACT1`
 and `released()` reads per mission. The room refuses to start anything
 not `available` (`edge/rooms/war.js` start), so a mission is opened by
-changing that one field and redeploying the rooms server. No mission is
-available today: First Light went back to `development` on 2026-10-07
-(PR #666, the owner: no narration, under construction until it is as
-finished as The Interior's Mission 1).
+changing that one field and redeploying the rooms server. Missions 1 to
+4 are available: the owner released all four on 2026-10-15, so the
+campaign plays in order. First Light had gone back to `development` on
+2026-10-07 (PR #666, the owner: no narration, under construction until
+it was as finished as The Interior's Mission 1); 5 to 7 are `soon`.
 
 ### 2.1 Release status (checked against the tree 2026-10-13, batch/2026-10-14 f0c06cbb6)
 
@@ -334,23 +335,21 @@ claim it: spotting (T1.8). Districts coming back after the reroute
 (T1.10) are built since branch w40-grid-restore, and DESPACHO says so
 (`itaipu-3-s3-back`). The light falling across the mission (T1.11) is built since
 branch w39-daynight (14 October): see M3's as-built notes for the lines
-that may now say more. Its release stays `development` (the owner's
-gate).
+that may now say more. Released 2026-10-15 with the rest of Act 1.
 
 Mission 4's column is checked against branch w39-mission-4 (2026-10-14):
 war:stages, war:routes, war:harness, war:legacy, war:radio, war:nudge,
 war:cards, briefing:selftest, rooms:selftest, voice:check, films:lint and
 films:time green there. Not built in it: twist A (Station dark) and the
 dawn ramp, M4 below. Both are built since branch w39-daynight (14
-October), twist A outside the draw until its radio is voiced. Its
-release stays `development` (the owner's gate).
+October), twist A outside the draw until its radio is voiced. Released
+2026-10-15 with the rest of Act 1.
 
 Checks on the tree above, all green: war:stages 106/0, war:routes PASS,
 war:radio 63/0, war:cards 13/0, briefing:selftest 54/0, campaign:selftest
 80/0, war:harness PASS, war:markers 16/0, war:twopage 25/0, campaign:check
-51/0. game:lobby --game=war is 22/4, and all four are the release gate:
-the room made for First Light stays private, so it is not on the Flight
-Club list and its briefing says Private.
+51/0. game:lobby --game=war was 22/4 then, all four the release gate
+(the room made for First Light stayed private); released, it is public.
 
 **Contain is built for missions 1 to 4** (branch w39-contain,
 2026-10-14; 1.9 above, `src/share/war/contain.js`): an opening the room
@@ -365,29 +364,18 @@ fails (moto, objline, briefing audio cut, thermal look) were The
 Interior's Mission 1, not First Light, and all landed the same day (#632
 to #635).
 
-**The owner's decision, one line:** set `release: 'available'` in
-`src/share/war/missions/itaipu-1.js` (First Light, Contain built) and
-redeploy the rooms server, or keep it held. It
-unlocks public war rooms for mission 1 (`edge/rooms/core.js` setPublic,
-`edge/rooms/front.js` create), so the room is on the Flight Club list and
-friends join from it rather than only by code (the lead's 2026-10-13
-decision: until then they join by code through Friends); game:lobby
---game=war's four red rows go green; Continue offers the war again
-(`src/ui/actions.js` continueWay); the campaign card's Play works for
-every pilot without `?missions=dev`.
-
-The same commit must move the rows that pin mission 1 as held. Measured
-by flipping the field on this tree and running each check:
-
-| Check | Rows that go red on the flip |
-| --- | --- |
-| campaign:selftest | `scripts/campaign-selftest.js` 66, 69 |
-| rooms:selftest | `scripts/rooms-selftest-war.js` 883 (mission 1 in the held loop, 2 rows); `rooms-selftest-gamelobby.js` 183, 185, 189, 194 (the drill as the first startable mission becomes mission 1); `rooms-selftest-visibility.js` 96 to 100 (point it at mission 2) |
-| game:lobby --game=war | `scripts/game-lobby-check.js` 417, 422 (24/2 on the flip, the four gate rows green) |
-| rooms:server | `scripts/rooms-server-check.js` 530, 533, 537, 598, 602 (95/5) |
-| campaign:check | `scripts/campaign-check.js` 273, 276, 347, 470, 590 (46/5) |
-| not red | dev:accounts, briefing:selftest, war:stages, modes:selftest, actions:golden, war:cards, war:radio |
-| not run on the flip | war:card, war:lobby, war:public (they name mission 1's held state in comments; run them with the flip) |
+**Released 2026-10-15.** The owner approved the release that day
+("release yes i approve") for all four missions with a file, so the
+campaign plays in order: `release: 'available'` in
+`src/share/war/missions/itaipu-1.js` to `itaipu-4.js`. That opens public
+war rooms for them (`edge/rooms/core.js` setPublic, `edge/rooms/front.js`
+create), so a room is on the Flight Club list; Continue offers the war
+again (`src/ui/actions.js` continueWay); the campaign card's Play works
+for every pilot without `?missions=dev`, each mission after the first
+once the one before is won. The checks that pinned the held state now
+hold a mission in development themselves (`scripts/lib/held.js`), so
+the gate (refused 'unreleased', the drill fallback, the private room,
+DEV_ACCOUNTS) is still proven, and they also check the release.
 
 ---
 

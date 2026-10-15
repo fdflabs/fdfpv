@@ -14,7 +14,8 @@
  *              pilot who is not the host opens nothing in that room
  *              (refused 'host') and the host's start is still refused; a
  *              server with no list refuses the owner too
- *   war        the same for Act 1's mission 2 (in development)
+ *   war        the same for Act 1's mission 2, held in development for
+ *              the rows (released to everybody 2026-10-15, also checked)
  *   lobby      a war room's lobby offers a mission in development to the
  *              allowlisted host only
  *   restart    the host's account survives a restore from its socket's
@@ -55,6 +56,7 @@ import { ACCOUNT_JOIN, PROTO } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore, devAccountsOf } from '../edge/rooms/core.js';
 import { helloAccount } from '../edge/rooms/node.js';
 import front from '../edge/rooms/front.js';
+import { withHeld } from './lib/held.js';
 
 let passed = 0;
 let failed = 0;
@@ -135,18 +137,26 @@ console.log('ops: The Interior, Mission 1 (development)');
   check('a guest seat (no account) is refused', g.last(0, (m) => m.type === 'ops' && m.error)?.error === 'unreleased');
 }
 
-console.log('war: Act 1, mission 2 (development)');
+console.log('war: Act 1, mission 2 (held in development here; released 2026-10-15)');
 {
-  const a = room('itaipu', `${OWNER}`, [OWNER]);
-  a.say(0, { type: 'war', op: 'start', mission: 'itaipu-2' });
-  check('the allowlisted host starts mission 2', ['countdown', 'briefing'].includes(a.last(0, (m) => m.type === 'war' && m.war)?.war.state));
-  const b = room('itaipu', `${OWNER}`, [OTHER, OWNER]);
-  b.say(0, { type: 'war', op: 'start', mission: 'itaipu-2' });
-  check('a host not on the list, with the owner seated, is refused unreleased', b.last(0, (m) => m.type === 'war' && m.error)?.error === 'unreleased' && !b.r.war.on());
-  const c = room('itaipu', `${OWNER}`, [OWNER]);
-  c.say(0, { type: 'war', op: 'start', mission: 'itaipu-5' });
-  check('a mission only planned (soon) never starts, list or not', c.last(0, (m) => m.type === 'war' && m.error) != null && !c.r.war.on());
-  check('the lobby offers mission 2 to the allowlisted host only', a.r.war.startable('itaipu-2', a.r) && !b.r.war.startable('itaipu-2', b.r) && !a.r.war.startable('itaipu-2'));
+  /* Mission 2 held (scripts/lib/held.js), as it was until the owner
+   * released Act 1 on 2026-10-15, so the allowlist is still proven. */
+  withHeld(['itaipu-2'], () => {
+    const a = room('itaipu', `${OWNER}`, [OWNER]);
+    a.say(0, { type: 'war', op: 'start', mission: 'itaipu-2' });
+    check('the allowlisted host starts mission 2', ['countdown', 'briefing'].includes(a.last(0, (m) => m.type === 'war' && m.war)?.war.state));
+    const b = room('itaipu', `${OWNER}`, [OTHER, OWNER]);
+    b.say(0, { type: 'war', op: 'start', mission: 'itaipu-2' });
+    check('a host not on the list, with the owner seated, is refused unreleased', b.last(0, (m) => m.type === 'war' && m.error)?.error === 'unreleased' && !b.r.war.on());
+    const c = room('itaipu', `${OWNER}`, [OWNER]);
+    c.say(0, { type: 'war', op: 'start', mission: 'itaipu-5' });
+    check('a mission only planned (soon) never starts, list or not', c.last(0, (m) => m.type === 'war' && m.error) != null && !c.r.war.on());
+    check('the lobby offers mission 2 to the allowlisted host only', a.r.war.startable('itaipu-2', a.r) && !b.r.war.startable('itaipu-2', b.r) && !a.r.war.startable('itaipu-2'));
+  });
+  const r = room('itaipu', `${OWNER}`, [OTHER]);
+  r.say(0, { type: 'war', op: 'start', mission: 'itaipu-2' });
+  check('released: a host not on the list starts mission 2', ['countdown', 'briefing'].includes(r.last(0, (m) => m.type === 'war' && m.war)?.war.state)
+    && r.r.war.startable('itaipu-2', r.r) && room('itaipu', '', [null]).r.war.startable('itaipu-2'));
 }
 
 console.log('restart');
@@ -267,20 +277,28 @@ console.log('create');
   const env = (list) => ({
     PUBLIC_ROOMS: 'on',
     DEV_ACCOUNTS: list,
-    HEALTH: { refuse() {} },
+    HEALTH: { busy: () => false, refuse() {} },
     ROOMS: { idFromName: (n) => n, get: () => ({ fetch: async () => new Response('{}', { status: 200 }) }) },
   });
   const make = (body, list, n) => front.fetch(new Request('https://rooms.test/v2/create', {
     method: 'POST', headers: { 'content-type': 'application/json', 'cf-connecting-ip': `10.5.0.${n}` }, body: JSON.stringify(body),
   }), env(list));
-  const priv = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-2' }, `${OWNER}`, 1);
-  check('a private war room may name mission 2 once the server has a list', priv.status === 200, `${priv.status}`);
-  const noList = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-2' }, '', 2);
-  check('without a list it is refused as before', noList.status === 403 && (await noList.json()).error === 'unreleased');
-  const pub = await make({
+  /* Mission 2 held in development (scripts/lib/held.js), as it was until
+   * the owner released Act 1 on 2026-10-15. */
+  await withHeld(['itaipu-2'], async () => {
+    const priv = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-2' }, `${OWNER}`, 1);
+    check('a private war room may name mission 2 once the server has a list', priv.status === 200, `${priv.status}`);
+    const noList = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-2' }, '', 2);
+    check('without a list it is refused as before', noList.status === 403 && (await noList.json()).error === 'unreleased');
+    const pub = await make({
+      map: 'itaipu', mode: 'war', mission: 'itaipu-2', public: true,
+    }, `${OWNER}`, 3);
+    check('a public one is refused', pub.status === 403);
+  });
+  const released = await make({
     map: 'itaipu', mode: 'war', mission: 'itaipu-2', public: true,
-  }, `${OWNER}`, 3);
-  check('a public one is refused', pub.status === 403);
+  }, '', 5);
+  check('released (the owner, 2026-10-15): a public war room for mission 2 is made, with no list', released.status === 200, `${released.status}`);
   const soon = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-5' }, `${OWNER}`, 4);
   check('one naming a mission only planned is refused', soon.status === 400 || soon.status === 403, `${soon.status}`);
 }

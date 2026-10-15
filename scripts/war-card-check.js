@@ -18,11 +18,10 @@
  * screen; Back leaves the pilot on that page with no room; Play again and
  * Continue:
  * a room named for its host, this pilot its host, Itaipu seated, the
- * room screen with the war's start row under the cursor. The page has
- * ?missions=dev, since mission 1 is held (the owner, 2026-10-07), so the
- * room is private and not listed: the server makes a public room only
- * for a released mission (campaign-check has the public page, mission 1
- * Under development). Reloaded (consent now stored),
+ * room screen with the war's start row under the cursor. Mission 1 is
+ * released (the owner, 2026-10-15), so the room is public and on the
+ * browser's list, as the server makes one for a released mission.
+ * Reloaded (consent now stored),
  * the way in, home's link now Continue (one press, the next mission's
  * Play), goes to a new Itaipu room with no consent screen at all.
  *
@@ -270,11 +269,11 @@ async function toClub(p) {
   }
 }
 
-/* devMissions, and the page's ?missions=dev: mission 1, the way in's,
- * is in development (held since 2026-10-07), which only a check's own
- * server starts and only such a page offers (src/game/campaign.js
- * released). A server named on the command line must run with
- * DEV_MISSIONS=on. */
+/* devMissions, and the page's ?missions=dev: from when mission 1, the way
+ * in's, was in development (2026-10-07 until its release on 2026-10-15),
+ * which only a check's own server starts and only such a page offers
+ * (src/game/campaign.js released). A server named on the command line
+ * must run with DEV_MISSIONS=on. */
 const server = await roomsServer(process.argv[2], 'war-card', { devMissions: true });
 console.log(`the Defend the Paraná card, rooms at ${server.url}`);
 const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(server.url)}&missions=dev`, width: 1280, height: 720 });
@@ -371,16 +370,16 @@ try {
   check('Back leaves the pilot on the campaign page, no room, nothing stored', back.page && back.page.page === 'missions' && back.phase === 'idle' && !back.consent,
     JSON.stringify(back));
 
-  /* Continue: the room, private, the one kind the server makes for a
-   * mission in development (src/main.js onWarCard). */
+  /* Continue: the room, public, as mission 1 is released (src/main.js
+   * openSession). */
   await click(page, '[data-mission="itaipu-1"] .campaign-play');
   await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
   await answer(page, 'Continue');
   const one = await landed(page);
-  check('Continue: a private Itaipu room, this pilot its host, the war start row under the cursor', landedWell(one), JSON.stringify(one));
+  check('Continue: a public Itaipu room, mission 1 released, this pilot its host, the war start row under the cursor', landedWell(one, true), JSON.stringify(one));
   const named = await page.evaluate('window.__rooms().name');
   const oneLine = (await (await fetch(`${server.url}/v2/rooms`)).json()).rooms.find((r) => r.code === one.code);
-  check('named for its host, and not listed, being private', /, Paraná$/.test(named || '') && oneLine === undefined,
+  check('named for its host, and listed as the war\'s with mission 1, being public', /, Paraná$/.test(named || '') && oneLine && oneLine.mode === 'war' && oneLine.mission === 'itaipu-1',
     JSON.stringify({ named, oneLine }));
   await shot(page, 'war-room-host');
 
@@ -390,8 +389,8 @@ try {
   await page.evaluate(WATCH_DIALOG);
   const again = await playMission1(page);
   const two = await landed(page);
-  check('the way in again, home\'s Continue: a new private Itaipu room, the start row under the cursor', Boolean(again && again.continue)
-    && landedWell(two) && two.code !== one.code, JSON.stringify({ again, two }));
+  check('the way in again, home\'s Continue: a new public Itaipu room, the start row under the cursor', Boolean(again && again.continue)
+    && landedWell(two, true) && two.code !== one.code, JSON.stringify({ again, two }));
   check('and no consent screen on the way', (await page.evaluate('window.__warCardDialogs')) === 0, String(await page.evaluate('window.__warCardDialogs')));
 
   /* MAKE A ROOM'S GAME ROW, opened while the lobby still builds the

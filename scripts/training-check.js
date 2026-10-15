@@ -26,7 +26,8 @@
  * on Itaipu for the practice (itaipu-practice), the pilot's remembered
  * Who joins for the war untouched, the lesson held; the practice started
  * there goes live on its one stage, a Striker born. Working together,
- * First Light being held in development, says so and makes no room.
+ * First Light released (the owner, 2026-10-15), holds its lesson, says
+ * to win First Light and makes a room for it.
  * Then Turns held and a combat room joined: a session that is not the
  * lesson's ends it, said. No page error.
  * Pictures in outdir.
@@ -391,17 +392,20 @@ try {
     live.state === 'live' && live.mission === PRACTICE_ID && live.stage === 'pass' && live.alive === 1 && live.result === null, JSON.stringify(live));
   await shot(war, 'defence-live');
 
-  /* Working together while First Light is held in development: said, no
-   * new room, the lesson left. */
+  /* Working together, First Light released to every pilot (the owner,
+   * 2026-10-15): the lesson held, its line, a new room for it. The page's
+   * own refusal while it was held (src/main.js, training.mission_closed)
+   * reads the build's release, which no check can hold in a browser. */
   await war.evaluate("window.__ui.show('title'); true");
   await war.sleep(300);
   await war.evaluate('(window.__training.open(), true)');
   await war.until("!!document.querySelector('.training-box')", 15000);
   await click(war, '[data-lesson="defence_mission"] .campaign-play');
   await war.sleep(800);
-  const closed = await war.evaluate("({ sub: (window.__ui.progress.log.at(-1) || {}).sub || '', code: window.__rooms().code, lesson: window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null })");
-  check('Working together while First Light is in development says it is not open, makes no room and holds no lesson',
-    closed.sub === 'First Light is not open yet: this lesson opens with it.' && closed.code === room.code && closed.lesson === null, JSON.stringify(closed));
+  const together = await war.evaluate("({ sub: (window.__ui.progress.log.at(-1) || {}).sub || '', code: window.__rooms().code, lesson: window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null })");
+  check('Working together, First Light released: the lesson held, it says to win First Light, and a new room is made',
+    together.sub === 'Win First Light, mission 1 of Defend the Paraná, with other pilots or alone.' && Boolean(together.code) && together.code !== room.code
+    && together.lesson === 'defence_mission', JSON.stringify(together));
 
   /* A SESSION THAT IS NOT THE LESSON'S (TRAINING.md 10): Turns held, then
    * a room joined as an invite's code joins one, a combat room's welcome:

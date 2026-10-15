@@ -26,7 +26,9 @@
  *            'development' on 2026-10-07 (the owner: it has no narration,
  *            nothing of what Mission 1 of The Interior has; under
  *            construction until it is as finished); the owner's own
- *            account still flies it (DEV_ACCOUNTS, devHost).
+ *            account flew it while held (DEV_ACCOUNTS, devHost). The owner
+ *            released all four Act 1 missions on 2026-10-15 ("release
+ *            yes i approve", all four so the campaign plays in order).
  *
  * The drill has no act, so no campaign offers it, nor the practice
  * (itaipu-practice.js), Training's one Striker at a time.

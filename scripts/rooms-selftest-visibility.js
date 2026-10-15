@@ -25,6 +25,7 @@ import {
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { LobbyBook, reportRoom } from '../edge/rooms/lobby.js';
+import { withHeld } from './lib/held.js';
 
 const profile = { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null };
 
@@ -93,21 +94,32 @@ export function visibilitySection(check) {
   }
 
   {
-    const room = roomOf({ cap: PRIVATE_CAP, public: false, mode: 'war', mission: 'itaipu-1' });
-    const host = sock('host');
-    hello(room, host);
-    say(room, host, { type: 'public', on: true });
-    check('a war room for a mission in development stays private (the release gate)', room.meta.public === false && refused(host).includes('war_unreleased'), JSON.stringify(refused(host)));
-    const dev = roomOf({ cap: PRIVATE_CAP, public: false, mode: 'war', mission: 'itaipu-1' }, { publicRooms: true, devMissions: true });
-    const h2 = sock('host2');
-    hello(dev, h2);
-    say(dev, h2, { type: 'public', on: true });
-    check('and goes public on a server that starts missions in development', dev.meta.public === true);
+    /* Mission 1 held in development (scripts/lib/held.js), as it was
+     * until the owner released Act 1 on 2026-10-15. */
+    withHeld(['itaipu-1'], () => {
+      const room = roomOf({ cap: PRIVATE_CAP, public: false, mode: 'war', mission: 'itaipu-1' });
+      const host = sock('host');
+      hello(room, host);
+      say(room, host, { type: 'public', on: true });
+      check('a war room for a mission in development stays private (the release gate)', room.meta.public === false && refused(host).includes('war_unreleased'), JSON.stringify(refused(host)));
+      const dev = roomOf({ cap: PRIVATE_CAP, public: false, mode: 'war', mission: 'itaipu-1' }, { publicRooms: true, devMissions: true });
+      const h2 = sock('host2');
+      hello(dev, h2);
+      say(dev, h2, { type: 'public', on: true });
+      check('and goes public on a server that starts missions in development', dev.meta.public === true);
+    });
     const drill = roomOf({ cap: PRIVATE_CAP, public: false, mode: 'war', mission: 'itaipu-drill' });
     const h3 = sock('host3');
     hello(drill, h3);
     say(drill, h3, { type: 'public', on: true });
     check('a war room for a released mission goes public', drill.meta.public === true);
+    for (const [i, id] of ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].entries()) {
+      const act = roomOf({ cap: PRIVATE_CAP, public: false, mode: 'war', mission: id });
+      const h = sock(`host${4 + i}`);
+      hello(act, h);
+      say(act, h, { type: 'public', on: true });
+      check(`${id}, released (the owner, 2026-10-15): its war room goes public, nothing refused`, act.meta.public === true && !refused(h).length, JSON.stringify(refused(h)));
+    }
   }
 
   {
