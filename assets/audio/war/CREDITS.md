@@ -80,7 +80,10 @@ compared line: correlation 0.70), so the Orin cannot rebuild an old file
 byte for byte, and a seed pinned on the desktop picks another take
 there. Its radio wav is brought back and encoded here, with the
 desktop's ffmpeg, as every other file; its manifest entry says
-`"machine": "orin"`.
+`"machine": "orin"`. The Orin is shared: a build there holds its GPU
+lease first (`~/gpu-lease/gpu-lease wait`, then `acquire`, `release`
+after), and does not fit beside a ComfyUI video job (about 14 GB more
+on 61 GB, measured 2026-10-14: the box reached 60.9 GB).
 
 The rule that keeps it one cast: within one mission, one speaker sounds
 like one voice. A mission that gets a new or changed line has every line

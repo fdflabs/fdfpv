@@ -320,7 +320,7 @@ branch w39-mission-3):
 | Stages with titles, en and es | 5 stages and 3 twists, 5 title keys | 6 stages and twists, 6 titles | 4 stages and 3 twists, 4 titles | 5 stages and 2 twists, 5 title keys |
 | Objectives on the HUD, en and es | 7 | 9 | 6 (the reroute a 240 s hold) | 6, and STAND BY over stage 1 |
 | Story radio cued, en and es, voiced | 31 ids, all in lines.json, all voiced en and es | 31 ids, all voiced | 23 `itaipu-3-*` ids, all voiced; DESPACHO's first lines | 22 story ids and 2 debriefs, all voiced en and es (31 with the guide) |
-| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | 7 `itaipu-3-g-*` | 7 `itaipu-4-g-*` |
+| Guide lines (what to do now) | 8 `itaipu-1-g-*` | 9 | 7 `itaipu-3-g-*` | 8 `itaipu-4-g-*` |
 | Nudge, objective cards | yes (`nudge`, warhud.js `objectiveCards`) | yes | yes | yes |
 | Briefing facts (title, line, first objective, map, aircraft, length, pilots, room) | all (briefing.js) | all | all; length 12 to 15 min, measured | all |
 | Intro film, outro film | `first-light`, `first-light-outro` | `spillway`, `spillway-outro` | `lights-out`, `lights-out-outro` | `long-night`, `long-night-outro` |
@@ -1018,6 +1018,7 @@ holds the gantry in the dark, by markers, with Hunters about.
 | itaipu-4-s3-hunt | stage 3, Hunters born | MIRADOR | urgent | Fast movers out of the gorge. They're not heading for the dam. | Rápidos saliendo del cañón. No van hacia la represa. |
 | itaipu-4-s3-pairs | after s3-hunt | CREST | urgent | Hunters. Pairs. Nobody flies alone tonight. | Cazadores. De a dos. Esta noche nadie vuela solo. |
 | itaipu-4-ta-turn | twist A | CREST | firm | Killing the station lights. Their aim goes with them. So does ours. | Apagando las luces de la central. Se les va la puntería. A nosotros también. |
+| itaipu-4-ta-why | twist A, the swarm born | CREST | firm | Now they have to come close to see. Watch the gorge. | Ahora tienen que acercarse para ver. Atentos al cañón. |
 | itaipu-4-tb-turn | twist B | DESPACHO | calm | Crest, the right bank is on one feed tonight. Please keep the yard. | Cresta, la margen derecha está con una sola alimentación esta noche. Por favor cuiden la subestación. |
 | itaipu-4-tc-turn | twist C | MIRADOR | urgent | Something circling over the islands. No lights. That's a scout. | Algo da vueltas sobre las islas. Sin luces. Es un explorador. |
 | itaipu-4-s5-grey | stage 5 `enter+45` | MIRADOR | calm | Sky's going grey in the east. Almost there. | El cielo se aclara al este. Ya casi. |
