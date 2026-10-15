@@ -39,7 +39,8 @@
  *
  *   D (not the race or the war) opens Flight Club and presses Watch beside
  *   that room: on its watch seat, no seat of its own and unseen by the
- *   pilots, the camera on a pilot; J follows the next, Escape is the pause
+ *   pilots, the camera on a pilot; J follows the next, kept through a
+ *   stall of D's page; Escape is the pause
  *   menu (Resume, Room, Settings, Leave the room) and its Leave row leaves.
  *
  * The race (--game=race): A's lobby has no track yet, and its Track row
@@ -864,6 +865,15 @@ try {
     const next = await d.evaluate('window.__rooms()');
     check('J: the camera follows the next pilot', next.watching !== null && next.watching !== seen.watching && next.watchGap < 30,
       JSON.stringify({ was: seen.watching, now: next.watching, gap: next.watchGap }));
+    /* A watcher's page that stalls past STALE_MS (src/game/peer.js: a
+     * long task, its world's tiles streaming in) draws no pilot for a
+     * frame, and J's pick was lost to the first seat for good (2 of 12
+     * runs, 2026-10-15; a 2.6 s stall made it every time). */
+    await d.evaluate('(() => { const t = performance.now(); while (performance.now() - t < 2600) { /* held */ } return true; })()');
+    await d.sleep(1000);
+    const kept = await d.evaluate('window.__rooms()');
+    check('and a 2.6 s stall on the watcher\'s page keeps the camera on that pilot', kept.watching === next.watching && kept.watchGap < 30,
+      JSON.stringify({ picked: next.watching, now: kept.watching, gap: kept.watchGap }));
     await shot(d, '5-d-watching-next');
     const menu = await leaveByPause(d);
     check('Escape is a watcher\'s pause menu, still in the room: Resume, Room, Settings, Leave',

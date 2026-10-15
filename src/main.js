@@ -4865,16 +4865,26 @@ export async function boot({
       return null;
     }
     const runner = jamWatching() ? roomJam.view().runner : null;
+    const flies = (p) => Boolean(p) && Boolean(p.last) && !(p.last.flags & FLAG_CRASHED) && (runner == null || p.seat === runner);
     const seats = [...roomPeers.values()]
-      .filter((p) => p.drawnPose && p.last && !(p.last.flags & FLAG_CRASHED) && (runner == null || p.seat === runner))
+      .filter((p) => p.drawnPose && flies(p))
       .map((p) => p.seat)
       .sort((a, b) => a - b);
+    /* The pick still flies but is not drawn here this frame: its stream,
+     * or this page's own frames, late past STALE_MS (src/game/peer.js). A
+     * watcher's page stalled 2.6 s lost a J pick to the first seat for good
+     * (game:lobby's "J: the camera follows the next pilot", 2026-10-15),
+     * so the first is shown meanwhile and the pick kept. */
+    if (step === 0 && seats.indexOf(warWatchSeat) < 0 && flies(roomPeers.get(warWatchSeat))) {
+      return seats.length ? roomPeers.get(seats[0]) : null;
+    }
     if (!seats.length) {
       warWatchSeat = -1;
       return null;
     }
-    const i = seats.indexOf(warWatchSeat);
-    warWatchSeat = seats[i < 0 ? 0 : (i + step + seats.length) % seats.length];
+    /* Off the pick, the first is the one shown: a step goes on from it. */
+    const i = Math.max(0, seats.indexOf(warWatchSeat));
+    warWatchSeat = seats[(i + step + seats.length) % seats.length];
     return roomPeers.get(warWatchSeat);
   }
 
