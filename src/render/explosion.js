@@ -67,6 +67,7 @@
 
 import * as THREE from 'three';
 import { thermalShader } from './thermal.js';
+import { logWarn } from '../share/crashrecord.js';
 
 /* The pools. A standard explosion takes about 60 hot and 24 smoke slots,
  * so ten at once fit with room to spare. */
@@ -152,7 +153,7 @@ function loadSheet(renderer) {
       sheet.ready = true;
     })
     .catch((e) => {
-      console.warn(`explosion: the flipbook ${SHEET.url} did not load, the explosions stay procedural: ${e.message || e}`);
+      logWarn('render', `explosion: the flipbook ${SHEET.url} did not load, the explosions stay procedural: ${e.message || e}`);
     });
 }
 

@@ -618,6 +618,7 @@
     "foot:walk": "node scripts/foot-walk-check.js",
     "foot:twopage": "node scripts/foot-two-page.js",
     "lint:dashes": "node scripts/dash-lint.js",
+    "lint:console": "node scripts/console-lint.js",
     "lint:owner-rules": "node scripts/owner-rules-lint.js",
     "lint:physics-sources": "node scripts/physics-sources-lint.js",
     "physics-sources:selftest": "node scripts/physics-sources-selftest.js",

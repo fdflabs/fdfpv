@@ -351,7 +351,7 @@ import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
 import { createJournal } from './replay/journal.js';
 import { createCrashCam } from './replay/crashcam.js';
-import { crashRecord } from './share/crashrecord.js';
+import { crashRecord, logError, logWarn } from './share/crashrecord.js';
 import { reportPageErrors } from './share/clientreport.js';
 import { devHooks } from './share/devhooks.js';
 import { stateHash } from './replay/recorder.js';
@@ -1498,7 +1498,7 @@ export async function boot({
     if (activeKey && opsFlownKey && activeKey !== opsFlownKey && opsBegunFor === match && swapLive()) {
       if (!opsHoldBusy) {
         opsHoldSwitch(v, opsFlownKey, activeKey).catch((e) => {
-          console.error('hold switch failed', e);
+          logError('mission', 'hold switch failed', e);
           throw e;
         });
       }
@@ -2696,7 +2696,7 @@ export async function boot({
     } catch (err) {
       /* No IndexedDB, or a picture that will not decode: the wall stays
        * bare, and the console says why. */
-      console.warn('hangar photo wall:', err);
+      logWarn('save', 'hangar photo wall:', err);
       if (walkRoom.view === view) {
         view.setPhotos([]);
       }
@@ -3191,7 +3191,7 @@ export async function boot({
     if (firstWorld === FLOOR_WORLD) {
       throw e;
     }
-    console.error(e);
+    logError('render', e);
     /* A title world that fails is dropped and the seat left alone, since
      * the seat is not what failed (syncWorld builds it later, with its own
      * fallback). A seat that fails moves to the floor. */
@@ -5656,7 +5656,7 @@ export async function boot({
     }).catch((e) => {
       /* No words, no subtitles: the voice still plays. Loud in the
        * console, and tried again with the next line. */
-      console.warn(`war: no subtitles: ${e.message}`);
+      logWarn('mission', `war: no subtitles: ${e.message}`);
       warLineWords = null;
     });
   }
@@ -9903,7 +9903,7 @@ export async function boot({
           syncGhostRow();
         })
         .catch((e) => {
-          console.warn('AI opponent: the plant could not be seated', e);
+          logWarn('ai', 'AI opponent: the plant could not be seated', e);
           if (aiSeat === seat) {
             aiSeat = null;
           }
@@ -13826,7 +13826,7 @@ export async function boot({
     plantFaults += 1;
     /* Plant frame position, velocity, attitude and rates as they came back. */
     const got = Array.from(bad.subarray(1, 14)).join(' ');
-    console.error(`plant fault ${plantFaults} after t ${sound[0]} s, wrecked where it last was sound: ${got}`);
+    logError('physics', `plant fault ${plantFaults} after t ${sound[0]} s, wrecked where it last was sound: ${got}`);
     resetCraft(null);
     holdPlantAt([sound[1], sound[2], sound[3], sound[7], sound[8], sound[9], sound[10]], 'plantFault');
     beginClipCrash('plant', nowWall);
@@ -14719,7 +14719,7 @@ export async function boot({
       /* The old world is gone already, so it is built again, and the
        * settings put back to it, rather than leaving no world at all. The
        * title's own world is not the pilot's seat and never written there. */
-      console.error(e);
+      logError('render', e);
       const roomText = roomWorldFailed(wantId);
       if (!titleWorld) {
         ui.settings.map = before.id;
@@ -14732,7 +14732,7 @@ export async function boot({
         adoptLoadedView(keepPlace, stayMode, stayScreen);
         notice = { text: roomText ?? str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + (roomText ? 8000 : 4200) };
       } catch (e2) {
-        console.error(e2);
+        logError('render', e2);
         loading.fail(str('ui.could_not_be_loaded', { name: entry.name, v2: e.message ?? e }));
       }
     } finally {
@@ -15024,7 +15024,7 @@ export async function boot({
     if (s.tune !== menuTune) {
       menuTune = s.tune;
       configLoadWait = swapTune(s.tune).catch((e) => {
-        console.error(e);
+        logError('physics', e);
       });
     }
     applyRatesSettings(s);
@@ -15288,7 +15288,7 @@ export async function boot({
       if (isLiveConfigLoad(gen)) {
         ui.settings.tune = configId;
         flashNotice(str('main.could_not_be_loaded', { name: entry.name }), 3200);
-        console.error(e);
+        logError('physics', e);
       }
       return null;
     }
@@ -16230,7 +16230,7 @@ export async function boot({
    * and the recorder starts on the next. */
   function keepControlRec() {
     keepLast(controlRec, { map: ui.settings.map, airframe: ui.settings.airframe })
-      .catch((e) => console.warn('control recorder: last flight not kept', e));
+      .catch((e) => logWarn('save', 'control recorder: last flight not kept', e));
     if (controlRec.on) {
       controlRec.clear();
     }
@@ -16587,7 +16587,7 @@ export async function boot({
       .catch((e) => {
         /* Loud, once, and not retried every frame after: a builder that
          * failed to load is a missing B key, not a broken flight. */
-        console.error('build mode failed to load', e);
+        logError('ui', 'build mode failed to load', e);
       });
   }
 
@@ -18267,7 +18267,7 @@ export async function boot({
         /* The bug report is the one path that carries a fault off this
          * machine, so the first one is kept for it. */
         window.__frameFault = { message, stack: e && e.stack ? String(e.stack) : '', atMs: Math.round(performance.now()) };
-        console.error('frame fault', e);
+        logError('render', 'frame fault', e);
         try {
           ui.setBanner(str('main.the_simulator_hit_a_fault_and', { message }), true);
         } catch (inner) {

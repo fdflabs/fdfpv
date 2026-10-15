@@ -59,6 +59,7 @@ import { saveSettings, seatAirframe } from './settings.js';
 import { HUBS, OPEN_ACTIONS, WAYS, boardCraft, craftSvg, hubOfAction, hubWays, reticleSvg } from './ways.js';
 /* A cycle: ui.js installs this module. Read inside methods only. */
 import { ROOM_PARENTS, courseCardKey, seatIsRace, seatedFreestyleMap } from './ui.js';
+import { logError } from '../share/crashrecord.js';
 
 /* ---- small shared steps ---- */
 
@@ -584,7 +585,7 @@ const PREFIXES = [
     ui.act(rest);
   }],
   ['fc-preset:', (ui, action, id) => {
-    ui.fc.applyPreset(id).then(() => ui.renderMenu()).catch((err) => console.error(err));
+    ui.fc.applyPreset(id).then(() => ui.renderMenu()).catch((err) => logError('physics', err));
   }],
   ['map:', (ui, action, id) => ui.seatMap(id)],
   [KEYBIND_PREFIX, keybindAction],
@@ -966,7 +967,7 @@ export const actionMethods = {
     Promise.resolve(this.onBuild({ map, id, casual })).catch((e) => {
       /* The one honest failure: the track was deleted in another tab
        * since the list was read. The list is read again either way. */
-      console.error(e);
+      logError('save', e);
       noteOn(this.localNote, str('ui.that_track_is_no_longer_saved'));
       this.loadLocalCourses();
       this.renderMenu();

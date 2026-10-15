@@ -34,7 +34,7 @@ means it does not (every browser check, and `npm run verify`, by the
 workflow's own header). Paths are from the repository root.
 
 **Counts over the 83 items with a verdict** (2026-10-14, the first verdict
-in each item's heading): 35 EXISTS, 24 BUILT (since built by a phase), 20
+in each item's heading): 35 EXISTS, 25 BUILT (since built by a phase), 19
 PARTIAL, 1 MISSING, 3 N/A. Item 84 is held by the owner and has no verdict.
 
 **Standing decisions every spec below keeps** (PILLARS.md section 0 and
@@ -974,13 +974,17 @@ report carries the build and the last 50 recorded errors; whether errors
 are also sent unasked is an owner decision (section 19). Check: phase
 23's `bugs:selftest`. Size S. Phase 23.
 
-**65. Structured logs. PARTIAL (phase 23).** Built (2026-10-13,
-w38-save-events): one ring of `{ atMs, cat, msg, count }` in
-src/share/crashrecord.js, 50 lines, the checklist's eight categories
-(`LOG_CATEGORIES`), written by `logWarn` and `logError` and read by the
-bug report; a line repeated counts up instead of filling the ring.
-Check: `crashrecord:selftest` (CI). Missing: 13 sites write it, and 34
-`console.warn` and `console.error` calls elsewhere in src do not. What
+**65. Structured logs. BUILT (phase 23).** Built (2026-10-13,
+w38-save-events; every site 2026-10-14, w43-telemetry): one ring of
+`{ atMs, cat, msg, count }` in src/share/crashrecord.js, 50 lines, the
+checklist's eight categories and `ui` for the shell's own screens and
+loads (`LOG_CATEGORIES`), written by `logWarn` and `logError` and read by
+the bug report; a line repeated counts up instead of filling the ring.
+Every warning and error the game writes goes through them: the 34 bare
+`console.warn` and `console.error` calls left in src were moved onto
+them, the console line unchanged, and `lint:console` (CI,
+scripts/console-lint.js) fails on a new one anywhere in src outside
+crashrecord.js. Checks: `crashrecord:selftest`, `lint:console` (CI). What
 follows is the gap as first written. No log module: 6 `console.warn`, 24
 `console.error`, no categories, no timestamps. **Done:** one ring buffer
 in crashrecord.js of `{ t, cat, msg }` with the checklist's categories

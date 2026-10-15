@@ -115,7 +115,7 @@ import {
 import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
-import { crashRecord } from '../share/crashrecord.js';
+import { crashRecord, logError } from '../share/crashrecord.js';
 import { flightTotals } from '../share/flighttime.js';
 import { boardFlightSeconds } from '../share/stats.js';
 import { createShotTray } from './bugshots.js';
@@ -1153,7 +1153,7 @@ export class Ui {
     return Promise.resolve()
       .then(() => this.onHangarSave(id, { powerChanged: true, liveryChanged: true, settings: { parts: s.parts, tuning: s.tuning, combat: s.combat } }))
       .catch((e) => {
-        console.error('refit failed', e);
+        logError('save', 'refit failed', e);
       });
   }
 
@@ -1497,7 +1497,7 @@ export class Ui {
     return Promise.resolve()
       .then(() => (this.onHangarSave ? this.onHangarSave(id, res) : null))
       .catch((e) => {
-        console.error('hangar save failed', e);
+        logError('save', 'hangar save failed', e);
       });
   }
 
@@ -1525,7 +1525,7 @@ export class Ui {
     return Promise.resolve()
       .then(() => this.onHotSwap(id))
       .catch((e) => {
-        console.error('aircraft swap failed', e);
+        logError('ui', 'aircraft swap failed', e);
       });
   }
 

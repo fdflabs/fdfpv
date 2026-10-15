@@ -40,6 +40,7 @@ import { FILMS, INTERIOR_FILM_IDS, MISSION_FILMS } from '../share/interior/films
 import { STILLS } from '../share/interior/films/stills.js';
 import { PLACES, landEdit } from '../share/interior/places.js';
 import { LAND, fetchWorldBytes, makeWorld } from '../share/interior/world.js';
+import { logWarn } from '../share/crashrecord.js';
 
 export { INTERIOR_FILM_IDS };
 
@@ -94,7 +95,7 @@ export function landRaster() {
       raster = c;
       return c;
     });
-    rasterJob.catch((e) => console.warn(`interiorfilms: no land picture for the BOARD: ${e.message}`));
+    rasterJob.catch((e) => logWarn('render', `interiorfilms: no land picture for the BOARD: ${e.message}`));
   }
   return rasterJob;
 }
