@@ -1355,6 +1355,8 @@ export default {
   "perf.line_scale": "render scale {scale}   cap {cap}",
   "perf.na": "n/a",
   "perf.cap_off": "off",
+  "perf.floor_lower": "Under {fps} fps here. Graphics {tier} may hold it.",
+  "perf.floor_lowest": "Under {fps} fps here, at the lowest Graphics.",
   "ui.stick_latency": "Stick latency",
   "ui.stick_latency_note": "Low hands the flight controller each stick reading in the frame it was read instead of the next one, so a move reaches the picture about 5 ms sooner on average. Recordings and replays are unchanged, since they hold what reached the flight controller.",
   "ui.latency_standard": "Standard",

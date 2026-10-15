@@ -1062,17 +1062,27 @@ a pad, a low end GPU, a high refresh display). **Done:** a table in
 docs/DEVICES.md, one row per device and date, filled when someone flies
 one; the owner's machines and the Pocket first. Size S. Phase 30.
 
-**71. Frame-rate targets. PARTIAL.** Two targets are written: the
+**71. Frame-rate targets. PARTIAL (the number is the owner's; what it
+drives is built).** Two targets are written: the
 owner's 90 frames per second, which the dynamic resolution holds
 (src/render/dynres.js `TARGET_HZ = 90`, perf-play.js `BUDGET_MS`), and 60
 at 1080p on a five year old mid range laptop (budget.js 4, ITAIPU-PLAN.md
-570). Both are in docs/BUDGETS.md. No minimum is defined (the pacer
-floors the render scale, not frames per second) and no reference
-machine is named; the tiers name eras only (Low "Steam Deck and similar
-handhelds", Medium "a 2020-era laptop with integrated graphics", High
-"a 2021-era PC or a strong laptop"). **Done:** the owner's decision on a
-minimum frame rate and a named recommended machine, written in
-docs/BUDGETS.md. Owner decision pending. Size S. Phase 29.
+570). Both are in docs/BUDGETS.md. The minimum is one constant,
+src/render/floor.js `FLOOR_FPS`, null and marked the owner's floor,
+pending, with the measured candidates beside it; set, the shell says
+once a world in flight when the 95th percentile frame of the last 600
+is under it, naming the Graphics preset below (perf.floor_lower and
+perf.floor_lowest, en and es), and never under the pilot's own cap
+(built 2026-10-14, w43-perf; `perf:floor:selftest`). docs/BUDGETS.md,
+The floor, reads every row's frame p95 at Low, Medium and High on this
+box's GPU 1 against 30 and 60: 30 holds everywhere, 60 everywhere but a
+full room above Low (measured on a busy card); on the Jetson AGX Orin
+at Low 30 holds in three of five worlds. No reference machine is named;
+the tiers name eras only (Low "Steam Deck and similar handhelds", Medium
+"a 2020-era laptop with integrated graphics", High "a 2021-era PC or a
+strong laptop"). **Done:** the owner's number in `FLOOR_FPS` and a named
+recommended machine, written in docs/BUDGETS.md. Owner decision pending.
+Size S. Phase 29.
 
 ## 17. Progression and groups (items 72 to 77)
 

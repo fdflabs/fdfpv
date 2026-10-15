@@ -19,13 +19,52 @@ Two targets are written in the tree, and they differ:
   section 13), since 2026-10-13 the main view's, with Itaipu's at 4.0 M
   and the thermal inset held apart (The contract, below).
 
-No minimum is written anywhere. The pacer has no frame rate floor: what
-it floors is the render scale (0.75 in Balanced, 0.5 in Performance,
-dynres.js `MODES`), not frames a second. No reference machine is named;
+No minimum is set. The pacer has no frame rate floor: what it floors is
+the render scale (0.75 in Balanced, 0.5 in Performance, dynres.js
+`MODES`), not frames a second. The floor's constant and what the shell
+does under it are built and wait for the number (The floor, below). No reference machine is named;
 the three tiers name eras (src/strings/en.js): Low "Steam Deck and
 similar handhelds", Medium "a 2020-era laptop with integrated graphics",
 High "a 2021-era PC or a strong laptop". A minimum and a named machine
 are the owner's to set.
+
+## The floor
+
+The minimum frame rate is the owner's to set (COMPLETENESS 71). What is
+built round it: one constant, src/render/floor.js `FLOOR_FPS`, null
+until set and marked "owner's floor, pending", and the one thing the
+shell does under it once set: in flight, the first time the 95th
+percentile drawn frame of the last 600 is over 1000 / FLOOR_FPS ms, a
+notice once a world, "Under 30 fps here. Graphics Medium may hold it."
+(or "at the lowest Graphics" at Low), in English and Spanish. Not while
+the pilot's own frame cap is at or under the floor, not across a pause.
+A warning and not an automatic step down: a preset change rebuilds the
+world, and dynamic resolution (src/render/dynres.js) already buys back
+what pixels can. Held by `perf:floor:selftest` (scripts/perf-floor-selftest.js).
+While FLOOR_FPS is null nothing fires.
+
+"Holds" is the 95th percentile frame, as the Jetson's table below reads
+it: what a pilot feels as stutter. The candidates, from the table's own
+frame p95 column (ms, this box's RTX 3060 Ti on GPU 1, shared, the busy
+share in the table):
+
+| Row | Low p95 | Medium p95 | High p95 | 30 fps (33.3 ms) | 60 fps (16.7 ms) |
+| --- | --- | --- | --- | --- | --- |
+| `title` | 1.3 | 1.9 | 2.1 | every tier | every tier |
+| `alps-low` | 3.2 | 4.1 | 4.6 | every tier | every tier |
+| `swiss-low` | 8.2 | 11.9 | 11.7 | every tier | every tier |
+| `itaipu-stream` | 8.5 | 10.7 | 12.0 | every tier | every tier |
+| `interior-ops` | 8.4 | 7.3 | 7.7 | every tier | every tier |
+| `itaipu-war` | 8.0 | 9.2 | 9.5 | every tier | every tier |
+| `peers` | 13.9 | 18.6 | 21.7 | every tier | Low only (card 55 to 81 % busy) |
+
+On this box 30 holds everywhere, 60 everywhere but a full room above
+Low, taken while other lanes held the card. On the Jetson AGX Orin
+(below) only Low was measured: 30 holds by p95 in the menu, the Alps and
+Itaipu, not in the Swiss valley or the Interior, and 60 in the menu and
+the Alps. The owner fills FLOOR_FPS; the machine it is read on is the
+other half of the decision (below, The owner's decision, proposed
+words).
 
 ## The table
 

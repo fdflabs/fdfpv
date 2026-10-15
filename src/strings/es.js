@@ -1346,6 +1346,8 @@ export default {
   "perf.line_scale": "escala {scale}   tope {cap}",
   "perf.na": "s/d",
   "perf.cap_off": "no",
+  "perf.floor_lower": "Menos de {fps} fps aquí. Gráficos {tier} puede sostenerlo.",
+  "perf.floor_lowest": "Menos de {fps} fps aquí, con los Gráficos más bajos.",
   "ui.stick_latency": "Latencia de sticks",
   "ui.stick_latency_note": "Baja le pasa a la controladora cada lectura de los sticks en el frame en que se leyó y no en el siguiente, así un movimiento llega a la imagen unos 5 ms antes en promedio. Las grabaciones y repeticiones no cambian, porque guardan lo que llegó a la controladora.",
   "ui.latency_standard": "Normal",
