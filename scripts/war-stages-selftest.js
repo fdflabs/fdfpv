@@ -2321,6 +2321,37 @@ console.log('hit points: a carrier takes two detonations, a penetrator\'s one (T
   const p = play({ 0: { warhead: 'penetrator' } });
   const pierced = p.first.dead.find((m) => m.ids.includes(p.hull.id));
   check('a penetrator\'s hit takes all of it at once: dead by pierce, no hurt', p.first.hurt.length === 0 && pierced && pierced.why === 'pierce', JSON.stringify(p.first));
+  /* A screen's side (src/share/roomwar.js): the room's hurt heard by a
+   * client, which plans from its own build's mission, so the stage flies
+   * The River Below's own river route under its id. */
+  const asReal = {
+    ...MISSIONS['itaipu-5'],
+    contain: undefined,
+    stages: [{ ...mission.stages[0], spawns: [{ ...mission.stages[0].spawns[0], route: 'river-surface' }] }],
+  };
+  const e = warRoom(asReal, { n: 2, seed: 0.4, dev: true });
+  e.paths[0] = () => [4000, Y, 4000];
+  e.paths[1] = () => [4050, Y, 4000];
+  e.fly(GO + 4000);
+  const hull = e.of(0, 'born').flatMap((m) => m.agents).find((a) => a.kind === 'carrier');
+  /* Where it parks, 137 s on (itaipu-5.js river-surface). */
+  const on = poseAt(planAgent(asReal, hull), hull.t0 + 140000).p;
+  e.paths[0] = (t) => (t >= hull.t0 + 140000 ? [on[0], on[1] + 2, on[2]] : [4000, Y, 4000]);
+  e.fly(hull.t0 + 148000);
+  const client = createRoomWar(() => {});
+  for (const m of e.socks[1].got) {
+    if (m && m.type === 'welcome') {
+      client.onWelcome(m);
+    } else if (m && m.type === 'war') {
+      client.onMessage(m);
+    }
+  }
+  const heard = client.takeEvents().filter((x) => x.type === 'hurt');
+  const said = e.of(1, 'hurt')[0];
+  check('a screen hears the hurt: the carrier, where the room had it, with 1 hp left, and it still draws it',
+    heard.length === 1 && said && heard[0].agents.length === 1 && heard[0].agents[0].id === hull.id && heard[0].agents[0].kind === 'carrier' && heard[0].agents[0].hp === 1
+    && Math.hypot(...heard[0].agents[0].p.map((v, i) => v - said.p[i])) < 8 && client.attackersAt(said.at + 100).some((a) => a.id === hull.id),
+    JSON.stringify({ heard, said }));
 }
 
 console.log('launches: a carrier\'s children, born at its pose while it lives (TECH-NEEDS T1.6)');
