@@ -68,8 +68,9 @@ const throws = (fn) => {
 console.log('the vocabulary is COMPLETENESS item 25\'s');
 {
   const want = ['spawned', 'gate', 'lap', 'touch', 'crash', 'landing', 'objective', 'stage', 'kill', 'hit',
-    'round', 'joined', 'left', 'mission_start', 'mission_end', 'contact', 'seated', 'engine_out', 'battery_low', 'found'];
-  check('twenty types, these', show([...EVENT_TYPES].sort()) === show([...want].sort()), EVENT_TYPES.join());
+    'round', 'joined', 'left', 'mission_start', 'mission_end', 'contact', 'seated', 'engine_out', 'battery_low', 'found',
+    'lap_void', 'bail', 'trick'];
+  check('twenty three types, these', show([...EVENT_TYPES].sort()) === show([...want].sort()), EVENT_TYPES.join());
   const doc = readFileSync(join(root, 'docs', 'redesign', 'COMPLETENESS.md'), 'utf8');
   check('each named in the spec', want.every((t) => doc.includes(`\`${t}\``)));
   check('the list cannot be changed at run time', Object.isFrozen(EVENT_TYPES));
@@ -102,6 +103,22 @@ console.log('typed and append only');
   const log = new EventLog();
   check('a lap carries its medal, or null on a course without', log.append('lap', 1, { ms: 1, airframe: 'x', medal: 'bronze' }).medal === 'bronze'
     && log.append('lap', 2, { ms: 1, airframe: 'x', medal: null }).medal === null);
+}
+
+console.log('the debrief\'s words (COMPLETENESS item 26)');
+{
+  const log = new EventLog();
+  const v = log.append('lap_void', 1, { ms: null, reason: 'wreck' });
+  const t = log.append('lap_void', 2, { ms: 41000, reason: 'test' });
+  const b = log.append('bail', 3, { cause: 'bounce' });
+  const k = log.append('trick', 4, { id: 'Power Loop', score: 512.75 });
+  const m = log.append('mission_end', 5, {
+    mission: 'interior-1', match: 'u1', won: true, state: 'won', stars: 1, earned: 3, paid: false, airframe: 'cub1400',
+  });
+  check('a voided lap carries no time and its reason, a test flight\'s lap its time', v.ms === null && v.reason === 'wreck' && t.ms === 41000 && t.reason === 'test');
+  check('a bail its cause, a trick its id and score', b.cause === 'bounce' && k.id === 'Power Loop' && k.score === 512.75);
+  check('an Interior result its match, state, stars earned and whether it paid', m.match === 'u1' && m.state === 'won' && m.earned === 3 && m.paid === false);
+  check('all plain values: the log is JSON as it stands', show(JSON.parse(show(log.events))) === show(log.events));
 }
 
 console.log('the room clock');
@@ -280,6 +297,13 @@ class ViaLog {
     return this.judge();
   }
 
+  /* The debrief's words (Progress.lapVoid, bail, trick): logged, folded,
+   * judged by nothing. */
+  word([type, data]) {
+    this.event(type, data);
+    return this.judge();
+  }
+
   tick(state) {
     this.simMs = state.simMs;
     if (state.crashed && !this.wasCrashed) this.event('crash', { airframe: this.airframe });
@@ -349,6 +373,13 @@ function flight() {
   steps.push(['lap', 40000]);
   return steps;
 }
+
+/* The debrief's words as the shell logs them (src/ui/progress-ui.js
+ * lapVoid, bail, trick), which no challenge may read. */
+const DEBRIEF_WORDS = [
+  ['lap_void', { ms: null, reason: 'wreck' }], ['bail', { cause: 'bounce' }], ['trick', { id: 'Power Loop', score: 480 }],
+  ['lap_void', { ms: 41000, reason: 'test' }], ['bail', { cause: 'crash' }], ['trick', { id: 'Flip', score: 0 }],
+];
 
 console.log('the rows judge the same from the log as the old judge from its calls');
 for (const ctx of [
@@ -433,6 +464,10 @@ console.log('a thousand seeded random runs: the rows and the old judge agree cal
   let fired = 0;
   const seen = new Set();
   let firstBad = '';
+  let quiet = 0;
+  let words = 0;
+  let wordPaid = 0;
+  let firstLoud = '';
   for (let k = 0; k < 1000; k += 1) {
     const steps = [];
     let t = 0;
@@ -458,15 +493,30 @@ console.log('a thousand seeded random runs: the rows and the old judge agree cal
         steps.push(['tick', { simMs: t, crashed, grounded, power, battery }]);
       }
     }
-    const { via, legacy, a, b } = both(pick(ctxs), steps);
+    const ctx = pick(ctxs);
+    const { via, legacy, a, b } = both(ctx, steps);
     runs += 1;
     fired += a.flat().length;
     a.flat().forEach((id) => seen.add(id));
     if (show(a) === show(b) && judged(legacy) === judged(via.run)) agree += 1;
     else if (!firstBad) firstBad = `run ${k}: ${a.flat().join()} vs ${b.flat().join()}; ${judged(legacy)} vs ${judged(via.run)}`;
+    /* The same run with the debrief's words between its calls, as the
+     * shell logs them (a lap voided or a test flight's, a bail, a trick):
+     * the log's side answers every one of its calls as before. */
+    const noisy = new ViaLog(ctx);
+    const c = [];
+    steps.forEach(([call, arg], i) => {
+      c.push(noisy[call](arg));
+      const said = noisy.word(DEBRIEF_WORDS[i % DEBRIEF_WORDS.length]);
+      words += 1;
+      if (said.length) wordPaid += 1;
+    });
+    if (show(c) === show(b) && judged(noisy.run) === judged(via.run)) quiet += 1;
+    else if (!firstLoud) firstLoud = `run ${k}: ${c.flat().join()} vs ${b.flat().join()}`;
   }
   check(`every run agrees (${agree} of ${runs})`, agree === runs, firstBad);
   check(`and they fire every one of the seven to compare (${fired} in all)`, fired > 1000 && CHALLENGES.every((c) => seen.has(c.id)), [...seen].join());
+  check(`the debrief's words change no answer in any of them (${quiet} of ${runs}, ${words} words logged)`, quiet === runs && wordPaid === 0 && words > 100000, firstLoud || `${wordPaid} paid`);
 }
 
 console.log('the shell\'s producers');
@@ -502,7 +552,7 @@ console.log('the shell\'s producers');
     && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: people.length })"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
-  const missionLogged = (file, type) => new RegExp(`ui\\.progress\\.event\\('${type}', \\{[^}]*airframe: ui\\.progress\\.airframe \\}\\);\\n\\s*ui\\.progress\\.foldFlight\\(\\);`).test(src(file));
+  const missionLogged = (file, type) => new RegExp(`ui\\.progress\\.event\\('${type}', \\{[^}]*airframe: ui\\.progress\\.airframe,?\\s*\\}\\);\\n\\s*ui\\.progress\\.foldFlight\\(\\);`).test(src(file));
   check('a mission start and result carry the seated aircraft and are folded at once',
     missionLogged('src/ui/campaign.js', 'mission_start') && missionLogged('src/ui/campaign.js', 'mission_end') && missionLogged('src/ui/opscampaign.js', 'mission_end'));
   check('an Interior match is logged begun when it goes live, its mission and the seated aircraft',
@@ -510,6 +560,27 @@ console.log('the shell\'s producers');
   check('a kill the room credited is logged, one a victim, on the seated aircraft, with the war\'s mission',
     src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills, v.mission ?? null);")
     && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind, mission });"));
+  const main = src('src/main.js');
+  check('a lap voided is logged with its reason when race.js kept a row for it, at every void',
+    main.includes("const rows = race.log.length;\n    race.voidLap(str(key), wallMs);\n    if (race.log.length > rows) {\n      ui.progress.lapVoid(null, reason);")
+    && !/race\.voidLap\(/.test(main.replace('race.voidLap(str(key), wallMs);', ''))
+    && ['wreck', 'swap', 'weight', 'replay'].every((r) => main.includes(`voidRaceLap('${r}', `)));
+  check('a builder\'s test flight lap off a casual track, which Progress does not count, is logged with its time',
+    main.includes("noteBuilderLap(race.lastLapMs);\n      /* Progress counts none off a casual track; the debrief still reads\n       * it from the log (src/game/events.js lap_void). */\n      if (!ui.progress.isCasual(build.docId)) {\n        ui.progress.lapVoid(race.lastLapMs, 'test');")
+    && main.includes("if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {"));
+  check('every bail the scorer counts is logged, with its cause: a crash, a wreck, a hard bounce',
+    main.includes('function scoreCrash(cause) {\n    score.crash();\n    ui.progress.bail(cause);')
+    && ['crash', 'wreck', 'bounce'].every((c) => main.includes(`scoreCrash('${c}');`)) && !main.includes('scoreCrash();'));
+  check('a trick the scorer took is logged with its name and points, one it refused is not',
+    main.includes('const took = score.land(trick);\n    if (took) {\n      ui.progress.trick(took.name, took.net);')
+    && (main.match(/score\.land\(/g) || []).length === 1);
+  check('and none of the three is folded or pays: Progress only logs them',
+    ui.includes("lapVoid(ms, reason) {\n    this.event('lap_void', { ms, reason });\n  }") && ui.includes("bail(cause) {\n    this.event('bail', { cause });\n  }")
+    && ui.includes("trick(id, score) {\n    this.event('trick', { id, score });\n  }"));
+  check('an Interior match\'s result is logged before its debrief shows, and the debrief reads the run\'s log',
+    /interiorScreen\.record\(match, v\);\n\s*debrief\.show\(\{[\s\S]{0,400}?events: ui\.progress\.runEvents\(\),\n\s*match: matchOf\(match, v\),/.test(main));
+  check('so do a race\'s and a freestyle run\'s',
+    main.includes('events: ui.progress.runEvents().slice(raceLogAt),') && main.includes('summary,\n      events: ui.progress.runEvents(),'));
   check('the avionics camera\'s primary track is told every perception frame, and none without the Avionics HUD',
     src('src/main.js').includes('ui.progress.contact(heldTrack(tracks.snapshot));') && src('src/main.js').includes("avionicsHud.tick(false, paused, nowWall, null);\n      ui.progress.contact(null);"));
 }

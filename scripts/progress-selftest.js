@@ -329,6 +329,75 @@ console.log('the one fold: a log in, exactly these achievements out');
   check('the whole log again from the start: no achievement twice, only the lap\'s own XP (a lap pays every time, its course\'s first once)',
     same(replayed.awards.map(say), ['lap']) && p.xp === xp + LAP_XP.built, replayed.awards.map(say).join(' | '));
   check('no outside facts: no firsts read', awardFlight(freshProgress(), log.events, 0, challengeRun(), null).awards.every((g) => g[0].type !== 'first'));
+  /* The debrief's words (src/game/events.js lap_void, bail, trick,
+   * COMPLETENESS.md item 26) between every event of the same flight: the
+   * fold pays exactly the same, counts the same and gives the same XP. */
+  const words = [
+    ['lap_void', { ms: null, reason: 'wreck' }], ['bail', { cause: 'bounce' }], ['trick', { id: 'Power Loop', score: 480 }],
+    ['lap_void', { ms: 39000, reason: 'test' }], ['bail', { cause: 'crash' }],
+  ];
+  const noisy = new EventLog();
+  log.events.forEach((e, i) => {
+    const { seq, type, simMs, roomMs, ...data } = e;
+    noisy.append(type, simMs, data);
+    const [w, d] = words[i % words.length];
+    noisy.append(w, simMs, d);
+  });
+  const pn = freshProgress();
+  const quiet = awardFlight(pn, noisy.events, 0, challengeRun(), outside);
+  check('the debrief\'s words between every event: the same achievements, counts and XP', same(quiet.awards.map(say), want) && quiet.counted === 2
+    && pn.xp === awardFlight(freshProgress(), log.events, 0, challengeRun(), outside).awards.flat().filter((e) => e.type === 'xp').reduce((n, e) => n + e.xp, 0)
+    && same(pn.laps, { timber1500: 1 }) && same(pn.crashes, {}), quiet.awards.map(say).join(' | '));
+
+  /* A thousand seeded random flights folded with and without the
+   * debrief's words between their events: the same achievements, in the
+   * same order, and the same progress after. */
+  let seed = 20261014;
+  const rand = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  };
+  const pick = (list) => list[Math.floor(rand() * list.length)];
+  const seats = [timber, { ...timber, airframe: 'slowstick1180' }, { ...timber, airframe: 'bombshell1118', power: 'glow' }, { airframe: 'interceptor', fixedWing: false, power: null, smallestPack: false, crashed: false }];
+  let alike = 0;
+  let paidAll = 0;
+  let firstOdd = '';
+  for (let k = 0; k < 1000; k += 1) {
+    const plain = new EventLog();
+    const loud = new EventLog();
+    const both = (type, t, data) => {
+      plain.append(type, t, data);
+      loud.append(type, t, data);
+    };
+    let t = 0;
+    let seat = pick(seats);
+    both('spawned', 0);
+    both('seated', 0, seat);
+    for (let n = 0; n < 60; n += 1) {
+      t += 500 + Math.floor(rand() * 4000);
+      const r = rand();
+      if (r < 0.3) both('gate', t);
+      else if (r < 0.45) both('lap', t, { ms: 20000 + Math.floor(rand() * 40000), airframe: seat.airframe, medal: pick([null, 'bronze', 'silver', 'gold']), kind: pick(['casual', 'built', 'map']), course: pick(['track:a', 'track:b']), n: 1 + Math.floor(rand() * 3), of: pick([null, 3]) });
+      else if (r < 0.5) both('crash', t, { airframe: seat.airframe });
+      else if (r < 0.6) both('landing', t, { airframe: seat.airframe, airMs: Math.floor(rand() * 400000) });
+      else if (r < 0.63) both('battery_low', t);
+      else if (r < 0.66) both('touch', t, { kind: pick(['gate', 'hoop', 'tree']) });
+      else if (r < 0.68) {
+        seat = pick(seats);
+        both('seated', t, seat);
+      }
+      const [w, d] = words[Math.floor(rand() * words.length)];
+      loud.append(w, t, d);
+    }
+    const pa = freshProgress();
+    const pb = freshProgress();
+    const fa = awardFlight(pa, plain.events, 0, challengeRun(), outside);
+    const fb = awardFlight(pb, loud.events, 0, challengeRun(), outside);
+    paidAll += fa.awards.length;
+    if (same(fa.awards.map(say), fb.awards.map(say)) && fa.counted === fb.counted && same(pa, pb)) alike += 1;
+    else if (!firstOdd) firstOdd = `flight ${k}: ${fa.awards.map(say).join()} vs ${fb.awards.map(say).join()}`;
+  }
+  check(`a thousand seeded flights, the debrief's words between their events: the same achievements and progress (${alike} of 1000, ${paidAll} paid)`, alike === 1000 && paidAll > 1000, firstOdd);
 
   /* A run is carried across its flights: a placement starts a new log,
    * not a new run, so a third lap after two placements is the third. */
@@ -456,6 +525,15 @@ console.log('landings, crashes, laps, kills and missions, from the event log');
     same(ms.missionsStarted, { cub1400: 2, timber1500: 1 }) && same(ms.missionsCompleted, { cub1400: 2 })
     && countOf(ms, 'mission_end', 'cub1400') === 2 && mf.counted === 5 && mAgain.counted === 0 && ms.xp === 0,
     JSON.stringify([ms.missionsStarted, ms.missionsCompleted, mf.counted, mAgain.counted]));
+  /* An Interior match's result logged for its debrief though this entry
+   * paid nothing (paid before, by its uid; src/ui/opscampaign.js record)
+   * is not completed again. */
+  const mu = freshProgress();
+  const mul = new EventLog();
+  mul.append('mission_end', 1000, { mission: 'interior-1', match: 'u1', won: true, state: 'won', stars: 1, earned: 1, paid: true, airframe: 'cub1400' });
+  mul.append('mission_end', 2000, { mission: 'interior-1', match: 'u1', won: true, state: 'won', stars: 1, earned: 1, paid: false, airframe: 'cub1400' });
+  const muf = foldEvents(mu, mul.events);
+  check('a result logged unpaid counts nowhere, the paid one once', same(mu.missionsCompleted, { cub1400: 1 }) && muf.counted === 1, JSON.stringify([mu.missionsCompleted, muf.counted]));
   check('a fresh profile has no missions counted', same(freshProgress().missionsStarted, {}) && same(freshProgress().missionsCompleted, {}));
   check('a count pays no XP', p.xp === 0);
   const older = normaliseProgress({ v: 2, xp: 300, firsts: { a: true } });

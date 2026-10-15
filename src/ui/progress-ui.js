@@ -259,6 +259,11 @@ export class Progress {
     /* This flight's events (src/game/events.js), and the sim clock as the
      * last tick gave it, for the calls that do not carry one. */
     this.flight = new EventLog();
+    /* Every event of this run's flights, in order: a run outlives its
+     * flights (a recovery, a seat swap, a placement each start a new
+     * log), and its debrief reads what the whole run did (runEvents).
+     * Forgotten with the bests, at a new run. In memory only. */
+    this.runLog = [];
     /* How far into this flight's log progress has counted. */
     this.folded = 0;
     /* The bests this run set (progress.js awardBest's `best` events), for
@@ -336,6 +341,7 @@ export class Progress {
     this.foldFlight();
     if (simMs <= 0 || simMs < this.simMs) {
       this.bests = [];
+      this.runLog = [];
     }
     this.simMs = simMs;
     this.flight.end(simMs);
@@ -343,7 +349,14 @@ export class Progress {
     this.folded = 0;
     this.heldTrack = null;
     this.placeSkip = null;
-    this.flight.append('spawned', simMs);
+    this.event('spawned');
+  }
+
+  /* This run's events, every flight's since the run began, for its
+   * debrief (src/game/debrief.js fromRace, fromFree, fromOps): a copy,
+   * so a debrief drawn twice reads the same. */
+  runEvents() {
+    return this.runLog.slice();
   }
 
   /*
@@ -455,6 +468,9 @@ export class Progress {
   /* One event into this flight's log at the last tick's sim time. */
   event(type, data = {}) {
     const e = this.flight.append(type, this.simMs, data);
+    if (e) {
+      this.runLog.push(e);
+    }
     if (type === 'mission_end') {
       this.feedLesson(e);
     }
@@ -607,6 +623,24 @@ export class Progress {
       this.lesson.lap(lapped, ghostMs);
       this.lessonNews();
     }
+  }
+
+  /* A row of the race's log that pays nothing (src/game/events.js
+   * lap_void): a lap voided, `ms` null and `reason` why, or a test
+   * flight's lap off a casual track, its time and 'test'. */
+  lapVoid(ms, reason) {
+    this.event('lap_void', { ms, reason });
+  }
+
+  /* A bail the freestyle scorer counted, `cause` 'crash', 'wreck' or
+   * 'bounce' (src/main.js scoreCrash), and a trick it took, `id` its
+   * name and `score` its points: the debrief's, paying nothing. */
+  bail(cause) {
+    this.event('bail', { cause });
+  }
+
+  trick(id, score) {
+    this.event('trick', { id, score });
   }
 
   tick(state) {

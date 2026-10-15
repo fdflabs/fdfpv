@@ -78,6 +78,15 @@ function starRow(n) {
   return row;
 }
 
+/* The states a match ends in (edge/rooms/ops.js finish). */
+const ENDS = ['won', 'lost', 'ended'];
+
+/* A match's identity in the log and the save: the room's uid for it, or
+ * `key` (the room's code and match id) for a room from before uid. */
+export function matchOf(key, view) {
+  return view?.uid || key;
+}
+
 /* The word a mission's card shows: held while in development (the
  * owner flies it before it opens), else its card label or release. */
 export function missionState(m, dev = false) {
@@ -196,23 +205,45 @@ export function createOpsCampaignScreen({
     },
     close,
     isOpen: () => isOpen && !ui.nameDialog.hidden,
-    /* A finished match of one of this campaign's missions, once per uid
-     * (key, the room's code and match id, for a room from before uid):
-     * its stars and flags into the synced progress. */
+    /*
+     * A finished match: of one of this campaign's missions, paid once
+     * per uid (key, the room's code and match id, for a room from before
+     * uid), its stars and flags into the synced progress; and of any
+     * mission, its result logged (src/game/events.js mission_end) where
+     * this run's log has none for it, so its debrief reads it there
+     * (src/game/debrief.js fromOps). One this entry did not pay (paid
+     * before, by uid, or with no result for this seat) is logged unpaid,
+     * which nothing counts.
+     */
     record(key, view) {
-      const id = view?.uid || key;
-      if (recorded.has(id) || !view || !view.result || !missions.some((m) => m.id === view.mission)) {
+      if (!view || !(view.result || ENDS.includes(view.state))) {
         return;
       }
-      recorded.add(id);
-      if (view.uid && paidWar(cur(), view.uid)) {
+      const id = matchOf(key, view);
+      let paid = false;
+      if (!recorded.has(id) && view.result && missions.some((m) => m.id === view.mission)) {
+        recorded.add(id);
+        paid = !(view.uid && paidWar(cur(), view.uid));
+      }
+      if (paid) {
+        const res = {
+          won: view.result.won === true, stars: view.result.stars ?? 0, credits: 0, flags: view.result.flags ?? {},
+        };
+        store.save(view.uid ? payResult(cur(), view.uid, view.mission, res) : applyResult(cur(), view.mission, res));
+      } else if (ui.progress.runEvents().some((e) => e.type === 'mission_end' && e.match === id)) {
         return;
       }
-      const res = {
-        won: view.result.won === true, stars: view.result.stars ?? 0, credits: 0, flags: view.result.flags ?? {},
-      };
-      store.save(view.uid ? payResult(cur(), view.uid, view.mission, res) : applyResult(cur(), view.mission, res));
-      ui.progress.event('mission_end', { mission: view.mission, won: view.result.won === true, stars: Number.isFinite(view.result.stars) ? view.result.stars : 0, airframe: ui.progress.airframe });
+      const won = view.result ? view.result.won === true : view.state === 'won';
+      ui.progress.event('mission_end', {
+        mission: view.mission,
+        match: id,
+        won,
+        state: won ? 'won' : view.state === 'ended' ? 'ended' : 'lost',
+        stars: view.result && Number.isFinite(view.result.stars) ? view.result.stars : 0,
+        earned: view.result && Array.isArray(view.result.starIds) ? view.result.starIds.length : 0,
+        paid,
+        airframe: ui.progress.airframe,
+      });
       ui.progress.foldFlight();
     },
     playable,

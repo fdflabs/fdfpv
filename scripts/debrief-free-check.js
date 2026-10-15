@@ -167,14 +167,43 @@ async function run(lang) {
       await page.until("window.__crash().condition === 'impaired'", 8000).catch(() => {});
       say(part >= 0 && broke === 'OK', `a control surface or the gear broken off in flight: part ${part} ${broke}`);
     }
+    /* Three tricks through the trick judge's callback, as a detector
+     * lands them: the scorer takes each and the run's log says so. */
+    for (const name of ['Flip', 'Roll', 'Flip']) {
+      await page.evaluate(`(window.__trickLand({ name: ${JSON.stringify(name)}, execution: 'CLEAN', turns: 1 }), true)`);
+    }
     await page.evaluate('window.__scoreFinish()');
     await page.until("window.__craftState().mode === 'results' && window.__ui.screen === 'results'", 30000);
     await page.sleep(700);
+    /* From the log (COMPLETENESS.md item 26): the tricks and crashes
+     * shown are the run's `trick` and `bail` rows, which are what the
+     * scorer counted, and the debrief rebuilt from a JSON round trip of
+     * the log is the one shown. */
+    const fromLog = await page.evaluate(`(async () => {
+      const m = await import('/src/game/debrief.js');
+      const d = window.__ui.resultsDebrief;
+      const events = JSON.parse(JSON.stringify(window.__ui.progress.runEvents()));
+      const s = window.__score();
+      const total = d.records.find((r) => r.what === 'debrief.aircraft_time');
+      const again = m.withBests(m.fromFree({
+        aircraft: d.aircraft, fixedWing: d.fixedWing, summary: { total: d.score, timed: d.time.runMs != null, durationMs: d.time.runMs ?? 0 }, events,
+        flightMs: d.time.flightMs, totalS: total ? total.now : NaN, route: d.route, replay: d.replay, landed: d.result.landed, condition: d.condition,
+      }), window.__ui.progress.runBests());
+      const line = (w) => d.accuracy.find((a) => a.what === w) || null;
+      return {
+        tricks: events.filter((e) => e.type === 'trick').length, kinds: new Set(events.filter((e) => e.type === 'trick').map((e) => e.id)).size, bails: events.filter((e) => e.type === 'bail').length,
+        scored: [s.tricks, s.unique, s.crashes], shown: [line('debrief.tricks_kinds'), line('debrief.crashes')], same: JSON.stringify(again) === JSON.stringify(d),
+      };
+    })()`);
+    say(fromLog.tricks === 3 && fromLog.kinds === 2 && fromLog.scored[0] === 3 && fromLog.scored[1] === 2 && fromLog.bails === fromLog.scored[2]
+      && fromLog.shown[0] && fromLog.shown[0].n === 2 && fromLog.shown[0].of === 3 && fromLog.shown[1].n === fromLog.bails,
+    `the tricks and crashes shown are the log's, the scorer's own: ${JSON.stringify(fromLog)}`);
+    say(fromLog.same, 'the debrief rebuilt from a JSON round trip of the run\'s log is the one shown');
     const f = await page.evaluate(FACTS);
     say(Boolean(f) && f.visible, `the facts block is on screen (${plane})`);
     say(Boolean(f) && f.clear, `the facts cover none of the hero, the table or the menu: ${f && f.box}`);
     const has = (k) => f && f.dts.includes(t[k]);
-    say(has('debrief.air_time') && has('debrief.crashes') && has('debrief.landing') && has('debrief.condition') && has('debrief.aircraft_time'),
+    say(has('debrief.air_time') && has('debrief.tricks_kinds') && has('debrief.crashes') && has('debrief.landing') && has('debrief.condition') && has('debrief.aircraft_time'),
       `its lines: ${f && f.dts.join(' | ')}`);
     const hud = await page.evaluate('window.__crash().condition');
     const condition = f && f.dds[f.dts.indexOf(t['debrief.condition'])];

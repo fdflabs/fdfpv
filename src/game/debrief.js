@@ -181,24 +181,27 @@ function timeRecord(totalS, flightMs) {
 }
 
 /*
- * EVENT LOG (src/game/events.js, COMPLETENESS.md item 26): a fact the
- * flight's log holds is read from it, so a debrief rebuilt from a saved
- * log says what the one shown said: a room game's points (its `round`).
- * The rest are handed in, each for a reason the log cannot carry yet:
- * a race's laps (race.js's log keeps the voided laps, which the event log
- * does not), freestyle's tricks and crashes (score.js's, whose crash is
- * any bail, a hard bounce included, where the log's `crash` is the crash
- * flag's edge), an ops mission's result (logged after the debrief shows),
- * a room's places (the room's order), and what is measured, not an
- * event: the time in the air, the route, the replay, the condition.
+ * EVENT LOG (src/game/events.js, COMPLETENESS.md item 26): every fact
+ * that is an event is read from the log, so a debrief rebuilt from a
+ * saved log says what the one shown said: a race's laps (`lap` and
+ * `lap_void`), freestyle's tricks and bails (`trick`, `bail`), an ops
+ * mission's result (its `mission_end`) and a room game's points (its
+ * `round`). `events` is the run's (src/ui/progress-ui.js runEvents), a
+ * room's the flight's. Handed in: what is measured, not an event (the
+ * time in the air, the route, the replay, the condition, a freestyle
+ * run's clock), what the scorer and the room work out from it (the
+ * score, the places), and what the course and the mission are (the
+ * record chased, the stars there are).
  */
 
 /*
- * A solo race. log: race.js's laps in order ({ n, ms } or { n, ms: null,
- * reason }); recordAtStart the record this run chased; gates the course's
- * gate count and passed the gates passed this flight (null when unknown).
+ * A solo race. events: its run's log, whose `lap` and `lap_void` rows
+ * are race.js's laps in order (a voided one with ms null); recordAtStart
+ * the record this run chased; gates the course's gate count and passed
+ * the gates passed this flight (null when unknown).
  */
-export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flightMs, totalS, route = null, replay, landed = null, gates = null, passed = null, condition = null }) {
+export function fromRace({ aircraft, fixedWing = false, events, recordAtStart, flightMs, totalS, route = null, replay, landed = null, gates = null, passed = null, condition = null }) {
+  const log = events.filter((e) => e.type === 'lap' || e.type === 'lap_void');
   const laps = log.filter((l) => Number.isFinite(l.ms)).map((l) => l.ms);
   const fastest = laps.length ? Math.min(...laps) : null;
   const prior = Number.isFinite(recordAtStart) ? recordAtStart : null;
@@ -232,11 +235,6 @@ export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flig
   };
 }
 
-/*
- * A freestyle run from score.js's summary(). posted is the board's answer
- * when the run was sent ({ score, improved }), else null: the board holds
- * the pilot's best, so the record line is its answer, not a local copy.
- */
 /*
  * A Flight Club room's match: a room race, Catch the Ace or Streamer
  * Combat. place and of are this pilot's standing in the room's order
@@ -279,26 +277,33 @@ export function fromRoom({ activity, aircraft, fixedWing = false, place, of, fin
 }
 
 /*
- * An ops mission's end (src/ui/debrief.js). won and ended as the room
- * judged them; items the debrief's frames ({ required, kind }: 'mine' and
- * 'squad' are captured); stars { got, of }; flight this pilot's own
- * { aircraft, fixedWing, flightMs, totalS, route, replay, condition }.
+ * An ops mission's end (src/ui/debrief.js). events: the run's log, which
+ * holds the match's `mission_end` (src/ui/opscampaign.js record logs it
+ * before the debrief shows), match its id there (opscampaign.js
+ * matchOf): its state and the stars earned; items the debrief's frames
+ * ({ required, kind }: 'mine' and 'squad' are captured); starsOf the
+ * mission's stars; flight this pilot's own { aircraft, fixedWing,
+ * flightMs, totalS, route, replay, condition }.
  */
-export function fromOps({ won, ended, items, stars, flight }) {
+export function fromOps({ events, match, items, starsOf, flight }) {
+  const end = events.filter((e) => e.type === 'mission_end' && e.match === match).pop();
+  if (!end) {
+    throw new Error(`debrief: no mission_end logged for match ${match}`);
+  }
   const required = items.filter((f) => f.required);
   const captured = (list) => list.filter((f) => f.kind === 'mine' || f.kind === 'squad').length;
   const accuracy = [];
   if (required.length) {
     accuracy.push({ what: 'debrief.items_required', n: captured(required), of: required.length });
   }
-  if (stars && stars.of > 0) {
-    accuracy.push({ what: 'debrief.stars', n: stars.got, of: stars.of });
+  if (starsOf > 0) {
+    accuracy.push({ what: 'debrief.stars', n: end.earned, of: starsOf });
   }
   return {
     activity: 'ops',
     aircraft: flight.aircraft,
     fixedWing: Boolean(flight.fixedWing),
-    result: { kind: won ? 'won' : ended ? 'ended' : 'lost', landed: null },
+    result: { kind: end.state, landed: null },
     condition: conditionWord(flight.condition ?? null),
     route: flight.route ?? null,
     time: { flightMs: flight.flightMs, runMs: null },
@@ -359,14 +364,23 @@ export function withBests(d, bests) {
   return lines.length ? { ...d, records: [...lines, ...d.records] } : d;
 }
 
-export function fromFree({ aircraft, fixedWing = false, summary, flightMs, totalS, route = null, replay, landed = null, posted = null, condition = null }) {
+/*
+ * A freestyle run. events: its run's log, whose `trick` rows are the
+ * tricks the scorer took and `bail` rows the bails it counted; summary
+ * score.js's summary(), for the score and the run's clock. posted is the
+ * board's answer when the run was sent ({ score, improved }), else null:
+ * the board holds the pilot's best, so the record line is its answer, not
+ * a local copy.
+ */
+export function fromFree({ aircraft, fixedWing = false, summary, events, flightMs, totalS, route = null, replay, landed = null, posted = null, condition = null }) {
   const scored = summary.timed !== false;
-  const kind = summary.tricks > 0 ? 'complete' : 'ended';
+  const tricks = events.filter((e) => e.type === 'trick');
+  const kind = tricks.length > 0 ? 'complete' : 'ended';
   const accuracy = [];
-  if (summary.tricks > 0) {
-    accuracy.push({ what: 'debrief.tricks_kinds', n: summary.unique, of: summary.tricks });
+  if (tricks.length > 0) {
+    accuracy.push({ what: 'debrief.tricks_kinds', n: new Set(tricks.map((e) => e.id)).size, of: tricks.length });
   }
-  accuracy.push({ what: 'debrief.crashes', n: summary.crashes, of: null });
+  accuracy.push({ what: 'debrief.crashes', n: events.filter((e) => e.type === 'bail').length, of: null });
   const records = [];
   if (posted && Number.isFinite(posted.score)) {
     records.push({ what: 'debrief.run_best', now: summary.total, before: posted.score, improved: posted.improved !== false });

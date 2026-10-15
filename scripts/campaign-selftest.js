@@ -286,19 +286,36 @@ console.log('a war\'s result is paid once, by the room\'s id for it (phase 19, C
 console.log('an ops match\'s result is paid once, by the room\'s id for it (the war\'s rule, COMPLETENESS 2)');
 {
   /* The page's half (src/ui/opscampaign.js record) on a fake shell, as
-   * the war's above: a reload is a new screen over the same settings. */
+   * the war's above: a reload is a new screen over the same settings, and
+   * a new page's run log. Every result seen is logged for its debrief
+   * (COMPLETENESS 26); `paid` says whether that entry paid it, and only a
+   * paid one is a match completed (progress.js foldEvents). */
   const events = [];
   const settings = {};
-  const shell = () => ({
-    settings,
-    persistSettings() {},
-    nameDialog: { hidden: true },
-    progress: { airframe: 'bramor2300', event(type) { events.push(type); }, foldFlight() {}, checkFirsts() {} },
-  });
+  const shell = () => {
+    const run = [];
+    return {
+      settings,
+      persistSettings() {},
+      nameDialog: { hidden: true },
+      progress: {
+        airframe: 'bramor2300',
+        event(type, data = {}) {
+          const e = { type, ...data };
+          run.push(e);
+          events.push(e);
+        },
+        runEvents: () => run.slice(),
+        foldFlight() {},
+        checkFirsts() {},
+      },
+    };
+  };
   const screen = () => createOpsCampaignScreen({
     ui: shell(), campaign: INTERIOR_CAMPAIGN, missions: INTERIOR, consented: async () => true, play: () => {},
   });
-  const ends = () => events.filter((x) => x === 'mission_end').length;
+  const ends = () => events.filter((x) => x.type === 'mission_end' && x.paid).length;
+  const seen = () => events.filter((x) => x.type === 'mission_end' && !x.paid).length;
   const UID = 'o1760000000000-OPS000-000001';
   const res = { won: true, stars: 2, starIds: ['a', 'b'], flags: { M1_SYMBOL_CAPTURED: true }, restarted: null };
   const live = { id: 1, uid: UID, mission: 'interior-1', state: 'live', result: null };
@@ -309,27 +326,27 @@ console.log('an ops match\'s result is paid once, by the room\'s id for it (the 
   a.record('OPS000:1', done);
   check('a page that saw it end is paid once: the stars, the flags, the uid kept, one mission_end',
     starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2 && cleanCampaign(settings.campaign).flags.M1_SYMBOL_CAPTURED === true
-    && same(cleanCampaign(settings.campaign).wars, [UID]) && ends() === 1, events.join());
+    && same(cleanCampaign(settings.campaign).wars, [UID]) && ends() === 1 && seen() === 0, JSON.stringify(events));
   const b = screen();
   b.record('OPS000:1', done);
   b.record('OPS000:1', done);
-  check('a reload at the debrief pays nothing more, and logs no second mission_end', ends() === 1
-    && starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2, events.join());
+  check('a reload at the debrief pays nothing more, and logs no second paid mission_end: its debrief\'s is logged once, seen, not paid', ends() === 1 && seen() === 1
+    && starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2, JSON.stringify(events));
   delete settings.campaign;
   const c = screen();
   c.record('OPS000:1', done);
   check('a page that saw only the end (a reload, a reconnect, a late join into the debrief) is paid it',
-    starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2 && cleanCampaign(settings.campaign).flags.M1_SYMBOL_CAPTURED === true && ends() === 2, events.join());
+    starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2 && cleanCampaign(settings.campaign).flags.M1_SYMBOL_CAPTURED === true && ends() === 2, JSON.stringify(events));
   c.record('OPS000:1', { ...done, result: { ...res, stars: 3 } });
   const d = screen();
   d.record('OPS000:1', { ...done, result: { ...res, stars: 3 } });
-  check('a second sighting pays nothing, on that page or a fresh one, whatever it says', ends() === 2
-    && starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2, events.join());
+  check('a second sighting pays nothing, on that page or a fresh one, whatever it says', ends() === 2 && seen() === 2
+    && starsOf(cleanCampaign(settings.campaign), 'interior-1') === 2, JSON.stringify(events));
   d.record('OPS000:2', { ...done, id: 2, uid: 'o1760000000000-OPS000-000002', result: null });
   check('an ended match the room sent no result for (a watcher, a pilot first seated after the end) pays nothing',
-    ends() === 2 && cleanCampaign(settings.campaign).wars.length === 1);
+    ends() === 2 && seen() === 3 && cleanCampaign(settings.campaign).wars.length === 1);
   d.record('OPS000:3', { ...done, id: 3, uid: 'o1760000000000-OPS000-000003', mission: 'itaipu-1' });
-  check('a match of another campaign\'s mission is not this screen\'s to pay', ends() === 2 && cleanCampaign(settings.campaign).wars.length === 1);
+  check('a match of another campaign\'s mission is not this screen\'s to pay', ends() === 2 && seen() === 4 && cleanCampaign(settings.campaign).wars.length === 1);
   delete settings.campaign;
   const old = screen();
   old.record('OLD000:4', { id: 4, mission: 'interior-1', state: 'won', result: res });

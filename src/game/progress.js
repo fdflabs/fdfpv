@@ -391,7 +391,9 @@ export function foldEvents(progress, events, from = 0) {
       counted += 1;
     }
     const map = COUNTED[e.type];
-    if (map && typeof e.airframe === 'string') {
+    /* An Interior match's result logged for its debrief and paid before
+     * (src/ui/opscampaign.js record) is not completed again. */
+    if (map && typeof e.airframe === 'string' && e.paid !== false) {
       const k = liveryKey(e.airframe);
       progress[map] ??= {};
       progress[map][k] = Math.min(COUNT_MAX, (progress[map][k] || 0) + 1);
