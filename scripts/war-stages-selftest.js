@@ -2352,6 +2352,28 @@ console.log('hit points: a carrier takes two detonations, a penetrator\'s one (T
     heard.length === 1 && said && heard[0].agents.length === 1 && heard[0].agents[0].id === hull.id && heard[0].agents[0].kind === 'carrier' && heard[0].agents[0].hp === 1
     && Math.hypot(...heard[0].agents[0].p.map((v, i) => v - said.p[i])) < 8 && client.attackersAt(said.at + 100).some((a) => a.id === hull.id),
     JSON.stringify({ heard, said }));
+  /* And draws it hurt (its burn, src/main.js): attackersAt carries the hp
+   * left, so long as it lives. */
+  const drawn = said ? client.attackersAt(said.at + 100).find((a) => a.id === hull.id) : null;
+  check('a screen that heard the hurt draws the carrier with 1 hp left, and the room\'s view says so',
+    drawn && drawn.hp === 1 && e.view().hurt[hull.id] === 1, JSON.stringify({ drawn, hurt: e.view().hurt }));
+  /* A pilot who joins after it: the welcome's view carries the hurt
+   * before the births it applies to, and the late screen draws the same
+   * hp as the one that saw the boom. */
+  e.paths[0] = () => [4000, Y, 4000];
+  e.join(2);
+  e.fly(e.clock + 200);
+  const late = createRoomWar(() => {});
+  for (const m of e.socks[2].got) {
+    if (m && m.type === 'welcome') {
+      late.onWelcome(m);
+    } else if (m && m.type === 'war') {
+      late.onMessage(m);
+    }
+  }
+  const lateHull = late.attackersAt(e.clock).find((a) => a.id === hull.id);
+  check('a pilot who joins after the hurt draws the carrier with 1 hp left, as the screen that saw it',
+    lateHull && lateHull.hp === 1 && late.takeEvents().every((x) => x.type !== 'hurt'), JSON.stringify(lateHull));
 }
 
 console.log('launches: a carrier\'s children, born at its pose while it lives (TECH-NEEDS T1.6)');

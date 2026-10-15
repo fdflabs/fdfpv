@@ -1117,10 +1117,9 @@ war:stages flies it on the room), held at `release: 'development'`:
   and alive burns until its last hit, the explosions' own fire puffs and
   smoke column at a rate over its deck (`src/render/explosion.js` burn,
   about 8 fire and 11 smoke particles alive a hull), drawn by every
-  screen from roomwar's `hp` (the `hurt` op). A pilot who joins after a
-  hit draws the hull whole: the view does not carry it yet. The dam's
-  own damage smoke (its map part's points, one slot a target) cannot
-  follow a moving hull.
+  screen from roomwar's `hp` (the `hurt` op, and the view's `hurt` for a
+  pilot who joins later). The dam's own damage smoke (its map part's
+  points, one slot a target) cannot follow a moving hull.
 - **The radio**: the table's 13 lines, `itaipu-5-op` and the film's four,
   voiced en and es on the Orin (CARANCHO `am_puck`, `pm_alex`). In twist
   A `itaipu-5-s3-carrier` ("It's launching") waits for the first launch,

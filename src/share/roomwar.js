@@ -164,8 +164,10 @@ export function createRoomWar(send) {
       if (agents.has(a.id)) {
         continue;
       }
+      /* Hurt before this screen heard of it: the view says so (a late
+       * joiner's welcome comes before the births). */
       agents.set(a.id, {
-        a, plan: planAgent(m, a), samples: [], hp: null,
+        a, plan: planAgent(m, a), samples: [], hp: war.hurt?.[a.id] ?? null,
       });
       born.push(a);
     }
@@ -246,6 +248,12 @@ export function createRoomWar(send) {
         const was = war.state;
         const stageWas = war.stage ? `${war.stage.id}@${war.stage.at}` : null;
         war = held(m.war, seat);
+        for (const [id, hp] of Object.entries(war.hurt ?? {})) {
+          const x = agents.get(Number(id));
+          if (x) {
+            x.hp = hp;
+          }
+        }
         if (was !== war.state) {
           events.push({ type: 'state', from: was, to: war.state, why: war.why ?? null });
         }

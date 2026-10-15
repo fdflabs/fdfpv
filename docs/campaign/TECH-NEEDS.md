@@ -172,6 +172,9 @@ on the death only. The harness's bands hold for the decrement.
 detonate, with the hits kept in the match (`m.hurt`) for a restore, and
 `{ op: 'hurt', ids, hp, at, by, p }` (a boom may hurt several); war:stages
 holds two booms, the second pilot credited, and a penetrator's one.
+Since branch w46-m5b the view carries `hurt` (each live attacker's hp
+left), so a pilot who joins draws a hurt carrier hurt, and a hurt one
+burns on every screen (MISSIONS.md M5, The burn).
 
 ### T1.8 Spotting
 

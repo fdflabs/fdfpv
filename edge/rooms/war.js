@@ -897,6 +897,10 @@ export class RoomWar {
       fuze: Object.fromEntries(seats.filter((seat) => airframeOf.has(Number(seat)))
         .map((seat) => [seat, this.blastOf(Number(seat), airframeOf.get(Number(seat)))])),
       disabled: { ...(m.disabled ?? {}) },
+      /* The hit points left of each attacker alive that took a boom and
+       * lived (a carrier, TECH-NEEDS T1.7), by id, so a screen that joins
+       * draws it hurt as the others do; the `hurt` op tells the change. */
+      hurt: Object.fromEntries(m.agents.filter((a) => m.hurt?.[a.id]).map((a) => [a.id, hpOf(a.kind) - m.hurt[a.id]])),
     };
   }
 
