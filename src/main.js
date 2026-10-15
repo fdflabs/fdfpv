@@ -7213,6 +7213,17 @@ export async function boot({
       s.restart = true;
       return;
     }
+    /* Up into the room's round, which ended while the seat waited for a
+     * world or a frame: the pilot stays where its end put them (its
+     * results, the lobby), never flown into a round over. Under load a
+     * combat round's countdown summoned its pilots, the round ended
+     * before the summon landed, and they flew on past the lobby's return
+     * (game:lobby's "its end: both back in the lobby"). */
+    const game = lobbyGame();
+    if (s.why === 'game' && roomRunning() == null && !roomOps.on() && !(game && lobbyRoundOn(game))) {
+      roomSummon = null;
+      return;
+    }
     /* The builder saves as it goes and again on the way out. A seated map
      * track is the builder's too (build.racing), and stays. */
     if (build && build.active && !build.racing) {
