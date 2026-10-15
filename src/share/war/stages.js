@@ -472,7 +472,8 @@ function chosen(st, sel, e) {
 }
 
 /* Every one of a selection born and every one gone `how` (a set, or any):
- * at the last going, or null. */
+ * at the last going, or null. A group no spawn names is a carrier's
+ * launches (a spawn's `launch`, war.js): every one of it born so far. */
 function allGone(mission, ctx, sel, hows) {
   const st = ctx.st;
   const spawns = stagesOf(mission)[st.idx].spawns;
@@ -485,7 +486,8 @@ function allGone(mission, ctx, sel, hows) {
     }
     return sel.kind == null || d.kind === sel.kind || (w.mix ?? []).some((x) => x[0] === sel.kind);
   });
-  if (!mine.length || !mine.every((d) => d.born)) {
+  const launched = sel.group != null && !spawns.some((w) => w.group === sel.group);
+  if (!launched && (!mine.length || !mine.every((d) => d.born))) {
     return null;
   }
   const born = chosen(st, sel, 'born');

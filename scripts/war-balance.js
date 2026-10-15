@@ -15,7 +15,8 @@
  *   the pick  "fly at the nearest threat to the dam": the attacker alive
  *             nearest its own target (the dam's middle for one with
  *             none, a Scout SCOUT_AFTER_M further back), a Hunter within HUNTED_M of the
- *             bot first; each bot takes one no other bot has taken while
+ *             bot first, then for a good or average pilot a carrier (the
+ *             source, mission 5); each bot takes one no other bot has taken while
  *             there is one, and a good pilot skips one it cannot reach
  *             before it arrives or whose target is already down
  *   the pass  a good pilot leads it (the attacker's future pose, which
@@ -284,7 +285,11 @@ export function runOne({
       const goal = x.a.target != null ? mission.targets[x.a.target].at : DAM;
       /* A Scout threatens nothing itself: after anything that does. */
       const later = x.a.target == null && x.a.kind === 'scout' ? SCOUT_AFTER_M : 0;
-      scored.push({ x, key: hunterNear ? -1e9 + dMe : len(sub(q, goal)) + later });
+      /* A carrier is the source of every swarm it launches (MISSIONS.md
+       * M5, its stage's kill): a pilot who reads the objective goes for
+       * it first, the nearest one first, after a Hunter on its tail. */
+      const source = S.reach && x.a.kind === 'carrier';
+      scored.push({ x, key: hunterNear ? -1e9 + dMe : source ? -1e8 + dMe : len(sub(q, goal)) + later });
     }
     scored.sort((u, v) => u.key - v.key);
     let fallback = null;

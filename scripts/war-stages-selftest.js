@@ -56,7 +56,7 @@ import { planAgent, poseAt } from '../src/share/war/routes.js';
 import {
   beatOf, crossings, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, slotKind, spilling, stagesOf, worthOf,
 } from '../src/share/war/stages.js';
-import { missionTime, waveTarget } from '../src/share/war/missions/index.js';
+import { missionTime, waveSize, waveTarget } from '../src/share/war/missions/index.js';
 import { TIME_HOUR, missionClock } from '../src/share/daytime.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
 import { STATION_DARK_DISTRICTS, stationOrder } from '../src/share/war/stationdark.js';
@@ -1999,6 +1999,164 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
   check('twist C, the Scout killed: Before Dawn\'s attackers draw their errors', shot && shot.killed && shot.dawn > 0 && shot.errs > 0, JSON.stringify(shot));
 }
 
+console.log('The River Below (itaipu-5), flown on the room by bot squads');
+{
+  /* MISSIONS.md M5 as the room plays it, as The Long Night's above. */
+  const mission = MISSIONS['itaipu-5'];
+  const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
+  const TWISTS = ['two-hulls', 'hunters-launched', 'last-bird'];
+  const stagesM5 = stagesOf(mission);
+  check('The River Below plays 4 rounds of its 6 round stages', roundsOf(mission) === 4 && stagesM5.filter((x) => x.round).length === 6, `${roundsOf(mission)}`);
+  check('in development, act 1, order 5: built and held until the owner has flown it', mission.release === 'development' && mission.act === 1 && mission.order === 5
+    && !released('itaipu-5') && released('itaipu-5', true));
+  const games = [];
+  for (const pilots of [1, 4]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const views = [];
+      const cues = [];
+      const born = [];
+      const dead = [];
+      const hurt = [];
+      const clocks = [];
+      runOne({
+        pilots,
+        skill: 'good',
+        seed,
+        floorBuf,
+        spawn: SPAWN,
+        mission,
+        record: (m, now) => {
+          if (m.type === 'welcome' || m.type === 'daytime') {
+            clocks.push(m.daytime ?? null);
+          }
+          if (m.type !== 'war') {
+            return;
+          }
+          if (m.war) {
+            views.push({ ...m.war, now });
+          } else if (m.op === 'cue') {
+            cues.push(...m.cues);
+          } else if (m.op === 'born') {
+            born.push(...m.agents);
+          } else if (m.op === 'dead') {
+            dead.push(m);
+          } else if (m.op === 'hurt') {
+            hurt.push(m);
+          }
+        },
+      });
+      games.push({
+        pilots, seed, views, cues, born, dead, hurt, clocks,
+      });
+    }
+  }
+  const order = [];
+  const bad = [];
+  const twists = new Set();
+  const groupOf = (twist, a) => stagesM5.find((x) => x.id === twist)?.spawns.find((w) => w.si === a.wave)?.group;
+  for (const g of games) {
+    const label = `x${g.pilots} seed ${g.seed}`;
+    const path = [];
+    const entries = [];
+    for (const v of g.views) {
+      if (v.stage && path.at(-1) !== v.stage.id) {
+        path.push(v.stage.id);
+        entries.push(v.stage);
+      }
+    }
+    order.push(`${label}: ${path.join(' > ')}`);
+    const twist = path[2];
+    twists.add(twist);
+    const end = g.views.at(-1);
+    if (!(path.length === 4 && path[0] === 'call' && path[1] === 'gorge' && TWISTS.includes(twist) && path[3] === 'clear')) {
+      bad.push(`${label}: stages ${path.join(',')}`);
+    }
+    if (end.state !== 'won') {
+      bad.push(`${label}: ended ${end.state} ${end.why}`);
+    }
+    /* The source: born on the river, on a RIVER route, its kill on the
+     * HUD once it is, not before; a launch's children from its deck. */
+    const at3 = entries[2]?.at ?? Infinity;
+    const at4 = entries[3]?.at ?? Infinity;
+    const hulls = g.born.filter((a) => a.kind === 'carrier');
+    const inSource = g.views.filter((v) => v.stage && v.stage.id === twist);
+    const early = inSource.filter((v) => hulls.length && v.now < hulls[0].t0 && v.stage.objectives.some((o) => o.id === 'carrier'));
+    if (!hulls.length || hulls.some((h) => h.t0 < at3 || h.t0 >= at4 || h.sector !== 'RIVER' || !mission.sectors.RIVER.includes(h.route))
+      || early.length || !inSource.some((v) => v.stage.objectives.some((o) => o.id === 'carrier'))) {
+      bad.push(`${label}: the source: ${JSON.stringify(hulls.map((h) => [h.route, h.sector, h.t0 - at3]))}, its objective early ${early.length}`);
+    }
+    const kids = g.born.filter((a) => a.parent != null);
+    if (kids.some((a) => !hulls.some((h) => h.id === a.parent) || a.t0 >= at4)) {
+      bad.push(`${label}: the source: a child of no carrier, or born after its stage`);
+    }
+    /* Each twist as M5 has it. */
+    const launched = new Set(kids.map((a) => a.parent));
+    if (twist === 'two-hulls') {
+      const groups = hulls.map((h) => groupOf(twist, h));
+      if (hulls.length !== 2 || groups.join() !== 'carrier,carrier-2' || launched.size > 1) {
+        bad.push(`${label}: two hulls: ${hulls.length} born (${groups}), ${launched.size} launching`);
+      }
+    } else {
+      const want = waveSize(twist === 'last-bird' ? { n: 6, per: 2 } : { n: 3, per: 1 }, g.pilots);
+      const swarms = new Map();
+      for (const a of kids.filter((x) => x.kind === 'fpv')) {
+        swarms.set(a.t0, (swarms.get(a.t0) ?? 0) + 1);
+      }
+      if (hulls.length !== 1 || [...swarms.values()].some((n) => n !== want)) {
+        bad.push(`${label}: ${twist}: ${hulls.length} hulls, swarms of ${[...swarms.values()].join(',')}, want ${want}`);
+      }
+      /* Twist B: Hunters only once every one of its first launch was
+       * killed; never in the others. */
+      const first = kids.filter((a) => a.t0 === Math.min(...kids.map((x) => x.t0)));
+      const killed = (a) => g.dead.some((m) => m.ids.includes(a.id) && ['boom', 'pierce', 'wire'].includes(m.why));
+      const hunters = kids.filter((a) => a.kind === 'hunter');
+      if ((twist === 'hunters-launched' && hunters.length && !first.every(killed)) || (twist !== 'hunters-launched' && hunters.length)) {
+        bad.push(`${label}: ${twist}: ${hunters.length} Hunters launched, its first swarm killed ${first.every(killed)}`);
+      }
+    }
+    /* Two detonations each: a carrier killed by a boom was hurt first. */
+    for (const h of hulls) {
+      const d = g.dead.find((m) => m.ids.includes(h.id));
+      if (d && d.why === 'boom' && !g.hurt.some((m) => m.ids.includes(h.id) && m.at < d.at)) {
+        bad.push(`${label}: carrier ${h.id} killed by one boom`);
+      }
+    }
+  }
+  console.log(`    ${order.join('\n    ')}`);
+  check('ten games, 1 and 4 good pilots: Carancho\'s Call, Up the Gorge, one twist of The Source, Clear the River, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
+    bad.filter((x) => /stages|ended/.test(x)).join(' | '));
+  check('the source: a carrier on a RIVER route, born in its stage, its kill on the HUD once it is born and not before, its children its own and its stage\'s',
+    bad.filter((x) => /source/.test(x)).length === 0, bad.filter((x) => /source/.test(x)).join(' | '));
+  check('the twists as M5: two hulls, at most one of them launching; Hunters only once its first swarm is killed; Carancho\'s last bird, every swarm twice the size',
+    bad.filter((x) => /two hulls|hunters-launched|last-bird/.test(x)).length === 0, bad.filter((x) => /two hulls|hunters-launched|last-bird/.test(x)).join(' | '));
+  check('a carrier killed by warheads took two', bad.filter((x) => /one boom/.test(x)).length === 0, bad.filter((x) => /one boom/.test(x)).join(' | '));
+  check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
+  const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
+  check('the room\'s clock is the mission\'s light, day', lightOff.length === 0, lightOff.join(' | '));
+  const [lo, hi] = mission.estimatedMinutes;
+  const waits = games.map((g) => closureWait(g) / 60000);
+  const minutes = games.map((g, k) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000 - waits[k]);
+  console.log(`    minutes from the go to the end: ${games.map((g) => ((g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000).toFixed(2)).join(' ')}`);
+  console.log(`    minutes the closures held a stage: ${waits.map((x) => x.toFixed(1)).join(' ')}`);
+  check(`every won game ends ${lo} to ${hi} minutes after the go, the closures' waits apart`, minutes.every((x) => x >= lo && x <= hi),
+    minutes.map((x) => x.toFixed(2)).join(' '));
+
+  /* Nobody shooting: the penstocks fall until the output is under the
+   * floor, and the restart offers the stage it was lost in. */
+  const rooms = [0.15, 0.3, 0.41].map((seed) => {
+    const r = warRoom(mission, { n: 1, seed, dev: true });
+    r.fly(GO + 1800000);
+    return r;
+  });
+  const ends = rooms.map((r) => r.view());
+  check('with nobody shooting The River Below is lost, under its floor or its gantry hit while it closed the face, and offers the stage it was lost in again',
+    ends.every((x) => x.state === 'lost' && (x.why === 'output' || x.why === 'shutdown') && x.checkpoint
+      && x.checkpoint.n === stagesOf(mission).findIndex((y) => y.id === x.checkpoint.stage)),
+    JSON.stringify(ends.map((x) => ({
+      state: x.state, why: x.why, cp: x.checkpoint, stage: x.stage && x.stage.id, output: x.output,
+    }))));
+}
+
 console.log('The Long Night\'s twist A, Station dark, on the room');
 {
   /* Twist A (itaipu-4.js STATION_DARK) flown as the first stage of a
@@ -2255,6 +2413,20 @@ console.log('launches: a carrier\'s children, born at its pose while it lives (T
     }
   }
   check('two hulls with silent: in every game one launches and one does not, and over five seeds each is the quiet one', quiet.size === 2, [...quiet].join(','));
+  /* A store and a restore after a launch and a hurt change nothing after
+   * it: the match keeps each carrier's next launch and its hits. */
+  const mid = (e, hull) => {
+    const on = poseAt(planAgent(then, hull), hull.t0 + 30000).p;
+    e.paths[0] = (t) => (t >= hull.t0 + 26000 && t < hull.t0 + 40000 ? [on[0], on[1] + 2, on[2]] : far(0)());
+  };
+  const a = play(then, mid, 90000);
+  const r = play(then, (e, hull) => {
+    mid(e, hull);
+    e.fly(hull.t0 + 45000);
+    e.r.war.restore(JSON.parse(JSON.stringify(e.stored)));
+  }, 90000);
+  check('a store and a restore after a launch and a hurt change nothing after it', a.e.of(0, 'hurt').length === 1 && a.kids.length >= 3
+    && JSON.stringify(told(a.e)) === JSON.stringify(told(r.e)), `${told(a.e).length} vs ${told(r.e).length}, hurt ${a.e.of(0, 'hurt').length}, kids ${a.kids.length}`);
 }
 
 console.log('legacy: the four missions against their record');

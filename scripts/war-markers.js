@@ -13,6 +13,8 @@
  *     within ARROW_DEG of the way to turn to it; one the script puts
  *     straight behind the camera gets the bottom edge's arrow
  *   - the pilot's own FPV camera: a marker or an arrow for every one
+ *   - mission 5's carrier: tagged CARRIER in orange, its model a hull
+ *     bigger than a sea drone's
  *   - held up the gorge, a Hunter the room has on this seat (its
  *     Hunters' target, edge/rooms/warhunt.js) shows the warning, and the
  *     page heard that target on the wire (HUNTS, 0xA1)
@@ -454,6 +456,34 @@ try {
   check('a decoy is marked exactly as a Striker until 300 m, and as a decoy inside it', decoy && decoy.far
     && JSON.stringify(decoy.far.strike) === JSON.stringify(decoy.far.decoy) && decoy.near && decoy.near.decoy[0] !== decoy.near.strike[0],
   JSON.stringify(decoy));
+  /* Mission 5's carrier (src/share/war/routes.js KINDS): its own tag,
+   * orange as what goes for the dam (what it launches does), and its model
+   * a hull longer and higher than a sea drone's, with its pieces to throw. */
+  const carrier = await page.evaluate(`(async () => {
+    const THREE = await import('three');
+    const { createWarMarkers } = await import('/src/ui/warmarkers.js');
+    const { DEATH, attackerGeometry } = await import('/src/render/attackers.js');
+    const cam = new THREE.PerspectiveCamera(${FOV}, 1280 / 720, 0.1, 20000);
+    cam.position.set(0, 400, 0);
+    cam.lookAt(0, 400, -1000);
+    cam.updateMatrixWorld();
+    const mk = createWarMarkers(cam, { clientWidth: 1280, clientHeight: 720 });
+    const list = [{ id: 1, kind: 'carrier', p: [0, 400, -600], q: [0, 0, 0, 1] }];
+    mk.update(list, 0, [{ type: 'born', agents: [{ id: 1, kind: 'carrier', target: null }] }], null, 0, 400, 0);
+    await null;
+    const m = mk.shown().marks.find((k) => k.id === 1);
+    mk.clear();
+    const size = (kind) => {
+      const g = attackerGeometry(kind);
+      g.computeBoundingBox();
+      const b = g.boundingBox;
+      return [b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z].map((v) => Math.round(v * 100) / 100);
+    };
+    return { tag: m ? m.tag : null, colour: m ? m.colour : null, carrier: size('carrier'), boat: size('boat'), death: Boolean(DEATH.carrier) };
+  })()`);
+  check('a carrier is marked CARRIER in orange, and drawn as a hull longer and higher than a sea drone, with its pieces to throw',
+    carrier.tag === 'CARRIER' && carrier.colour === '#ff8a1f' && carrier.carrier[2] > carrier.boat[2] && carrier.carrier[1] > carrier.boat[1] && carrier.death,
+    JSON.stringify(carrier));
   const radio = (await warOf()).radio;
   console.log(`  info  the radio said: ${radio ? radio.said.join(', ') : 'no radio'}`);
 

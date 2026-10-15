@@ -28,7 +28,9 @@
  *            construction until it is as finished); the owner's own
  *            account flew it while held (DEV_ACCOUNTS, devHost). The owner
  *            released all four Act 1 missions on 2026-10-15 ("release
- *            yes i approve", all four so the campaign plays in order).
+ *            yes i approve", all four so the campaign plays in order);
+ *            The River Below (itaipu-5) is held in development until the
+ *            owner has flown it.
  *
  * The drill has no act, so no campaign offers it, nor the practice
  * (itaipu-practice.js), Training's one Striker at a time.
@@ -61,6 +63,7 @@ import itaipu1 from './itaipu-1.js';
 import itaipu2 from './itaipu-2.js';
 import itaipu3 from './itaipu-3.js';
 import itaipu4 from './itaipu-4.js';
+import itaipu5 from './itaipu-5.js';
 import drill from './itaipu-drill.js';
 import practice from './itaipu-practice.js';
 import { idsOf } from '../stages.js';
@@ -71,14 +74,13 @@ import { WAR_AIRFRAMES } from '../../../../configs/airframes.js';
  * campaign offers. Each flown only in
  * the war's aircraft (`aircraft`, configs/airframes.js WAR_AIRFRAMES):
  * the room refuses any other (edge/rooms/war.js flies). */
-export const MISSIONS = Object.freeze(Object.fromEntries([itaipu1, itaipu2, itaipu3, itaipu4, drill, practice]
+export const MISSIONS = Object.freeze(Object.fromEntries([itaipu1, itaipu2, itaipu3, itaipu4, itaipu5, drill, practice]
   .map((m) => [m.id, { ...m, aircraft: WAR_AIRFRAMES }])));
 
 /* Act missions that are only planned: no file yet, so nothing to fly,
  * shown Coming Soon (release 'soon'). Writing one's file moves its row
  * there. */
 export const PLANNED = Object.freeze([
-  { id: 'itaipu-5', act: 1, order: 5, key: 'river' },
   { id: 'itaipu-6', act: 1, order: 6, key: 'corridor' },
   { id: 'itaipu-7', act: 1, order: 7, key: 'breach' },
 ]);

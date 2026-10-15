@@ -280,10 +280,14 @@ function planRoute(mission, agent) {
     push({ k: 'park', p: at, d }, 0);
     return { t0: agent.t0, tEnd: Infinity, end: agent.kind === 'hunter' ? 'steer' : 'park', phases };
   }
-  /* The formation closes on the aim point only when there is one. */
+  /* The formation closes on the aim point only when there is one. A
+   * carrier's child leaves the one deck, so its place in the formation and
+   * its weave open from nothing over its climb, the first leg (`open`,
+   * metres). */
   push({
     k: 'path', legs: path.legs, m: path.m, speed: kind.speed, form, close: Boolean(aim) && straightOn,
     weaveM: kind.weaveM || 0, weaveMs: kind.weaveMs || 1, phase: (agent.k || 0) * 0.9,
+    ...(agent.from ? { open: path.legs[0].m } : {}),
   }, (path.m / kind.speed) * 1000);
   const endLeg = path.legs[path.legs.length - 1];
   const endSide = leftOf(endLeg.d);
@@ -451,8 +455,13 @@ function pathAt(ph, t, out) {
    * weave (dying away there), and the weave's own speed. */
   const wa = TWO_PI * (t - ph.t0) / ph.weaveMs + ph.phase;
   const weave = ph.weaveM * sinDet(wa) * fade;
-  const lat = ph.form * fade + weave;
-  const latV = ph.weaveM * cosDet(wa) * fade * TWO_PI * 1000 / ph.weaveMs - (ph.close ? (ph.form + ph.weaveM * sinDet(wa)) * ph.speed / ph.m : 0);
+  let lat = ph.form * fade + weave;
+  let latV = ph.weaveM * cosDet(wa) * fade * TWO_PI * 1000 / ph.weaveMs - (ph.close ? (ph.form + ph.weaveM * sinDet(wa)) * ph.speed / ph.m : 0);
+  if (ph.open && s < ph.open) {
+    const g = s / ph.open;
+    latV = latV * g + lat * ph.speed / ph.open;
+    lat *= g;
+  }
   const along = s - leg.s;
   for (let i = 0; i < 3; i += 1) {
     out.p[i] = leg.a[i] + leg.d[i] * along + side[i] * lat;

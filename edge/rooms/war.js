@@ -299,7 +299,7 @@ import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
 import { POSE_MAX_SPEED } from './safety.js';
-import { Hunters, loadHeight } from './warhunt.js';
+import { CLEAR_M as HUNTER_CLEAR_M, Hunters, loadHeight } from './warhunt.js';
 import { HERE_MS, interestEvery, watchedView } from './core.js';
 
 export { MISSIONS, RESULT_MS };
@@ -1599,9 +1599,11 @@ export class RoomWar {
    * detonations (step), so a carrier killed first launches nothing, and a
    * launch is the same on every run whatever the lag. Its children are
    * told as soon as they are judged born, not BIRTH_LEAD_MS ahead: a
-   * screen draws them from their t0, already off the deck. Once every
-   * one of its first launch was killed, a launch with `then` sends that
-   * instead (twist B: Hunters).
+   * screen draws them from their t0, already off the deck. Each launch
+   * goes for the next of its targets (the k-th child of launch j for
+   * target[(j n + k) % length]), so a source left alive works along the
+   * face. Once every one of its first launch was killed, a launch with
+   * `then` sends that instead (twist B: Hunters).
    */
   launch(core, due, roomNow) {
     const m = this.match;
@@ -1613,7 +1615,10 @@ export class RoomWar {
     const pilots = Math.max(1, this.players(core).length);
     const n = waveSize(spec, pilots);
     const deck = poseAt(x.plan, t).p;
-    const from = [mm(deck[0]), mm(deck[1] + LAUNCH_DECK_M), mm(deck[2])];
+    /* A Hunter leaves at its own clearance over the deck, where warhunt.js
+     * would lift it at once (the river is the floor there). */
+    const up = spec.kind === 'hunter' ? HUNTER_CLEAR_M : LAUNCH_DECK_M;
+    const from = [mm(deck[0]), mm(deck[1] + up), mm(deck[2])];
     const blind = this.stages()[st.idx].stationDark === true || (Boolean(m.scouts) && m.scouts.killed >= m.scouts.n);
     const turn = spec.target != null ? retargetFor(m.contain, t) : null;
     const born = [];
@@ -1622,7 +1627,7 @@ export class RoomWar {
       m.nextAgent += 1;
       const err = blind && spec.spread ? mm(spec.spread * (2 * draw(m.seed, id) - 1)) : 0;
       const a = {
-        id, kind: spec.kind, route: spec.route, from, t0: t, k, n, err, target: waveTarget(spec, k, m.sets), wave: x.a.wave, parent: x.a.id, group: spec.group,
+        id, kind: spec.kind, route: spec.route, from, t0: t, k, n, err, target: waveTarget(spec, s.k * n + k, m.sets), wave: x.a.wave, parent: x.a.id, group: spec.group,
       };
       if (turn && TURNS.includes(a.kind)) {
         a.target = turn.gantry;

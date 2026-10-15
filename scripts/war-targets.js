@@ -54,6 +54,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS, waveSize } from '../src/share/war/missions/index.js';
+import { LAUNCH_DECK_M } from '../edge/rooms/war.js';
 import { idsMayBe } from '../src/share/war/stages.js';
 import { GANTRIES } from '../src/share/war/contain.js';
 
@@ -64,6 +65,8 @@ const OUT_CHUNKS = join(root, 'src', 'share', 'war', 'itaipu-chunks.js');
 /* A span is kept when a chord of it lies this near, in plan, to where an
  * attacker flies: past the widest a formation and an error spread it. */
 const CORRIDOR_M = 150;
+/* A carrier's launches are swept from its pose this often. */
+const LAUNCH_EVERY_MS = 5000;
 
 /* Every id mission 1 may aim at, in the order written. */
 const IDS = [
@@ -170,6 +173,24 @@ function corridor() {
             for (let t = 0; t <= end; t += 250) {
               const p = poseAt(plan, t).p;
               cells.add(`${Math.floor(p[0] / CORRIDOR_M)},${Math.floor(p[2] / CORRIDOR_M)}`);
+            }
+            /* A carrier's launches (edge/rooms/war.js launch): each child
+             * from its pose every LAUNCH_EVERY_MS of its flight and where
+             * it parks, its route from there. */
+            for (const spec of w.launch ? [w.launch] : []) {
+              const parked = plan.phases[plan.phases.length - 1].t0;
+              for (let t0 = 0; t0 <= parked + LAUNCH_EVERY_MS; t0 += LAUNCH_EVERY_MS) {
+                const deck = poseAt(plan, Math.min(t0, parked)).p;
+                for (let c = 0; c < waveSize(spec, pilots); c += 1) {
+                  const child = planAgent(m, {
+                    id: 1, kind: spec.kind, route: spec.route, from: [deck[0], deck[1] + LAUNCH_DECK_M, deck[2]], t0, k: c, n: waveSize(spec, pilots), err: 0, target: [spec.target].flat()[c % [spec.target].flat().length],
+                  });
+                  for (let t = t0; t <= child.tEnd; t += 250) {
+                    const p = poseAt(child, t).p;
+                    cells.add(`${Math.floor(p[0] / CORRIDOR_M)},${Math.floor(p[2] / CORRIDOR_M)}`);
+                  }
+                }
+              }
             }
           }
         }

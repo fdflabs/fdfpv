@@ -16,8 +16,11 @@
  *                 run: the last leg onto the target for a Striker or an
  *                 FPV, the dive for a Loiterer; a Scout has none, so all
  *                 of it, its circle and its way out, must clear
- *   boats         on water (the floor is the reservoir's 219.0 m) until
- *                 the last leg, which runs on to the upstream face
+ *   boats         on water (the floor is the reservoir's 219.0 m, or on a
+ *                 route on the river below the dam the river's 103.5 m)
+ *                 until the last leg, which runs on to the upstream face
+ *   carriers      on the water as a boat, the whole of its route to where
+ *                 it parks (mission 5)
  *   hunters       born at least MIN_CLEAR_M over the floor (the room
  *                 steers them from there, over the same floor)
  *
@@ -32,6 +35,16 @@
  *
  * It prints each wave's lowest clearance before the terminal run and in
  * it, and how deep under the surface it goes.
+ *
+ * And a carrier's launches (its spawn's `launch`, edge/rooms/war.js): from
+ * its pose every LAUNCH_STEP_MS of its flight and where it parks, every
+ * child at 1 to 8 pilots, each place in the group and the error's ends,
+ * flown from the birth's `from` as the room plans it, held to the flying
+ * kinds' rules above from the end of its climb off the deck (the first
+ * leg, to its route's first point), and in the climb at least CLIMB_CLEAR_M
+ * over the floor (it leaves the deck LAUNCH_DECK_M over the water, and the
+ * floor's 40 m cells rise a little under it toward a bank); a Hunter it
+ * launches born MIN_CLEAR_M over the floor or more.
  *
  * And the structures (src/share/war/damage.js's chunks: the dam's targets
  * and the switchyard's equipment): every attacker with a target, cut where
@@ -73,7 +86,8 @@
 
 import { readFileSync } from 'node:fs';
 
-import { loadHeight } from '../edge/rooms/warhunt.js';
+import { CLEAR_M as HUNTER_CLEAR_M, loadHeight } from '../edge/rooms/warhunt.js';
+import { LAUNCH_DECK_M } from '../edge/rooms/war.js';
 import { KIND, planAgent, poseAt } from '../src/share/war/routes.js';
 import { waveSize, waveTarget } from '../src/share/war/missions/index.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
@@ -88,6 +102,16 @@ import { leafTurn, turnPoint, unturn } from '../src/share/war/leaf.js';
 
 const MIN_CLEAR_M = 15;
 const WATER_Y = 219;
+/* The river below the dam: the map's water.json `river` (y 103.5), the
+ * level the flood's bed keeps too (src/maps/itaipu/water/itaipu-flood.json
+ * `level`). A floating kind is on the one its route's first point is at. */
+const RIVER_Y = 103.5;
+const WATERS = [WATER_Y, RIVER_Y];
+const FLOATS = new Set(['boat', 'carrier']);
+/* A carrier's launches are flown from its pose this often over its
+ * flight, and from where it parks. */
+const LAUNCH_STEP_MS = 5000;
+const CLIMB_CLEAR_M = 1;
 const SURFACE_TOL_M = 0.01;
 const SAMPLE_MS = 50;
 const PILOTS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -345,7 +369,12 @@ for (const mission of Object.values(MISSIONS)) {
             }
           }
           const tt = terminalFrom(plan, w.kind);
-          const end = Number.isFinite(plan.tEnd) ? plan.tEnd : 0;
+          /* A parked one (a carrier) to where it parks. */
+          const end = Number.isFinite(plan.tEnd) ? plan.tEnd : plan.phases[plan.phases.length - 1].t0;
+          const level = mission.routes[route][0][1];
+          if (FLOATS.has(w.kind) && !WATERS.includes(level)) {
+            failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${route}): its route starts at ${level} m, on no water (${WATERS.join(', ')})`);
+          }
           if (Number.isFinite(tt)) {
             termM = Math.max(termM, ((end - tt) / 1000) * (w.kind === 'loiter' ? KIND.loiter.dive : KIND[w.kind].speed));
           }
@@ -363,9 +392,9 @@ for (const mission of Object.values(MISSIONS)) {
               wetAt = p.slice();
             }
             if (t < tt) {
-              if (w.kind === 'boat') {
-                boatDry = Math.max(boatDry, f - WATER_Y);
-                if (f - WATER_Y > 0.01 && !where) {
+              if (FLOATS.has(w.kind)) {
+                boatDry = Math.max(boatDry, f - level);
+                if (f - level > 0.01 && !where) {
                   where = p;
                 }
               } else if (c < before) {
@@ -380,14 +409,14 @@ for (const mission of Object.values(MISSIONS)) {
       }
     }
     const fmt = (v) => (Number.isFinite(v) ? `${v.toFixed(1)} m` : '-');
-    const beforeText = w.kind === 'boat' ? `on water, ${boatDry.toFixed(2)} m dry` : fmt(before);
+    const beforeText = FLOATS.has(w.kind) ? `on water, ${boatDry.toFixed(2)} m dry` : fmt(before);
     console.log(`  ${String(i + 1).padStart(4)} ${String(w.at).padStart(4)}  ${w.kind.padEnd(7)} ${routeName(w).padEnd(17)} ${sizes.join(',').padEnd(16)} ${beforeText.padEnd(17)} ${fmt(inside).padEnd(13)} ${(termM ? termM.toFixed(0) : '-').padEnd(10)} ${wet ? `${wet.toFixed(1)} m` : '-'}`);
     if (wet) {
       failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${w.route}): ${wet.toFixed(1)} m under the reservoir's surface near (${wetAt.map((v) => v.toFixed(0)).join(', ')})`);
     }
-    if (w.kind === 'boat') {
+    if (FLOATS.has(w.kind)) {
       if (boatDry > 0.01) {
-        failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${w.route}): a boat is on ground ${boatDry.toFixed(2)} m over the water near (${where.map((v) => v.toFixed(0)).join(', ')})`);
+        failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${w.route}): a ${w.kind} is on ground ${boatDry.toFixed(2)} m over the water near (${where.map((v) => v.toFixed(0)).join(', ')})`);
       }
       continue;
     }
@@ -397,6 +426,110 @@ for (const mission of Object.values(MISSIONS)) {
     }
   }
 }
+/* A carrier's launches: every child from every LAUNCH_STEP_MS of each of
+ * its routes' flights and its park, as the room plans them (war.js
+ * launch: `from` its pose then, LAUNCH_DECK_M over its waterline, a
+ * Hunter HUNTER_CLEAR_M). */
+for (const mission of Object.values(MISSIONS)) {
+  for (const [i, w] of wavesOf(mission).entries()) {
+    if (!w.launch) {
+      continue;
+    }
+    for (const spec of [w.launch, ...(w.launch.then ? [{ ...w.launch, ...w.launch.then, target: w.launch.then.target ?? null }] : [])]) {
+      let climb = Infinity;
+      let before = Infinity;
+      let inside = Infinity;
+      let wet = 0;
+      let where = null;
+      let n = 0;
+      const sizes = PILOTS.map((p) => waveSize(spec, p));
+      for (const route of [w.route].flat()) {
+        const hull = planAgent(mission, {
+          id: 1, kind: w.kind, route, t0: 0, k: 0, n: 1, err: 0, target: null,
+        });
+        const parked = hull.phases[hull.phases.length - 1].t0;
+        const times = [];
+        for (let t = 0; t < parked; t += LAUNCH_STEP_MS) {
+          times.push(t);
+        }
+        times.push(parked);
+        for (const t0 of times) {
+          const deck = poseAt(hull, t0).p;
+          const up = spec.kind === 'hunter' ? HUNTER_CLEAR_M : LAUNCH_DECK_M;
+          const from = [deck[0], deck[1] + up, deck[2]].map((v) => Math.round(v * 1000) / 1000);
+          for (const [size, k, err] of variants({ ...spec, route: spec.route }, sizes).map(([a, b, c]) => [a, b, c])) {
+            const agent = {
+              id: 1, kind: spec.kind, route: spec.route, from, t0, k, n: size, err, target: waveTarget(spec, k),
+            };
+            const plan = planAgent(mission, agent);
+            n += 1;
+            if (spec.kind === 'hunter') {
+              const p = poseAt(plan, t0).p;
+              const c = p[1] - floor.floorAt(p[0], p[2]);
+              if (c < before) {
+                before = c;
+                where = p;
+              }
+              continue;
+            }
+            const met = agent.target != null ? contactAt(mission.map, plan) : null;
+            const cut = met ? planAgent(mission, { ...agent, meet: met.t }) : plan;
+            const bad = firstInside(mission.map, cut);
+            if (bad) {
+              failures.push(`${mission.id} wave ${i + 1} launch (${spec.kind}, from ${route} at ${t0} ms, k ${k} of ${size}, err ${err}): inside ${bad.inside} at ${bad.t} ms`);
+            }
+            /* The climb: the first leg, from the deck to the route's
+             * first point. */
+            const first = plan.phases[0];
+            const climbEnd = first.t0 + (first.legs[0].m / first.speed) * 1000;
+            const tt = terminalFrom(plan, spec.kind);
+            let lowOver = false;
+            for (let t = t0; t <= cut.tEnd; t += SAMPLE_MS) {
+              const p = poseAt(cut, t).p;
+              const f = floor.floorAt(p[0], p[2]);
+              const c = p[1] - f;
+              const under = p[1] < WATER_Y - SURFACE_TOL_M;
+              lowOver = under && (lowOver || f < WATER_Y - SURFACE_TOL_M);
+              if (under && !lowOver) {
+                wet = Math.max(wet, WATER_Y - p[1]);
+              }
+              if (t < climbEnd) {
+                if (c < climb) {
+                  climb = c;
+                }
+              } else if (t < tt) {
+                if (c < before) {
+                  before = c;
+                  where = p;
+                }
+              } else {
+                inside = Math.min(inside, c);
+              }
+            }
+          }
+        }
+      }
+      const fmt = (v) => (Number.isFinite(v) ? `${v.toFixed(1)} m` : '-');
+      console.log(`  ${mission.id} wave ${i + 1} launches ${spec.kind} (${spec.group}): ${n} children from ${[w.route].flat().join('|')}; climb ${fmt(climb)}, before terminal ${fmt(before)}, in terminal ${fmt(inside)}`);
+      if (spec.kind === 'hunter') {
+        if (!(before >= MIN_CLEAR_M)) {
+          failures.push(`${mission.id} wave ${i + 1} launch (hunter): born ${before.toFixed(1)} m over the floor near (${where.map((v) => v.toFixed(0)).join(', ')}), under ${MIN_CLEAR_M} m`);
+        }
+        continue;
+      }
+      if (!(climb >= CLIMB_CLEAR_M)) {
+        failures.push(`${mission.id} wave ${i + 1} launch (${spec.kind}): its climb off the deck goes ${climb.toFixed(1)} m over the floor, under ${CLIMB_CLEAR_M} m`);
+      }
+      if (!(before >= MIN_CLEAR_M)) {
+        failures.push(`${mission.id} wave ${i + 1} launch (${spec.kind}): ${before.toFixed(1)} m over the floor near (${where.map((v) => v.toFixed(0)).join(', ')}), under ${MIN_CLEAR_M} m`);
+      }
+      if (wet) {
+        failures.push(`${mission.id} wave ${i + 1} launch (${spec.kind}): ${wet.toFixed(1)} m under the reservoir's surface`);
+      }
+    }
+  }
+}
+
 /* The chords of each span, for the crossings' check. */
 const spanChords = new Map();
 for (const [span, ...flat] of ITAIPU_WIRES.spans) {

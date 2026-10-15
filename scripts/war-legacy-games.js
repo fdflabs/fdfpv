@@ -57,7 +57,7 @@ import { runOne } from './war-balance.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 
 const FIXTURE = new URL('../tests/fixtures/war-legacy-games.json', import.meta.url);
-const MISSION_IDS = ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-drill'];
+const MISSION_IDS = ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-5', 'itaipu-drill'];
 const GAMES = MISSION_IDS.flatMap((mission) => ['good', 'careless'].flatMap((skill) => [1, 3].flatMap((pilots) => [1, 2].map((seed) => ({
   mission, skill, pilots, seed,
 })))));

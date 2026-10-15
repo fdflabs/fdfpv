@@ -73,20 +73,21 @@ console.log('release (the owner, 2026-10-04: only mission 1 until it is right; 2
 check('Act 1 is the seven missions of docs/campaign/MISSIONS.md, in order',
   ACT1.map((m) => m.id).join() === 'itaipu-1,itaipu-2,itaipu-3,itaipu-4,itaipu-5,itaipu-6,itaipu-7', ACT1.map((m) => m.id).join());
 check('every mission says available, development or soon', ACT1.every((m) => ['available', 'development', 'soon'].includes(m.release)));
-check('the four missions with a file are available to every pilot (the owner, 2026-10-15), 5 to 7 coming soon',
-  ACT1.slice(0, 4).every((m) => m.release === 'available') && ACT1.slice(4).every((m) => m.release === 'soon'), ACT1.map((m) => m.release).join());
+check('1 to 4 are available to every pilot (the owner, 2026-10-15), 5 in development until the owner has flown it, 6 and 7 coming soon',
+  ACT1.slice(0, 4).every((m) => m.release === 'available') && ACT1[4].release === 'development' && ACT1.slice(5).every((m) => m.release === 'soon'),
+  ACT1.map((m) => m.release).join());
 check('a mission with a definition in the build is available or in development, one without is coming soon',
   ACT1.every((m) => (m.release !== 'soon') === Object.hasOwn(MISSIONS, m.id)));
 check('released: 1 to 4, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id))
   && ['itaipu-5', 'itaipu-6', 'itaipu-7'].every((id) => !released(id)));
-check('released with dev: 1 to 4 too, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id, true))
-  && ['itaipu-5', 'itaipu-6', 'itaipu-7'].every((id) => !released(id, true)));
+check('released with dev: 1 to 4 too, and 5, in development; never 6 or 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-5'].every((id) => released(id, true))
+  && ['itaipu-6', 'itaipu-7'].every((id) => !released(id, true)));
 check('a mission outside Act 1 (the drill) is not the campaign\'s to hold back', released('itaipu-drill') && Object.hasOwn(MISSIONS, 'itaipu-drill'));
 /* The gate itself, on a mission held in development (scripts/lib/held.js):
  * not released, released with dev, the rest as they were, and put back. */
 withHeld(['itaipu-2'], () => {
   check('a mission held in development: not released, released with dev, the others unchanged',
-    !released('itaipu-2') && released('itaipu-2', true) && released('itaipu-1') && released('itaipu-3') && !released('itaipu-5', true));
+    !released('itaipu-2') && released('itaipu-2', true) && released('itaipu-1') && released('itaipu-3') && !released('itaipu-6', true));
 });
 check('and the hold is put back: mission 2 released again', released('itaipu-2') && ACT1[1].release === 'available');
 console.log('Act 1 is the mission registry\'s (src/share/war/missions/index.js act, order, key, free, release)');
@@ -412,7 +413,7 @@ check('2 to 5: with a mission file held in development (dev only), without one s
   : m.release === 'soon' && !released(m.id) && !released(m.id, true))) && built(INTERIOR[1]) && built(INTERIOR[2]));
 check('Mission 1 has its mission file, as development means', Object.hasOwn(OPS_MISSIONS, 'interior-1'));
 check('the cards read Under development on 2 to 5 (the owner\'s words)', INTERIOR.slice(1).every((m) => cardLabel(m) === 'development')
-  && cardLabel(INTERIOR[0]) === 'development' && cardLabel(ACT1[4]) === 'soon');
+  && cardLabel(INTERIOR[0]) === 'development' && cardLabel(ACT1[4]) === 'development' && cardLabel(ACT1[5]) === 'soon');
 check('the campaign asks the war\'s consent first (armed conflict)', INTERIOR_CAMPAIGN.consent === true);
 /* Each change, made to copies of the ops registry and its rows, must stop
  * checkRows (src/share/ops/missions.js), which runs at its load. */

@@ -10,10 +10,9 @@
  * clear of them. Its card is one click onto the campaign's page (the
  * owner, 2026-10-03), before any consent or room: Act 1's seven missions
  * with their stars, mission 1 free and playable, missions 2 to 7 marked
- * Campaign, 2 to 4 each waiting on the one before, 5 to 7 Coming soon
- * (the owner released 1 to 4 on 2026-10-15; a campaign mission held in
- * development is The Interior's rows below, since a page cannot be given
- * a hold). The shop, with
+ * Campaign, 2 to 4 each waiting on the one before, 5 Under development
+ * (The River Below, built and held until the owner has flown it), 6 and
+ * 7 Coming soon (the owner released 1 to 4 on 2026-10-15). The shop, with
  * credits seeded in the stored settings' campaign section (the guest's
  * store, which the account syncs for a signed in pilot): buy the wide
  * blast warhead and Rack +1, equip and unequip, the loadout line
@@ -288,10 +287,11 @@ try {
   check('mission 1: free, not flown, released to every pilot (the owner, 2026-10-15) and playable; 2 to 7 marked Campaign, none playable yet',
     first.missions[0].tag === 'Free' && first.missions[0].best === 'Not flown yet' && first.missions[0].playable
     && first.missions.slice(1).every((m) => m.tag === 'Campaign' && !m.playable), JSON.stringify(first.missions));
-  check('1 to 4 available, 1 says Play and 2 to 4 Win the one before first, 5 to 7 Coming soon',
+  check('1 to 4 available, 1 says Play and 2 to 4 Win the one before first, 5 Under development, 6 and 7 Coming soon',
     first.missions.slice(0, 4).every((m) => m.release === 'available') && first.missions[0].play === 'Play'
     && first.missions.slice(1, 4).every((m, i) => m.play === `Win mission ${i + 1} first`)
-    && first.missions.slice(4).every((m) => m.play === 'Coming soon' && m.release === 'soon'), JSON.stringify(first.missions.map((m) => m.play)));
+    && first.missions[4].play === 'Under development' && first.missions[4].release === 'development' && !first.missions[4].playable
+    && first.missions.slice(5).every((m) => m.play === 'Coming soon' && m.release === 'soon'), JSON.stringify(first.missions.map((m) => m.play)));
   check('the seeded credits show', first.credits === 'Credits: 1000', first.credits);
   await shot(page, 'missions');
 
@@ -486,14 +486,16 @@ try {
     pub && pub.missions[1].play === 'Play' && pub.missions[1].playable && pub.missions[0].play === 'Play' && pub.missions[0].playable
     && pub.missions[2].play === 'Win mission 2 first' && !pub.missions[2].playable,
     JSON.stringify(pub && pub.missions.map((m) => m.play)));
-  check('and the stars won on mission 1 stay, 5 to 7 still Coming soon', pub && pub.missions[0].stars === 2 && pub.missions.slice(4).every((m) => m.play === 'Coming soon' && !m.playable),
+  check('and the stars won on mission 1 stay, 5 still Under development, 6 and 7 Coming soon', pub && pub.missions[0].stars === 2
+    && pub.missions[4].play === 'Under development' && !pub.missions[4].playable && pub.missions.slice(5).every((m) => m.play === 'Coming soon' && !m.playable),
     JSON.stringify(pub && pub.missions.map((m) => [m.stars, m.play])));
 
   /* THE DEV PATH again, back in its room, against this check's server,
    * which starts missions in development. */
   const dev = await reloadInRoom(devUrl);
-  check('with ?missions=dev, back in the room: mission 2 playable, 5 to 7 still Coming soon', dev && dev.missions[1].play === 'Play' && dev.missions[1].playable
-    && dev.missions.slice(4).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(dev && dev.missions.map((m) => m.play)));
+  check('with ?missions=dev, back in the room: mission 2 playable, 5 in the order (Win mission 4 first), 6 and 7 still Coming soon', dev && dev.missions[1].play === 'Play' && dev.missions[1].playable
+    && dev.missions[4].play === 'Win mission 4 first' && !dev.missions[4].playable
+    && dev.missions.slice(5).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(dev && dev.missions.map((m) => m.play)));
   /* CONTINUE (docs/redesign/COMPLETENESS.md item 57): mission 1's Play
    * recorded the war as the last activity, kept across the reload, and
    * with mission 1 won home's Continue goes on with mission 2. */
@@ -610,8 +612,9 @@ try {
   await reload(signedUrl);
   const plain = await openCampaign();
   const nm = plain.screen && plain.screen.missions;
-  check('the owner without ?missions=dev: 1 to 4 released and playable, mission 1 never won (the win first lock lifted for the owner), 5 to 7 Coming soon',
-    nm && nm.slice(0, 4).every((m) => m.play === 'Play' && m.playable) && nm.slice(4).every((m) => m.play === 'Coming soon' && !m.playable),
+  check('the owner without ?missions=dev: 1 to 4 released and playable, mission 1 never won (the win first lock lifted for the owner), 5 Under development, 6 and 7 Coming soon',
+    nm && nm.slice(0, 4).every((m) => m.play === 'Play' && m.playable) && nm[4].play === 'Under development' && !nm[4].playable
+    && nm.slice(5).every((m) => m.play === 'Coming soon' && !m.playable),
     JSON.stringify(nm && nm.map((m) => m.play)));
 
   await reload(`${signedUrl}&missions=dev`);
@@ -620,8 +623,8 @@ try {
   check('the owner, ?missions=dev, mission 1 never won: mission 2 is Play and playable',
     om && om[0].best === 'Not flown yet' && om[0].stars === 0 && om[1].play === 'Play' && om[1].playable
     && JSON.stringify(asOwner.answers) === '[{"dev":true}]', JSON.stringify(asOwner));
-  check('and 3 and 4 too, 5 to 7 still Coming soon', om && om.slice(2, 4).every((m) => m.play === 'Play' && m.playable)
-    && om.slice(4).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(om && om.map((m) => m.play)));
+  check('and 3 and 4 too, and 5, in development, for the owner; 6 and 7 still Coming soon', om && om.slice(2, 5).every((m) => m.play === 'Play' && m.playable)
+    && om.slice(5).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(om && om.map((m) => m.play)));
   await shot(page2, 'unlocked-owner');
 
   /* AND PLAY WORKS, against a server shaped as the VM's (no DEV_MISSIONS):
