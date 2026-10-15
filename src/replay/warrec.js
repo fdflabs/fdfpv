@@ -120,6 +120,22 @@ export const HUNTER_N = 8;
 /* A clip keeps at most this many birth records (a mission has tens). */
 export const AGENTS_MAX = 512;
 const AGENT_KEYS = ['id', 'kind', 'route', 't0', 'k', 'n', 'err', 'target'];
+/* What else the room's stage graphs put on a birth (edge/rooms/war.js
+ * born, place, launch): every one carries `wave`, and some `meet`,
+ * `wire`, `sector`, `az`, and a carrier's child `from`, `parent` and
+ * `group`. Each is kept as the room sent it, its kind checked here and its
+ * flight by planAgent. */
+const isPoint = (p) => Array.isArray(p) && p.length === 3 && p.every(Number.isFinite);
+const AGENT_MORE = {
+  wave: Number.isInteger,
+  meet: Number.isFinite,
+  wire: Number.isFinite,
+  az: Number.isFinite,
+  sector: (s) => typeof s === 'string' && s.length <= 40,
+  group: (s) => typeof s === 'string' && s.length <= 40,
+  parent: Number.isInteger,
+  from: isPoint,
+};
 /* The map's journal: the matches a clip can span (a war ends and the
  * host starts the next inside the window), and the hits and the struck
  * lines of one match (a mission flies 23 to 128 attackers, each at most
@@ -556,7 +572,7 @@ export function checkWar(war, n) {
       throw new Error('a war agent\'s mission or death is not one');
     }
     const a = x.a;
-    if (!a || typeof a !== 'object' || !Object.keys(a).every((k) => AGENT_KEYS.includes(k))
+    if (!a || typeof a !== 'object' || !Object.keys(a).every((k) => AGENT_KEYS.includes(k) || (Object.hasOwn(AGENT_MORE, k) && AGENT_MORE[k](a[k])))
       || !Number.isInteger(a.id) || !KINDS.includes(a.kind) || a.kind === 'hunter' || !Number.isFinite(a.t0)) {
       throw new Error('a war birth record is not one');
     }

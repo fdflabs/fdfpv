@@ -2341,6 +2341,25 @@ function warFile(withClock, boomBuf, refused) {
   refused(() => reheader(buf, 8), 'a war in a file that says version 8');
   const bad = { ...clip, war: { ...war, agents: [{ ...war.agents[0], a: { ...war.agents[0].a, route: 'nowhere' } }] } };
   refused(() => encodeReplay(bad), 'a birth record that does not fly');
+  /* A birth as the room's stage graphs send it (edge/rooms/war.js born,
+   * place, launch): its wave, its meet and its sector, a child's from,
+   * parent and group, kept as sent and read back. */
+  const roomBorn = {
+    ...clip,
+    war: {
+      ...war,
+      agents: war.agents.map((x, i) => ({
+        ...x, a: { ...x.a, wave: i, meet: 95000, sector: 'WEST', ...(i ? { from: [10, 200, -900], parent: 1, group: 'swarm' } : {}) },
+      })),
+    },
+  };
+  const roomBack = decodeReplay(encodeReplay(roomBorn));
+  check(JSON.stringify(roomBack.war.agents) === JSON.stringify(roomBorn.war.agents),
+    'a birth record as the room sends it, with its wave, meet, sector, from, parent and group, is read back as it was', JSON.stringify(roomBack.war.agents[1].a));
+  const badMore = { ...clip, war: { ...war, agents: [{ ...war.agents[0], a: { ...war.agents[0].a, wave: 'one' } }] } };
+  refused(() => encodeReplay(badMore), 'a birth record\'s wave that is not a number');
+  const badKey = { ...clip, war: { ...war, agents: [{ ...war.agents[0], a: { ...war.agents[0].a, toString: 1 } }] } };
+  refused(() => encodeReplay(badKey), 'a birth record with a key the room never sends');
 }
 
 /*
