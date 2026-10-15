@@ -95,6 +95,11 @@ shared by every mission (the `intro`, `wave`, `hit`, `kill`, `signal`,
 rebuilt mission CREST's shared calls are the desktop's take of the same
 voice: the one place the rule is not met, and known.
 
+Built under the rule so far: Lights Out (`itaipu-3`), CREST and
+DESPACHO, and The Long Night (`itaipu-4`), CREST, every line of theirs
+in those missions from the Orin (2026-10-15). The other missions and
+speakers keep their desktop builds.
+
 <!-- voice table: written by tools/voice/check.py --fix from lines.json -->
 | Line | Files |
 | --- | --- |

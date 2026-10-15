@@ -759,11 +759,12 @@ Built 14 October, against the code (war:stages flies it on the room;
 - **The lines that could say more, said (w43-voice-orin).**
   `itaipu-3-s4-dark` is the table's "Lights are on in town." again (the
   towns are lit when The Dark opens). `itaipu-3-s2-clear` ("The light's
-  going.") stays true. Both and `itaipu-3-s3-back` were built on the
-  Orin; the rule that the mission's other CREST and DESPACHO lines are
-  built there too (CREDITS.md, Where the voices are built) is not met
-  yet: their Orin build waits on the Orin's GPU lease, and until it is
-  merged (tools/voice/orin.py) those lines are the desktop's takes.
+  going.") stays true. `itaipu-3-s4-dark` and `itaipu-3-s3-back` were
+  built on the Orin, and with them (w45-voice-rest) every other CREST
+  and DESPACHO line of this mission, its story, guide, debrief and film
+  lines: one voice a speaker (CREDITS.md, Where the voices are built).
+  The calls every mission shares (the `wave`, `hit`, `kill` and
+  `contain` groups and the like) stay the desktop's takes.
 - **The Dark has a swarm up the gorge onto the west penstocks.** As
   written above, with nobody flying, the mission was won: the yard and two
   intakes leave 9 800 MW over the 9 700 floor. With the swarm the game is
@@ -945,7 +946,10 @@ Built 14 October, against the code (war:stages flies it on the room):
   the swarm is born; and the guide `itaipu-4-g-dark` "Protect the middle
   penstocks. The swarm comes up the gorge. Fly low and take it up
   close." / "Protejan las tuberías del medio. El enjambre sube por el
-  cañón. Vuelen bajo y tómenlo de cerca." 4 s later. war:legacy's
+  cañón. Vuelen bajo y tómenlo de cerca." 4 s later. Every other CREST
+  line of this mission (story, guide, debrief, film) was built again on
+  the Orin with them (w45-voice-rest), so CREST is one voice here; the
+  calls every mission shares stay the desktop's takes. war:legacy's
   itaipu-4 games were recorded again (the bots' loiter point is the
   middle of every wave's targets, so a stage more moves them).
 - **Lines that may now say more (proposed, not changed).**
