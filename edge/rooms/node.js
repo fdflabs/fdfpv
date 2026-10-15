@@ -463,6 +463,7 @@ class Room {
     this.counters = roomCounters();
     this.queue = Promise.resolve();
     this.alarmTimer = null;
+    this.stopped = false;
     this.host = new RoomHost({
       storage: store.storage(name, (at) => this.schedule(at)),
       getWebSockets: () => [...this.sockets],
@@ -472,18 +473,41 @@ class Room {
   /* One call at a time into this room; an error is logged and does not
    * stop the calls queued after it. */
   enqueue(fn) {
+    if (this.stopped) {
+      return Promise.resolve();
+    }
     const run = this.queue.then(fn);
     this.queue = run.catch((e) => console.error(`room ${this.name}:`, e && e.stack ? e.stack : e));
     return run;
   }
 
   schedule(at) {
+    if (this.stopped) {
+      return;
+    }
     clearTimeout(this.alarmTimer);
     this.alarmTimer = setTimeout(() => this.enqueue(async () => {
       this.alarmTimer = null;
       await this.host.alarm();
       this.dropIfIdle();
     }), Math.max(0, at - Date.now()));
+  }
+
+  /* The process is stopping and its SQLite file closes once this
+   * resolves: the calls already queued finish against it, and nothing
+   * runs after, no alarm, no tick, no call queued later (the closes of
+   * the sockets stop() terminates). An alarm firing on the closed file
+   * was 'statement has been finalized' (2026-10-14). The room stays
+   * stored as those calls left it, for the peer or the next start to
+   * adopt with its alarm. */
+  stop() {
+    this.stopped = true;
+    clearTimeout(this.alarmTimer);
+    this.alarmTimer = null;
+    return this.queue.then(() => {
+      clearTimeout(this.host.timer);
+      this.host.timer = null;
+    });
   }
 
   async fetch(input, init) {
@@ -859,13 +883,13 @@ export async function startRooms({
     server.close();
     return new Promise((resolve) => {
       /* The close frames need a moment on the wire before the process goes. */
-      setTimeout(() => {
-        for (const ws of wss.clients) {
-          ws.terminate();
-        }
-        store.db.close();
-        resolve();
-      }, 500);
+      setTimeout(resolve, 500);
+    }).then(async () => {
+      for (const ws of wss.clients) {
+        ws.terminate();
+      }
+      await Promise.all([...env.ROOMS.objects.values()].map((room) => room.stop()));
+      store.db.close();
     });
   }
 

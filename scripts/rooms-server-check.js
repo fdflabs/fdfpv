@@ -79,12 +79,14 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { Socket, connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import WebSocket from 'ws';
 import {
   ACCOUNT_JOIN, CHAT_PRESETS, CLOSE, CLOSE_SIGNIN, PROTO, ROOM_LEVEL, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
 import { ABANDON_MS, TEXT_CLOSE_PER_S, WATCH_CAP } from '../edge/rooms/core.js';
 import { DEAD_MS, PROBE_MS } from '../edge/rooms/node.js';
+import { PURGE_MS } from '../edge/rooms/host.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const given = String(process.argv[2] || '').replace(/\/+$/, '');
@@ -794,7 +796,29 @@ if (server) {
     const again = await listed();
     check('the public room, back after the restart with nobody in it, is not listed', !again.rooms.some((r) => r.code === publicCode), JSON.stringify(again));
   }
+  console.log('a stop with a room alarm still due (edge/rooms/node.js)');
+  /* An alarm due just after stop() closes the SQLite file ran deleteAll on
+   * the closed file ('statement has been finalized', after hercules:room
+   * 2026-10-14). Here a room nobody joined has its purge due 200 ms after
+   * the file closes. */
+  const made = await (await make({ map: 'swiss2' })).json();
+  const room = objects.get(`prv:${made.code}`);
+  await room.enqueue(() => room.host.closeLater(700));
+  const purgeAt = room.host.core.emptySince + PURGE_MS;
+  const roomErrors = [];
+  const consoleError = console.error;
+  console.error = (...args) => {
+    roomErrors.push(args.join(' '));
+    consoleError(...args);
+  };
   await server.stop();
+  await sleep(600);
+  console.error = consoleError;
+  check('nothing the room runs after the stop touches the closed file', roomErrors.length === 0, roomErrors.join(' | ').slice(0, 300));
+  const kept = new DatabaseSync(join(scratch, 'rooms.db'), { readOnly: true });
+  const keptAlarm = kept.prepare('SELECT at FROM alarms WHERE name = ?').get(`prv:${made.code}`);
+  kept.close();
+  check('and the room stays stored with that alarm, for the next process to adopt', keptAlarm && Number(keptAlarm.at) === purgeAt, JSON.stringify(keptAlarm));
   rmSync(scratch, { recursive: true, force: true });
 } else {
   for (const p of [a, b]) {
