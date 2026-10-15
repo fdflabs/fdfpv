@@ -87,6 +87,12 @@ const SUN_DIR = new THREE.Vector3(0.45, 0.62, 0.64).normalize();
 const FOG_NEAR = 1200;
 const FOG_FAR = 9000;
 const CAMERA_FAR = 14000;
+/* The valley's air and print in the cel chain (src/render/post.js
+ * CEL_AIR, docs/LOOK.md): a blue grey veil that reaches 63 % of its
+ * strength over 4 km, so each ridge stands paler than the one in front
+ * before the fog takes the far range, and a print's S that gives the
+ * meadow and the rock back the depth the veil takes from the distance. */
+const ALPS_AIR = { haze: 0x8fa9c8, hazeDistance: 4000, hazeAmount: 0.4, contrast: 0.35 };
 
 /*
  * The cel style: the sky dome, a sun whose shadow box follows the craft,
@@ -152,7 +158,7 @@ const CEL_STYLE = {
     return terrainMesh(field, groundTexture(field));
   },
   nature: buildNature,
-  compose: attachComposer,
+  compose: (shell, map, q) => attachComposer(shell, map, q, ALPS_AIR),
 };
 
 /*
