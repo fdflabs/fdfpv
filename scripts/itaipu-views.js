@@ -207,6 +207,40 @@ const NIGHT_VIEWS = [
   { id: 'night-hernandarias', cam: [-2800, 420, -1300, -4700, 200, -2400], ref: 'reservoir-forest-aerial' },
 ];
 
+/*
+ * The look's review views (the overnight look pass, 2026-10-15): the
+ * places a pilot sees most and a war's stage, each judged by eye in a
+ * before and after pair, never scored, so shot only when named (--views)
+ * and at any time. `over` puts the camera that many metres over the
+ * ground under it rather than at an absolute y, as scripts/town-check.js
+ * poses its town views, whose poses the three town views here are.
+ *
+ *   review-crest        the crest road from the war's spawn
+ *                       (spawns.js CREST_SPAWN), 4 m over it, west
+ *   review-hernandarias the town from 420 m (town-check's)
+ *   review-foz          Foz do Iguacu from 380 m (town-check's)
+ *   review-bridge       the Friendship Bridge from the canyon's rim
+ *                       (town-check's)
+ *   review-m1 to m5     each Act 1 mission's opening ground, shot at its
+ *                       own time (src/share/war/missions/itaipu-N.js):
+ *                       the reservoir the first contacts cross, over the
+ *                       intakes and their gantries (M1), the
+ *                       spillway's gates (M2), the right bank switchyard
+ *                       (M3), the towns from the crest (M4) and the
+ *                       gorge and the dam's face from downriver (M5)
+ */
+const REVIEW_VIEWS = [
+  { id: 'review-crest', cam: [574.93, 229, -1622.45, -313.8, 224, -1818.0], ref: 'crest-road' },
+  { id: 'review-hernandarias', cam: [-2600, 420, -300, -4100, 200, -1700], over: true, fov: 60, ref: 'reservoir-forest-aerial' },
+  { id: 'review-foz', cam: [2600, 380, 1900, 1500, 180, 3200], over: true, fov: 60, ref: 'aerial-leftbank' },
+  { id: 'review-bridge', cam: [-1050, 60, 9250, -1506, 130, 9535], over: true, fov: 60, ref: 'river-below' },
+  { id: 'review-m1', cam: [650, 248, -1590, -150, 210, -2350], ref: 'reservoir-dam' },
+  { id: 'review-m2', cam: [-700, 300, -1300, -1000, 205, -980], ref: 'aerial-spill-2' },
+  { id: 'review-m3', cam: [-1500, 90, 150, -2128, 200, -434], over: true, fov: 60, ref: 'powerlines' },
+  { id: 'review-m4', cam: [574.93, 240, -1622.45, 1500, 160, 2600], ref: 'crest-road' },
+  { id: 'review-m5', cam: [400, 260, 500, 100, 150, -1500], ref: 'canyon' },
+];
+
 /* Section 13, at High. */
 const BUDGET = { calls: 300, triangles: 2.5e6, gpuMs: 12 };
 /* A camera nearer a solid than this sees its inside through the near
@@ -215,7 +249,7 @@ const NEAR_SOLID = 0.5;
 const FRAMES = 60;
 
 const opts = {
-  views: '', time: 'day', down: '', gates: '',
+  views: '', time: 'day', down: '', gates: '', toward: '', hour: '',
 };
 /* How long a war's spillway runs before it is shot, s of the map's
  * clock: the chute fills in some 30 s and the river takes a minute more. */
@@ -243,8 +277,22 @@ const TIMES = ['day', 'morning', 'noon', 'golden', 'night'];
 if (!TIMES.includes(opts.time)) {
   throw new Error(`itaipu-views: --time is one of ${TIMES.join(', ')}, got ${opts.time}`);
 }
-const ALL = opts.time === 'night' ? [...VIEWS, ...NIGHT_VIEWS] : VIEWS;
-const wanted = opts.views ? opts.views.split(',') : ALL.map((v) => v.id);
+const BASE = opts.time === 'night' ? [...VIEWS, ...NIGHT_VIEWS] : VIEWS;
+const ALL = [...BASE, ...REVIEW_VIEWS];
+const wanted = opts.views ? opts.views.split(',') : BASE.map((v) => v.id);
+/*
+ * --toward=NAME --hour=H: a war mission's moving light (look/index.js THE
+ * RAMP), built as src/main.js soloClock builds it from `?time=&toward=`,
+ * and stood at the local solar hour H as the room's clock would stand it
+ * (look.setLocalTime): Lights Out's dusk is --time=golden --toward=night
+ * --hour=18.6. Its files take `-to-NAME-H`.
+ */
+if (Boolean(opts.toward) !== Boolean(opts.hour)) {
+  throw new Error('itaipu-views: --toward and --hour go together');
+}
+if (opts.toward && (!TIMES.includes(opts.toward) || !(Number(opts.hour) >= 0 && Number(opts.hour) < 24))) {
+  throw new Error(`itaipu-views: --toward is one of ${TIMES.join(', ')} and --hour an hour of the day, got ${opts.toward} ${opts.hour}`);
+}
 const unknown = wanted.filter((id) => !ALL.some((v) => v.id === id));
 if (unknown.length) {
   throw new Error(`itaipu-views: no view ${unknown.join(', ')}${opts.time !== 'night' ? ' (the night views are --time=night only)' : ''}`);
@@ -272,7 +320,7 @@ const gates = opts.gates === 'shut' ? Array.from({ length: SPILL.gates }, (_, g)
   }
   return { gate, open_m: Number(open) };
 }) : null;
-const suffix = `${opts.time === 'day' ? '' : `-${opts.time}`}${down.length ? '-out' : ''}${gates ? '-gates' : ''}`;
+const suffix = `${opts.time === 'day' ? '' : `-${opts.time}`}${opts.toward ? `-to-${opts.toward}-${opts.hour}` : ''}${down.length ? '-out' : ''}${gates ? '-gates' : ''}`;
 await mkdir(outDir, { recursive: true });
 
 /*
@@ -367,7 +415,7 @@ const seed = [`try {
   } catch (e) { /* Storage refused; the run would shoot the wrong preset, and the check below says so. */ }`];
 
 const page = await openPage({
-  root, width: 1600, height: 900, url: `/index.html?map=itaipu${opts.time === 'day' ? '' : `&time=${opts.time}`}`, seed,
+  root, width: 1600, height: 900, url: `/index.html?map=itaipu${opts.time === 'day' ? '' : `&time=${opts.time}`}${opts.toward ? `&toward=${opts.toward}` : ''}`, seed,
 });
 const stop = () => page.close().finally(() => process.exit(1));
 process.once('SIGTERM', stop);
@@ -391,6 +439,10 @@ try {
   await page.evaluate(`window.__crashThrow({ x: ${spawn.x}, y: ${spawn.y + 0.5}, z: ${spawn.z}, yaw: ${(spawn.yaw * 180) / Math.PI}, fresh: true })`);
   await page.until('window.__ground().landed', 30000);
   await page.sleep(2500);
+  if (opts.toward) {
+    await page.evaluate(`(window.__mapScene().userData.itaipu.look.setLocalTime(${Number(opts.hour)}), "")`);
+    console.log(`hour: ${opts.hour}, ${await page.evaluate('window.__mapScene().userData.timeOfDay')}`);
+  }
   if (down.length) {
     await page.evaluate(`(window.__mapScene().userData.itaipu.look.setPower(${JSON.stringify(power)}), "")`);
     console.log(`down: ${down.join(', ')}; dark: ${power.map((l, i) => (l === 0 ? i : -1)).filter((i) => i >= 0).length} districts`);
@@ -406,9 +458,10 @@ try {
     console.log(`gates: ${opts.gates}; the flood at step ${f.step}, lips ${f.lips.join(',')}`);
   }
 
-  for (const v of ALL.filter((w) => wanted.includes(w.id))) {
+  for (const named of ALL.filter((w) => wanted.includes(w.id))) {
+    const ground = await page.evaluate(`window.__heightAt(${named.cam[0]}, ${named.cam[2]})`);
+    const v = named.over ? { ...named, cam: named.cam.map((c, k) => (k === 1 ? ground + c : c)) } : named;
     const [x, y, z] = v.cam;
-    const ground = await page.evaluate(`window.__heightAt(${x}, ${z})`);
     if (!(ground < y - 1)) {
       fail(`${v.id}: the camera at y ${y} is within a metre of the ground, ${ground} under it`);
       continue;
