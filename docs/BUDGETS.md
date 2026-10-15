@@ -57,6 +57,7 @@ share in the table):
 | `interior-ops` | 8.4 | 7.3 | 7.7 | every tier | every tier |
 | `itaipu-war` | 8.0 | 9.2 | 9.5 | every tier | every tier |
 | `peers` | 13.9 | 18.6 | 21.7 | every tier | Low only (card 55 to 81 % busy) |
+| `itaipu-war-peak` | 9.4 | 11.4 | 9.8 | every tier | every tier |
 
 On this box 30 holds everywhere, 60 everywhere but a full room above
 Low, taken while other lanes held the card. On the Jetson AGX Orin
@@ -83,6 +84,16 @@ One row per perf-play scenario (scripts/perf-play.js) per tier:
   perf-play on the room's wire (hello, clock pings, a pose 30 times a
   second), not seven browsers, so the row is what drawing a room costs
   one page.
+- `itaipu-war-peak`: the war at its peak, Defend the Paraná mission 1
+  in a full private room on Itaipu: the page's 7 inch and seven more
+  pilots, all eight enlisted at the go, so every wave is sized for
+  eight; the war taken through the room's developer skip to the last
+  stage, First Light (the three axes and the two twists that did not
+  fire), and timed once every one of its waves is born. The page hovers
+  30 m over its start holding its heading; the seven defenders' 7 inches
+  circle 20 to 100 m in front of it, all seven in the view in every
+  second (the run stops if not), on the wire as the `peers` row's are;
+  explosions as `itaipu-war`'s, a burst of ten every ten seconds.
 
 Each was flown once for 15 s, `--mode=quality` (resolution held at the
 preset's), 1600 by 900, on main's tree at b4b2d9628 plus phase 29,
@@ -156,6 +167,9 @@ GPU floor (docs/PERF.md, proposed budgets).
 | `itaipu-war` | low | 157 (<= 181) | 1.82 (<= 2.10) | 69 (<= 80) | 1.14 (<= 1.31) 2026-10-14 | 2.4 | 4.1 / 8.0 | 37 %, 2.5 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | medium | 247 (<= 285) | 2.85 (<= 3.28) | 77 (<= 89) | 1.46 (<= 1.69) 2026-10-14 | 2.9 | 4.8 / 9.2 | 35 %, 2.9 | within | 1 alive, stage `eyes` |
 | `itaipu-war` | high | 279 (<= 321) | 3.03 (<= 3.48) | 89 (<= 103) | 1.74 (<= 2.01) 2026-10-14 | 3.2 | 5.3 / 9.5 | 38 %, 2.4 | within: main view 196 calls, 2.07 M (<= 4.0 M); inset 83, 0.96 M | 1 alive, stage `eyes` |
+| `itaipu-war-peak` | low | 186 (<= 214) | 1.63 (<= 1.88) | 76 (<= 88) | 1.45 (<= 1.67) 2026-10-14 | 2.8 | 5.5 / 9.4 | 44 %, 6.0 | within | 45 to 49 alive, stage `first-light`; 7 defenders in view |
+| `itaipu-war-peak` | medium | 274 (<= 316) | 2.56 (<= 2.95) | 84 (<= 97) | 2.13 (<= 2.45) 2026-10-14 | 3.7 | 7.6 / 11.4 | 67 %, 10.7 | within | 45 to 49 alive, stage `first-light`; 7 defenders in view |
+| `itaipu-war-peak` | high | 361 (<= 416) | 2.91 (<= 3.35) | 96 (<= 111) | 2.48 (<= 2.86) 2026-10-14 | 4.0 | 6.8 / 9.8 | 46 %, 5.9 | within: main view 278 calls, inset 103 (busiest frame by pass, `--calls`); 2.91 M triangles the whole frame (<= 4.0 M) | 45 to 49 alive, stage `first-light`; 7 defenders in view |
 | `peers` | low | 199 (<= 229) | 1.31 (<= 1.51) | 16 (<= 19) | 1.37 (<= 1.68) 2026-10-14 | 1.4 | 6.6 / 13.9 | 68 %, 14.6 | within | 7 peers |
 | `peers` | medium | 355 (<= 409) | 2.43 (<= 2.80) | 18 (<= 21) | 2.01 (<= 3.44) 2026-10-14 | 2.1 | 9.2 / 18.6 | 55 %, 14.3 | within | 7 peers |
 | `peers` | high | 368 (<= 424) | 2.43 (<= 2.80) | 29 (<= 34) | 1.47 (<= 3.34) 2026-10-14 | 2.0 | 8.9 / 21.7 | 81 %, 10.1 | within: main view 279 calls, inset 105 (busiest frame by pass, `--calls`); 2.43 M triangles the whole frame | 7 peers |
@@ -239,6 +253,46 @@ High; the 1.89 was the one run of five at Low that failed its 1.68
 ceiling, on a card 100 % busy, and two more Low runs at 76 to 95 % read
 0.93 and 0.94. The written floor is the highest of the passing runs.
 
+The `itaipu-war-peak` rows were flown 2026-10-14 between 22:48 and
+23:15 local on GPU 1, through run-check.sh with `--calls`, on
+batch/2026-10-15 at f608be0c3 plus branch w44-perfwar, the same run
+settings, each tier three times (Low, Medium, High, then again twice):
+draw calls, triangles and textures within 1 call and 0.002 M of each
+other in every run; the calls column is the most of the three. At most
+45 to 49 attackers alive in a second of a run's window and at least 37
+to 44 (at its end Loiterers 9, Strikers 13, FPV quads 15 or 22, up to 5
+boats and up to 3 Hunters: which twists are left is the seed's), the
+war live and the output whole (14 000 MW) through every window, the
+seven defenders 20 to 102 m from the camera. GPU 1 opened 44 to 100 % busy,
+the host's load 5.9 to 11.6. The GPU floor moved as the peers row's
+does: 1.36 to 2.15 ms at Low, 2.07 to 2.46 at Medium, 2.45 to 5.99 at
+High, the highest of each on a card 100 % busy as the run opened; the
+floor is written at the highest of the runs that opened with the card
+under 100 % and held 15 % over it, and the GPU median and frame times
+are the quietest run's.
+
+Before branch w44-perfwar the row at High drew 379 calls (renderer
+count), and its busiest frame by pass 419: 299 in the main view and 120
+in the sensor inset, over the inset's 110 (one run, 2026-10-14, ended
+22:29, GPU 1 95 % busy). Of the 17 calls cut from the inset, the seven
+name tags were 7, Paradrops' empty field 4, the dam's empty breakage 2,
+the Scouts' empty kind 1 and three attacker kinds wholly outside the
+inset's view 3; of the 22 cut from the main view, Paradrops 8, attacker
+kinds 8 (the Scouts and three out of view, each in the scene and the
+water's mirror) and breakage 6 (the shadow map's 2 with them). three
+r160 issues a draw for an instanced mesh of count 0, and an instanced
+mesh with frustum culling off is drawn wherever it is. In the row's view
+only the Loiterers are in frame; the rest fly behind and beside it. A
+kind in frame costs 2 calls in the main view and 1 in the inset however
+many fly (measured, above), so the peak's other four kinds (Strikers,
+FPV quads, boats, Hunters) in frame at once would be 286 and 107, still
+within 300 and 110. Since w44-perfwar an empty or wholly out of view attacker
+kind, an empty Paradrops field and empty breakage draw nothing, and a
+sensor's own colour picture draws no name tags (docs/PERF.md, The war
+at its peak). The other rows' calls drop by those empties too (the
+Paradrops field is in every world); they were not retaken, and their
+ceilings, which only hold the cost from growing, stand.
+
 The ceilings above hold today's whole frame cost from growing; whether
 a row is within the contract is the column "Over the written
 contract", read against the contract below.
@@ -315,10 +369,11 @@ the most attackers alive in any second of its 15 s window and the stage
 then (perf-play samples `__war()` once a second): 1, in mission 1's
 first stage, Eyes (a Scout, and a Striker 25 to 40 s in), at every
 tier on 2026-10-14, so it is not the mission's peak (First Light, stage
-5); a row at that stage is a war row
-of its own, flown through the room's developer skip. The peers' figure
-is how many of the seven were drawn in the camera's view in every
-second.
+5). The peak is the `itaipu-war-peak` row: eight pilots enlisted, stage
+5 through the room's developer skip, at most 45 to 49 attackers alive
+in a second of its window. The peers'
+figure, and `itaipu-war-peak`'s defenders, is how many of the seven
+were drawn in the camera's view in every second.
 
 ## The check
 

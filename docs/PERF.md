@@ -572,6 +572,87 @@ in place of wrangler); replay:peers 18 passed, 1 failed ("B trails its
 smoke in the replay's slalom", 19 puffs at 0.67 s), which fails the same
 on the base tree (17 puffs at 0.58 s).
 
+## The war at its peak
+
+2026-10-14, branch w44-perfwar (COMPLETENESS 46). perf-play's new
+`itaipu-war-peak` (docs/BUDGETS.md, the row of that name) flies mission
+1's last stage, First Light, in a full private room: eight pilots
+enlisted, so every wave is sized for eight, 45 to 49 attackers alive at
+most in a second, the seven defenders' 7 inches 20 to 102 m in front of
+the camera, the dam, a burst of ten explosions every ten seconds. A
+wire pilot (perf-play wirePilot) now sends nothing until it has a path
+and then from the room's now: a pilot joined minutes before its path,
+as these are, sent the whole wait's poses late, off the room's clock,
+and the room removed it (edge/rooms/safety.js pose, close 4010).
+
+Before, at High: 379 calls (renderer count), the busiest frame by pass
+419, 299 in the main view and 120 in the sensor inset, over the inset's
+110. After: 361, the busiest frame 381, 278 and 103, in every one of
+three runs. What went, none of it a pixel the pilot sees in the main
+view:
+
+- **Empty instanced meshes** (src/render/attackers.js drawCount,
+  paradrops.js, breakage.js): three r160 issues a draw for an
+  InstancedMesh of count 0, a call of no instances in every pass. The
+  Scouts' kind after the Scouts are gone, the Paradrops field with no
+  drop down (four meshes, in every world) and the dam's breakage before
+  any hit are hidden while empty: 16 calls in the main view, 7 in the
+  inset.
+- **Attacker kinds out of view** (attackers.js drawCount): a kind's
+  instanced mesh had frustum culling off, since the geometry's own
+  sphere is a metre round the origin and its instances kilometres off.
+  It is now culled by a sphere round all its instances, taken again
+  every update (three's InstancedMesh.computeBoundingSphere): a kind
+  with nothing in a camera's view issues no draw there. No attacker is
+  dropped or simplified, so no fight range applies: an attacker in a
+  view is drawn exactly as before, at every range. 6 calls in the main
+  view and 3 in the inset in the row's view.
+- **Name tags in the sensor's own picture** (src/render/sensorview.js
+  sensorHide, peers.js nameTag): the radiance draw, the inset's colour
+  picture when the composer is not drawn, leaves the tags out, as the
+  thermal draw already did (thermalHide) and the war cutaway's camera
+  does (layer 0 only). A picture taken from the composer keeps them, and
+  the main view is unchanged. 7 calls in the inset.
+
+Pixels. Empty and culled meshes, an in page A/B (tmp/, not committed:
+the base tree's attackers.js, paradrops.js and breakage.js beside these
+in one page, buildComposer's chain and renderThermal, SwiftShader):
+52 attackers of five kinds 40 m to 2 km from the camera, a Scout kind
+emptied, an empty drop field and empty breakage, eight views (70 and 12
+degree lenses, from the crest, beside the swarm and from 2 km up), the final
+picture, the ink prepass and the thermal picture, A B A B: 0 px
+different in every view and pass, A/A and B/B 0, the attackers' own
+pixels in every view (3 to 504 px, the control: the same view with the
+attackers hidden); calls per composed frame 42 before, 19 to 27 after,
+per thermal frame 14 before, 2 to 6 after.
+
+The name tag in the radiance picture (480 by 270, the row's 90 degree
+camera, a stock 7 inch, the tag drawn and not, SwiftShader), what the
+inset gives up: 834 px, 81 by 15, at 3 m; 118 px, 26 by 5, at 10 m; 42
+px, 14 by 3, at 20 m; 20 px, 10 by 2, at 30 m; 4 px, 4 by 1, at 90 m.
+At the row's 20 to 102 m a tag is 3 rows tall or less, no letter
+legible; nearer than about 10 m it is 5 rows or more. A defender's name
+stays in the main view, and peermarks (src/ui/peermarks.js) names any
+peer under 30 px tall with its range.
+
+Held: `perf -- --budgets` on the new rows at every tier, calls,
+triangles, textures and the floor passing (High 360 calls, 2.91 M, 96
+textures, floor 2.53 ms on GPU 1 57 % busy, 2026-10-15 00:19; a run at
+23:44 on a card held 100 % busy by another process drew 3 frames, the
+war gone to the lobby, and is not a measurement; the row now fails a
+run whose window left First Light). `itaipu-war` and `peers` at High
+under their old ceilings: calls, triangles and textures within;
+`peers` 358 calls (368 written). `itaipu-war`, base tree and this one
+in turn, A B A B, GPU 1 34 to 38 % busy, 2026-10-15 00:35 to 00:38:
+279 calls and a floor of 1.72 ms both times on the base, 273 and 1.70
+to 1.71 here, under its 321 and 2.01; its two runs with the card 100 %
+busy read 3.65 and 5.54 ms. The other checks: render:golden 257 ok; check:combat-models 131
+of 131; war:grid PASS; war:twopage 25 passed; sensor:check PASS;
+thermal:physics PASS; check:avionics-layout 147 passed; hercules:room
+PASS; paradrop:selftest holds.
+war:card stops at its mission 1 Play click (a null element) on this
+tree and on the base tree alike.
+
 ## P3, throughput: what was measured, what was built, what was not
 
 2026-10-05, after #422, #419 and #426, main at 41978c28. Every number

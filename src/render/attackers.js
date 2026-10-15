@@ -284,6 +284,25 @@ const NAV_DOT_R = 0.05;
 let navDotGeometry = null;
 
 /*
+ * A kind's instances drawn: n of them, and the mesh culled as a whole by
+ * a sphere round all n (three's InstancedMesh.computeBoundingSphere), so a
+ * kind wholly outside a camera's view, or with none alive, issues no draw
+ * there. three r160 draws an instanced mesh of count 0 all the same, a
+ * call of no instances in every pass (the war's peak: 3 a frame for the
+ * Scouts gone, docs/PERF.md, The war at its peak). The geometry's own
+ * sphere, a metre round the origin, would cull instances kilometres off:
+ * the instances' sphere is taken again every update.
+ */
+function drawCount(mesh, n) {
+  mesh.count = n;
+  mesh.visible = n > 0;
+  if (n > 0) {
+    mesh.computeBoundingSphere();
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+}
+
+/*
  * The attackers' layer. `debris` is the shell's createDebris() (or null),
  * `floorAt(x, z)` the ground's height, for where the pieces come to rest.
  * `navLights` (default false) adds NAV_LIGHTS to whatever kinds fly, for
@@ -343,10 +362,8 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
     mesh = new THREE.InstancedMesh(geo, materialFor(kind), cap);
     mesh.name = `attackers-${kind}`;
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    /* The instances are kilometres apart and the geometry's own sphere is
-     * a metre round the origin: culling on it would hide them all. */
-    mesh.frustumCulled = false;
     mesh.count = 0;
+    mesh.visible = false;
     meshes.set(kind, mesh);
     group.add(mesh);
     return mesh;
@@ -375,8 +392,8 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
     mesh = new THREE.InstancedMesh(navDotGeometry, navMat, cap);
     mesh.name = `attackers-${kind}-nav`;
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    mesh.frustumCulled = false;
     mesh.count = 0;
+    mesh.visible = false;
     navMeshes.set(kind, mesh);
     group.add(mesh);
     return mesh;
@@ -406,8 +423,7 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
           m4.compose(pos.set(a.p[0], a.p[1], a.p[2]), rot.set(a.q[0], a.q[1], a.q[2], a.q[3]), one);
           mesh.setMatrixAt(i, m4);
         }
-        mesh.count = xs.length;
-        mesh.instanceMatrix.needsUpdate = true;
+        drawCount(mesh, xs.length);
 
         if (!navMat) {
           continue;
@@ -435,8 +451,7 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
             n += 1;
           }
         }
-        navMesh.count = n;
-        navMesh.instanceMatrix.needsUpdate = true;
+        drawCount(navMesh, n);
         if (navMesh.instanceColor) {
           navMesh.instanceColor.needsUpdate = true;
         }
@@ -500,11 +515,8 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
     },
 
     clear() {
-      for (const mesh of meshes.values()) {
-        mesh.count = 0;
-      }
-      for (const mesh of navMeshes.values()) {
-        mesh.count = 0;
+      for (const mesh of [...meshes.values(), ...navMeshes.values()]) {
+        drawCount(mesh, 0);
       }
       drawnList = [];
     },
