@@ -149,9 +149,11 @@ function beech() {
   ]);
 }
 
-/* One instanced mesh from a list of { x, y, z, yaw, sx, sy, sz }. */
-function instanced(geo, mat, places, name) {
+/* One instanced mesh from a list of { x, y, z, yaw, sx, sy, sz }, each
+ * instance tinted by tint(place, colour) when it is given. */
+function instanced(geo, mat, places, name, tint = null) {
   const mesh = new THREE.InstancedMesh(geo, mat, places.length);
+  const colour = new THREE.Color();
   const m = new THREE.Matrix4();
   const p = new THREE.Vector3();
   const q = new THREE.Quaternion();
@@ -167,6 +169,9 @@ function instanced(geo, mat, places, name) {
     s.set(t.sx, t.sy, t.sz);
     m.compose(p, q, s);
     mesh.setMatrixAt(i, m);
+    if (tint) {
+      mesh.setColorAt(i, tint(t, colour));
+    }
   });
   mesh.castShadow = true;
   mesh.name = name;
@@ -414,6 +419,103 @@ export function buildLake(ctx, sites) {
     layers.push({ mesh, name, opts, outer, inner, lift });
   }
   return { waterMat, waves: lakeWaves(ctx, sites, layers) };
+}
+
+/*
+ * THE BEACH. Grass ran into the water on one line, which read as a lake
+ * cut out of a lawn. Round an alpine lake the water's edge is shingle:
+ * a dark band the water keeps wet, a metre and a bit, then dry pale
+ * stones a few metres up the bank, wider and narrower as the bank goes.
+ * Laid along each ray natureSites marched, from a metre under the
+ * waterline (seen through the water, so the edge has no seam) up the
+ * bank, on the ground, one mesh in two palette colours: four metres or
+ * so of it, up to eight where the bank is flat. Not where the jetty's
+ * track and the stream come down to the water, and short of the shore
+ * path (buildShore, two metres wide from seven out on the north shore).
+ * Flat paint on the ground: no collider.
+ */
+const BEACH_LIFT = 0.05;
+export function buildBeach(ctx, sites) {
+  const { scene, heightAt, valleyAxis, look } = ctx;
+  const { lakeCx, lakeCz, shore, RAYS } = sites;
+  const jettyX = valleyAxis(1950) + 55;
+  const keepOff = (x, z) => z < lakeCz && (Math.abs(x - jettyX) < 2.6 || Math.abs(x - streamX(z)) < 5.5);
+  /* The shore between two rays, every four metres or less. */
+  const loop = [];
+  for (let k = 0; k < RAYS; k += 1) {
+    const p = shore[k];
+    const q = shore[(k + 1) % RAYS];
+    const qa = k + 1 === RAYS ? q.a + Math.PI * 2 : q.a;
+    const n = Math.max(1, Math.ceil(Math.hypot(q.x - p.x, q.z - p.z) / 4));
+    for (let i = 0; i < n; i += 1) {
+      const a = p.a + (qa - p.a) * (i / n);
+      const r = p.r + (q.r - p.r) * (i / n);
+      const cx = Math.cos(a);
+      const cz = Math.sin(a);
+      const g = noise2((lakeCx + cx * r) / 45, (lakeCz + cz * r) / 45);
+      /* Where the bank barely rises the stones run further up it. */
+      const rise = heightAt(lakeCx + cx * (r + 8), lakeCz + cz * (r + 8)) - LAKE_Y;
+      const dry = 3.2 + 2.2 * g + 4 * (1 - smoothstep(0.4, 2.4, rise));
+      loop.push({ a, r, wet: 1.6 + 0.8 * g, dry: cz < -0.45 ? Math.min(dry, 5.6) : dry });
+    }
+  }
+  const at = (s, off) => {
+    const x = lakeCx + Math.cos(s.a) * (s.r + off);
+    const z = lakeCz + Math.sin(s.a) * (s.r + off);
+    return [x, heightAt(x, z) + BEACH_LIFT, z];
+  };
+  const pos = [];
+  const nrm = [];
+  const keys = [];
+  /* Wound counter clockwise seen from above, the normal up: a double
+   * sided material lights a face seen from its back with the normal
+   * turned over, which drew the whole beach in shadow. */
+  const tri = (a, b, c, key) => {
+    const ux = b[0] - a[0];
+    const uy = b[1] - a[1];
+    const uz = b[2] - a[2];
+    const vx = c[0] - a[0];
+    const vy = c[1] - a[1];
+    const vz = c[2] - a[2];
+    let nx = uy * vz - uz * vy;
+    let ny = uz * vx - ux * vz;
+    let nz = ux * vy - uy * vx;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    const up = ny >= 0 ? 1 : -1;
+    nx *= up / len;
+    ny *= up / len;
+    nz *= up / len;
+    for (const v of up > 0 ? [a, b, c] : [a, c, b]) {
+      pos.push(...v);
+      nrm.push(nx, ny, nz);
+      keys.push(key);
+    }
+  };
+  for (let k = 0; k < loop.length; k += 1) {
+    const s0 = loop[k];
+    const s1 = loop[(k + 1) % loop.length];
+    const mid = at({ a: (s0.a + s1.a) / 2, r: (s0.r + s1.r) / 2 }, 1);
+    if (keepOff(mid[0], mid[2])) {
+      continue;
+    }
+    for (const [key, in0, in1, out0, out1] of [[0, -1, -1, s0.wet, s1.wet], [1, s0.wet, s1.wet, s0.dry, s1.dry]]) {
+      const a = at(s0, in0);
+      const b = at(s0, out0);
+      const c = at(s1, in1);
+      const d = at(s1, out1);
+      tri(a, b, c, key);
+      tri(b, d, c, key);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  geo.setAttribute('aCelKey', new THREE.BufferAttribute(new Uint8Array(keys), 1));
+  const mat = look.material('lake-beach', { palette: [{ color: 0x6f6a5d, rim: 0 }, { color: 0xa9a69c, rim: 0 }], side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.name = 'lake-beach';
+  mesh.receiveShadow = true;
+  scene.add(mesh);
 }
 
 /*
@@ -818,6 +920,33 @@ export function buildFoam(ctx, sites) {
 }
 
 /*
+ * No two trees of a species the same green. A stand of one geometry in
+ * one colour read as a printed pattern from the air; a forest is old and
+ * young trees, sun and shade, a sick one here and there. Per species,
+ * how far a tree's lightness strays either way and the colour the
+ * darker and the lighter ones lean to (linear multipliers). Read from
+ * the tree's own position, never from the forest's rng, so no tree moves
+ * and no collider with it.
+ */
+const TREE_TINTS = {
+  spruceTall: { spread: 0.22, dark: [0.86, 0.95, 1.06], light: [1.08, 1.06, 0.9] },
+  spruceSquat: { spread: 0.22, dark: [0.86, 0.95, 1.06], light: [1.08, 1.06, 0.9] },
+  larch: { spread: 0.2, dark: [0.92, 1.0, 0.96], light: [1.14, 1.06, 0.82] },
+  beech: { spread: 0.26, dark: [0.9, 0.98, 1.0], light: [1.12, 1.07, 0.8] },
+};
+function treeTint({ spread, dark, light }) {
+  return (t, out) => {
+    let h = Math.imul(Math.round(t.x * 8) + 7919, 374761393) ^ Math.imul(Math.round(t.z * 8) + 104729, 668265263);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    const u = ((h ^ (h >>> 16)) >>> 0) / 4294967296 * 2 - 1;
+    const lean = u < 0 ? dark : light;
+    const k = Math.abs(u);
+    const l = 1 + u * spread;
+    return out.setRGB(l * (1 + (lean[0] - 1) * k), l * (1 + (lean[1] - 1) * k), l * (1 + (lean[2] - 1) * k));
+  };
+}
+
+/*
  * TREES. Spruce from the foot of the walls to the tree line, larch
  * taking over toward it, beech at the foot of the walls and on the
  * floor along the stream and in the fields, all where forestDensity
@@ -918,9 +1047,10 @@ export function buildForests(ctx, sites) {
     plant('beech', x, y, z, 0.8 + rng() * 0.8);
   }
   for (const name of Object.keys(species)) {
+    const tint = treeTint(TREE_TINTS[name]);
     stands[name].forEach((places, b) => {
       if (places.length) {
-        scene.add(instanced(species[name].geo, treeMat, places, `${name}-${b}`));
+        scene.add(instanced(species[name].geo, treeMat, places, `${name}-${b}`, tint));
       }
     });
   }
@@ -1089,6 +1219,7 @@ export function buildDrifts(ctx, sites) {
 export async function buildNature(ctx) {
   const sites = natureSites(ctx);
   const { waterMat, waves } = buildLake(ctx, sites);
+  buildBeach(ctx, sites);
   const reedClumps = buildReeds(ctx, sites);
   const shore = buildShore(ctx, sites);
   await ctx.paint(0.5);

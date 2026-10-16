@@ -42,10 +42,10 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { plural, str } from '../strings/index.js';
+import { hasStr, plural, str } from '../strings/index.js';
 import { allowanceOf, roundOf, spentOf } from './warround.js';
 import { WATCH_SEAT } from '../share/roomrace.js';
-import { missionEndActions } from '../game/debrief.js';
+import { missionEndActions, missionEpilogue } from '../game/debrief.js';
 import en from '../strings/en.js';
 
 const GREEN = '#7dff9a';
@@ -154,6 +154,11 @@ export function hitCall(ev) {
   if (/^gantry-/.test(ev.target)) {
     return str('war.hit.gantry');
   }
+  /* A corridor's tower (mission 6): its line's mw, or none once another
+   * tower of that line is down (stages.js worthOf). */
+  if (/^tower-/.test(ev.target)) {
+    return ev.mw === 0 ? str('war.hit.tower_line') : str('war.hit.tower', { mw: mw(ev.mw) });
+  }
   if (ev.mw === 0) {
     return str('war.hit.down');
   }
@@ -260,6 +265,7 @@ export function createWarHud(nameOf, restart = null) {
   let again = null;
   let nextBtn = null;
   let backNote = null;
+  let epilogue = null;
   /* The host's presses on the banner as shown: missionEndActions. */
   let ends = [];
   let lastView = null;
@@ -366,6 +372,13 @@ export function createWarHud(nameOf, restart = null) {
     });
     banner.className = 'war-banner';
     banner.append(document.createTextNode(''));
+    /* The mission's epilogue (src/game/debrief.js missionEpilogue): read,
+     * not shouted, under the result. */
+    epilogue = el({
+      margin: '12px auto 4px', maxWidth: '34em', fontWeight: '400', fontSize: '17px', lineHeight: '1.45', letterSpacing: '0.01em',
+      color: '#f2f5f0', whiteSpace: 'normal', fontFamily: 'var(--ui-font, sans-serif)', display: 'none',
+    }, banner);
+    epilogue.className = 'war-epilogue';
     again = el({
       marginTop: '16px', fontSize: '20px', letterSpacing: '0.12em', padding: '10px 22px', cursor: 'pointer',
       background: GREEN, color: '#04100a', textShadow: 'none', pointerEvents: 'auto',
@@ -761,6 +774,9 @@ export function createWarHud(nameOf, restart = null) {
     calls.style.display = over ? 'none' : 'flex';
     if (over) {
       banner.firstChild.nodeValue = endText(v);
+      const told = missionEpilogue(v);
+      epilogue.textContent = told && hasStr(told) ? str(told) : '';
+      epilogue.style.display = epilogue.textContent ? 'block' : 'none';
       const fromStage = v.state === 'lost' && v.checkpoint;
       /* The stage as the HUD counted it ("Stage n/N", the view's round):
        * the checkpoint's n is its place in the mission's list, which
@@ -803,6 +819,7 @@ export function createWarHud(nameOf, restart = null) {
       restart: banner && banner.style.display !== 'none' ? again.textContent : '',
       next: banner && banner.style.display !== 'none' && nextBtn.style.display !== 'none' ? nextBtn.textContent : '',
       back: banner && banner.style.display !== 'none' && backNote.style.display !== 'none' ? backNote.textContent : '',
+      epilogue: banner && banner.style.display !== 'none' && epilogue.style.display !== 'none' ? epilogue.textContent : '',
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
       subtitle: subEl && subEl.style.display !== 'none' ? subEl.textContent : '',
       splashSeen,

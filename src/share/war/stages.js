@@ -72,6 +72,9 @@
  *   worth       { set: factor }: the set's targets cost the output their
  *               mw times factor when hit in this stage (T1.9: the working
  *               gates are worth double while the spill runs)
+ *   silent      [group, ...]: one of these groups, drawn at the entry, is
+ *               carriers that launch nothing (MISSIONS.md M5 twist A, two
+ *               hulls); the stage's state keeps it as `silent`
  *
  * A hold may open gates: { ..., ms, targets: { set }, open: metres } has
  * its targets' hoists start toward `open` at the hold's start (gatesOf
@@ -87,6 +90,16 @@
  *           [S...] }: a sector drawn (never the one the mission's last
  *           sector spawn took, when there is another), then a route of
  *           its family
+ *   sector  with a route or a list of them: the sector they come from,
+ *           for the bearing's call and the adaptive weights, where the
+ *           sector's family is another kind's (M5: Strikers low over the
+ *           river, whose RIVER family is the carriers' surface routes)
+ *   launch  a carrier's children (edge/rooms/war.js launch): { kind, n,
+ *           per, route, target, spread, group, every: [s at 1 pilot, s
+ *           at 8], then? }, a group born at the carrier's pose every
+ *           `every` seconds while it lives, its route from there; then,
+ *           { kind, n, per, route, group }: what it launches instead once
+ *           every one of its first launch was killed
  *   az      [lo, hi] radians: the route turned about the vertical through
  *           its own last point, positive to the left (routes.js planAgent)
  *   kind    a kind, or a list of them: one drawn for the group
@@ -96,6 +109,17 @@
  *   skip    a trigger: a spawn not yet born when it has fired is dropped
  *           (stage 5's "the twists that did not fire": { visited })
  *   group   a name the triggers count it by
+ *   spot    true: a pilot can spot it (edge/rooms/war.js spot, SPOT_M for
+ *           SPOT_MS); 'birth': spotted as it is born, by nobody here
+ *   lane    k: the k-th of the stage's groups on a sector of its own
+ *           (MISSIONS.md 1.6, sectors at once): with fewer sectors at
+ *           once for the pilots here at the entry than k + 1 (sectorsAt),
+ *           it is born LANE_GAP_MS after the group of lane k less that
+ *           many is gone, not at its `at`, so a solo pilot meets them
+ *           one at a time
+ *   strikeP the chance each power line crossing of its flight takes it
+ *           (src/share/war/wires.js; STRIKE_P without one): a group that
+ *           flies at wire height (MISSIONS.md M6 twist B)
  *
  * n and per size it by the pilots here when it is announced (index.js
  * waveSize), as ever.
@@ -121,6 +145,11 @@
  *   { left: n, group?, kind? }     n of them gone on their own (a Scout
  *                                  done with its orbit)
  *   { born: { group?, kind? } }    the first of them born (its t0)
+ *   { spot: { group?, kind?, silent? } }
+ *                                  the first of them spotted (a spawn's
+ *                                  `spot`, war.js), only a hull that
+ *                                  launches nothing with silent true,
+ *                                  only one that does with false
  *   { down: { group?, kind? } }    every one born and every one killed
  *                                  (warhead or power line): scoutsDown
  *   { gone: { group?, kind? } }    every one born and every one gone,
@@ -193,6 +222,16 @@ import { FREE_OPEN_M, openAt } from './hoist.js';
 /* A round's result shows this long before the next round starts. */
 export const RESULT_MS = 6000;
 
+/* How many sectors a stage's groups come from at once for a squad of
+ * pilots (MISSIONS.md 1.6: "1 for 1 pilot, 2 for 2 or 3, 3 for 4 to 6, 4
+ * for 7 or 8"), and the time between a lane's group gone and the next
+ * that waits for it ("a solo pilot's corridor groups come one corridor
+ * at a time with 30 s between", M6). */
+export const LANE_GAP_MS = 30000;
+export function sectorsAt(pilots) {
+  return pilots <= 1 ? 1 : pilots <= 3 ? 2 : pilots <= 6 ? 3 : 4;
+}
+
 /* The adaptive timing (TECH-NEEDS T1.5): the share of the airframes spent
  * last stage over which the next stage's first spawn comes later, under
  * which it comes sooner, and by how much. */
@@ -210,6 +249,7 @@ export function draw(seed, id) {
 
 const SALT = {
   at: 0x53544154, route: 0x53545254, az: 0x5354415a, pick: 0x5354504b, sector: 0x53545343, kind: 0x53544b44, mix: 0x53544d58, after: 0x53544146, cue: 0x53544355, set: 0x53545354,
+  silent: 0x5354534c,
 };
 function drawFor(seed, salt, entry, i) {
   return draw((seed ^ salt) >>> 0, Math.imul(entry, 4099) + i);
@@ -398,9 +438,14 @@ export function enter(mission, idx, at, seed, entry, { was = null, pilots = 1 } 
     }
   });
   const shift = mission.adapt && was ? (was.spent >= ADAPT_HIGH ? ADAPT_LATE : was.spent < ADAPT_LOW ? ADAPT_EARLY : 1) : 1;
+  const lanes = sectorsAt(pilots);
   const due = st.spawns.map((w, i) => {
     let route = w.route;
     let sector = null;
+    if (typeof w.route === 'string' || Array.isArray(w.route)) {
+      sector = w.sector ?? null;
+      lastSector = sector ?? lastSector;
+    }
     if (Array.isArray(w.route)) {
       route = w.route[Math.floor(drawFor(seed, SALT.route, entry, i) * w.route.length)];
     } else if (w.route && typeof w.route === 'object') {
@@ -415,12 +460,21 @@ export function enter(mission, idx, at, seed, entry, { was = null, pilots = 1 } 
     const az = Array.isArray(w.az) ? milli(w.az[0] + (w.az[1] - w.az[0]) * drawFor(seed, SALT.az, entry, i)) : null;
     const kind = Array.isArray(w.kind) ? w.kind[Math.floor(drawFor(seed, SALT.kind, entry, i) * w.kind.length)] : (w.kind ?? null);
     const ms = Math.round(msOf(w.at, drawFor(seed, SALT.at, entry, i)) * pace * (i === first ? shift : 1));
+    /* A lane past the sectors the squad has at once waits for the one
+     * that many lanes before it (sectorsAt). */
+    if (w.lane >= lanes) {
+      const before = st.spawns.find((x) => x.lane === w.lane - lanes);
+      return {
+        i, t: null, ms: LANE_GAP_MS, when: { gone: { group: before.group } }, route, sector, az, kind, born: false,
+      };
+    }
     return {
       i, t: w.when ? null : at + ms, ms, route, sector, az, kind, born: false,
     };
   });
+  const silent = st.silent ? st.silent[Math.floor(drawFor(seed, SALT.silent, entry, 0) * st.silent.length)] : null;
   return {
-    idx, id: st.id, at, entry, pace, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null, sector: lastSector,
+    idx, id: st.id, at, entry, pace, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null, sector: lastSector, ...(silent ? { silent } : {}),
   };
 }
 
@@ -439,6 +493,7 @@ export function slotKind(w, d, k, seed, entry) {
  *                  (a warhead), 'wire', 'arrive' (at its target, or
  *                  through at a lost round's end) or 'leave'
  *   { t, e: 'down', target }   a target hit for the first time
+ *   { t, e: 'spot', id, kind, group, silent }   spotted (war.js spot)
  *   { t, e: 'spend', seat }
  * A target's fall and an opening are also the match's (m.downAt,
  * m.breaches), for the triggers that ask whether one ever happened.
@@ -453,7 +508,8 @@ function chosen(st, sel, e) {
 }
 
 /* Every one of a selection born and every one gone `how` (a set, or any):
- * at the last going, or null. */
+ * at the last going, or null. A group no spawn names is a carrier's
+ * launches (a spawn's `launch`, war.js): every one of it born so far. */
 function allGone(mission, ctx, sel, hows) {
   const st = ctx.st;
   const spawns = stagesOf(mission)[st.idx].spawns;
@@ -466,7 +522,8 @@ function allGone(mission, ctx, sel, hows) {
     }
     return sel.kind == null || d.kind === sel.kind || (w.mix ?? []).some((x) => x[0] === sel.kind);
   });
-  if (!mine.length || !mine.every((d) => d.born)) {
+  const launched = sel.group != null && !spawns.some((w) => w.group === sel.group);
+  if (!launched && (!mine.length || !mine.every((d) => d.born))) {
     return null;
   }
   const born = chosen(st, sel, 'born');
@@ -537,6 +594,10 @@ export function fired(trig, ctx) {
   }
   if (trig.born) {
     const ts = chosen(st, trig.born, 'born').map((x) => x.t).filter((t) => t <= f);
+    return ts.length ? Math.min(...ts) : null;
+  }
+  if (trig.spot) {
+    const ts = chosen(st, trig.spot, 'spot').filter((x) => x.t <= f && (trig.spot.silent == null || x.silent === trig.spot.silent)).map((x) => x.t);
     return ts.length ? Math.min(...ts) : null;
   }
   if (trig.down) {
@@ -798,8 +859,14 @@ export function spilling(gates, t) {
 }
 
 /* What a hit on `id` costs the output in the stage: its mw, times the
- * stage's worth for a set holding it. */
+ * stage's worth for a set holding it. A target on a power line (`line`,
+ * a corridor's tower: MISSIONS.md M6) costs nothing once another on the
+ * same line is down: the line carries its mw once. */
 export function worthOf(mission, st, m, id) {
+  const line = mission.targets[id].line;
+  if (line != null && Object.keys(m.downAt ?? {}).some((x) => x !== id && mission.targets[x]?.line === line)) {
+    return 0;
+  }
   const worth = st ? stagesOf(mission)[st.idx].worth : null;
   let x = 1;
   for (const [set, f] of Object.entries(worth ?? {})) {
@@ -825,7 +892,7 @@ export function arm(ctx) {
       continue;
     }
     if (d.t == null) {
-      const t = fired(spawns[d.i].when, ctx);
+      const t = fired(d.when ?? spawns[d.i].when, ctx);
       if (t != null) {
         d.t = t + d.ms;
       }

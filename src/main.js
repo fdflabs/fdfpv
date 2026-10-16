@@ -139,7 +139,7 @@ import {
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
   FLAG_SPAWNING, FOOT_HANGAR, FOOT_ON, checkCrashTable, checkWhack, decodeFootRelay, decodePartsRelay, encodePose, normaliseCode,
-  normaliseRoomName, streamerColour,
+  pilotRoomName, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
 import {
@@ -1662,6 +1662,7 @@ export async function boot({
       view.setCamp({
         nuevo: false, mast: 0, parked: Infinity, cold: false, ...(mission.camp && mission.camp.world),
       });
+      view.setWeather?.(mission.weather ?? null);
     }
     const defs = new Map((mission.contacts || []).map((c) => [c.id, c]));
     const list = [];
@@ -4865,16 +4866,26 @@ export async function boot({
       return null;
     }
     const runner = jamWatching() ? roomJam.view().runner : null;
+    const flies = (p) => Boolean(p) && Boolean(p.last) && !(p.last.flags & FLAG_CRASHED) && (runner == null || p.seat === runner);
     const seats = [...roomPeers.values()]
-      .filter((p) => p.drawnPose && p.last && !(p.last.flags & FLAG_CRASHED) && (runner == null || p.seat === runner))
+      .filter((p) => p.drawnPose && flies(p))
       .map((p) => p.seat)
       .sort((a, b) => a - b);
+    /* The pick still flies but is not drawn here this frame: its stream,
+     * or this page's own frames, late past STALE_MS (src/game/peer.js). A
+     * watcher's page stalled 2.6 s lost a J pick to the first seat for good
+     * (game:lobby's "J: the camera follows the next pilot", 2026-10-15),
+     * so the first is shown meanwhile and the pick kept. */
+    if (step === 0 && seats.indexOf(warWatchSeat) < 0 && flies(roomPeers.get(warWatchSeat))) {
+      return seats.length ? roomPeers.get(seats[0]) : null;
+    }
     if (!seats.length) {
       warWatchSeat = -1;
       return null;
     }
-    const i = seats.indexOf(warWatchSeat);
-    warWatchSeat = seats[i < 0 ? 0 : (i + step + seats.length) % seats.length];
+    /* Off the pick, the first is the one shown: a step goes on from it. */
+    const i = Math.max(0, seats.indexOf(warWatchSeat));
+    warWatchSeat = seats[(i + step + seats.length) % seats.length];
     return roomPeers.get(warWatchSeat);
   }
 
@@ -5564,7 +5575,7 @@ export async function boot({
     const mission = id === 'war' ? room.mission ?? WAR_MISSION : null;
     const open = visibility === 'public' && (mission === null || room.fresh === true || released(mission));
     const found = open && mission === null && !room.fresh ? await roomBrowser.bestRoom(game, world) : null;
-    const name = room.name !== undefined ? room.name : normaliseRoomName(str(`lobby.room_name_${id}`, { name: roomName(ownName()) })) || null;
+    const name = room.name !== undefined ? room.name : pilotRoomName(roomName(ownName()), (pilot) => str(`lobby.room_name_${id}`, { name: pilot }));
     const code = found || await roomLinkState.create(world, false, {
       name, mode: game, mission, public: open, daytime: chosenTime(ui.settings),
     });
@@ -6502,6 +6513,19 @@ export async function boot({
     const st = roomLinkState.state();
     lobbyReady.frame(gameLobby(), st.phase === 'open' && st.welcome ? st.welcome.seat : null, wallMs);
   }
+  /* Whether, in a room made for `game`, the lobby's return after its end
+   * has passed already: its results are shown only while that return is
+   * to come, as combat's (combatResults). A page whose world was building
+   * across the end took it on its first frame after the return
+   * (gameLobbyFrame runs before the games' frames), and the results then
+   * stood over the lobby for good (game:lobby, B's world rebuilt and held
+   * 9 s across the end: the Ace's and the Trick Battle's,
+   * 2026-10-15). A room's race shows its results only to a pilot whose
+   * run ends in raceFrame, before gameLobbyFrame in the same frame, which
+   * then takes them to the lobby, so it needs none. */
+  function lobbyBackGone(game) {
+    return lobbyGame() === game && lobbyBackAt == null;
+  }
   function gameLobbyFrame(wallMs) {
     lobbyReadyHeard(wallMs);
     lobbySeenFrame(wallMs);
@@ -6697,6 +6721,8 @@ export async function boot({
       }
       if (ev.type === 'dead') {
         warAttackers.dead(ev);
+      } else if (ev.type === 'hurt') {
+        warAttackers.hurt(ev);
       } else if (ev.type === 'boom' && ev.mine) {
         warBoomMine(wallMs);
       }
@@ -6749,6 +6775,14 @@ export async function boot({
     worldAudio.war(live, now);
     avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
+    /* A hull hit and still afloat burns until its last hit (MISSIONS.md
+     * M5 "its two hit burn"): the explosions' own fire and smoke, over
+     * its deck. */
+    for (const a of live) {
+      if (a.hp != null) {
+        warBooms.burn([a.p[0], a.p[1] + 1, a.p[2]], dt);
+      }
+    }
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
      * is already on the air. */
@@ -8067,6 +8101,9 @@ export async function boot({
     feedHeldMs: warFeedHeldMs,
     boomSound: { rung: (audio.booms || 0) + worldAudio.booms, world: worldAudio.booms, heard: worldAudio.stats, nodes: typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0, peakNodes: warAudioPeak },
     seat: roomWar.seat(),
+    /* The world this screen last told the room it has standing
+     * (warWorldTell), 'map:time', or null while it has none. */
+    world: warWorldTold,
     view: roomWar.view(),
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
@@ -9363,7 +9400,7 @@ export async function boot({
       recordGameResult('tag', { won: done.winner === mine.seat, score: mine.points });
       ui.progress.roundFinished('tag', worldId(), { points: mine.points });
     }
-    if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+    if (done && !lobbyBackGone('tag') && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
         leaveFlightForResults();
       }
@@ -9425,7 +9462,7 @@ export async function boot({
       const best = (done.runs || []).filter((r) => r.seat === seat).reduce((a, r) => Math.max(a, r.total), 0);
       recordGameResult('jam', { won: (done.winners || []).includes(seat), score: best });
     }
-    if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+    if (done && !lobbyBackGone('jam') && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
         leaveFlightForResults();
       }
@@ -14950,6 +14987,13 @@ export async function boot({
        * press still going on (a card's mouse up landed on the title's). */
       ui.show(stayScreen === 'friends' ? 'friends' : 'title');
     }
+    /* No frame runs until the new world stands (openFrame), and so neither
+     * does the room's look at this page's world: told now, before the old
+     * one goes, that it is loading and stands on no world, so the room's
+     * counts (core.js fielded) and a briefing's lead (war.js worldsUp) do
+     * not go on the world being taken down. */
+    roomTellProfile();
+    warWorldTell();
     const entry = mapById(wantId);
     loading.run(planStages(['module', 'world', 'frame'], entry.buildMs));
     /* Disposing and building both hold the main thread, so the loading

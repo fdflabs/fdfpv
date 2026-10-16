@@ -28,12 +28,14 @@
 import { EventLog } from '../src/game/events.js';
 import { FreestyleScore } from '../src/game/score.js';
 import { trickNames } from '../src/game/tricks.js';
-import { INTERIOR } from '../src/game/campaign.js';
+import { ACT1, INTERIOR } from '../src/game/campaign.js';
 import { COUNTED, foldEvents, freshProgress } from '../src/game/progress.js';
 import { createOpsCampaignScreen, matchOf } from '../src/ui/opscampaign.js';
-import { CONDITIONS, createRoute, fromFree, fromOps, fromRace, fromRoom, missionEndActions, nextActions, replayState, ROUTE_MAX, withBests, withPosted } from '../src/game/debrief.js';
+import { CONDITIONS, createRoute, fromFree, fromOps, fromRace, fromRoom, missionEndActions, missionEpilogue, nextActions, replayState, ROUTE_MAX, withBests, withPosted } from '../src/game/debrief.js';
 import { factLines } from '../src/ui/factlines.js';
 import { useLocale } from '../src/strings/index.js';
+import en from '../src/strings/en.js';
+import es from '../src/strings/es.js';
 
 let failed = 0;
 function check(name, ok, detail = '') {
@@ -541,6 +543,21 @@ check('mission end: a loss with no stage kept, and an end, are again from the st
   && ends({ host: true, state: 'ended', checkpoint: true }) === '[{"act":"again","from":null}]');
 check('mission end: nothing for a pilot who is not the host, nor before the end', ends({ host: false, state: 'won', next: 'itaipu-2' }) === '[]'
   && ends({ host: true, state: 'live' }) === '[]');
+
+/* A campaign mission's epilogue under its end banner (docs/campaign/BIBLE.md
+ * 10): its key by the mission and the result, written in both languages
+ * for Act 1's missions 1 to 5, win and loss, and for none other yet. */
+check('epilogue: a win and a loss name their keys, an end without a result none', missionEpilogue({ mission: 'itaipu-2', state: 'won' }) === 'war.epilogue.itaipu_2.win'
+  && missionEpilogue({ mission: 'itaipu-2', state: 'lost' }) === 'war.epilogue.itaipu_2.lose'
+  && missionEpilogue({ mission: 'itaipu-2', state: 'ended' }) === null && missionEpilogue({ mission: 'itaipu-2', state: 'live' }) === null
+  && missionEpilogue({ mission: null, state: 'won' }) === null);
+{
+  const told = ACT1.slice(0, 5).flatMap((m) => ['won', 'lost'].map((state) => missionEpilogue({ mission: m.id, state })));
+  const missing = told.filter((k) => !en[k] || !es[k] || en[k] === es[k]);
+  check('epilogue: missions 1 to 5 have a win and a loss, in English and Spanish', told.length === 10 && missing.length === 0, missing.join(', '));
+  const later = ACT1.slice(5).flatMap((m) => ['won', 'lost'].map((state) => missionEpilogue({ mission: m.id, state }))).filter((k) => en[k]);
+  check('epilogue: none wired for missions 6 and 7 (being built)', later.length === 0, later.join(', '));
+}
 
 console.log(failed ? `${failed} failed` : 'all passed');
 process.exitCode = failed;

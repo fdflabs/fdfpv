@@ -29,6 +29,10 @@
  *   hunter  steered by the room (edge/rooms/war.js); its route gives only
  *           where it is born
  *   jammer  the route, then parks at its last point for good ('park')
+ *   carrier the route weaving slowly, then parks where the weave left it
+ *           for good ('park'); the room launches its children from it
+ *           (edge/rooms/war.js launch), each with its birth's `from`, the
+ *           point its route starts at: the carrier's pose then
  *
  * and any of them but a hunter whose birth record carries `wire` (room
  * ms, edge/rooms/war.js from wires.js wireStrike) flies into a power
@@ -63,7 +67,7 @@
 export const BLAST_M = 6;
 
 /* The kinds, in the order of the AGENTS message's kind byte. */
-export const KINDS = ['scout', 'loiter', 'strike', 'fpv', 'hunter', 'boat', 'jammer', 'decoy'];
+export const KINDS = ['scout', 'loiter', 'strike', 'fpv', 'hunter', 'boat', 'jammer', 'decoy', 'carrier'];
 
 /*
  * Each kind's flight, m/s and metres: speed, the loiterer's dive, the
@@ -84,7 +88,31 @@ export const KIND = {
   jammer: { speed: 3.5, gap: 30 },
   /* A Striker's flight and look, worth nothing where it arrives. */
   decoy: { speed: 26.6, gap: 25 },
+  /* The river's launcher (MISSIONS.md M5, TECH-NEEDS T1.6): 7 m/s, the
+   * table's, written after the 0.7 above; its weave a slow 10 m over 24 s
+   * and two hulls 80 m apart are choices, no craft measured. hp: the
+   * detonations it takes (T1.7), a kind without one takes one. */
+  carrier: {
+    speed: 7, weaveM: 10, weaveMs: 24000, gap: 80, hp: 2,
+  },
 };
+
+/* The detonations an attacker of `kind` takes before it dies. */
+export function hpOf(kind) {
+  return KIND[kind]?.hp ?? 1;
+}
+
+/* What a pilot who spots an attacker of `kind` sees it is (edge/rooms/
+ * war.js spot), the mark every screen gives it from then
+ * (src/ui/warmarkers.js): a carrier 'launching', or 'silent' for one that
+ * launches nothing (MISSIONS.md M5 twist A); any other its own kind, so a
+ * spotted decoy reads as one at any range (TECH-NEEDS T1.8). */
+export function spottedAs(kind, silent) {
+  if (kind === 'carrier') {
+    return silent ? 'silent' : 'launching';
+  }
+  return kind;
+}
 
 /* How far a scout flies on after its circle before it is gone: 200 s at
  * its speed, as before it was slowed. */
@@ -235,7 +263,7 @@ function planRoute(mission, agent) {
   }
   const n = agent.n || 1;
   const form = ((agent.k || 0) - (n - 1) / 2) * kind.gap;
-  const pts = turned(route, agent.az);
+  const pts = turned(agent.from ? [agent.from, ...route] : route, agent.az);
   let aim = null;
   if (target) {
     const last = pts[pts.length - 1];
@@ -264,10 +292,14 @@ function planRoute(mission, agent) {
     push({ k: 'park', p: at, d }, 0);
     return { t0: agent.t0, tEnd: Infinity, end: agent.kind === 'hunter' ? 'steer' : 'park', phases };
   }
-  /* The formation closes on the aim point only when there is one. */
+  /* The formation closes on the aim point only when there is one. A
+   * carrier's child leaves the one deck, so its place in the formation and
+   * its weave open from nothing over its climb, the first leg (`open`,
+   * metres). */
   push({
     k: 'path', legs: path.legs, m: path.m, speed: kind.speed, form, close: Boolean(aim) && straightOn,
     weaveM: kind.weaveM || 0, weaveMs: kind.weaveMs || 1, phase: (agent.k || 0) * 0.9,
+    ...(agent.from ? { open: path.legs[0].m } : {}),
   }, (path.m / kind.speed) * 1000);
   const endLeg = path.legs[path.legs.length - 1];
   const endSide = leftOf(endLeg.d);
@@ -281,6 +313,13 @@ function planRoute(mission, agent) {
   }
   if (agent.kind === 'jammer') {
     push({ k: 'park', p: endAt, d: [endLeg.d[0], 0, endLeg.d[2]] }, 0);
+    return { t0: agent.t0, tEnd: Infinity, end: 'park', phases };
+  }
+  /* A carrier holds where its weave left it, so it never jumps. */
+  if (agent.kind === 'carrier') {
+    const held = { p: [0, 0, 0], v: [0, 0, 0] };
+    pathAt(phases[phases.length - 1], t, held);
+    push({ k: 'park', p: held.p, d: [endLeg.d[0], 0, endLeg.d[2]] }, 0);
     return { t0: agent.t0, tEnd: Infinity, end: 'park', phases };
   }
   /* A level circle to the left of the path's end, entered on its tangent. */
@@ -428,8 +467,13 @@ function pathAt(ph, t, out) {
    * weave (dying away there), and the weave's own speed. */
   const wa = TWO_PI * (t - ph.t0) / ph.weaveMs + ph.phase;
   const weave = ph.weaveM * sinDet(wa) * fade;
-  const lat = ph.form * fade + weave;
-  const latV = ph.weaveM * cosDet(wa) * fade * TWO_PI * 1000 / ph.weaveMs - (ph.close ? (ph.form + ph.weaveM * sinDet(wa)) * ph.speed / ph.m : 0);
+  let lat = ph.form * fade + weave;
+  let latV = ph.weaveM * cosDet(wa) * fade * TWO_PI * 1000 / ph.weaveMs - (ph.close ? (ph.form + ph.weaveM * sinDet(wa)) * ph.speed / ph.m : 0);
+  if (ph.open && s < ph.open) {
+    const g = s / ph.open;
+    latV = latV * g + lat * ph.speed / ph.open;
+    lat *= g;
+  }
   const along = s - leg.s;
   for (let i = 0; i < 3; i += 1) {
     out.p[i] = leg.a[i] + leg.d[i] * along + side[i] * lat;

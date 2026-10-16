@@ -207,12 +207,13 @@ const DRIVE = /* js */ `(async (opts) => {
       if (!s.orbit && s.shot >= 0) {
         const g = window.__heightAt(cam.position.x, cam.position.z);
         R.clear.push([s.shot, cam.position.y - g, Math.round(cam.position.x), Math.round(cam.position.z)]);
-        const x = (R.shots[s.shot] ||= { frames: 0, drawn: {}, cast: [], titles: [], subs: [], counter: null, calls: 0, opened: 0 });
+        const x = (R.shots[s.shot] ||= { frames: 0, drawn: {}, cast: [], titles: [], slates: [], subs: [], counter: null, calls: 0, opened: 0 });
         x.frames += 1;
         x.opened = Math.max(x.opened, s.opened);
         for (const [kind, n] of Object.entries(s.drawn)) { x.drawn[kind] = Math.max(x.drawn[kind] || 0, n); }
         for (const c of s.cast) { if (!x.cast.includes(c)) { x.cast.push(c); } }
         if (s.title && !x.titles.includes(s.title)) { x.titles.push(s.title); }
+        if (s.slate && !x.slates.includes(s.slate)) { x.slates.push(s.slate); }
         if (s.subtitle && !x.subs.includes(s.subtitle)) { x.subs.push(s.subtitle); }
         if (s.counter) { x.counter = s.counter; }
         if (s.scope) { x.scope = { contacts: Math.max(x.scope?.contacts ?? 0, s.scope.contacts), off: Math.max(x.scope?.off ?? 0, s.scope.contacts - s.scope.onScope) }; }
@@ -295,7 +296,7 @@ try {
   const bedAfter = await page.evaluate('window.__audio.warRadio ? window.__audio.warRadio.track : null');
 
   const shot = (id) => R.shots[shotOf(id)] || {
-    frames: 0, drawn: {}, cast: [], titles: [], subs: [], calls: 0, opened: 0,
+    frames: 0, drawn: {}, cast: [], titles: [], slates: [], subs: [], calls: 0, opened: 0,
   };
   console.log('\nper shot: frames, most attackers drawn, the cast, most draw calls');
   for (const x of SHOTS) {
@@ -358,10 +359,27 @@ try {
     row('orbit: the mission\'s own card, its title over "Mission 3"', shot('orbit').titles.includes(EN['war.mission.itaipu_3']), shot('orbit').titles.join(' | '));
     row('the hand-off: the letterbox open by the last frame', shot('orbit').opened > 0.95, shot('orbit').opened.toFixed(3));
   }
+  if (FILM.id === 'corridor') {
+    row('tower, ride, town and road: the towers, the wires and the town, no attacker', ['tower', 'ride', 'town', 'road'].every((id) => Object.values(shot(id).drawn).every((n) => !n)),
+      ['tower', 'ride', 'town', 'road'].map((id) => JSON.stringify(shot(id).drawn)).join(' '));
+    row('wires: one Striker down the corridor', shot('wires').drawn.strike === 1, JSON.stringify(shot('wires').drawn));
+    row('road: the Striker and the interceptor on the crest road, no Bramor or Skyhunter', ['strk', 'int'].every((n) => shot('road').cast.includes(n)), shot('road').cast.join(' '));
+    row('rise: the mission\'s own card, its title over "Mission 6"', shot('rise').titles.includes(EN['war.mission.itaipu_6']), shot('rise').titles.join(' | '));
+    row('the hand-off: the letterbox open by the last frame', shot('rise').opened > 0.95, shot('rise').opened.toFixed(3));
+  }
   if (FILM.id === 'lights-out-outro') {
     row('outro: no attacker in any shot (the fight is over)', SHOTS.every((x) => Object.values(shot(x.id).drawn).every((n) => !n)), SHOTS.map((x) => JSON.stringify(shot(x.id).drawn)).join(' '));
     row('rack: the quad home on its pad', shot('rack').cast.includes('q2s'), shot('rack').cast.join(' '));
     row('lines: no title card while The Long Night is held', shot('lines').titles.length === 0, shot('lines').titles.join(' | '));
+  }
+
+  /* The slate (INTROS.md 1.8): place, day and time, and the stakes, in
+   * English as the string table has them, in the shot that carries it. */
+  for (const x of SHOTS) {
+    for (const t of (x.titles ?? []).filter((y) => y.kind === 'slate')) {
+      const want = [t.key, t.when, t.sub].map((k) => EN[k]).join(' / ');
+      row(`${x.id}: the slate, "${want}"`, shot(x.id).slates.includes(want), shot(x.id).slates.join(' | ') || 'none');
+    }
   }
 
   /* The voice: decoded here, as long as the manifest says. */

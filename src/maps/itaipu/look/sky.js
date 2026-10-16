@@ -146,6 +146,38 @@ const AIRS = {
   night: AIR_NIGHT,
 };
 
+/*
+ * Each time's print grade (swiss2/post.js air.grade, docs/LOOK.md), on
+ * the photographic chain after the print's slope. The day and noon are
+ * the photographs' and stay ungraded, null: the chain compiles no grade
+ * for them (even an identity grade moved the day's pixels, a mean of 4
+ * levels in review-crest).
+ * The others are judged by eye in the look pass's pairs, not measured:
+ *
+ *   morning   First Light's dawn: a little warm in the whites and the
+ *             shadows, the low sun's light still yellow
+ *   golden    Lights Out's start: warmer, a touch more colour
+ *   night     The Long Night: the colour drained toward grey (a dark
+ *             adapted eye sees little colour) and the shade lifted blue
+ *
+ * Kept out of AIRS: the Interior builds its air from Itaipu's morning
+ * (src/maps/interior/look.js) and grades its own hours.
+ */
+const GRADES = {
+  day: null,
+  noon: null,
+  morning: { saturation: 1.05, white: [1.04, 1.0, 0.93], lift: [0.02, 0.012, 0] },
+  golden: { saturation: 1.08, white: [1.05, 0.99, 0.9], lift: [0.015, 0.005, 0] },
+  night: { saturation: 0.8, white: [0.95, 0.98, 1.04], lift: [0, 0.006, 0.018] },
+};
+
+/* The grade for the time picked, or null. The times a war mission's
+ * light ramps between (night and morning or golden) all have one, so a
+ * ramp moves one compiled grade's uniforms. Shared, never written. */
+export function gradeFor(time) {
+  return GRADES[timeOf(time)];
+}
+
 /* The air for the time picked, for the post chain and the backdrop. */
 export function airFor(time) {
   return AIRS[timeOf(time)];

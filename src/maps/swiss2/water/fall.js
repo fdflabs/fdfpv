@@ -98,14 +98,22 @@ export function apronShape(layout) {
     const u = Math.max(0, warp * APRON.steps + 2.2 * (noise2(s * 1.7 + 4.1, 1.7) - 0.5) + 0.9 * (noise2(s * 6.3, 5.1) - 0.5) + 0.45 * (noise2(s * 15 + 3.3, 9.7) - 0.5));
     const k = Math.floor(u);
     const f = u - k;
-    const rise = Math.min(1, Math.max(0, (k + smoothstep(0, 0.55, f)) / APRON.steps));
-    const back = Math.min(1, Math.max(0, (k + smoothstep(0.55, 1, f)) / APRON.steps));
+    /* The ledges are the middle's, where the water has worn them; toward
+     * the sides they weather into an even slope of talus. Cut to the
+     * same steps right out to the edge, every ledge ran down into the
+     * one toe line there, and the apron's flanks read as a fan of ruled
+     * lines converging on the ground. */
+    const ledged = smoothstep(0.55, 0.85, lat);
+    const rise = Math.min(1, Math.max(0, (k + smoothstep(0, 0.55, f)) / APRON.steps)) * ledged + t * (1 - ledged);
+    const back = Math.min(1, Math.max(0, (k + smoothstep(0.55, 1, f)) / APRON.steps)) * ledged + t * (1 - ledged);
     const crag = 2.2 * (noise2(s * 9.1 + 2.2, t * 7.3 + 0.4) - 0.5) + 0.9 * (noise2(s * 23 + 5.5, t * 19 + 3.1) - 0.5);
     /* Buttresses and bays tens of metres across, so a ledge's edge is
      * never one line round the apron. */
     const bulge = 5 * (noise2(s * 3.1 + 8.3, t * 2.4 + 1.9) - 0.5);
-    const y = toeY + APRON.crest * Math.pow(lat, 0.85) * Math.min(1, rise + 0.02 * t) + 0.7 * crag + 2 * bulge * lat * t;
-    const x = face - (APRON.toe * (1 - back) + bulge * (1 - t)) * Math.pow(lat, 0.6) - crag * Math.sqrt(lat);
+    /* The crags too: at the flanks every row of the grid meets the toe,
+     * and a crag a row there was a ridge running the flank's length. */
+    const y = toeY + APRON.crest * Math.pow(lat, 0.85) * Math.min(1, rise + 0.02 * t) + 0.7 * crag * ledged + 2 * bulge * lat * t;
+    const x = face - (APRON.toe * (1 - back) + bulge * (1 - t)) * Math.pow(lat, 0.6) - crag * Math.sqrt(lat) * ledged;
     return [x, y, z];
   };
 }
@@ -491,7 +499,13 @@ function fallMaterial(waves, time, wind, height, seed, envMap, mode) {
            * them, not a sheet: sheeted white on every riser, the apron read
            * as a stack of white bands. */
           float foam = mix(0.25 + 0.6 * smoothstep(0.45, 0.8, churn), smoothstep(0.52, 0.78, streak * 0.7 + churn * 0.3), riser);
-          a = chan * edge * (0.06 + 0.6 * foam) * smoothstep(0.0, 0.04, vFall.y);
+          /* Each riser's water in a few falls with dry rock between,
+           * parted where the ledge's lip is high: a channel's full width
+           * pouring over every riser read from the air as a column of
+           * white panels, one a ledge. */
+          float lip = fallNoise(vec2(across / 2.3 + 5.1, floor(fallen / 4.0) * 1.7 + uSeed));
+          float pour = mix(1.0, smoothstep(0.32, 0.62, lip), riser);
+          a = chan * edge * pour * (0.06 + 0.6 * foam) * mix(1.0, 0.75, riser) * smoothstep(0.0, 0.04, vFall.y);
         } else if (uMode > 0.5) {
           /* The plume: what the veil tears into is most of the fall's
            * light, a broad bright body of spray fuller the further down,

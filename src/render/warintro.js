@@ -404,6 +404,15 @@ export function play(scene, camera, opts = {}) {
     + 'text-shadow:0 0 24px rgba(0,0,0,0.55);', titleBox);
   const titleSub = el('div', `font-family:${TITLE_FONT};font-weight:700;text-transform:uppercase;letter-spacing:0.5em;`
     + 'font-size:clamp(14px, 2.2vw, 30px);margin-top:0.8em;color:#d9b36a;', titleBox);
+  /* The slate: where, when and what is at stake, top left inside the
+   * 2.39 frame, since the subtitles own its lower third. */
+  const slate = el('div', `position:absolute;left:5vw;top:calc(${BAR} + 2.2em);max-width:min(46vw, 640px);`
+    + 'padding-left:0.9em;border-left:2px solid #d9b36a;opacity:0;will-change:opacity;text-shadow:0 1px 3px #000, 0 0 12px rgba(0,0,0,0.7);', overlay);
+  const slatePlace = el('div', `font-family:${TITLE_FONT};font-weight:700;text-transform:uppercase;letter-spacing:0.06em;`
+    + 'font-size:clamp(18px, 2.1vw, 34px);line-height:1.05;', slate);
+  const slateWhen = el('div', `font-family:${CARD_FONT};font-weight:600;text-transform:uppercase;letter-spacing:0.3em;`
+    + 'font-size:clamp(11px, 1vw, 15px);margin-top:0.55em;color:#d9b36a;', slate);
+  const slateStakes = el('div', 'font-size:clamp(13px, 1.25vw, 19px);font-weight:600;line-height:1.3;margin-top:0.6em;color:#e8e2d4;', slate);
   const credit = el('div', `position:absolute;right:4vw;bottom:calc(${BAR} + 1.2em);`
     + 'font-size:clamp(9px, 0.9vw, 12px);opacity:0;color:#cfc9bb;letter-spacing:0.04em;', overlay);
   const sub = el('div', `position:absolute;left:8vw;right:8vw;bottom:calc(${BAR} + 3.2em);`
@@ -586,13 +595,14 @@ export function play(scene, camera, opts = {}) {
     /* Titles. */
     let title = null;
     for (const x of s.titles || []) {
-      if (x.kind !== 'credit' && t >= anchor(x.from, s) && t < anchor(x.to, s)) {
+      if (x.kind !== 'credit' && x.kind !== 'slate' && t >= anchor(x.from, s) && t < anchor(x.to, s)) {
         title = x;
       }
     }
     titleShown(title ? {
       ...titleText(title), from: anchor(title.from, s), to: anchor(title.to, s), kind: title.kind,
     } : null, t);
+    slateShown((s.titles || []).find((x) => x.kind === 'slate' && t >= anchor(x.from, s) && t < anchor(x.to, s)), s, t);
     const cr = (s.titles || []).find((x) => x.kind === 'credit' && t >= anchor(x.from, s) && t < anchor(x.to, s));
     put(credit, 'opacity', cr ? String(Math.min(0.8, (t - anchor(cr.from, s)) / 800, (anchor(cr.to, s) - t) / 600)) : '0');
     if (cr && credit.textContent !== str(cr.key)) {
@@ -930,6 +940,23 @@ export function play(scene, camera, opts = {}) {
     }
   }
 
+  /* A 'slate' title: its place `key`, its day and time `when`, its
+   * stakes `sub`, each a string key; in over 700 ms and out over 600. */
+  function slateShown(x, s, t) {
+    if (!x) {
+      put(slate, 'opacity', '0');
+      return;
+    }
+    const from = anchor(x.from, s);
+    const to = anchor(x.to, s);
+    put(slate, 'opacity', smooth(Math.max(0, Math.min(1, (t - from) / 700, (to - t) / 600))).toFixed(3));
+    for (const [e, key] of [[slatePlace, x.key], [slateWhen, x.when], [slateStakes, x.sub]]) {
+      if (e.textContent !== str(key)) {
+        e.textContent = str(key);
+      }
+    }
+  }
+
   /* The line under way in the page's language, for its own length. */
   function subtitle(tFilm) {
     const l = lineAt(timed, tFilm, lang, opts.flags);
@@ -1068,6 +1095,7 @@ export function play(scene, camera, opts = {}) {
     }
     canvas.style.filter = canvasFilter;
     titleBox.style.opacity = '0';
+    slate.style.opacity = '0';
     sub.style.opacity = '0';
     counter.style.opacity = '0';
     credit.style.opacity = '0';
@@ -1250,6 +1278,7 @@ export function play(scene, camera, opts = {}) {
         cast: [...cast.entries()].filter(([, c]) => c.holder.visible).map(([n]) => n),
         subtitle: sub.style.opacity === '1' ? sub.textContent : null,
         title: titleBox.style.opacity !== '0' ? titleMain.textContent : null,
+        slate: slate.style.opacity !== '0' ? [slatePlace, slateWhen, slateStakes].map((e) => e.textContent).join(' / ') : null,
         counter: counter.style.opacity !== '0' ? counterValue.textContent : null,
         hold: state.orbit ? hold.textContent : null,
         fov: camera.fov,

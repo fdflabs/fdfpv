@@ -79,6 +79,7 @@ console.log('the rules');
   const { debriefItems, debriefFrames } = await import('../src/ui/debrief.js');
   const { missionState } = await import('../src/ui/opscampaign.js');
   const { INTERIOR } = await import('../src/game/campaign.js');
+  const { withHeld } = await import('./lib/held.js');
   const req = debriefItems(M).filter((x) => x.required).map((x) => x.id);
   check('required: the primary objectives\' captures and the symbol a star names', req.join() === 'bridge,road,sheds,colonia,crossing,shelters,motorcycles,antenna,personnel,access,symbol', req.join());
   check('not required: the optional items a star wants all of', ['burned', 'lookout', 'solar'].every((id) => !req.includes(id)));
@@ -96,8 +97,14 @@ console.log('the rules');
   const of = (id) => frames.find((f) => f.id === id).kind;
   check('frames: my still mine, a squadmate\'s the record, a required gap the reconstruction, an optional gap missing', of('symbol') === 'mine' && of('bridge') === 'squad' && of('shelters') === 'rec' && of('burned') === 'missing');
   const states = INTERIOR.map((m) => missionState(m, false));
-  check('the card: Missions 1 to 3 held, 4 and 5 Under development', states.join() === 'held,held,held,development,development', states.join());
-  check('a developer\'s page plays Mission 1', missionState(INTERIOR[0], true) === 'available');
+  check('the card: Missions 1 to 3 available to every pilot (the owner, 2026-10-16), 4 and 5 Under development', states.join() === 'available,available,available,development,development', states.join());
+  /* A held mission's card, on the rows held in development
+   * (scripts/lib/held.js), as 1 to 3 were until their release. */
+  withHeld(['interior-1', 'interior-2', 'interior-3'], () => {
+    const held = INTERIOR.map((m) => missionState(m, false));
+    check('held in development: Missions 1 to 3 held, 4 and 5 Under development', held.join() === 'held,held,held,development,development', held.join());
+    check('held: a developer\'s page plays Mission 1', missionState(INTERIOR[0], true) === 'available');
+  });
 }
 
 const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'bramor2300');

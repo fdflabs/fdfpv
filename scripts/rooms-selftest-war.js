@@ -191,8 +191,8 @@ export function warSection(check) {
       && decodeHunts(hunts.subarray(0, hunts.length - 1)) === null);
     check('war is a room game a profile can name', ROOM_GAMES.includes('war')
       && checkProfile({ airframe: 'cub1400', map: 'itaipu', figure: 0, game: 'war' }).game === 'war');
-    check('the kinds are section 3\'s seven and the decoy after them, hunter at index 4', KINDS.length === 8 && KINDS[4] === 'hunter' && KINDS[7] === 'decoy'
-      && KINDS.every((k) => KIND[k].speed > 0));
+    check('the kinds are section 3\'s seven, the decoy and the carrier after them, hunter at index 4', KINDS.length === 9 && KINDS[4] === 'hunter' && KINDS[7] === 'decoy'
+      && KINDS[8] === 'carrier' && KINDS.every((k) => KIND[k].speed > 0));
   }
 
   console.log('war: routes');
@@ -206,7 +206,7 @@ export function warSection(check) {
     /* Every kind, continuous on the millisecond and at its kind's speed. */
     const bad = [];
     for (const kind of KINDS) {
-      const target = kind === 'scout' || kind === 'jammer' || kind === 'hunter' ? null : 'a';
+      const target = kind === 'scout' || kind === 'jammer' || kind === 'hunter' || kind === 'carrier' ? null : 'a';
       const plan = planAgent(m, {
         id: 1, kind, route: 'r', t0: 1000, k: 2, n: 5, err: 0, target,
       });
@@ -880,10 +880,11 @@ export function warSection(check) {
      * mission in development, by its word, whatever a client sends: a
      * stale build, a crafted socket, a ?missions=dev page. The drill,
      * which no campaign offers, starts as ever; a check's own room (dev)
-     * starts a held one. The owner released 1 to 4 on 2026-10-15, so each
-     * is held here for its rows (scripts/lib/held.js), then started as
-     * released by a room with no developer flag. */
-    for (const id of ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4']) {
+     * starts a held one. The owner released 1 to 4 on 2026-10-15 and 5
+     * and 6 on 2026-10-16, so each is held here for its rows
+     * (scripts/lib/held.js), then started as released by a room with no
+     * developer flag. */
+    for (const id of ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-5', 'itaipu-6']) {
       withHeld([id], () => {
         const held = warRoom({ mission: MISSIONS[id], code: 'R3L000' });
         check(`${id} held in development: the room refuses to start it, 'unreleased', and no war is on`, held.errors(0).includes('unreleased') && held.r.war.match === null,
@@ -897,7 +898,7 @@ export function warSection(check) {
           JSON.stringify(dev.errors(0)));
       });
       const released = warRoom({ mission: MISSIONS[id], code: 'R3L003' });
-      check(`${id}, released (the owner, 2026-10-15): a room with no developer flag starts it`, released.errors(0).length === 0
+      check(`${id}, released (the owner): a room with no developer flag starts it`, released.errors(0).length === 0
         && released.r.war.match && released.r.war.match.mission === id, JSON.stringify(released.errors(0)));
     }
     const open = warRoom({ mission: MISSIONS['itaipu-drill'], code: 'R3L002' });

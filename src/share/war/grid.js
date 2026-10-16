@@ -64,7 +64,16 @@
  * strike's room ms: createGrid().hear takes a { type: 'dead', why: 'wire',
  * at, p } event, the district being the town district nearest the strike:
  * the room's death of an attacker that flew into a line
- * (src/share/war/wires.js, edge/rooms/war.js onWire).
+ * (src/share/war/wires.js, edge/rooms/war.js onWire). A corridor's tower
+ * hit (`tower-w-k`, `tower-e-k`, itaipu-towers.js: The Corridor's
+ * targets, MISSIONS.md M6) is a struck line at the tower, by the same
+ * path.
+ *
+ * ISLANDED. A restore that islands (`island`, M6's last corridor held)
+ * keeps the districts it names lit from its room ms on whatever the rest
+ * of the grid loses: a unit lost no longer sheds them, nor the yard puts
+ * them out, and those dark then come back as a restore's do. Only a line
+ * struck in them still cuts them.
  *
  * DETERMINISM. Integer hashing (Math.imul) and + - * / only.
  *
@@ -85,6 +94,7 @@
  */
 
 import AT from './itaipu-targets.js';
+import TOWERS from './itaipu-towers.js';
 
 /* The units: twenty, west to east, the first ten Paraguay's side. */
 export const UNITS = 20;
@@ -199,12 +209,19 @@ export function unitOf(target) {
   return m ? Number(m[2]) : -1;
 }
 
+/* The corridor tower a target id is (itaipu-towers.js), or null. */
+export function towerOf(target) {
+  const m = /^tower-(w|e)-(\d+)$/.exec(target);
+  return m ? TOWERS[m[1]][Number(m[2])] ?? null : null;
+}
+
 /*
  * Each district's changes: an Array, a district, of [{ at, on }] in order
  * of at, each the start of a flicker out (on false; at -Infinity: out
  * since before this screen heard) or back (on true). `hits` is [{ target,
- * at }] (at may be -Infinity), `cuts` [{ at, x, z }] struck lines,
- * `restores` [{ at, districts: [id] }] (WHAT COMES BACK). Steps are taken
+ * at }] (at may be -Infinity; a tower's is a struck line there), `cuts`
+ * [{ at, x, z }] struck lines, `restores` [{ at, districts: [id],
+ * island? }] (WHAT COMES BACK, ISLANDED). Steps are taken
  * in order of at; the districts one moment puts out are staggered
  * CASCADE_MS apart, the strike's own first, and the ones a restore brings
  * back the same, in the order it names them.
@@ -214,7 +231,7 @@ export function changesFrom(hits, cuts = [], restores = []) {
   const steps = [
     ...hits.map((h) => ({ at: h.at, target: h.target })),
     ...cuts.map((c) => ({ at: c.at, cut: districtOf(c.x, c.z, isTown) })),
-    ...restores.map((r) => ({ at: r.at, feed: r.districts.map(districtIndex) })),
+    ...restores.map((r) => ({ at: r.at, feed: r.districts.map(districtIndex), island: r.island === true })),
   ].sort((a, b) => a.at - b.at);
   const lost = new Array(UNITS).fill(false);
   let yard = false;
@@ -222,6 +239,8 @@ export function changesFrom(hits, cuts = [], restores = []) {
   const cut = new Set();
   /* Town district -> its place in the restore that fed it round the yard. */
   const fed = new Map();
+  /* Town districts islanded (ISLANDED). */
+  const island = new Set();
   const dark = new Array(DISTRICTS.length).fill(false);
   /* A change starts no earlier than the one before it, so each list stays
    * in order even when a restore lands inside the cascade it undoes. */
@@ -242,7 +261,15 @@ export function changesFrom(hits, cuts = [], restores = []) {
           if (isTown(DISTRICTS[i]) && !fed.has(i)) {
             fed.set(i, k);
           }
+          if (st.island && isTown(DISTRICTS[i])) {
+            island.add(i);
+          }
         });
+        continue;
+      }
+      const tower = towerOf(st.target);
+      if (tower) {
+        cut.add(districtOf(tower.x, tower.z, isTown));
         continue;
       }
       const u = unitOf(st.target);
@@ -282,7 +309,7 @@ export function changesFrom(hits, cuts = [], restores = []) {
           || (d.gates && gate)
           || (d.yard && yard);
       } else {
-        off = cut.has(i) || cap[d.bus] < d.keep - 1e-9 || (d.bus === 'py' && yard && !fed.has(i));
+        off = cut.has(i) || (!island.has(i) && (cap[d.bus] < d.keep - 1e-9 || (d.bus === 'py' && yard && !fed.has(i))));
       }
       if (off && !dark[i]) {
         fresh.push(i);
@@ -436,7 +463,7 @@ export function createGrid() {
       const down = view && Array.isArray(view.down) ? view.down : [];
       const ids = [...down, ...[...heard.keys()].filter((t) => !down.includes(t))];
       const restores = restoresOf(view);
-      const k = `${ids.join(',')}|${heard.size}|${cuts.length}|${restores.map((r) => `${r.at}:${r.districts.join('+')}`).join(';')}`;
+      const k = `${ids.join(',')}|${heard.size}|${cuts.length}|${restores.map((r) => `${r.at}:${r.districts.join('+')}${r.island === true ? '!' : ''}`).join(';')}`;
       if (k !== key) {
         key = k;
         const hits = ids.map((target) => ({ target, at: heard.has(target) ? heard.get(target) : -Infinity }));

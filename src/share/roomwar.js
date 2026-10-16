@@ -50,7 +50,9 @@
  */
 
 import { decodeAgents, decodeHunts } from './roomwire.js';
-import { KINDS, planAgent, poseAt } from './war/routes.js';
+import {
+  KINDS, planAgent, poseAt, spottedAs,
+} from './war/routes.js';
 import { EXTRAP_MAX_MS } from '../game/peer.js';
 import { MISSIONS } from './war/missions/index.js';
 import { WATCH_SEAT } from './roomrace.js';
@@ -131,7 +133,10 @@ export function createRoomWar(send) {
   let war = { state: 'lobby' };
   let error = null;
   /* id -> { a (birth record), plan, samples ([{ t, p, q }], hunters),
-   * hunts (a hunter's target seat, null for none, undefined unheard) }. */
+   * hunts (a hunter's target seat, null for none, undefined unheard),
+   * hp (the hit points a hurt one has left, null while it is whole),
+   * spotted (what it was seen to be once spotted, routes.js spottedAs,
+   * else null) }. */
   let agents = new Map();
   /* What happened since the shell last asked, oldest first. */
   let events = [];
@@ -163,7 +168,11 @@ export function createRoomWar(send) {
       if (agents.has(a.id)) {
         continue;
       }
-      agents.set(a.id, { a, plan: planAgent(m, a), samples: [] });
+      /* Hurt before this screen heard of it: the view says so (a late
+       * joiner's welcome comes before the births). */
+      agents.set(a.id, {
+        a, plan: planAgent(m, a), samples: [], hp: war.hurt?.[a.id] ?? null, spotted: war.spotted?.[a.id] ?? null,
+      });
       born.push(a);
     }
     if (born.length) {
@@ -243,6 +252,18 @@ export function createRoomWar(send) {
         const was = war.state;
         const stageWas = war.stage ? `${war.stage.id}@${war.stage.at}` : null;
         war = held(m.war, seat);
+        for (const [id, hp] of Object.entries(war.hurt ?? {})) {
+          const x = agents.get(Number(id));
+          if (x) {
+            x.hp = hp;
+          }
+        }
+        for (const [id, how] of Object.entries(war.spotted ?? {})) {
+          const x = agents.get(Number(id));
+          if (x) {
+            x.spotted = how;
+          }
+        }
         if (was !== war.state) {
           events.push({ type: 'state', from: was, to: war.state, why: war.why ?? null });
         }
@@ -261,6 +282,31 @@ export function createRoomWar(send) {
         adopt(m.agents || []);
       } else if (m.op === 'dead') {
         dead(m);
+      } else if (m.op === 'hurt') {
+        /* A boom these took and lived (edge/rooms/war.js, a kind of more
+         * than one hp): where each one was, for its damage. */
+        const list = [];
+        (m.ids || []).forEach((id, i) => {
+          const x = agents.get(id);
+          const o = x ? poseOf(x, m.at) : null;
+          if (x) {
+            x.hp = (m.hp || [])[i] ?? x.hp;
+            list.push({
+              id, kind: x.a.kind, p: o ? o.p : m.p.slice(), hp: (m.hp || [])[i] ?? null,
+            });
+          }
+        });
+        events.push({
+          type: 'hurt', ids: m.ids || [], agents: list, at: m.at, by: m.by, p: m.p,
+        });
+      } else if (m.op === 'spot') {
+        /* Spotted (war.js spot): marked for what it is from now. */
+        (m.ids || []).forEach((id, i) => {
+          const x = agents.get(id);
+          if (x) {
+            x.spotted = spottedAs(x.a.kind, Boolean((m.silent || [])[i]));
+          }
+        });
       } else if (m.op === 'stall') {
         /* An EMP stalled these (war.js): their routes wait m.ms from m.at,
          * the same on every screen. */
@@ -337,7 +383,9 @@ export function createRoomWar(send) {
      * Every attacker alive at room ms t: [{ id, kind, p: [x, y, z], q:
      * [x, y, z, w] }], scene world metres, y up, in id order, and on a
      * hunter whose HUNTS has been heard, hunts: the seat it chases or
-     * null. Only while a war is live; none before its birth or past its
+     * null; on one hurt and alive (a carrier hit once), hp: what it has
+     * left; on one spotted, spotted: what it was seen to be (routes.js
+     * spottedAs). Only while a war is live; none before its birth or past its
      * route's end.
      */
     attackersAt(t) {
@@ -354,6 +402,12 @@ export function createRoomWar(send) {
           const a = { id: x.a.id, kind: x.a.kind, p: o.p, q: o.q };
           if (x.hunts !== undefined) {
             a.hunts = x.hunts;
+          }
+          if (x.hp != null) {
+            a.hp = x.hp;
+          }
+          if (x.spotted != null) {
+            a.spotted = x.spotted;
           }
           out.push(a);
         }
@@ -373,6 +427,9 @@ export function createRoomWar(send) {
      *     target, hit, mw, mine, kills: [{ id, kind }] }
      *                                          kills: those of ids the room
      *                                          credited to this seat
+     *   { type: 'hurt', ids, agents: [{ id, kind, p, hp }], at, by, p }
+     *                                          a boom these lived through,
+     *                                          hp what each has left
      *   { type: 'boom', seat, at, p, mine }    mine: break this craft
      *   { type: 'scouts', at, by }             that dead was a scout
      *                                          wave's last: later waves

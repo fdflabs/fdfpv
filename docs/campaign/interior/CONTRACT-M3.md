@@ -5,7 +5,9 @@ stages, dials, recovery, stars, roles and radio are MISSIONS.md's M3
 section; this file is what building it to Mission 1's standard needs,
 what this PR builds, and what it leaves for later PRs. M3 is
 `release: 'development'` in src/game/campaign.js: only a dev room starts
-it; the owner decides its release.
+it; the owner decides its release. Released 2026-10-16 (the owner: "make
+everything available to everyone"), `release: 'available'` in
+src/share/ops/rows.js.
 
 ## 1. The gap list: what M3 needs that M1 and M2 do not have
 

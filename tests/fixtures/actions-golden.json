@@ -139304,7 +139304,12 @@
     "hangar-howto:howto"
    ]
   ],
-  "continue interior campaign:none next:none press": []
+  "continue interior campaign:none next:none press": [
+   [
+    "pickForWay",
+    "way-interior"
+   ]
+  ]
  },
  "helpers": {
   "title-race seatMatchesMode": {

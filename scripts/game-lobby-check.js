@@ -39,7 +39,8 @@
  *
  *   D (not the race or the war) opens Flight Club and presses Watch beside
  *   that room: on its watch seat, no seat of its own and unseen by the
- *   pilots, the camera on a pilot; J follows the next, Escape is the pause
+ *   pilots, the camera on a pilot; J follows the next, kept through a
+ *   stall of D's page; Escape is the pause
  *   menu (Resume, Room, Settings, Leave the room) and its Leave row leaves.
  *
  * The race (--game=race): A's lobby has no track yet, and its Track row
@@ -95,13 +96,15 @@ const GAME = (process.argv.find((a) => a.startsWith('--game=')) || '--game=comba
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', `game-lobby-${GAME}`);
 
 /* Each game: its title card, its world, the panel's word for it, what a
- * round on looks like on a page, how the room ends one, and how long its
+ * round on looks like on a page, its results screen up where it has one
+ * before the lobby, how the room ends one, and how long its
  * start takes to put a pilot in the air (the war's briefing is its 70 s
  * intro, src/share/war/intro.js, then its countdown). */
 const GAMES = {
   combat: {
     card: 'combat', world: 'swiss2', chip: 'Combat', upMs: 60000,
     on: "['countdown', 'on'].includes(window.__combat ? window.__combat().round.state : '')",
+    results: 'window.__combat().results',
     /* Run out, from its countdown as well: on, then over. */
     end: (core, now) => {
       const t = Math.ceil(core.roomMs(now));
@@ -113,11 +116,13 @@ const GAMES = {
   tag: {
     card: 'ace', world: 'swiss2', chip: 'Catch the Ace', upMs: 60000,
     on: "['countdown', 'live'].includes(window.__roomTag().view.state)",
+    results: 'window.__roomTag().results',
     end: (core, now) => core.tag.abandon(core, now),
   },
   jam: {
     card: 'jam', world: 'swiss2', chip: 'Trick Battle', upMs: 60000,
     on: "['turn', 'run'].includes(window.__roomJam().view.state)",
+    results: 'window.__roomJam().results',
     end: (core, now) => core.jam.abandon(core, now),
   },
   war: {
@@ -399,7 +404,7 @@ try {
    * is drawn on a later tick, and an Escape before it did nothing). */
   await intoLobby(a, `.gate-card${cardSel}`);
   await a.until("window.__rooms().phase === 'open' && window.__ui.inLobby && window.__ui.inLobby()", 60000).catch(() => {});
-  const quick = await a.evaluate("({ lobby: Boolean(window.__ui.inLobby && window.__ui.inLobby()), panel: Boolean(window.__ui.warLobbyOn), phase: window.__rooms().phase, screen: window.__ui.screen, dialog: !document.querySelector('.name-dialog').hidden })");
+  const quick = await a.evaluate("({ lobby: Boolean(window.__ui.inLobby && window.__ui.inLobby()), panel: Boolean(window.__ui.warLobbyOn), phase: window.__rooms().phase, screen: window.__ui.screen, dialog: document.querySelector('.name-dialog').hidden ? false : document.querySelector('.name-dialog').textContent.slice(0, 160) })");
   await a.tap('Escape');
   await a.until("window.__ui.onGate() && window.__rooms().phase === 'idle'", 15000).catch(() => {});
   check(`Escape the moment a card's lobby is up (panel drawn: ${quick.panel}): out of the room, its hub's cards again`,
@@ -575,7 +580,7 @@ try {
      * others' (COMPLETENESS 76): the results, the host's Combat again
      * under the cursor. */
     if (GAME === 'combat') {
-      await a.until('window.__combat().results', 15000).catch(() => {});
+      await a.until(G.results, 15000).catch(() => {});
       const res = await a.evaluate("(() => { const it = window.__ui.items(); return { results: window.__combat().results, here: (it[window.__ui.cursor] || {}).action || null, rows: it.map((x) => x.action || x.label) }; })()");
       check('combat\'s end: its results screen first, the host\'s Combat again under the cursor, Change aircraft among its rows', res.results && res.here === 'friends-lobby-start'
         && res.rows.includes('restart') && res.rows.includes('hangar-aircraft'), JSON.stringify(res));
@@ -729,6 +734,17 @@ try {
     }
     check('both press R: the round on both pages', await a.evaluate(G.on) && await b.evaluate(G.on));
     endRound(code);
+    /* Combat's end shows its results screen first (605006770), and the
+     * Ace's and the Trick Battle's too (roomTagFrame, roomJamFrame), also
+     * to a pilot still on the lobby screen when the round ends, which a
+     * round ended in its countdown leaves both on: read at once, the
+     * lobby was the one before the end, and the results came over it a
+     * moment later. Its results first, then the lobby they give way to. */
+    if (G.results) {
+      for (const p of [a, b]) {
+        await p.until(G.results, 15000).catch(() => {});
+      }
+    }
     for (const p of [a, b]) {
       await p.until(IN_LOBBY, 30000).catch(() => {});
     }
@@ -854,6 +870,15 @@ try {
     const next = await d.evaluate('window.__rooms()');
     check('J: the camera follows the next pilot', next.watching !== null && next.watching !== seen.watching && next.watchGap < 30,
       JSON.stringify({ was: seen.watching, now: next.watching, gap: next.watchGap }));
+    /* A watcher's page that stalls past STALE_MS (src/game/peer.js: a
+     * long task, its world's tiles streaming in) draws no pilot for a
+     * frame, and J's pick was lost to the first seat for good (2 of 12
+     * runs, 2026-10-15; a 2.6 s stall made it every time). */
+    await d.evaluate('(() => { const t = performance.now(); while (performance.now() - t < 2600) { /* held */ } return true; })()');
+    await d.sleep(1000);
+    const kept = await d.evaluate('window.__rooms()');
+    check('and a 2.6 s stall on the watcher\'s page keeps the camera on that pilot', kept.watching === next.watching && kept.watchGap < 30,
+      JSON.stringify({ picked: next.watching, now: kept.watching, gap: kept.watchGap }));
     await shot(d, '5-d-watching-next');
     const menu = await leaveByPause(d);
     check('Escape is a watcher\'s pause menu, still in the room: Resume, Room, Settings, Leave',

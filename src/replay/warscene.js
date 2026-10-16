@@ -10,8 +10,12 @@
  * whatever the pilot was doing; before that the paper's events held the
  * ones drawn in flight, src/replay/paperscene.js): thrown as the playhead
  * passes them and heard from where they went off, thrown at their age
- * after a jump. The war's markers and HUD are the flight screen's and
- * are not drawn over a replay, as no other game's HUD is.
+ * after a jump. A hull hurt and alive burns as the live one did (src/
+ * main.js: the explosions' burn over its deck) from the row the live
+ * frame first drew it hurt (warrec.js HURT AND SPOTTED, version 22),
+ * while the replay plays forward. The war's markers and HUD are the
+ * flight screen's and are not drawn over a replay, as no other game's
+ * HUD is; what a spot marked rides on each attacker drawn (`spotted`).
  *
  * The map as the war had it at that room ms (the targets burning, the
  * lights out: warrec.js worldAt) is worked out here each frame and handed
@@ -44,8 +48,9 @@ import { boomsAt, warAt, worldAt } from './warrec.js';
 export function createWarScene(war, n, parent, { audio = null, worldBoom = null } = {}) {
   const layer = createAttackers();
   parent.add(layer.group);
-  /* The explosions, for a clip that keeps them on its map's clock. */
-  const booms = war.booms ? createExplosions() : null;
+  /* The explosions, for a clip that keeps them on its map's clock or
+   * has a hull to burn. */
+  const booms = war.booms || war.agents.some((x) => x.hurt) ? createExplosions() : null;
   if (booms) {
     parent.add(booms.group);
   }
@@ -107,7 +112,21 @@ export function createWarScene(war, n, parent, { audio = null, worldBoom = null 
       layer.update(list);
       map = worldAt(war, n, k, a, caches);
       if (booms) {
-        boomsFrame(k, a, step, speed);
+        /* At the frame's step, as src/main.js burns at its dt: none on a
+         * jump or a still frame. */
+        for (const x of list) {
+          if (x.hp != null) {
+            booms.burn([x.p[0], x.p[1] + 1, x.p[2]], step);
+          }
+        }
+        /* With no explosions kept there is no clock to rethrow them on,
+         * and boomsFrame would clear the air every frame: the burn only
+         * steps. */
+        if (war.booms) {
+          boomsFrame(k, a, step, speed);
+        } else {
+          booms.update(step > 0 ? step : 0);
+        }
       }
     },
     /* The attackers drawn this frame and the room ms, for the world's

@@ -725,6 +725,31 @@ export function normaliseRoomName(text) {
   return n >= ROOM_NAME_MIN && n <= ROOM_NAME_MAX && ROOM_NAME_RE.test(name) ? name : null;
 }
 
+/* A room named for a pilot, `frame(name)` (the game's "{name}, Combat"),
+ * the pilot's name shortened, by words and then by letters, until the
+ * whole is a room name. Whole, a picker name could not always be one:
+ * "Cheerful Falcon 10, Catch the Ace" is 33 letters, and most Spanish
+ * Trick Battle rooms were past ROOM_NAME_MAX, so such a room was made
+ * with no name and shown under its picker name (game:lobby --game=tag,
+ * 2026-10-16). Null only when no part of the pilot's name fits. */
+export function pilotRoomName(pilot, frame) {
+  const words = String(pilot).trim().split(/\s+/);
+  for (let n = words.length; n > 0; n -= 1) {
+    const name = normaliseRoomName(frame(words.slice(0, n).join(' ')));
+    if (name) {
+      return name;
+    }
+  }
+  const letters = [...words[0]];
+  for (let n = letters.length - 1; n > 0; n -= 1) {
+    const name = normaliseRoomName(frame(letters.slice(0, n).join('')));
+    if (name) {
+      return name;
+    }
+  }
+  return null;
+}
+
 /* A seat removed by reports or by the pose rules. Its own code so the
  * client can say why, which a host's kick (CLOSE.kicked) does not. */
 export const CLOSE_REMOVED = 4010;

@@ -148,6 +148,9 @@ function openTheGates(id, twist, objective, cues) {
       { when: { objective: 'spill', is: 'failed' }, radio: 'itaipu-2-s3-failed' },
       ...cues,
       STAGE_LOST,
+      /* The arc's thread (docs/campaign/BIBLE.md 10), last in the list so
+       * no cue before it draws again. */
+      { when: { objective: 'spill', is: 'done' }, radio: 'itaipu-2-s3-carancho' },
     ],
     exits: exits({
       all: [{ any: [{ objective: 'spill', is: 'done' }, { objective: 'spill', is: 'failed' }] }, { cleared: true }],

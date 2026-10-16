@@ -95,6 +95,23 @@ shared by every mission (the `intro`, `wave`, `hit`, `kill`, `signal`,
 rebuilt mission CREST's shared calls are the desktop's take of the same
 voice: the one place the rule is not met, and known.
 
+Built under the rule so far: Lights Out (`itaipu-3`), CREST and
+DESPACHO, and The Long Night (`itaipu-4`), CREST, every line of theirs
+in those missions from the Orin (2026-10-15); The River Below
+(`itaipu-5`), new, every line of its own from the Orin (CARANCHO,
+CREST, MIRADOR and TALLER, its story, debriefs, Contain line and film,
+2026-10-15, and its guide and spotting call, branch w46-m5b); The
+Corridor (`itaipu-6`), new, every line of its own from the Orin
+(DESPACHO, CREST and MIRADOR, its story, guide, debriefs, Contain line
+and film, branch w47-m6, 2026-10-15). Branch w48-story (2026-10-15,
+Act 1's story arc) added seven lines, all from the Orin, each to a
+speaker already on the Orin in its mission or new to it, so no other
+line was built again: CARANCHO, new in missions 1 to 4
+(`itaipu-1-s3-carancho`, `itaipu-2-s3-carancho`, `itaipu-3-s4-carancho`,
+`itaipu-4-s2-carancho`); CREST in missions 3 and 4 (`itaipu-3-s1-learn`,
+`itaipu-4-s3-doors`); MIRADOR in mission 5 (`itaipu-5-s3-learn`). The
+other missions and speakers keep their desktop builds.
+
 <!-- voice table: written by tools/voice/check.py --fix from lines.json -->
 | Line | Files |
 | --- | --- |
@@ -144,6 +161,10 @@ voice: the one place the rule is not met, and known.
 | debrief-itaipu-3-lose | `voice/en/debrief-itaipu-3-lose.webm`, `voice/en/debrief-itaipu-3-lose.mp3`, `voice/es/debrief-itaipu-3-lose.webm`, `voice/es/debrief-itaipu-3-lose.mp3` |
 | debrief-itaipu-4-win | `voice/en/debrief-itaipu-4-win.webm`, `voice/en/debrief-itaipu-4-win.mp3`, `voice/es/debrief-itaipu-4-win.webm`, `voice/es/debrief-itaipu-4-win.mp3` |
 | debrief-itaipu-4-lose | `voice/en/debrief-itaipu-4-lose.webm`, `voice/en/debrief-itaipu-4-lose.mp3`, `voice/es/debrief-itaipu-4-lose.webm`, `voice/es/debrief-itaipu-4-lose.mp3` |
+| debrief-itaipu-5-win | `voice/en/debrief-itaipu-5-win.webm`, `voice/en/debrief-itaipu-5-win.mp3`, `voice/es/debrief-itaipu-5-win.webm`, `voice/es/debrief-itaipu-5-win.mp3` |
+| debrief-itaipu-5-lose | `voice/en/debrief-itaipu-5-lose.webm`, `voice/en/debrief-itaipu-5-lose.mp3`, `voice/es/debrief-itaipu-5-lose.webm`, `voice/es/debrief-itaipu-5-lose.mp3` |
+| debrief-itaipu-6-win | `voice/en/debrief-itaipu-6-win.webm`, `voice/en/debrief-itaipu-6-win.mp3`, `voice/es/debrief-itaipu-6-win.webm`, `voice/es/debrief-itaipu-6-win.mp3` |
+| debrief-itaipu-6-lose | `voice/en/debrief-itaipu-6-lose.webm`, `voice/en/debrief-itaipu-6-lose.mp3`, `voice/es/debrief-itaipu-6-lose.webm`, `voice/es/debrief-itaipu-6-lose.mp3` |
 | bearing-n | `voice/en/bearing-n.webm`, `voice/en/bearing-n.mp3`, `voice/es/bearing-n.webm`, `voice/es/bearing-n.mp3` |
 | bearing-nw | `voice/en/bearing-nw.webm`, `voice/en/bearing-nw.mp3`, `voice/es/bearing-nw.webm`, `voice/es/bearing-nw.mp3` |
 | bearing-ne | `voice/en/bearing-ne.webm`, `voice/en/bearing-ne.mp3`, `voice/es/bearing-ne.webm`, `voice/es/bearing-ne.mp3` |
@@ -165,6 +186,8 @@ voice: the one place the rule is not met, and known.
 | itaipu-2-op | `voice/en/itaipu-2-op.webm`, `voice/en/itaipu-2-op.mp3`, `voice/es/itaipu-2-op.webm`, `voice/es/itaipu-2-op.mp3` |
 | itaipu-3-op | `voice/en/itaipu-3-op.webm`, `voice/en/itaipu-3-op.mp3`, `voice/es/itaipu-3-op.webm`, `voice/es/itaipu-3-op.mp3` |
 | itaipu-4-op | `voice/en/itaipu-4-op.webm`, `voice/en/itaipu-4-op.mp3`, `voice/es/itaipu-4-op.webm`, `voice/es/itaipu-4-op.mp3` |
+| itaipu-5-op | `voice/en/itaipu-5-op.webm`, `voice/en/itaipu-5-op.mp3`, `voice/es/itaipu-5-op.webm`, `voice/es/itaipu-5-op.mp3` |
+| itaipu-6-op | `voice/en/itaipu-6-op.webm`, `voice/en/itaipu-6-op.mp3`, `voice/es/itaipu-6-op.webm`, `voice/es/itaipu-6-op.mp3` |
 | film-itaipu-1-1 | `voice/en/film-itaipu-1-1.webm`, `voice/en/film-itaipu-1-1.mp3`, `voice/es/film-itaipu-1-1.webm`, `voice/es/film-itaipu-1-1.mp3` |
 | film-itaipu-1-2 | `voice/en/film-itaipu-1-2.webm`, `voice/en/film-itaipu-1-2.mp3`, `voice/es/film-itaipu-1-2.webm`, `voice/es/film-itaipu-1-2.mp3` |
 | film-itaipu-1-3 | `voice/en/film-itaipu-1-3.webm`, `voice/en/film-itaipu-1-3.mp3`, `voice/es/film-itaipu-1-3.webm`, `voice/es/film-itaipu-1-3.mp3` |
@@ -197,6 +220,7 @@ voice: the one place the rule is not met, and known.
 | itaipu-1-s3-split | `voice/en/itaipu-1-s3-split.webm`, `voice/en/itaipu-1-s3-split.mp3`, `voice/es/itaipu-1-s3-split.webm`, `voice/es/itaipu-1-s3-split.mp3` |
 | itaipu-1-s3-hold | `voice/en/itaipu-1-s3-hold.webm`, `voice/en/itaipu-1-s3-hold.mp3`, `voice/es/itaipu-1-s3-hold.webm`, `voice/es/itaipu-1-s3-hold.mp3` |
 | itaipu-1-s3-clear | `voice/en/itaipu-1-s3-clear.webm`, `voice/en/itaipu-1-s3-clear.mp3`, `voice/es/itaipu-1-s3-clear.webm`, `voice/es/itaipu-1-s3-clear.mp3` |
+| itaipu-1-s3-carancho | `voice/en/itaipu-1-s3-carancho.webm`, `voice/en/itaipu-1-s3-carancho.mp3`, `voice/es/itaipu-1-s3-carancho.webm`, `voice/es/itaipu-1-s3-carancho.mp3` |
 | itaipu-1-ta-turn | `voice/en/itaipu-1-ta-turn.webm`, `voice/en/itaipu-1-ta-turn.mp3`, `voice/es/itaipu-1-ta-turn.webm`, `voice/es/itaipu-1-ta-turn.mp3` |
 | itaipu-1-ta-why | `voice/en/itaipu-1-ta-why.webm`, `voice/en/itaipu-1-ta-why.mp3`, `voice/es/itaipu-1-ta-why.webm`, `voice/es/itaipu-1-ta-why.mp3` |
 | itaipu-1-tb-turn | `voice/en/itaipu-1-tb-turn.webm`, `voice/en/itaipu-1-tb-turn.mp3`, `voice/es/itaipu-1-tb-turn.webm`, `voice/es/itaipu-1-tb-turn.mp3` |
@@ -219,6 +243,7 @@ voice: the one place the rule is not met, and known.
 | itaipu-2-s3-open | `voice/en/itaipu-2-s3-open.webm`, `voice/en/itaipu-2-s3-open.mp3`, `voice/es/itaipu-2-s3-open.webm`, `voice/es/itaipu-2-s3-open.mp3` |
 | itaipu-2-s3-half | `voice/en/itaipu-2-s3-half.webm`, `voice/en/itaipu-2-s3-half.mp3`, `voice/es/itaipu-2-s3-half.webm`, `voice/es/itaipu-2-s3-half.mp3` |
 | itaipu-2-s3-held | `voice/en/itaipu-2-s3-held.webm`, `voice/en/itaipu-2-s3-held.mp3`, `voice/es/itaipu-2-s3-held.webm`, `voice/es/itaipu-2-s3-held.mp3` |
+| itaipu-2-s3-carancho | `voice/en/itaipu-2-s3-carancho.webm`, `voice/en/itaipu-2-s3-carancho.mp3`, `voice/es/itaipu-2-s3-carancho.webm`, `voice/es/itaipu-2-s3-carancho.mp3` |
 | itaipu-2-s3-failed | `voice/en/itaipu-2-s3-failed.webm`, `voice/en/itaipu-2-s3-failed.mp3`, `voice/es/itaipu-2-s3-failed.webm`, `voice/es/itaipu-2-s3-failed.mp3` |
 | itaipu-2-ta-turn | `voice/en/itaipu-2-ta-turn.webm`, `voice/en/itaipu-2-ta-turn.mp3`, `voice/es/itaipu-2-ta-turn.webm`, `voice/es/itaipu-2-ta-turn.mp3` |
 | itaipu-2-ta-why | `voice/en/itaipu-2-ta-why.webm`, `voice/en/itaipu-2-ta-why.mp3`, `voice/es/itaipu-2-ta-why.webm`, `voice/es/itaipu-2-ta-why.mp3` |
@@ -235,6 +260,7 @@ voice: the one place the rule is not met, and known.
 | itaipu-3-s1-eyes | `voice/en/itaipu-3-s1-eyes.webm`, `voice/en/itaipu-3-s1-eyes.mp3`, `voice/es/itaipu-3-s1-eyes.webm`, `voice/es/itaipu-3-s1-eyes.mp3` |
 | itaipu-3-s1-pair | `voice/en/itaipu-3-s1-pair.webm`, `voice/en/itaipu-3-s1-pair.mp3`, `voice/es/itaipu-3-s1-pair.webm`, `voice/es/itaipu-3-s1-pair.mp3` |
 | itaipu-3-s1-clear | `voice/en/itaipu-3-s1-clear.webm`, `voice/en/itaipu-3-s1-clear.mp3`, `voice/es/itaipu-3-s1-clear.webm`, `voice/es/itaipu-3-s1-clear.mp3` |
+| itaipu-3-s1-learn | `voice/en/itaipu-3-s1-learn.webm`, `voice/en/itaipu-3-s1-learn.mp3`, `voice/es/itaipu-3-s1-learn.webm`, `voice/es/itaipu-3-s1-learn.mp3` |
 | itaipu-3-s2-stream | `voice/en/itaipu-3-s2-stream.webm`, `voice/en/itaipu-3-s2-stream.mp3`, `voice/es/itaipu-3-s2-stream.webm`, `voice/es/itaipu-3-s2-stream.mp3` |
 | itaipu-3-s2-why | `voice/en/itaipu-3-s2-why.webm`, `voice/en/itaipu-3-s2-why.mp3`, `voice/es/itaipu-3-s2-why.webm`, `voice/es/itaipu-3-s2-why.mp3` |
 | itaipu-3-s2-wasted | `voice/en/itaipu-3-s2-wasted.webm`, `voice/en/itaipu-3-s2-wasted.mp3`, `voice/es/itaipu-3-s2-wasted.webm`, `voice/es/itaipu-3-s2-wasted.mp3` |
@@ -251,6 +277,7 @@ voice: the one place the rule is not met, and known.
 | itaipu-3-tc-turn | `voice/en/itaipu-3-tc-turn.webm`, `voice/en/itaipu-3-tc-turn.mp3`, `voice/es/itaipu-3-tc-turn.webm`, `voice/es/itaipu-3-tc-turn.mp3` |
 | itaipu-3-tc-why | `voice/en/itaipu-3-tc-why.webm`, `voice/en/itaipu-3-tc-why.mp3`, `voice/es/itaipu-3-tc-why.webm`, `voice/es/itaipu-3-tc-why.mp3` |
 | itaipu-3-s4-dark | `voice/en/itaipu-3-s4-dark.webm`, `voice/en/itaipu-3-s4-dark.mp3`, `voice/es/itaipu-3-s4-dark.webm`, `voice/es/itaipu-3-s4-dark.mp3` |
+| itaipu-3-s4-carancho | `voice/en/itaipu-3-s4-carancho.webm`, `voice/en/itaipu-3-s4-carancho.mp3`, `voice/es/itaipu-3-s4-carancho.webm`, `voice/es/itaipu-3-s4-carancho.mp3` |
 | itaipu-3-s4-all | `voice/en/itaipu-3-s4-all.webm`, `voice/en/itaipu-3-s4-all.mp3`, `voice/es/itaipu-3-s4-all.webm`, `voice/es/itaipu-3-s4-all.mp3` |
 | itaipu-3-s4-order | `voice/en/itaipu-3-s4-order.webm`, `voice/en/itaipu-3-s4-order.mp3`, `voice/es/itaipu-3-s4-order.webm`, `voice/es/itaipu-3-s4-order.mp3` |
 | itaipu-1-g-first | `voice/en/itaipu-1-g-first.webm`, `voice/en/itaipu-1-g-first.mp3`, `voice/es/itaipu-1-g-first.webm`, `voice/es/itaipu-1-g-first.mp3` |
@@ -285,10 +312,12 @@ voice: the one place the rule is not met, and known.
 | itaipu-4-s2-split | `voice/en/itaipu-4-s2-split.webm`, `voice/en/itaipu-4-s2-split.mp3`, `voice/es/itaipu-4-s2-split.webm`, `voice/es/itaipu-4-s2-split.mp3` |
 | itaipu-4-s2-high | `voice/en/itaipu-4-s2-high.webm`, `voice/en/itaipu-4-s2-high.mp3`, `voice/es/itaipu-4-s2-high.webm`, `voice/es/itaipu-4-s2-high.mp3` |
 | itaipu-4-s2-clear | `voice/en/itaipu-4-s2-clear.webm`, `voice/en/itaipu-4-s2-clear.mp3`, `voice/es/itaipu-4-s2-clear.webm`, `voice/es/itaipu-4-s2-clear.mp3` |
+| itaipu-4-s2-carancho | `voice/en/itaipu-4-s2-carancho.webm`, `voice/en/itaipu-4-s2-carancho.mp3`, `voice/es/itaipu-4-s2-carancho.webm`, `voice/es/itaipu-4-s2-carancho.mp3` |
 | itaipu-4-s3-hunt | `voice/en/itaipu-4-s3-hunt.webm`, `voice/en/itaipu-4-s3-hunt.mp3`, `voice/es/itaipu-4-s3-hunt.webm`, `voice/es/itaipu-4-s3-hunt.mp3` |
 | itaipu-4-s3-pairs | `voice/en/itaipu-4-s3-pairs.webm`, `voice/en/itaipu-4-s3-pairs.mp3`, `voice/es/itaipu-4-s3-pairs.webm`, `voice/es/itaipu-4-s3-pairs.mp3` |
 | itaipu-4-s3-cover | `voice/en/itaipu-4-s3-cover.webm`, `voice/en/itaipu-4-s3-cover.mp3`, `voice/es/itaipu-4-s3-cover.webm`, `voice/es/itaipu-4-s3-cover.mp3` |
 | itaipu-4-s3-down | `voice/en/itaipu-4-s3-down.webm`, `voice/en/itaipu-4-s3-down.mp3`, `voice/es/itaipu-4-s3-down.webm`, `voice/es/itaipu-4-s3-down.mp3` |
+| itaipu-4-s3-doors | `voice/en/itaipu-4-s3-doors.webm`, `voice/en/itaipu-4-s3-doors.mp3`, `voice/es/itaipu-4-s3-doors.webm`, `voice/es/itaipu-4-s3-doors.mp3` |
 | itaipu-4-ta-turn | `voice/en/itaipu-4-ta-turn.webm`, `voice/en/itaipu-4-ta-turn.mp3`, `voice/es/itaipu-4-ta-turn.webm`, `voice/es/itaipu-4-ta-turn.mp3` |
 | itaipu-4-ta-why | `voice/en/itaipu-4-ta-why.webm`, `voice/en/itaipu-4-ta-why.mp3`, `voice/es/itaipu-4-ta-why.webm`, `voice/es/itaipu-4-ta-why.mp3` |
 | itaipu-4-tb-turn | `voice/en/itaipu-4-tb-turn.webm`, `voice/en/itaipu-4-tb-turn.mp3`, `voice/es/itaipu-4-tb-turn.webm`, `voice/es/itaipu-4-tb-turn.mp3` |
@@ -307,6 +336,46 @@ voice: the one place the rule is not met, and known.
 | itaipu-4-g-yard | `voice/en/itaipu-4-g-yard.webm`, `voice/en/itaipu-4-g-yard.mp3`, `voice/es/itaipu-4-g-yard.webm`, `voice/es/itaipu-4-g-yard.mp3` |
 | itaipu-4-g-scout | `voice/en/itaipu-4-g-scout.webm`, `voice/en/itaipu-4-g-scout.mp3`, `voice/es/itaipu-4-g-scout.webm`, `voice/es/itaipu-4-g-scout.mp3` |
 | itaipu-4-g-all | `voice/en/itaipu-4-g-all.webm`, `voice/en/itaipu-4-g-all.mp3`, `voice/es/itaipu-4-g-all.webm`, `voice/es/itaipu-4-g-all.mp3` |
+| itaipu-5-s0-brief | `voice/en/itaipu-5-s0-brief.webm`, `voice/en/itaipu-5-s0-brief.mp3`, `voice/es/itaipu-5-s0-brief.webm`, `voice/es/itaipu-5-s0-brief.mp3` |
+| itaipu-5-s0-rules | `voice/en/itaipu-5-s0-rules.webm`, `voice/en/itaipu-5-s0-rules.mp3`, `voice/es/itaipu-5-s0-rules.webm`, `voice/es/itaipu-5-s0-rules.mp3` |
+| itaipu-5-s1-swarm | `voice/en/itaipu-5-s1-swarm.webm`, `voice/en/itaipu-5-s1-swarm.mp3`, `voice/es/itaipu-5-s1-swarm.webm`, `voice/es/itaipu-5-s1-swarm.mp3` |
+| itaipu-5-s2-pattern | `voice/en/itaipu-5-s2-pattern.webm`, `voice/en/itaipu-5-s2-pattern.mp3`, `voice/es/itaipu-5-s2-pattern.webm`, `voice/es/itaipu-5-s2-pattern.mp3` |
+| itaipu-5-s3-carrier | `voice/en/itaipu-5-s3-carrier.webm`, `voice/en/itaipu-5-s3-carrier.mp3`, `voice/es/itaipu-5-s3-carrier.webm`, `voice/es/itaipu-5-s3-carrier.mp3` |
+| itaipu-5-s3-order | `voice/en/itaipu-5-s3-order.webm`, `voice/en/itaipu-5-s3-order.mp3`, `voice/es/itaipu-5-s3-order.webm`, `voice/es/itaipu-5-s3-order.mp3` |
+| itaipu-5-s3-dead | `voice/en/itaipu-5-s3-dead.webm`, `voice/en/itaipu-5-s3-dead.mp3`, `voice/es/itaipu-5-s3-dead.webm`, `voice/es/itaipu-5-s3-dead.mp3` |
+| itaipu-5-s3-learn | `voice/en/itaipu-5-s3-learn.webm`, `voice/en/itaipu-5-s3-learn.mp3`, `voice/es/itaipu-5-s3-learn.webm`, `voice/es/itaipu-5-s3-learn.mp3` |
+| itaipu-5-ta-turn | `voice/en/itaipu-5-ta-turn.webm`, `voice/en/itaipu-5-ta-turn.mp3`, `voice/es/itaipu-5-ta-turn.webm`, `voice/es/itaipu-5-ta-turn.mp3` |
+| itaipu-5-ta-spot | `voice/en/itaipu-5-ta-spot.webm`, `voice/en/itaipu-5-ta-spot.mp3`, `voice/es/itaipu-5-ta-spot.webm`, `voice/es/itaipu-5-ta-spot.mp3` |
+| itaipu-5-tb-turn | `voice/en/itaipu-5-tb-turn.webm`, `voice/en/itaipu-5-tb-turn.mp3`, `voice/es/itaipu-5-tb-turn.webm`, `voice/es/itaipu-5-tb-turn.mp3` |
+| itaipu-5-tc-turn | `voice/en/itaipu-5-tc-turn.webm`, `voice/en/itaipu-5-tc-turn.mp3`, `voice/es/itaipu-5-tc-turn.webm`, `voice/es/itaipu-5-tc-turn.mp3` |
+| itaipu-5-s4-last | `voice/en/itaipu-5-s4-last.webm`, `voice/en/itaipu-5-s4-last.mp3`, `voice/es/itaipu-5-s4-last.webm`, `voice/es/itaipu-5-s4-last.mp3` |
+| itaipu-5-g-face | `voice/en/itaipu-5-g-face.webm`, `voice/en/itaipu-5-g-face.mp3`, `voice/es/itaipu-5-g-face.webm`, `voice/es/itaipu-5-g-face.mp3` |
+| itaipu-5-g-rim | `voice/en/itaipu-5-g-rim.webm`, `voice/en/itaipu-5-g-rim.mp3`, `voice/es/itaipu-5-g-rim.webm`, `voice/es/itaipu-5-g-rim.mp3` |
+| itaipu-5-g-hunters | `voice/en/itaipu-5-g-hunters.webm`, `voice/en/itaipu-5-g-hunters.mp3`, `voice/es/itaipu-5-g-hunters.webm`, `voice/es/itaipu-5-g-hunters.mp3` |
+| itaipu-5-g-source | `voice/en/itaipu-5-g-source.webm`, `voice/en/itaipu-5-g-source.mp3`, `voice/es/itaipu-5-g-source.webm`, `voice/es/itaipu-5-g-source.mp3` |
+| itaipu-5-g-hulls | `voice/en/itaipu-5-g-hulls.webm`, `voice/en/itaipu-5-g-hulls.mp3`, `voice/es/itaipu-5-g-hulls.webm`, `voice/es/itaipu-5-g-hulls.mp3` |
+| itaipu-5-g-deck | `voice/en/itaipu-5-g-deck.webm`, `voice/en/itaipu-5-g-deck.mp3`, `voice/es/itaipu-5-g-deck.webm`, `voice/es/itaipu-5-g-deck.mp3` |
+| itaipu-5-g-escort | `voice/en/itaipu-5-g-escort.webm`, `voice/en/itaipu-5-g-escort.mp3`, `voice/es/itaipu-5-g-escort.webm`, `voice/es/itaipu-5-g-escort.mp3` |
+| itaipu-5-g-all | `voice/en/itaipu-5-g-all.webm`, `voice/en/itaipu-5-g-all.mp3`, `voice/es/itaipu-5-g-all.webm`, `voice/es/itaipu-5-g-all.mp3` |
+| itaipu-6-s0-brief | `voice/en/itaipu-6-s0-brief.webm`, `voice/en/itaipu-6-s0-brief.mp3`, `voice/es/itaipu-6-s0-brief.webm`, `voice/es/itaipu-6-s0-brief.mp3` |
+| itaipu-6-s0-rules | `voice/en/itaipu-6-s0-rules.webm`, `voice/en/itaipu-6-s0-rules.mp3`, `voice/es/itaipu-6-s0-rules.webm`, `voice/es/itaipu-6-s0-rules.mp3` |
+| itaipu-6-s1-lines | `voice/en/itaipu-6-s1-lines.webm`, `voice/en/itaipu-6-s1-lines.mp3`, `voice/es/itaipu-6-s1-lines.webm`, `voice/es/itaipu-6-s1-lines.mp3` |
+| itaipu-6-s2-spread | `voice/en/itaipu-6-s2-spread.webm`, `voice/en/itaipu-6-s2-spread.mp3`, `voice/es/itaipu-6-s2-spread.webm`, `voice/es/itaipu-6-s2-spread.mp3` |
+| itaipu-6-s2-spotted | `voice/en/itaipu-6-s2-spotted.webm`, `voice/en/itaipu-6-s2-spotted.mp3`, `voice/es/itaipu-6-s2-spotted.webm`, `voice/es/itaipu-6-s2-spotted.mp3` |
+| itaipu-6-s2-tower | `voice/en/itaipu-6-s2-tower.webm`, `voice/en/itaipu-6-s2-tower.mp3`, `voice/es/itaipu-6-s2-tower.webm`, `voice/es/itaipu-6-s2-tower.mp3` |
+| itaipu-6-ta-turn | `voice/en/itaipu-6-ta-turn.webm`, `voice/en/itaipu-6-ta-turn.mp3`, `voice/es/itaipu-6-ta-turn.webm`, `voice/es/itaipu-6-ta-turn.mp3` |
+| itaipu-6-tb-turn | `voice/en/itaipu-6-tb-turn.webm`, `voice/en/itaipu-6-tb-turn.mp3`, `voice/es/itaipu-6-tb-turn.webm`, `voice/es/itaipu-6-tb-turn.mp3` |
+| itaipu-6-tc-turn | `voice/en/itaipu-6-tc-turn.webm`, `voice/en/itaipu-6-tc-turn.mp3`, `voice/es/itaipu-6-tc-turn.webm`, `voice/es/itaipu-6-tc-turn.mp3` |
+| itaipu-6-s4-island | `voice/en/itaipu-6-s4-island.webm`, `voice/en/itaipu-6-s4-island.mp3`, `voice/es/itaipu-6-s4-island.webm`, `voice/es/itaipu-6-s4-island.mp3` |
+| itaipu-6-s4-done | `voice/en/itaipu-6-s4-done.webm`, `voice/en/itaipu-6-s4-done.mp3`, `voice/es/itaipu-6-s4-done.webm`, `voice/es/itaipu-6-s4-done.mp3` |
+| itaipu-6-g-west | `voice/en/itaipu-6-g-west.webm`, `voice/en/itaipu-6-g-west.mp3`, `voice/es/itaipu-6-g-west.webm`, `voice/es/itaipu-6-g-west.mp3` |
+| itaipu-6-g-east | `voice/en/itaipu-6-g-east.webm`, `voice/en/itaipu-6-g-east.mp3`, `voice/es/itaipu-6-g-east.webm`, `voice/es/itaipu-6-g-east.mp3` |
+| itaipu-6-g-spread | `voice/en/itaipu-6-g-spread.webm`, `voice/en/itaipu-6-g-spread.mp3`, `voice/es/itaipu-6-g-spread.webm`, `voice/es/itaipu-6-g-spread.mp3` |
+| itaipu-6-g-yard | `voice/en/itaipu-6-g-yard.webm`, `voice/en/itaipu-6-g-yard.mp3`, `voice/es/itaipu-6-g-yard.webm`, `voice/es/itaipu-6-g-yard.mp3` |
+| itaipu-6-g-boats | `voice/en/itaipu-6-g-boats.webm`, `voice/en/itaipu-6-g-boats.mp3`, `voice/es/itaipu-6-g-boats.webm`, `voice/es/itaipu-6-g-boats.mp3` |
+| itaipu-6-g-wires | `voice/en/itaipu-6-g-wires.webm`, `voice/en/itaipu-6-g-wires.mp3`, `voice/es/itaipu-6-g-wires.webm`, `voice/es/itaipu-6-g-wires.mp3` |
+| itaipu-6-g-scout | `voice/en/itaipu-6-g-scout.webm`, `voice/en/itaipu-6-g-scout.mp3`, `voice/es/itaipu-6-g-scout.webm`, `voice/es/itaipu-6-g-scout.mp3` |
+| itaipu-6-g-island | `voice/en/itaipu-6-g-island.webm`, `voice/en/itaipu-6-g-island.mp3`, `voice/es/itaipu-6-g-island.webm`, `voice/es/itaipu-6-g-island.mp3` |
 | film-itaipu-4-1 | `voice/en/film-itaipu-4-1.webm`, `voice/en/film-itaipu-4-1.mp3`, `voice/es/film-itaipu-4-1.webm`, `voice/es/film-itaipu-4-1.mp3` |
 | film-itaipu-4-2 | `voice/en/film-itaipu-4-2.webm`, `voice/en/film-itaipu-4-2.mp3`, `voice/es/film-itaipu-4-2.webm`, `voice/es/film-itaipu-4-2.mp3` |
 | film-itaipu-4-3 | `voice/en/film-itaipu-4-3.webm`, `voice/en/film-itaipu-4-3.mp3`, `voice/es/film-itaipu-4-3.webm`, `voice/es/film-itaipu-4-3.mp3` |
@@ -314,6 +383,14 @@ voice: the one place the rule is not met, and known.
 | film-itaipu-4-o2 | `voice/en/film-itaipu-4-o2.webm`, `voice/en/film-itaipu-4-o2.mp3`, `voice/es/film-itaipu-4-o2.webm`, `voice/es/film-itaipu-4-o2.mp3` |
 | film-itaipu-4-o3 | `voice/en/film-itaipu-4-o3.webm`, `voice/en/film-itaipu-4-o3.mp3`, `voice/es/film-itaipu-4-o3.webm`, `voice/es/film-itaipu-4-o3.mp3` |
 | film-itaipu-4-o4 | `voice/en/film-itaipu-4-o4.webm`, `voice/en/film-itaipu-4-o4.mp3`, `voice/es/film-itaipu-4-o4.webm`, `voice/es/film-itaipu-4-o4.mp3` |
+| film-itaipu-5-1 | `voice/en/film-itaipu-5-1.webm`, `voice/en/film-itaipu-5-1.mp3`, `voice/es/film-itaipu-5-1.webm`, `voice/es/film-itaipu-5-1.mp3` |
+| film-itaipu-5-2 | `voice/en/film-itaipu-5-2.webm`, `voice/en/film-itaipu-5-2.mp3`, `voice/es/film-itaipu-5-2.webm`, `voice/es/film-itaipu-5-2.mp3` |
+| film-itaipu-5-3 | `voice/en/film-itaipu-5-3.webm`, `voice/en/film-itaipu-5-3.mp3`, `voice/es/film-itaipu-5-3.webm`, `voice/es/film-itaipu-5-3.mp3` |
+| film-itaipu-5-4 | `voice/en/film-itaipu-5-4.webm`, `voice/en/film-itaipu-5-4.mp3`, `voice/es/film-itaipu-5-4.webm`, `voice/es/film-itaipu-5-4.mp3` |
+| film-itaipu-6-1 | `voice/en/film-itaipu-6-1.webm`, `voice/en/film-itaipu-6-1.mp3`, `voice/es/film-itaipu-6-1.webm`, `voice/es/film-itaipu-6-1.mp3` |
+| film-itaipu-6-2 | `voice/en/film-itaipu-6-2.webm`, `voice/en/film-itaipu-6-2.mp3`, `voice/es/film-itaipu-6-2.webm`, `voice/es/film-itaipu-6-2.mp3` |
+| film-itaipu-6-3 | `voice/en/film-itaipu-6-3.webm`, `voice/en/film-itaipu-6-3.mp3`, `voice/es/film-itaipu-6-3.webm`, `voice/es/film-itaipu-6-3.mp3` |
+| film-itaipu-6-4 | `voice/en/film-itaipu-6-4.webm`, `voice/en/film-itaipu-6-4.mp3`, `voice/es/film-itaipu-6-4.webm`, `voice/es/film-itaipu-6-4.mp3` |
 | war-g-next | `voice/en/war-g-next.webm`, `voice/en/war-g-next.mp3`, `voice/es/war-g-next.webm`, `voice/es/war-g-next.mp3` |
 | war-g-clock-1 | `voice/en/war-g-clock-1.webm`, `voice/en/war-g-clock-1.mp3`, `voice/es/war-g-clock-1.webm`, `voice/es/war-g-clock-1.mp3` |
 | war-g-clock-2 | `voice/en/war-g-clock-2.webm`, `voice/en/war-g-clock-2.mp3`, `voice/es/war-g-clock-2.webm`, `voice/es/war-g-clock-2.mp3` |

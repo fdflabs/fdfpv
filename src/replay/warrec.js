@@ -80,13 +80,27 @@
  * recorder's clock and only in flight). At most BOOMS_MAX are held; a
  * clip keeps those its rows' room ms can still see (BOOM_LIFE_MS).
  *
- * A clip's `war` is { agents: [{ mission, a, last }], room (f64[n]),
- * slots, hunters (f32[n x slots x HUNTER_N]), and since version 11
+ * HURT AND SPOTTED. A carrier a boom hit and did not kill burns until its
+ * last hit (src/main.js, roomwar.js's `hp` on attackersAt), and one a
+ * pilot spotted is marked for what it is (`spotted`, 'launching' or
+ * 'silent', src/ui/warmarkers.js). Each scripted attacker keeps, once,
+ * every hp it was drawn with and the room ms of the first frame that drew
+ * it so (`hurt`: [{ at, hp }]), and the room ms of the first frame that
+ * drew it spotted and how (`spotted`: { at, how }), so a replay at a row
+ * has each exactly as the live frame at that row drew it. They are taken
+ * from the drawing, not from the room's ops: the live screen draws them
+ * from the frame after it heard the op, a late joiner from its welcome,
+ * and the room sends no event for a spot. A hull never mends and is never
+ * unspotted (edge/rooms/war.js), so neither goes back.
+ *
+ * A clip's `war` is { agents: [{ mission, a, last, hurt?, spotted? }],
+ * room (f64[n]), slots, hunters (f32[n x slots x HUNTER_N]), and since version 11
  * world: [{ mission, from, off, hits, cuts, damage, gates?, restores?,
  * stationDark? }], clock (f64[n]) }, or
  * and since version 14 booms: [{ at, p, size }] }, or absent when no war
- * was drawn in it. src/replay/file.js saves it (version 10, 11 with the
- * map, 14 with the explosions); src/replay/warscene.js draws it.
+ * was drawn in it; an agent's hurt and spotted since version 22. src/
+ * replay/file.js saves it (version 10, 11 with the map, 14 with the
+ * explosions, 22 with hurt or spotted); src/replay/warscene.js draws it.
  *
  * Render only. Nothing here reaches a plant or the room.
  *
@@ -120,6 +134,26 @@ export const HUNTER_N = 8;
 /* A clip keeps at most this many birth records (a mission has tens). */
 export const AGENTS_MAX = 512;
 const AGENT_KEYS = ['id', 'kind', 'route', 't0', 'k', 'n', 'err', 'target'];
+/* What else the room's stage graphs put on a birth (edge/rooms/war.js
+ * born, place, launch): every one carries `wave`, and some `meet`,
+ * `wire`, `sector`, `az`, and a carrier's child `from`, `parent` and
+ * `group`. Each is kept as the room sent it, its kind checked here and its
+ * flight by planAgent. */
+const isPoint = (p) => Array.isArray(p) && p.length === 3 && p.every(Number.isFinite);
+/* A hull's hit points (routes.js hpOf: a carrier has two), and how a
+ * spotted one is marked. */
+export const HURT_MAX = 8;
+const SPOTTED = ['launching', 'silent'];
+const AGENT_MORE = {
+  wave: Number.isInteger,
+  meet: Number.isFinite,
+  wire: Number.isFinite,
+  az: Number.isFinite,
+  sector: (s) => typeof s === 'string' && s.length <= 40,
+  group: (s) => typeof s === 'string' && s.length <= 40,
+  parent: Number.isInteger,
+  from: isPoint,
+};
 /* The map's journal: the matches a clip can span (a war ends and the
  * host starts the next inside the window), and the hits and the struck
  * lines of one match (a mission flies 23 to 128 attackers, each at most
@@ -157,8 +191,8 @@ export function createWarRing(capacity) {
   let room = null;
   let cols = null;
   let row = -1;
-  /* id -> { mission, a, last }: last the room ms this screen last drew
-   * it at, Infinity while it lives. */
+  /* id -> { mission, a, last, hurt?, spotted? }: last the room ms this
+   * screen last drew it at, Infinity while it lives. */
   const agents = new Map();
   /* id -> slot of the hunters drawn in the row before. */
   let slotOf = new Map();
@@ -172,7 +206,7 @@ export function createWarRing(capacity) {
   /* The explosions drawn, on the room clock, oldest first. */
   const booms = [];
   const stats = {
-    dropped: 0, hitsDropped: 0, cutsDropped: 0, damageDropped: 0, gatesDropped: 0, restoresDropped: 0,
+    dropped: 0, hitsDropped: 0, cutsDropped: 0, damageDropped: 0, gatesDropped: 0, restoresDropped: 0, hurtDropped: 0,
   };
 
   function alloc() {
@@ -352,7 +386,11 @@ export function createWarRing(capacity) {
    * war live), list what attackers.js was given. */
   function draw(roomMs, list) {
     lastRoom = roomMs == null ? NaN : roomMs;
-    if (row < 0 || roomMs == null) {
+    if (roomMs == null) {
+      return;
+    }
+    marks(roomMs, list);
+    if (row < 0) {
       return;
     }
     if (!room) {
@@ -392,6 +430,28 @@ export function createWarRing(capacity) {
       cols[o + 7] = h.q[3];
     }
     slotOf = next;
+  }
+
+  /* HURT AND SPOTTED: what the frame at roomMs drew on each scripted
+   * attacker, kept where it first differs from what was kept. Taken
+   * whatever the screen, as births are. */
+  function marks(roomMs, list) {
+    for (const d of list) {
+      const x = agents.get(d.id);
+      if (!x) {
+        continue;
+      }
+      if (d.hp != null && d.hp !== x.hurt?.at(-1).hp) {
+        if ((x.hurt ?? []).length >= HURT_MAX) {
+          stats.hurtDropped += 1;
+        } else {
+          (x.hurt ??= []).push({ at: roomMs, hp: d.hp });
+        }
+      }
+      if (d.spotted != null && !x.spotted) {
+        x.spotted = { at: roomMs, how: d.spotted };
+      }
+    }
   }
 
   function clear() {
@@ -483,7 +543,16 @@ export function createWarRing(capacity) {
     const list = [...agents.values()]
       .filter((x) => x.a.kind !== 'hunter' && x.a.t0 <= hi && x.last >= lo)
       .slice(-AGENTS_MAX)
-      .map((x) => ({ mission: x.mission, a: { ...x.a }, last: Number.isFinite(x.last) ? x.last : null }));
+      .map((x) => {
+        const hurt = (x.hurt ?? []).filter((h) => h.at <= hi).map((h) => ({ ...h }));
+        return {
+          mission: x.mission,
+          a: { ...x.a },
+          last: Number.isFinite(x.last) ? x.last : null,
+          ...(hurt.length ? { hurt } : {}),
+          ...(x.spotted && x.spotted.at <= hi ? { spotted: { ...x.spotted } } : {}),
+        };
+      });
     return {
       agents: list, room: r, slots, hunters, ...(map || {}),
     };
@@ -507,12 +576,15 @@ export function createWarRing(capacity) {
 }
 
 const copyRestore = (r) => ({ at: r.at, districts: r.districts.slice() });
+const copyAgent = (x) => ({
+  ...x, a: { ...x.a }, ...(x.hurt ? { hurt: x.hurt.map((h) => ({ ...h })) } : {}), ...(x.spotted ? { spotted: { ...x.spotted } } : {}),
+});
 
 /* Rows [a, b] of a clip's war, as trimClip cuts the rest. */
 export function trimWar(war, a, b) {
   const n = b - a + 1;
   return {
-    agents: war.agents.map((x) => ({ ...x, a: { ...x.a } })),
+    agents: war.agents.map(copyAgent),
     room: war.room.slice(a, b + 1),
     slots: war.slots,
     hunters: war.hunters.slice(a * war.slots * HUNTER_N, (a + n) * war.slots * HUNTER_N),
@@ -549,14 +621,24 @@ export function checkWar(war, n) {
   }
   for (const x of war.agents) {
     const keys = x && typeof x === 'object' ? Object.keys(x) : [];
-    if (keys.length !== 3 || !['mission', 'a', 'last'].every((k) => keys.includes(k))) {
+    const want = ['mission', 'a', 'last', ...['hurt', 'spotted'].filter((k) => x && x[k] !== undefined)];
+    if (keys.length !== want.length || !want.every((k) => keys.includes(k))) {
       throw new Error('a war agent is not one');
+    }
+    if (x.hurt !== undefined && (!Array.isArray(x.hurt) || x.hurt.length < 1 || x.hurt.length > HURT_MAX
+      || !x.hurt.every((h, i) => h && typeof h === 'object' && Object.keys(h).length === 2 && Number.isFinite(h.at)
+        && Number.isInteger(h.hp) && h.hp >= 1 && (i === 0 || h.at >= x.hurt[i - 1].at)))) {
+      throw new Error('a war agent\'s hurt is not a list of hit points by room ms');
+    }
+    if (x.spotted !== undefined && !(x.spotted && typeof x.spotted === 'object' && Object.keys(x.spotted).length === 2
+      && Number.isFinite(x.spotted.at) && SPOTTED.includes(x.spotted.how))) {
+      throw new Error('a war agent\'s spot is not one');
     }
     if (!(x.mission in MISSIONS) || !(x.last === null || Number.isFinite(x.last))) {
       throw new Error('a war agent\'s mission or death is not one');
     }
     const a = x.a;
-    if (!a || typeof a !== 'object' || !Object.keys(a).every((k) => AGENT_KEYS.includes(k))
+    if (!a || typeof a !== 'object' || !Object.keys(a).every((k) => AGENT_KEYS.includes(k) || (Object.hasOwn(AGENT_MORE, k) && AGENT_MORE[k](a[k])))
       || !Number.isInteger(a.id) || !KINDS.includes(a.kind) || a.kind === 'hunter' || !Number.isFinite(a.t0)) {
       throw new Error('a war birth record is not one');
     }
@@ -737,8 +819,8 @@ export function worldAt(war, n, k, a, caches) {
 
 /*
  * The attackers a replay draws between rows k and k + 1, `a` of the way:
- * [{ id, kind, p, q }] as attackersAt gives them, or [] where no war was
- * drawn. `plans` caches planAgent per agent (a Map the caller keeps).
+ * [{ id, kind, p, q, hp?, spotted? }] as attackersAt gives them, or []
+ * where no war was drawn. `plans` caches planAgent per agent (a Map the caller keeps).
  */
 export function warAt(war, n, k, a, plans) {
   const r0 = war.room[k];
@@ -759,9 +841,19 @@ export function warAt(war, n, k, a, plans) {
       continue;
     }
     const o = poseAt(plan, r);
-    if (o) {
-      out.push({ id: x.a.id, kind: x.a.kind, p: o.p.slice(), q: o.q.slice() });
+    if (!o) {
+      continue;
     }
+    /* As roomwar.js attackersAt: hp and spotted only when it has them. */
+    const d = { id: x.a.id, kind: x.a.kind, p: o.p.slice(), q: o.q.slice() };
+    const hp = x.hurt?.findLast((h) => h.at <= r)?.hp;
+    if (hp !== undefined) {
+      d.hp = hp;
+    }
+    if (x.spotted && x.spotted.at <= r) {
+      d.spotted = x.spotted.how;
+    }
+    out.push(d);
   }
   const S = war.slots;
   for (let s = 0; s < S; s += 1) {

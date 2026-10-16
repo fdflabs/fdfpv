@@ -81,12 +81,22 @@ import { CEL_LOOK } from './alps/look.js';
 export const SPAWN = { x: 0, z: 40, yaw: 0 };
 
 /* Alpine haze: the sky the field flies under, a longer fog so the far
- * ridges dissolve rather than end, and a camera that can see them. */
-const HORIZON = 0xe9eef5;
+ * ridges dissolve rather than end, and a camera that can see them. The
+ * fog was 9000 m deep and near white: the range beyond the valley's head,
+ * five to twelve kilometres off, went to a flat grey wall from the strip
+ * and at cruise. 12000 m keeps the far peaks' outline, and the haze goes
+ * a little blue, as air over a kilometre deep does against dark rock. */
+const HORIZON = 0xdde5ef;
 const SUN_DIR = new THREE.Vector3(0.45, 0.62, 0.64).normalize();
 const FOG_NEAR = 1200;
-const FOG_FAR = 9000;
+const FOG_FAR = 12000;
 const CAMERA_FAR = 14000;
+/* The valley's air and print in the cel chain (src/render/post.js
+ * CEL_AIR, docs/LOOK.md): a blue grey veil that reaches 63 % of its
+ * strength over 4 km, so each ridge stands paler than the one in front
+ * before the fog takes the far range, and a print's S that gives the
+ * meadow and the rock back the depth the veil takes from the distance. */
+const ALPS_AIR = { haze: 0x8fa9c8, hazeDistance: 4000, hazeAmount: 0.4, contrast: 0.35 };
 
 /*
  * The cel style: the sky dome, a sun whose shadow box follows the craft,
@@ -107,7 +117,7 @@ const CEL_STYLE = {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(HORIZON);
     scene.fog = new THREE.Fog(HORIZON, FOG_NEAR, FOG_FAR);
-    const sky = skyDome();
+    const sky = skyDome({ sun: SUN_DIR, horizon: HORIZON });
     sky.layers.set(1);
     scene.add(sky);
     camera.far = CAMERA_FAR;
@@ -152,7 +162,7 @@ const CEL_STYLE = {
     return terrainMesh(field, groundTexture(field));
   },
   nature: buildNature,
-  compose: attachComposer,
+  compose: (shell, map, q) => attachComposer(shell, map, q, ALPS_AIR),
 };
 
 /*

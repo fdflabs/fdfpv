@@ -2271,6 +2271,7 @@ function animRecord() {
   const built = buildFile(sticksFile(withClock, refused), refused);
   opponentFile(built, refused);
   roomSentFile(built, restoreFile(built, refused), refused);
+  marksFile(built, refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -2341,6 +2342,25 @@ function warFile(withClock, boomBuf, refused) {
   refused(() => reheader(buf, 8), 'a war in a file that says version 8');
   const bad = { ...clip, war: { ...war, agents: [{ ...war.agents[0], a: { ...war.agents[0].a, route: 'nowhere' } }] } };
   refused(() => encodeReplay(bad), 'a birth record that does not fly');
+  /* A birth as the room's stage graphs send it (edge/rooms/war.js born,
+   * place, launch): its wave, its meet and its sector, a child's from,
+   * parent and group, kept as sent and read back. */
+  const roomBorn = {
+    ...clip,
+    war: {
+      ...war,
+      agents: war.agents.map((x, i) => ({
+        ...x, a: { ...x.a, wave: i, meet: 95000, sector: 'WEST', ...(i ? { from: [10, 200, -900], parent: 1, group: 'swarm' } : {}) },
+      })),
+    },
+  };
+  const roomBack = decodeReplay(encodeReplay(roomBorn));
+  check(JSON.stringify(roomBack.war.agents) === JSON.stringify(roomBorn.war.agents),
+    'a birth record as the room sends it, with its wave, meet, sector, from, parent and group, is read back as it was', JSON.stringify(roomBack.war.agents[1].a));
+  const badMore = { ...clip, war: { ...war, agents: [{ ...war.agents[0], a: { ...war.agents[0].a, wave: 'one' } }] } };
+  refused(() => encodeReplay(badMore), 'a birth record\'s wave that is not a number');
+  const badKey = { ...clip, war: { ...war, agents: [{ ...war.agents[0], a: { ...war.agents[0].a, toString: 1 } }] } };
+  refused(() => encodeReplay(badKey), 'a birth record with a key the room never sends');
 }
 
 /*
@@ -3403,7 +3423,7 @@ function roomSentFile(buildClip, v20, refused) {
   refusedAs(() => reheader(v18, 21), 'a version 21 file with neither', 'a version 21 file without its war\'s map as the room sends it');
   let threw = null;
   try {
-    decodeReplay(reheader(buf, 22));
+    decodeReplay(reheader(buf, 23));
   } catch (err) {
     threw = err;
   }
@@ -3420,6 +3440,110 @@ function roomSentFile(buildClip, v20, refused) {
     threw = err;
   }
   check(threw instanceof Error, 'a clip with an order and no sticks is refused when written', threw ? threw.message : 'written');
+}
+
+/*
+ * 29. A war's hurt hulls and spotted attackers (src/replay/warrec.js HURT
+ * AND SPOTTED): what the live frames drew on each, from the room ms of
+ * the first frame that drew it, so a replay burns and marks a hull at the
+ * row the live screen did. Either makes the clip version 22, which a
+ * build before it refuses by its version (its checkWar would refuse the
+ * agent as damaged).
+ */
+function marksFile(buildClip, refused) {
+  console.log('29. a war\'s hurt and spotted hulls, saved (version 22)');
+  const v = (b) => new DataView(b).getUint32(4, true);
+  const bytesOf = (b) => Buffer.from(new Uint8Array(b));
+  const n = buildClip.n;
+  const room = (k) => 300000 + k * 1000;
+  /* Two of The River Below's hulls as the room sends them (a real
+   * itaipu-5 game, war-balance.js runOne seed 2, four pilots). */
+  const hullA = {
+    id: 22, kind: 'carrier', route: 'river-surface', t0: 217019, k: 0, n: 1, err: 0, target: null, wave: 4, sector: 'RIVER',
+  };
+  const hullB = {
+    id: 23, kind: 'carrier', route: 'river-west-bank', t0: 261497, k: 0, n: 1, err: 0, target: null, wave: 5, sector: 'RIVER',
+  };
+  const SPOT_A = 3;
+  const HURT_A = 6;
+  const SPOT_B = 8;
+  /* What attackersAt gave each frame: hull A spotted silent at SPOT_A
+   * and hurt at HURT_A, hull B spotted launching at SPOT_B; `hurtOnly`
+   * and `spotOnly` keep one of the two. A frame before any row (the
+   * pilot on a menu) draws hull B hurt already. */
+  const record = ({ hurt = true, spot = true } = {}) => {
+    const ring = createWarRing(n);
+    ring.born('itaipu-5', [hullA, hullB]);
+    ring.begin(-1);
+    ring.draw(room(-1), [{ id: 22, kind: 'carrier' }, { id: 23, kind: 'carrier', ...(hurt ? { hp: 1 } : {}) }]);
+    for (let k = 0; k < n; k += 1) {
+      ring.begin(k);
+      ring.draw(room(k), [
+        { id: 22, kind: 'carrier', ...(hurt && k >= HURT_A ? { hp: 1 } : {}), ...(spot && k >= SPOT_A ? { spotted: 'silent' } : {}) },
+        { id: 23, kind: 'carrier', ...(hurt ? { hp: 1 } : {}), ...(spot && k >= SPOT_B ? { spotted: 'launching' } : {}) },
+      ]);
+    }
+    return { ring, clip: { ...buildClip, war: ring.clip(0, n) } };
+  };
+  const both = record();
+  const [a, b] = both.clip.war.agents;
+  check(JSON.stringify(a.hurt) === JSON.stringify([{ at: room(HURT_A), hp: 1 }]) && a.spotted.at === room(SPOT_A) && a.spotted.how === 'silent'
+    && JSON.stringify(b.hurt) === JSON.stringify([{ at: room(-1), hp: 1 }]) && b.spotted.how === 'launching' && b.spotted.at === room(SPOT_B),
+  'the clip keeps each hull\'s hp from the first frame that drew it (one drawn before any row too) and its spot, each once', JSON.stringify([a.hurt, a.spotted, b.hurt, b.spotted]));
+  const drawn = (k, id) => warAt(both.clip.war, n, k, 0, new Map()).find((x) => x.id === id);
+  check(drawn(HURT_A - 1, 22).hp === undefined && drawn(HURT_A, 22).hp === 1 && drawn(SPOT_A - 1, 22).spotted === undefined
+    && drawn(SPOT_A, 22).spotted === 'silent' && drawn(0, 23).hp === 1 && drawn(SPOT_B, 23).spotted === 'launching',
+  'a replay draws each hull whole and unmarked before the row the live frame first drew it otherwise, hurt and marked from it');
+  const buf = encodeReplay(both.clip);
+  const back = decodeReplay(buf);
+  check(v(buf) === 22 && JSON.stringify(back.war.agents) === JSON.stringify(both.clip.war.agents), 'saved as version 22 and comes back as it was');
+  check(bytesOf(encodeReplay(back)).equals(bytesOf(buf)), 'written again, the same bytes');
+  const t = trimWhole(both.clip, both.clip.time[1], both.clip.time[n - 2]);
+  check(JSON.stringify(t.war.agents) === JSON.stringify(both.clip.war.agents) && t.war.agents[0].hurt !== both.clip.war.agents[0].hurt
+    && v(encodeReplay(t)) === 22, 'a trim keeps them, as copies');
+  const hurtOnly = encodeReplay(record({ spot: false }).clip);
+  const spotOnly = encodeReplay(record({ hurt: false }).clip);
+  check(v(hurtOnly) === 22 && v(spotOnly) === 22, 'either alone is version 22', `${v(hurtOnly)}, ${v(spotOnly)}`);
+  const plain = encodeReplay(record({ hurt: false, spot: false }).clip);
+  const was = decodeReplay(plain);
+  check(v(plain) === 18 && was.war.agents.every((x) => Object.keys(x).length === 3) && bytesOf(encodeReplay(was)).equals(bytesOf(plain)),
+    'the same war with neither is the version 18 file, read back and written the same', `version ${v(plain)}`);
+
+  const refusedAs = (mut, why, message) => {
+    let err = null;
+    try {
+      decodeReplay(mut());
+    } catch (e) {
+      err = e;
+    }
+    check(err instanceof ReplayFileError && err.message === message, `refused: ${why}`, err ? err.message : 'it was accepted');
+  };
+  refusedAs(() => reheader(hurtOnly, 18), 'a hurt hull in a file that says version 18', 'a war\'s hurt or spotted attackers in a file older than version 22');
+  refusedAs(() => reheader(spotOnly, 21), 'a spotted hull in a file that says version 21',
+    'a version 21 file without its war\'s map as the room sends it');
+  refusedAs(() => reheader(plain, 22), 'a version 22 file with neither', 'a version 22 file without its war\'s hurt or spotted attackers');
+  let threw = null;
+  try {
+    decodeReplay(reheader(buf, 23));
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof ReplayFileError && threw.reason === 'version', 'a file one version past this build is refused by its version, as a build before this one refuses version 22', threw && threw.message);
+  const war = both.clip.war;
+  const with0 = (x) => ({ ...both.clip, war: { ...war, agents: [{ ...war.agents[0], ...x }, war.agents[1]] } });
+  refused(() => encodeReplay(with0({ hurt: [{ at: room(4), hp: 0 }] })), 'a hull with no hit points left drawn alive');
+  refused(() => encodeReplay(with0({ hurt: [{ at: room(4), hp: 2 }, { at: room(3), hp: 1 }] })), 'hit points out of room ms order');
+  refused(() => encodeReplay(with0({ hurt: [] })), 'an empty hurt');
+  refused(() => encodeReplay(with0({ spotted: { at: room(4), how: 'maybe' } })), 'a spot that is neither launching nor silent');
+  threw = null;
+  try {
+    const bare = { ...both.clip };
+    delete bare.sticks;
+    encodeReplay(bare);
+  } catch (err) {
+    threw = err;
+  }
+  check(threw instanceof Error, 'a clip with a hurt hull and no sticks is refused when written', threw ? threw.message : 'written');
 }
 
 ring();

@@ -272,7 +272,15 @@ room abandoned ABANDON_MS later. Decided: a start counts the seats on the
 room's world and not failed, bots included (edge/rooms/core.js fielded);
 a round on keeps present(). Held by `rooms:selftest` (a load failure
 counted out: refused alone with the other failed, then on another world,
-then the start goes once it stands on the room's world). Combat started
+then the start goes once it stands on the room's world). **A rebuild
+told** (2026-10-16 batch, w45-tail): a page rebuilding its world drew no
+frame and so told nobody, keeping the room's count and a war briefing's
+lead (war.js worldsUp) on the world it was taking down (B said
+swiss2:morning to the war room through its build of Itaipu). A swap now
+tells the room as it starts: the profile loading, the war's world none;
+fielded leaves out a seat loading. Held by `rooms:selftest` (a pilot
+loading the room's world again is refused alone, then the start goes)
+and `war:lobby` (while B builds it, B tells the room no world). Combat started
 in passing has no alone check at all, and `rooms:server` holds a host
 alone starting one (its restart section): left as it is, a combat round
 alone in passing still ends ABANDON_MS later. Not moved onto the named
@@ -1216,7 +1224,16 @@ match `^[A-Za-z0-9._\- ]{2,24}$` (pilot.js 51) and the word filter
 (roomwire.js 565) and the filter (edge/rooms/front.js 218); track names 80
 characters, no control characters, the filter (tracks-api/worker.js 112);
 lines are set with `textContent`, never markup. Checks: `rooms:selftest`,
-`test:tracks` (CI).
+`test:tracks` (CI). **A card's room always named fixed** (2026-10-16
+batch, w46-results): the room a card makes is named for its pilot and
+its game ("{name}, Catch the Ace"), and that whole could be past the 32
+letters (1.4% of picker names for the Ace, 84% for the Spanish Trick
+Battle, a 24 letter callsign in any game), when the room was made with
+no name at all. The pilot's name is now shortened, by its last words and
+then by letters, until the whole fits (src/share/roomwire.js
+pilotRoomName). Held by `rooms:selftest` (CI: every picker name and the
+longest callsign, every game, en and es) and `game:lobby --game=tag`
+(local).
 
 **62. Basic anti-cheat. PARTIAL.** The room refuses impossible poses,
 out of range race passes, non host actions, and rates over its limits
@@ -1559,7 +1576,24 @@ the Ace's, the Trick Battle's, combat's) have Change aircraft after the
 replay, the picker seating the aircraft for the room's next round, the
 war's in a war room (src/ui/items.js resultsRows, src/game/debrief.js
 nextActions). Held by `debrief:selftest` (CI) and `game:lobby
---game=combat` (local). Nothing of the item is left unbuilt.
+--game=combat` (local). **The Ace's results after a rebuild fixed**
+(2026-10-16 batch, w45-tail): a page whose world was building across
+the match's end took the results on its first frame, after the lobby's
+return had passed, and they stood over the lobby for good; they are now
+shown only while that return is to come, as combat's (src/main.js
+roomTagFrame). Proved by a probe (B's world rebuilt and held 9 s across
+the end: stuck at base, back in the lobby with it); `game:lobby
+--game=tag` reads the lobby after the Ace's results, as combat's.
+**The Trick Battle's results after a rebuild fixed** (2026-10-16 batch,
+w46-results): the same read, the same probe (B stuck on its results at
+base, back in the lobby with it); the Ace's and the Trick Battle's
+results now share one guard (src/main.js lobbyBackGone), and `game:lobby
+--game=jam` reads the lobby after the Trick Battle's results. The room
+race needs none: its results come only to a pilot whose run ends in
+raceFrame, which runs before the lobby's return in the same frame and is
+taken to the lobby by it (the probe, the racing page held 9 s across the
+end, rebuilt or with its frames stopped: in the lobby both times).
+Nothing of the item is left unbuilt.
 
 **77. Party persistence. EXISTS.** The room is the party: its code and
 pilots survive rounds, mission changes and, in private rooms, world

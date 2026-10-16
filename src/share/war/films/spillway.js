@@ -73,7 +73,7 @@ export const UPSTREAM_A = Math.atan2(UP[0], UP[1]);
 
 export default {
   id: 'spillway',
-  version: 2,
+  version: 3,
   cast: {
     ten: { airframe: '10inch', spins: true },
   },
@@ -110,6 +110,12 @@ export default {
       camera: {
         type: 'telephoto', lens: 35, ease: 'io', at: gate(6.5, 300, RESERVOIR_Y + 1.5), look: [gate(6.5, 240, RESERVOIR_Y - 2), gate(6.5, 0, 221)],
       },
+      /* The slate (INTROS.md 1.8): where, when and the stakes. */
+      titles: [
+        {
+          key: 'war.slate.itaipu_2.place', when: 'war.slate.itaipu_2.when', sub: 'war.slate.itaipu_2.stakes', from: 1.5, to: { at: 'end', s: -0.8 }, kind: 'slate',
+        },
+      ],
       fade: [[0, 1], [1.2, 0]],
       out: 'match',
     },

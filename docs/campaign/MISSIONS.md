@@ -91,9 +91,9 @@ Each stage table below says which dials it turns.
    | NE | the east shore, the Brazilian bank | `east-shore-low`, `east-shore-high` (new) |
    | HIGH | high over the islands, any side | `high-east`, `high-west`, `high-yard` (built), `high-north` (new) |
    | WATER | on the reservoir's surface | `surface-east`, `surface-gates` (built), `surface-mid`, `surface-west-arm` (new) |
-   | GORGE | up the gorge from the south, under the rims | `gorge`, `gorge-yard` (built), `gorge-left-rim` (new) |
-   | RIVER | on the river below the dam | `river-surface`, `river-west-bank` (new; mission 5) |
-   | LINES | along the 500 kV corridors | `corridor-west`, `corridor-east` (new; missions 3 and 6) |
+   | GORGE | up the gorge from the south, under the rims | `gorge`, `gorge-yard`, `gorge-left-rim` (built; the last in mission 5) |
+   | RIVER | on the river below the dam | `river-surface`, `river-west-bank` (built, mission 5: the carrier's, on the water at 103.5 m) |
+   | LINES | along the 500 kV corridors | `corridor-west`, `corridor-south` (built, mission 3); mission 6's own along the two corridors it defends, `corridor-west-near`, `corridor-west-far`, `corridor-east-near`, `corridor-east-far`, `corridor-east-wires` (built) |
 
 2. **Composition.** A group may list alternatives (`fpv` or `loiter`,
    `strike` or a `strike` and `decoy` mix); the seed picks one. The radio
@@ -134,6 +134,12 @@ The rules every mission shares; each mission adds its own line.
   is multiplied by 1.6 at 1 pilot, 1.3 at 2 or 3, 1.0 at 4 or more.
 - **Hold timers** never change with pilots: they are story time.
 - **Twist size** scales like a group; the twist itself is the same.
+
+Sectors at once is built as a spawn's `lane` (branch w47-m6,
+`stages.js` sectorsAt): the k-th of a stage's groups on a sector of its
+own comes at its time when the pilots have k + 1 sectors at once, and
+otherwise 30 s after the lane that many before it is gone, so a solo
+pilot meets them one at a time. Mission 6 is the first to use it.
 
 ### 1.7 The radio, per stage
 
@@ -307,9 +313,19 @@ changing that one field and redeploying the rooms server. Missions 1 to
 4 are available: the owner released all four on 2026-10-15, so the
 campaign plays in order. First Light had gone back to `development` on
 2026-10-07 (PR #666, the owner: no narration, under construction until
-it was as finished as The Interior's Mission 1); 5 to 7 are `soon`.
+it was as finished as The Interior's Mission 1). Missions 5 and 6, The
+River Below (branch w46-m5) and The Corridor (branch w47-m6), built
+2026-10-15 and held in development, are available since 2026-10-16: the
+owner released every built mission that day ("make everything available
+to everyone"). 7 is `soon`.
 
 ### 2.1 Release status (checked against the tree 2026-10-13, batch/2026-10-14 f0c06cbb6)
+
+**Every mission with a file is released** (2026-10-16): 1 to 4 on
+2026-10-15, 5 and 6 on 2026-10-16 ("make everything available to
+everyone", the owner), with The Interior's 1 to 3. 7 has no file and
+stays Coming soon. The table below is what each was checked against
+before its release.
 
 What a mission needs to be released, from this file, FIRST-LIGHT-AUDIT.md
 and the owner's bar (as finished as The Interior's Mission 1), and where
@@ -336,6 +352,30 @@ claim it: spotting (T1.8). Districts coming back after the reroute
 (`itaipu-3-s3-back`). The light falling across the mission (T1.11) is built since
 branch w39-daynight (14 October): see M3's as-built notes for the lines
 that may now say more. Released 2026-10-15 with the rest of Act 1.
+
+Mission 5, The River Below, built on branch w46-m5 (2026-10-15) and
+released 2026-10-16, has against this
+table: 4 stages and 3 twists, 4 title keys; 2 objectives
+(`war.obj.protect_penstocks`, `war.obj.itaipu_5.carrier`); the table's
+14 radio ids, `itaipu-5-op` and the film's 4, all voiced en and es on
+the Orin; 8 guide lines `itaipu-5-g-*` (written and voiced on branch
+w46-m5b); the nudge and the objective cards; every briefing fact, its length 7 to 14 min measured; its film
+`river-below` and no outro (none written); voiced debriefs; seeded GORGE,
+RIVER and HIGH sectors, war:routes PASS; the consent; Contain with
+`itaipu-5-op`. What it adds to the engine and what it does not build is
+M5's as built below.
+
+Mission 6, The Corridor, built on branch w47-m6 (2026-10-15) and
+released 2026-10-16: 4 stages, 3 twists and 2
+islandings, 4 title keys; its objectives (the towers, a spot objective
+for each of Spread Thin's four groups, the yard, each twist's, each
+corridor's islanding hold); the nudge and the objective cards; its
+length 11 to 19 min measured; seeded NW and WATER sectors and its own
+LINES routes, war:routes PASS; the table's 13 radio ids, `itaipu-6-op`
+and the film's 4, voiced en and es on the Orin; 8 guide lines
+`itaipu-6-g-*`; voiced debriefs; Contain with `itaipu-6-op`. No intro
+film: INTROS.md 5.6's shot 3 is DESPACHO's GRID insert, which no film can
+draw yet (Lights Out's film went round it); M6's as built below.
 
 Mission 4's column is checked against branch w39-mission-4 (2026-10-14):
 war:stages, war:routes, war:harness, war:legacy, war:radio, war:nudge,
@@ -376,6 +416,17 @@ once the one before is won. The checks that pinned the held state now
 hold a mission in development themselves (`scripts/lib/held.js`), so
 the gate (refused 'unreleased', the drill fallback, the private room,
 DEV_ACCOUNTS) is still proven, and they also check the release.
+
+**Released 2026-10-16.** The owner: "make everything available to
+everyone". The River Below and The Corridor go to `release:
+'available'` in `itaipu-5.js` and `itaipu-6.js`, so Act 1 is 1 to 6 in
+order and 7 Coming soon. The Interior's Missions 1 to 3 go the same way
+in `src/share/ops/rows.js`; 4 and 5, with no file, stay Under
+development. `scripts/lib/held.js` holds an Interior row too, so the
+checks that pinned them held prove the gate on a held mission and the
+release besides. The war's shop is repriced for six missions (each
+price times 6 / 4, docs/ECONOMY.md rule 2), so Act 1 at two stars
+still buys about half of it.
 
 ---
 
@@ -508,6 +559,40 @@ gantry, which is the lesson the act ends on, met early.
 The two countdown lines and the two debriefs replace today's
 `brief-itaipu-1-1/-2` and `debrief-itaipu-1-*` (warradio.js derives the
 ids from the mission; T3.1 moves them to `<id>-s0-*`).
+
+### Story
+
+Built on branch w48-story (2026-10-15), BIBLE.md 10 (the arc). The
+briefing line is `campaign.m.intakes_blurb` (the campaign card and the
+room's briefing), the epilogue `war.epilogue.itaipu_1.win` and `.lose`
+under the end banner (src/game/debrief.js missionEpilogue,
+src/ui/warhud.js), the story card `campaign.story.intakes` with its
+`_place` and `_when` on the campaign page before this mission
+(src/ui/campaign.js storyCard); the Spanish of each is
+src/strings/es.js. The radio lines below are cued at the end of their
+stage's `cues`, so no other cue's draw moves (war:stages and war:legacy
+unchanged), and voiced en and es on the Orin, Whisper checked.
+
+- **Briefing line.** Links to the month before: "A month of strikes on
+  the region's power, and the dam has never been touched."
+- **Story card** (Itaipu, the crest; Day one, before dawn): "A month
+  into a war nobody declared, the dam on the Paraná is the one thing it
+  has not touched. On the crest road a volunteer cell has armed every
+  aircraft the two banks own. Since before light, something has been
+  circling over the reservoir."
+- **Epilogue, won:** "The sun is up and the intakes are whole. They
+  looked, they tested, and now they know where the squad flies from.
+  Upstream, it has been raining since dawn."
+- **Epilogue, lost:** "Too many got through, and the plant has lost
+  units it will not get back today. The cell is rearming on the crest
+  road. Fly the morning again."
+- **Radio.** CARANCHO is a new speaker in this mission, so no other line
+  of the mission is built again (CREDITS.md, Where the voices are
+  built).
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-1-s3-carancho | stage 3 `cleared`, after s3-clear | CARANCHO | calm | Crest, Carancho, on the river below. Quiet down here. The water under you is ours. | Cresta, Carancho, en el río, aguas abajo. Tranquilo por acá. El agua de abajo la cuidamos nosotros. |
 
 ### What the player learns
 
@@ -661,6 +746,38 @@ opened gate, and resumes after; the working gates must still be held.
 | debrief-itaipu-2-win | won | CREST | calm | The spill held and the river did what we told it. Nice work on the water. | El vertido aguantó y el río hizo lo que le dijimos. Buen trabajo sobre el agua. |
 | debrief-itaipu-2-lose | lost | CREST | calm | Too many gates down. We can't steer the river like this. Pull back. | Cayeron demasiadas compuertas. Así no manejamos el río. Repliéguense. |
 
+### Story
+
+Built on branch w48-story (2026-10-15), BIBLE.md 10 (the arc). The
+briefing line is `campaign.m.spillway_blurb` (the campaign card and the
+room's briefing), the epilogue `war.epilogue.itaipu_2.win` and `.lose`
+under the end banner (src/game/debrief.js missionEpilogue,
+src/ui/warhud.js), the story card `campaign.story.spillway` with its
+`_place` and `_when` on the campaign page before this mission
+(src/ui/campaign.js storyCard); the Spanish of each is
+src/strings/es.js. The radio lines below are cued at the end of their
+stage's `cues`, so no other cue's draw moves (war:stages and war:legacy
+unchanged), and voiced en and es on the Orin, Whisper checked.
+
+- **Briefing line.** Links to the morning: "This morning their scout
+  watched the right bank."
+- **Story card** (Itaipu, the spillway on the right bank; Day one,
+  afternoon): "It rained upstream all morning, and the reservoir is at
+  the top of the gates. The plant has to spill this afternoon, and only
+  some of the gates are ready to move. They have been watching exactly
+  those since dawn."
+- **Epilogue, won:** "The spill is running and the river does what the
+  plant tells it. They watched the gates all morning and still could not
+  take the ones that mattered. Dispatch wants the switchyard standing by
+  dusk."
+- **Epilogue, lost:** "Too many gates are down, and the river is harder
+  to steer. The reservoir is still rising. Fly the afternoon again."
+- **Radio.** CARANCHO is a new speaker in this mission.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-2-s3-carancho | the spill `held`, after s3-held | CARANCHO | calm | Crest, Carancho. We can see your spill from down here. The river's coming up. We're off the bank, still flying. | Carancho. Vemos el vertido desde acá abajo. El río está subiendo. Salimos de la orilla, seguimos volando. |
+
 ### What the player learns
 
 Boats are slow but they do not stop; the water is a lane to patrol; a
@@ -747,11 +864,12 @@ Built 14 October, against the code (war:stages flies it on the room;
 - **The lines that could say more, said (w43-voice-orin).**
   `itaipu-3-s4-dark` is the table's "Lights are on in town." again (the
   towns are lit when The Dark opens). `itaipu-3-s2-clear` ("The light's
-  going.") stays true. Both and `itaipu-3-s3-back` were built on the
-  Orin; the rule that the mission's other CREST and DESPACHO lines are
-  built there too (CREDITS.md, Where the voices are built) is not met
-  yet: their Orin build waits on the Orin's GPU lease, and until it is
-  merged (tools/voice/orin.py) those lines are the desktop's takes.
+  going.") stays true. `itaipu-3-s4-dark` and `itaipu-3-s3-back` were
+  built on the Orin, and with them (w45-voice-rest) every other CREST
+  and DESPACHO line of this mission, its story, guide, debrief and film
+  lines: one voice a speaker (CREDITS.md, Where the voices are built).
+  The calls every mission shares (the `wave`, `hit`, `kill` and
+  `contain` groups and the like) stay the desktop's takes.
 - **The Dark has a swarm up the gorge onto the west penstocks.** As
   written above, with nobody flying, the mission was won: the yard and two
   intakes leave 9 800 MW over the 9 700 floor. With the swarm the game is
@@ -845,6 +963,41 @@ reroute (BIBLE.md's glossary) and the marker's word, atacante; two
 DESPACHO lines name no town or open on the verb, because Whisper could
 not hear "Hernandarias" or a leading "Redirección" in that voice.
 
+### Story
+
+Built on branch w48-story (2026-10-15), BIBLE.md 10 (the arc). The
+briefing line is `campaign.m.switchyard_blurb` (the campaign card and
+the room's briefing), the epilogue `war.epilogue.itaipu_3.win` and
+`.lose` under the end banner (src/game/debrief.js missionEpilogue,
+src/ui/warhud.js), the story card `campaign.story.switchyard` with its
+`_place` and `_when` on the campaign page before this mission
+(src/ui/campaign.js storyCard); the Spanish of each is
+src/strings/es.js. The radio lines below are cued at the end of their
+stage's `cues`, so no other cue's draw moves (war:stages and war:legacy
+unchanged), and voiced en and es on the Orin, Whisper checked.
+
+- **Briefing line.** Links to the day: "They timed you at dawn and read
+  the gates by afternoon."
+- **Story card** (Itaipu, the right bank switchyard; Day one, dusk):
+  "The spill is running and the river does what the plant tells it. Now
+  the light is going, and the towns on the right bank are about to turn
+  their lights on. Dispatch is on the line for the first time, rerouting
+  the grid before the switchyard can be hit."
+- **Epilogue, won:** "Night has fallen and the right bank is lit. They
+  learned to lie today, and it was not enough. On the scope Mirador sees
+  nothing at all, and does not like it."
+- **Epilogue, lost:** "The right bank is dark, and Dispatch is already
+  working to bring it back. Hold the yard through the reroute. Fly the
+  dusk again."
+- **Radio.** CREST's lines in this mission are already the Orin's
+  (w45-voice-rest), so the new one is his same voice; CARANCHO is new
+  here.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-3-s1-learn | stage 1 `cleared`, after s1-clear | CREST | calm | This morning they timed us. This afternoon they read the gates. Now they've learned to lie. | Esta mañana nos midieron. Esta tarde leyeron las compuertas. Ahora aprendieron a mentir. |
+| itaipu-3-s4-carancho | Reroute over (its exit's own trigger), into the beat before The Dark | CARANCHO | calm | Crest, Carancho. Lights are on downriver too. We're holding the river through the night. | Carancho. Río abajo también se encendieron las luces. Vamos a sostener el río toda la noche. |
+
 ### What the player learns
 
 Do not spend a bird on what you have not looked at; spotters make the
@@ -933,7 +1086,10 @@ Built 14 October, against the code (war:stages flies it on the room):
   the swarm is born; and the guide `itaipu-4-g-dark` "Protect the middle
   penstocks. The swarm comes up the gorge. Fly low and take it up
   close." / "Protejan las tuberías del medio. El enjambre sube por el
-  cañón. Vuelen bajo y tómenlo de cerca." 4 s later. war:legacy's
+  cañón. Vuelen bajo y tómenlo de cerca." 4 s later. Every other CREST
+  line of this mission (story, guide, debrief, film) was built again on
+  the Orin with them (w45-voice-rest), so CREST is one voice here; the
+  calls every mission shares stay the desktop's takes. war:legacy's
   itaipu-4 games were recorded again (the bots' loiter point is the
   middle of every wave's targets, so a stage more moves them).
 - **Lines that may now say more (proposed, not changed).**
@@ -1015,6 +1171,39 @@ holds the gantry in the dark, by markers, with Hunters about.
 | debrief-itaipu-4-win | won | CREST | calm | Sunrise, and the dam still stands. Get some sleep. They'll be back. | Amanece, y la represa sigue en pie. Duerman un poco. Van a volver. |
 | debrief-itaipu-4-lose | lost | CREST | calm | They got through in the dark. Pull back. We go again tonight. | Pasaron en la oscuridad. Repliéguense. Volvemos esta noche. |
 
+### Story
+
+Built on branch w48-story (2026-10-15), BIBLE.md 10 (the arc). The
+briefing line is `campaign.m.night_blurb` (the campaign card and the
+room's briefing), the epilogue `war.epilogue.itaipu_4.win` and `.lose`
+under the end banner (src/game/debrief.js missionEpilogue,
+src/ui/warhud.js), the story card `campaign.story.night` with its
+`_place` and `_when` on the campaign page before this mission
+(src/ui/campaign.js storyCard); the Spanish of each is
+src/strings/es.js. The radio lines below are cued at the end of their
+stage's `cues`, so no other cue's draw moves (war:stages and war:legacy
+unchanged), and voiced en and es on the Orin, Whisper checked.
+
+- **Briefing line.** Links to the dusk and the river below: "The towns
+  are lit and the plant is still running. Downriver, Carancho's flight
+  holds the water under the dam."
+- **Story card** (Itaipu, the reservoir; Night one): "The towns are lit
+  and the plant is still running. Below the dam, Carancho's flight is
+  holding the river in the dark, with fewer birds every hour. Up here
+  the scope has gone quiet, and nobody on the crest trusts it."
+- **Epilogue, won:** "Sunrise, and the dam still stands. The squad flew
+  for each other all night. Downriver, Carancho's flight is nearly out
+  of birds."
+- **Epilogue, lost:** "They got through in the dark. The squad pulls
+  back to the crest to rearm. Fly the night again."
+- **Radio.** CREST's lines in this mission are already the Orin's
+  (w45-voice-rest); CARANCHO is new here.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-4-s2-carancho | stage 2 `cleared`, after s2-clear | CARANCHO | calm | Crest, Carancho. Running low on birds down here. We're holding the river until morning. | Cresta, Carancho. Nos quedan pocos aparatos acá abajo. Sostenemos el río hasta la mañana. |
+| itaipu-4-s3-doors | Hunters over (the stage's own exit condition), after s3-down | CREST | calm | Every time we stop them, they come back through another door. | Cada vez que los frenamos, vuelven por otra puerta. |
+
 ### What the player learns
 
 Silence is not safety; markers and thermal over eyes; pairs beat Hunters;
@@ -1054,6 +1243,94 @@ objective. Targets: the penstocks and the downstream face (built
 | 2 | Up the Gorge | beat 12 s | protect(penstocks) | swarm on `gorge-left-rim`; Hunters at `enter+[25,40]` | `cleared` |
 | 3 | The Source | beat 15 s; the carrier appears on RIVER (route seeded) | kill(carrier) | the carrier and its launched swarms; the twist at `enter+[30,50]` | `killed(carrier)` and `cleared` |
 | 4 | Clear the River | beat 20 s | protect(penstocks) | convergence: swarms on both GORGE routes, Strikers from RIVER low, Loiterers HIGH onto penstocks | `cleared` |
+
+Built 15 October, against the code (branch w46-m5; `itaipu-5.js`,
+war:stages flies it on the room), held at `release: 'development'`:
+
+- **The carrier** (T1.6, T1.7, `routes.js` KIND, `edge/rooms/war.js`
+  launch): a 12 m grey hull at 7 m/s, weaving 10 m, parking where its
+  route ends, two detonations (op `hurt` on the first; a penetrator
+  takes it in one). While it lives it launches its spawn's `launch`
+  group from its deck at its pose then, judged in order with the
+  detonations, so a carrier killed first launches nothing at any lag.
+  The interval is the Pilots line's, 50 s at one pilot to 35 s at eight,
+  straight between, not a seeded draw in 35 to 50 (the two lines of M5
+  disagree; the per pilot one is the more exact). Each launch goes for
+  the next of the penstocks, so a source left alive loses the mission
+  (war:stages, nobody shooting); a launched swarm's formation opens from
+  the one deck over its climb.
+- **The RIVER routes** stay where the war's floor (`itaipu-height.bin`)
+  is the river's 103.5 m (the map's water.json `river`): a band 200 to
+  250 m wide inside the drawn outline, from 1.3 km downriver to the
+  gorge's head. `river-west-bank` runs 30 m inside the band's west edge,
+  well inside the real bank. war:routes holds a floating kind to the
+  water its route is on and flies every launch from every 5 s of a
+  carrier's flight.
+- **Strikers from RIVER low** fly `river-low` or `river-west-low`, 31.5
+  m over the river, named RIVER for the bearing call by the spawn's
+  `sector`; the RIVER family itself is the carrier's surface routes.
+- **Loiterers HIGH** circle south of the dam (`high-south`,
+  `high-south-east`): from the north, as the other missions' high
+  routes come, the dive onto the downstream face met the dam's upstream
+  face first (war:routes).
+- **The twists.** A: the second hull 30 to 50 s in on the other RIVER
+  route; the stage's `silent` draws which hull launches nothing, and a
+  pilot who flies close finds out which (Spotting, below); the
+  objective stays both. B: the launch's `then`, Hunters at their
+  clearance over the deck, once every one of its first swarm was killed
+  (a first swarm let through keeps it on swarms). C: every swarm twice
+  the size, and the hull spotted at its birth, Carancho's mark. The
+  twist's line is cued at the carrier's birth in C (CARANCHO marks it
+  then), at the second hull in A, at the first Hunters in B.
+- **Spotting** (built 15 October, branch w46-m5b; the design says only
+  "the spotters find out which" and "marked from its birth", so this is
+  the smallest rule that gives both a meaning, decided by the lane): a
+  carrier's spawn is `spot`, and a pilot here within 450 m of it for 1.5
+  s without a break spots it for everybody (`edge/rooms/war.js` spot,
+  judged at the room's frontier as a region trigger is; `{ op: 'spot',
+  ids, at, by, silent }`, kept in the match and the view's `spotted`, so
+  a late joiner and a restore agree). Every screen then marks the hull
+  for what the spotter saw: LAUNCHING / LANZANDO (orange), or EMPTY HULL /
+  CASCO VACÍO (yellow, no threat to the dam) for twist A's silent one,
+  where an unspotted hull reads CARRIER / NODRIZA (`src/ui/warmarkers.js`).
+  Twist C's hull is `spot: 'birth'`: spotted at its birth by nobody here,
+  the same mark from its first frame. In twist A, once the silent hull
+  is spotted and the second is on the water, MIRADOR says which
+  (`itaipu-5-ta-spot`, the trigger `{ spot: { silent: true } }`,
+  `stages.js`). What T1.8 asks and this does not: only carriers are
+  spotted (no second caller for every attacker yet, and doing it for
+  every one would change missions 1 to 4's games); every war aircraft
+  spots, since only combat drones fly in wars (owner, 3 October) and
+  none of T1.8's spotter airframes is one; and the range is the straight
+  line, with no rim between them modelled.
+- **The burn** (built 15 October, branch w46-m5b): a carrier hit once
+  and alive burns until its last hit, the explosions' own fire puffs and
+  smoke column at a rate over its deck (`src/render/explosion.js` burn,
+  about 8 fire and 11 smoke particles alive a hull), drawn by every
+  screen from roomwar's `hp` (the `hurt` op, and the view's `hurt` for a
+  pilot who joins later). The dam's own damage smoke (its map part's
+  points, one slot a target) cannot follow a moving hull.
+- **The radio**: the table's 13 lines, `itaipu-5-op` and the film's four,
+  voiced en and es on the Orin (CARANCHO `am_puck`, `pm_alex`). In twist
+  A `itaipu-5-s3-carrier` ("It's launching") waits for the first launch,
+  since the first hull may be the silent one. MIRADOR's spotting call
+  `itaipu-5-ta-spot` and CREST's eight guide lines (Guide, below) were
+  added on branch w46-m5b and built on the Orin with the rest of the
+  mission's lines, so each speaker is one voice.
+- **Bots** (scripts/war-balance.js): a good or average pilot goes for a
+  carrier first, as a pilot who reads the objective would; without it a
+  solo squad chased the swarms forever and never ended the stage.
+- **Length** 7 to 14 minutes: ten good bot games end 8.0 to 13.5 minutes
+  after the go, against section 2's guess of 11 to 15.
+- **The film** is `films/river-below.js` (INTROS.md 5.5), with no smoke
+  downriver in shot 1 and shot 3's own rider near the face for 8 s (the
+  film's header says why). The campaign card's line is the Briefing
+  above, as The Long Night's is its own.
+- **Not built**: the music cues (no mission has its five layers, and
+  music is off by the owner's decision), an outro film (INTROS.md
+  writes none for M5), and the burn and the spotted marks in the crash
+  cam's replay: `src/replay/warrec.js` records neither the `hurt` nor
+  the `spot` op, and the live explosions are hidden while it plays.
 
 ### The twist (stage 3)
 
@@ -1120,10 +1397,61 @@ where the fight is, so the squad must split.
 | itaipu-5-s3-dead | `killed(carrier)` | TALLER | firm | That's the nest. Aguyje. | Ese era el nido. Aguyje. |
 | itaipu-5-ta-turn | twist A | MIRADOR | urgent | A second hull. One of them isn't launching anything. | Un segundo casco. Uno de los dos no lanza nada. |
 | itaipu-5-tb-turn | twist B | MIRADOR | urgent | It's launching Hunters now. They want you. | Ahora está lanzando cazadores. Los quieren a ustedes. |
+| itaipu-5-ta-spot | twist A, the silent hull spotted and the second on the water | MIRADOR | urgent | Eyes on it. That hull is empty. The other one is launching. | Lo tengo a la vista. Ese casco está vacío. El que lanza es el otro. |
 | itaipu-5-tc-turn | twist C | CARANCHO | urgent | Crest, Carancho. One last bird up. I've got eyes on the hull, marking it. Beleza, go. | Cresta, Carancho. Último aparato arriba. Tengo el casco a la vista, lo marco. Beleza, vayan. |
 | itaipu-5-s4-last | stage 4 opens | CREST | firm | Whatever it launched is still coming. Clear the river. | Lo que lanzó todavía viene. Limpien el río. |
 | debrief-itaipu-5-win | won | CARANCHO | calm | Crest, Carancho. River's quiet. Thanks for covering us. | Cresta, Carancho. El río está tranquilo. Gracias por cubrirnos. |
 | debrief-itaipu-5-lose | lost | CREST | calm | The face took too much. Pull back to the crest. | La cara recibió demasiado. Repliéguense a la cresta. |
+
+### Guide
+
+CREST's guide (`itaipu-guide`, written on branch w46-m5b in the voice of
+missions 1 to 4's): what to do now, after each stage's story, each one
+dropped once what it is about is down. Wired in `itaipu-5.js`, built on
+the Orin with Whisper's check.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-5-g-face | stage 1, the swarm born `+7` | CREST | calm | Protect the penstocks on the downstream face. The swarm comes up the gorge. Fly down into the gorge and meet it. | Protejan las tuberías de la cara aguas abajo. El enjambre sube por el cañón. Bajen al cañón y salgan a su encuentro. |
+| itaipu-5-g-rim | stage 2, the swarm born `+3` | CREST | firm | This swarm hugs the east rim. Stay low under the rim and take it before the east penstocks. | Este enjambre va pegado al borde este. Quédense bajo el borde y tómenlo antes de las tuberías del este. |
+| itaipu-5-g-hunters | stage 2, the Hunters born `+4` | CREST | firm | Hunters in the gorge. They chase your bird. Fly in pairs. One draws it, the other takes it. | Cazadores en el cañón. Persiguen su aparato. Vuelen de a dos. Uno lo atrae, el otro lo derriba. |
+| itaipu-5-g-source | stage 3, the carrier born `+11` | CREST | firm | The hull is on the river, far below the face. Fly down the river and hit it twice. | El casco está en el río, muy abajo de la cara. Vuelen río abajo y péguenle dos veces. |
+| itaipu-5-g-hulls | twist A, the second hull born `+6` | CREST | firm | Fly close to each hull. The one that launches nothing gets marked empty. Kill the one that's launching first. | Acérquense a cada casco. El que no lanza nada queda marcado como vacío. Primero maten el que lanza. |
+| itaipu-5-g-deck | twist B, its Hunters born `+4` | CREST | firm | Hunters off its deck. Pairs again, and keep after the hull. | Cazadores desde su cubierta. De a dos otra vez, y sigan tras el casco. |
+| itaipu-5-g-escort | twist C, its first launch `+4` | CREST | firm | Carancho marked the hull for you. Its swarms are twice the size. Hit the hull before it launches again. | Carancho les marcó el casco. Sus enjambres son el doble. Péguenle al casco antes de que lance otra vez. |
+| itaipu-5-g-all | stage 4, the first born `+8` | CREST | firm | Protect the penstocks. Swarms up the gorge, Strikers low on the river, a Loiterer high. The closest to the face first. | Protejan las tuberías. Enjambres por el cañón, drones de ataque bajos sobre el río, un merodeador en altura. Primero el más cercano a la cara. |
+
+### Story
+
+Built on branch w48-story (2026-10-15), BIBLE.md 10 (the arc). The
+briefing line is `campaign.m.river_blurb` (the campaign card and the
+room's briefing), the epilogue `war.epilogue.itaipu_5.win` and `.lose`
+under the end banner (src/game/debrief.js missionEpilogue,
+src/ui/warhud.js), the story card `campaign.story.river` with its
+`_place` and `_when` on the campaign page before this mission
+(src/ui/campaign.js storyCard); the Spanish of each is
+src/strings/es.js. The radio lines below are cued at the end of their
+stage's `cues`, so no other cue's draw moves (war:stages and war:legacy
+unchanged), and voiced en and es on the Orin, Whisper checked.
+
+- **Briefing line.** "Day two." before the line it had, which already
+  opens on the night before.
+- **Story card** (The gorge below the dam; Day two, morning):
+  "Carancho's flight held the river all night and has nothing left to
+  fly. Whatever comes up the gorge now is the squad's alone. All
+  morning, Mirador has watched it come from the same stretch of river."
+- **Epilogue, won:** "The river is quiet and the source is on the bottom
+  of it. Carancho's flight is grounded, and whole. Every attack so far
+  was them learning how the squad flies, and Mirador thinks they have
+  finished learning."
+- **Epilogue, lost:** "The face took too much, and the carrier is still
+  out on the river. Find the source and fly the morning again."
+- **Radio.** The act's turn (BIBLE.md 10.4). Every line of this mission
+  is the Orin's already (w46-m5).
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-5-s3-learn | the carrier killed, after s3-dead (every twist) | MIRADOR | calm | They kept that hull back until they'd learned how we fly. They're getting ready for something. | Guardaron ese casco hasta aprender cómo volamos. Se están preparando para algo. |
 
 ### What the player learns
 
@@ -1165,6 +1493,69 @@ spotter mechanic (T1.8) are the mission's core.
 | 2 | Spread Thin | beat 12 s | protect(towers); spot(each group) | groups on as many corridor sectors at once as the pilot rule (1.6) allows; Loiterers HIGH | `cleared` |
 | 3 | The Yard Again | beat 15 s | protect(yard, towers) | the twist; decoys on the yard from NW | `cleared` |
 | 4 | Islanding | beat 15 s; DESPACHO asks to island the grid | hold(the last intact corridor, 120 s) | convergence on the intact corridor from both ends | `held` and `cleared` |
+
+Built 15 October, against the code (branch w47-m6; `itaipu-6.js`,
+war:stages flies it on the room), held at `release: 'development'`:
+
+- **The towers** (TECH-NEEDS T1.6) are OpenStreetMap's, where the map
+  stands them (`src/share/war/itaipu-towers.js`, written by
+  `scripts/war-targets.js`): the west corridor is the double circuit
+  line west from the right bank yard (ten towers, `tower-w-0` at the
+  yard to `tower-w-9` at the hero square's edge), the east corridor IPU
+  60Hz FI1 from the powerhouse (nineteen, `tower-e-0` by the powerhouse
+  to `tower-e-18` by the Foz do Iguacu substation; FI2 to FI4 run beside
+  it and are not targets). Each is aimed at 8 m over its ground and hit
+  within its base's 10 m. Each is worth what its line carries, once a
+  line: the west 933 MW (two of the six circuits OSM runs out of the
+  yard, of its 2 800), FI1 1 750 (one of the four lines that carry the
+  ten 60 Hz units' 7 000). A tower hit puts out the town nearest it as a
+  struck line does (grid.js): the west's Hernandarias south or west, the
+  east's Vila C or Foz's north east. No fire or smoke is drawn on a
+  tower: the towers are the mission's targets, not the map's.
+- **Golden Hour**: Strikers along the west corridor onto its near towers,
+  then 10 to 20 s after they are gone along the east one.
+- **Spread Thin** (1.6, sectors at once): four corridor groups, the west
+  and east corridors' near and far towers (`lane` 0 to 3), as many at
+  once as the pilots have sectors, the rest each 30 s after the lane it
+  waits for is gone; a Loiterer high over each corridor. Each group has
+  its spot objective (TECH-NEEDS T1.8 as extended here: any of the
+  mission's attackers is spottable, 450 m for 1.5 s, and a spotted decoy
+  reads DECOY for everybody). The light runs from the golden hour to
+  night across its first four minutes, so the rest is flown at night
+  with the towns lit.
+- **The Yard Again**: decoys and a Striker onto the yard from the west
+  arm, a route each drawn from the family (a mix drew no Striker for a
+  solo pilot, and with nobody shooting the mission was won), and the
+  twist.
+- **The twists.** A: boats on the east intakes (First Light's WATER
+  routes). B: Strikers inside the east corridor at its conductors'
+  height, crossing FI1 at two mid spans where the phases hang (204.3 and
+  209.4 m), each crossing taking one at 0.3 (a spawn's `strikeP`, three
+  times the hazard's 0.1), so about half are lost to the lines; they go
+  for `tower-e-1` and `tower-e-0`. C: a Scout circling high over the east
+  corridor; the stage waits for it down, gone home or 80 s, as First
+  Light's Eyes.
+- **Islanding** goes to the corridor with no tower down when stage 3
+  ends; when both or neither are, the seed draws one (in the bot games
+  both corridors always had a tower down by then). **The hold is four
+  minutes, not 120 s**, for Lights Out's reason: nothing of the stage
+  reaches a tower sooner than 64 s after its birth, and at a solo
+  pilot's pace the last arrivals come 178 s (east) and 210 s (west) in.
+  Its Strikers converge from both ends of the corridor (the west's from
+  its outer end and over the reservoir's west arm onto the yard end; the
+  east's from the Foz substation and over the east arm onto the
+  powerhouse end) and a Loiterer comes high. Held, the hold's `island`
+  keeps the towns its towers feed lit whatever the rest of the grid
+  loses (grid.js ISLANDED); a tower of that corridor hit later still
+  puts its own town out. The crash cam's replay shows an islanding as
+  Lights Out's restore (its file keeps no `island`).
+- **Bots** (scripts/war-balance.js) as ever: ten good games, all won,
+  each with both corridors' lines down and the output 11 317 MW; they do
+  not fly kilometres down a corridor to a tower they cannot reach in
+  time.
+- **Length** 11 to 19 minutes: ten good bot games end 11.9 to 18.8
+  minutes after the go, a solo pilot's 16.8 to 18.8 (Spread Thin's four
+  lanes one at a time), against section 2's guess of 12 to 16.
 
 ### The twist (stage 3)
 
@@ -1238,6 +1629,76 @@ choice of the act before Breach.
 | itaipu-6-s4-done | `held` | DESPACHO | calm | Islanded. The towns on that line stay lit, whatever happens to the rest. | Aislado. Los pueblos de esa línea siguen con luz, pase lo que pase con el resto. |
 | debrief-itaipu-6-win | won | CREST | calm | The lines held. Somebody tell the towns they owe the spotters. | Las líneas aguantaron. Que alguien les diga a los pueblos que se lo deben a los observadores. |
 | debrief-itaipu-6-lose | lost | DESPACHO | calm | Too many spans down. The grid can't carry it. Crest, pull them back. | Cayeron demasiados tramos. La red no lo soporta. Cresta, repliéguelos. |
+
+As built (branch w47-m6): the table's thirteen lines and `itaipu-6-op`
+are cued as written, `itaipu-6-s2-tower` on the first tower down in
+each of the stages before the islanding (the table's "a tower hit"),
+`itaipu-6-s2-spotted` on the first spot in Spread Thin. Every line of
+DESPACHO, CREST and MIRADOR in this mission (story, guide, debriefs,
+Contain line and the film's four, INTROS.md 5.6) is built on the Orin,
+so each speaker is one voice here. DESPACHO's "Rerouting what I can"
+has no reroute behind it: what a tower puts out stays out until the
+islanding.
+
+### Guide
+
+CREST's guide (`itaipu-guide`, written on branch w47-m6 in the voice of
+missions 1 to 5's): what to do now, after each stage's story, each one
+dropped once what it is about is gone. Wired in `itaipu-6.js`, built on
+the Orin with Whisper's check.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-6-g-west | stage 1, the west group born `+7` | CREST | calm | Protect the towers on the west corridor. The Strikers follow the wires in from the far end. Fly out along the lines and meet them. | Protejan las torres del corredor oeste. Los drones de ataque siguen los cables desde el extremo. Salgan por las líneas a su encuentro. |
+| itaipu-6-g-east | stage 1, the east group born `+3` | CREST | firm | Now the east corridor. Strikers along the wires from the south. Get to the towers before they do. | Ahora el corredor este. Drones de ataque por los cables desde el sur. Lleguen a las torres antes que ellos. |
+| itaipu-6-g-spread | stage 2 `enter+5` | CREST | firm | Split up, one pilot a corridor. Fly close to each group to spot it, then take it down. | Sepárense, un piloto por corredor. Acérquense a cada grupo para marcarlo, y después derríbenlo. |
+| itaipu-6-g-yard | stage 3, the yard's group born `+6` | CREST | firm | Decoys on the yard from the west arm, and one real Striker among them. Fly close and spot them before you spend a bird. | Señuelos sobre la subestación desde el brazo oeste, y un dron de ataque real entre ellos. Acérquense y márquenlos antes de gastar un aparato. |
+| itaipu-6-g-boats | twist A, its boats born `+6` | CREST | firm | Boats on the east intakes. Somebody leave the lines and get down to the water. | Lanchas sobre las tomas del este. Que alguien deje las líneas y baje al agua. |
+| itaipu-6-g-wires | twist B, its Strikers born `+6` | CREST | firm | They're under the wires. Come at them from above the lines, never between them. | Van bajo los cables. Atáquenlos por encima de las líneas, nunca entre los cables. |
+| itaipu-6-g-scout | twist C, the Scout born `+7` | CREST | firm | Climb to the scout over the east corridor and kill it. Alive, it guides their last run in. | Suban hasta el explorador sobre el corredor este y derríbenlo. Si sigue vivo, guía su último ataque. |
+| itaipu-6-g-island | stage 4 `enter+5` | CREST | firm | Hold the last corridor. They come at it from both ends. Split the squad, one end each. | Sostengan el último corredor. Vienen por los dos extremos. Divídanse, un extremo cada uno. |
+
+### Story (proposed by w48-story; not wired, not voiced)
+
+The arc (BIBLE.md 10) reaches here after the turn: the enemy has learned
+the defence and spends it where the squad is thinnest. The mission is
+built (w47-m6, above); this is its story in missions 1 to 5's shape, to
+wire when the owner wants it: the strings go in as
+`campaign.story.corridor` (with `_place` and `_when`) and
+`war.epilogue.itaipu_6.win` / `.lose`, which the campaign page's story
+card and the end banner already read (src/ui/campaign.js storyCard,
+src/game/debrief.js missionEpilogue), so wiring them is strings only.
+Nothing below is in a string table or lines.json, so no check reads
+it.
+
+- **Story card** (The lines west of the dam; Day two, dusk): "They have
+  stopped hitting the dam. The lines that carry its power to both banks
+  run for kilometres through open country, and the squad cannot be
+  everywhere. Carancho's flight has no birds left, and is listening." /
+  (Las líneas al oeste de la represa; Día dos, atardecer): "Dejaron de
+  atacar la represa. Las líneas que llevan su energía a las dos márgenes
+  corren kilómetros por campo abierto, y el grupo no puede estar en todas
+  partes. A la escuadrilla Carancho no le quedan aparatos, y está
+  escuchando."
+- **Epilogue, won:** "The lines held and the towns at the end of them are
+  lit. The spotters saw for everyone tonight. On the far reservoir,
+  Mirador has something heavy and slow on the scope." / "Las líneas
+  aguantaron y los pueblos al final de ellas tienen luz. Esta noche los
+  observadores vieron por todos. En el embalse lejano, Mirador tiene algo
+  pesado y lento en la pantalla."
+- **Epilogue, lost:** "Too many spans are down and the grid cannot carry
+  it. Dispatch is islanding what it can. Fly the dusk again." / "Cayeron
+  demasiados tramos y la red no lo soporta. Despacho aísla lo que puede.
+  Vuelen el atardecer otra vez."
+- **Radio**, two beats at quiet points, each appended last in its
+  stage's cues as missions 1 to 5's are. CREST is already an Orin build
+  in this mission, so his line rebuilds nothing; CARANCHO would be new
+  here:
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-6-s2-carancho | Spread Thin `cleared` (proposed) | CARANCHO | calm | Crest, Carancho. Grounded, but listening. Keep the lights on for us. | Cresta, Carancho. En tierra, pero escuchando. Mantengan la luz para nosotros. |
+| itaipu-6-s3-learn | The Yard Again opens (proposed) | CREST | calm | They learned all of this from us. Now they're spending it. | Todo esto lo aprendieron de nosotros. Ahora lo están gastando. |
 
 ### What the player learns
 
@@ -1354,6 +1815,40 @@ sunrise.
 | debrief-itaipu-7-held | won through 5b | CREST | calm | It's closed, and the river's settling. We came closer than anyone will ever know. Good work. | Está cerrada y el río se calma. Estuvimos más cerca de lo que nadie va a saber. Buen trabajo. |
 | debrief-itaipu-7-lose | lost | CREST | calm | We couldn't hold it. All pilots, pull back to high ground. | No pudimos sostenerla. Todos los pilotos, repliéguense a lo alto. |
 
+### Story beats (w48-story, for the lane building it; not wired, not voiced)
+
+The act's end (BIBLE.md 10): what the enemy learned the defence for. The
+same shape as missions 1 to 5 (`campaign.story.breach`,
+`war.epilogue.itaipu_7.*`, and a third epilogue for a win through 5b if
+the lane gives the end banner one).
+
+- **Story card** (Itaipu, the far reservoir; Day three, before dawn):
+  "Everything until now was the enemy learning the defence. Before dawn
+  Mirador has heavy hulls on the far reservoir: slow, big, built for one
+  thing. Taller has checked the stoplogs' crane twice, and hopes not to
+  need it." / (Itaipú, el embalse lejano; Día tres, antes del amanecer):
+  "Todo lo de antes fue el enemigo aprendiendo la defensa. Antes del
+  amanecer Mirador tiene cascos pesados en el embalse lejano: lentos,
+  grandes, hechos para una sola cosa. Taller revisó dos veces la grúa de
+  las ataguías, y espera no necesitarla."
+- **Epilogue, won at sunrise (5a):** "The dam holds and the lights stay
+  on. The river never left its banks. That was the first act of this
+  war." / "La represa resiste y la luz sigue encendida. El río nunca salió
+  de su cauce. Ese fue el primer acto de esta guerra."
+- **Epilogue, won through the closure (5b):** "The face is closed and the
+  river is settling. Nobody below will ever know how close it came." /
+  "La cara está cerrada y el río se calma. Nadie abajo va a saber nunca
+  lo cerca que estuvo."
+- **Epilogue, lost:** "The plant is shut down and every pilot is on high
+  ground. Fly the dawn again." / "La central está parada y todos los
+  pilotos están en lo alto. Vuelen el amanecer otra vez."
+- **Radio**, two beats (CARANCHO new in the mission):
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-7-s0-learn | countdown, after s0-rules (proposed) | CREST | calm | Everything they learned, they bring tonight. | Todo lo que aprendieron, lo traen esta noche. |
+| itaipu-7-s5a-carancho | 5a, after s5a-sun (proposed) | CARANCHO | calm | Crest, Carancho. Sun's up on the river. Beleza, both banks. | Cresta, Carancho. Salió el sol sobre el río. Beleza, las dos márgenes. |
+
 ### What the player learns
 
 Everything the act taught at once: kill the eyes, split by role, read the
@@ -1366,17 +1861,17 @@ hold the one thing that fixes it.
 
 | Mission | Stage, twist, opening and debrief lines | Film lines (INTROS.md) |
 | --- | --- | --- |
-| 1 | 23 | 7 |
-| 2 | 17 | 4 |
-| 3 | 15 | 4 |
-| 4 | 14 | 4 |
-| 5 | 14 | 4 |
-| 6 | 14 | 4 |
+| 1 | 24 (CARANCHO's, branch w48-story) | 7 |
+| 2 | 18 (CARANCHO's, w48-story) | 4 |
+| 3 | 17 (CREST's and CARANCHO's, w48-story) | 4 |
+| 4 | 16 (CREST's and CARANCHO's, w48-story) | 4 |
+| 5 | 16 (MIRADOR's spotting call added on branch w46-m5b, her turn on w48-story) | 4 |
+| 6 | 14 (and 8 guide lines, written on branch w47-m6) | 4 |
 | 7 | 18 | 5 |
 | Shared calls (1.8) and Contain (1.9) | 17 | |
-| Total | 132 | 32 |
+| Total | 140 | 32 |
 
-164 lines, 328 voice files with Spanish, against 54 lines (108 files) in
+172 lines, 344 voice files with Spanish, against 54 lines (108 files) in
 `lines.json` today; the existing intro, mission and debrief lines they
 replace are about 20 of those 54. Every line in MISSIONS.md and INTROS.md
 was extracted into a lines.json shaped scratch file and passed

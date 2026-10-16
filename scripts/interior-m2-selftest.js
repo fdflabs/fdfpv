@@ -46,6 +46,7 @@ import { AIRFRAMES } from '../configs/airframes.js';
 import {
   aimAt, check, finish, opsRoom,
 } from './lib/opsroom.js';
+import { withHeld } from './lib/held.js';
 
 const W = worldFor('interior');
 const RAW = MISSIONS['interior-2'];
@@ -120,10 +121,17 @@ console.log('data');
 
 console.log('the gate');
 {
+  /* Released to every pilot (the owner, 2026-10-16: "make everything
+   * available to everyone"); the gate itself on the mission held in
+   * development (scripts/lib/held.js). */
   const live = opsRoom(RAW, { ...ROOM, devMissions: false });
-  check('the live room refuses Mission 2: unreleased', live.errors(0).at(-1)?.error === 'unreleased' && live.view(0) === null);
-  const dev = opsRoom(RAW, ROOM);
-  check('a dev room starts it', dev.view(0)?.state === 'countdown' && dev.view(0).mission === 'interior-2');
+  check('released: the live room starts Mission 2', live.view(0)?.state === 'countdown' && live.view(0).mission === 'interior-2');
+  withHeld(['interior-2'], () => {
+    const held = opsRoom(RAW, { ...ROOM, devMissions: false });
+    check('held in development: the live room refuses Mission 2: unreleased', held.errors(0).at(-1)?.error === 'unreleased' && held.view(0) === null);
+    const dev = opsRoom(RAW, ROOM);
+    check('held: a dev room starts it', dev.view(0)?.state === 'countdown' && dev.view(0).mission === 'interior-2');
+  });
 }
 
 /* ------------------------------------------------------------ the pilot */

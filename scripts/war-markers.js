@@ -13,6 +13,13 @@
  *     within ARROW_DEG of the way to turn to it; one the script puts
  *     straight behind the camera gets the bottom edge's arrow
  *   - the pilot's own FPV camera: a marker or an arrow for every one
+ *   - mission 5's carrier: tagged CARRIER in orange, its model a hull
+ *     bigger than a sea drone's
+ *   - a spotted decoy: marked as a decoy at any range (mission 6)
+ *   - a spotted carrier: LAUNCHING in orange, the silent one EMPTY HULL
+ *     in yellow
+ *   - an attacker the room says is hurt (a carrier hit once) burns,
+ *     fire and smoke from the explosions' layer, only while it lives
  *   - held up the gorge, a Hunter the room has on this seat (its
  *     Hunters' target, edge/rooms/warhunt.js) shows the warning, and the
  *     page heard that target on the wire (HUNTS, 0xA1)
@@ -448,12 +455,96 @@ try {
       return s && dc ? { strike: [s.tag, s.colour], decoy: [dc.tag, dc.colour] } : null;
     };
     const out = { far: await at(1000), near: await at(200) };
+    /* Spotted (roomwar's spotted, routes.js spottedAs: its kind), a decoy
+     * reads as one at any range, the Striker as before. */
+    const list = [{ id: 1, kind: 'strike', p: [-40, 400, -1000], q, spotted: 'strike' }, { id: 2, kind: 'decoy', p: [40, 400, -1000], q, spotted: 'decoy' }];
+    mk.update(list, 0, [], null, 0, 400, 0);
+    await null;
+    const m = mk.shown().marks;
+    out.spotted = { strike: [m.find((k) => k.id === 1)?.tag, m.find((k) => k.id === 1)?.colour], decoy: [m.find((k) => k.id === 2)?.tag, m.find((k) => k.id === 2)?.colour] };
     mk.clear();
     return out;
   })()`);
   check('a decoy is marked exactly as a Striker until 300 m, and as a decoy inside it', decoy && decoy.far
     && JSON.stringify(decoy.far.strike) === JSON.stringify(decoy.far.decoy) && decoy.near && decoy.near.decoy[0] !== decoy.near.strike[0],
   JSON.stringify(decoy));
+  check('a spotted decoy is marked as a decoy at 1 km, as it is inside 300 m; a spotted Striker as a Striker',
+    decoy && decoy.spotted && JSON.stringify(decoy.spotted.decoy) === JSON.stringify(decoy.near.decoy) && JSON.stringify(decoy.spotted.strike) === JSON.stringify(decoy.far.strike),
+    JSON.stringify(decoy && decoy.spotted));
+  /* Mission 5's carrier (src/share/war/routes.js KINDS): its own tag,
+   * orange as what goes for the dam (what it launches does), and its model
+   * a hull longer and higher than a sea drone's, with its pieces to throw. */
+  const carrier = await page.evaluate(`(async () => {
+    const THREE = await import('three');
+    const { createWarMarkers } = await import('/src/ui/warmarkers.js');
+    const { DEATH, attackerGeometry } = await import('/src/render/attackers.js');
+    const cam = new THREE.PerspectiveCamera(${FOV}, 1280 / 720, 0.1, 20000);
+    cam.position.set(0, 400, 0);
+    cam.lookAt(0, 400, -1000);
+    cam.updateMatrixWorld();
+    const mk = createWarMarkers(cam, { clientWidth: 1280, clientHeight: 720 });
+    const list = [{ id: 1, kind: 'carrier', p: [0, 400, -600], q: [0, 0, 0, 1] }];
+    mk.update(list, 0, [{ type: 'born', agents: [{ id: 1, kind: 'carrier', target: null }] }], null, 0, 400, 0);
+    await null;
+    const m = mk.shown().marks.find((k) => k.id === 1);
+    /* Spotted (roomwar's spotted): marked for what the spotter saw. */
+    const spotted = async (how) => {
+      mk.update([{ ...list[0], spotted: how }], 0, [], null, 0, 400, 0);
+      await null;
+      const s = mk.shown().marks.find((k) => k.id === 1);
+      return s ? [s.tag, s.colour] : null;
+    };
+    const launching = await spotted('launching');
+    const silent = await spotted('silent');
+    mk.clear();
+    const size = (kind) => {
+      const g = attackerGeometry(kind);
+      g.computeBoundingBox();
+      const b = g.boundingBox;
+      return [b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z].map((v) => Math.round(v * 100) / 100);
+    };
+    return { tag: m ? m.tag : null, colour: m ? m.colour : null, carrier: size('carrier'), boat: size('boat'), death: Boolean(DEATH.carrier), launching, silent };
+  })()`);
+  check('a carrier is marked CARRIER in orange, and drawn as a hull longer and higher than a sea drone, with its pieces to throw',
+    carrier.tag === 'CARRIER' && carrier.colour === '#ff8a1f' && carrier.carrier[2] > carrier.boat[2] && carrier.carrier[1] > carrier.boat[1] && carrier.death,
+    JSON.stringify(carrier));
+  check('a spotted carrier is marked for what was seen: LAUNCHING in orange, the silent one EMPTY HULL in yellow',
+    JSON.stringify(carrier.launching) === JSON.stringify(['LAUNCHING', '#ff8a1f']) && JSON.stringify(carrier.silent) === JSON.stringify(['EMPTY HULL', '#ffe040']),
+    JSON.stringify({ launching: carrier.launching, silent: carrier.silent }));
+  /* A hull hit once and alive burns (MISSIONS.md M5, its two hit burn):
+   * on this shell, an attacker the room says is hurt (the `hurt` op, as a
+   * carrier's first detonation sends it) draws the explosions' fire and
+   * smoke over it every frame it lives, none before, and none once it is
+   * gone. The drill flies no carrier, so one of its own is said hurt. */
+  await page.until('window.__warAt(window.__rooms().roomNow).length > 0', 120000);
+  const burnt = await page.evaluate(`(async () => {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const fx = () => { const s = window.__war().fx; return { fire: s.burnFire, smoke: s.burnSmoke }; };
+    const now = () => window.__rooms().roomNow;
+    const a = window.__warAt(now())[0];
+    const whole = fx();
+    await wait(1000);
+    const still = fx();
+    window.__warHear({ type: 'war', op: 'hurt', ids: [a.id], hp: [1], at: now(), by: 0, p: a.p });
+    const drawn = window.__warAt(now()).find((x) => x.id === a.id);
+    /* Puffs come at a rate with a draw for a frame's fraction (burn), so
+     * wait for both to show, up to 5 s, rather than a fixed time. */
+    let hurt = fx();
+    for (let k = 0; k < 50 && !(hurt.fire - still.fire >= 4 && hurt.smoke - still.smoke >= 1); k += 1) {
+      await wait(100);
+      hurt = fx();
+    }
+    window.__warHear({ type: 'war', op: 'dead', ids: [a.id], credited: [], at: now(), by: 0, why: 'leave', p: a.p });
+    await wait(100);
+    const gone = fx();
+    await wait(1000);
+    return { id: a.id, hp: drawn ? drawn.hp : null, whole, still, hurt, gone, after: fx() };
+  })()`);
+  check('a hurt attacker burns: fire and smoke over it while it lives, none while whole, none once it is gone',
+    burnt.hp === 1 && burnt.still.fire === burnt.whole.fire && burnt.still.smoke === burnt.whole.smoke
+    && burnt.hurt.fire - burnt.still.fire >= 4 && burnt.hurt.smoke - burnt.still.smoke >= 1
+    && burnt.after.fire === burnt.gone.fire && burnt.after.smoke === burnt.gone.smoke, JSON.stringify(burnt));
+  await shot(page, '6-burning');
   const radio = (await warOf()).radio;
   console.log(`  info  the radio said: ${radio ? radio.said.join(', ') : 'no radio'}`);
 

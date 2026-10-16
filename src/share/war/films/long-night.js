@@ -43,7 +43,7 @@ const SCOPE_AT = [250, -2700];
 
 export default {
   id: 'long-night',
-  version: 1,
+  version: 2,
   cast: {
     ten: { airframe: '10inch' },
     ten2: { airframe: '10inch' },
@@ -82,6 +82,12 @@ export default {
       camera: {
         type: 'telephoto', lens: 200, ease: 'hold', at: [150, 221, -3600], look: crest(9.5, 0, 230),
       },
+      /* The slate (INTROS.md 1.8): where, when and the stakes. */
+      titles: [
+        {
+          key: 'war.slate.itaipu_4.place', when: 'war.slate.itaipu_4.when', sub: 'war.slate.itaipu_4.stakes', from: 1.5, to: { at: 'end', s: -0.8 }, kind: 'slate',
+        },
+      ],
       fade: [[0, 1], [1.5, 0]],
       out: 'cut',
     },

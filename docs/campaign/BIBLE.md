@@ -382,3 +382,79 @@ A short glossary so every line uses the same words in both languages
 | reroute | redirigir | Despacho |
 | backup | respaldo | |
 | breach | brecha | said whenever the face opens |
+
+## 10. The arc of Act 1
+
+Written 2026-10-15 for the owner's overnight story pass ("more
+storytelling, a game that tells a story"). Sections 1 to 9 are the world;
+this is the one story the player follows through it, from First Light to
+The River Below, and on to the act's end. Each beat names its mission and
+the channel that carries it (section 8). What is built and where is in
+each mission's Story section in MISSIONS.md.
+
+### 10.1 The story in five lines
+
+1. Day one: the war reaches the one thing it had not touched, and it
+   comes to look before it comes to strike (M1).
+2. All day it learns: it times the squad at dawn, reads the gates by
+   afternoon, and lies at dusk; each time it is held, and each time it
+   comes back through another door (M1 to M4).
+3. Below the dam a second flight, Carancho's, holds the river the whole
+   time, and runs out of birds by the second morning (M1 to M5).
+4. The turn: the source on the river shows the squad what the first day
+   was. Every attack was a lesson, and the enemy was the one taking it
+   (M5).
+5. What it learned it now spends: on the lines that carry the light (M6),
+   then on the face itself (M7).
+
+### 10.2 Who the voices are to the player
+
+| Voice | What the player hears in them | Their thread across the act |
+| --- | --- | --- |
+| CREST | The one who tells them what to do, and whose rare praise they fly for. | He reads the enemy's lessons aloud as he sees them: "That was a test" (M1), "This morning they timed us. This afternoon they read the gates. Now they've learned to lie" (M3), "Every time we stop them, they come back through another door" (M4). By M7 he admits how close it came. |
+| MIRADOR | The eyes, and the first to see a pattern. | She names each day's new trick as it arrives (the scout, the watched gates, the lie, the quiet), and in M5 she says the turn: "They kept that hull back until they'd learned how we fly. They're getting ready for something." |
+| TALLER | The cost: every kill is a bird spent and rebuilt. | Dry and warm; his lines track the rack, and his "Aguyje" at the nest (M5) is the act's only thanks from the shed. |
+| DESPACHO | The consequence: towns, backup, the right bank's lights. | Arrives when the stake becomes the light (M3), is the far, calm voice through the night (M4), and asks the squad for the last corridor (M6). |
+| CARANCHO | The other flight, the player's mirror: what happens to pilots who run out. | First heard at the end of M1's third stage ("The water under you is ours"), watching the spill come down on him (M2), promising to hold the river through the night (M3), running low on birds (M4), and out of them as M5 opens ("The river is yours"). In M5's twist C he flies his last bird to mark the carrier; his flight ends the act grounded and whole. |
+
+### 10.3 Day by day
+
+| When | Mission | What is at stake | What the enemy does | What the player learns | The link to the next |
+| --- | --- | --- | --- | --- | --- |
+| Day one, before dawn to morning | M1 First Light | The dam has never been touched; the intakes, the output. | Looks: a scout, single probes, then three axes at once. | Kill the eyes first; meet them early. | Win: it has been raining upstream since dawn. |
+| Day one, afternoon | M2 The Spillway | Control of the river: the spill has to run through the gates that work. | Uses what its morning scout saw: it knows which gates move. | Defend a few things hard; the water is a lane. | Win: Dispatch wants the switchyard standing by dusk. |
+| Day one, dusk into night | M3 Lights Out | The lights of the right bank's towns. | Lies: decoys in the stream. | Look before you spend a bird; the lights are the cost. | Win: the scope goes quiet, and Mirador does not like it. |
+| Night one to sunrise | M4 The Long Night | The squad itself: Hunters come for pilots, boats come dark. | Changes the game at night, through another door every time. | Fly for each other. | Win: downriver, Carancho is nearly out of birds. |
+| Day two, morning | M5 The River Below | The downstream face, now that Carancho's flight is grounded. | Shows its source: a carrier it kept back until it knew how the squad flies. | Kill the source. The turn: the first day was its lesson. | Win: Mirador thinks they have finished learning. |
+| Day two, dusk | M6 The Corridor | The lines: the towns can go dark with every unit spinning. | Spends what it learned where the squad is thinnest. | Split on purpose; spot for each other. | Win: the lines held; the hulls are seen on the far reservoir. |
+| Day three, before dawn | M7 Breach | The face itself. | What it learned it for. | Everything at once; if it opens, close it. | The end of Act 1. |
+
+### 10.4 The turn
+
+The turn is M5, at the carrier's death. Until then the player has been
+winning days; the turn re-reads them. MIRADOR says it on the radio
+(`itaipu-5-s3-learn`), the win's epilogue says it again on screen ("Every
+attack so far was them learning how the squad flies"), and CREST's and
+MIRADOR's earlier lines are the evidence the player already heard. After
+it, the act stops being about holding a day and becomes about what the
+enemy is getting ready for: the lines (M6) and the face (M7).
+
+### 10.5 How the story is delivered
+
+Within section 8's channels and section 0's rules (no person on screen, no
+figure spoken, the enemy unnamed, no invented fact about the real place or
+its people):
+
+- **The briefing line** (`campaign.m.<key>_blurb`, the campaign card and
+  the room's briefing): today's stake, linked to yesterday.
+- **The radio**: the threads above, as story lines cued at the quiet
+  points of a stage (a stage's clear, the hold's end, the kill of a
+  source), so they are heard in a beat, not over a fight.
+- **The epilogue** under the end banner (`war.epilogue.itaipu_N.win` and
+  `.lose`, src/game/debrief.js missionEpilogue): a win closes the day and
+  points at the next; a loss says what is left and sends the squad back
+  in.
+- **The story card** on the campaign page (`campaign.story.<key>`, its
+  `_place` and `_when`; src/ui/campaign.js storyCard): before the mission
+  the pilot goes on with, the place, the day and the hour, and two or
+  three sentences of what has happened.

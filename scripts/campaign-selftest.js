@@ -22,7 +22,7 @@
 
 import {
   ACT1, INTERIOR, INTERIOR_CAMPAIGN, UPGRADES, actOf, opsCampaignOf, applyResult, cardLabel, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
-  emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, released, seenFilm, spent, starsOf, totalStars, unlocked,
+  emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, released, seenFilm, spent, starsOf, storyNext, totalStars, unlocked,
   PAID_KEEP, paidWar, payResult,
 } from '../src/game/campaign.js';
 import { createCampaignScreen } from '../src/ui/campaign.js';
@@ -69,26 +69,32 @@ check('mission 1 is open and free, the rest wait in order', unlocked(fresh, 0) &
   && ACT1.slice(1).every((m) => !m.free));
 check('mission 1 is in this build', Object.hasOwn(MISSIONS, ACT1[0].id));
 
-console.log('release (the owner, 2026-10-04: only mission 1 until it is right; 2026-10-07: mission 1 held too; 2026-10-15: all four released)');
+console.log('release (the owner, 2026-10-04: only mission 1 until it is right; 2026-10-07: mission 1 held too; 2026-10-15: all four released; 2026-10-16: everything built released)');
 check('Act 1 is the seven missions of docs/campaign/MISSIONS.md, in order',
   ACT1.map((m) => m.id).join() === 'itaipu-1,itaipu-2,itaipu-3,itaipu-4,itaipu-5,itaipu-6,itaipu-7', ACT1.map((m) => m.id).join());
 check('every mission says available, development or soon', ACT1.every((m) => ['available', 'development', 'soon'].includes(m.release)));
-check('the four missions with a file are available to every pilot (the owner, 2026-10-15), 5 to 7 coming soon',
-  ACT1.slice(0, 4).every((m) => m.release === 'available') && ACT1.slice(4).every((m) => m.release === 'soon'), ACT1.map((m) => m.release).join());
+check('1 to 6 are available to every pilot (the owner, 2026-10-15 and 2026-10-16), 7 coming soon',
+  ACT1.slice(0, 6).every((m) => m.release === 'available') && ACT1[6].release === 'soon',
+  ACT1.map((m) => m.release).join());
 check('a mission with a definition in the build is available or in development, one without is coming soon',
   ACT1.every((m) => (m.release !== 'soon') === Object.hasOwn(MISSIONS, m.id)));
-check('released: 1 to 4, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id))
-  && ['itaipu-5', 'itaipu-6', 'itaipu-7'].every((id) => !released(id)));
-check('released with dev: 1 to 4 too, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id, true))
-  && ['itaipu-5', 'itaipu-6', 'itaipu-7'].every((id) => !released(id, true)));
+check('released: 1 to 6, never 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-5', 'itaipu-6'].every((id) => released(id))
+  && !released('itaipu-7'));
+check('released with dev: 1 to 6 too; never 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-5', 'itaipu-6'].every((id) => released(id, true))
+  && !released('itaipu-7', true));
 check('a mission outside Act 1 (the drill) is not the campaign\'s to hold back', released('itaipu-drill') && Object.hasOwn(MISSIONS, 'itaipu-drill'));
 /* The gate itself, on a mission held in development (scripts/lib/held.js):
  * not released, released with dev, the rest as they were, and put back. */
 withHeld(['itaipu-2'], () => {
   check('a mission held in development: not released, released with dev, the others unchanged',
-    !released('itaipu-2') && released('itaipu-2', true) && released('itaipu-1') && released('itaipu-3') && !released('itaipu-5', true));
+    !released('itaipu-2') && released('itaipu-2', true) && released('itaipu-1') && released('itaipu-3') && !released('itaipu-7', true));
 });
 check('and the hold is put back: mission 2 released again', released('itaipu-2') && ACT1[1].release === 'available');
+withHeld(['itaipu-5', 'itaipu-6'], () => {
+  check('5 and 6 held as they were until 2026-10-16: not released, released with dev, 1 to 4 unchanged',
+    ['itaipu-5', 'itaipu-6'].every((id) => !released(id) && released(id, true)) && ['itaipu-1', 'itaipu-4'].every((id) => released(id)));
+});
+check('and put back: 5 and 6 released again', released('itaipu-5') && released('itaipu-6') && ACT1[4].release === 'available' && ACT1[5].release === 'available');
 console.log('Act 1 is the mission registry\'s (src/share/war/missions/index.js act, order, key, free, release)');
 const actRows = [...Object.values(MISSIONS), ...PLANNED].filter((m) => m.act === 1);
 check('every registry mission and planned row of act 1 is in ACT1, and nothing else',
@@ -140,7 +146,7 @@ check('the hunter warning is shown, never sold', cannotBuy(s, 'warning') === 'la
 check('rack +2 needs rack +1', cannotBuy(applyResult(fresh, 'x', { stars: 0, credits: 5000, won: false }), 'rack-2') === 'needs');
 let rich = applyResult(fresh, 'itaipu-1', { stars: 3, credits: 5000, won: true });
 rich = buy(rich, 'wide');
-check('buying a warhead equips it and spends its price', rich.equipped.warhead === 'wide' && credits(rich) === 5000 - 500);
+check('buying a warhead equips it and spends its price', rich.equipped.warhead === 'wide' && credits(rich) === 5000 - 750);
 check('bought twice is refused', cannotBuy(rich, 'wide') === 'owned' && throws(() => buy(rich, 'wide')));
 rich = buy(buy(buy(rich, 'rack-1'), 'rack-2'), 'speed');
 check('rack stacks twice, speed on', same(loadoutOf(rich), { rack: 6, warhead: 'wide', speedMul: 1.15 }), JSON.stringify(loadoutOf(rich)));
@@ -149,9 +155,10 @@ check('equip back to standard, speed off', same(loadoutOf(rich), { rack: 6, warh
 check('an unowned warhead cannot be equipped', throws(() => equip(rich, 'warhead', 'emp')));
 
 const shopTotal = UPGRADES.filter((u) => !u.later).reduce((n, u) => n + u.price, 0);
-/* The act as built: the shop was priced against missions 1 to 4, and
- * 5 to 7 (release 'soon') have no mission to pay for yet. */
-const twoStars = ACT1.filter((m) => Object.hasOwn(MISSIONS, m.id)).reduce((n) => n + expectedCredits(2, TWO_STAR_KILLS), 0);
+/* The act as a pilot flies it: the shop is priced against the missions
+ * released, 1 to 6 since 2026-10-16; a mission held in development pays
+ * no pilot, and 7 has no mission. */
+const twoStars = ACT1.filter((m) => released(m.id)).reduce((n) => n + expectedCredits(2, TWO_STAR_KILLS), 0);
 check('Act 1 as built, at two stars, buys about half the shop', twoStars / shopTotal > 0.45 && twoStars / shopTotal < 0.6, `${twoStars} of ${shopTotal}`);
 const loadouts = [];
 for (const u of UPGRADES.filter((x) => !x.later)) {
@@ -182,7 +189,7 @@ settings.campaign = 'junk from a hand edit';
 check('a broken section loads empty', same(store.load(), fresh));
 
 console.log('merge');
-let pc = applyResult(fresh, 'itaipu-1', { stars: 3, credits: 600, won: true });
+let pc = applyResult(fresh, 'itaipu-1', { stars: 3, credits: 900, won: true });
 let phone = applyResult(fresh, 'itaipu-1', { stars: 1, credits: 200, won: false });
 phone = applyResult(phone, 'itaipu-2', { stars: 2, credits: 400, won: true });
 pc = buy(pc, 'wide');
@@ -190,8 +197,8 @@ phone = buy(phone, 'rack-1');
 const m = mergeCampaign(pc, phone);
 check('max stars per mission, won once is won', starsOf(m, 'itaipu-1') === 3 && m.missions['itaipu-1'].won && starsOf(m, 'itaipu-2') === 2);
 check('earned is the higher total', m.earned === Math.max(pc.earned, phone.earned), `${m.earned}`);
-check('owned is the union, at the price paid', same(Object.keys(m.owned).sort(), ['rack-1', 'wide']) && spent(m) === 900);
-check('credits are earned less spent', credits(m) === m.earned - 900, `${credits(m)}`);
+check('owned is the union, at the price paid', same(Object.keys(m.owned).sort(), ['rack-1', 'wide']) && spent(m) === 1350);
+check('credits are earned less spent', credits(m) === m.earned - 1350, `${credits(m)}`);
 check('credits can go below zero after a merge, and nothing is then for sale', credits(m) < 0 && cannotBuy(m, 'speed') === 'credits');
 check('the incoming side\'s equipped wins', m.equipped.warhead === 'wide');
 check('merge is idempotent', same(mergeCampaign(m, m), m));
@@ -305,6 +312,22 @@ console.log('a war\'s result is paid once, by the room\'s id for it (phase 19, C
   check('and one seen undecided is paid once', old.state().earned === 240 && same(old.state().wars, []));
 }
 
+console.log('the story goes on with the first mission not won (docs/campaign/BIBLE.md 10, the arc)');
+{
+  const won = (ids) => ids.reduce((x, id) => applyResult(x, id, { stars: 1, credits: 100, won: true }), emptyCampaign());
+  const at = (st) => { const n = storyNext(st); return n ? `${n.mission.id}:${n.n}` : null; };
+  check('a fresh campaign tells mission 1\'s, a won mission the next one\'s, a lost one its own again, none once all are won',
+    at(emptyCampaign()) === 'itaipu-1:1' && at(won(['itaipu-1'])) === 'itaipu-2:2'
+    && at(applyResult(won(['itaipu-1']), 'itaipu-2', { stars: 0, credits: 10, won: false })) === 'itaipu-2:2'
+    && at(won(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'])) === 'itaipu-5:5'
+    && at(won(ACT1.map((m) => m.id))) === null);
+  const keys = ACT1.slice(0, 5).flatMap((m) => ['', '_place', '_when'].map((x) => `campaign.story.${m.key}${x}`));
+  const missing = keys.filter((k) => !EN[k] || !ES[k] || EN[k] === ES[k]);
+  check('missions 1 to 5 have a story card, its place, hour and text, in English and Spanish', missing.length === 0 && Boolean(EN['campaign.story_label'] && ES['campaign.story_label']), missing.join(', '));
+  const later = ACT1.slice(5).map((m) => `campaign.story.${m.key}`).filter((k) => EN[k]);
+  check('none for missions 6 and 7 (being built; their beats are MISSIONS.md\'s)', later.length === 0, later.join(', '));
+}
+
 console.log('an ops match\'s result is paid once, by the room\'s id for it (the war\'s rule, COMPLETENESS 2)');
 {
   /* The page's half (src/ui/opscampaign.js record) on a fake shell, as
@@ -402,17 +425,25 @@ check('a change to it is stamped', stampChanges({ campaign: pc }, { campaign: ph
 
 console.log('The Interior (docs/campaign/interior/PLAN.md section 3, TECH-NEEDS.md N20)');
 check('its five missions, in order', INTERIOR.map((m) => m.id).join() === 'interior-1,interior-2,interior-3,interior-4,interior-5');
-check('Mission 1 is held in development: not started on the live server, started with dev', INTERIOR[0].release === 'development'
-  && !released('interior-1') && released('interior-1', true));
-/* A mission is built when it has its file: then held in development
- * like Mission 1, else soon in the gate and never started. */
+/* A mission is built when it has its file: then available to every
+ * pilot (the owner, 2026-10-16: "make everything available to
+ * everyone"), else soon in the gate and never started. */
 const built = (m) => Object.hasOwn(OPS_MISSIONS, m.id);
-check('2 to 5: with a mission file held in development (dev only), without one soon and never started', INTERIOR.slice(1).every((m) => (built(m)
-  ? m.release === 'development' && !released(m.id) && released(m.id, true)
-  : m.release === 'soon' && !released(m.id) && !released(m.id, true))) && built(INTERIOR[1]) && built(INTERIOR[2]));
-check('Mission 1 has its mission file, as development means', Object.hasOwn(OPS_MISSIONS, 'interior-1'));
-check('the cards read Under development on 2 to 5 (the owner\'s words)', INTERIOR.slice(1).every((m) => cardLabel(m) === 'development')
-  && cardLabel(INTERIOR[0]) === 'development' && cardLabel(ACT1[4]) === 'soon');
+check('1 to 5: with a mission file available to every pilot, without one soon and never started', INTERIOR.every((m) => (built(m)
+  ? m.release === 'available' && released(m.id) && released(m.id, true)
+  : m.release === 'soon' && !released(m.id) && !released(m.id, true)))
+  && INTERIOR.slice(0, 3).every(built) && !INTERIOR.slice(3).some(built), INTERIOR.map((m) => m.release).join());
+/* The gate itself, on The Interior's own rows held in development
+ * (scripts/lib/held.js): not started on the live server, started with
+ * dev, and put back. */
+withHeld(['interior-1', 'interior-3'], () => {
+  check('a mission held in development: not started on the live server, started with dev, 2 unchanged',
+    ['interior-1', 'interior-3'].every((id) => !released(id) && released(id, true)) && released('interior-2'));
+});
+check('and the hold is put back: 1 and 3 released again', released('interior-1') && released('interior-3') && INTERIOR[0].release === 'available');
+check('the cards read Under development on 4 and 5 (the owner\'s words), Available on 1 to 3 and Act 1\'s 1 to 6',
+  INTERIOR.slice(3).every((m) => cardLabel(m) === 'development') && INTERIOR.slice(0, 3).every((m) => cardLabel(m) === 'available')
+  && ACT1.slice(0, 6).every((m) => cardLabel(m) === 'available') && cardLabel(ACT1[6]) === 'soon');
 check('the campaign asks the war\'s consent first (armed conflict)', INTERIOR_CAMPAIGN.consent === true);
 /* Each change, made to copies of the ops registry and its rows, must stop
  * checkRows (src/share/ops/missions.js), which runs at its load. */
@@ -422,7 +453,8 @@ const ROW_CONTROLS = [
   ['a mission file without a row', (m, r) => { r.splice(r.findIndex((x) => x.id === 'interior-2'), 1); }],
   ['a mission file whose row is soon', (m, r) => { r.find((x) => x.id === 'interior-3').release = 'soon'; }],
   ['a mission file whose row is another campaign\'s', (m, r) => { r.find((x) => x.id === 'interior-1').campaign = 'other'; }],
-  ['a row in development without its file', (m) => { delete m['interior-3']; }],
+  ['a row in development without its file', (m, r) => { r.find((x) => x.id === 'interior-3').release = 'development'; delete m['interior-3']; }],
+  ['a released row without its file', (m) => { delete m['interior-3']; }],
   ['an available row without its file', (m, r) => { r.find((x) => x.id === 'interior-4').release = 'available'; }],
 ];
 for (const [name, change] of ROW_CONTROLS) {

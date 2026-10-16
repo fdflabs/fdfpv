@@ -287,7 +287,7 @@ const CONTROLS = [
   ['a world folder for no world', 'src/maps/<id>/', (r) => { r.files.push('yellowstone'); }],
   ['a poster for no world', 'assets/posters/', (r) => { r.files.push('yellowstone.jpg'); }],
   ['a course the generator does not write', 'docs/itaipu-courses/', (r) => { r.files.push('dam-sprint.json'); }],
-  ['a mission file the registry does not import', 'src/share/war/missions/', (r) => { r.files.push('itaipu-5'); }],
+  ['a mission file the registry does not import', 'src/share/war/missions/', (r) => { r.files.push('itaipu-7'); }],
   ['a registered mission with no file', 'src/share/interior/missions/', (r) => { r.files = r.files.filter((f) => f !== 'interior-2'); }],
   ['a film the registry does not import', 'src/share/war/films/', (r) => { r.files.push('night-raid'); }],
   ['an Interior film the registry does not import', 'src/share/interior/films/', (r) => { r.files.push('int4-intro'); }],

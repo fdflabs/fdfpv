@@ -1003,17 +1003,23 @@ const SKY_FRAGMENT = /* glsl */ `
  * camera before every draw and drawn first with no depth test, so a world
  * wider than its 1500 m radius (the Alps) never flies out of it and it is
  * never in front of a far ridge.
+ *
+ * A world passes its own sun (a unit vector toward the light its
+ * shadows come from, so the disc is where the shadows say it is) and its
+ * own horizon (its fog's colour, so a far ridge fades into the band
+ * behind it, not into a colour the sky does not have), and may pass its
+ * zenith. Left out, each is the dome's own (docs/LOOK.md).
  */
-export function skyDome() {
+export function skyDome({ sun = SUN_DIRECTION, horizon = SKY_HORIZON, zenith = SKY_ZENITH } = {}) {
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
     depthTest: false,
     fog: false,
     uniforms: {
-      uHigh: { value: new THREE.Color(SKY_ZENITH) },
-      uHorizon: { value: new THREE.Color(SKY_HORIZON) },
-      uSun: { value: SUN_DIRECTION.clone() },
+      uHigh: { value: new THREE.Color(zenith) },
+      uHorizon: { value: new THREE.Color(horizon) },
+      uSun: { value: sun.clone() },
       uDrift: { value: new THREE.Vector2() },
     },
     vertexShader: /* glsl */ `

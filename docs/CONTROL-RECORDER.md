@@ -221,6 +221,38 @@ Added 2026-10-14 (w40 replay v21). Two things the room sends were missing from a
 - Refused: either in a file older than 21, a version 21 file with neither, an order that is not a room ms, a
   `by` over 40 characters.
 
+### Hurt and spotted hulls in a replay (file version 22)
+
+Added 2026-10-15 (w47 replay marks). Mission 5's carrier burns after its first hit (src/main.js, the explosions'
+burn over its deck, driven by roomwar.js's `hp` on attackersAt) and a spotted one is marked LAUNCHING or EMPTY
+HULL (`spotted`, src/ui/warmarkers.js). A clip's war kept neither, so the crash cam replayed every hull whole.
+
+- **What is kept.** Each scripted attacker in a clip's war may hold `hurt`, [{ at, hp }], every hp it was drawn
+  with and the room ms of the first live frame that drew it so, and `spotted`, { at, how } ('launching' or
+  'silent'). src/replay/warrec.js draw() takes them from what the frame drew (crashcam.js tapWar wraps the
+  attackers layer's update), whatever the screen, as births are. Not from the room's ops: the live screen
+  draws them from the frame after it heard the op, a late joiner from its welcome's `hurt` and `spotted`, and
+  roomwar emits no event for a spot. A hull never mends and is never unspotted, so neither goes back.
+- **What a replay does.** warrec.js warAt puts `hp` and `spotted` on each attacker as attackersAt does, from
+  the entry at or before the row's room ms, so a row has them exactly as the live frame at that row drew them.
+  src/replay/warscene.js burns each one with an hp over its deck at the frame's step, as main.js does at its
+  dt: while the replay plays forward, none on a jump or a still frame (after a jump the column grows back).
+  The spot rides on the attacker drawn; the war's markers are the flight screen's HUD and are not drawn over a
+  replay (warscene.js, main.js hands warMarkers null off the flight screen), so no mark is drawn on it.
+- **How a version 22 file is told.** A build before this one refuses an agent with a fourth key as a damaged
+  file, so a clip is version 22 when an agent has `hurt` or `spotted`, and only then; the reader holds the
+  header to the same rule both ways, and the build before refuses it by its version ("version 22, this build
+  reads 1 and ... and 21", the screen's reason `version`). Its columns are the newest layout's, so it needs the
+  sticks and the animation clock, and it carries the app build. A clip with neither is written as the version
+  before, byte for byte, and versions 1 to 21 are read without them: their replay draws every hull whole.
+- **The room's birth records.** Every birth the stage graphs send carries `wave`, and some `meet`, `wire`,
+  `sector`, `az`, or a launch's `from`, `parent` and `group`. checkWar took only the eight original keys, so
+  every real war clip since the stage graphs was written and then refused on reading as a damaged file. It
+  now takes those, each of its kind; no version, since the writer never changed.
+- Refused: either in a file older than 22, a version 22 file with neither, an hp below 1, hit points out of
+  room ms order, an empty hurt, a spot that is neither launching nor silent, a birth field of the wrong kind or
+  one the room never sends.
+
 ## Data
 
 One row per 1 ms plant step, in flight (not on the launch stand or a perch). Columns
@@ -273,6 +305,21 @@ Upload anything. Record when the switch is off. Replace the flight log.
   row pressed with a pointer hands over a CSV that parses; a restart keeps the last flight; the viewer's
   Last flight button, pressed with a pointer, shows it.
 - `npm run actions:golden`, `npm run war:legacy`: unchanged.
+- `npm run crashcam:selftest` (section 29): two of The River Below's hulls drawn hurt and spotted as tapWar
+  records them (one hurt before any row), each kept once at the room ms of the first frame that drew it; a
+  replay whole and unmarked before that row and hurt and marked from it; the version 22 round trip bit for bit,
+  either alone enough for it, a trim keeping copies; the same war with neither still the version 18 file; the
+  refusals above by their messages, version 23 refused by its version. Section 17: a birth record as the room
+  sends it read back as it was.
+- `npm run war:grid` (marks): The River Below played on the room by four bot pilots (war-balance.js runOne,
+  seed 2: both hulls spotted, one silent, both hit once), framed at 60 fps into the real client and recorded
+  through the real ring: 34262 rows, 0 where an attacker's hp or spot differs from the live frame's; without
+  them 3622 differ (the control). Two rows after the one launch draw its children before the live frame heard
+  their birth (a replay draws a birth from its t0, the live screen from the message a room tick later): shown,
+  and not this change's.
+- `npm run replay:world`: a hurt hull in a clip burns in the replay's scene (three.js in the page) from its
+  row on while it plays, none before it and none on a still frame, its puffs still alive at the end (a clip
+  with no explosions of its own used to clear the air every frame: 0 alive before the fix).
 - `npm run crashcam:selftest` (section 28): the order and a damage event by a kind recorded as tapWar records
   them, a later null not taking the order back; a replay with the station lit before the order and out after
   it; the version 21 round trip bit for bit, either alone enough for it, a trim keeping the order; the same war

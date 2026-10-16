@@ -35,6 +35,7 @@ import EN from '../src/strings/en.js';
 import ES from '../src/strings/es.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { check, finish, opsRoom } from './lib/opsroom.js';
+import { withHeld } from './lib/held.js';
 import { feedSnow } from '../src/share/ops/feed.js';
 
 const W = worldFor('interior');
@@ -113,8 +114,8 @@ console.log('data');
   check('every role\'s platform is an airframe', M.roles.every((r) => r.platforms.every((p) => AIRFRAMES.some((a) => a.id === p))));
   const inside = Object.entries(M.points).filter(([, p]) => Math.max(Math.abs(p.at[0]), Math.abs(p.at[1])) > M.boundary.max[0]);
   check('every point is inside the boundary\'s warning line', !inside.length, inside.map(([k]) => k).join());
-  check('held development: a dev build lists it, a live one does not', INTERIOR.find((x) => x.id === 'interior-3').release === 'development'
-    && released('interior-3', true) && !released('interior-3', false));
+  check('available (the owner, 2026-10-16): a dev build and a live one both list it', INTERIOR.find((x) => x.id === 'interior-3').release === 'available'
+    && released('interior-3', true) && released('interior-3', false));
 }
 
 console.log('the forward feed (src/share/ops/feed.js)');
@@ -133,10 +134,17 @@ console.log('the forward feed (src/share/ops/feed.js)');
 
 console.log('the gate');
 {
+  /* Released to every pilot (the owner, 2026-10-16: "make everything
+   * available to everyone"); the gate itself on the mission held in
+   * development (scripts/lib/held.js). */
   const live = opsRoom(M, { ...ROOM, devMissions: false });
-  check('the live room refuses Mission 3: unreleased', live.errors(0).at(-1)?.error === 'unreleased' && live.view(0) === null);
-  const dev = opsRoom(M, ROOM);
-  check('a dev room starts it', dev.view(0)?.state === 'countdown' && dev.view(0).mission === 'interior-3');
+  check('released: the live room starts Mission 3', live.view(0)?.state === 'countdown' && live.view(0).mission === 'interior-3');
+  withHeld(['interior-3'], () => {
+    const held = opsRoom(M, { ...ROOM, devMissions: false });
+    check('held in development: the live room refuses Mission 3: unreleased', held.errors(0).at(-1)?.error === 'unreleased' && held.view(0) === null);
+    const dev = opsRoom(M, ROOM);
+    check('held: a dev room starts it', dev.view(0)?.state === 'countdown' && dev.view(0).mission === 'interior-3');
+  });
 }
 
 /* ---------------------------------------------------------- the pilot */

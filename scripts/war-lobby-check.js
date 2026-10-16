@@ -13,6 +13,7 @@
  *     pilots, the cursor on Ready, no Fly and no world row.
  *   B finds it in Rooms, joins, says Continue to the consent: in the same
  *     lobby, each in the other's pilots.
+ *   Both screens build mission 1's world under the lobby and say so.
  *   A presses R, B Enter on Ready: both are told the five seconds, and
  *     both are in mission 1's briefing.
  *   The host ends it: both are back in the lobby, nobody ready, the last
@@ -62,7 +63,7 @@ import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
-import { MISSIONS } from '../src/share/war/missions/index.js';
+import { MISSIONS, missionTime } from '../src/share/war/missions/index.js';
 import { stagesOf } from '../src/share/war/stages.js';
 import { FILMS, briefingMs } from '../src/share/war/films/index.js';
 import { filmMs } from '../src/share/war/film.js';
@@ -255,6 +256,24 @@ try {
     await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(rowAction)})`, 30000).catch(() => {});
   };
   await openRooms();
+  /* B's world as B tells the room while B builds the mission's (op
+   * 'world', window.__war().world), sampled from the join until it
+   * stands: while B's map is not ready B stands on no world, and a world
+   * told then (B said swiss2:morning through its build of Itaipu, w45,
+   * 2026-10-15) is one the room would count on. */
+  const told = { down: 0, wrong: [], done: false };
+  const sampleTold = (async () => {
+    while (!told.done) {
+      const w = await b.evaluate("({ told: window.__war().world, ready: window.__map().ready })").catch(() => null);
+      if (w && !w.ready) {
+        told.down += 1;
+        if (w.told !== null && told.wrong.length < 3) {
+          told.wrong.push(w.told);
+        }
+      }
+      await b.sleep(100);
+    }
+  })();
   await b.evaluate(`(() => { window.__ui.act(${JSON.stringify(rowAction)}); return true; })()`);
   await b.until(`${DIALOG} !== null`, 30000).catch(() => {});
   await answer(b, true);
@@ -265,6 +284,24 @@ try {
     && b2.screen === 'friends' && b2.here === 'friends-lobby-ready' && b2.flying !== 'flight', JSON.stringify({ a: a2.pilots, b: b2.pilots }));
   await shot(a, 'lobby-1920x1080');
   await shot(b, 'lobby-390x844');
+
+  /* BOTH WORLDS UP. Every screen builds the mission's world under the
+   * lobby and tells the room so (op 'world', edge/rooms/war.js
+   * WORLD_LEAD_MS); Ready is pressed once both have, as the check reads
+   * what a screen draws on its frames. Pressed before, it raced B's
+   * build of Itaipu (load 6, 2026-10-15): B's frames stalled up to 3 s
+   * at a time, so B's panel missed the five seconds, and B was seated
+   * in the Striker only when its world stood, 7 s into the briefing. */
+  const missionWorld = `${MISSIONS['itaipu-1'].map}:${missionTime(MISSIONS['itaipu-1']) ?? 'day'}`;
+  const worldUp = `window.__war().world === ${JSON.stringify(missionWorld)} && window.__map().ready`;
+  await Promise.all([a, b].map((p) => p.until(worldUp, 120000).catch(() => {})));
+  told.done = true;
+  await sampleTold;
+  check('while B builds it, B tells the room no world: none told on a frame its map was not ready', told.down > 0 && told.wrong.length === 0,
+    JSON.stringify(told));
+  const worlds = await Promise.all([a, b].map((p) => p.evaluate("({ told: window.__war().world, ready: window.__map().ready })")));
+  check(`both screens build mission 1's world under the lobby and tell the room: ${missionWorld}`, worlds.every((w) => w.told === missionWorld && w.ready),
+    JSON.stringify(worlds));
 
   /* BOTH READY. */
   await a.tap('KeyR');
@@ -285,7 +322,8 @@ try {
   /* Each came to it in the default aircraft, no war one, so each is put
    * in the Striker, the war's default, and told so once the film is over.
    * The seat is taken on the shell's next frame after the briefing comes
-   * in, so it is waited for: read at once, it failed one run in two. */
+   * in, with its world standing (BOTH WORLDS UP above), so it is waited
+   * for: read at once, it failed one run in two. */
   await Promise.all([a, b].map((p) => p.until(`window.__war().craft.length > 0`, 5000).catch(() => {})));
   const crafts = await Promise.all([a, b].map((p) => p.evaluate("({ seated: window.__ui.settings.airframe, craft: window.__war().craft })")));
   check('a pilot coming into a war in another aircraft is put in the Striker, its line ready to say', crafts.every((c) => c.seated === WAR_DEFAULT

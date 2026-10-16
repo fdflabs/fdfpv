@@ -152,6 +152,27 @@ New targets (`map.targets` and the mission's MW table):
 and breacher are unmarked grey hulls, bigger than a sea drone);
 `src/ui/warmarkers.js` labels them (NODRIZA/CARRIER, ROMPEDOR/BREACHER).
 
+**The carrier is built** (branch w46-m5, 2026-10-15, mission 5): the
+kind appended to KINDS, its 12 m hull and marker, and its spawn's
+`launch` judged by the room in order with the detonations. A child's
+route starts at its birth's `from`, the carrier's pose at the launch,
+which the room computes once and sends, rather than every screen
+planning from a runtime point. The interval runs by pilots (MISSIONS.md
+M5's as built says why). The breacher is not built.
+
+**The towers are built** (branch w47-m6, 2026-10-15, mission 6):
+`scripts/war-targets.js` writes `src/share/war/itaipu-towers.js` from
+the data folder's OSM power lines and the built map (each tower where
+the town part stands it): `w`, the ten towers of the double circuit line
+west from the right bank yard (ways w1395855080 and w163214315), and
+`e`, the nineteen of IPU 60Hz FI1 east from the powerhouse (w230690313),
+each numbered from the dam. They are the mission's own targets, not the
+map's (as the gantries are): no fire or smoke is drawn on a tower hit.
+A target's `line` makes it carry its mw once (`stages.js` worthOf: a
+second tower of a line down costs nothing), and a tower hit is a struck
+line at the tower for `grid.js` (its nearest town district goes out,
+the wire strike's path).
+
 ### T1.7 Hit points
 
 `KIND[k].hp` (default 1). A detonation on an attacker with hp over 1
@@ -159,6 +180,14 @@ decrements it and sends `{ op: 'hurt', id, at, by, hp }` instead of
 `dead`; the defender is spent as today; a `penetrator` warhead removes
 all of a kind's hp in one hit. Kills, assists and earned airframes count
 on the death only. The harness's bands hold for the decrement.
+
+**Built** (branch w46-m5): `routes.js` hpOf, `edge/rooms/war.js`
+detonate, with the hits kept in the match (`m.hurt`) for a restore, and
+`{ op: 'hurt', ids, hp, at, by, p }` (a boom may hurt several); war:stages
+holds two booms, the second pilot credited, and a penetrator's one.
+Since branch w46-m5b the view carries `hurt` (each live attacker's hp
+left), so a pilot who joins draws a hurt carrier hurt, and a hurt one
+burns on every screen (MISSIONS.md M5, The burn).
 
 ### T1.8 Spotting
 
@@ -178,6 +207,25 @@ dormant (no signal, decision 9):
 - CPU: a seat to attacker distance per tick, the same pairs the referee
   already walks; report it in `war:harness` against the 60 ms a second
   budget (WARFARE-PLAN 4.4).
+
+**Built for mission 5 only** (branch w46-m5b, 2026-10-15; MISSIONS.md M5
+Spotting): a spawn's `spot` makes its attackers spottable, 450 m for 1.5
+s by any war seat (no spotter airframe flies in a war), the line of
+sight not modelled; `{ op: 'spot', ids, at, by, silent }`, the view's
+`spotted`, and the trigger `{ spot: { group?, kind?, silent? } }`. Only
+mission 5's carriers carry it; the marker reads what was spotted
+(LAUNCHING, EMPTY HULL). Not built: every attacker spotted, the decoy
+read for everybody, the `spot` objective, the CPU report. The cost now
+is one distance per spottable hull per seat per tick (two hulls at
+most).
+
+**Extended for mission 6** (branch w47-m6): any spawn may be `spot`, and
+a spotted attacker other than a carrier is marked as its own kind
+(`routes.js` spottedAs), so a spotted decoy reads DECOY for everybody at
+any range. The `spot` objective is data: `{ kind: 'spot', done: { spot:
+{ group } }, fail: { leaked: 1, group } }`. Still not built: the spotter
+airframes, the ground's line of sight, the CPU report (one distance a
+spottable attacker a seat a tick).
 
 ### T1.9 Target states for the story
 
@@ -238,6 +286,12 @@ both deterministic and stored:
   M4's twist A is `itaipu-4.js` `STATION_DARK`, flown by `war:stages`
   both ways, and drawn among The Long Night's twists since its radio was
   voiced (MISSIONS.md M4).
+- Islanding (M6's last corridor, branch w47-m6): a hold's `island`
+  (district ids) is a restore marked `island`, which `grid.js` keeps lit
+  whatever the rest loses (no unit loss sheds it, the yard does not put
+  it out); a struck line in it still cuts it. war:grid holds it. The
+  crash cam's replay keeps it as a plain restore (its file's restores
+  are `{ at, districts }`, version 20).
 - `war:grid` gains the restore (the four back after the reroute, in
   order, flickering, bit for bit on two screens, a late joiner agreeing,
   a later unit loss shedding one again), its negative control (a failed

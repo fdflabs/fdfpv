@@ -687,7 +687,46 @@ const AGE_PARS = /* glsl */ `
  * and the face is damp and dark for metres over the tailwater, its top
  * edge ragged where the spray and the waves reach.
  */
-const AGE_BODY = /* glsl */ `
+/*
+ * The chute's floor (chute-dry photograph): where the spillway has run,
+ * the slabs are not the walls' pale concrete but a dark grey brown,
+ * streaked down the flow in long bands a few metres across, rust orange
+ * and wet dark among them, with the slabs' joints across it and along
+ * it. ageBody's streaks run down steep faces and leave a floor clean,
+ * so the floor is this, in the chute's frame (spillLayout's C: u across,
+ * d down from the middle of the gates), from the ogee to the bays' lips.
+ * The joints' spacing is read by eye off chute-dry, not published.
+ */
+const CHUTE_JOINT = { d: 15, u: 10 };
+function chuteBody({ C, W }) {
+  const f = (v) => v.toFixed(4);
+  const o = C.at(0, 0);
+  return /* glsl */ `
+    {
+      vec2 cq = vS2World.xz - vec2(${f(o[0])}, ${f(o[1])});
+      float cu = dot(cq, vec2(${f(C.a[0])}, ${f(C.a[1])}));
+      float cd = dot(cq, vec2(${f(C.n[0])}, ${f(C.n[1])}));
+      float inChute = (1.0 - smoothstep(${f(W - 1)}, ${f(W)}, abs(cu))) * smoothstep(${f(SPILL.ogee)}, ${f(SPILL.ogee + 10)}, cd)
+        * (1.0 - smoothstep(${f(Math.max(...SPILL.bayEnds))}, ${f(Math.max(...SPILL.bayEnds) + 2)}, cd));
+      float k = inChute * smoothstep(0.55, 0.8, wn.y);
+      if (k > 0.0) {
+        float band = itdNoise(vec2(cu / 3.1, cd / 140.0)) * 0.6 + itdNoise(vec2(cu / 0.9 + 7.0, cd / 60.0)) * 0.4;
+        float rust = smoothstep(0.52, 0.8, itdNoise(vec2(cu / 2.2 + 31.0, cd / 110.0)));
+        float wet = smoothstep(0.58, 0.85, itdNoise(vec2(cu / 4.0 + 3.0, cd / 120.0)) * 0.7 + itdNoise(vec2(cu / 1.3, cd / 45.0)) * 0.3);
+        vec3 c = diffuseColor.rgb * mix(0.42, 0.72, band);
+        c *= mix(vec3(1.0), vec3(1.3, 0.82, 0.5), 0.75 * rust);
+        c *= mix(1.0, 0.55, wet);
+        float jd = abs(fract(cd / ${f(CHUTE_JOINT.d)}) - 0.5) * ${f(CHUTE_JOINT.d)};
+        float ju = abs(fract(cu / ${f(CHUTE_JOINT.u)}) - 0.5) * ${f(CHUTE_JOINT.u)};
+        float joint = max(1.0 - smoothstep(0.04, 0.12, ${f(CHUTE_JOINT.d / 2)} - jd), 1.0 - smoothstep(0.04, 0.12, ${f(CHUTE_JOINT.u / 2)} - ju));
+        c *= 1.0 - 0.3 * joint * (1.0 - far);
+        diffuseColor.rgb = mix(diffuseColor.rgb, c, k);
+      }
+    }
+  `;
+}
+
+const ageBody = (chute) => /* glsl */ `
   {
     vec3 wn = inverseTransformDirection(normal, viewMatrix);
     itdN = wn;
@@ -720,6 +759,7 @@ const AGE_BODY = /* glsl */ `
     diffuseColor.rgb *= mix(vec3(0.42, 0.46, 0.38), vec3(1.0), smoothstep(103.5, 109.0, y));
     diffuseColor.rgb *= mix(0.68, 1.0, smoothstep(104.0, 112.0 + 9.0 * run, y) + (1.0 - steep));
     diffuseColor.rgb *= 1.0 - 0.3 * steep * (1.0 - smoothstep(0.0, 2.2, abs(y - 220.0)));
+    ${chuteBody(chute)}
   }
 `;
 
@@ -771,7 +811,7 @@ function bounced(mat, key, body = '') {
   return mat;
 }
 
-function concreteMaterial(THREE, set, key) {
+function concreteMaterial(THREE, set, key, chute) {
   const m = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     vertexColors: true,
@@ -790,7 +830,7 @@ function concreteMaterial(THREE, set, key) {
   m.onBeforeCompile = (shader) => {
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${AGE_PARS}`)
-      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${AGE_BODY}`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${ageBody(chute)}`)
       .replace('#include <aomap_fragment>', `${BOUNCE}\n#include <aomap_fragment>`);
   };
   m.customProgramCacheKey = () => `itaipu-dam-${key}`;
@@ -1605,6 +1645,9 @@ export async function buildPart(ctx) {
   const concrete = new Mesher();
   const road = new Mesher();
   const metal = new Mesher();
+  /* Every pane of glass the dam has, apart from the steel: it reflects
+   * the sky by day and is what night.js lights at night (GLASS). */
+  const glass = new Mesher();
   const up = [0, 1, 0];
   const face = (name, kind, pts) => faces.push({ name, kind, pts });
 
@@ -2514,14 +2557,14 @@ export async function buildPart(ctx) {
         for (let j = 0; j < 2; j += 1) {
           const sa = s0 + 1.6 + i * 1.7;
           const ya = yL + 1.2 + j * 1.6;
-          metal.quad(P3(tt, sa, ya), P3(tt, sa + 1.3, ya), P3(tt, sa + 1.3, ya + 1.3), P3(tt, sa, ya + 1.3), TONE.glass, out);
+          glass.quad(P3(tt, sa, ya), P3(tt, sa + 1.3, ya), P3(tt, sa + 1.3, ya + 1.3), P3(tt, sa, ya + 1.3), TONE.glass, out);
         }
       }
     }
     frameBox(metal, F, t - 0.8, t + 0.8, s0 - 10, s1 + 0.5, yH, yB, col);
     addCapsule('wall', P3(t, s0 - 8.8, yH + 0.8), P3(t, s1 - 0.7, yH + 0.8), 1.2);
     frameBox(metal, F, t - 1.4, t + 1.4, s0 - 2.6, s0, yL + 0.5, yL + 3.3, col);
-    metal.quad(P3(t - 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 3), P3(t - 1.2, s0 - 2.64, yL + 3), TONE.glass, neg(acrossN));
+    glass.quad(P3(t - 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 3), P3(t - 1.2, s0 - 2.64, yL + 3), TONE.glass, neg(acrossN));
     boxOf(t - 1.4, t + 1.4, s0 - 2.6, s0, yL + 0.5, yL + 3.3);
     strut(metal, P3(t, s0 - 9, yH), P3(t, s0 - 9, CREST_Y + 3), 0.03, TONE.steel);
     frameBox(metal, F, t - 0.3, t + 0.3, s0 - 9.3, s0 - 8.7, CREST_Y + 2.4, CREST_Y + 3, TONE.draft);
@@ -2739,7 +2782,7 @@ export async function buildPart(ctx) {
        * material): the dam's weathered concrete streaked them as dark as
        * the glass, and the roads' unbounced one drew them black in shade. */
       const slab = TONE.render;
-      const glass = TONE.glass.map((v) => v * 1.8);
+      const pane = TONE.glass.map((v) => v * 1.8);
       for (let k = 0; k < CENTRE.floors; k += 1) {
         const y = roofY + k * storey;
         const y2 = y + storey;
@@ -2754,7 +2797,7 @@ export async function buildPart(ctx) {
           [(u, yy) => P3(u, s1 - d, yy), t - h + in0, t + h - in0, acrossN],
         ];
         for (const [at, u0, u1, out] of sides) {
-          metal.quad(at(u0, g0), at(u1, g0), at(u1, g1), at(u0, g1), glass, out);
+          glass.quad(at(u0, g0), at(u1, g0), at(u1, g1), at(u0, g1), pane, out);
         }
       }
       const finCol = TONE.render.map((v) => v * 0.9);
@@ -2794,7 +2837,7 @@ export async function buildPart(ctx) {
        * (dam-downstream), mullions every 2 m. */
       const w = sPh(t) + 2 * POWERHOUSE.halfWidth + 0.04;
       const wT = [t - h, t];
-      metal.quad(P3(wT[0], w, 141), P3(wT[1], w, 141), P3(wT[1], w, 146.5), P3(wT[0], w, 146.5), TONE.glass, acrossN);
+      glass.quad(P3(wT[0], w, 141), P3(wT[1], w, 141), P3(wT[1], w, 146.5), P3(wT[0], w, 146.5), TONE.glass, acrossN);
       for (let tt = wT[0] + 1; tt < wT[1]; tt += 2) {
         metal.quad(P3(tt - 0.08, w + 0.02, 141), P3(tt + 0.08, w + 0.02, 141), P3(tt + 0.08, w + 0.02, 146.5), P3(tt - 0.08, w + 0.02, 146.5), TONE.steel, acrossN);
       }
@@ -3683,14 +3726,20 @@ export async function buildPart(ctx) {
   const kit = ctx.mats.surfaces;
   const group = new THREE.Group();
   group.name = 'itaipu-dam';
-  const concreteMat = concreteMaterial(THREE, kit.concrete, 'concrete');
+  const concreteMat = concreteMaterial(THREE, kit.concrete, 'concrete', spillLayout(sp));
   /* The crest roads are concrete (crest-road photo), the embankments'
    * asphalt: one photograph, the asphalt a darker tone of it. */
   const roadMat = bounced(new THREE.MeshStandardMaterial({
     color: 0xffffff, vertexColors: true, map: kit.concrete.col, normalMap: kit.concrete.nrm, roughnessMap: kit.concrete.arm, roughness: 1,
   }), 'roads', ROAD_BODY);
   const metalMat = bounced(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.6, metalness: 0.15 }), 'steel', STEEL_BODY);
-  const meshes = [[concrete, concreteMat, 'concrete'], [road, roadMat, 'roads'], [metal, metalMat, 'steel']];
+  /* Smooth, so the sky and the clouds lie in the central building's
+   * window bands as the dam-downstream photograph has them, rather than
+   * the steel's matte rust. */
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, vertexColors: true, roughness: 0.12, metalness: 0,
+  });
+  const meshes = [[concrete, concreteMat, 'concrete'], [road, roadMat, 'roads'], [metal, metalMat, 'steel'], [glass, glassMat, 'glass']];
   const drawn = {};
   let triangles = 0;
   for (const [m, mat, name] of meshes) {
@@ -3699,7 +3748,8 @@ export async function buildPart(ctx) {
     }
     const mesh = new THREE.Mesh(m.geometry(THREE), mat);
     mesh.name = `itaipu-dam-${name}`;
-    mesh.castShadow = true;
+    /* A pane lies on its building's face, which casts its shadow. */
+    mesh.castShadow = name !== 'glass';
     mesh.receiveShadow = true;
     group.add(mesh);
     drawn[name] = mesh;

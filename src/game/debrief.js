@@ -161,6 +161,21 @@ export function missionEndActions({ host, state, checkpoint = false, next = null
   return state === 'won' && next ? [{ act: 'next', mission: next }, again] : [again];
 }
 
+/*
+ * The string key of a campaign mission's epilogue under its end banner
+ * (docs/campaign/BIBLE.md 10, the arc): what the day came to and where it
+ * goes next on a win, what is left to do on a loss (output or shutdown
+ * alike). `war.epilogue.<id>.win|lose`, the id's hyphens as underscores;
+ * null for a war that ended without a result. Whether the table has the
+ * key is the caller's question (a drill has none).
+ */
+export function missionEpilogue({ mission, state }) {
+  if (typeof mission !== 'string' || (state !== 'won' && state !== 'lost')) {
+    return null;
+  }
+  return `war.epilogue.${mission.replace(/-/g, '_')}.${state === 'won' ? 'win' : 'lose'}`;
+}
+
 /* The replay row's state from the recorder's span ([first, n, t0, t1]):
  * a clip under a second is not worth opening. */
 export function replayState(span, replaying = false) {

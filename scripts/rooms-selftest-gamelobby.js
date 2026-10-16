@@ -190,10 +190,12 @@ export function warLobbySection(check) {
      * stored set to one before the gate is the first it may start again,
      * not a lobby whose every start is refused. With every mission of Act
      * 1 held (as the owner held them from 2026-10-07 until their release
-     * on 2026-10-15; held here by scripts/lib/held.js) that is the drill,
+     * on 2026-10-15 and 2026-10-16; held here by scripts/lib/held.js),
+     * all six, since any one left released is the first instead, that is
+     * the drill,
      * which no campaign holds back (campaign.js released); a check's own
      * room (dev) is mission 1. */
-    withHeld(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'], () => {
+    withHeld(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-5', 'itaipu-6'], () => {
       const e = lobbyRoom();
       check('with mission 1 held, a room made for it says the drill in its lobby', e.lobby(0).mission === 'itaipu-drill', JSON.stringify(e.lobby(0)));
       e.say(0, { type: 'lobby', op: 'mission', mission: 'itaipu-2' });
@@ -229,6 +231,21 @@ export function warLobbySection(check) {
     kept.at(100 + LOBBY_COUNTDOWN_MS + 100);
     check('released: and its lobby starts mission 3 with its briefing', kept.war().state === 'briefing' && kept.war().mission === 'itaipu-3',
       JSON.stringify({ state: kept.war().state, mission: kept.war().mission }));
+    /* 5 and 6 too (the owner, 2026-10-16: "make everything available to
+     * everyone"). */
+    for (const id of ['itaipu-5', 'itaipu-6']) {
+      const set = lobbyRoom();
+      set.say(0, { type: 'lobby', op: 'mission', mission: id });
+      check(`released: its host sets ${id}, nothing refused`, set.lobby(1).mission === id && set.r.meta.mission === id
+        && !set.socks[0].got.some((m) => m.type === 'refused'), JSON.stringify(set.lobby(1)));
+      const stored = lobbyRoom({ mission: id });
+      stored.at(100);
+      stored.ready(0);
+      stored.ready(1);
+      stored.at(100 + LOBBY_COUNTDOWN_MS + 100);
+      check(`released: a room stored set to ${id} starts it with its briefing`, stored.war().state === 'briefing' && stored.war().mission === id,
+        JSON.stringify({ state: stored.war().state, mission: stored.war().mission }));
+    }
     const practice = lobbyRoom({ mission: 'itaipu-practice' });
     practice.at(100);
     practice.ready(0);
@@ -756,6 +773,22 @@ export function loadFailSection(check) {
     e.say(2, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null } });
     check('its profile on the room\'s world: counted in again, and everybody told map null', !e.r.failed([...e.r.seats.values()][2]) && told(e, 0).seat === 3 && told(e, 0).map === null,
       JSON.stringify(told(e, 0)));
+  }
+  {
+    /* A page rebuilding the room's world (a time of day, a graphics level)
+     * says so in its profile, loading, on the world it is taking down: not
+     * a second pilot for a game started in passing until it stands again. */
+    const e = lobbyRoom({ mode: null, mission: null });
+    const loading = (status) => e.say(1, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null, ...(status ? { status } : {}) } });
+    loading('loading');
+    const counted = e.r.fielded();
+    e.say(0, { type: 'tag', op: 'start', goal: 5 });
+    const refused = e.socks[0].got.filter((m) => m.type === 'tag' && m.error).map((m) => m.error).join();
+    check('a pilot loading the room\'s world again is not fielded: a match started in passing is refused alone', counted === 1 && e.r.tag.match === null && refused === 'alone',
+      JSON.stringify({ counted, refused }));
+    loading(null);
+    e.say(0, { type: 'tag', op: 'start', goal: 5 });
+    check('its world standing again, it is: the match starts', e.r.fielded() === 2 && e.r.tag.match && e.r.tag.match.state === 'countdown', String(e.r.fielded()));
   }
   {
     /* Every pilot here failed: nobody to play the round, which the room
