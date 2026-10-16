@@ -1645,6 +1645,9 @@ export async function buildPart(ctx) {
   const concrete = new Mesher();
   const road = new Mesher();
   const metal = new Mesher();
+  /* Every pane of glass the dam has, apart from the steel: it reflects
+   * the sky by day and is what night.js lights at night (GLASS). */
+  const glass = new Mesher();
   const up = [0, 1, 0];
   const face = (name, kind, pts) => faces.push({ name, kind, pts });
 
@@ -2554,14 +2557,14 @@ export async function buildPart(ctx) {
         for (let j = 0; j < 2; j += 1) {
           const sa = s0 + 1.6 + i * 1.7;
           const ya = yL + 1.2 + j * 1.6;
-          metal.quad(P3(tt, sa, ya), P3(tt, sa + 1.3, ya), P3(tt, sa + 1.3, ya + 1.3), P3(tt, sa, ya + 1.3), TONE.glass, out);
+          glass.quad(P3(tt, sa, ya), P3(tt, sa + 1.3, ya), P3(tt, sa + 1.3, ya + 1.3), P3(tt, sa, ya + 1.3), TONE.glass, out);
         }
       }
     }
     frameBox(metal, F, t - 0.8, t + 0.8, s0 - 10, s1 + 0.5, yH, yB, col);
     addCapsule('wall', P3(t, s0 - 8.8, yH + 0.8), P3(t, s1 - 0.7, yH + 0.8), 1.2);
     frameBox(metal, F, t - 1.4, t + 1.4, s0 - 2.6, s0, yL + 0.5, yL + 3.3, col);
-    metal.quad(P3(t - 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 3), P3(t - 1.2, s0 - 2.64, yL + 3), TONE.glass, neg(acrossN));
+    glass.quad(P3(t - 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 3), P3(t - 1.2, s0 - 2.64, yL + 3), TONE.glass, neg(acrossN));
     boxOf(t - 1.4, t + 1.4, s0 - 2.6, s0, yL + 0.5, yL + 3.3);
     strut(metal, P3(t, s0 - 9, yH), P3(t, s0 - 9, CREST_Y + 3), 0.03, TONE.steel);
     frameBox(metal, F, t - 0.3, t + 0.3, s0 - 9.3, s0 - 8.7, CREST_Y + 2.4, CREST_Y + 3, TONE.draft);
@@ -2779,7 +2782,7 @@ export async function buildPart(ctx) {
        * material): the dam's weathered concrete streaked them as dark as
        * the glass, and the roads' unbounced one drew them black in shade. */
       const slab = TONE.render;
-      const glass = TONE.glass.map((v) => v * 1.8);
+      const pane = TONE.glass.map((v) => v * 1.8);
       for (let k = 0; k < CENTRE.floors; k += 1) {
         const y = roofY + k * storey;
         const y2 = y + storey;
@@ -2794,7 +2797,7 @@ export async function buildPart(ctx) {
           [(u, yy) => P3(u, s1 - d, yy), t - h + in0, t + h - in0, acrossN],
         ];
         for (const [at, u0, u1, out] of sides) {
-          metal.quad(at(u0, g0), at(u1, g0), at(u1, g1), at(u0, g1), glass, out);
+          glass.quad(at(u0, g0), at(u1, g0), at(u1, g1), at(u0, g1), pane, out);
         }
       }
       const finCol = TONE.render.map((v) => v * 0.9);
@@ -2834,7 +2837,7 @@ export async function buildPart(ctx) {
        * (dam-downstream), mullions every 2 m. */
       const w = sPh(t) + 2 * POWERHOUSE.halfWidth + 0.04;
       const wT = [t - h, t];
-      metal.quad(P3(wT[0], w, 141), P3(wT[1], w, 141), P3(wT[1], w, 146.5), P3(wT[0], w, 146.5), TONE.glass, acrossN);
+      glass.quad(P3(wT[0], w, 141), P3(wT[1], w, 141), P3(wT[1], w, 146.5), P3(wT[0], w, 146.5), TONE.glass, acrossN);
       for (let tt = wT[0] + 1; tt < wT[1]; tt += 2) {
         metal.quad(P3(tt - 0.08, w + 0.02, 141), P3(tt + 0.08, w + 0.02, 141), P3(tt + 0.08, w + 0.02, 146.5), P3(tt - 0.08, w + 0.02, 146.5), TONE.steel, acrossN);
       }
@@ -3730,7 +3733,13 @@ export async function buildPart(ctx) {
     color: 0xffffff, vertexColors: true, map: kit.concrete.col, normalMap: kit.concrete.nrm, roughnessMap: kit.concrete.arm, roughness: 1,
   }), 'roads', ROAD_BODY);
   const metalMat = bounced(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.6, metalness: 0.15 }), 'steel', STEEL_BODY);
-  const meshes = [[concrete, concreteMat, 'concrete'], [road, roadMat, 'roads'], [metal, metalMat, 'steel']];
+  /* Smooth, so the sky and the clouds lie in the central building's
+   * window bands as the dam-downstream photograph has them, rather than
+   * the steel's matte rust. */
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, vertexColors: true, roughness: 0.12, metalness: 0,
+  });
+  const meshes = [[concrete, concreteMat, 'concrete'], [road, roadMat, 'roads'], [metal, metalMat, 'steel'], [glass, glassMat, 'glass']];
   const drawn = {};
   let triangles = 0;
   for (const [m, mat, name] of meshes) {
@@ -3739,7 +3748,8 @@ export async function buildPart(ctx) {
     }
     const mesh = new THREE.Mesh(m.geometry(THREE), mat);
     mesh.name = `itaipu-dam-${name}`;
-    mesh.castShadow = true;
+    /* A pane lies on its building's face, which casts its shadow. */
+    mesh.castShadow = name !== 'glass';
     mesh.receiveShadow = true;
     group.add(mesh);
     drawn[name] = mesh;

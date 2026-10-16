@@ -22,6 +22,11 @@
  *                  hash of its building's cell and its place on the wall,
  *                  a building's share of lit rooms and its rooms' colour
  *                  hashed too, and one building in a few wholly dark;
+ *   the dam's glass every pane the dam draws (itaipu-dam-glass: the
+ *                  central building's window bands, the hall's glazed
+ *                  storey, the cranes' cabs), lit as the town's windows
+ *                  are, a pane every GLASS_BAY, the plant being manned
+ *                  through the night;
  *   the station    the powerhouse roof floodlit and its downstream face
  *                  by two real lights over the tailrace, the substations'
  *                  yards (osm/power.json) by masts on a grid;
@@ -79,6 +84,8 @@ const DAM_LAMP_LENS = new THREE.Vector3(2.4, 9.62, 0);
 /* The town's walls, the render batch of the buildings that cast
  * (town/mesh.js names a batch group-cast-road). */
 const TOWN_WALLS = 'itaipu-town-render-c-b';
+/* The dam's panes (dam/index.js, its glass mesh). */
+const DAM_GLASS = 'itaipu-dam-glass';
 
 /* Radiance, not display colour: a point's colour over 1 is a brighter
  * light, which swiss2/post.js's bloom (threshold 6.0, tuned for the sun's
@@ -165,6 +172,14 @@ const WINDOW_CELL = 22;
 const DARK_SHARE = 0.15;
 const LIT_SHARE = [0.12, 0.7];
 const WINDOW_RAD = 1.1;
+/* The dam's panes: a bay between two of the central building's fins
+ * and one of its storeys (dam/index.js CENTRE: fins every 5 m, eleven
+ * storeys in 36 m), mostly the cool white of office and plant lighting.
+ * Each storey's run of ten bays has its own share lit, between
+ * GLASS_LIT's, so a floor reads as worked or empty rather than the
+ * facade as a hash. */
+const GLASS_BAY = [5, 36 / 11];
+const GLASS_LIT = [0.1, 0.9];
 
 /* The cities past the map: points per square kilometre at the middle,
  * thinning to the city's radius. */
@@ -290,11 +305,27 @@ const WINDOW_PARS = /* glsl */ `
   }
 `;
 
+/* The dam's panes: the whole pane is the window, so a bay is lit or not
+ * by its hash, with no frame drawn round it. */
+const GLASS_PARS = /* glsl */ `
+  vec3 cityWindows(vec3 n) {
+    vec2 t = normalize(vec2(-n.z, n.x) + 1e-5);
+    vec2 id = floor(vec2(dot(vCityW.xz, t) / ${fmt(GLASS_BAY[0])}, vCityW.y / ${fmt(GLASS_BAY[1])}));
+    float share = mix(${fmt(GLASS_LIT[0])}, ${fmt(GLASS_LIT[1])}, cityHash(vec2(id.y, floor(id.x / 10.0)) + 3.1));
+    float on = step(cityHash(id + 7.13), share);
+    float hc = cityHash(id * 0.61 + 3.7);
+    vec3 col = hc < 0.7 ? vec3(0.8, 0.9, 1.0) : vec3(1.0, 0.8, 0.55);
+    return col * (${fmt(WINDOW_RAD)} * on * cityLevelAt(vCityW.xz));
+  }
+`;
+const WINDOWS = { walls: WINDOW_PARS, glass: GLASS_PARS };
+
 /*
  * Night's light into `mat`, a lit material (its shader has
  * lights_fragment_end): the pools on everything, the windows where
- * `windows`. Chained before whatever the material compiles with, and
- * its program keyed apart from the day's and from the walls'.
+ * `windows` names which (WINDOWS: the town's walls or the dam's glass).
+ * Chained before whatever the material compiles with, and its program
+ * keyed apart from the day's and from the others'.
  */
 function cityLight(mat, uniforms, windows) {
   const prev = mat.onBeforeCompile;
@@ -309,7 +340,7 @@ function cityLight(mat, uniforms, windows) {
       .replace('#include <common>', '#include <common>\nvarying vec3 vCityW;')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvCityW = (inverse(viewMatrix) * mvPosition).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${CITY_PARS}${windows ? WINDOW_PARS : ''}`)
+      .replace('#include <common>', `#include <common>\n${CITY_PARS}${windows ? WINDOWS[windows] : ''}`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
         reflectedLight.directDiffuse += cityPool(cityGeoNormal()) * BRDF_Lambert(material.diffuseColor);`);
     if (windows) {
@@ -323,7 +354,7 @@ function cityLight(mat, uniforms, windows) {
         ;`);
     }
   };
-  mat.customProgramCacheKey = () => `${prevKey}|city${windows ? 'w' : ''}`;
+  mat.customProgramCacheKey = () => `${prevKey}|city${windows || ''}`;
   mat.needsUpdate = true;
 }
 
@@ -741,10 +772,15 @@ export function dressNight({
     uCityHeight: heights.texture,
     uCityGrid: heights.grid,
   };
-  const walls = new Set();
+  /* Each material with windows, which, and the uniforms it reads. */
+  const windowed = new Map();
   const wallMesh = scene.getObjectByName(TOWN_WALLS);
   if (wallMesh) {
-    walls.add(wallMesh.material);
+    windowed.set(wallMesh.material, ['walls', wallUniforms]);
+  }
+  const glassMesh = scene.getObjectByName(DAM_GLASS);
+  if (glassMesh) {
+    windowed.set(glassMesh.material, ['glass', cityUniforms]);
   }
   const lit = new Set(materials);
   scene.traverse((o) => {
@@ -758,7 +794,8 @@ export function dressNight({
     }
   });
   for (const m of lit) {
-    cityLight(m, walls.has(m) ? wallUniforms : cityUniforms, walls.has(m));
+    const [windows, u] = windowed.get(m) || [null, cityUniforms];
+    cityLight(m, u, windows);
   }
 
   const glows = glowPoints([
@@ -822,7 +859,7 @@ export function dressNight({
     ringPoints: ring.length,
     pools: pools.length,
     litMaterials: lit.size,
-    windowMaterials: walls.size,
+    windowMaterials: windowed.size,
     realLights: lights.length,
     buildMs: Math.round(performance.now() - t0),
   };
