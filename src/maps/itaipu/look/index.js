@@ -149,8 +149,8 @@ function shape(light, half) {
  * dark (Lights Out, golden to night) or the dawn (The Long Night, night
  * to morning). How far along it the light is, `f`, is the sun's: its
  * sine at the hour (daytime.js sunSinAt, the room's clock's sun) between
- * its sines at the two times' hours, so the dark holds through the small
- * hours and the light comes with the sun. At f 0 every number is the
+ * its sine at the daylight time's hour and DARK_SIN, so the dark holds
+ * through the small hours and the light comes with the sun. At f 0 every number is the
  * first time's and at 1 the second's, but one: the sun (or the moon)
  * stands where the daylight time's does all the way, its shadow maps
  * made once for it (updateShadowFocus), since a light swung across the
@@ -167,6 +167,17 @@ function shape(light, half) {
  * not by f: on as it goes under, as street lamps' photocells do (LAMPS_ON).
  */
 const RAMP_ENV_STEP = 0.05;
+/*
+ * The sine of the sun's elevation at which the ramp's light is the
+ * night's: 12 degrees under the horizon, the end of nautical twilight,
+ * past which the sky gives no light a scene is lit by. The night's own
+ * hour (TIME_HOUR.night, 22:00) has the sun 47 degrees under; ramped to
+ * that, Lights Out's dusk at the sun 5 degrees under (18:36) still had a
+ * third of the golden hour's sun on the dam and the cumulus lit white
+ * over towns whose lamps were on, and its dark came only at the hold's
+ * end. Now the dusk falls with the sun and the night holds after it.
+ */
+const DARK_SIN = Math.sin(THREE.MathUtils.degToRad(-12));
 /* The sine of the sun's elevation over which the lamps come on, from
  * nothing to full: the sun 3 degrees up to 8.6 under, the civil dusk. */
 const LAMPS_ON = [0.05, -0.15];
@@ -180,8 +191,9 @@ function rampOf(from, to) {
   while (h1 <= h0) {
     h1 += 24;
   }
+  const sine = (h, t) => (isNight(t) ? Math.max(sunSinAt(h), DARK_SIN) : sunSinAt(h));
   return {
-    from, to, h0, h1, s0: sunSinAt(h0), s1: sunSinAt(h1), day: isNight(from) ? to : from,
+    from, to, h0, h1, s0: sine(h0, from), s1: sine(h1, to), day: isNight(from) ? to : from,
   };
 }
 
