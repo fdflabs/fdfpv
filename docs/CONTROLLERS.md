@@ -1,5 +1,16 @@
 # Flight controllers per aircraft: what each one really carries
 
+OWNER 2026-10-16, superseding the defaults below where they differ: "i
+really liked acro mode...and i really wanted it to be easy to hover, in
+acro mode...i didnt want all this as3x stuff really", and "honestly id like
+as3x hid and unselected". Every fixed wing defaults to Acro again, as it
+did before a0caaed59, except the Bramor and the Striker (their autopilot's
+Stabilised) and the Skyhunter (INAV's Acro, already its default). AS3X has
+no row on any plane; the plant keeps mode 3 and its checks (`as3x:*`) so it
+can come back. The SAFE Select rows are named Stabilised, the plant's mode
+1 on every other plane. A stored AS3X tune loads as the plane's Acro
+(`save:selftest`). The rest of this page is the 2026-10-08 record.
+
 OWNER RULES 2026-10-08: modes are only real controllers and never cap a
 skilled pilot; there is no special 3D mode; Stabilised stays as a beginner
 aid and is never the default on an aircraft that can fly 3D; and "assume you
@@ -16,9 +27,9 @@ four modes (`sim_wing_set_stab`, src/native/sim_abi.h) are the hardware:
 | Mode | Row name | Real hardware | Caps |
 | --- | --- | --- | --- |
 | 0 | Manual | a plain receiver, the sticks are the surfaces | none |
-| 3 | AS3X | a Spektrum AS3X receiver with SAFE Select off: a rate damper and a heading hold on the rotation beyond the stick's rate, both fading out with stick (priority 160, AS3000 manual p. 10; docs/FLIGHTMODEL.md) | none: full stick is full throw |
-| 1 | Stabilised / SAFE Select | SAFE Select, Reflex's stabilised mode, INAV ANGLE, an autopilot's stabilised mode | bank and pitch limits, as the real ones have |
-| 2 | Acro | INAV ACRO (Skyhunter only) | INAV's default rates, 200 deg/s roll and pitch (Settings.md roll_rate/pitch_rate 20), above what full Manual stick reaches (161 and 148 deg/s at 20 m/s) |
+| 3 | AS3X (no row since 2026-10-16) | a Spektrum AS3X receiver with SAFE Select off: a rate damper and a heading hold on the rotation beyond the stick's rate, both fading out with stick (priority 160, AS3000 manual p. 10; docs/FLIGHTMODEL.md) | none: full stick is full throw |
+| 1 | Stabilised | SAFE Select, Reflex's stabilised mode, INAV ANGLE, an autopilot's stabilised mode | bank and pitch limits, as the real ones have |
+| 2 | Acro | INAV ACRO on the Skyhunter; a gyro that holds the attitude on every other plane (the default since 2026-10-16) | INAV's default rates, 200 deg/s roll and pitch (Settings.md roll_rate/pitch_rate 20), above what full Manual stick reaches (161 and 148 deg/s at 20 m/s); elsewhere each plane's acro_roll_rate and acro_pitch_rate (plant_wing.c), which cap a full stick (the Kadet at 25 deg/s roll) |
 
 Acro is offered only where the builders' flight controller is INAV, the
 Skyhunter; on every other plane it was an invented controller whose rates
@@ -31,20 +42,23 @@ aircraft no longer offers" rule; craft-pick-selftest covers it).
 
 | Aircraft | Ships with | Default | Rows | Source |
 | --- | --- | --- | --- | --- |
-| Extra 300 3D | AS3X (SAFE Select off unless bound for it) | AS3X | AS3X, Manual, SAFE Select | E-flite EFL Extra 300 3D manual p. 4 (unchanged, #860) |
-| Turbo Timber Evolution 1.5 m (and floats) | AS3X + SAFE Select receiver (BNF Basic) | AS3X | AS3X, Manual, SAFE Select | Horizon EFL105250B (BNF Basic): "Spektrum AR637TA 6-Channel Receiver with AS3X and SAFE Select", "optional-use SAFE Select" |
-| FMS Cub 1400 (and floats) | PNP: no gyro (a Reflex combo, FMM106PX, is sold apart) | Manual | Manual, AS3X, Stabilised | fmshobby.com FMS 1400mm J-3 Cub V4 PNP; Horizon FMM106PX |
-| FMS P-51D V8 1450 | PNP: no gyro (FMM008PRTX with Reflex, discontinued) | Manual | Manual, AS3X, Stabilised | horizonhobby.com FMM008PRT, FMM008PRTX |
-| Radian Pro (PKZ5475) | PNP: no gyro | Manual | Manual, AS3X, Stabilised | docs/GLIDER-STAGE1.md (which Radian) |
-| Freewing F-16 V3 PNP | no gyro | Manual | Manual, AS3X, Stabilised | docs/F16-STAGE1.md |
-| Zagi HP | kit, no gyro | Manual | Manual, AS3X (roll and pitch), Stabilised | docs/ZAGI-STAGE1.md |
-| NRJ (F3K) | receiver and servos, no gyro | Manual | Manual, Stabilised | docs/DLG-STAGE1.md |
-| SIG Kadet Senior | kit, no gyro | Manual | Manual, AS3X (pitch and yaw), Stabilised | docs/KADET-STAGE1.md |
-| RCM Ugly Stik | kit, no gyro | Manual | Manual, AS3X, Stabilised | docs/UGLYSTIK-STAGE1.md |
-| BMJR Bombshell | kit, no gyro | Manual | Manual, AS3X (pitch and yaw), Stabilised | docs/BOMBSHELL-STAGE1.md |
-| GWS Slow Stick | kit, no gyro (verified: a three channel kit, receiver of the builder's choice) | Manual | Manual, AS3X (pitch and yaw), Stabilised | docs/SLOWSTICK-STAGE1.md |
-| Great Planes Tiger Moth GPMA1330 | glow ARF, no gyro in the box (verified) | Manual | Manual, AS3X, Stabilised | docs/TIGERMOTH-STAGE1.md |
-| Extreme Flight 67 in CAP 580 (A464) | ARF; the RxR has its power installed and no receiver; no gyro | Manual | Manual, AS3X, SAFE Select | docs/CAP580-STAGE1.md; Extreme Flight's data sheet |
+| Extra 300 3D | AS3X (SAFE Select off unless bound for it) | Acro | Acro, Manual, Stabilised | E-flite EFL Extra 300 3D manual p. 4 (unchanged, #860) |
+| Turbo Timber Evolution 1.5 m (and floats) | AS3X + SAFE Select receiver (BNF Basic) | Acro | Acro, Manual, Stabilised | Horizon EFL105250B (BNF Basic): "Spektrum AR637TA 6-Channel Receiver with AS3X and SAFE Select", "optional-use SAFE Select" |
+| FMS Cub 1400 (and floats) | PNP: no gyro (a Reflex combo, FMM106PX, is sold apart) | Acro | Manual, Acro, Stabilised | fmshobby.com FMS 1400mm J-3 Cub V4 PNP; Horizon FMM106PX |
+| FMS P-51D V8 1450 | PNP: no gyro (FMM008PRTX with Reflex, discontinued) | Acro | Manual, Acro, Stabilised | horizonhobby.com FMM008PRT, FMM008PRTX |
+| Radian Pro (PKZ5475) | PNP: no gyro | Acro | Manual, Acro, Stabilised | docs/GLIDER-STAGE1.md (which Radian) |
+| Freewing F-16 V3 PNP | no gyro | Acro | Manual, Acro, Stabilised | docs/F16-STAGE1.md |
+| Zagi HP | kit, no gyro | Acro | Manual, Acro, Stabilised | docs/ZAGI-STAGE1.md |
+| NRJ (F3K) | receiver and servos, no gyro | Acro | Manual, Acro, Stabilised | docs/DLG-STAGE1.md |
+| SIG Kadet Senior | kit, no gyro | Acro | Manual, Acro, Stabilised | docs/KADET-STAGE1.md |
+| RCM Ugly Stik | kit, no gyro | Acro | Manual, Acro, Stabilised | docs/UGLYSTIK-STAGE1.md |
+| BMJR Bombshell | kit, no gyro | Acro | Manual, Acro, Stabilised | docs/BOMBSHELL-STAGE1.md |
+| GWS Slow Stick | kit, no gyro (verified: a three channel kit, receiver of the builder's choice) | Acro | Manual, Acro, Stabilised | docs/SLOWSTICK-STAGE1.md |
+| Great Planes Tiger Moth GPMA1330 | glow ARF, no gyro in the box (verified) | Acro | Manual, Acro, Stabilised | docs/TIGERMOTH-STAGE1.md |
+| Extreme Flight 67 in CAP 580 (A464) | ARF; the RxR has its power installed and no receiver; no gyro | Acro | Manual, Acro, Stabilised | docs/CAP580-STAGE1.md; Extreme Flight's data sheet |
+| E-flite Night Timber X 1.2 m | AS3X + SAFE Select receiver (BNF) | Acro | Acro, Manual, Stabilised | docs/NIGHTTIMBER-STAGE1.md |
+| C-130 Hercules (kit) | no electronics | Acro | Manual, Acro, Stabilised | docs/HERCULES-STAGE1.md |
+| Slick 580 (ARF) | no electronics | Acro | Acro, Manual, Stabilised | docs/SLICK-STAGE1.md |
 | Skyhunter 1800 | kit; builders fit INAV | Acro | Acro, Stabilised, Manual | INAV docs/Settings.md |
 | Bramor C4EYE | its own autopilot | Stabilised | Stabilised, Manual | docs/BRAMOR-STAGE1.md |
 | Striker | what a one way attack drone flies: an autopilot's stabilised mode | Stabilised | Stabilised, Manual | docs/COMBAT-DRONES.md |

@@ -58,7 +58,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "nighttimber-as3x",
+    "defaultTune": "nighttimber-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -390,11 +390,11 @@ export default {
   },
   "tunes": [
     {
-      "id": "nighttimber-as3x",
+      "id": "nighttimber-acro",
       "airframe": "nighttimber1200",
-      "name": "AS3X",
-      "note": "E-flite's gyro, as the Night Timber ships. The sticks are the surfaces at the manual's high rates, the flaps mixed into the ailerons; centred, the gyro holds the attitude you left it in, against the torque and the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate: hover and torque roll are yours to fly.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 360 degrees a second and a pitch rate up to 200, centred sticks hold the attitude, and the rudder stick is the rudder alone. F sets the flaps.",
+      "wingStab": 2
     },
     {
       "id": "nighttimber-manual",
@@ -405,8 +405,8 @@ export default {
     {
       "id": "nighttimber-stab",
       "airframe": "nighttimber1200",
-      "name": "SAFE Select",
-      "note": "E-flite's beginner bind. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to AS3X for 3D.",
+      "name": "Stabilised",
+      "note": "A gyro holds the plane. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to Acro or Manual for 3D.",
       "wingStab": 1
     }
   ],

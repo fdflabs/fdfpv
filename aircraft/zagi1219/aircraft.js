@@ -52,7 +52,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "zagi-manual",
+    "defaultTune": "zagi-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -301,11 +301,11 @@ export default {
       "note": "No flight controller. The sticks are the elevons, 14.5 degrees each way on both: it rolls fast, and a small touch of up is a lot, so be gentle in pitch. No rudder: it turns on the bank alone."
     },
     {
-      "id": "zagi-as3x",
+      "id": "zagi-acro",
       "airframe": "zagi1219",
-      "name": "AS3X",
-      "note": "A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevons; in roll and pitch, centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. No rudder.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the wing where you leave it. Sticks ask for a roll rate up to 220 degrees a second and a pitch rate up to 100, and centred sticks hold the attitude. No rudder.",
+      "wingStab": 2
     },
     {
       "id": "zagi-stab",

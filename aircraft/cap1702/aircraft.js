@@ -57,7 +57,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "cap-manual",
+    "defaultTune": "cap-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -333,17 +333,17 @@ export default {
       "note": "No flight controller. The sticks are the ailerons, the elevator and the rudder at Extreme Flight's 3D rates. Heavier and faster than the Extra: it carries its speed through a figure and wants a firmer hand. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons."
     },
     {
-      "id": "cap-as3x",
+      "id": "cap-acro",
       "airframe": "cap1702",
-      "name": "AS3X",
-      "note": "A Spektrum AR637T receiver fitted by the builder, its AS3X on: the sticks are the surfaces at the 3D rates; centred, the gyro holds the attitude you left it in, against the gusts and the torque's kicks; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 360 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone.",
+      "wingStab": 2
     },
     {
       "id": "cap-stab",
       "airframe": "cap1702",
-      "name": "SAFE Select",
-      "note": "The same receiver with SAFE Select on: roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level. It cannot hover or tumble: switch to Manual or AS3X for 3D.",
+      "name": "Stabilised",
+      "note": "A gyro holds the plane. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, and centred sticks fly level. It cannot hover or tumble: switch to Acro or Manual for 3D.",
       "wingStab": 1
     }
   ],

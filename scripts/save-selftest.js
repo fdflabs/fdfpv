@@ -609,5 +609,29 @@ console.log('each save point writes its key, and nothing else writes');
   check('nothing saves on beforeunload', !src('src/main.js').includes('beforeunload'));
 }
 
+/* The owner hid AS3X on 2026-10-16 and put the fixed wings back on Acro:
+ * a profile that stored an AS3X tune, seated or remembered for a plane,
+ * flies that plane's default, Acro, by the rule for a tune the aircraft
+ * no longer offers (settings.js). */
+console.log('a stored AS3X tune loads as the plane\'s Acro');
+{
+  const { seatAirframe } = await import('../src/ui/settings.js');
+  const { airframeById } = await import('../configs/airframes.js');
+  const AS3X = {
+    cub1400: 'cub', cub1400f: 'cub', radian2000: 'radian', slowstick1180: 'slowstick', timber1500: 'timber',
+    timber1500f: 'timber', bombshell1118: 'bombshell', kadet1981: 'kadet', uglystik1567: 'uglystik',
+    tigermoth1803: 'tigermoth', extra3d1308: 'extra', nighttimber1200: 'nighttimber', hercules3077: 'hercules',
+    cap1702: 'cap', slick2680: 'slick', p51d1450: 'p51', f16878: 'f16', zagi1219: 'zagi',
+  };
+  for (const [airframe, p] of Object.entries(AS3X)) {
+    const got = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe, tune: `${p}-as3x` }) })).settings;
+    check(`${airframe}: ${p}-as3x loads as ${p}-acro, its default`,
+      got.airframe === airframe && got.tune === `${p}-acro` && airframeById(airframe).defaultTune === `${p}-acro`, `${got.airframe} ${got.tune}`);
+  }
+  const s = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe: 'interceptor', tuneFor: { extra3d1308: 'extra-as3x' } }) })).settings;
+  seatAirframe(s, 'extra3d1308');
+  check('a remembered extra-as3x seats the Extra on extra-acro', s.tune === 'extra-acro', s.tune);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

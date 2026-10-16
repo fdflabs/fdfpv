@@ -317,7 +317,7 @@
      "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
      "facts": [
       "Short lessons, in order",
-      "SAFE Select first, then AS3X",
+      "Stabilised first, then Acro",
       "Nothing waits on them"
      ],
      "svg": "<svg 623 chars>",
@@ -8508,7 +8508,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "radian-manual",
+        "tune": "radian-acro",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -8526,7 +8526,7 @@
       },
       "pick(\"radian2000\")": {
        "settings": {
-        "tune": "radian-manual",
+        "tune": "radian-acro",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -20861,7 +20861,7 @@
     {
      "id": "quick:a-pids",
      "label": "Flight mode",
-     "value": "AS3X",
+     "value": "Acro",
      "note": "Opens where the flight mode is chosen, with what each mode does to the sticks.",
      "action": "pids",
      "drives": {}
@@ -27716,7 +27716,7 @@
      "blurb": "Lecciones desde el primer despegue hasta ganarle a tu fantasma, paso a paso.",
      "facts": [
       "Lecciones cortas, en orden",
-      "Primero SAFE Select, después AS3X",
+      "Primero Stabilised, después Acro",
       "Nada depende de ellas"
      ],
      "svg": "<svg 623 chars>",
@@ -35907,7 +35907,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "radian-manual",
+        "tune": "radian-acro",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -35925,7 +35925,7 @@
       },
       "pick(\"radian2000\")": {
        "settings": {
-        "tune": "radian-manual",
+        "tune": "radian-acro",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -48260,7 +48260,7 @@
     {
      "id": "quick:a-pids",
      "label": "Modo de vuelo",
-     "value": "AS3X",
+     "value": "Acro",
      "note": "Abre donde se elige el modo de vuelo, con lo que cada modo hace con los sticks.",
      "action": "pids",
      "drives": {}

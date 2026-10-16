@@ -57,7 +57,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "slick-as3x",
+    "defaultTune": "slick-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -316,11 +316,11 @@ export default {
   },
   "tunes": [
     {
-      "id": "slick-as3x",
+      "id": "slick-acro",
       "airframe": "slick2680",
-      "name": "AS3X",
-      "note": "A Spektrum AR637T fitted by the builder, its AS3X rate damper on: the sticks are the surfaces at the sheet's 3D throws, and the gyro damps the bumps and the torque's kicks against the rate it turns at, fading out as the stick leaves centre. Nothing levels it and nothing caps a rate.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 360 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone.",
+      "wingStab": 2
     },
     {
       "id": "slick-manual",
@@ -331,8 +331,8 @@ export default {
     {
       "id": "slick-stab",
       "airframe": "slick2680",
-      "name": "SAFE Select",
-      "note": "The same receiver with SAFE Select on: roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to AS3X for 3D.",
+      "name": "Stabilised",
+      "note": "A gyro holds the plane. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to Acro or Manual for 3D.",
       "wingStab": 1
     }
   ],

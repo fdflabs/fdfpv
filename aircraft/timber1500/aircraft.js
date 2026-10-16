@@ -57,7 +57,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "timber-as3x",
+    "defaultTune": "timber-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -460,11 +460,11 @@ export default {
   },
   "tunes": [
     {
-      "id": "timber-as3x",
+      "id": "timber-acro",
       "airframe": "timber1500",
-      "name": "AS3X",
-      "note": "E-flite's gyro, as the Timber ships. The sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. F sets the flaps.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone. F sets the flaps.",
+      "wingStab": 2
     },
     {
       "id": "timber-manual",
@@ -475,8 +475,8 @@ export default {
     {
       "id": "timber-stab",
       "airframe": "timber1500",
-      "name": "SAFE Select",
-      "note": "E-flite's beginner bind, once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. F sets the flaps.",
+      "name": "Stabilised",
+      "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. F sets the flaps.",
       "wingStab": 1
     }
   ],

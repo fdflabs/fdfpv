@@ -54,7 +54,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "nrj-manual",
+    "defaultTune": "nrj-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -213,6 +213,13 @@ export default {
       "airframe": "nrj1490",
       "name": "Manual",
       "note": "No flight controller. The sticks are the flaperons, the elevator and the rudder; the launch preset trims the elevator down for the climb and lets go at the top."
+    },
+    {
+      "id": "nrj-acro",
+      "airframe": "nrj1490",
+      "name": "Acro",
+      "note": "A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone. After the throw it holds the climb until you push over.",
+      "wingStab": 2
     },
     {
       "id": "nrj-stab",

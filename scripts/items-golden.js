@@ -556,7 +556,7 @@ const SCENARIOS = [
   scenario('quick', { fields: { screen: 'quick', returnTo: 'paused' } }),
   scenario('quick-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused', liveRow: liveRow(), ghostRow: ghostRow() } }),
   scenario('quick-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
-  scenario('quick-extra', { settings: { airframe: 'extra3d1308', tune: 'extra-as3x', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-extra', { settings: { airframe: 'extra3d1308', tune: 'extra-acro', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
 
   /* Results: a room's, freestyle, a free world, a track. */
   scenario('results-room', { fields: { screen: 'results', roomResults: true, roomResultsRows: () => [{ label: 'Room results', action: 'friends-results' }, { label: 'Back to title', action: 'title' }], inRoom: () => true } }),

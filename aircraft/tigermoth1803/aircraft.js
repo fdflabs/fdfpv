@@ -57,7 +57,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "tigermoth-manual",
+    "defaultTune": "tigermoth-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -373,11 +373,11 @@ export default {
       "note": "No flight controller. The sticks are the ailerons on the bottom wing, the elevator and the rudder, which also turns the tail wheel, at Great Planes' throws. Roll into a turn on the ailerons alone and the nose swings the other way first: feed in rudder with them. Pull it into the stall and the nose drops. Throttle closed, the two stroke idles."
     },
     {
-      "id": "tigermoth-as3x",
+      "id": "tigermoth-acro",
       "airframe": "tigermoth1803",
-      "name": "AS3X",
-      "note": "A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. The adverse yaw is still yours to feed rudder against.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 75 degrees a second and a pitch rate up to 45, centred sticks hold the attitude, and the rudder stick is the rudder alone: bank on the ailerons and the nose still swings the wrong way until you feed in rudder.",
+      "wingStab": 2
     },
     {
       "id": "tigermoth-stab",
