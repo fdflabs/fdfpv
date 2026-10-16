@@ -31,9 +31,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import * as THREE from 'three';
 import { celMaterial } from '../../render/celmat.js';
 import { partsMaterial } from '../../render/library/vehicles/parts.js';
 import { canvasTexture, STRIP_W } from './terrain.js';
+import { CEL_BUILDINGS } from './buildings.js';
 
 /*
  * The strip as a mown grass runway: lanes two metres wide down its length
@@ -95,6 +97,58 @@ function stripTexture() {
   });
 }
 
+/*
+ * The lake's water takes the tone of what it mirrors. Flat blue with a
+ * pale rim read as a painted floor: still water in a valley shows the
+ * slopes round it where it is seen at a glance and the sky where it is
+ * seen steeply, and more of either the flatter it is seen (Fresnel). A
+ * planar mirror draws the scene a second time, which the Low floor has no
+ * room for; this is the tone alone. The reflected ray's elevation picks
+ * the slope's green under about 17 degrees, the sky's blue over about 37
+ * (the walls round the lake stand 25 to 35 degrees from it), and
+ * Schlick's term with water's 2 % at normal incidence says how much of it
+ * shows. Mixed in before the tone map and the fog, so the far water
+ * still fades with the air; the rim, the sheen this replaces, drops to a
+ * trace. Every sheet of the lake carries it, so a sheet over the body
+ * shows the same reflection through it.
+ */
+const MIRRORED_SLOPE = 0x3f5d3e;
+const MIRRORED_SKY = 0x8fb0cc;
+const MIRROR_GLSL = /* glsl */ `
+  #ifdef TH_PARS
+  if (thEnv.x < 0.5)
+  #endif
+  {
+    vec3 mirN = normalize((vec4(normal, 0.0) * viewMatrix).xyz);
+    vec3 mirV = normalize(vCelWorld - cameraPosition);
+    vec3 mirR = reflect(mirV, mirN);
+    float mirF = 0.02 + 0.98 * pow(1.0 - clamp(-dot(mirV, mirN), 0.0, 1.0), 5.0);
+    vec3 mirTone = mix(uMirroredSlope, uMirroredSky, smoothstep(0.3, 0.6, mirR.y));
+    gl_FragColor.rgb = mix(gl_FragColor.rgb, mirTone, mirF * 0.9);
+  }
+`;
+function mirrorTone(mat) {
+  const base = mat.onBeforeCompile;
+  const baseKey = mat.customProgramCacheKey.bind(mat);
+  mat.onBeforeCompile = (shader, renderer) => {
+    base.call(mat, shader, renderer);
+    /* A three that renames the chunk would leave the water flat blue
+     * without a word, as celmat.js guards its own patch. */
+    if (!shader.fragmentShader.includes('#include <tonemapping_fragment>')) {
+      throw new Error('alps look: no tonemapping_fragment to put the lake\'s mirrored tone before');
+    }
+    shader.uniforms.uMirroredSlope = { value: new THREE.Color(MIRRORED_SLOPE) };
+    shader.uniforms.uMirroredSky = { value: new THREE.Color(MIRRORED_SKY) };
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec3 uMirroredSlope;\nuniform vec3 uMirroredSky;')
+      .replace('#include <tonemapping_fragment>', `${MIRROR_GLSL}\n#include <tonemapping_fragment>`);
+  };
+  mat.customProgramCacheKey = () => `${baseKey()}|mirror-tone`;
+  return mat;
+}
+const LAKE_SHEETS = new Set(['lake', 'lake-shallow', 'lake-deep']);
+const isLakeSheet = (name) => LAKE_SHEETS.has(name.replace(/-near$/, ''));
+
 /* What the cel look says of a surface by name, over the options the
  * builder passed; a name not here is drawn as the options say. */
 const BY_NAME = {
@@ -103,6 +157,12 @@ const BY_NAME = {
 
 export const CEL_LOOK = {
   style: 'cel',
-  material: (name, opts) => celMaterial(BY_NAME[name] ? BY_NAME[name](opts) : opts),
+  material: (name, opts) => {
+    if (isLakeSheet(name)) {
+      return mirrorTone(celMaterial({ ...opts, rim: 0.08 }));
+    }
+    return celMaterial(BY_NAME[name] ? BY_NAME[name](opts) : opts);
+  },
   parts: (name, opts) => partsMaterial(opts),
+  buildings: CEL_BUILDINGS,
 };

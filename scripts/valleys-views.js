@@ -67,6 +67,20 @@ const FALLS = {
   alps: [{ id: 'falls', cam: [700, 260, -1150, 1010, 230, -1295] }],
 };
 
+/* The Alps' lake and village close in, where the far views see them a
+ * few pixels across: the shore from the jetty's track at eye height, the
+ * lake from forty metres, the street at eye height looking to the
+ * square, and the church from the square. */
+const CLOSE = {
+  swiss2: [],
+  alps: [
+    { id: 'lake-shore', cam: [225, 4, 1985, 150, -1.5, 2070] },
+    { id: 'lake-low', cam: [260, 40, 2020, 150, 0, 2260] },
+    { id: 'street', cam: [-70, 2.5, 113, -200, 5, 116] },
+    { id: 'church', cam: [-196, 7, 100, -236, 12, 116] },
+  ],
+};
+
 const FRAME_MS = '(() => new Promise((done) => { const t = []; let last = performance.now();'
   + ' const tick = (now) => { t.push(now - last); last = now; if (t.length < 61) { requestAnimationFrame(tick); }'
   + ' else { t.shift(); t.sort((a, b) => a - b); window.__frameMs = t[30]; done(); } };'
@@ -78,7 +92,7 @@ const graphics = arg('graphics', 'high');
 if (!FALLS[map]) {
   throw new Error(`valleys-views: --map must be swiss2 or alps, not ${map}`);
 }
-const VIEWS = [...SHARED, ...FALLS[map]];
+const VIEWS = [...SHARED, ...FALLS[map], ...CLOSE[map]];
 const outDir = resolve(process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'tmp', 'valleys-views'));
 await mkdir(outDir, { recursive: true });
 
