@@ -60,7 +60,7 @@ export const FILES = [
   'src/native/crash.c',
   'src/native/crash_parts.h',
 ];
-export const PINNED_COUNT = 2743;
+export const PINNED_COUNT = 2729;
 /* The array and table elements (scanElements) are pinned on their own, so
  * neither count can grow by the other shrinking. water.c holds the sea's
  * spectrum tables; its #defines are not scanned. */

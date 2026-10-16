@@ -164,6 +164,7 @@ static int g_on_wheels = 0;
 static double g_brake = 0.0;
 static double g_acro_i_roll = 0.0;
 static double g_acro_i_pitch = 0.0;
+static double g_acro_i_yaw = 0.0;
 
 /*
  * THE PARACHUTE, for an aircraft that recovers under one: the Bramor,
@@ -1717,8 +1718,25 @@ static double acro_shape(const FixedWingParams *fw, double x) {
 
 /* Acro: roll and pitch stick in, the stick that flies the aircraft onto
  * the advancing target out. Body axes: x forward, y left, so a right roll
- * is +omega[0] and nose up is -omega[1]. */
-static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *roll, double *pitch) {
+ * is +omega[0] and nose up is -omega[1].
+ *
+ * The target is where the pilot left it. It moves only with a stick: a
+ * roll or pitch stick advances it at the asked rate and, while either is
+ * in, keeps it within acro_err_max of the aircraft (a leash, so a rate the
+ * aircraft cannot fly does not run the target away and land it on
+ * release). With the sticks centred it stays put, however far the
+ * aircraft is pushed off it, so the hold pulls the nose back rather than
+ * following it down. Each integral is held while its own stick is in,
+ * as ArduPlane holds its stabilize integrators under a pilot's stick
+ * (Attitude.cpp, "disable_integrator"), so a held stick winds nothing up.
+ *
+ * The yaw is held only on a table with acro_yaw gains, and only while the
+ * yaw stick is centred: with it in, the rudder is the pilot's stick alone,
+ * as it always was, and the target's yaw is the aircraft's. It is
+ * weighted by how far the nose is off level (below): none level, where
+ * the rudder is the pilot's and a turn is flown on the bank, all of it
+ * nose up, where a hover's nose falls in yaw as readily as in pitch. */
+static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *roll, double *pitch, double *yaw) {
   if (!g_acro_held) {
     for (int i = 0; i < 4; i += 1) {
       g_acro_q[i] = s->quat[i];
@@ -1726,7 +1744,11 @@ static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *ro
     g_acro_held = 1;
     g_acro_i_roll = 0.0;
     g_acro_i_pitch = 0.0;
+    g_acro_i_yaw = 0.0;
   }
+  const int fly_roll = deadband1(*roll, fw->stab_deadband) != 0.0;
+  const int fly_pitch = deadband1(*pitch, fw->stab_deadband) != 0.0;
+  const int hold_yaw = fw->acro_yaw_kp > 0.0 && deadband1(*yaw, fw->stab_deadband) == 0.0;
   const double rate_roll = fw->acro_roll_rate * acro_shape(fw, *roll);
   const double rate_up = fw->acro_pitch_rate * acro_shape(fw, *pitch);
 
@@ -1751,9 +1773,18 @@ static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *ro
   const double dq[4] = { 1.0, rate_roll * h, -rate_up * h, 0.0 };
   double t[4];
   wquat_mul(tz, dq, t);
+  const double tn = sim_sqrt(t[0] * t[0] + t[1] * t[1] + t[2] * t[2] + t[3] * t[3]);
+  for (int i = 0; i < 4; i += 1) {
+    t[i] /= tn;
+  }
 
-  /* The error, target relative to the aircraft, as a body frame rotation
-   * vector: e = axis * angle of conj(q) * t, taken the short way round. */
+  /* The error, target relative to the aircraft in the body frame, conj(q)
+   * t taken the short way round, split into the twist about the nose, the
+   * roll error ex, and the swing that points the nose, ey and ez, each an
+   * axis times an angle. Split so that a roll the hold cannot stop (a
+   * prop hang's torque past the ailerons) leaves where the nose points
+   * held: as one rotation vector, a large roll error turns the nose's
+   * error with it. */
   const double qc[4] = { s->quat[0], -s->quat[1], -s->quat[2], -s->quat[3] };
   double qe[4];
   wquat_mul(qc, t, qe);
@@ -1762,45 +1793,80 @@ static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *ro
       qe[i] = -qe[i];
     }
   }
-  const double vn = sim_sqrt(qe[1] * qe[1] + qe[2] * qe[2] + qe[3] * qe[3]);
-  const double k = vn > 1e-12 ? 2.0 * sim_atan2(vn, qe[0]) / vn : 2.0;
-  double ex = qe[1] * k;
-  double ey = qe[2] * k;
-  const double en = sim_sqrt(ex * ex + ey * ey);
-  if (en > fw->acro_err_max) {
+  const double tw = sim_sqrt(qe[0] * qe[0] + qe[1] * qe[1]);
+  const double tc = tw > 1e-12 ? qe[0] / tw : 1.0;
+  const double ts = tw > 1e-12 ? qe[1] / tw : 0.0;
+  double ex = 2.0 * sim_atan2(ts, tc);
+  const double sy = qe[2] * tc - qe[3] * ts;
+  const double sz = qe[2] * ts + qe[3] * tc;
+  const double sn = sim_sqrt(sy * sy + sz * sz);
+  const double k = sn > 1e-12 ? 2.0 * sim_atan2(sn, tw) / sn : 2.0;
+  double ey = sy * k;
+  double ez = hold_yaw ? sz * k : 0.0;
+
+  /* The leash, while a roll or pitch stick is in. */
+  const double en = sim_sqrt(ex * ex + ey * ey + ez * ez);
+  const int leash = (fly_roll || fly_pitch) && en > fw->acro_err_max;
+  if (leash) {
     ex *= fw->acro_err_max / en;
     ey *= fw->acro_err_max / en;
+    ez *= fw->acro_err_max / en;
   }
 
-  /* Rebuild the target from the aircraft and the roll and pitch error
-   * alone, which drops the yaw the target does not hold and the error past
-   * the clamp. The half angle is at most ten degrees, inside
-   * sim_sin_small's range. */
-  const double ea = sim_sqrt(ex * ex + ey * ey);
-  if (ea > 1e-12) {
-    const double sh = sim_sin_small(0.5 * ea) / ea;
-    const double r[4] = { sim_cos_small(0.5 * ea), ex * sh, ey * sh, 0.0 };
-    wquat_mul(s->quat, r, g_acro_q);
-  } else {
+  /* Keep the target, unless the leash moved it or the yaw it carries is
+   * not held: then rebuild it from the aircraft and the error kept, the
+   * swing then the twist, which drops the yaw the target does not hold
+   * and the error past the leash. */
+  if (hold_yaw && !leash) {
     for (int i = 0; i < 4; i += 1) {
-      g_acro_q[i] = s->quat[i];
+      g_acro_q[i] = t[i];
+    }
+  } else {
+    const double ea = sim_sqrt(ey * ey + ez * ez);
+    const double sh = ea > 1e-12 ? sim_sin(0.5 * ea) / ea : 0.5;
+    const double qs[4] = { sim_cos(0.5 * ea), 0.0, ey * sh, ez * sh };
+    const double qt[4] = { sim_cos(0.5 * ex), sim_sin(0.5 * ex), 0.0, 0.0 };
+    double qst[4];
+    wquat_mul(qs, qt, qst);
+    wquat_mul(s->quat, qst, g_acro_q);
+    const double n = sim_sqrt(g_acro_q[0] * g_acro_q[0] + g_acro_q[1] * g_acro_q[1] +
+                              g_acro_q[2] * g_acro_q[2] + g_acro_q[3] * g_acro_q[3]);
+    for (int i = 0; i < 4; i += 1) {
+      g_acro_q[i] /= n;
     }
   }
-  const double n = sim_sqrt(g_acro_q[0] * g_acro_q[0] + g_acro_q[1] * g_acro_q[1] +
-                            g_acro_q[2] * g_acro_q[2] + g_acro_q[3] * g_acro_q[3]);
-  for (int i = 0; i < 4; i += 1) {
-    g_acro_q[i] /= n;
+
+  /* What the loops answer is held to acro_err_max, so a large upset is
+   * pulled back at the rate a small one is, not snapped. */
+  const double ec = sim_sqrt(ex * ex + ey * ey + ez * ez);
+  if (ec > fw->acro_err_max) {
+    ex *= fw->acro_err_max / ec;
+    ey *= fw->acro_err_max / ec;
+    ez *= fw->acro_err_max / ec;
   }
 
-  g_acro_i_roll += fw->acro_roll_ki * ex * WING_DT;
-  g_acro_i_pitch += fw->acro_pitch_ki * -ey * WING_DT;
-  g_acro_i_roll = clip(g_acro_i_roll, fw->acro_i_max);
-  g_acro_i_pitch = clip(g_acro_i_pitch, fw->acro_i_max);
+  if (!fly_roll) {
+    g_acro_i_roll = clip(g_acro_i_roll + fw->acro_roll_ki * ex * WING_DT, fw->acro_i_max);
+  }
+  if (!fly_pitch) {
+    g_acro_i_pitch = clip(g_acro_i_pitch + fw->acro_pitch_ki * -ey * WING_DT, fw->acro_i_max);
+  }
 
   *roll = clamp1(fw->acro_roll_kp * ex + g_acro_i_roll + fw->acro_roll_kd * (rate_roll - s->omega[0]) +
                  fw->acro_roll_ff * rate_roll);
   *pitch = clamp1(fw->acro_pitch_kp * -ey + g_acro_i_pitch + fw->acro_pitch_kd * (rate_up + s->omega[1]) +
                   fw->acro_pitch_ff * rate_up);
+  /* The yaw stick is nose right, -omega[2], and ez is the target to the
+   * left of the nose. The hold is weighted by how far the nose is off
+   * level, 1 - level, as the heading's follow is by level: level, the
+   * rudder stays the pilot's and a skid's own return is the airframe's;
+   * nose up, as in a hover, the hold has it all. Its integral sums at the
+   * same weight. */
+  if (hold_yaw) {
+    const double wy = 1.0 - level;
+    g_acro_i_yaw = clip(g_acro_i_yaw + wy * fw->acro_yaw_ki * -ez * WING_DT, fw->acro_i_max);
+    *yaw = clamp1(wy * (fw->acro_yaw_kp * -ez + fw->acro_yaw_kd * s->omega[2]) + g_acro_i_yaw);
+  }
 }
 
 /* The turn coordinator: the yaw stick that brings the body yaw rate onto
@@ -2364,8 +2430,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * its own yaw, and the damper pulled the yaw rate back onto the
      * coordinated rate against the pilot's own rudder, so rudder felt
      * mixed into the ailerons and never independent. Stabilised keeps
-     * the coordinator; Acro is flown on the pilot's feet. */
-    acro_sticks(fw, s, &roll, &pitch);
+     * the coordinator; Acro is flown on the pilot's feet. A table with
+     * acro_yaw gains holds the yaw with the yaw stick centred, nothing of
+     * it level and all of it nose up, and any rudder stick is the
+     * pilot's alone (acro_sticks). */
+    acro_sticks(fw, s, &roll, &pitch, &yaw);
   } else if (g_stab == 1) {
     double pitch_att, bank;
     wing_attitude(s->quat, &pitch_att, &bank);
@@ -6383,15 +6452,18 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* what full elevator holds at 16 m/s, near CLmax */
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 1.5,
-  .acro_roll_kd = 0.20,
+  .acro_roll_kp = 2.5, /* npm run acro:derive */
+  .acro_roll_kd = 0.645, /* npm run acro:derive */
   .acro_roll_ff = 0.10,
-  .acro_pitch_kp = 2.0,
-  .acro_pitch_kd = 0.2,
+  .acro_pitch_kp = 11.4, /* npm run acro:derive */
+  .acro_pitch_kd = 1.99, /* npm run acro:derive */
   .acro_pitch_ff = 0.15,
-  .acro_roll_ki = 2.0,
-  .acro_pitch_ki = 3.0,
-  .acro_i_max = 0.30,
+  .acro_roll_ki = 2.42, /* npm run acro:derive */
+  .acro_pitch_ki = 14.9, /* npm run acro:derive */
+  .acro_i_max = 0.666, /* ArduPlane's rate loops' IMAX, https://github.com/ArduPilot/ardupilot (APM_Control), npm run acro:derive */
+  .acro_yaw_kp = 11.4, /* npm run acro:derive */
+  .acro_yaw_ki = 14.9, /* npm run acro:derive */
+  .acro_yaw_kd = 1.99, /* npm run acro:derive */
   /* A cowled nose: Selig's 80 percent for a cowling, not the profile
    * foamies' 100; the disc 0.302 m ahead of the CG, the drawn model's
    * (src/render/extracraft.js, PROP_S to CG_S at the manual's CG). */
@@ -6550,15 +6622,18 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_pitch_rate = 200.0 * WING_PI / 180.0,
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 3.0,
-  .acro_roll_kd = 0.30,
+  .acro_roll_kp = 2.76, /* npm run acro:derive */
+  .acro_roll_kd = 0.712, /* npm run acro:derive */
   .acro_roll_ff = 0.25,
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
+  .acro_pitch_kp = 8.51, /* npm run acro:derive */
+  .acro_pitch_kd = 1.48, /* npm run acro:derive */
   .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 4.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
+  .acro_roll_ki = 2.67, /* npm run acro:derive */
+  .acro_pitch_ki = 11.1, /* npm run acro:derive */
+  .acro_i_max = 0.666, /* ArduPlane's rate loops' IMAX, https://github.com/ArduPilot/ardupilot (APM_Control), npm run acro:derive */
+  .acro_yaw_kp = 11.4, /* npm run acro:derive */
+  .acro_yaw_ki = 14.9, /* npm run acro:derive */
+  .acro_yaw_kd = 1.99, /* npm run acro:derive */
   .as3x_k = { 0.0189, 0.0139, 0.0111 }, /* npm run as3x:derive */
   .as3x_kh = { 0.0013, 0.1607, 0.0768 }, /* npm run as3x:derive */
   .as3x_rate = { 6.149, -5.646, -3.006 }, /* npm run as3x:derive */
@@ -6855,15 +6930,18 @@ const FixedWingParams FW_CAP1702 = {
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   .acro_expo = 0.30, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
   .acro_err_max = 5.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_roll_kp = 1.5, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_roll_kd = 0.20, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_roll_kp = 3.43, /* npm run acro:derive */
+  .acro_roll_kd = 0.886, /* npm run acro:derive */
   .acro_roll_ff = 0.10, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_pitch_kp = 2.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_pitch_kd = 0.2, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_pitch_kp = 11.4, /* npm run acro:derive */
+  .acro_pitch_kd = 1.99, /* npm run acro:derive */
   .acro_pitch_ff = 0.15, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_roll_ki = 2.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_pitch_ki = 3.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_i_max = 0.30, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
+  .acro_roll_ki = 3.32, /* npm run acro:derive */
+  .acro_pitch_ki = 14.9, /* npm run acro:derive */
+  .acro_i_max = 0.666, /* ArduPlane's rate loops' IMAX, https://github.com/ArduPilot/ardupilot (APM_Control), npm run acro:derive */
+  .acro_yaw_kp = 11.4, /* npm run acro:derive */
+  .acro_yaw_ki = 14.9, /* npm run acro:derive */
+  .acro_yaw_kd = 1.99, /* npm run acro:derive */
   /* A cowled nose: Selig's 80 percent for a cowling (docs/EXTRA-STAGE1.md);
    * the disc 0.56 m ahead of the CG, npm run cap580:derive. */
   .jet_kj = 0.80,
@@ -7023,15 +7101,18 @@ const FixedWingParams FW_SLICK2680 = {
   .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .acro_expo = 0.30, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
   .acro_err_max = 5.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_roll_kp = 1.5, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_roll_kd = 0.20, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_roll_kp = 7.56, /* npm run acro:derive */
+  .acro_roll_kd = 1.95, /* npm run acro:derive */
   .acro_roll_ff = 0.10, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_pitch_kp = 2.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_pitch_kd = 0.2, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_pitch_kp = 11.4, /* npm run acro:derive */
+  .acro_pitch_kd = 1.99, /* npm run acro:derive */
   .acro_pitch_ff = 0.15, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_roll_ki = 2.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_pitch_ki = 3.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_i_max = 0.30, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
+  .acro_roll_ki = 7.31, /* npm run acro:derive */
+  .acro_pitch_ki = 14.9, /* npm run acro:derive */
+  .acro_i_max = 0.666, /* ArduPlane's rate loops' IMAX, https://github.com/ArduPilot/ardupilot (APM_Control), npm run acro:derive */
+  .acro_yaw_kp = 0.644, /* npm run acro:derive */
+  .acro_yaw_ki = 0.84, /* npm run acro:derive */
+  .acro_yaw_kd = 0.112, /* npm run acro:derive */
   /* A cowled nose: Selig's 80 percent for a cowling (docs/EXTRA-STAGE1.md);
    * the disc 0.609 m ahead of the CG, the drawing's, scripts/slick-derive.js. */
   .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */

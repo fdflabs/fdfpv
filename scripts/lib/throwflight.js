@@ -167,44 +167,59 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
    * fan_spool: a launch leaves an electric fan at rest, the stick's
    * opening a start. */
   let fanN = fan && fw.throttle_idle > 0 ? fw.throttle_idle : 0, fanV = 0, ramp = 0;
-  let acroQ = null, acroIRoll = 0, acroIPitch = 0;
+  let acroQ = null, acroIRoll = 0, acroIPitch = 0, acroIYaw = 0;
   const servo = [0, 0, 0];
   let sigmaMax = 0;
   const out = [];
   let next = 0;
-  /* plant_wing.c acro_sticks with both sticks centred: the target
+  /* plant_wing.c acro_sticks with every stick centred: the target
    * attitude taken at the first step (a launch clears it), turned with the
-   * aircraft's own heading as far as the nose is level, and the stick that
-   * flies onto it. */
+   * aircraft's own heading as far as the nose is level, and kept; its yaw
+   * dropped each step on a table with no yaw hold. The error split into
+   * the twist about the nose and the swing that points it, and the stick
+   * that flies onto it. */
   const acroSticks = () => {
-    if (!acroQ) { acroQ = quat.slice(); acroIRoll = 0; acroIPitch = 0; }
+    if (!acroQ) { acroQ = quat.slice(); acroIRoll = 0; acroIPitch = 0; acroIYaw = 0; }
+    const holdYaw = fw.acro_yaw_kp > 0;
     const wv = rotate(quat, om);
     const fwv = rotate(quat, [1, 0, 0]);
     const level = fwv[0] * fwv[0] + fwv[1] * fwv[1];
     const h = 0.5 * DT;
-    const tz = qmul([1, 0, 0, level * wv[2] * h], acroQ);
-    const tq = qmul(tz, [1, 0, 0, 0]);
+    let tq = qmul([1, 0, 0, level * wv[2] * h], acroQ);
+    const tn = Math.hypot(...tq);
+    tq = tq.map((x) => x / tn);
     let qe = qmul([quat[0], -quat[1], -quat[2], -quat[3]], tq);
     if (qe[0] < 0) qe = qe.map((x) => -x);
-    const vn = Math.hypot(qe[1], qe[2], qe[3]);
-    const k = vn > 1e-12 ? 2 * Math.atan2(vn, qe[0]) / vn : 2;
-    let ex = qe[1] * k, ey = qe[2] * k;
-    const en = Math.hypot(ex, ey);
-    if (en > fw.acro_err_max) { ex *= fw.acro_err_max / en; ey *= fw.acro_err_max / en; }
-    const ea = Math.hypot(ex, ey);
-    if (ea > 1e-12) {
-      const sh = Math.sin(0.5 * ea) / ea;
-      acroQ = qmul(quat, [Math.cos(0.5 * ea), ex * sh, ey * sh, 0]);
+    const tw = Math.hypot(qe[0], qe[1]);
+    const tc = tw > 1e-12 ? qe[0] / tw : 1, ts = tw > 1e-12 ? qe[1] / tw : 0;
+    let ex = 2 * Math.atan2(ts, tc);
+    const sy = qe[2] * tc - qe[3] * ts, sz = qe[2] * ts + qe[3] * tc;
+    const sn = Math.hypot(sy, sz);
+    const k = sn > 1e-12 ? 2 * Math.atan2(sn, tw) / sn : 2;
+    let ey = sy * k, ez = holdYaw ? sz * k : 0;
+    if (holdYaw) {
+      acroQ = tq;
     } else {
-      acroQ = quat.slice();
+      const ea = Math.hypot(ey, ez);
+      const sh = ea > 1e-12 ? Math.sin(0.5 * ea) / ea : 0.5;
+      acroQ = qmul(quat, qmul([Math.cos(0.5 * ea), 0, ey * sh, ez * sh], [Math.cos(0.5 * ex), Math.sin(0.5 * ex), 0, 0]));
+      const nq = Math.hypot(...acroQ);
+      acroQ = acroQ.map((x) => x / nq);
     }
-    const nq = Math.hypot(...acroQ);
-    acroQ = acroQ.map((x) => x / nq);
+    const ec = Math.hypot(ex, ey, ez);
+    if (ec > fw.acro_err_max) { ex *= fw.acro_err_max / ec; ey *= fw.acro_err_max / ec; ez *= fw.acro_err_max / ec; }
     acroIRoll = clip(acroIRoll + fw.acro_roll_ki * ex * DT, fw.acro_i_max);
     acroIPitch = clip(acroIPitch + fw.acro_pitch_ki * -ey * DT, fw.acro_i_max);
+    let yawStick = 0;
+    if (holdYaw) {
+      const wy = 1 - level;
+      acroIYaw = clip(acroIYaw + wy * fw.acro_yaw_ki * -ez * DT, fw.acro_i_max);
+      yawStick = clamp1(wy * (fw.acro_yaw_kp * -ez + fw.acro_yaw_kd * om[2]) + acroIYaw);
+    }
     return [
       clamp1(fw.acro_roll_kp * ex + acroIRoll + fw.acro_roll_kd * -om[0]),
       clamp1(fw.acro_pitch_kp * -ey + acroIPitch + fw.acro_pitch_kd * om[1]),
+      yawStick,
     ];
   };
   const steps = Math.round(seconds / DT);
@@ -219,8 +234,7 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
     const [qw, qx, qy, qz] = quat;
     let roll, pitch, yaw;
     if (mode === 'acro') {
-      [roll, pitch] = acroSticks();
-      yaw = 0;
+      [roll, pitch, yaw] = acroSticks();
     } else {
       const bxz = 2 * (qx * qz - qw * qy), byz = 2 * (qy * qz + qw * qx), bzz = 1 - 2 * (qx * qx + qy * qy);
       const pitchAtt = Math.atan2(bxz, Math.hypot(byz, bzz)), bank = Math.atan2(byz, bzz);

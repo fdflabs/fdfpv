@@ -103,7 +103,7 @@ export function surfaceCmd(sim) {
  * at each frame's start against the surface flown over that frame, the
  * two flights' differences fitted for their cos and sin at theta over
  * whole cycles after the settle; null if the surface did not move. */
-function flySweep(sim, cond, axis, theta, T, amp) {
+function flySweep(sim, cond, axis, theta, T, amp, input = 'surface') {
   const F = Math.round(T * 1000);
   const cycleFrames = 2 * Math.PI / theta;
   const settle = Math.max(Math.ceil(2 * cycleFrames), Math.ceil(0.3 / T));
@@ -123,7 +123,7 @@ function flySweep(sim, cond, axis, theta, T, amp) {
         must(sim.input(t0 + (n * F + i) / 1000, ...st), 'sim_input');
         must(sim.step(1), 'sim_step');
         if (cond.pin) cond.pin(sim);
-        u += surfaceCmd(sim)[axis] / F;
+        u += (input === 'stick' ? st[axis] : surfaceCmd(sim)[axis]) / F;
       }
       us.push(u);
     }
@@ -156,9 +156,12 @@ export function gridFor(T, wLo = 1, n = 28) {
   return out;
 }
 
-/* The airframe's response on one axis over the grid. */
-export function plantResponse(sim, cond, axis, grid, T, amp = 0.05) {
-  return grid.map((theta) => ({ theta, w: theta / T, p: flySweep(sim, cond, axis, theta, T, amp) }));
+/* The airframe's response on one axis over the grid, per unit of the
+ * surface the plant flies, or with input 'stick' per unit of the stick
+ * (a flight controller's output, which the radio's expo and the servos
+ * then carry, as they carry a pilot's). */
+export function plantResponse(sim, cond, axis, grid, T, amp = 0.05, input = 'surface') {
+  return grid.map((theta) => ({ theta, w: theta / T, p: flySweep(sim, cond, axis, theta, T, amp, input) }));
 }
 
 /* The loop at a gain on the measured response, and its margins: the gain
@@ -169,8 +172,14 @@ export function plantResponse(sim, cond, axis, grid, T, amp = 0.05) {
  * highest unity crossing; the peak of the sensitivity |1 / (1 + L)|, the
  * most a disturbance is amplified. */
 export function margins(resp, axis, k, kh, T) {
+  return loopMargins(resp, (theta) => scale(receiverC(theta, k, kh, T), -SIGMA[axis]));
+}
+
+/* The same for any controller: C(theta) the factor on the measured
+ * response that makes the loop, L = C P, fed back negatively. */
+export function loopMargins(resp, C) {
   const pts = resp.filter((r) => r.p).map((r) => {
-    const L = scale(mul(receiverC(r.theta, k, kh, T), r.p), -SIGMA[axis]);
+    const L = mul(C(r.theta), r.p);
     return { w: r.w, mag: abs(L), ph: Math.atan2(L.im, L.re), ms: 1 / abs(add(cx(1), L)), L };
   });
   for (let i = 1; i < pts.length; i += 1) {
@@ -237,8 +246,13 @@ export function margins(resp, axis, k, kh, T) {
  * Below the sweep's first sample a loop holds (a gain of nothing changes
  * nothing). */
 export function gainForMargins(resps, axis, k, kh, T) {
+  return factorForMargins(resps, (g, theta) => scale(receiverC(theta, g * k, g * kh, T), -SIGMA[axis]));
+}
+
+/* The same for any controller: C(g, theta) at factor g. */
+export function factorForMargins(resps, C) {
   const ok = (g) => resps.every((resp) => {
-    const m = margins(resp, axis, g * k, g * kh, T);
+    const m = loopMargins(resp, (theta) => C(g, theta));
     return m.gmDb >= GM_MIN_DB && (m.pmDeg === null || m.pmDeg >= PM_MIN_DEG);
   });
   let lo = 0, hi = null;
