@@ -279,8 +279,8 @@ function acroStepper(h, g, pass = -1) {
     if (ec > h.errMax) { ex *= h.errMax / ec; ey *= h.errMax / ec; ez *= h.errMax / ec; }
     const clip = (x) => Math.max(-h.iMax, Math.min(h.iMax, x));
     const c1 = (x) => Math.max(-1, Math.min(1, x));
-    if (!fly[0]) I[0] = clip(I[0] + g[0].ki * ex * T);
-    if (!fly[1]) I[1] = clip(I[1] + g[1].ki * -ey * T);
+    I[0] = clip(I[0] + g[0].ki * ex * T);
+    I[1] = clip(I[1] + g[1].ki * -ey * T);
     const out = [
       c1(g[0].kp * ex + I[0] + g[0].kd * (rr - om[0]) + h.ff[0] * rr),
       c1(g[1].kp * -ey + I[1] + g[1].kd * (ru + om[1]) + h.ff[1] * ru),

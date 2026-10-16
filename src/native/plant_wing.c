@@ -1726,9 +1726,7 @@ static double acro_shape(const FixedWingParams *fw, double x) {
  * aircraft cannot fly does not run the target away and land it on
  * release). With the sticks centred it stays put, however far the
  * aircraft is pushed off it, so the hold pulls the nose back rather than
- * following it down. Each integral is held while its own stick is in,
- * as ArduPlane holds its stabilize integrators under a pilot's stick
- * (Attitude.cpp, "disable_integrator"), so a held stick winds nothing up.
+ * following it down.
  *
  * The yaw is held only on a table with acro_yaw gains, and only while the
  * yaw stick is centred: with it in, the rudder is the pilot's stick alone,
@@ -1845,12 +1843,13 @@ static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *ro
     ez *= fw->acro_err_max / ec;
   }
 
-  if (!fly_roll) {
-    g_acro_i_roll = clip(g_acro_i_roll + fw->acro_roll_ki * ex * WING_DT, fw->acro_i_max);
-  }
-  if (!fly_pitch) {
-    g_acro_i_pitch = clip(g_acro_i_pitch + fw->acro_pitch_ki * -ey * WING_DT, fw->acro_i_max);
-  }
+  /* The integrals sum under a stick too, as ArduPlane's rate loops do in
+   * ACRO: a full stick roll needs them to reach the rate asked, and the
+   * leash and acro_i_max bound what they can hold on release. Held while
+   * the stick is in, they slowed the Tiger Moth's and the Ugly Stik's
+   * full stick roll under its asked rate (tigermoth:stab, uglystik:stab). */
+  g_acro_i_roll = clip(g_acro_i_roll + fw->acro_roll_ki * ex * WING_DT, fw->acro_i_max);
+  g_acro_i_pitch = clip(g_acro_i_pitch + fw->acro_pitch_ki * -ey * WING_DT, fw->acro_i_max);
 
   *roll = clamp1(fw->acro_roll_kp * ex + g_acro_i_roll + fw->acro_roll_kd * (rate_roll - s->omega[0]) +
                  fw->acro_roll_ff * rate_roll);

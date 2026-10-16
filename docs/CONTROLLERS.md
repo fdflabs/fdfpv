@@ -39,8 +39,10 @@ Acro's hold since w50-hover (plant_wing.c `acro_sticks`):
 - The error is split into the twist about the nose (roll) and the swing
   that points it (pitch, yaw), so a roll the ailerons cannot stop leaves
   the nose's error true.
-- Each axis' integral is held while its own stick is in (ArduPlane's
-  stabilize integrators under a pilot's stick).
+- The roll and pitch integrals sum under a stick too, as before and as
+  ArduPlane's rate loops do in ACRO: held while the stick was in (the
+  first cut, acc9165b4), they slowed the Tiger Moth's and the Ugly
+  Stik's full stick roll under its asked rate.
 - A table with `acro_yaw` gains holds yaw with the yaw stick centred,
   weighted by how far the nose is off level (1 - level): level, the
   rudder is the pilot's; nose up, the hold has it. Any yaw stick past the
