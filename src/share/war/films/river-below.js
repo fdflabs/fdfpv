@@ -47,7 +47,7 @@ const onRoad = (x) => ({ keys: [{ t: 0, p: crest(LINE_AT, LINE_OFF, null, PAIR_M
 
 export default {
   id: 'river-below',
-  version: 1,
+  version: 2,
   cast: {
     ten: CAST.ten,
     strk: CAST.strk,
@@ -89,6 +89,12 @@ export default {
       camera: {
         type: 'telephoto', lens: 400, ease: 'hold', at: [-450, 230, -1000], look: [-1300, 110, 1600],
       },
+      /* The slate (INTROS.md 1.8): where, when and the stakes. */
+      titles: [
+        {
+          key: 'war.slate.itaipu_5.place', when: 'war.slate.itaipu_5.when', sub: 'war.slate.itaipu_5.stakes', from: 1.5, to: { at: 'end', s: -0.8 }, kind: 'slate',
+        },
+      ],
       fade: [[0, 1], [1.2, 0]],
       out: 'cut',
     },

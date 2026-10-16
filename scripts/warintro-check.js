@@ -207,12 +207,13 @@ const DRIVE = /* js */ `(async (opts) => {
       if (!s.orbit && s.shot >= 0) {
         const g = window.__heightAt(cam.position.x, cam.position.z);
         R.clear.push([s.shot, cam.position.y - g, Math.round(cam.position.x), Math.round(cam.position.z)]);
-        const x = (R.shots[s.shot] ||= { frames: 0, drawn: {}, cast: [], titles: [], subs: [], counter: null, calls: 0, opened: 0 });
+        const x = (R.shots[s.shot] ||= { frames: 0, drawn: {}, cast: [], titles: [], slates: [], subs: [], counter: null, calls: 0, opened: 0 });
         x.frames += 1;
         x.opened = Math.max(x.opened, s.opened);
         for (const [kind, n] of Object.entries(s.drawn)) { x.drawn[kind] = Math.max(x.drawn[kind] || 0, n); }
         for (const c of s.cast) { if (!x.cast.includes(c)) { x.cast.push(c); } }
         if (s.title && !x.titles.includes(s.title)) { x.titles.push(s.title); }
+        if (s.slate && !x.slates.includes(s.slate)) { x.slates.push(s.slate); }
         if (s.subtitle && !x.subs.includes(s.subtitle)) { x.subs.push(s.subtitle); }
         if (s.counter) { x.counter = s.counter; }
         if (s.scope) { x.scope = { contacts: Math.max(x.scope?.contacts ?? 0, s.scope.contacts), off: Math.max(x.scope?.off ?? 0, s.scope.contacts - s.scope.onScope) }; }
@@ -295,7 +296,7 @@ try {
   const bedAfter = await page.evaluate('window.__audio.warRadio ? window.__audio.warRadio.track : null');
 
   const shot = (id) => R.shots[shotOf(id)] || {
-    frames: 0, drawn: {}, cast: [], titles: [], subs: [], calls: 0, opened: 0,
+    frames: 0, drawn: {}, cast: [], titles: [], slates: [], subs: [], calls: 0, opened: 0,
   };
   console.log('\nper shot: frames, most attackers drawn, the cast, most draw calls');
   for (const x of SHOTS) {
@@ -370,6 +371,15 @@ try {
     row('outro: no attacker in any shot (the fight is over)', SHOTS.every((x) => Object.values(shot(x.id).drawn).every((n) => !n)), SHOTS.map((x) => JSON.stringify(shot(x.id).drawn)).join(' '));
     row('rack: the quad home on its pad', shot('rack').cast.includes('q2s'), shot('rack').cast.join(' '));
     row('lines: no title card while The Long Night is held', shot('lines').titles.length === 0, shot('lines').titles.join(' | '));
+  }
+
+  /* The slate (INTROS.md 1.8): place, day and time, and the stakes, in
+   * English as the string table has them, in the shot that carries it. */
+  for (const x of SHOTS) {
+    for (const t of (x.titles ?? []).filter((y) => y.kind === 'slate')) {
+      const want = [t.key, t.when, t.sub].map((k) => EN[k]).join(' / ');
+      row(`${x.id}: the slate, "${want}"`, shot(x.id).slates.includes(want), shot(x.id).slates.join(' | ') || 'none');
+    }
   }
 
   /* The voice: decoded here, as long as the manifest says. */

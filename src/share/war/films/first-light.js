@@ -37,9 +37,17 @@ const LINES = {
   wave: [{ line: 'film-itaipu-1-7', lead: 2.0, tail: 1.0 }],
 };
 
+/* The slate (INTROS.md 1.8) on the haze, the first shot after "2030":
+ * where, when and the stakes. */
+const SLATE = {
+  haze: [{
+    key: 'war.slate.itaipu_1.place', when: 'war.slate.itaipu_1.when', sub: 'war.slate.itaipu_1.stakes', from: 1.0, to: { at: 'end', s: -1.0 }, kind: 'slate',
+  }],
+};
+
 export default {
   ...film2030,
   id: 'first-light',
-  version: 4,
-  shots: film2030.shots.map((s) => ({ ...s, lines: LINES[s.id] ?? [] })),
+  version: 5,
+  shots: film2030.shots.map((s) => ({ ...s, lines: LINES[s.id] ?? [], titles: [...(s.titles ?? []), ...(SLATE[s.id] ?? [])] })),
 };

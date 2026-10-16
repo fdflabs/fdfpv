@@ -256,7 +256,7 @@ function lintFilm(film, rules) {
       }
     }
     for (const x of def.titles ?? []) {
-      for (const key of [x.key, x.sub].filter(Boolean)) {
+      for (const key of [x.key, x.when, x.sub].filter(Boolean)) {
         if (!(key in en) || !(key in es)) {
           fail(`${film.id} ${s.id}: the title key ${key} is not in both string tables`);
         }

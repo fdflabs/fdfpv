@@ -53,7 +53,7 @@ const AISLE = [-2270, 225, -455];
 
 export default {
   id: 'lights-out',
-  version: 1,
+  version: 2,
   routes: {
     /* The stage 1 pair down the west arm, side by side: the same shape,
      * the same speed. */
@@ -78,6 +78,12 @@ export default {
       camera: {
         type: 'telephoto', lens: 300, ease: 'lin', at: CORRIDOR_AT, look: TOWERS,
       },
+      /* The slate (INTROS.md 1.8): where, when and the stakes. */
+      titles: [
+        {
+          key: 'war.slate.itaipu_3.place', when: 'war.slate.itaipu_3.when', sub: 'war.slate.itaipu_3.stakes', from: 1.5, to: { at: 'end', s: -0.8 }, kind: 'slate',
+        },
+      ],
       fade: [[0, 1], [1.2, 0]],
       out: 'cut',
     },

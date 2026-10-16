@@ -60,7 +60,7 @@ const onRoad = (x) => ({ keys: [{ t: 0, p: crest(LINE_AT, LINE_OFF, null, PAIR_M
 
 export default {
   id: 'corridor',
-  version: 1,
+  version: 2,
   cast: {
     strk: CAST.strk,
     int: CAST.int,
@@ -85,6 +85,12 @@ export default {
       camera: {
         type: 'orbit', lens: 24, centre: over(1, 0), r: 22, h: 2, a: [Math.PI * 1.15, Math.PI * 1.4], look: [over(1, 14), over(1, 44)],
       },
+      /* The slate (INTROS.md 1.8): where, when and the stakes. */
+      titles: [
+        {
+          key: 'war.slate.itaipu_6.place', when: 'war.slate.itaipu_6.when', sub: 'war.slate.itaipu_6.stakes', from: 1.5, to: { at: 'end', s: -0.8 }, kind: 'slate',
+        },
+      ],
       fade: [[0, 1], [1.2, 0]],
       out: 'match',
     },

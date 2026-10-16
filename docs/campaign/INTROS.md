@@ -118,6 +118,21 @@ May not: a person, a hand, a face, a figure at a window; anything hurt;
 any insignia, flag or slogan; a real organisation's name or logo; a
 spoken number of anything real.
 
+### 1.8 The slate
+
+Every Act 1 intro tells the pilot where and when it is and what is at
+stake before the story starts: a slate in its first shot (First Light's
+second, after "2030"), a `slate` title in film.js with three string keys,
+`war.slate.itaipu_<n>.place`, `.when` and `.stakes`, en and es. Three
+rows top left inside the 2.39 frame, behind a gold rule: the place in the
+mission card's type, the day and time in the HUD's monospaced gold, the
+stakes in one line of plain type. Top left, because the subtitles own the
+lower third and the first shot often carries a line. It fades in over
+0.7 s from 1.0 to 1.5 s into the shot and out over 0.6 s before the cut.
+The day and time are section 2's of MISSIONS.md. The stakes never give a
+number of anything real (1.7). warintro:check holds each slate in its
+shot.
+
 ## 2. Sync: the film is timed by its voice
 
 The cure for faults 1 to 5 (TECH-NEEDS T2.3 to T2.5):
