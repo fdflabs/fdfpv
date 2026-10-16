@@ -248,18 +248,28 @@ function yard(id, twist, objective, cues, more = {}) {
   };
 }
 
-/* To the islanding of the last intact corridor once `when` fires: the
- * east's when the west has a tower down, the west's when the east has,
- * drawn when both or neither have (an exit listed first wins a tie). */
+/* To the islanding of the last intact corridor once `when` fires, or
+ * once no pilot can fly on (the stage lost): the east's when the west has
+ * a tower down, the west's when the east has, drawn when both or neither
+ * have (an exit listed first wins a tie). */
 function islandExits(when) {
   const either = { pick: ['island-west', 'island-east'] };
   const down = (all) => ({ destroyed: all, n: 1 });
+  const ways = [
+    [[down(W_ALL), down(E_ALL)], either],
+    [[down(W_ALL)], 'island-east'],
+    [[down(E_ALL)], 'island-west'],
+    [[], either],
+  ];
+  const after = BEAT(15, 15);
   return [
-    [{ all: [when, down(W_ALL), down(E_ALL)] }, either],
-    [{ all: [when, down(W_ALL)] }, 'island-east'],
-    [{ all: [when, down(E_ALL)] }, 'island-west'],
-    [when, either],
-  ].flatMap(([w, to]) => exits(w, to, BEAT(15, 15)));
+    ...ways.map(([also, to]) => ({
+      when: also.length ? { all: [when, ...also] } : when, to, after, result: 'auto', clear: 'leave',
+    })),
+    ...ways.map(([also, to]) => ({
+      when: also.length ? { all: [{ allOut: true }, ...also] } : { allOut: true }, to, after, result: 'lost', clear: 'through',
+    })),
+  ];
 }
 
 /* Stage 4 on one corridor: the hold on its towers while Strikers come at

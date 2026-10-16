@@ -2320,11 +2320,11 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
   /* The islanding's corridor (stage 3's exits): the one with no tower
    * down, drawn when both or neither are. */
   const yardIdx = st6.findIndex((x) => x.id === 'yard-cover');
-  const islandOf = (downAt, seed) => {
+  const islandOf = (downAt, seed, allOut = false) => {
     const st = enter(mission, yardIdx, 500000, seed, 3, { pilots: 2 });
-    st.due.forEach((d) => { d.born = true; });
+    st.due.forEach((d) => { d.born = !allOut; });
     const ctx = {
-      mission, m: { downAt, path: [], seed }, st, f: 700000, allBorn: true, cleared: true, lastGone: 600000, allOut: false, spent: 0, here: [1], pilots: [],
+      mission, m: { downAt, path: [], seed }, st, f: 600000, allBorn: !allOut, cleared: !allOut, lastGone: 600000, allOut, spent: 0, here: [1], pilots: [],
     };
     const due = exitDue(ctx);
     const to = target(mission, st, due.exit, seed, due.k);
@@ -2337,6 +2337,10 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
   const none = seeds.map((sd) => islandOf({}, sd));
   check('stage 4 islands the corridor with no tower down: the west when the east has one down, the east when the west has, at the stage\'s end',
     west.every((x) => x.to === 'island-west' && x.at === 600000) && east.every((x) => x.to === 'island-east' && x.at === 600000), JSON.stringify({ west, east }));
+  const lostWest = seeds.map((sd) => islandOf({ 'tower-e-3': 200000 }, sd, true));
+  const lostEast = seeds.map((sd) => islandOf({ 'tower-w-9': 200000 }, sd, true));
+  check('and the same when the stage is lost (no pilot left flying)',
+    lostWest.every((x) => x.to === 'island-west' && x.at === 600000) && lostEast.every((x) => x.to === 'island-east' && x.at === 600000), JSON.stringify({ lostWest, lostEast }));
   check('and draws one when both or neither are, each met over eight seeds',
     ['island-west', 'island-east'].every((id) => both.some((x) => x.to === id) && none.some((x) => x.to === id)), JSON.stringify({ both, none }));
   const games = [];
