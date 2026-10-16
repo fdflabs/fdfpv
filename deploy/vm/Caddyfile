@@ -135,3 +135,9 @@
 api.paraguayandronecombatsimulator.com {
 	import servers
 }
+
+# Sites that are not the game's servers, such as the OpenfieldRC parent site
+# at openfieldrc.com, are installed by their own deploys as files in
+# /etc/caddy/sites/, so reinstalling this file on a deploy keeps them. A glob
+# that matches nothing, or a directory that does not exist, is valid.
+import /etc/caddy/sites/*.caddy

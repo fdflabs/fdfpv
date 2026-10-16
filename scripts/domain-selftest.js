@@ -166,6 +166,9 @@ console.log('the Caddyfile');
   check('nothing else: the bare address and the API name are the only sites',
     (caddy.match(/^\S[^\n]*\{\s*$/gm) || []).map((l) => l.trim()).join(' | ') === '(servers) { | 129.151.39.48 { | api.paraguayandronecombatsimulator.com {',
     (caddy.match(/^\S[^\n]*\{\s*$/gm) || []).map((l) => l.trim()).join(' | '));
+  check('other sites come only from their own files in /etc/caddy/sites/',
+    (caddy.match(/^import\s.*$/gm) || []).join(' | ') === 'import /etc/caddy/sites/*.caddy',
+    (caddy.match(/^import\s.*$/gm) || []).join(' | '));
   check('the game\'s apex and www are not here (GitHub Pages serves them)',
     !/^(www\.)?paraguayandronecombatsimulator\.com\b/m.test(caddy));
 }
