@@ -34,6 +34,9 @@
  *           flightmodel-probe.js's
  *   HOLD    pilots of the grid holding 10 s, of all of them, and the best
  *           pilot's time, worst nose angle, throttle and torque roll turns
+ *   hands off  the roll, pitch and yaw sticks centred from the start,
+ *           only the throttle flown (handsOff): the time held, the nose
+ *           off vertical at 10 s and at worst, the height and the turns
  *
  * Harness arithmetic in JS maths, which is allowed: nothing it prints is
  * hashed, and every flight is the plant's own deterministic step.
@@ -207,6 +210,37 @@ function fly(sim, mode, g, rec = null) {
   return { held: held / 1000, worst, thr: st[3], turns: roll / (2 * Math.PI) };
 }
 
+/* Hands off: from the same nose up start, the roll, pitch and yaw sticks
+ * centred for the 10 s and only the throttle flown, by fly()'s slow hand
+ * on the height at the grid's middle climb gain, KT. What the controller
+ * does with the attitude it was left in: how long the nose stays within
+ * 20 deg of vertical and the height within 10 m, the nose off vertical at
+ * the end and at its worst, the height lost or gained, and the turns it
+ * rolled. */
+const KT = 0.05;
+function handsOff(sim, mode) {
+  start(sim, mode, 0.6);
+  const eye = eyes({ stepMs: MS, delayMs: LAG_S * 1000 });
+  let base = 0.6, thr = 0.6, held = 0, worst = 0, off = 0, roll = 0, z = 50;
+  for (let ms = 0; ms < SECONDS * 1000; ms += MS) {
+    const o = read(sim.readState().state);
+    eye.push(o);
+    off = Math.acos(clamp(o.upB[0])) * DEG;
+    worst = Math.max(worst, off);
+    z = o.z;
+    if (held === ms && off < 20 && Math.abs(o.z - 50) < 10) held = ms + MS;
+    roll += o.p * MS / 1000;
+    if (eye.looks(ms)) {
+      const d = eye.ago();
+      base = Math.max(0, clamp(base - PERSON.everyMs / 1000 * (0.05 * (d.z - 50) + 0.1 * d.vz)));
+      thr = Math.max(0, quant(base - KT * d.vz));
+    }
+    must(sim.input(ms / 1000, 0, 0, 0, thr), 'sim_input');
+    must(sim.step(MS), 'sim_step');
+  }
+  return { held: held / 1000, off, worst, dz: z - 50, turns: roll / (2 * Math.PI) };
+}
+
 function grid() {
   const out = [];
   for (const kp of GRID.kp) for (const kd of GRID.kd) for (const kr of GRID.kr) for (const kv of GRID.kv) for (const kt of GRID.kt) {
@@ -244,5 +278,7 @@ for (const af of planes()) {
       await writeFile(join(CSV_DIR, `hover-probe-${af.id}-${tune}.csv`), toCsv(rec.rows));
     }
     console.log(`  ${name.padEnd(12)} ${String(n).padStart(3)} of ${pilots.length} pilots hold 10 s; best ${f(best.held)} s, nose within ${f(best.worst, 0)} deg, throttle ${f(best.thr, 2)}, torque roll ${f(best.turns, 1)} turns`);
+    const h = handsOff(sim, mode);
+    console.log(`  ${''.padEnd(12)} hands off: held ${f(h.held)} s, nose ${f(h.off, 0)} deg off vertical at 10 s (worst ${f(h.worst, 0)}), height ${h.dz >= 0 ? '+' : ''}${f(h.dz)} m, rolled ${f(h.turns, 2)} turns`);
   }
 }

@@ -11,6 +11,27 @@ can come back. The SAFE Select rows are named Stabilised, the plant's mode
 1 on every other plane. A stored AS3X tune loads as the plane's Acro
 (`save:selftest`). The rest of this page is the 2026-10-08 record.
 
+Hover, measured 2026-10-16 (`npm run hover:probe -- --only ...`, 4.1 V
+pack, a person's 0.2 s delay): the grid's pilots holding 10 s of 648, and
+hands off (roll, pitch and yaw centred, the throttle flown) how long the
+nose stays within 20 deg of vertical. Before, the default was AS3X (the
+CAP's Manual); after, Acro.
+
+| Aircraft | Grid, default before | Grid, Acro | Hands off before | Hands off, Acro |
+| --- | --- | --- | --- | --- |
+| Extra 300 3D | 168 (AS3X) | 119 | 2.2 s | 1.6 s |
+| CAP 580 | 222 (Manual), 254 (AS3X) | 293 | 10.0 s | 10.0 s |
+| Slick 580 | 50 (AS3X) | 82 | 1.7 s | 3.1 s |
+| Turbo Timber | 0, best 3.4 s (AS3X) | 0, best 8.8 s | 0.8 s | 1.0 s |
+| Night Timber X | 0, best 7.6 s (AS3X) | 16 | 1.2 s | 1.1 s |
+
+Acro does not hold a hands off hover on four of the five: once the nose
+is 5 deg off the attitude it was left in (`acro_err_max`), plant_wing.c
+`acro_sticks` re-seats the target at the clamped error, so the hold
+follows the nose down instead of pulling it back. The CAP hangs hands
+off in every mode. Its gains are FITTED (the Extra's, docs/EXTRA-STAGE1.md)
+and are a physics lane's to re-derive, not changed here.
+
 OWNER RULES 2026-10-08: modes are only real controllers and never cap a
 skilled pilot; there is no special 3D mode; Stabilised stays as a beginner
 aid and is never the default on an aircraft that can fly 3D; and "assume you
