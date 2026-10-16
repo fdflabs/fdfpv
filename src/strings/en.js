@@ -311,6 +311,8 @@ export default {
   "credits.from_the_dutch_drone_gods_at": ", from the Dutch drone gods at ",
   "credits.grok": "Grok",
   "credits.real_field_scale_real_obstacles_a": ". Real field scale, real obstacles, a plan you can hand to a crew.",
+  "credits.forked_from": "Forked from",
+  "credits.webfpvsimulator_notice": "WebFPVSimulator by Mathew Harvey, Copyright (C) 2026 Mathew Harvey and contributors, GPL-3.0. This game began as a fork of it, and its code is still in this game. Source: ",
   "credits.the_controller": "The controller",
   "credits.the_horde": "The horde",
   "credits.the_track_builder_is_inspired_by": "The track builder is inspired by ",

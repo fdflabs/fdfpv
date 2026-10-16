@@ -2360,6 +2360,83 @@
              "tag": "span",
              "kids": [
               {
+               "t": "Forked from"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "tag": "div",
+           "attrs": [
+            [
+             "class",
+             "credit-rooms"
+            ]
+           ],
+           "kids": [
+            {
+             "tag": "p",
+             "attrs": [
+              [
+               "class",
+               "credit-room"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "WebFPVSimulator by Mathew Harvey, Copyright (C) 2026 Mathew Harvey and contributors, GPL-3.0. This game began as a fork of it, and its code is still in this game. Source: "
+              },
+              {
+               "tag": "a",
+               "attrs": [
+                [
+                 "href",
+                 "https://github.com/Mathew-Harvey/WebFPVSimulator"
+                ],
+                [
+                 "rel",
+                 "noopener noreferrer"
+                ],
+                [
+                 "target",
+                 "_blank"
+                ]
+               ],
+               "kids": [
+                {
+                 "t": "github.com/Mathew-Harvey/WebFPVSimulator"
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "section",
+         "attrs": [
+          [
+           "class",
+           "credit-block"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "div",
+           "attrs": [
+            [
+             "class",
+             "credit-kicker"
+            ]
+           ],
+           "kids": [
+            {
+             "tag": "span",
+             "kids": [
+              {
                "t": "The track language"
               }
              ]
@@ -11279,6 +11356,83 @@
                "kids": [
                 {
                  "t": "github.com/fdflabs/fdfpv"
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "tag": "section",
+         "attrs": [
+          [
+           "class",
+           "credit-block"
+          ]
+         ],
+         "kids": [
+          {
+           "tag": "div",
+           "attrs": [
+            [
+             "class",
+             "credit-kicker"
+            ]
+           ],
+           "kids": [
+            {
+             "tag": "span",
+             "kids": [
+              {
+               "t": "Forked from"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "tag": "div",
+           "attrs": [
+            [
+             "class",
+             "credit-rooms"
+            ]
+           ],
+           "kids": [
+            {
+             "tag": "p",
+             "attrs": [
+              [
+               "class",
+               "credit-room"
+              ]
+             ],
+             "kids": [
+              {
+               "t": "WebFPVSimulator by Mathew Harvey, Copyright (C) 2026 Mathew Harvey and contributors, GPL-3.0. This game began as a fork of it, and its code is still in this game. Source: "
+              },
+              {
+               "tag": "a",
+               "attrs": [
+                [
+                 "href",
+                 "https://github.com/Mathew-Harvey/WebFPVSimulator"
+                ],
+                [
+                 "rel",
+                 "noopener noreferrer"
+                ],
+                [
+                 "target",
+                 "_blank"
+                ]
+               ],
+               "kids": [
+                {
+                 "t": "github.com/Mathew-Harvey/WebFPVSimulator"
                 }
                ]
               }

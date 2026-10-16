@@ -1,7 +1,9 @@
 # Paraguayan Drone Combat Simulator
 
 Made by [fdflabs.com](https://fdflabs.com). The Paraguayan Drone Combat
-Simulator (repository name fdfpv) is free software under GPLv3; see
+Simulator (repository name fdfpv) is fdflabs.com's GPLv3 fork of Mathew
+Harvey's
+[WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator); see
 NOTICE and the Credits section below for whose work it stands on.
 
 A browser FPV simulator whose only current goal is flight feel
@@ -13,6 +15,10 @@ There is a second aircraft: a 1000 mm flying wing on 4S with no flight
 controller, thrown by hand from the title's fourth card and flown on the
 sticks. Its model, its bands and its progress are in `docs/WING-STAGE1.md`,
 `docs/WING-PLAN.md` and `docs/WING-PROGRESS.md`.
+
+This is a GPLv3 fork of
+[Mathew-Harvey/WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator).
+See NOTICE for what was taken and what was removed.
 
 ## Where the thinking is
 
@@ -165,11 +171,16 @@ The Paraguayan Drone Combat Simulator is made by
 [fdflabs.com](https://fdflabs.com). It stands on other
 people's work, and each of them keeps their credit:
 
+- Mathew Harvey's
+  [WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator), the
+  upstream this is a fork of, and its board
+  WebFPVSimulator-LeaderBoard. Its code is still in this repository and
+  stays his, under GPLv3; NOTICE says where.
 - [NOTICE](NOTICE): the third party material in the combined work
   (Betaflight, three.js, the music, the LANPY mark, the explosions), its
-  licences, and the material removed from this repository.
+  licences, and the origin of this fork.
 - The in-game credits, Credits on the title and pause menus or `#credits`,
-  built by `src/ui/credits.js`: the beta test pilots,
+  built by `src/ui/credits.js`: the upstream it was forked from, the beta test pilots,
   Betaflight, Track Draw and the Dutch Drone Squad, and the data behind
   the Itaipu map with its licence notices.
 - [tools/explosions/README.md](tools/explosions/README.md): the war's
