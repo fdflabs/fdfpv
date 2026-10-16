@@ -79,6 +79,16 @@ const TRANSIT_S = (at) => {
 const TRACK = { soft: 20, hard: 45 };
 const NUEVO = [1, 2, 3, 4, 5, 6].map((k) => `nuevo-${k}`);
 const DETECTED = { chosen: 'detected', is: 'yes' };
+/* THE WATCHERS (MISSIONS.md M2 stars): every post found, in any stage.
+ * Stage 1 ends 24 to 54 s after the required watcher is seen and the
+ * zones are 2 to 2.5 km apart, so a flag only stage 1 could set needed the
+ * required zone searched last, which nobody can know. Silent after stage
+ * 1 (its "Another one." would replay at each stage's opening for a
+ * watcher found before it), and each later stage's last cue, so the cues
+ * before it keep their seeded windows (stages.js draws by cue index). */
+const ALL_WATCHERS = {
+  when: { all: [{ discovered: 'watcher' }, { discovered: 'watch-opt-1' }, { discovered: 'watch-opt-2' }] }, flag: 'M2_ALL_WATCHERS_FOUND',
+};
 const RECON = { role: ['recon'] };
 const ISR_TRACKER = { role: ['isr', 'tracker'] };
 /* Being seen by the people photographed (docs/campaign/interior/
@@ -294,9 +304,7 @@ export default {
         ...ZONES.map((z) => ({ when: { discovered: 'watcher' }, unsearch: `zone-${z}` })),
         { when: { discovered: 'watch-opt-1' }, radio: 'int2-s1-optional', heard: ISR_TRACKER },
         { when: { discovered: 'watch-opt-2' }, radio: 'int2-s1-optional', heard: ISR_TRACKER },
-        {
-          when: { all: [{ discovered: 'watcher' }, { discovered: 'watch-opt-1' }, { discovered: 'watch-opt-2' }] }, flag: 'M2_ALL_WATCHERS_FOUND',
-        },
+        ALL_WATCHERS,
         /* The convoy crosses the distant road 20 s after he is seen, in a
          * seeded window of 30 s, and he leaves at once. Never before the
          * camp is inspected: an ISR scouting the zones while the quad is
@@ -384,6 +392,7 @@ export default {
           when: { lost: 'courier', s: TRACK.soft }, repeat: true, card: 'card.last_known', search: { id: 'courier-lkp', contact: 'courier', r: 150 },
         },
         { when: { reacquired: 'courier' }, repeat: true, unsearch: 'courier-lkp' },
+        ALL_WATCHERS,
       ],
       exits: [
         { when: { all: [{ chosen: 'follow', is: 'b' }, { route: 'second', point: 'property-yard' }] }, to: 'next' },
@@ -432,6 +441,7 @@ export default {
           when: { lost: 'returner', s: TRACK.soft }, repeat: true, card: 'card.last_known', search: { id: 'returner-lkp', contact: 'returner', r: 150 },
         },
         { when: { reacquired: 'returner' }, repeat: true, unsearch: 'returner-lkp' },
+        ALL_WATCHERS,
       ],
       exits: [{ when: { route: 'returner', point: 'property-gate' }, to: 'next', after: 5000 }],
     },
@@ -479,6 +489,7 @@ export default {
         {
           when: { chosen: 'meeting', is: 'over' }, at: 6, radio: ['int2-s4-cells', 'int2-s4-orgs', 'int2-s4-routes'], choose: { name: 'cells', value: 'said' },
         },
+        ALL_WATCHERS,
       ],
       /* The outro film carries the emergency transition (INTROS M2). */
       exits: [{ when: { chosen: 'cells', is: 'said' }, to: 'won', why: 'documented', after: 8000 }],
