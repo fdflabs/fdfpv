@@ -25,12 +25,61 @@ CAP's Manual); after, Acro.
 | Turbo Timber | 0, best 3.4 s (AS3X) | 0, best 8.8 s | 0.8 s | 1.0 s |
 | Night Timber X | 0, best 7.6 s (AS3X) | 16 | 1.2 s | 1.1 s |
 
-Acro does not hold a hands off hover on four of the five: once the nose
-is 5 deg off the attitude it was left in (`acro_err_max`), plant_wing.c
-`acro_sticks` re-seats the target at the clamped error, so the hold
-follows the nose down instead of pulling it back. The CAP hangs hands
-off in every mode. Its gains are FITTED (the Extra's, docs/EXTRA-STAGE1.md)
-and are a physics lane's to re-derive, not changed here.
+Why Acro held no hands off hover (w50-hover, measured): on the Extra,
+the Timber and the Night Timber the nose left vertical in body yaw, which
+Acro did not hold at all (the yaw stick was the rudder alone); on the
+Slick it fell in pitch, past `acro_err_max`, where `acro_sticks` re-seated
+its target at the clamped error and followed the nose down. The CAP hung
+because its torque roll turned any yaw tilt into the held pitch axis.
+
+Acro's hold since w50-hover (plant_wing.c `acro_sticks`):
+- The target is where the pilot left it. A roll or pitch stick advances
+  it at the asked rate and, while either is in, leashes it within
+  `acro_err_max` of the aircraft; with the sticks centred it is kept.
+- The error is split into the twist about the nose (roll) and the swing
+  that points it (pitch, yaw), so a roll the ailerons cannot stop leaves
+  the nose's error true.
+- The roll and pitch integrals sum under a stick too, as before and as
+  ArduPlane's rate loops do in ACRO: held while the stick was in (the
+  first cut, acc9165b4), they slowed the Tiger Moth's and the Ugly
+  Stik's full stick roll under its asked rate.
+- A table with `acro_yaw` gains holds yaw with the yaw stick centred,
+  weighted by how far the nose is off level (1 - level): level, the
+  rudder is the pilot's; nose up, the hold has it. Any yaw stick past the
+  deadband is the rudder alone and re-seats the target's yaw.
+
+The gains of the Extra, the CAP, the Slick and the Night Timber are
+`npm run acro:derive` (scripts/acro-derive.js): ArduPlane's angle and rate
+loops (TCONST 0.5 s, the rate loops' P and I and IMAX 0.666) with one
+factor per axis, the highest that keeps MIL-F-9490D's 6 dB and 45 deg
+on every condition as3xloop flies (slow, cruise, level top speed, the full
+throttle dive, the harrier, the hover), measured at the hold's own 1 ms
+step; capped where the proportional term would leave the stick inside
+the leash (kp acro_err_max over 1, a lane decision); and lowered until a
+1 rad/s kick settles at cruise, top speed, the dive and the hover and a
+release from 35 percent and full stick comes back no more than the same
+flight with that stick passed straight through, plus 7 percent of its
+peak rate (as3x-feel.js's Weber fraction). The Timber keeps its FITTED
+gains and has no yaw hold: the rule gives it a pitch factor of 0.066
+(the full pull's release kicks 375 deg/s back at the cap's 1.99,
+against the airframe's 217), which took its grid from best 8.8 s to 3.1.
+
+| Aircraft | Grid, Acro before | Grid, after | Hands off before | Hands off, after |
+| --- | --- | --- | --- | --- |
+| Extra 300 3D | 119 | 507 | 1.6 s | 10.0 s |
+| CAP 580 | 293 | 428 | 10.0 s | 10.0 s |
+| Slick 580 | 82 | 137 | 3.1 s | 5.6 s |
+| Turbo Timber | 0, best 8.8 s | 4 | 1.0 s | 1.0 s |
+| Night Timber X | 16 | 36 | 1.1 s | 10.0 s |
+
+Still failing, measured: the Slick's yaw factor is 0.112 (the harrier
+holds only 44 deg of phase at the cap's 1.99), too weak to hold its nose
+hands off; uncapped, at 16.9, it held the nose within 4 deg for 10 s
+while the probe's height hand rang past 10 m. The Turbo Timber cannot
+hang hands off in either hold tried: elevator and rudder reach their
+stops with the nose still going. Measured at the receivers' 11 and 22 ms
+frames instead of the plant's step, the rule gives far lower gains, under
+which the Extra and the CAP still hang hands off and the others do not.
 
 OWNER RULES 2026-10-08: modes are only real controllers and never cap a
 skilled pilot; there is no special 3D mode; Stabilised stays as a beginner

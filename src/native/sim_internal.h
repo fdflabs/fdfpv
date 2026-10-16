@@ -617,6 +617,12 @@ typedef struct FixedWingParams {
   double acro_roll_ki;
   double acro_pitch_ki;
   double acro_i_max;
+  /* Acro's yaw hold, the yaw stick centred (plant_wing.c acro_sticks):
+   * stick per rad of yaw error, per rad s of it, per rad/s of yaw rate.
+   * Zero leaves the rudder the pilot's alone. */
+  double acro_yaw_kp;
+  double acro_yaw_ki;
+  double acro_yaw_kd;
   /* The rate damper of mode 3 (E-flite's AS3X with SAFE Select off): each
    * surface is the stick's, at the full throw and expo, less this many
    * radians of surface per rad/s of the body's roll, pitch and yaw rate,

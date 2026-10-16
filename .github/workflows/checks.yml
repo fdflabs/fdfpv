@@ -71,6 +71,7 @@ jobs:
       # servos' published torque (scripts/servo-derive.js, servo blow back).
       - run: npm run servo:derive
       - run: npm run as3x:margins
+      - run: npm run acro:derive
       - run: npm run as3x:feel
       - run: npm run as3x:tenths
       # The wings' ground effect against its sources and its surfaces

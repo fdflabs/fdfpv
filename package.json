@@ -404,6 +404,7 @@
     "as3x:derive": "node scripts/as3x-derive.js --check",
     "servo:derive": "node scripts/servo-derive.js --check",
     "as3x:margins": "node scripts/as3x-margins.js --check",
+    "acro:derive": "node scripts/acro-derive.js --check",
     "as3x:feel": "node scripts/as3x-feel.js",
     "as3x:tenths": "node scripts/as3x-tenths.js",
     "ge:derive": "node scripts/ge-derive.js --check",
