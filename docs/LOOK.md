@@ -67,7 +67,9 @@ already drawn, no draw call. The uniforms (`uSaturation`, `uWhite`,
 `uLift` on `post.grade.material.uniforms`) can be moved at run time, as
 the Interior's hour moves its own grade; that grade is today a full
 screen pass of its own (src/maps/interior/look.js GRADE) and could fold
-into this one. No world sets a grade yet.
+into this one. Itaipu grades its morning, golden hour and night
+(src/maps/itaipu/look/sky.js GRADES) and moves the grade along a war
+mission's ramp (look/index.js rampLight); its day and noon set none.
 
 The rest of a photo world's air (haze, beta, scaleHeight, mie, exposure,
 meterKey, contrast, slope, spread, slopeMax, pivot) is documented where

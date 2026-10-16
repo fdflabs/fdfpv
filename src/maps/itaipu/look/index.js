@@ -74,7 +74,7 @@ import {
 } from './light.js';
 import { makeLit } from '../../../render/library/lit.js';
 import {
-  skyBackdrop, skyEnvironment, airFor, bakeEnvironment, skyOf,
+  skyBackdrop, skyEnvironment, airFor, bakeEnvironment, skyOf, gradeFor,
 } from './sky.js';
 import { TIME_HOUR, sunSinAt, isNightSun } from '../../../share/daytime.js';
 import {
@@ -149,8 +149,8 @@ function shape(light, half) {
  * dark (Lights Out, golden to night) or the dawn (The Long Night, night
  * to morning). How far along it the light is, `f`, is the sun's: its
  * sine at the hour (daytime.js sunSinAt, the room's clock's sun) between
- * its sines at the two times' hours, so the dark holds through the small
- * hours and the light comes with the sun. At f 0 every number is the
+ * its sine at the daylight time's hour and DARK_SIN, so the dark holds
+ * through the small hours and the light comes with the sun. At f 0 every number is the
  * first time's and at 1 the second's, but one: the sun (or the moon)
  * stands where the daylight time's does all the way, its shadow maps
  * made once for it (updateShadowFocus), since a light swung across the
@@ -158,7 +158,8 @@ function shape(light, half) {
  * has its moon low in the west after Lights Out's sunset, and the dawn's
  * night its moon where the morning's sun will rise.
  *
- * The sun's colour, the sky's zenith and haze and the air's glow are
+ * The sun's colour, the sky's zenith and haze, the air's glow and the print's
+ * grade (sky.js gradeFor) are
  * mixed; its strength and the meter's target in stops (a geometric mix),
  * as a camera sees the dusk fall; the disc and the stars cross fade; the
  * sky's own fill at night (light.js) comes up with the dark; and the
@@ -167,6 +168,20 @@ function shape(light, half) {
  * not by f: on as it goes under, as street lamps' photocells do (LAMPS_ON).
  */
 const RAMP_ENV_STEP = 0.05;
+/* The grade that changes nothing, for a ramp's ungraded end (sky.js
+ * gradeFor: the day and noon). */
+const UNGRADED = Object.freeze({ saturation: 1, white: [1, 1, 1], lift: [0, 0, 0] });
+/*
+ * The sine of the sun's elevation at which the ramp's light is the
+ * night's: 12 degrees under the horizon, the end of nautical twilight,
+ * past which the sky gives no light a scene is lit by. The night's own
+ * hour (TIME_HOUR.night, 22:00) has the sun 47 degrees under; ramped to
+ * that, Lights Out's dusk at the sun 5 degrees under (18:36) still had a
+ * third of the golden hour's sun on the dam and the cumulus lit white
+ * over towns whose lamps were on, and its dark came only at the hold's
+ * end. Now the dusk falls with the sun and the night holds after it.
+ */
+const DARK_SIN = Math.sin(THREE.MathUtils.degToRad(-12));
 /* The sine of the sun's elevation over which the lamps come on, from
  * nothing to full: the sun 3 degrees up to 8.6 under, the civil dusk. */
 const LAMPS_ON = [0.05, -0.15];
@@ -180,8 +195,9 @@ function rampOf(from, to) {
   while (h1 <= h0) {
     h1 += 24;
   }
+  const sine = (h, t) => (isNight(t) ? Math.max(sunSinAt(h), DARK_SIN) : sunSinAt(h));
   return {
-    from, to, h0, h1, s0: sunSinAt(h0), s1: sunSinAt(h1), day: isNight(from) ? to : from,
+    from, to, h0, h1, s0: sine(h0, from), s1: sine(h1, to), day: isNight(from) ? to : from,
   };
 }
 
@@ -205,6 +221,13 @@ function rampLight(ramp, f, out) {
   out.stars = lin(sa.stars, sb.stars);
   out.envGain = lin(sa.envGain, sb.envGain);
   out.ambient = NIGHT_AMBIENT_INTENSITY * lin(sa.stars, sb.stars);
+  const ga = gradeFor(ramp.from) ?? UNGRADED;
+  const gb = gradeFor(ramp.to) ?? UNGRADED;
+  out.saturation = lin(ga.saturation, gb.saturation);
+  for (let k = 0; k < 3; k += 1) {
+    out.white[k] = lin(ga.white[k], gb.white[k]);
+    out.lift[k] = lin(ga.lift[k], gb.lift[k]);
+  }
   return out;
 }
 
@@ -221,7 +244,9 @@ export async function makeLook({
    * dusk (setLocalTime). */
   const night = isNight(time) || Boolean(ramp);
   const sunLight = sunFor(time);
-  const AIR = airFor(time);
+  /* A ramp compiles a grade whatever its ends, so it can move one. */
+  const grade = gradeFor(time) ?? (ramp ? UNGRADED : null);
+  const AIR = grade ? { ...airFor(time), grade } : airFor(time);
   const owned = [];
   const own = (t) => {
     owned.push(t);
@@ -282,7 +307,7 @@ export async function makeLook({
   /* The ramp's light now (rampLight), what the glare reads each frame
    * (post.js PhotoPass.glare) and the environment's last bake. */
   const now = {
-    sun: new THREE.Color(), zenith: new THREE.Color(), haze: new THREE.Color(),
+    sun: new THREE.Color(), zenith: new THREE.Color(), haze: new THREE.Color(), white: [1, 1, 1], lift: [0, 0, 0],
   };
   const sunState = { direction: sunDir, color: sunLight.color.clone(), irradiance: sunLight.irradiance };
   let envF = 0;
@@ -362,6 +387,9 @@ export async function makeLook({
       g.uExposure.value = now.exposure;
       g.uKey.value = now.key;
       g.uContrast.value = now.contrast;
+      g.uSaturation.value = now.saturation;
+      g.uWhite.value.fromArray(now.white);
+      g.uLift.value.fromArray(now.lift);
     }
     /* The meter's tap takes the air, not the sun's colour, which it
      * leaves white for every time (post.js MeterPass). */
