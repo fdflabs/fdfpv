@@ -1,5 +1,5 @@
 {
- "commit": "d5ca9600209ec2b9cc14b9311f8bf3959e825430",
+ "commit": "827469d9fbe3e73ed3863c09ed7907fc419e2b4b",
  "cases": {
   "exports": "43825902023bdb29ea5623f61cc56bc468373c40c80e40b53289c4d84f1dee0e",
   "field-selftest": "4f2b14c6b4b32d50c29b9f9094b9f0b2304a7d2b69e2b21b2c16b4cc07dfb84e",
@@ -62,7 +62,7 @@
   "world-seeded-7": "b6392d57e4ae94197fa6683cf10caa754e21adf987f0c58fa24212ab02f38ec3",
   "world-seeded-8": "dd0e43a28c06dff66f6fcfc56afd35b87d6e7bffbd4503df859d95557ae14f82",
   "world-seeded-9": "a62ebae0014045645da94dab6d37d57fe69968626fa0a80d16e5cc2c2c620035",
-  "world-itaipu-wires-ground": "9e5751464c8313ac06debc90970ab67c43f11a7ed01ecf8a618fbed07d835923",
-  "world-itaipu-wires-flat": "5429ea7d08e0e3343e141e0d7b6b25f8eb65f62400d60b74f873374ef80d430b"
+  "world-itaipu-wires-ground": "fd46806bbd1d5d9c683ae34e15ad6d273b57295d7e730b8c29a83357ba4bf799",
+  "world-itaipu-wires-flat": "dbfd5f0e7551f1f4815e4ea38c857d43d3c23ccbfc1b273294b9afd23dc68b52"
  }
 }
