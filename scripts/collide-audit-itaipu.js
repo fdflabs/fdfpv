@@ -206,10 +206,9 @@ const fail = (m) => {
 };
 const f1 = (v) => (v == null ? 'n/a' : Number(v).toFixed(1));
 
-function seed(airframe, tune) {
+function seed(airframe) {
   const settings = {
     ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
-    ...(tune ? { tune } : {}),
     airframeAsked: true, map: 'itaipu', graphics: 'low', graphicsAuto: false, crashDamage: true, sound: false,
   };
   return [`try {
@@ -1685,7 +1684,7 @@ async function pageSweeps(out) {
     await page.close();
   }
   if (ONLY.has('damfly')) {
-    const timber = await openPage({ root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed(DAM_FLY_CRAFT, DAM_FLY_TUNE) });
+    const timber = await openPage({ root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed(DAM_FLY_CRAFT) });
     try {
       await timber.until('window.__shellReady && window.__map && window.__map().ready && window.__map().id === "itaipu"', 300000);
       out.damfly = await damFlights(timber);
@@ -1882,11 +1881,11 @@ async function townRays(page) {
  * slab 114 m outside the deck; and, so the fix is not a hole, a pier and
  * the bridge deck flown into. In the chute's frame: u across, d down. */
 const DAM_FLY_CRAFT = 'timber1500';
-/* SAFE Select, the Timber's tune whose centred sticks fly level: since
- * 702e8a0ee its AS3X is a rate damper that holds no attitude, so on it a
- * Timber at 30 m/s with the sticks centred zooms 12 m over a flight and
- * meets the deck's edge over its top instead of at 224 m. */
-const DAM_FLY_TUNE = 'timber-stab';
+/* The Timber flies its default tune, Acro, whose centred sticks hold the
+ * attitude it was left in, as the flights assume. On AS3X, a rate damper
+ * that holds no attitude, a Timber at 30 m/s with the sticks centred
+ * zoomed 12 m over a flight and met the deck's edge over its top
+ * (68ef13bcf). */
 /* Each flight is FLY_RUN metres before its point and as far past it,
  * level, at a little throttle so the Timber holds its height, timed on
  * the plant's clock so a loaded machine flies the same flight. */

@@ -56,7 +56,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "extra-as3x",
+    "defaultTune": "extra-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -390,11 +390,11 @@ export default {
   },
   "tunes": [
     {
-      "id": "extra-as3x",
+      "id": "extra-acro",
       "airframe": "extra3d1308",
-      "name": "AS3X",
-      "note": "A 3D gyro, as the Extra ships with one. The sticks are the surfaces at the 3D throws; centred, the gyro holds the attitude you left it in, against the torque and the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 360 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone.",
+      "wingStab": 2
     },
     {
       "id": "extra-manual",
@@ -405,8 +405,8 @@ export default {
     {
       "id": "extra-stab",
       "airframe": "extra3d1308",
-      "name": "SAFE Select",
-      "note": "E-flite's beginner bind. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to AS3X for 3D.",
+      "name": "Stabilised",
+      "note": "A gyro holds the plane. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to Acro or Manual for 3D.",
       "wingStab": 1
     }
   ],

@@ -57,7 +57,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "uglystik-manual",
+    "defaultTune": "uglystik-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -342,11 +342,11 @@ export default {
       "note": "No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the nose wheel, at RCM's travel limits. It goes where you point it and stays there: it holds a bank, loops round at full throttle and flies on its back with half the stick pushed. Throttle closed, the two stroke idles."
     },
     {
-      "id": "uglystik-as3x",
+      "id": "uglystik-acro",
       "airframe": "uglystik1567",
-      "name": "AS3X",
-      "note": "A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 80 degrees a second and a pitch rate up to 60, centred sticks hold the attitude, upright or on its back, and the rudder stick is the rudder alone.",
+      "wingStab": 2
     },
     {
       "id": "uglystik-stab",

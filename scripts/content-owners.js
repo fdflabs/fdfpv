@@ -297,7 +297,7 @@ const CONTROLS = [
   ['a listed take with no file', 'assets/audio/war/voice/', (r) => { r.files.shift(); }],
   ['a music file the manifest does not list', 'assets/audio/war/music/', (r) => { r.files.push('lobby.mp3'); }],
   ['a string table for no locale', 'src/strings/', (r) => { r.files.push('pt.js'); }],
-  ['a tune diff no tune names', 'configs/*.diff', (r) => { r.files.push('cub-acro.diff'); }],
+  ['a tune diff no tune names', 'configs/*.diff', (r) => { r.files.push('cub-as3x.diff'); }],
   ['a tune registered twice', 'configs/*.diff', (r) => { r.entries.push(r.entries[0]); }],
 ];
 for (const [name, where, change] of CONTROLS) {

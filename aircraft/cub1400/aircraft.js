@@ -56,7 +56,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "cub-manual",
+    "defaultTune": "cub-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -350,11 +350,11 @@ export default {
       "note": "No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tailwheel."
     },
     {
-      "id": "cub-as3x",
+      "id": "cub-acro",
       "airframe": "cub1400",
-      "name": "AS3X",
-      "note": "A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone.",
+      "wingStab": 2
     },
     {
       "id": "cub-stab",

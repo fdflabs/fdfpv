@@ -14,7 +14,7 @@
  * absolute deflection per axis, the stick rate (travel per second over
  * 100 ms, peak and 95th percentile), and the reversals per second.
  *
- *   node scripts/hover-video.js [tune] [outdir]   (tune: extra-as3x)
+ *   node scripts/hover-video.js [tune] [outdir]   (tune: extra-acro)
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -41,7 +41,7 @@ import { PILOT } from './lib/extrapilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const th = JSON.parse(await readFile(join(root, 'tests/extra-thresholds.json'), 'utf8'));
-const TUNE = process.argv[2] ?? 'extra-as3x';
+const TUNE = process.argv[2] ?? 'extra-acro';
 const OUT = process.argv[3] ?? join(process.env.HOME, '.cache/fdfpv-w34-flightmodel/hover-videos');
 /* 'pull': the owner's power off pull instead of the hover. */
 const KIND = process.argv[4] ?? 'hover';

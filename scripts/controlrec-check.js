@@ -181,7 +181,7 @@ try {
   await extra.until('!!window.__shellReady', 240000);
   await extra.evaluate("window.__ui.craftGate = true; window.__ui.show('title'); window.__ui.act('way-freestyle-wing1000'); true");
   await extra.until("window.__ui.settings.map === 'swiss2' && window.__map && window.__map().ready", 400000);
-  await extra.evaluate("(() => { const ui = window.__ui; ui.show('quad'); const i = ui.items().findIndex((it) => it.options && it.options.some((o) => o.value === 'extra3d1308')); ui.cursor = i; ui.pick('extra3d1308'); ui.settings.tune = 'extra-as3x'; ui.settings.flightLog = true; ui.persistSettings(); ui.show('title'); return true; })()");
+  await extra.evaluate("(() => { const ui = window.__ui; ui.show('quad'); const i = ui.items().findIndex((it) => it.options && it.options.some((o) => o.value === 'extra3d1308')); ui.cursor = i; ui.pick('extra3d1308'); ui.settings.tune = 'extra-acro'; ui.settings.flightLog = true; ui.persistSettings(); ui.show('title'); return true; })()");
   await extra.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await extra.until("window.__craftState && window.__craftState().mode === 'flight'", 180000);
   await extra.sleep(2000);

@@ -57,7 +57,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "kadet-manual",
+    "defaultTune": "kadet-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -503,11 +503,11 @@ export default {
       "note": "No flight controller. The roll and yaw sticks both work the rudder, which also steers the nose wheel, and the pitch stick the elevator. Let go and the dihedral levels the wings. Throttle closed, the four stroke idles."
     },
     {
-      "id": "kadet-as3x",
+      "id": "kadet-acro",
       "airframe": "kadet1981",
-      "name": "AS3X",
-      "note": "A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevator and the rudder; in pitch and yaw, centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 25 degrees a second, flown on the rudder, and a pitch rate up to 60, and centred sticks hold the attitude. It will not roll inverted: a rudder cannot do that.",
+      "wingStab": 2
     },
     {
       "id": "kadet-stab",

@@ -58,7 +58,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "f16-manual",
+    "defaultTune": "f16-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -355,11 +355,11 @@ export default {
       "note": "No flight controller. The sticks work the ailerons, the all moving stabilators and the rudder, which also steers the nose wheel. The fan spools behind the throttle stick and stops when it is closed."
     },
     {
-      "id": "f16-as3x",
+      "id": "f16-acro",
       "airframe": "f16878",
-      "name": "AS3X",
-      "note": "A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the jet where you leave it once it is off the ground. Sticks ask for a roll rate up to 300 degrees a second and a pitch rate up to 120, and centred sticks hold the attitude, inverted too.",
+      "wingStab": 2
     },
     {
       "id": "f16-stab",

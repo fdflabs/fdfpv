@@ -52,7 +52,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "radian-manual",
+    "defaultTune": "radian-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -327,11 +327,11 @@ export default {
       "note": "No flight controller. The sticks are the ailerons, the elevator and the rudder; closing the throttle folds the prop."
     },
     {
-      "id": "radian-as3x",
+      "id": "radian-acro",
       "airframe": "radian2000",
-      "name": "AS3X",
-      "note": "A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate. Close the throttle and it glides.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone. Close the throttle and it glides.",
+      "wingStab": 2
     },
     {
       "id": "radian-stab",

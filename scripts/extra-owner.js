@@ -16,16 +16,16 @@
  *   knife    from level at 15 m/s rolled right to 90 deg, the height held
  *            on the rudder through the sideslip, the speed on the throttle:
  *            the mean of the last 5 of 15 s inside e12_knife_edge.
- *   human-as3x, human-manual
+ *   human-acro, human-manual
  *            pulled to the vertical as hang is, then hovered 10 s by a
  *            pilot with a person's limits, scripts/hover-probe.js's (one of
  *            its grid that holds in both modes): what it sees is 0.2 s of
  *            the plant's time old, it moves the sticks every 0.1 s in
  *            fiftieths of their travel, and it flies by the nose off
  *            vertical, the roll rate, the drift and the climb. In the
- *            Extra's default tune (AS3X) and in Manual, given 3 s to catch
+ *            Extra's default tune (Acro) and in Manual, given 3 s to catch
  *            the hand over: the nose within 20 deg of vertical and the
- *            height within 10 m for the 10 s after, judged in AS3X and
+ *            height within 10 m for the 10 s after, judged in Acro and
  *            printed for Manual; and how far the chase camera turns round
  *            the hovering plane in all, which must not wander (under 120
  *            deg) while it hangs.
@@ -69,7 +69,7 @@ import { PILOT } from './lib/extrapilot.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const th = JSON.parse(await readFile(join(root, 'tests/extra-thresholds.json'), 'utf8'));
 const AF = 'extra3d1308';
-const MODES = (process.argv[2] ?? 'hang,harrier,knife,human-as3x,human-manual').split(',');
+const MODES = (process.argv[2] ?? 'hang,harrier,knife,human-acro,human-manual').split(',');
 const MAP = process.argv[3] ?? 'swiss2';
 
 
@@ -92,9 +92,9 @@ try {
   const seated = await page.evaluate(`(() => { const ui = window.__ui; ui.show('quad'); const i = ui.items().findIndex((it) => it.options && it.options.some((o) => o.value === '${AF}')); ui.cursor = i; ui.pick('${AF}'); window.__pickedTune = ui.settings.tune; ui.settings.tune = 'extra-manual'; ui.persistSettings(); ui.show('title'); return ui.settings.airframe + ' ' + ui.settings.tune; })()`);
   console.log(`extra owner test on ${MAP}: ${seated}`);
   const picked = await page.evaluate('window.__pickedTune');
-  say(picked === 'extra-as3x', `picking the Extra seats the tune it ships in, AS3X: ${picked}`);
+  say(picked === 'extra-acro', `picking the Extra seats its default tune, Acro: ${picked}`);
   for (const mode of MODES) {
-    const tune = mode === 'human-as3x' ? 'extra-as3x' : 'extra-manual';
+    const tune = mode === 'human-acro' ? 'extra-acro' : 'extra-manual';
     await page.evaluate(`window.__ui.settings.tune = '${tune}'; window.__ui.persistSettings(); window.__ui.settings.wingView = 'chase'; window.__ui.onAction('fly', window.__ui.settings); true`);
     await page.until("window.__craftState && window.__craftState().mode === 'flight'", 180000);
     await page.sleep(2000);
@@ -117,13 +117,13 @@ try {
       say(Boolean(q) && !r.crashed && q.p < 0 && -q.p >= t8.min && -q.p <= t8.max,
         `torque roll, the ailerons let go: ${q ? `${f(-q.p, 0)} deg/s ${q.p < 0 ? 'left' : 'RIGHT'}, nose ${f(q.nose, 1)} deg` : 'never reached'} (${t8.min} to ${t8.max} left)`);
     } else if (mode.startsWith('human')) {
-      /* Gated in the tune the Extra ships in. Manual is harder for a
+      /* Gated in the Extra's default tune. Manual is harder for a
        * person (hover-probe.js: 11 of its 648 pilots hold Manual, 82
        * AS3X) and this pilot is one of the 11 only from rest, so Manual's
        * row is printed, not judged. */
       const h = r.human;
       const what = h ? `${st.tune}: a person's hover held ${f(h.held, 1)} s of 10, nose within ${f(h.worst, 0)} deg of vertical, throttle ${f(h.thr)}` : `${st.tune}: never hovered, stopped in ${r.at}`;
-      if (mode === 'human-as3x') {
+      if (mode === 'human-acro') {
         say(Boolean(h) && !r.crashed && h.held >= 10, what);
         /* The travel led camera this replaced turned 342 deg round the
          * same hover, back and forth after the drift. */

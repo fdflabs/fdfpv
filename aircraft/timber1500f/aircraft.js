@@ -62,7 +62,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "timber-as3x",
+    "defaultTune": "timber-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",

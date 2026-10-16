@@ -61,7 +61,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "cub-manual",
+    "defaultTune": "cub-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",

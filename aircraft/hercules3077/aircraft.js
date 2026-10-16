@@ -58,7 +58,7 @@ export default {
       "3.8": "Half",
       "3.5": "Nearly empty"
     },
-    "defaultTune": "hercules-manual",
+    "defaultTune": "hercules-acro",
     "gravityBase": 1,
     "rates": {
       "type": "ACTUAL",
@@ -313,17 +313,17 @@ export default {
       "note": "No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the nose wheel. It is heavy: it answers late and keeps going, so lead every turn and fly a long, flat approach with power on."
     },
     {
-      "id": "hercules-as3x",
+      "id": "hercules-acro",
       "airframe": "hercules3077",
-      "name": "AS3X",
-      "note": "A Spektrum AR637T receiver fitted by the builder, its AS3X on: the sticks are the surfaces; centred, the gyro holds the attitude you left it in, against the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it.",
-      "wingStab": 3
+      "name": "Acro",
+      "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 60 degrees a second and a pitch rate up to 30, centred sticks hold the attitude, and the rudder stick is the rudder alone.",
+      "wingStab": 2
     },
     {
       "id": "hercules-stab",
       "airframe": "hercules3077",
-      "name": "SAFE Select",
-      "note": "The same receiver with SAFE Select on: roll stick asks for a bank up to 45 degrees, pitch stick for a pitch up to 20, centred sticks fly level.",
+      "name": "Stabilised",
+      "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 45 degrees, pitch stick for a pitch up to 20, and centred sticks fly level.",
       "wingStab": 1
     }
   ],
