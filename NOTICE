@@ -113,10 +113,19 @@ derived from ESA WorldCover 10 m 2021 v200, (c) ESA WorldCover project
 ESA WorldCover consortium, licensed CC BY 4.0, resampled, turned,
 filtered and painted over. tools/interior/ builds both.
 
-## Removed material
+## Origin of this fork
 
-Removed from this repository, and still in its history: the
-design log PROGRESS.md, the agent loop records under .loop/,
+    Upstream    https://github.com/Mathew-Harvey/WebFPVSimulator
+    Commit      9ed8b9c (2026-09-22), full history retained in this repository
+    Licence     GPLv3, Copyright (C) 2026 Mathew Harvey and contributors
+    Forked      2026-09-23 as FDFPV, https://github.com/fdflabs/fdfpv
+
+Upstream code remains in many files of this repository, the C sources
+under src/native included (git blame -w -M -C against 9ed8b9c finds it).
+It stays Copyright (C) 2026 Mathew Harvey and contributors, under GPLv3,
+wherever it is. The files listed in scripts/upstream-headers.txt also keep
+the upstream's own GPLv3 header. Removed from this fork, and still in the history: the
+upstream design log PROGRESS.md, the agent loop records under .loop/,
 the agent prompts under prompts/ and .claude/, CITY-PERF-PLAN.md,
 TRACK-FROM-GIF.md, and scripts/gates.js with scripts/judge-loop.md,
 which read the loop records at run time. Removed on 2026-09-28 with the
@@ -128,12 +137,12 @@ with it. The freestyle scoring
 definitions that scripts/score-selftest.js reads moved from
 .loop/evidence/freestyle-scoring/ to tests/fixtures/freestyle-scoring/
 unchanged. Comments in the code that cite PROGRESS.md or anything else
-under .loop/evidence refer to those files as they stand in this
-repository's history at commit 9ed8b9c.
+under .loop/evidence refer to those files as they stand in the upstream
+repository at the commit above.
 
-## Maker
+## Maker of this fork
 
-FDFPV, and everything built on it, is made by fdflabs.com,
+FDFPV, this fork and everything built on it, is made by fdflabs.com,
 https://fdflabs.com. Everything above keeps its own credit, copyright
 and licence exactly as recorded.
 

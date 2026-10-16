@@ -27,20 +27,20 @@ import { pageVersion } from './update.js';
  * colour mark, Grok's 2025 wordmark, Claude's starburst. The faces are
  * the channels' own pictures, at the size YouTube serves them. All of them are used only to name the work.
  *
- * This file is part of the Paraguayan Drone Combat Simulator.
+ * This file is part of WebFPVSimulator.
  *
- * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 function el(tag, cls, text) {
@@ -198,6 +198,24 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
   noticeList.append(notice);
   controller.append(noticeList);
   host.append(controller);
+
+  /*
+   * The upstream's GPLv3 attribution. This game began as a fork of
+   * WebFPVSimulator at 9ed8b9c, and its code is still in this tree
+   * (upstream-share), so its maker and licence are named here, the same
+   * way NOTICE and the files still carrying its header name them. Text
+   * and a link, no mark, like the controller's notice above.
+   */
+  const upstream = section(str('credits.forked_from'), '');
+  const origin = el('p', 'credit-room');
+  origin.append(
+    document.createTextNode(str('credits.webfpvsimulator_notice')),
+    link('https://github.com/Mathew-Harvey/WebFPVSimulator', 'github.com/Mathew-Harvey/WebFPVSimulator'),
+  );
+  const originList = el('div', 'credit-rooms');
+  originList.append(origin);
+  upstream.append(originList);
+  host.append(upstream);
 
   const tracks = section(str('credits.the_track_language'), '');
   const tdBody = el('p');
