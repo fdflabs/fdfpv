@@ -48,6 +48,7 @@ import {
 import { M2_AT } from '../routes.js';
 import { CLASSES } from './interior-1.js';
 import { FILMS, briefingMs } from '../films/index.js';
+import { M2_CLOCK } from '../clock.js';
 
 /* A grid point (km east, km north) in ops frame metres. */
 const G = (e, n) => [Math.round(e * 1000 - ORIGIN[0]), Math.round(n * 1000 - ORIGIN[1])];
@@ -100,6 +101,12 @@ export default {
    * cut it plays, so the host's skip waits for everyone (as Mission 1). */
   filmMs: briefingMs('interior-2'),
   film: { id: FILMS['int2-intro'].id, version: FILMS['int2-intro'].version },
+  /* The hours of the day on the room clock (clock.js M2_CLOCK): a screen
+   * moves the sun by it. */
+  clock: M2_CLOCK,
+  /* BIBLE.md 2.3's "humid, overcast, brightening": the light under it (src/maps/interior/look.js
+   * WEATHER). */
+  weather: 'overcast',
   sensor: { palette: 'arctic' },
   /* The camps as the story has them (life.js setCamp): Claro Viejo
    * left, its antenna down, its motorcycles gone, its fire cold; Claro

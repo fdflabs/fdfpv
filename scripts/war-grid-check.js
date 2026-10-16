@@ -43,6 +43,21 @@
  *            which the room records nothing for) brings nothing back
  *   before   a restore before the yard is hit keeps the four lit through
  *            the hit, the yard's other districts going out as before
+ *
+ * and a third, The Corridor's (MISSIONS.md M6): a tower on the east
+ * corridor hit, the yard, the west corridor's towns islanded, every west
+ * unit lost, then a tower of that corridor hit:
+ *
+ *   towers   a tower hit puts out the town nearest it as a struck line
+ *            does, flickering; islanded towns come back with the yard
+ *            down and stay lit through every west unit lost; a tower of
+ *            theirs hit still cuts its own; A and B agree bit for bit; a
+ *            late joiner agrees; not islanded, they stay dark. The crash
+ *            cam's replay of the towers' hits is the live frames, bit for
+ *            bit; an islanding it is not held to: its clip keeps a restore
+ *            as { at, districts } (src/replay/file.js version 20), so an
+ *            islanding replays as a restore
+ *
  *   replay   A's frames recorded as the crash cam records them (src/
  *            replay/warrec.js, fed the view and the deaths as src/replay/
  *            crashcam.js tapWar feeds it) and replayed (worldAt, src/
@@ -422,6 +437,68 @@ console.log('before: a reroute that held before the yard was hit');
   check('and never so much as flicker', flick.length === 0, flick.join(', '));
 }
 
+/* The Corridor's towers and its islanding (MISSIONS.md M6): a tower on
+ * the east corridor hit, the yard hit, the last corridor's towns islanded,
+ * every west unit lost, then a tower of the islanded corridor hit. */
+const ISLAND = ['hernandarias-s', 'hernandarias-w'];
+const ISLAND_AT = 40000;
+const I_END = 140000;
+function corridor(islandAt) {
+  const restores = (t) => (islandAt != null && t >= islandAt ? [{ at: islandAt, districts: ISLAND, island: true }] : []);
+  const events = [{ t: 10000, target: 'tower-e-12' }, { t: 20000, target: 'yard-right' },
+    ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((u) => ({ t: 60000 + 4000 * u, target: `intake-${u}` })), { t: 120000, target: 'tower-w-0' }];
+  const ticks = [];
+  let down = [];
+  for (const t of [0, ...events.map((e) => e.t), ...(islandAt != null ? [islandAt] : [])].sort((a, b) => a - b)) {
+    const hit = events.find((e) => e.t === t);
+    if (hit) {
+      down = [...down, hit.target];
+    }
+    ticks.push({ t, msgs: [{ type: 'war', war: { ...rview(down, restores(t)).war, id: 'm-corridor-1', mission: 'itaipu-6' } }, ...(hit ? [dead(t, hit.target, true)] : [])] });
+  }
+  return ticks;
+}
+
+console.log('towers: a corridor tower hit is a struck line there; an islanded corridor\'s towns stay lit');
+{
+  const ticks = corridor(ISLAND_AT);
+  const IA = runTicks(ticks, 0, () => 16, false, I_END);
+  const IB = runTicks(ticks, 230, (k) => jitter[k % jitter.length], true, I_END);
+  const one = darkAt(IA.c, 10000 + FLICKER_MS + 100);
+  check('tower-e-12 hit: the town nearest it, Vila C, goes dark, and nothing else', same(one, ['vila-c']), `dark ${one.join(', ')}`);
+  const i = districtIndex('vila-c');
+  const seen = IA.frames.filter((fr) => fr.t >= 10000 && fr.t < 10000 + FLICKER_MS).map((fr) => fr.levels[i]);
+  check('it flickers out as a struck line does', seen.some((v) => v > 0) && seen.some((v) => v === 0), `${seen.filter((v) => v > 0).length} on, ${seen.filter((v) => v === 0).length} off`);
+  const yard = darkAt(IA.c, ISLAND_AT - 1);
+  check('the yard hit puts out the right bank towns as ever', same(yard, ['vila-c', 'yard', ...PY_TOWNS]), `dark ${yard.join(', ')}`);
+  const isl = darkAt(IA.c, ISLAND_AT + ISLAND.length * CASCADE_MS + FLICKER_MS);
+  check(`islanded, ${ISLAND.join(' and ')} come back with the yard down`, same(isl, ['vila-c', 'yard', ...PY_TOWNS.filter((id) => !ISLAND.includes(id))]), `dark ${isl.join(', ')}`);
+  const shed = darkAt(IA.c, 119999);
+  check('every west unit lost, both stay lit (a restore\'s town would be shed by its keep)', ISLAND.every((id) => !shed.includes(id)), `dark ${shed.join(', ')}`);
+  const cutIn = darkAt(IA.c, I_END - 1);
+  check('a tower of the islanded corridor hit still cuts the town nearest it, Hernandarias south, and only it',
+    cutIn.includes('hernandarias-s') && !cutIn.includes('hernandarias-w'), `dark ${cutIn.join(', ')}`);
+  const heardBy = (t) => ticks.every((k) => k.t > t || k.t + 230 <= t);
+  let compared = 0;
+  let differ = 0;
+  for (const fb of IB.frames) {
+    if (!heardBy(fb.t)) {
+      continue;
+    }
+    compared += 1;
+    const la = IA.c.grid.levels(IA.c.war.view(), fb.t);
+    differ += la.some((v, j) => v !== fb.levels[j]) ? 1 : 0;
+  }
+  check('A and B the same levels, bit for bit, through the towers and the islanding', compared > 2000 && differ === 0, `${compared} of B's frames compared, ${differ} differ`);
+  const C = client();
+  C.war.onWelcome({ seat: 3, war: ticks.at(-1).msgs[0].war });
+  C.frame(I_END - 1);
+  check('a screen that joins at the end has the same districts dark', same(darkAt(C, I_END - 1), cutIn), `C ${darkAt(C, I_END - 1).join(', ')}`);
+  const plain = runTicks(corridor(null), 0, () => 16, false, I_END);
+  const no = darkAt(plain.c, 119999);
+  check('control: not islanded, both stay dark from the yard\'s hit', ISLAND.every((id) => no.includes(id)), `dark ${no.join(', ')}`);
+}
+
 console.log('replay: the crash cam\'s replay of the match, against its live frames');
 /* A's frames recorded and replayed; the rows, their room ms and levels. */
 function replayed(ticks, end) {
@@ -469,6 +546,13 @@ const differs = (r) => {
   const r = replayed(reroute(10000, null), R_END);
   const d = differs(r);
   check('the failed reroute\'s replay keeps none and is its live frames, bit for bit', !('restores' in r.war.world[0]) && d.n === 0,
+    `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
+}
+
+{
+  const r = replayed(corridor(null), I_END);
+  const d = differs(r);
+  check('the towers\' replay, not islanded, is its live frames, bit for bit', d.n === 0 && r.war.world[0].hits.some((h) => h.target === 'tower-e-12'),
     `${r.frames.length} rows, ${d.n} differ${d.first ? ` (first: ${d.first})` : ''}`);
 }
 

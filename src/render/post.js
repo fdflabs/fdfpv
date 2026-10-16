@@ -127,6 +127,11 @@ const InkShader = {
     uStrength: { value: 0.85 },
     uAaBias: { value: 0.00008 },
     uAaAmount: { value: 1.0 },
+    uNear: { value: 0.1 },
+    uFar: { value: 1000 },
+    uHaze: { value: new THREE.Color(1, 1, 1) },
+    uHazeDistance: { value: 1000 },
+    uHazeAmount: { value: 0 },
   },
   vertexShader: QUAD_VERTEX,
   fragmentShader: /* glsl */ `
@@ -140,6 +145,11 @@ const InkShader = {
     uniform float uStrength;
     uniform float uAaBias;
     uniform float uAaAmount;
+    uniform float uNear;
+    uniform float uFar;
+    uniform vec3 uHaze;
+    uniform float uHazeDistance;
+    uniform float uHazeAmount;
     ${DEPTH16_GLSL}
 
     /* Only xy is stored; z comes back positive, which a front face has,
@@ -224,7 +234,16 @@ const InkShader = {
       /* Never on the sky, and fading out over the far distance. */
       ink *= step(dHere, 0.999) * (1.0 - smoothstep(0.16, 0.42, dHere));
 
-      gl_FragColor = vec4(mix(softened, uLineColor, ink), colour.a);
+      /* The air (CEL_AIR): veiled by how many metres of it lie in front,
+       * so a near wall, the ridge behind it and the range behind that
+       * each stand a step paler and bluer than the one in front, where a
+       * linear fog leaves everything inside its near distance alike. Not
+       * on the sky, whose depth is the far plane's; the ink is veiled as
+       * what it outlines is. */
+      vec3 inked = mix(softened, uLineColor, ink);
+      float metres = uNear + dHere * (uFar - uNear);
+      float veil = uHazeAmount * (1.0 - exp(-metres / uHazeDistance)) * step(dHere, 0.999);
+      gl_FragColor = vec4(mix(inked, uHaze, veil), colour.a);
     }
   `,
 };
@@ -235,6 +254,9 @@ const GradeShader = {
     uDistort: { value: 0.055 },
     uVignette: { value: 0.16 },
     uVibrance: { value: 0.22 },
+    uWarm: { value: new THREE.Vector3(1.045, 1.010, 0.965) },
+    uExposure: { value: 1 },
+    uContrast: { value: 0 },
   },
   vertexShader: QUAD_VERTEX,
   fragmentShader: /* glsl */ `
@@ -243,12 +265,15 @@ const GradeShader = {
     uniform float uDistort;
     uniform float uVignette;
     uniform float uVibrance;
+    uniform vec3 uWarm;
+    uniform float uExposure;
+    uniform float uContrast;
 
     void main() {
       /* Barrel distortion, scaled so the corners still sample inside. */
       vec2 c = vUv - 0.5;
       float rr = dot(c, c);
-      vec3 rgb = texture2D(tDiffuse, 0.5 + c * (1.0 + uDistort * rr) / (1.0 + uDistort * 0.5)).rgb;
+      vec3 rgb = texture2D(tDiffuse, 0.5 + c * (1.0 + uDistort * rr) / (1.0 + uDistort * 0.5)).rgb * uExposure;
 
       /* A shoulder over 0.8, so skies and bloom roll off and keep hue. */
       vec3 over = max(rgb - 0.8, vec3(0.0));
@@ -257,7 +282,7 @@ const GradeShader = {
       /* Cool blacks, warm lights, kept shallow so the ink stays black. */
       vec3 floorTint = vec3(0.006, 0.009, 0.021);
       rgb = rgb * (1.0 - floorTint) + floorTint;
-      rgb *= vec3(1.045, 1.010, 0.965);
+      rgb *= uWarm;
 
       /* Vibrance: most saturation added where there is least. */
       float top = max(rgb.r, max(rgb.g, rgb.b));
@@ -273,7 +298,12 @@ const GradeShader = {
       rgb = clamp(rgb, vec3(0.0), vec3(1.0));
       vec3 linearPart = rgb * 12.92;
       vec3 curvePart = 1.055 * pow(rgb, vec3(0.41666667)) - 0.055;
-      gl_FragColor = vec4(mix(linearPart, curvePart, step(vec3(0.0031308), rgb)), 1.0);
+      vec3 display = mix(linearPart, curvePart, step(vec3(0.0031308), rgb));
+      /* A print's S on the display values (CEL_AIR's contrast): the toe
+       * and the shoulder bend, black and white stay where they are, so
+       * the ink stays black and the sky's white stays white. */
+      display = mix(display, display * display * (3.0 - 2.0 * display), uContrast);
+      gl_FragColor = vec4(display, 1.0);
     }
   `,
 };
@@ -372,13 +402,39 @@ function bloomWithoutDepth(bloom) {
 }
 
 /*
+ * A cel world's air and grade, the parameters a world hands the chain
+ * (docs/LOOK.md). These defaults are the chain as it was before they were
+ * parameters, so a world that hands nothing draws what it drew:
+ *   haze, hazeDistance, hazeAmount: the air in front of a surface, its
+ *     colour, the metres over which 63 % of hazeAmount is reached, and
+ *     the most it veils. Drawn in the ink pass from the prepass's depth,
+ *     so only where the ink is (Medium and High); Low keeps the world's
+ *     fog alone. 0 is no air.
+ *   warm: the grade's white balance, a multiplier per channel.
+ *   exposure: a multiplier on the light before the grade.
+ *   contrast: a print's S curve on the display values, 0 to 1.
+ *   vibrance, vignette: as the grade has always had them.
+ */
+export const CEL_AIR = Object.freeze({
+  haze: 0xffffff,
+  hazeDistance: 1000,
+  hazeAmount: 0,
+  warm: Object.freeze([1.045, 1.010, 0.965]),
+  exposure: 1,
+  contrast: 0,
+  vibrance: 0.22,
+  vignette: 0.16,
+});
+
+/*
  * The chain for one world. quality is a preset (src/render/quality.js):
  * its field.outline and field.bloom, either left out meaning on, decide
  * the ink and the bloom; with no preset both are on. Returns { render,
  * setSize, sharpen, dispose, outline, bloom, grade, composer, normalTarget };
  * budget.js reads the targets to count them.
  */
-export function buildComposer(renderer, scene, camera, quality) {
+export function buildComposer(renderer, scene, camera, quality, look = {}) {
+  const air = { ...CEL_AIR, ...look };
   const css = renderer.getSize(new THREE.Vector2());
   const ratio = renderer.getPixelRatio();
   const w = Math.max(1, Math.floor(css.x * ratio));
@@ -414,6 +470,11 @@ export function buildComposer(renderer, scene, camera, quality) {
     outline = new ShaderPass(InkShader);
     outline.uniforms.tGeo.value = prepass.target.texture;
     outline.uniforms.uResolution.value.set(w, h);
+    outline.uniforms.uNear = prepass.planes.uNear;
+    outline.uniforms.uFar = prepass.planes.uFar;
+    outline.uniforms.uHaze.value.set(air.haze);
+    outline.uniforms.uHazeDistance.value = air.hazeDistance;
+    outline.uniforms.uHazeAmount.value = air.hazeAmount;
     composer.addPass(outline);
   }
   /* Threshold 0.78 on linear luminance: the gate rings sit near 0.70 and
@@ -425,6 +486,11 @@ export function buildComposer(renderer, scene, camera, quality) {
     composer.addPass(bloom);
   }
   const grade = new ShaderPass(GradeShader);
+  grade.uniforms.uWarm.value.fromArray(air.warm);
+  grade.uniforms.uExposure.value = air.exposure;
+  grade.uniforms.uContrast.value = air.contrast;
+  grade.uniforms.uVibrance.value = air.vibrance;
+  grade.uniforms.uVignette.value = air.vignette;
   composer.addPass(grade);
   const sharpen = makeSharpenPass();
   composer.addPass(sharpen);
@@ -556,10 +622,11 @@ export function buildComposer(renderer, scene, camera, quality) {
 
 /*
  * Gives a built world its chain, sized to the shell's canvas, and a
- * dispose that frees the chain and then the world. Returns the map.
+ * dispose that frees the chain and then the world. `look` is the world's
+ * air and grade (CEL_AIR's fields). Returns the map.
  */
-export function attachComposer(shell, map, q) {
-  const post = buildComposer(shell.renderer, map.scene, shell.camera, q);
+export function attachComposer(shell, map, q, look) {
+  const post = buildComposer(shell.renderer, map.scene, shell.camera, q, look);
   const { w, h } = shell.resize();
   post.setSize(w, h);
   const freeWorld = map.dispose;

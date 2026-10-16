@@ -160,6 +160,19 @@ which the room computes once and sends, rather than every screen
 planning from a runtime point. The interval runs by pilots (MISSIONS.md
 M5's as built says why). The breacher is not built.
 
+**The towers are built** (branch w47-m6, 2026-10-15, mission 6):
+`scripts/war-targets.js` writes `src/share/war/itaipu-towers.js` from
+the data folder's OSM power lines and the built map (each tower where
+the town part stands it): `w`, the ten towers of the double circuit line
+west from the right bank yard (ways w1395855080 and w163214315), and
+`e`, the nineteen of IPU 60Hz FI1 east from the powerhouse (w230690313),
+each numbered from the dam. They are the mission's own targets, not the
+map's (as the gantries are): no fire or smoke is drawn on a tower hit.
+A target's `line` makes it carry its mw once (`stages.js` worthOf: a
+second tower of a line down costs nothing), and a tower hit is a struck
+line at the tower for `grid.js` (its nearest town district goes out,
+the wire strike's path).
+
 ### T1.7 Hit points
 
 `KIND[k].hp` (default 1). A detonation on an attacker with hp over 1
@@ -205,6 +218,14 @@ mission 5's carriers carry it; the marker reads what was spotted
 read for everybody, the `spot` objective, the CPU report. The cost now
 is one distance per spottable hull per seat per tick (two hulls at
 most).
+
+**Extended for mission 6** (branch w47-m6): any spawn may be `spot`, and
+a spotted attacker other than a carrier is marked as its own kind
+(`routes.js` spottedAs), so a spotted decoy reads DECOY for everybody at
+any range. The `spot` objective is data: `{ kind: 'spot', done: { spot:
+{ group } }, fail: { leaked: 1, group } }`. Still not built: the spotter
+airframes, the ground's line of sight, the CPU report (one distance a
+spottable attacker a seat a tick).
 
 ### T1.9 Target states for the story
 
@@ -265,6 +286,12 @@ both deterministic and stored:
   M4's twist A is `itaipu-4.js` `STATION_DARK`, flown by `war:stages`
   both ways, and drawn among The Long Night's twists since its radio was
   voiced (MISSIONS.md M4).
+- Islanding (M6's last corridor, branch w47-m6): a hold's `island`
+  (district ids) is a restore marked `island`, which `grid.js` keeps lit
+  whatever the rest loses (no unit loss sheds it, the yard does not put
+  it out); a struck line in it still cuts it. war:grid holds it. The
+  crash cam's replay keeps it as a plain restore (its file's restores
+  are `{ at, districts }`, version 20).
 - `war:grid` gains the restore (the four back after the reroute, in
   order, flickering, bit for bit on two screens, a late joiner agreeing,
   a later unit loss shedding one again), its negative control (a failed

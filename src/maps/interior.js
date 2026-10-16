@@ -214,6 +214,13 @@ async function buildInterior(shell, progress, q, hours) {
       trees.setSun(sun);
       life.setSun(sun);
     },
+    /* The mission's weather (look.js WEATHER, a mission's `weather`;
+     * null is clear), told by src/main.js opsDraw with its camps. */
+    setWeather(name) {
+      const sun = look.setWeather(name);
+      trees.setSun(sun);
+      life.setSun(sun);
+    },
     setNextGate() {},
     targetAim: () => ({ active: false, sceneIndex: -1, correct: true, distance: 0 }),
     approachSide: () => null,
