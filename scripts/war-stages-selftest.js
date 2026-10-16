@@ -2009,8 +2009,8 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
   const TWISTS = ['two-hulls', 'hunters-launched', 'last-bird'];
   const stagesM5 = stagesOf(mission);
   check('The River Below plays 4 rounds of its 6 round stages', roundsOf(mission) === 4 && stagesM5.filter((x) => x.round).length === 6, `${roundsOf(mission)}`);
-  check('in development, act 1, order 5: built and held until the owner has flown it', mission.release === 'development' && mission.act === 1 && mission.order === 5
-    && !released('itaipu-5') && released('itaipu-5', true));
+  check('available, act 1, order 5: released to every pilot (the owner, 2026-10-16)', mission.release === 'available' && mission.act === 1 && mission.order === 5
+    && released('itaipu-5') && released('itaipu-5', true));
   const games = [];
   for (const pilots of [1, 4]) {
     for (const seed of [1, 2, 3, 4, 5]) {
@@ -2312,8 +2312,8 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
   const W = Object.keys(mission.targets).filter((id) => id.startsWith('tower-w-'));
   const E = Object.keys(mission.targets).filter((id) => id.startsWith('tower-e-'));
   check('The Corridor plays 4 rounds of its 7 round stages', roundsOf(mission) === 4 && st6.filter((x) => x.round).length === 7, `${roundsOf(mission)}`);
-  check('in development, act 1, order 6: built and held until the owner has flown it', mission.release === 'development' && mission.act === 1 && mission.order === 6
-    && !released('itaipu-6') && released('itaipu-6', true));
+  check('available, act 1, order 6: released to every pilot (the owner, 2026-10-16)', mission.release === 'available' && mission.act === 1 && mission.order === 6
+    && released('itaipu-6') && released('itaipu-6', true));
   check('its towers: the west line\'s ten and FI1\'s nineteen, each its line\'s mw, aimed on the ground the map stands it on',
     W.length === 10 && E.length === 19 && W.every((id) => mission.targets[id].mw === 933 && mission.targets[id].line === 'w')
     && E.every((id) => mission.targets[id].mw === 1750 && mission.targets[id].line === 'e'), `${W.length} ${E.length}`);

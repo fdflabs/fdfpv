@@ -11,7 +11,8 @@
  *   briefing   a first viewing is never cut: the host's skip refused
  *              'unwatched' until every pilot here has seen the film's cut,
  *              then it starts everybody's countdown at once
- *   the gate   the live room refuses it ('unreleased'), a dev room starts
+ *   the gate   the live room starts it (released 2026-10-16); held in
+ *              development it refuses it ('unreleased'), a dev room starts
  *              it; another map and a public room refuse it
  *   solo       one pilot flies it to the end: launch, Alpha and Bravo
  *              captured, the teacher's house, the motorcycle classified
@@ -98,6 +99,7 @@ import { AIRFRAMES } from '../configs/airframes.js';
 import {
   aimAt, check, finish, opsRoom,
 } from './lib/opsroom.js';
+import { withHeld } from './lib/held.js';
 
 const W = worldFor('interior');
 /* The mission as the room flies it: its heights made absolute. */
@@ -216,10 +218,17 @@ console.log('data');
 
 console.log('the gate');
 {
+  /* Released to every pilot (the owner, 2026-10-16: "make everything
+   * available to everyone"); the gate itself on the mission held in
+   * development (scripts/lib/held.js). */
   const live = opsRoom(M, { ...ROOM, devMissions: false });
-  check('the live room refuses Mission 1: unreleased', live.errors(0).at(-1)?.error === 'unreleased' && live.view(0) === null);
-  const dev = opsRoom(M, ROOM);
-  check('a dev room starts it', dev.view(0)?.state === 'countdown' && dev.view(0).mission === 'interior-1' && dev.view(0).campaign === 'interior');
+  check('released: the live room starts Mission 1', live.view(0)?.state === 'countdown' && live.view(0).mission === 'interior-1');
+  withHeld(['interior-1'], () => {
+    const held = opsRoom(M, { ...ROOM, devMissions: false });
+    check('held in development: the live room refuses Mission 1: unreleased', held.errors(0).at(-1)?.error === 'unreleased' && held.view(0) === null);
+    const dev = opsRoom(M, ROOM);
+    check('held: a dev room starts it', dev.view(0)?.state === 'countdown' && dev.view(0).mission === 'interior-1' && dev.view(0).campaign === 'interior');
+  });
   const other = opsRoom(M, { ...ROOM, map: 'alps' });
   check('another map refuses it', other.errors(0).at(-1)?.error === 'map');
   const pub = opsRoom(M, { ...ROOM, start: false });

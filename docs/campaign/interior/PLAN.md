@@ -136,7 +136,9 @@ N1 map (first the M1 corridor: base, fields, settlement, forest edge,
 camp clearing), N2 canopy, N3 people (walk, stand, look up, carry), N4
 one motorcycle and one pickup, N5 capture, N6 objectives, N7 HUD, N8
 debrief, the campaign card listing all five (Mission 1 held until 100%,
-2 to 5 Under development).
+2 to 5 Under development). Released 2026-10-16: the owner made every
+built mission available ("make everything available to everyone"), 1
+to 3; 4 and 5, with no file yet, stay Under development.
 
 **Mission 1, The Old War, to 100%:** the opening film (archive audio and
 stills, the title card), the M1 briefing, stages M1_01 to M1_10 with the

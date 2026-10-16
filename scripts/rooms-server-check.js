@@ -93,12 +93,13 @@ import { withHeld } from './lib/held.js';
 const given = String(process.argv[2] || '').replace(/\/+$/, '');
 
 /* The release gate's held rows: the owner released Act 1's four missions
- * on 2026-10-15, so they hold them in development (scripts/lib/held.js),
+ * on 2026-10-15 and 5 and 6 on 2026-10-16, so they hold all six in
+ * development (scripts/lib/held.js),
  * which reaches only a server started here, in this process. A server
  * named on the command line runs its own build's releases, and there
  * those rows check the release instead. */
 const HELD = !given;
-const gated = (fn) => (HELD ? withHeld(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'], fn) : fn());
+const gated = (fn) => (HELD ? withHeld(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-5', 'itaipu-6'], fn) : fn());
 
 let failed = 0;
 let passed = 0;

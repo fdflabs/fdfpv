@@ -57,6 +57,17 @@ this lane ships one section of it and the check named there.
 2. Three currencies, never exchanged: XP and levels open the hangar's
    level locks; war credits buy the war's loadout (src/game/campaign.js,
    unchanged); tokens buy cosmetics. **Changed:** PROGRESSION.md said two.
+   The war's shop keeps its own rule (src/game/campaign.js UPGRADES, held
+   by campaign:selftest): Act 1 as released, flown at two stars, buys
+   about half of it (45 to 60 %). The room's pay is the input (100 a
+   star, 10 a team kill, 20 kills taken for two stars: 400 a mission) and
+   the prices follow it. With six missions released on 2026-10-16 (the
+   owner: "make everything available to everyone") the act pays 2 400,
+   so every price went times 6 / 4: wide 500 to 750, penetrator 600 to
+   900, EMP 800 to 1 200, rack +1 400 to 600, rack +2 600 to 900, speed
+   500 to 750, the shop 3 400 to 5 100, 47 % as it was with four (1 600
+   of 3 400). What a pilot already bought keeps the price paid (the
+   campaign stores it), so no balance moves.
 3. Nothing makes an aircraft better: the shop sells finishes and decals
    only (unchanged; owner 2026-10-05 and 2026-10-07).
 4. **Changed (owner 2026-10-07):** Flight Club weekly events expire. What

@@ -126,9 +126,10 @@ export function released(id, dev = false) {
 /*
  * The Interior, the second campaign (docs/campaign/interior/PLAN.md),
  * flown in order, its missions the room's ops missions
- * (src/share/ops/missions.js). The same gate as Act 1: Mission 1 is
- * 'development' until it is 100 % and the owner has flown it, then
- * 'available' in its row and nowhere else. Its list is derived from the
+ * (src/share/ops/missions.js). The same gate as Act 1: a mission is
+ * 'development' until the owner releases it, then 'available' in its row
+ * and nowhere else (1 to 3 on 2026-10-16, "make everything available to
+ * everyone"). Its list is derived from the
  * rows (src/share/ops/rows.js, which documents the fields and imports
  * nothing, so this file never carries the mission files' worlds; the
  * registry holds each row to its file at load). No credits and no shop:
@@ -192,9 +193,13 @@ export const WARHEADS = ['standard', 'wide', 'penetrator', 'emp'];
  * The shop. PRICED SO ACT 1 AT TWO STARS BUYS ABOUT HALF OF IT: the room
  * pays 100 credits a star and 10 a team kill (edge/rooms/war.js, branch
  * war-act1), and mission 1 flown alone sends 27 attackers, so a two star
- * win is taken as 20 kills (TWO_STAR_KILLS): 400 a mission, 1 600 for
- * the act, against 3 400 here. The kills are the guess; a bigger squad
- * meets more attackers and earns faster.
+ * win is taken as 20 kills (TWO_STAR_KILLS): 400 a mission. The act is
+ * its released missions, six since 2026-10-16: 2 400, against 5 100
+ * here (47 %). The room's pay is the input and the prices follow it:
+ * they were 500, 600, 800, 400, 600 and 500 (3 400) for the four
+ * missions of 2026-10-15 (1 600, 47 %), each now times 6 / 4 so the
+ * ratio holds. The kills are the guess; a bigger squad meets more
+ * attackers and earns faster.
  * `needs` is an upgrade that must be owned first: the second rack slot
  * stacks on the first, and the war's rack stops at 6. `later` is shown
  * and not sold, with the act it comes in: the hunter warning needs
@@ -202,12 +207,12 @@ export const WARHEADS = ['standard', 'wide', 'penetrator', 'emp'];
  * field for it.
  */
 export const UPGRADES = [
-  { id: 'wide', kind: 'warhead', price: 500 },
-  { id: 'penetrator', kind: 'warhead', price: 600 },
-  { id: 'emp', kind: 'warhead', price: 800 },
-  { id: 'rack-1', kind: 'rack', price: 400 },
-  { id: 'rack-2', kind: 'rack', price: 600, needs: 'rack-1' },
-  { id: 'speed', kind: 'speed', price: 500 },
+  { id: 'wide', kind: 'warhead', price: 750 },
+  { id: 'penetrator', kind: 'warhead', price: 900 },
+  { id: 'emp', kind: 'warhead', price: 1200 },
+  { id: 'rack-1', kind: 'rack', price: 600 },
+  { id: 'rack-2', kind: 'rack', price: 900, needs: 'rack-1' },
+  { id: 'speed', kind: 'speed', price: 750 },
   { id: 'warning', kind: 'warning', later: 2 },
 ];
 

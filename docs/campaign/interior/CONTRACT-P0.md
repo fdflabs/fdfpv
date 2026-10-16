@@ -327,7 +327,8 @@ triggers, in the ops frame:
 
 `src/game/campaign.js` exports `INTERIOR` beside `ACT1`: `interior-1` to
 `interior-5`. `interior-1` is `release: 'development'` (held: it opens only
-when it is 100 % and the owner has flown it); 2 to 5 are `release:
+when it is 100 % and the owner has flown it; released 2026-10-16 with 2
+and 3, "make everything available to everyone"); 2 to 5 are `release:
 'soon'` with `label: 'development'`, so the card reads **Under
 development** (the owner's words) while the gate keeps its meaning (no
 mission file). `released(id, dev)` gates both lists; the room refuses

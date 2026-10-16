@@ -190,10 +190,12 @@ export function warLobbySection(check) {
      * stored set to one before the gate is the first it may start again,
      * not a lobby whose every start is refused. With every mission of Act
      * 1 held (as the owner held them from 2026-10-07 until their release
-     * on 2026-10-15; held here by scripts/lib/held.js) that is the drill,
+     * on 2026-10-15 and 2026-10-16; held here by scripts/lib/held.js),
+     * all six, since any one left released is the first instead, that is
+     * the drill,
      * which no campaign holds back (campaign.js released); a check's own
      * room (dev) is mission 1. */
-    withHeld(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'], () => {
+    withHeld(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-5', 'itaipu-6'], () => {
       const e = lobbyRoom();
       check('with mission 1 held, a room made for it says the drill in its lobby', e.lobby(0).mission === 'itaipu-drill', JSON.stringify(e.lobby(0)));
       e.say(0, { type: 'lobby', op: 'mission', mission: 'itaipu-2' });
@@ -229,6 +231,21 @@ export function warLobbySection(check) {
     kept.at(100 + LOBBY_COUNTDOWN_MS + 100);
     check('released: and its lobby starts mission 3 with its briefing', kept.war().state === 'briefing' && kept.war().mission === 'itaipu-3',
       JSON.stringify({ state: kept.war().state, mission: kept.war().mission }));
+    /* 5 and 6 too (the owner, 2026-10-16: "make everything available to
+     * everyone"). */
+    for (const id of ['itaipu-5', 'itaipu-6']) {
+      const set = lobbyRoom();
+      set.say(0, { type: 'lobby', op: 'mission', mission: id });
+      check(`released: its host sets ${id}, nothing refused`, set.lobby(1).mission === id && set.r.meta.mission === id
+        && !set.socks[0].got.some((m) => m.type === 'refused'), JSON.stringify(set.lobby(1)));
+      const stored = lobbyRoom({ mission: id });
+      stored.at(100);
+      stored.ready(0);
+      stored.ready(1);
+      stored.at(100 + LOBBY_COUNTDOWN_MS + 100);
+      check(`released: a room stored set to ${id} starts it with its briefing`, stored.war().state === 'briefing' && stored.war().mission === id,
+        JSON.stringify({ state: stored.war().state, mission: stored.war().mission }));
+    }
     const practice = lobbyRoom({ mission: 'itaipu-practice' });
     practice.at(100);
     practice.ready(0);

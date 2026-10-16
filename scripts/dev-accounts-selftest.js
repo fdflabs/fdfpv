@@ -114,27 +114,37 @@ console.log('parse');
   check('nothing set is an empty list', devAccountsOf(undefined).size === 0 && devAccountsOf('').size === 0);
 }
 
-console.log('ops: The Interior, Mission 1 (development)');
+console.log('ops: The Interior, Mission 1 (held in development here; released 2026-10-16)');
 {
-  const a = room('interior', `${OWNER}`, [OWNER]);
-  check('the host on the list is the room\'s dev host', a.r.devHost());
-  a.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
-  check('the allowlisted host starts Mission 1', a.last(0, (m) => m.type === 'ops' && m.ops)?.ops.state === 'countdown');
-  const b = room('interior', `${OWNER}`, [OTHER]);
-  b.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
-  check('a host not on the list is refused unreleased', b.last(0, (m) => m.type === 'ops' && m.error)?.error === 'unreleased' && !b.r.ops.on());
-  const c = room('interior', `${OWNER}`, [OTHER, OWNER]);
-  check('an allowlisted pilot who is not the host makes nothing dev', !c.r.devHost());
-  c.say(1, { type: 'ops', op: 'start', mission: 'interior-1' });
-  check('its own start is refused: not the host', c.last(1, (m) => m.type === 'refused')?.why === 'host' && !c.r.ops.on());
-  c.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
-  check('and the host\'s start is still refused unreleased', c.last(0, (m) => m.type === 'ops' && m.error)?.error === 'unreleased' && !c.r.ops.on());
-  const d = room('interior', '', [OWNER]);
-  d.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
-  check('a server with no list refuses the owner too', d.last(0, (m) => m.type === 'ops' && m.error)?.error === 'unreleased');
-  const g = room('interior', `${OWNER}`, [null]);
-  g.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
-  check('a guest seat (no account) is refused', g.last(0, (m) => m.type === 'ops' && m.error)?.error === 'unreleased');
+  /* Mission 1 held (scripts/lib/held.js), as it was until the owner
+   * released every built mission on 2026-10-16 ("make everything
+   * available to everyone"), so the allowlist is still proven. */
+  withHeld(['interior-1'], () => {
+    const a = room('interior', `${OWNER}`, [OWNER]);
+    check('the host on the list is the room\'s dev host', a.r.devHost());
+    a.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('the allowlisted host starts Mission 1', a.last(0, (m) => m.type === 'ops' && m.ops)?.ops.state === 'countdown');
+    const b = room('interior', `${OWNER}`, [OTHER]);
+    b.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('a host not on the list is refused unreleased', b.last(0, (m) => m.type === 'ops' && m.error)?.error === 'unreleased' && !b.r.ops.on());
+    const c = room('interior', `${OWNER}`, [OTHER, OWNER]);
+    check('an allowlisted pilot who is not the host makes nothing dev', !c.r.devHost());
+    c.say(1, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('its own start is refused: not the host', c.last(1, (m) => m.type === 'refused')?.why === 'host' && !c.r.ops.on());
+    c.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('and the host\'s start is still refused unreleased', c.last(0, (m) => m.type === 'ops' && m.error)?.error === 'unreleased' && !c.r.ops.on());
+    const d = room('interior', '', [OWNER]);
+    d.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('a server with no list refuses the owner too', d.last(0, (m) => m.type === 'ops' && m.error)?.error === 'unreleased');
+    const g = room('interior', `${OWNER}`, [null]);
+    g.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('a guest seat (no account) is refused', g.last(0, (m) => m.type === 'ops' && m.error)?.error === 'unreleased');
+  });
+  for (const id of ['interior-1', 'interior-2', 'interior-3']) {
+    const r = room('interior', '', [OTHER]);
+    r.say(0, { type: 'ops', op: 'start', mission: id });
+    check(`released: a host on no list, on a server with none, starts ${id}`, r.last(0, (m) => m.type === 'ops' && m.ops)?.ops.state === 'countdown' && r.r.ops.on());
+  }
 }
 
 console.log('war: Act 1, mission 2 (held in development here; released 2026-10-15)');
@@ -299,6 +309,12 @@ console.log('create');
     map: 'itaipu', mode: 'war', mission: 'itaipu-2', public: true,
   }, '', 5);
   check('released (the owner, 2026-10-15): a public war room for mission 2 is made, with no list', released.status === 200, `${released.status}`);
+  for (const [i, id] of ['itaipu-5', 'itaipu-6'].entries()) {
+    const later = await make({
+      map: 'itaipu', mode: 'war', mission: id, public: true,
+    }, '', 6 + i);
+    check(`released (the owner, 2026-10-16): a public war room for ${id} is made, with no list`, later.status === 200, `${later.status}`);
+  }
   const soon = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-7' }, `${OWNER}`, 4);
   check('one naming a mission only planned is refused', soon.status === 400 || soon.status === 403, `${soon.status}`);
 }

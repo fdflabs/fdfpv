@@ -313,13 +313,19 @@ changing that one field and redeploying the rooms server. Missions 1 to
 4 are available: the owner released all four on 2026-10-15, so the
 campaign plays in order. First Light had gone back to `development` on
 2026-10-07 (PR #666, the owner: no narration, under construction until
-it was as finished as The Interior's Mission 1). Mission 5, The River
-Below, is `development` since branch w46-m5 (2026-10-15): built, shown
-Under development, held until the owner has flown it. Mission 6, The
-Corridor, is `development` since branch w47-m6 (2026-10-15), held the
-same way. 7 is `soon`.
+it was as finished as The Interior's Mission 1). Missions 5 and 6, The
+River Below (branch w46-m5) and The Corridor (branch w47-m6), built
+2026-10-15 and held in development, are available since 2026-10-16: the
+owner released every built mission that day ("make everything available
+to everyone"). 7 is `soon`.
 
 ### 2.1 Release status (checked against the tree 2026-10-13, batch/2026-10-14 f0c06cbb6)
+
+**Every mission with a file is released** (2026-10-16): 1 to 4 on
+2026-10-15, 5 and 6 on 2026-10-16 ("make everything available to
+everyone", the owner), with The Interior's 1 to 3. 7 has no file and
+stays Coming soon. The table below is what each was checked against
+before its release.
 
 What a mission needs to be released, from this file, FIRST-LIGHT-AUDIT.md
 and the owner's bar (as finished as The Interior's Mission 1), and where
@@ -348,7 +354,7 @@ branch w39-daynight (14 October): see M3's as-built notes for the lines
 that may now say more. Released 2026-10-15 with the rest of Act 1.
 
 Mission 5, The River Below, built on branch w46-m5 (2026-10-15) and
-held in development until the owner has flown it, has against this
+released 2026-10-16, has against this
 table: 4 stages and 3 twists, 4 title keys; 2 objectives
 (`war.obj.protect_penstocks`, `war.obj.itaipu_5.carrier`); the table's
 14 radio ids, `itaipu-5-op` and the film's 4, all voiced en and es on
@@ -359,8 +365,8 @@ RIVER and HIGH sectors, war:routes PASS; the consent; Contain with
 `itaipu-5-op`. What it adds to the engine and what it does not build is
 M5's as built below.
 
-Mission 6, The Corridor, built on branch w47-m6 (2026-10-15) and held in
-development until the owner has flown it: 4 stages, 3 twists and 2
+Mission 6, The Corridor, built on branch w47-m6 (2026-10-15) and
+released 2026-10-16: 4 stages, 3 twists and 2
 islandings, 4 title keys; its objectives (the towers, a spot objective
 for each of Spread Thin's four groups, the yard, each twist's, each
 corridor's islanding hold); the nudge and the objective cards; its
@@ -410,6 +416,17 @@ once the one before is won. The checks that pinned the held state now
 hold a mission in development themselves (`scripts/lib/held.js`), so
 the gate (refused 'unreleased', the drill fallback, the private room,
 DEV_ACCOUNTS) is still proven, and they also check the release.
+
+**Released 2026-10-16.** The owner: "make everything available to
+everyone". The River Below and The Corridor go to `release:
+'available'` in `itaipu-5.js` and `itaipu-6.js`, so Act 1 is 1 to 6 in
+order and 7 Coming soon. The Interior's Missions 1 to 3 go the same way
+in `src/share/ops/rows.js`; 4 and 5, with no file, stay Under
+development. `scripts/lib/held.js` holds an Interior row too, so the
+checks that pinned them held prove the gate on a held mission and the
+release besides. The war's shop is repriced for six missions (each
+price times 6 / 4, docs/ECONOMY.md rule 2), so Act 1 at two stars
+still buys about half of it.
 
 ---
 

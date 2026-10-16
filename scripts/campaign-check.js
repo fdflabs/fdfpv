@@ -11,10 +11,10 @@
  * owner, 2026-10-03), before any consent or room: Act 1's seven missions
  * with their stars, the story card before mission 1 over them
  * (docs/campaign/BIBLE.md 10), mission 1 free and playable, missions 2 to 7 marked
- * Campaign, 2 to 4 each waiting on the one before, 5 and 6 Under
- * development (The River Below and The Corridor, built and held until the
- * owner has flown them), 7 Coming soon (the owner released 1 to 4 on
- * 2026-10-15). The shop, with
+ * Campaign, 2 to 6 each waiting on the one before, 7 Coming soon (the
+ * owner released 1 to 4 on 2026-10-15, and The River Below and The
+ * Corridor, 5 and 6, on 2026-10-16: "make everything available to
+ * everyone"). The shop, with
  * credits seeded in the stored settings' campaign section (the guest's
  * store, which the account syncs for a signed in pilot): buy the wide
  * blast warhead and Rack +1, equip and unequip, the loadout line
@@ -42,7 +42,7 @@
  * the VM's does (a server named on the command line is not used for
  * these rows): with mission 1 never won, a pilot not on the list sees
  * mission 2 Win mission 1 first with ?missions=dev; the owner without
- * ?missions=dev has 1 to 4 to play, released; with it, Play, whose
+ * ?missions=dev has 1 to 6 to play, released; with it, Play, whose
  * press makes a public war room for mission 2 that starts it.
  *
  * CONTINUE (docs/redesign/COMPLETENESS.md item 57): mission 1's Play
@@ -217,7 +217,7 @@ const SOCKET_TAP = `(() => {
 const SEED = `(() => {
   const s = JSON.parse(localStorage.getItem('webfpv.settings.v3') || '{}');
   if (!s.campaign) {
-    localStorage.setItem('webfpv.settings.v3', JSON.stringify({ ...s, campaign: { v: 1, earned: 1000 } }));
+    localStorage.setItem('webfpv.settings.v3', JSON.stringify({ ...s, campaign: { v: 1, earned: 1450 } }));
   }
 })();`;
 
@@ -264,8 +264,12 @@ try {
   /* THE INTERIOR'S CARD: its first press plays the campaign's prologue
    * (docs/campaign/interior/FILMS.md, once per pilot, unskippable the
    * first time) over the Interior's world, then its page: five missions,
-   * Mission 1 held until release and 2 to 5 Under development (the
-   * owner's words), no consent asked and no room made by the card. */
+   * 1 to 3 released to every pilot (the owner, 2026-10-16: "make
+   * everything available to everyone"), each Play, and 4 and 5 Under
+   * development (the owner's words), no consent asked and no room made by
+   * the card. A held mission's card is missionState's, proven in
+   * interior:debrief under scripts/lib/held.js, since a page reads the
+   * build's release. */
   await click(page, '.gate-card-interior .gate-card-name');
   const INTERIOR_PAGE = `(() => {
     const box = document.querySelector('.ops-campaign-box');
@@ -280,9 +284,9 @@ try {
   await page.until(`${INTERIOR_PAGE} !== null`, 10000).catch(() => {});
   const interior = await page.evaluate(INTERIOR_PAGE);
   const iUnasked = await page.evaluate("({ phase: window.__rooms().phase, consent: window.__ui.settings.interiorConsent === true })");
-  check('The Interior: its page lists interior-1 to interior-5, Missions 1 to 3 held until release, 4 and 5 Under development, none playable, no consent, no room',
+  check('The Interior: its page lists interior-1 to interior-5, Missions 1 to 3 Play and playable, 4 and 5 Under development and not, no consent, no room',
     interior && interior.map((m) => m.id).join() === 'interior-1,interior-2,interior-3,interior-4,interior-5'
-    && interior.slice(0, 3).every((m) => m.play === 'Held until release') && interior.slice(3).every((m) => m.play === 'Under development') && interior.every((m) => !m.on)
+    && interior.slice(0, 3).every((m) => m.play === 'Play' && m.on) && interior.slice(3).every((m) => m.play === 'Under development' && !m.on)
     && iUnasked.phase === 'idle' && !iUnasked.consent, JSON.stringify({ interior, iUnasked }));
   await shot(page, 'interior');
   await page.tap('Escape');
@@ -302,12 +306,11 @@ try {
   check('mission 1: free, not flown, released to every pilot (the owner, 2026-10-15) and playable; 2 to 7 marked Campaign, none playable yet',
     first.missions[0].tag === 'Free' && first.missions[0].best === 'Not flown yet' && first.missions[0].playable
     && first.missions.slice(1).every((m) => m.tag === 'Campaign' && !m.playable), JSON.stringify(first.missions));
-  check('1 to 4 available, 1 says Play and 2 to 4 Win the one before first, 5 and 6 Under development, 7 Coming soon',
-    first.missions.slice(0, 4).every((m) => m.release === 'available') && first.missions[0].play === 'Play'
-    && first.missions.slice(1, 4).every((m, i) => m.play === `Win mission ${i + 1} first`)
-    && first.missions.slice(4, 6).every((m) => m.play === 'Under development' && m.release === 'development' && !m.playable)
+  check('1 to 6 available, 1 says Play and 2 to 6 Win the one before first, 7 Coming soon',
+    first.missions.slice(0, 6).every((m) => m.release === 'available') && first.missions[0].play === 'Play'
+    && first.missions.slice(1, 6).every((m, i) => m.play === `Win mission ${i + 1} first` && !m.playable)
     && first.missions[6].play === 'Coming soon' && first.missions[6].release === 'soon', JSON.stringify(first.missions.map((m) => m.play)));
-  check('the seeded credits show', first.credits === 'Credits: 1000', first.credits);
+  check('the seeded credits show', first.credits === 'Credits: 1450', first.credits);
   /* The story card before the mission the pilot goes on with
    * (docs/campaign/BIBLE.md 10): mission 1's, over the list. */
   check('the story card before mission 1, its place and hour over its text, above the missions',
@@ -337,7 +340,7 @@ try {
   check('the loadout line: a rack of 5, wide blast', shop.loadout === 'Your loadout: a rack of 5, Wide blast warhead, standard airframe.', shop.loadout);
   check('bought survives a reload of the store', await page.evaluate(`(() => {
     const s = JSON.parse(localStorage.getItem('webfpv.settings.v3')).campaign;
-    return s.owned.wide === 500 && s.owned['rack-1'] === 400 && s.equipped.warhead === 'wide';
+    return s.owned.wide === 750 && s.owned['rack-1'] === 600 && s.equipped.warhead === 'wide';
   })()`));
   await shot(page, 'shop');
 
@@ -509,8 +512,9 @@ try {
     pub && pub.missions[1].play === 'Play' && pub.missions[1].playable && pub.missions[0].play === 'Play' && pub.missions[0].playable
     && pub.missions[2].play === 'Win mission 2 first' && !pub.missions[2].playable,
     JSON.stringify(pub && pub.missions.map((m) => m.play)));
-  check('and the stars won on mission 1 stay, 5 and 6 still Under development, 7 Coming soon', pub && pub.missions[0].stars === 2
-    && pub.missions.slice(4, 6).every((m) => m.play === 'Under development' && !m.playable) && pub.missions[6].play === 'Coming soon' && !pub.missions[6].playable,
+  check('and the stars won on mission 1 stay, 5 and 6 released and in the order (Win mission 4 first, Win mission 5 first), 7 Coming soon', pub && pub.missions[0].stars === 2
+    && pub.missions[4].play === 'Win mission 4 first' && !pub.missions[4].playable && pub.missions[5].play === 'Win mission 5 first' && !pub.missions[5].playable
+    && pub.missions[6].play === 'Coming soon' && !pub.missions[6].playable,
     JSON.stringify(pub && pub.missions.map((m) => [m.stars, m.play])));
 
   /* THE DEV PATH again, back in its room, against this check's server,
@@ -635,8 +639,8 @@ try {
   await reload(signedUrl);
   const plain = await openCampaign();
   const nm = plain.screen && plain.screen.missions;
-  check('the owner without ?missions=dev: 1 to 4 released and playable, mission 1 never won (the win first lock lifted for the owner), 5 and 6 Under development, 7 Coming soon',
-    nm && nm.slice(0, 4).every((m) => m.play === 'Play' && m.playable) && nm.slice(4, 6).every((m) => m.play === 'Under development' && !m.playable)
+  check('the owner without ?missions=dev: 1 to 6 released and playable, mission 1 never won (the win first lock lifted for the owner), 7 Coming soon',
+    nm && nm.slice(0, 6).every((m) => m.play === 'Play' && m.playable)
     && nm[6].play === 'Coming soon' && !nm[6].playable,
     JSON.stringify(nm && nm.map((m) => m.play)));
 
@@ -646,7 +650,7 @@ try {
   check('the owner, ?missions=dev, mission 1 never won: mission 2 is Play and playable',
     om && om[0].best === 'Not flown yet' && om[0].stars === 0 && om[1].play === 'Play' && om[1].playable
     && JSON.stringify(asOwner.answers) === '[{"dev":true}]', JSON.stringify(asOwner));
-  check('and 3 and 4 too, and 5 and 6, in development, for the owner; 7 still Coming soon', om && om.slice(2, 6).every((m) => m.play === 'Play' && m.playable)
+  check('and 3 to 6 too, for the owner; 7 still Coming soon', om && om.slice(2, 6).every((m) => m.play === 'Play' && m.playable)
     && om[6].play === 'Coming soon' && !om[6].playable, JSON.stringify(om && om.map((m) => m.play)));
   await shot(page2, 'unlocked-owner');
 

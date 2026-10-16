@@ -28,9 +28,9 @@
  *            construction until it is as finished); the owner's own
  *            account flew it while held (DEV_ACCOUNTS, devHost). The owner
  *            released all four Act 1 missions on 2026-10-15 ("release
- *            yes i approve", all four so the campaign plays in order);
- *            The River Below (itaipu-5) is held in development until the
- *            owner has flown it.
+ *            yes i approve", all four so the campaign plays in order),
+ *            and The River Below and The Corridor (5 and 6) on
+ *            2026-10-16 ("make everything available to everyone").
  *
  * The drill has no act, so no campaign offers it, nor the practice
  * (itaipu-practice.js), Training's one Striker at a time.

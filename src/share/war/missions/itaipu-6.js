@@ -299,13 +299,14 @@ function island(id, all, from, side, text) {
 
 export default withWaves({
   id: 'itaipu-6',
-  /* Act 1's mission 6 (index.js, the campaign's fields). Held in
-   * development until the owner has flown it. */
+  /* Act 1's mission 6 (index.js, the campaign's fields). Released to
+   * every pilot on 2026-10-16 (the owner: "make everything available to
+   * everyone"). */
   act: 1,
   order: 6,
   key: 'corridor',
   free: false,
-  release: 'development',
+  release: 'available',
   /* A string key (src/strings): The Corridor. */
   title: 'war.mission.itaipu_6',
   map: 'itaipu',

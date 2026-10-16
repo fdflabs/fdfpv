@@ -113,12 +113,13 @@ export function visibilitySection(check) {
     hello(drill, h3);
     say(drill, h3, { type: 'public', on: true });
     check('a war room for a released mission goes public', drill.meta.public === true);
-    for (const [i, id] of ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].entries()) {
+    /* 1 to 4 released 2026-10-15, 5 and 6 2026-10-16. */
+    for (const [i, id] of ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-5', 'itaipu-6'].entries()) {
       const act = roomOf({ cap: PRIVATE_CAP, public: false, mode: 'war', mission: id });
       const h = sock(`host${4 + i}`);
       hello(act, h);
       say(act, h, { type: 'public', on: true });
-      check(`${id}, released (the owner, 2026-10-15): its war room goes public, nothing refused`, act.meta.public === true && !refused(h).length, JSON.stringify(refused(h)));
+      check(`${id}, released (the owner): its war room goes public, nothing refused`, act.meta.public === true && !refused(h).length, JSON.stringify(refused(h)));
     }
   }
 

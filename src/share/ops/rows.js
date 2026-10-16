@@ -16,10 +16,13 @@
  *             developer's room starts it; 'soon' has no mission file yet,
  *             so nothing to fly. A mission is made available here and
  *             nowhere else.
+ *             The owner released every built mission, 1 to 3, on
+ *             2026-10-16 ("make everything available to everyone").
  *   label     the word the card shows instead of the release's own
  *             (cardLabel): the owner asked for Under development on 2 to
  *             5 of The Interior (docs/campaign/interior/PLAN.md section 3,
- *             TECH-NEEDS.md F6), which 2 and 3 show by their release
+ *             TECH-NEEDS.md F6), which 4 and 5, with no file yet, still
+ *             show
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -38,9 +41,9 @@
  */
 
 export const ROWS = Object.freeze([
-  { id: 'interior-1', campaign: 'interior', order: 1, key: 'oldwar', release: 'development' },
-  { id: 'interior-2', campaign: 'interior', order: 2, key: 'forest', release: 'development' },
-  { id: 'interior-3', campaign: 'interior', order: 3, key: 'nomansland', release: 'development' },
+  { id: 'interior-1', campaign: 'interior', order: 1, key: 'oldwar', release: 'available' },
+  { id: 'interior-2', campaign: 'interior', order: 2, key: 'forest', release: 'available' },
+  { id: 'interior-3', campaign: 'interior', order: 3, key: 'nomansland', release: 'available' },
   { id: 'interior-4', campaign: 'interior', order: 4, key: 'otherwar', release: 'soon', label: 'development' },
   { id: 'interior-5', campaign: 'interior', order: 5, key: 'lastcolumn', release: 'soon', label: 'development' },
 ]);

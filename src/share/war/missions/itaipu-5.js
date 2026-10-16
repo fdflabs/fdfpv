@@ -169,13 +169,14 @@ const TURN = (when) => ({ when, radio: 'itaipu-5-s3-learn' });
 
 export default withWaves({
   id: 'itaipu-5',
-  /* Act 1's mission 5 (index.js, the campaign's fields). Held in
-   * development until the owner has flown it. */
+  /* Act 1's mission 5 (index.js, the campaign's fields). Released to
+   * every pilot on 2026-10-16 (the owner: "make everything available to
+   * everyone"). */
   act: 1,
   order: 5,
   key: 'river',
   free: false,
-  release: 'development',
+  release: 'available',
   /* A string key (src/strings): The River Below. */
   title: 'war.mission.itaipu_5',
   map: 'itaipu',
