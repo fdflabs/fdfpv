@@ -58,8 +58,13 @@ const SHARED = [
   { id: 'east-wall', cam: [100, 30, -300, 700, 150, -350] },
 ];
 const FALLS = {
-  swiss2: { id: 'falls', cam: [420, 30, -1210, 846, 165, -1296] },
-  alps: { id: 'falls', cam: [700, 260, -1150, 1010, 230, -1295] },
+  swiss2: [
+    { id: 'falls', cam: [420, 30, -1210, 846, 165, -1296] },
+    /* The fall's foot from 120 m: the apron's ledges and the cascade on
+     * them, which the whole-fall view sees a few pixels of. */
+    { id: 'falls-foot', cam: [700, 40, -1235, 812, 40, -1295] },
+  ],
+  alps: [{ id: 'falls', cam: [700, 260, -1150, 1010, 230, -1295] }],
 };
 
 const FRAME_MS = '(() => new Promise((done) => { const t = []; let last = performance.now();'
@@ -73,7 +78,7 @@ const graphics = arg('graphics', 'high');
 if (!FALLS[map]) {
   throw new Error(`valleys-views: --map must be swiss2 or alps, not ${map}`);
 }
-const VIEWS = [...SHARED, FALLS[map]];
+const VIEWS = [...SHARED, ...FALLS[map]];
 const outDir = resolve(process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'tmp', 'valleys-views'));
 await mkdir(outDir, { recursive: true });
 
