@@ -1322,6 +1322,17 @@ war:stages flies it on the room), held at `release: 'development'`:
   solo squad chased the swarms forever and never ended the stage.
 - **Length** 7 to 14 minutes: ten good bot games end 8.0 to 13.5 minutes
   after the go, against section 2's guess of 11 to 15.
+- **The Source ends at eight minutes** (w50-adv-b, 2026-10-16). Its exits
+  wait for the carrier to sink, and in twist B, once it launches only
+  Hunters, nothing touches the output: two good bot pilots who kept
+  killing Hunters and never reached the hull were still live at
+  war:balance's 25 minute cap with the output whole, and twists A and C
+  outlasted the cap against squads that shot every swarm. `itaipu-5.js`
+  `SOURCE_S`: 480 s after the stage opens, a hull still afloat gets away,
+  what it launched gets through, the round is damaged, CREST's
+  `stage-lost` is said (unless the source is already down), and Clear the
+  River comes next. Fourteen of sixteen solo bot games sank it in 140 to
+  294 s; the other two lost first.
 - **The film** is `films/river-below.js` (INTROS.md 5.5), with no smoke
   downriver in shot 1 and shot 3's own rider near the face for 8 s (the
   film's header says why). The campaign card's line is the Briefing
