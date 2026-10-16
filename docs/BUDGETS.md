@@ -380,6 +380,9 @@ were drawn in the camera's view in every second.
     SIM_GPU=1 node scripts/perf-play.js OUT --scenarios=title,alps-low,swiss-low --preset=high --seconds=15 --mode=quality --budgets
 
 or `~/.cache/run-check.sh <worktree> perf -- OUT --scenarios=... --preset=... --seconds=15 --mode=quality --budgets`.
+`--budgets` exits 2 on any other `--seconds` or `--mode` (the `itaipu-war`
+camera turns toward the town after 15 s, so 30 s reads 3.64 M against 3.48 M);
+`--unmatched` runs it anyway.
 `--calls` (a diagnostic) also counts the busiest frame's draw calls by
 pass and by mesh: the main view is every pass but `draw
 render/sensorview`, which is the inset.

@@ -12,14 +12,16 @@
  *     SIM_GPU=1 node scripts/perf-play.js [OUT_DIR] [--scenarios=itaipu-war,swiss-low,wing-cruise]
  *         [--seconds=30] [--preset=high] [--pace=free|raf] [--cap=90]
  *         [--mode=quality|balanced|performance] [--objects] [--alloc] [--buffers] [--gctrace]
- *         [--budgets] [--calls]
+ *         [--budgets [--unmatched]] [--calls]
  *
  * --budgets holds each scenario's run to its row at the preset in
  * docs/BUDGETS.md (draw calls, triangles, live textures, GPU floor) and
  * exits 1 on a row over its ceiling or a run with no row; that table's
  * rows are title (the menu), alps-low, swiss-low, itaipu-stream,
  * interior-ops, itaipu-war, itaipu-war-peak and peers at each of the
- * three presets.
+ * three presets. The rows were measured at BUDGET_RUN (15 s, quality), and
+ * --budgets exits 2 on any other --seconds or --mode; --unmatched says the
+ * caller knows and runs it anyway.
  *
  * Writes OUT_DIR/perf-play.json (every frame's numbers) and prints a table
  * per scenario. OUT_DIR defaults to a folder under the system temp dir; the
@@ -149,7 +151,7 @@ const BUDGET_MS = 1000 / 90;
 
 const opts = {
   scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1, cap: 0, mode: '', objects: false, alloc: false, buffers: false, gctrace: false,
-  budgets: false, calls: false,
+  budgets: false, unmatched: false, calls: false,
 };
 const positional = [];
 for (const a of process.argv.slice(2)) {
@@ -171,6 +173,17 @@ if (opts.mode && !PERF_MODES.includes(opts.mode)) {
 }
 if (!['free', 'raf'].includes(opts.pace)) {
   throw new Error(`perf-play: --pace=${opts.pace}, want free or raf`);
+}
+/*
+ * The ceilings in docs/BUDGETS.md were measured with this window and mode.
+ * The itaipu-war camera turns toward the town after 15 s, so a 30 s run
+ * reads 3.64 M triangles against a 3.48 M ceiling measured at 15 s
+ * (3.02 M): a different run, not a regression.
+ */
+const BUDGET_RUN = { seconds: 15, mode: 'quality' };
+if (opts.budgets && !opts.unmatched && (opts.seconds !== BUDGET_RUN.seconds || opts.mode !== BUDGET_RUN.mode)) {
+  console.error(`perf-play: --budgets: docs/BUDGETS.md's ceilings were measured at --seconds=${BUDGET_RUN.seconds} --mode=${BUDGET_RUN.mode}, this run is --seconds=${opts.seconds} --mode=${opts.mode || '(default)'}; run those, or add --unmatched to judge it against them anyway`);
+  process.exit(2);
 }
 const outDir = resolve(positional[0] || join(tmpdir(), 'fdfpv-perf-play'));
 await mkdir(outDir, { recursive: true });
