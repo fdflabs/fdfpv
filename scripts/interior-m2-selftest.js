@@ -447,4 +447,29 @@ console.log('the watchers star with the required watcher found first');
   check('the other two found in stage 2: THE WATCHERS\' flag', view(e).stage?.id !== 'M2_CP_START' && view(e).flags.M2_ALL_WATCHERS_FOUND === true, `${view(e).stage?.id} ${JSON.stringify(view(e).flags)}`);
 }
 
+/* The diagram taken first: "Back up high" waits for the other four, so a
+ * solo pilot is not sent away from the camp with stills still to take
+ * (w50 adversarial pass). */
+console.log('the diagram taken first');
+{
+  const e = opsRoom(RAW, { ...ROOM, n: 1, seed: 0.6 });
+  const c = pilot(e, 0);
+  e.fly(e.clock + 7000);
+  c.air = true;
+  const cv = M.points['claro-viejo'].at;
+  goto(e, c, [cv[0] - 30, cv[1] - 30], 120, 'isr');
+  const ids = ['diagram', 'fire', 'cable', 'impressions', 'tracks'];
+  for (const id of ids) {
+    const a = resolve(M.items.find((x) => x.id === id).at, view(e).dials);
+    goto(e, c, [a[0] - 3, a[1] - 3], 4, 'recon');
+    snap(e, c, id);
+    if (id === 'diagram') {
+      e.fly(e.clock + 15000);
+      check('the diagram\'s beat at once, but not "Back up high" with four stills to go', heard(e, 'int2-s1-points') && !heard(e, 'int2-s1-back'));
+    }
+  }
+  e.fly(e.clock + 15000);
+  check('"Back up high" once the camp is done', heard(e, 'int2-s1-back') && view(e).cards.some((x) => x.id === 'posts'));
+}
+
 finish();

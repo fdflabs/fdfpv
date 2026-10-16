@@ -296,7 +296,9 @@ export default {
           when: { captured: 'diagram' },
           radio: ['int2-s1-notmap', 'int2-s1-road', 'int2-s1-points'],
         },
-        { when: { captured: 'diagram' }, at: 4, radio: 'int2-s1-back', heard: { role: ['isr'] } },
+        /* Sent back up high with the posts card, once the camp is done:
+         * the diagram is any one of its five stills, not always the last. */
+        { when: { captured: { set: 'camp-close' }, n: 5 }, at: 4, radio: 'int2-s1-back', heard: { role: ['isr'] } },
         { when: { captured: { set: 'camp-close' }, n: 5 }, card: ['card.primary_updated', 'card.search_area'] },
         ...ZONES.map((z) => ({ when: { captured: { set: 'camp-close' }, n: 5 }, search: { id: `zone-${z}`, at: GA(z), r: 300 } })),
         { when: { captured: { set: 'camp-close' }, n: 5 }, at: 2, radio: 'int2-tr-zone', heard: { role: ['tracker'] } },
