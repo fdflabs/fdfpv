@@ -372,8 +372,21 @@ golden, long shadows. **Music:** a long drone. **Length:** 55 s.
 | 2 | 9 | drone POV | 18 | along the wires at wire height | the next tower, and the next | rides the corridor between the wires, the towers passing | lin | film-itaipu-6-1 | wind, the hum | cut |
 | 3 | 8 | GRID insert | | the board, each corridor a line feeding its towns | the same, the corridors pulsing | which towns each corridor feeds | hold | film-itaipu-6-2 | phone hum | cut |
 | 4 | 8 | telephoto | 600 | the corridor to the horizon, towers stacked | a dot moving along it, low | one Striker following the corridor | lin | film-itaipu-6-3 | far engine | cut |
-| 5 | 6 | handheld | 35 | the Bramor and the Skyhunter on the crest road | the same | the long winged aircraft that will spot; their wings in the golden light | hold | | wind | cut |
+| 5 | 6 | handheld | 35 | the Striker fixed wing and the interceptor on the crest road | the same | two of the war's aircraft that will spot (any pilot spots, itaipu-6.js); the reservoir beyond them | hold | | wind | cut |
 | 6 | 15 | crane | 18 | the crest road | very high over the dam, both corridors running away into the dusk | rises until the corridors are lines to both horizons; title "THE CORRIDOR" | io | film-itaipu-6-4 | music up | hand-off |
+
+As built (src/share/war/films/corridor.js, version 1, 57.5 s with its
+preload; graded `warm`, the rise `dusk`): no GRID insert, which no film
+camera draws, so DESPACHO's line plays over the stand-in Lights Out
+uses, a long lens on the town the line feeds: from over the right bank
+on 85 mm, the west corridor's last towers marching into Hernandarias's
+west district (shot 3, `town`). Shot 5 (`road`) shows the Striker fixed
+wing and the interceptor from behind and above, the reservoir beyond,
+not the Bramor and the Skyhunter, which do not fly in a war
+(configs/airframes.js `WAR_AIRFRAMES`, held by films:lint). Shot 2
+(`ride`) is a dolly 15 m off the west line level with its phases, on 24
+mm, not 18. Shot 4 (`wires`) follows its one Striker on the 600 mm from
+over the line's third tower. No outro: none is written for M6.
 
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |

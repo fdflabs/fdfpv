@@ -358,6 +358,14 @@ try {
     row('orbit: the mission\'s own card, its title over "Mission 3"', shot('orbit').titles.includes(EN['war.mission.itaipu_3']), shot('orbit').titles.join(' | '));
     row('the hand-off: the letterbox open by the last frame', shot('orbit').opened > 0.95, shot('orbit').opened.toFixed(3));
   }
+  if (FILM.id === 'corridor') {
+    row('tower, ride, town and road: the towers, the wires and the town, no attacker', ['tower', 'ride', 'town', 'road'].every((id) => Object.values(shot(id).drawn).every((n) => !n)),
+      ['tower', 'ride', 'town', 'road'].map((id) => JSON.stringify(shot(id).drawn)).join(' '));
+    row('wires: one Striker down the corridor', shot('wires').drawn.strike === 1, JSON.stringify(shot('wires').drawn));
+    row('road: the Striker and the interceptor on the crest road, no Bramor or Skyhunter', ['strk', 'int'].every((n) => shot('road').cast.includes(n)), shot('road').cast.join(' '));
+    row('rise: the mission\'s own card, its title over "Mission 6"', shot('rise').titles.includes(EN['war.mission.itaipu_6']), shot('rise').titles.join(' | '));
+    row('the hand-off: the letterbox open by the last frame', shot('rise').opened > 0.95, shot('rise').opened.toFixed(3));
+  }
   if (FILM.id === 'lights-out-outro') {
     row('outro: no attacker in any shot (the fight is over)', SHOTS.every((x) => Object.values(shot(x.id).drawn).every((n) => !n)), SHOTS.map((x) => JSON.stringify(shot(x.id).drawn)).join(' '));
     row('rack: the quad home on its pad', shot('rack').cast.includes('q2s'), shot('rack').cast.join(' '));

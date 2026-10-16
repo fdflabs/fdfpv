@@ -325,6 +325,9 @@ export default withWaves({
   /* Day two, dusk (MISSIONS.md M6 "Time: golden then night lights"). */
   time: 'golden',
   radio: { brief: ['itaipu-6-s0-brief', 'itaipu-6-s0-rules'], win: 'debrief-itaipu-6-win', lose: 'debrief-itaipu-6-lose' },
+  /* Its film (films/corridor.js, INTROS.md 5.6); no outro: INTROS.md
+   * writes none for M6, so a win ends on its debrief. */
+  film: 'corridor',
   /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
   nudge: true,
   /* When the face opens (src/share/war/contain.js, MISSIONS.md 1.9): the

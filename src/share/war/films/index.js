@@ -31,9 +31,10 @@ import lightsOutOutro from './lights-out-outro.js';
 import longNight from './long-night.js';
 import longNightOutro from './long-night-outro.js';
 import riverBelow from './river-below.js';
+import corridor from './corridor.js';
 import { filmMs } from '../film.js';
 
-export const FILMS = Object.freeze(Object.fromEntries([film2030, firstLight, firstLightOutro, spillway, spillwayOutro, lightsOut, lightsOutOutro, longNight, longNightOutro, riverBelow].map((f) => [f.id, f])));
+export const FILMS = Object.freeze(Object.fromEntries([film2030, firstLight, firstLightOutro, spillway, spillwayOutro, lightsOut, lightsOutOutro, longNight, longNightOutro, riverBelow, corridor].map((f) => [f.id, f])));
 export const DEFAULT_FILM = '2030';
 
 /* The film a mission plays: its own, or the default. A mission naming a
