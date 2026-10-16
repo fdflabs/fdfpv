@@ -22,7 +22,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { church, box, SOCLE } from '../../render/library/kit.js';
+import { chalet, church, box, SOCLE } from '../../render/library/kit.js';
+import { celMaterial } from '../../render/celmat.js';
 
 /* kit.js church's tower and nave heights, which it does not return; the
  * tower's top it does return is these plus the spire and its cross, so
@@ -81,7 +82,42 @@ function dressedChurch(f, spec) {
   return k;
 }
 
+/*
+ * Roofs of one age and one colour read, from the air, as a village
+ * built in a week. A shingle roof goes from the warm brown of new larch
+ * to silver grey in a few winters, and slates come from more than one
+ * quarry; each chalet's roof takes one of its kind's tones by where it
+ * stands, a hash of its position, so the village is the same on every
+ * load and the placer's rng is not drawn. The tones' names keep the
+ * kind's prefix, so roofs.js still reads shingle as wood and slate as
+ * rock under a craft (roofMaterial).
+ */
+const ROOF_TONES = {
+  shingle: ['shingle', 'shingleSilver', 'shingleWarm'],
+  slate: ['slate', 'slateBlue'],
+};
+export function roofToneMaterials() {
+  return {
+    shingleSilver: celMaterial({ color: 0x8a857d, rim: 0.12 }),
+    shingleWarm: celMaterial({ color: 0x6e5440, rim: 0.12 }),
+    slateBlue: celMaterial({ color: 0x343f52, rim: 0.14 }),
+  };
+}
+function roofTone(f, key) {
+  const tones = ROOF_TONES[key];
+  if (!tones) {
+    return key;
+  }
+  const e = f.m.elements;
+  const h = (Math.imul(Math.round(e[12] * 10), 73856093) ^ Math.imul(Math.round(e[14] * 10), 19349663)) >>> 0;
+  return tones[(h >>> 7) % tones.length];
+}
+function tonedChalet(f, rng, spec) {
+  return chalet(f, rng, { ...spec, roofKey: roofTone(f, spec.roofKey ?? 'shingle') });
+}
+
 /* The look's buildings, over the kit's. */
 export const CEL_BUILDINGS = {
+  chalet: tonedChalet,
   church: dressedChurch,
 };

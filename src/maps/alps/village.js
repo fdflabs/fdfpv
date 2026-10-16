@@ -29,7 +29,7 @@
 
 import * as THREE from 'three';
 import {
-  villageMaterials, makeBake, bakeAll, frame,
+  villageMaterials as kitMaterials, makeBake, bakeAll, frame,
   chalet, barn, farmhouse, gasthof, shop, church, hangar, bridge, fountain, bench, busShelter,
   roadSign, telegraphPole, cone, fence,
 } from '../../render/library/kit.js';
@@ -37,8 +37,12 @@ import { ribbon, mergeRibbons } from './ribbon.js';
 import { standWalls } from '../../render/library/roofs.js';
 import { setSolidSurface } from '../../game/crashworld.js';
 import { STRIP_L, STRIP_W, STRIP_Y } from './terrain.js';
+import { roofToneMaterials } from './buildings.js';
 
-export { villageMaterials };
+/* The kit's palette and the roofs' weathered tones (buildings.js). */
+export function villageMaterials() {
+  return { ...kitMaterials(), ...roofToneMaterials() };
+}
 
 /* The street's line down the valley floor, and the square it ends in. */
 const STREET_Z = 115;
