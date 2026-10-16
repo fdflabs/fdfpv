@@ -35,6 +35,7 @@ import * as THREE from 'three';
 import { celMaterial } from '../../render/celmat.js';
 import { partsMaterial } from '../../render/library/vehicles/parts.js';
 import { canvasTexture, STRIP_W } from './terrain.js';
+import { CEL_BUILDINGS } from './buildings.js';
 
 /*
  * The strip as a mown grass runway: lanes two metres wide down its length
@@ -163,4 +164,5 @@ export const CEL_LOOK = {
     return celMaterial(BY_NAME[name] ? BY_NAME[name](opts) : opts);
   },
   parts: (name, opts) => partsMaterial(opts),
+  buildings: CEL_BUILDINGS,
 };
