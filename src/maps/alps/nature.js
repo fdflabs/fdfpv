@@ -422,6 +422,103 @@ export function buildLake(ctx, sites) {
 }
 
 /*
+ * THE BEACH. Grass ran into the water on one line, which read as a lake
+ * cut out of a lawn. Round an alpine lake the water's edge is shingle:
+ * a dark band the water keeps wet, a metre and a bit, then dry pale
+ * stones a few metres up the bank, wider and narrower as the bank goes.
+ * Laid along each ray natureSites marched, from a metre under the
+ * waterline (seen through the water, so the edge has no seam) up the
+ * bank, on the ground, one mesh in two palette colours: four metres or
+ * so of it, up to eight where the bank is flat. Not where the jetty's
+ * track and the stream come down to the water, and short of the shore
+ * path (buildShore, two metres wide from seven out on the north shore).
+ * Flat paint on the ground: no collider.
+ */
+const BEACH_LIFT = 0.05;
+export function buildBeach(ctx, sites) {
+  const { scene, heightAt, valleyAxis, look } = ctx;
+  const { lakeCx, lakeCz, shore, RAYS } = sites;
+  const jettyX = valleyAxis(1950) + 55;
+  const keepOff = (x, z) => z < lakeCz && (Math.abs(x - jettyX) < 2.6 || Math.abs(x - streamX(z)) < 5.5);
+  /* The shore between two rays, every four metres or less. */
+  const loop = [];
+  for (let k = 0; k < RAYS; k += 1) {
+    const p = shore[k];
+    const q = shore[(k + 1) % RAYS];
+    const qa = k + 1 === RAYS ? q.a + Math.PI * 2 : q.a;
+    const n = Math.max(1, Math.ceil(Math.hypot(q.x - p.x, q.z - p.z) / 4));
+    for (let i = 0; i < n; i += 1) {
+      const a = p.a + (qa - p.a) * (i / n);
+      const r = p.r + (q.r - p.r) * (i / n);
+      const cx = Math.cos(a);
+      const cz = Math.sin(a);
+      const g = noise2((lakeCx + cx * r) / 45, (lakeCz + cz * r) / 45);
+      /* Where the bank barely rises the stones run further up it. */
+      const rise = heightAt(lakeCx + cx * (r + 8), lakeCz + cz * (r + 8)) - LAKE_Y;
+      const dry = 3.2 + 2.2 * g + 4 * (1 - smoothstep(0.4, 2.4, rise));
+      loop.push({ a, r, wet: 1.6 + 0.8 * g, dry: cz < -0.45 ? Math.min(dry, 5.6) : dry });
+    }
+  }
+  const at = (s, off) => {
+    const x = lakeCx + Math.cos(s.a) * (s.r + off);
+    const z = lakeCz + Math.sin(s.a) * (s.r + off);
+    return [x, heightAt(x, z) + BEACH_LIFT, z];
+  };
+  const pos = [];
+  const nrm = [];
+  const keys = [];
+  /* Wound counter clockwise seen from above, the normal up: a double
+   * sided material lights a face seen from its back with the normal
+   * turned over, which drew the whole beach in shadow. */
+  const tri = (a, b, c, key) => {
+    const ux = b[0] - a[0];
+    const uy = b[1] - a[1];
+    const uz = b[2] - a[2];
+    const vx = c[0] - a[0];
+    const vy = c[1] - a[1];
+    const vz = c[2] - a[2];
+    let nx = uy * vz - uz * vy;
+    let ny = uz * vx - ux * vz;
+    let nz = ux * vy - uy * vx;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    const up = ny >= 0 ? 1 : -1;
+    nx *= up / len;
+    ny *= up / len;
+    nz *= up / len;
+    for (const v of up > 0 ? [a, b, c] : [a, c, b]) {
+      pos.push(...v);
+      nrm.push(nx, ny, nz);
+      keys.push(key);
+    }
+  };
+  for (let k = 0; k < loop.length; k += 1) {
+    const s0 = loop[k];
+    const s1 = loop[(k + 1) % loop.length];
+    const mid = at({ a: (s0.a + s1.a) / 2, r: (s0.r + s1.r) / 2 }, 1);
+    if (keepOff(mid[0], mid[2])) {
+      continue;
+    }
+    for (const [key, in0, in1, out0, out1] of [[0, -1, -1, s0.wet, s1.wet], [1, s0.wet, s1.wet, s0.dry, s1.dry]]) {
+      const a = at(s0, in0);
+      const b = at(s0, out0);
+      const c = at(s1, in1);
+      const d = at(s1, out1);
+      tri(a, b, c, key);
+      tri(b, d, c, key);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  geo.setAttribute('aCelKey', new THREE.BufferAttribute(new Uint8Array(keys), 1));
+  const mat = look.material('lake-beach', { palette: [{ color: 0x6f6a5d, rim: 0 }, { color: 0xa9a69c, rim: 0 }], side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.name = 'lake-beach';
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+}
+
+/*
  * THE LAKE'S WAVES, the plant's (src/render/lakewaves.js), when the shell
  * declares them: nothing is built or changed until it does, so the valley
  * with still water is the valley as it was, to the scene's fingerprint.
@@ -1122,6 +1219,7 @@ export function buildDrifts(ctx, sites) {
 export async function buildNature(ctx) {
   const sites = natureSites(ctx);
   const { waterMat, waves } = buildLake(ctx, sites);
+  buildBeach(ctx, sites);
   const reedClumps = buildReeds(ctx, sites);
   const shore = buildShore(ctx, sites);
   await ctx.paint(0.5);
