@@ -4066,7 +4066,7 @@ export default {
   "campaign.story.switchyard_when": "Día uno, atardecer",
   "campaign.story.night": "Los pueblos tienen luz y la central sigue funcionando. Bajo la represa, la escuadrilla Carancho sostiene el río en la oscuridad, con menos aparatos cada hora. Acá arriba la pantalla quedó en silencio, y nadie en la cresta confía en ella.",
   "campaign.story.night_place": "Itaipú, el embalse",
-  "campaign.story.night_when": "Noche uno",
+  "campaign.story.night_when": "Primera noche",
   "campaign.story.river": "La escuadrilla Carancho sostuvo el río toda la noche y ya no le queda nada para volar. Lo que suba por el cañón ahora es solo del grupo. Toda la mañana, Mirador los vio salir del mismo tramo del río.",
   "campaign.story.river_place": "El cañón aguas abajo de la represa",
   "campaign.story.river_when": "Día dos, mañana",
