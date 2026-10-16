@@ -93,6 +93,9 @@ export default {
   campaign: 'interior',
   title: 'ops.interior.m3.title',
   map: 'interior',
+  /* Minutes, low and high, a squad takes (docs/campaign/interior/
+   * MISSIONS.md M3 Length); the brief card shows it (src/ui/briefcard.js). */
+  estimatedMinutes: [30, 40],
   ground: true,
   z0: 0,
   /* The briefing: Mission 3's intro film, held for its length, and which

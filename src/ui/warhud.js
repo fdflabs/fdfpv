@@ -126,8 +126,9 @@ const PIPS_MAX = 24;
 /* A round's own airframes drawn as pips up to this many. */
 const PIPS_ROUND = 6;
 
-/* A number of megawatts with a thin space every three digits. */
-function mw(n) {
+/* A number of megawatts with a thin space every three digits (the brief
+ * card's too, briefcard.js). */
+export function mw(n) {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
