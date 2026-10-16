@@ -687,7 +687,46 @@ const AGE_PARS = /* glsl */ `
  * and the face is damp and dark for metres over the tailwater, its top
  * edge ragged where the spray and the waves reach.
  */
-const AGE_BODY = /* glsl */ `
+/*
+ * The chute's floor (chute-dry photograph): where the spillway has run,
+ * the slabs are not the walls' pale concrete but a dark grey brown,
+ * streaked down the flow in long bands a few metres across, rust orange
+ * and wet dark among them, with the slabs' joints across it and along
+ * it. ageBody's streaks run down steep faces and leave a floor clean,
+ * so the floor is this, in the chute's frame (spillLayout's C: u across,
+ * d down from the middle of the gates), from the ogee to the bays' lips.
+ * The joints' spacing is read by eye off chute-dry, not published.
+ */
+const CHUTE_JOINT = { d: 15, u: 10 };
+function chuteBody({ C, W }) {
+  const f = (v) => v.toFixed(4);
+  const o = C.at(0, 0);
+  return /* glsl */ `
+    {
+      vec2 cq = vS2World.xz - vec2(${f(o[0])}, ${f(o[1])});
+      float cu = dot(cq, vec2(${f(C.a[0])}, ${f(C.a[1])}));
+      float cd = dot(cq, vec2(${f(C.n[0])}, ${f(C.n[1])}));
+      float inChute = (1.0 - smoothstep(${f(W - 1)}, ${f(W)}, abs(cu))) * smoothstep(${f(SPILL.ogee)}, ${f(SPILL.ogee + 10)}, cd)
+        * (1.0 - smoothstep(${f(Math.max(...SPILL.bayEnds))}, ${f(Math.max(...SPILL.bayEnds) + 2)}, cd));
+      float k = inChute * smoothstep(0.55, 0.8, wn.y);
+      if (k > 0.0) {
+        float band = itdNoise(vec2(cu / 3.1, cd / 140.0)) * 0.6 + itdNoise(vec2(cu / 0.9 + 7.0, cd / 60.0)) * 0.4;
+        float rust = smoothstep(0.52, 0.8, itdNoise(vec2(cu / 2.2 + 31.0, cd / 110.0)));
+        float wet = smoothstep(0.58, 0.85, itdNoise(vec2(cu / 4.0 + 3.0, cd / 120.0)) * 0.7 + itdNoise(vec2(cu / 1.3, cd / 45.0)) * 0.3);
+        vec3 c = diffuseColor.rgb * mix(0.42, 0.72, band);
+        c *= mix(vec3(1.0), vec3(1.3, 0.82, 0.5), 0.75 * rust);
+        c *= mix(1.0, 0.55, wet);
+        float jd = abs(fract(cd / ${f(CHUTE_JOINT.d)}) - 0.5) * ${f(CHUTE_JOINT.d)};
+        float ju = abs(fract(cu / ${f(CHUTE_JOINT.u)}) - 0.5) * ${f(CHUTE_JOINT.u)};
+        float joint = max(1.0 - smoothstep(0.04, 0.12, ${f(CHUTE_JOINT.d / 2)} - jd), 1.0 - smoothstep(0.04, 0.12, ${f(CHUTE_JOINT.u / 2)} - ju));
+        c *= 1.0 - 0.3 * joint * (1.0 - far);
+        diffuseColor.rgb = mix(diffuseColor.rgb, c, k);
+      }
+    }
+  `;
+}
+
+const ageBody = (chute) => /* glsl */ `
   {
     vec3 wn = inverseTransformDirection(normal, viewMatrix);
     itdN = wn;
@@ -720,6 +759,7 @@ const AGE_BODY = /* glsl */ `
     diffuseColor.rgb *= mix(vec3(0.42, 0.46, 0.38), vec3(1.0), smoothstep(103.5, 109.0, y));
     diffuseColor.rgb *= mix(0.68, 1.0, smoothstep(104.0, 112.0 + 9.0 * run, y) + (1.0 - steep));
     diffuseColor.rgb *= 1.0 - 0.3 * steep * (1.0 - smoothstep(0.0, 2.2, abs(y - 220.0)));
+    ${chuteBody(chute)}
   }
 `;
 
@@ -771,7 +811,7 @@ function bounced(mat, key, body = '') {
   return mat;
 }
 
-function concreteMaterial(THREE, set, key) {
+function concreteMaterial(THREE, set, key, chute) {
   const m = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     vertexColors: true,
@@ -790,7 +830,7 @@ function concreteMaterial(THREE, set, key) {
   m.onBeforeCompile = (shader) => {
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${AGE_PARS}`)
-      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${AGE_BODY}`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${ageBody(chute)}`)
       .replace('#include <aomap_fragment>', `${BOUNCE}\n#include <aomap_fragment>`);
   };
   m.customProgramCacheKey = () => `itaipu-dam-${key}`;
@@ -3683,7 +3723,7 @@ export async function buildPart(ctx) {
   const kit = ctx.mats.surfaces;
   const group = new THREE.Group();
   group.name = 'itaipu-dam';
-  const concreteMat = concreteMaterial(THREE, kit.concrete, 'concrete');
+  const concreteMat = concreteMaterial(THREE, kit.concrete, 'concrete', spillLayout(sp));
   /* The crest roads are concrete (crest-road photo), the embankments'
    * asphalt: one photograph, the asphalt a darker tone of it. */
   const roadMat = bounced(new THREE.MeshStandardMaterial({
