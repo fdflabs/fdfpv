@@ -287,7 +287,7 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 
 | # | id | Title | When | New for the player | Length |
 | --- | --- | --- | --- | --- | --- |
-| 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 9 to 13 min |
+| 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 11 to 14 min (12.5 to 13.8 measured alone and 10.9 to 12.6 as four with good bots, the face never opened; was 9 to 13) |
 | 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min (13.1 to 17.4 measured with bot squads when the face opens: 1.9's closures hold a stage up to 2.5 min each) |
 | 3 | itaipu-3 | Lights Out | Day 1, dusk into dark | decoys; Despacho; lights going out and coming back | 10 to 14 min |
 | 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 11 to 16 min |

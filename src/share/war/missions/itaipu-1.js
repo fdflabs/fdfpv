@@ -161,8 +161,11 @@ export default withWaves({
   title: 'war.mission.itaipu_1',
   map: 'itaipu',
   /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);
-   * Operations' briefing shows it (src/ui/briefing.js). */
-  estimatedMinutes: [9, 13],
+   * Operations' briefing shows it (src/ui/briefing.js). From the room:
+   * war-balance's good bots, seeds 1 to 6 with the face never opened,
+   * end 12.5 to 13.8 minutes after the go alone and 10.9 to 12.6 as four
+   * (2026-10-16, w50-adv-a), past the first guess of 9 to 13. */
+  estimatedMinutes: [11, 14],
   targets,
   output: 14000,
   floorMw: 7700,
