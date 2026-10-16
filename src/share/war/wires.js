@@ -172,17 +172,18 @@ export function wireCrossings(map, plan) {
  * Whether a newly born attacker strikes a line, and when: the room ms of
  * the first crossing whose draw u(j) (j its index among the crossings,
  * from 0; a number in [0, 1) the room makes from its seed) is under
- * STRIKE_P, or null. `agent` is the birth record without `wire`;
- * `down`, a Set of span ids whose wires are down (their gantry broke,
+ * `p` (STRIKE_P, or its spawn's strikeP: src/share/war/stages.js), or
+ * null. `agent` is the birth record without `wire`; `down`, a Set of
+ * span ids whose wires are down (their gantry broke,
  * src/share/war/damage.js), are not there to strike.
  */
-export function wireStrike(mission, agent, u, down = null) {
+export function wireStrike(mission, agent, u, down = null, p = STRIKE_P) {
   if (!SCRIPTED.has(agent.kind) || !MAPS[mission.map]) {
     return null;
   }
   const crossings = wireCrossings(mission.map, planAgent(mission, agent)).filter((c) => !down || !down.has(c.span));
   for (let j = 0; j < crossings.length; j += 1) {
-    if (u(j) < STRIKE_P) {
+    if (u(j) < p) {
       return crossings[j].t;
     }
   }

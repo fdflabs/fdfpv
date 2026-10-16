@@ -280,7 +280,7 @@ import {
   LATE_MS, Track, hullDistance, hullFor, poseAt as trackPose, within,
 } from '../../src/game/midair.js';
 import {
-  BLAST_M, KIND, KINDS, hpOf, planAgent, poseAt,
+  BLAST_M, KIND, KINDS, hpOf, planAgent, poseAt, spottedAs,
 } from '../../src/share/war/routes.js';
 import {
   MISSIONS, missionTime, waveSize, waveTarget,
@@ -291,7 +291,7 @@ import {
 } from '../../src/share/war/stages.js';
 import { madeFor, modeById, sessionOf } from '../../src/share/modes.js';
 import { released } from '../../src/game/campaign.js';
-import { wireStrike } from '../../src/share/war/wires.js';
+import { STRIKE_P, wireStrike } from '../../src/share/war/wires.js';
 import { contactAt } from '../../src/share/war/contact.js';
 import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
@@ -882,9 +882,10 @@ export class RoomWar {
        * match's end for every screen (src/main.js), or null. */
       stationDark: m.path?.find((x) => this.stages().find((y) => y.id === x.id)?.stationDark === true)?.at ?? null,
       /* The grid rerouted round the yard (src/share/war/grid.js WHAT
-       * COMES BACK): [{ at, districts }], a restoring hold's, from the
-       * stages' path entries, so a checkpoint and a store keep them. */
-      restores: (m.path ?? []).flatMap((x) => x.restores ?? []).map(({ at, districts }) => ({ at, districts: districts.slice() })),
+       * COMES BACK): [{ at, districts, island? }], a restoring or an
+       * islanding hold's, from the stages' path entries, so a checkpoint
+       * and a store keep them. */
+      restores: (m.path ?? []).flatMap((x) => x.restores ?? []).map(({ at, districts, island }) => ({ at, districts: districts.slice(), ...(island ? { island } : {}) })),
       /* The gantries closing an opening, or waiting to (contain.js). */
       contain: gantriesAt(m.contain, m.f),
       airframes: this.airframes(),
@@ -915,10 +916,11 @@ export class RoomWar {
        * lived (a carrier, TECH-NEEDS T1.7), by id, so a screen that joins
        * draws it hurt as the others do; the `hurt` op tells the change. */
       hurt: Object.fromEntries(m.agents.filter((a) => m.hurt?.[a.id]).map((a) => [a.id, hpOf(a.kind) - m.hurt[a.id]])),
-      /* Each attacker alive that was spotted, by id: 'silent' for a hull
-       * that launches nothing, else 'launching', so a screen that joins
-       * marks it as the others do; the `spot` op tells it. */
-      spotted: Object.fromEntries(m.agents.filter((a) => m.spot?.[a.id]?.at != null).map((a) => [a.id, m.spot[a.id].silent ? 'silent' : 'launching'])),
+      /* Each attacker alive that was spotted, by id, what it was seen to
+       * be (routes.js spottedAs: a carrier 'launching' or 'silent', any
+       * other its kind), so a screen that joins marks it as the others
+       * do; the `spot` op tells it. */
+      spotted: Object.fromEntries(m.agents.filter((a) => m.spot?.[a.id]?.at != null).map((a) => [a.id, spottedAs(a.kind, m.spot[a.id].silent)])),
     };
   }
 
@@ -1557,7 +1559,7 @@ export class RoomWar {
         if (d.sector != null) {
           a.sector = d.sector;
         }
-        this.place(a, w.group ?? null);
+        this.place(a, w.group ?? null, w.strikeP);
         /* A carrier that launches (its spawn's `launch`, not its stage's
          * drawn silent group): its first launch one interval after its
          * birth (launch below). */
@@ -1658,14 +1660,15 @@ export class RoomWar {
   }
 
   /* A birth record made an attacker of the match: whether it flies into
-   * a power line on its way, and when; whether it meets a structure short
-   * of its aim point, and when (its warhead goes off there, a gate's leaf
-   * met where the match's gate state has it then); then live, and noted
-   * for the stage's triggers under `group`. */
-  place(a, group) {
+   * a power line on its way, and when (each crossing taking it with its
+   * spawn's strikeP, else wires.js STRIKE_P); whether it meets a
+   * structure short of its aim point, and when (its warhead goes off
+   * there, a gate's leaf met where the match's gate state has it then);
+   * then live, and noted for the stage's triggers under `group`. */
+  place(a, group, strikeP = STRIKE_P) {
     const m = this.match;
     const mission = this.mission();
-    const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, a.id, j), m.cut && m.cut.length ? new Set(m.cut) : null);
+    const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, a.id, j), m.cut && m.cut.length ? new Set(m.cut) : null, strikeP);
     if (wire != null) {
       a.wire = wire;
     }
@@ -2545,12 +2548,17 @@ export class RoomWar {
     /* A hold that reroutes (an objective's `restore`, TECH-NEEDS T1.10)
      * feeds its districts round the yard from the room ms it held, the
      * moment its line is cued, not the stage's exit, which waits on the
-     * sky being clear too. Kept on the stage's own path entry, the last
+     * sky being clear too; one that islands (`island`, MISSIONS.md M6)
+     * keeps its districts lit whatever the rest of the grid loses
+     * (grid.js). Kept on the stage's own path entry, the last
      * (enterStage pushes it). */
     const entry = m.path?.at(-1);
     for (const o of this.stages()[st.idx].objectives ?? []) {
-      if (entry && o.restore && st.obj[o.id]?.state === 'done' && !(entry.restores ?? []).some((r) => r.id === o.id)) {
-        (entry.restores ??= []).push({ id: o.id, at: st.obj[o.id].t, districts: o.restore.slice() });
+      const districts = o.restore ?? o.island;
+      if (entry && districts && st.obj[o.id]?.state === 'done' && !(entry.restores ?? []).some((r) => r.id === o.id)) {
+        (entry.restores ??= []).push({
+          id: o.id, at: st.obj[o.id].t, districts: districts.slice(), ...(o.island ? { island: true } : {}),
+        });
         dirty = true;
       }
     }
