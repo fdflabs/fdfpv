@@ -374,7 +374,10 @@ export default {
           card: 'card.classification_updated',
           choose: { name: 'cleared', value: 'yes' },
         },
-        { when: CLEARED, radio: 'int3-st-ready', heard: STRIKE },
+        /* The strike role's job opens with the stage (MISSIONS.md M3: "the
+         * strike role unlocked"): told after Vega's "Cleared.", its "Not
+         * before." read as a no at the moment it was a go. */
+        { at: 1, radio: 'int3-st-ready', heard: STRIKE },
         {
           when: { all: [CLEARED, RUN('strike-gate')] },
           text: 'ops.interior.m3.stopped',
