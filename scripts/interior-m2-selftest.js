@@ -387,4 +387,33 @@ console.log('spotted: low over the watcher (CONTRACT-SPOTTED.md)');
   check('lost as spotted after its scene, with advice', v.why === 'spotted' && v.endAt === t + 6000 && v.spotAdvice?.id === 'watchers', JSON.stringify({ why: v.why, advice: v.spotAdvice }));
 }
 
+/* An ISR that scouts the zones while the quad is still on its way (a
+ * squad's natural split, w50 adversarial pass) must not end the camp's
+ * stage before the camp is seen. */
+console.log('the watcher found before the camp is inspected');
+{
+  const e = opsRoom(RAW, { ...ROOM, n: 1, seed: 0.6 });
+  const c = pilot(e, 0);
+  e.fly(e.clock + 7000);
+  c.air = true;
+  const zone = view(e).dials.watch.split('-')[0];
+  const at = M.points[`zone-${zone}`].at;
+  goto(e, c, [at[0], at[1] - 350], 250, 'isr');
+  c.aim = () => posOf(e, 'watcher');
+  c.th = 0.01;
+  until(e, () => contact(e, 'watcher')?.state !== 'undiscovered' && contact(e, 'watcher')?.cls, 60000, 'the watcher seen first');
+  /* Past the convoy's whole window (20 to 50 s) and its 4 s exit. */
+  e.fly(e.clock + 60000);
+  check('no convoy and no stage 2 before the camp: still the camp\'s stage', view(e).stage?.id === 'M2_CP_START' && !view(e).choices?.convoy, `${view(e).stage?.id} ${JSON.stringify(view(e).choices)}`);
+  const cv = M.points['claro-viejo'].at;
+  goto(e, c, [cv[0] - 30, cv[1] - 30], 120, 'isr');
+  for (const id of ['fire', 'cable', 'impressions', 'tracks', 'diagram']) {
+    const a = resolve(M.items.find((x) => x.id === id).at, view(e).dials);
+    goto(e, c, [a[0] - 3, a[1] - 3], 4, 'recon');
+    snap(e, c, id);
+  }
+  until(e, () => view(e).stage?.id === 'M2_CP_WATCHER', 120000, 'stage 2 after the camp');
+  check('the camp inspected: the diagram\'s beat, then the convoy and stage 2', heard(e, 'int2-s1-points') && view(e).stage?.id === 'M2_CP_WATCHER');
+}
+
 finish();

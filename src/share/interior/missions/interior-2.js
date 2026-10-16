@@ -298,9 +298,12 @@ export default {
           when: { all: [{ discovered: 'watcher' }, { discovered: 'watch-opt-1' }, { discovered: 'watch-opt-2' }] }, flag: 'M2_ALL_WATCHERS_FOUND',
         },
         /* The convoy crosses the distant road 20 s after he is seen, in a
-         * seeded window of 30 s, and he leaves at once. */
+         * seeded window of 30 s, and he leaves at once. Never before the
+         * camp is inspected: an ISR scouting the zones while the quad is
+         * still on its way would otherwise end the stage with the camp
+         * and its diagram unseen. */
         {
-          when: { discovered: 'watcher' },
+          when: { all: [{ discovered: 'watcher' }, { captured: { set: 'camp-close' }, n: 5 }] },
           at: [20, 50],
           spawn: [1, 2, 3].map((k) => ({ id: `convoy-${k}`, route: `m2-convoy-${k}` })),
           choose: { name: 'convoy', value: 'passed' },
