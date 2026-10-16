@@ -102,6 +102,18 @@ export function hpOf(kind) {
   return KIND[kind]?.hp ?? 1;
 }
 
+/* What a pilot who spots an attacker of `kind` sees it is (edge/rooms/
+ * war.js spot), the mark every screen gives it from then
+ * (src/ui/warmarkers.js): a carrier 'launching', or 'silent' for one that
+ * launches nothing (MISSIONS.md M5 twist A); any other its own kind, so a
+ * spotted decoy reads as one at any range (TECH-NEEDS T1.8). */
+export function spottedAs(kind, silent) {
+  if (kind === 'carrier') {
+    return silent ? 'silent' : 'launching';
+  }
+  return kind;
+}
+
 /* How far a scout flies on after its circle before it is gone: 200 s at
  * its speed, as before it was slowed. */
 export const LEAVE_M = 2100;

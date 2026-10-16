@@ -77,7 +77,12 @@
        "uAaAmount": 1,
        "uAaBias": 0.00008,
        "uDepthBias": 0.0016,
+       "uFar": 200,
+       "uHaze": "#ffffff",
+       "uHazeAmount": 0,
+       "uHazeDistance": 1000,
        "uLineColor": "#1a2230",
+       "uNear": 0.2,
        "uNormalBias": 1.05,
        "uResolution": [
         320,
@@ -111,9 +116,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },
@@ -428,7 +440,12 @@
        "uAaAmount": 1,
        "uAaBias": 0.00008,
        "uDepthBias": 0.0016,
+       "uFar": 200,
+       "uHaze": "#ffffff",
+       "uHazeAmount": 0,
+       "uHazeDistance": 1000,
        "uLineColor": "#1a2230",
+       "uNear": 0.2,
        "uNormalBias": 1.05,
        "uResolution": [
         320,
@@ -462,9 +479,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },
@@ -779,7 +803,12 @@
        "uAaAmount": 1,
        "uAaBias": 0.00008,
        "uDepthBias": 0.0016,
+       "uFar": 200,
+       "uHaze": "#ffffff",
+       "uHazeAmount": 0,
+       "uHazeDistance": 1000,
        "uLineColor": "#1a2230",
+       "uNear": 0.2,
        "uNormalBias": 1.05,
        "uResolution": [
         320,
@@ -797,9 +826,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },
@@ -935,9 +971,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },
@@ -1096,7 +1139,12 @@
        "uAaAmount": 1,
        "uAaBias": 0.00008,
        "uDepthBias": 0.0016,
+       "uFar": 200,
+       "uHaze": "#ffffff",
+       "uHazeAmount": 0,
+       "uHazeDistance": 1000,
        "uLineColor": "#1a2230",
+       "uNear": 0.2,
        "uNormalBias": 1.05,
        "uResolution": [
         320,
@@ -1130,9 +1178,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },
@@ -1416,6 +1471,7 @@
   "sharpen"
  ],
  "exports": [
+  "CEL_AIR",
   "attachComposer",
   "buildComposer",
   "makeSharpenPass",
@@ -1556,7 +1612,12 @@
        "uAaAmount": 1,
        "uAaBias": 0.00008,
        "uDepthBias": 0.0016,
+       "uFar": 200,
+       "uHaze": "#ffffff",
+       "uHazeAmount": 0,
+       "uHazeDistance": 1000,
        "uLineColor": "#1a2230",
+       "uNear": 0.2,
        "uNormalBias": 1.05,
        "uResolution": [
         320,
@@ -1590,9 +1651,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },
@@ -1888,7 +1956,12 @@
        "uAaAmount": 1,
        "uAaBias": 0.00008,
        "uDepthBias": 0.0016,
+       "uFar": 200,
+       "uHaze": "#ffffff",
+       "uHazeAmount": 0,
+       "uHazeDistance": 1000,
        "uLineColor": "#1a2230",
+       "uNear": 0.2,
        "uNormalBias": 1.05,
        "uResolution": [
         176,
@@ -1922,9 +1995,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },
@@ -2220,7 +2300,12 @@
        "uAaAmount": 1,
        "uAaBias": 0.00008,
        "uDepthBias": 0.0016,
+       "uFar": 200,
+       "uHaze": "#ffffff",
+       "uHazeAmount": 0,
+       "uHazeDistance": 1000,
        "uLineColor": "#1a2230",
+       "uNear": 0.2,
        "uNormalBias": 1.05,
        "uResolution": [
         200,
@@ -2254,9 +2339,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },
@@ -2552,7 +2644,12 @@
        "uAaAmount": 1,
        "uAaBias": 0.00008,
        "uDepthBias": 0.0016,
+       "uFar": 200,
+       "uHaze": "#ffffff",
+       "uHazeAmount": 0,
+       "uHazeDistance": 1000,
        "uLineColor": "#1a2230",
+       "uNear": 0.2,
        "uNormalBias": 1.05,
        "uResolution": [
         1,
@@ -2586,9 +2683,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },
@@ -2884,7 +2988,12 @@
        "uAaAmount": 1,
        "uAaBias": 0.00008,
        "uDepthBias": 0.0016,
+       "uFar": 200,
+       "uHaze": "#ffffff",
+       "uHazeAmount": 0,
+       "uHazeDistance": 1000,
        "uLineColor": "#1a2230",
+       "uNear": 0.2,
        "uNormalBias": 1.05,
        "uResolution": [
         2,
@@ -2918,9 +3027,16 @@
       "renderToScreen": false,
       "uniforms": {
        "tDiffuse": null,
+       "uContrast": 0,
        "uDistort": 0.055,
+       "uExposure": 1,
        "uVibrance": 0.22,
-       "uVignette": 0.16
+       "uVignette": 0.16,
+       "uWarm": [
+        1.045,
+        1.01,
+        0.965
+       ]
       },
       "fragmentTaps": 1
      },

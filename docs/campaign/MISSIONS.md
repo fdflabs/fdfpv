@@ -93,7 +93,7 @@ Each stage table below says which dials it turns.
    | WATER | on the reservoir's surface | `surface-east`, `surface-gates` (built), `surface-mid`, `surface-west-arm` (new) |
    | GORGE | up the gorge from the south, under the rims | `gorge`, `gorge-yard`, `gorge-left-rim` (built; the last in mission 5) |
    | RIVER | on the river below the dam | `river-surface`, `river-west-bank` (built, mission 5: the carrier's, on the water at 103.5 m) |
-   | LINES | along the 500 kV corridors | `corridor-west`, `corridor-east` (new; missions 3 and 6) |
+   | LINES | along the 500 kV corridors | `corridor-west`, `corridor-south` (built, mission 3); mission 6's own along the two corridors it defends, `corridor-west-near`, `corridor-west-far`, `corridor-east-near`, `corridor-east-far`, `corridor-east-wires` (built) |
 
 2. **Composition.** A group may list alternatives (`fpv` or `loiter`,
    `strike` or a `strike` and `decoy` mix); the seed picks one. The radio
@@ -134,6 +134,12 @@ The rules every mission shares; each mission adds its own line.
   is multiplied by 1.6 at 1 pilot, 1.3 at 2 or 3, 1.0 at 4 or more.
 - **Hold timers** never change with pilots: they are story time.
 - **Twist size** scales like a group; the twist itself is the same.
+
+Sectors at once is built as a spawn's `lane` (branch w47-m6,
+`stages.js` sectorsAt): the k-th of a stage's groups on a sector of its
+own comes at its time when the pilots have k + 1 sectors at once, and
+otherwise 30 s after the lane that many before it is gone, so a solo
+pilot meets them one at a time. Mission 6 is the first to use it.
 
 ### 1.7 The radio, per stage
 
@@ -309,8 +315,9 @@ campaign plays in order. First Light had gone back to `development` on
 2026-10-07 (PR #666, the owner: no narration, under construction until
 it was as finished as The Interior's Mission 1). Mission 5, The River
 Below, is `development` since branch w46-m5 (2026-10-15): built, shown
-Under development, held until the owner has flown it. 6 and 7 are
-`soon`.
+Under development, held until the owner has flown it. Mission 6, The
+Corridor, is `development` since branch w47-m6 (2026-10-15), held the
+same way. 7 is `soon`.
 
 ### 2.1 Release status (checked against the tree 2026-10-13, batch/2026-10-14 f0c06cbb6)
 
@@ -351,6 +358,18 @@ w46-m5b); the nudge and the objective cards; every briefing fact, its length 7 t
 RIVER and HIGH sectors, war:routes PASS; the consent; Contain with
 `itaipu-5-op`. What it adds to the engine and what it does not build is
 M5's as built below.
+
+Mission 6, The Corridor, built on branch w47-m6 (2026-10-15) and held in
+development until the owner has flown it: 4 stages, 3 twists and 2
+islandings, 4 title keys; its objectives (the towers, a spot objective
+for each of Spread Thin's four groups, the yard, each twist's, each
+corridor's islanding hold); the nudge and the objective cards; its
+length 11 to 19 min measured; seeded NW and WATER sectors and its own
+LINES routes, war:routes PASS; the table's 13 radio ids, `itaipu-6-op`
+and the film's 4, voiced en and es on the Orin; 8 guide lines
+`itaipu-6-g-*`; voiced debriefs; Contain with `itaipu-6-op`. No intro
+film: INTROS.md 5.6's shot 3 is DESPACHO's GRID insert, which no film can
+draw yet (Lights Out's film went round it); M6's as built below.
 
 Mission 4's column is checked against branch w39-mission-4 (2026-10-14):
 war:stages, war:routes, war:harness, war:legacy, war:radio, war:nudge,
@@ -1292,6 +1311,69 @@ spotter mechanic (T1.8) are the mission's core.
 | 3 | The Yard Again | beat 15 s | protect(yard, towers) | the twist; decoys on the yard from NW | `cleared` |
 | 4 | Islanding | beat 15 s; DESPACHO asks to island the grid | hold(the last intact corridor, 120 s) | convergence on the intact corridor from both ends | `held` and `cleared` |
 
+Built 15 October, against the code (branch w47-m6; `itaipu-6.js`,
+war:stages flies it on the room), held at `release: 'development'`:
+
+- **The towers** (TECH-NEEDS T1.6) are OpenStreetMap's, where the map
+  stands them (`src/share/war/itaipu-towers.js`, written by
+  `scripts/war-targets.js`): the west corridor is the double circuit
+  line west from the right bank yard (ten towers, `tower-w-0` at the
+  yard to `tower-w-9` at the hero square's edge), the east corridor IPU
+  60Hz FI1 from the powerhouse (nineteen, `tower-e-0` by the powerhouse
+  to `tower-e-18` by the Foz do Iguacu substation; FI2 to FI4 run beside
+  it and are not targets). Each is aimed at 8 m over its ground and hit
+  within its base's 10 m. Each is worth what its line carries, once a
+  line: the west 933 MW (two of the six circuits OSM runs out of the
+  yard, of its 2 800), FI1 1 750 (one of the four lines that carry the
+  ten 60 Hz units' 7 000). A tower hit puts out the town nearest it as a
+  struck line does (grid.js): the west's Hernandarias south or west, the
+  east's Vila C or Foz's north east. No fire or smoke is drawn on a
+  tower: the towers are the mission's targets, not the map's.
+- **Golden Hour**: Strikers along the west corridor onto its near towers,
+  then 10 to 20 s after they are gone along the east one.
+- **Spread Thin** (1.6, sectors at once): four corridor groups, the west
+  and east corridors' near and far towers (`lane` 0 to 3), as many at
+  once as the pilots have sectors, the rest each 30 s after the lane it
+  waits for is gone; a Loiterer high over each corridor. Each group has
+  its spot objective (TECH-NEEDS T1.8 as extended here: any of the
+  mission's attackers is spottable, 450 m for 1.5 s, and a spotted decoy
+  reads DECOY for everybody). The light runs from the golden hour to
+  night across its first four minutes, so the rest is flown at night
+  with the towns lit.
+- **The Yard Again**: decoys and a Striker onto the yard from the west
+  arm, a route each drawn from the family (a mix drew no Striker for a
+  solo pilot, and with nobody shooting the mission was won), and the
+  twist.
+- **The twists.** A: boats on the east intakes (First Light's WATER
+  routes). B: Strikers inside the east corridor at its conductors'
+  height, crossing FI1 at two mid spans where the phases hang (204.3 and
+  209.4 m), each crossing taking one at 0.3 (a spawn's `strikeP`, three
+  times the hazard's 0.1), so about half are lost to the lines; they go
+  for `tower-e-1` and `tower-e-0`. C: a Scout circling high over the east
+  corridor; the stage waits for it down, gone home or 80 s, as First
+  Light's Eyes.
+- **Islanding** goes to the corridor with no tower down when stage 3
+  ends; when both or neither are, the seed draws one (in the bot games
+  both corridors always had a tower down by then). **The hold is four
+  minutes, not 120 s**, for Lights Out's reason: nothing of the stage
+  reaches a tower sooner than 64 s after its birth, and at a solo
+  pilot's pace the last arrivals come 178 s (east) and 210 s (west) in.
+  Its Strikers converge from both ends of the corridor (the west's from
+  its outer end and over the reservoir's west arm onto the yard end; the
+  east's from the Foz substation and over the east arm onto the
+  powerhouse end) and a Loiterer comes high. Held, the hold's `island`
+  keeps the towns its towers feed lit whatever the rest of the grid
+  loses (grid.js ISLANDED); a tower of that corridor hit later still
+  puts its own town out. The crash cam's replay shows an islanding as
+  Lights Out's restore (its file keeps no `island`).
+- **Bots** (scripts/war-balance.js) as ever: ten good games, all won,
+  each with both corridors' lines down and the output 11 317 MW; they do
+  not fly kilometres down a corridor to a tower they cannot reach in
+  time.
+- **Length** 11 to 19 minutes: ten good bot games end 11.9 to 18.8
+  minutes after the go, a solo pilot's 16.8 to 18.8 (Spread Thin's four
+  lanes one at a time), against section 2's guess of 12 to 16.
+
 ### The twist (stage 3)
 
 - **A. The corridor is cover.** Boats on the east intakes while the squad
@@ -1364,6 +1446,34 @@ choice of the act before Breach.
 | itaipu-6-s4-done | `held` | DESPACHO | calm | Islanded. The towns on that line stay lit, whatever happens to the rest. | Aislado. Los pueblos de esa línea siguen con luz, pase lo que pase con el resto. |
 | debrief-itaipu-6-win | won | CREST | calm | The lines held. Somebody tell the towns they owe the spotters. | Las líneas aguantaron. Que alguien les diga a los pueblos que se lo deben a los observadores. |
 | debrief-itaipu-6-lose | lost | DESPACHO | calm | Too many spans down. The grid can't carry it. Crest, pull them back. | Cayeron demasiados tramos. La red no lo soporta. Cresta, repliéguelos. |
+
+As built (branch w47-m6): the table's thirteen lines and `itaipu-6-op`
+are cued as written, `itaipu-6-s2-tower` on the first tower down in
+each of the stages before the islanding (the table's "a tower hit"),
+`itaipu-6-s2-spotted` on the first spot in Spread Thin. Every line of
+DESPACHO, CREST and MIRADOR in this mission (story, guide, debriefs,
+Contain line and the film's four, INTROS.md 5.6) is built on the Orin,
+so each speaker is one voice here. DESPACHO's "Rerouting what I can"
+has no reroute behind it: what a tower puts out stays out until the
+islanding.
+
+### Guide
+
+CREST's guide (`itaipu-guide`, written on branch w47-m6 in the voice of
+missions 1 to 5's): what to do now, after each stage's story, each one
+dropped once what it is about is gone. Wired in `itaipu-6.js`, built on
+the Orin with Whisper's check.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-6-g-west | stage 1, the west group born `+7` | CREST | calm | Protect the towers on the west corridor. The Strikers follow the wires in from the far end. Fly out along the lines and meet them. | Protejan las torres del corredor oeste. Los drones de ataque siguen los cables desde el extremo. Salgan por las líneas a su encuentro. |
+| itaipu-6-g-east | stage 1, the east group born `+3` | CREST | firm | Now the east corridor. Strikers along the wires from the south. Get to the towers before they do. | Ahora el corredor este. Drones de ataque por los cables desde el sur. Lleguen a las torres antes que ellos. |
+| itaipu-6-g-spread | stage 2 `enter+5` | CREST | firm | Split up, one pilot a corridor. Fly close to each group to spot it, then take it down. | Sepárense, un piloto por corredor. Acérquense a cada grupo para marcarlo, y después derríbenlo. |
+| itaipu-6-g-yard | stage 3, the yard's group born `+6` | CREST | firm | Decoys on the yard from the west arm, and one real Striker among them. Fly close and spot them before you spend a bird. | Señuelos sobre la subestación desde el brazo oeste, y un dron de ataque real entre ellos. Acérquense y márquenlos antes de gastar un aparato. |
+| itaipu-6-g-boats | twist A, its boats born `+6` | CREST | firm | Boats on the east intakes. Somebody leave the lines and get down to the water. | Lanchas sobre las tomas del este. Que alguien deje las líneas y baje al agua. |
+| itaipu-6-g-wires | twist B, its Strikers born `+6` | CREST | firm | They're under the wires. Come at them from above the lines, never between them. | Van bajo los cables. Atáquenlos por encima de las líneas, nunca entre los cables. |
+| itaipu-6-g-scout | twist C, the Scout born `+7` | CREST | firm | Climb to the scout over the east corridor and kill it. Alive, it guides their last run in. | Suban hasta el explorador sobre el corredor este y derríbenlo. Si sigue vivo, guía su último ataque. |
+| itaipu-6-g-island | stage 4 `enter+5` | CREST | firm | Hold the last corridor. They come at it from both ends. Split the squad, one end each. | Sostengan el último corredor. Vienen por los dos extremos. Divídanse, un extremo cada uno. |
 
 ### What the player learns
 
@@ -1497,7 +1607,7 @@ hold the one thing that fixes it.
 | 3 | 15 | 4 |
 | 4 | 14 | 4 |
 | 5 | 15 (MIRADOR's spotting call added on branch w46-m5b) | 4 |
-| 6 | 14 | 4 |
+| 6 | 14 (and 8 guide lines, written on branch w47-m6) | 4 |
 | 7 | 18 | 5 |
 | Shared calls (1.8) and Contain (1.9) | 17 | |
 | Total | 133 | 32 |

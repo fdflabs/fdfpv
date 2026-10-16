@@ -54,8 +54,10 @@ import {
 } from '../edge/rooms/war.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import {
-  beatOf, crossings, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, slotKind, spilling, stagesOf, worthOf,
+  LANE_GAP_MS, arm, beatOf, crossings, drawSets, enter, exitDue, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, sectorsAt, slotKind, spilling, stagesOf, target, worthOf,
 } from '../src/share/war/stages.js';
+import { STRIKE_P, wireCrossings, wireStrike } from '../src/share/war/wires.js';
+import TOWERS from '../src/share/war/itaipu-towers.js';
 import { missionTime, waveSize, waveTarget } from '../src/share/war/missions/index.js';
 import { TIME_HOUR, missionClock } from '../src/share/daytime.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
@@ -239,7 +241,7 @@ console.log('data');
    * mission's own for an opening are voice lines. */
   const contained = Object.values(MISSIONS).filter((m) => m.contain);
   const missing = ['contain-breach', 'contain-retarget', 'contain-river', 'contain-half', 'contain-held', 'contain-lost', ...contained.map((m) => m.contain.op)].filter((id) => !lines.has(id));
-  check(`Contain's lines and each of the ${contained.length} missions' own opening line are voice lines`, contained.length === 5 && missing.length === 0, missing.join(', '));
+  check(`Contain's lines and each of the ${contained.length} missions' own opening line are voice lines`, contained.length === 6 && missing.length === 0, missing.join(', '));
 }
 
 check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6, Lights Out 4 of its 6',
@@ -2300,6 +2302,209 @@ console.log('the room: the practice (itaipu-practice), one Striker at a time');
   check('ended by the host: no win, no stars', end.state === 'ended' && end.result && end.result.won === false && end.result.stars === 0, JSON.stringify(end.result));
 }
 
+console.log('The Corridor (itaipu-6), flown on the room by bot squads');
+{
+  /* MISSIONS.md M6 as the room plays it, as The River Below's above. */
+  const mission = MISSIONS['itaipu-6'];
+  const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
+  const TWISTS = ['yard-cover', 'yard-wires', 'yard-eyes'];
+  const st6 = stagesOf(mission);
+  const W = Object.keys(mission.targets).filter((id) => id.startsWith('tower-w-'));
+  const E = Object.keys(mission.targets).filter((id) => id.startsWith('tower-e-'));
+  check('The Corridor plays 4 rounds of its 7 round stages', roundsOf(mission) === 4 && st6.filter((x) => x.round).length === 7, `${roundsOf(mission)}`);
+  check('in development, act 1, order 6: built and held until the owner has flown it', mission.release === 'development' && mission.act === 1 && mission.order === 6
+    && !released('itaipu-6') && released('itaipu-6', true));
+  check('its towers: the west line\'s ten and FI1\'s nineteen, each its line\'s mw, aimed on the ground the map stands it on',
+    W.length === 10 && E.length === 19 && W.every((id) => mission.targets[id].mw === 933 && mission.targets[id].line === 'w')
+    && E.every((id) => mission.targets[id].mw === 1750 && mission.targets[id].line === 'e'), `${W.length} ${E.length}`);
+  /* The islanding's corridor (stage 3's exits): the one with no tower
+   * down, drawn when both or neither are. */
+  const yardIdx = st6.findIndex((x) => x.id === 'yard-cover');
+  const islandOf = (downAt, seed, allOut = false) => {
+    const st = enter(mission, yardIdx, 500000, seed, 3, { pilots: 2 });
+    st.due.forEach((d) => { d.born = !allOut; });
+    const ctx = {
+      mission, m: { downAt, path: [], seed }, st, f: 600000, allBorn: !allOut, cleared: !allOut, lastGone: 600000, allOut, spent: 0, here: [1], pilots: [],
+    };
+    const due = exitDue(ctx);
+    const to = target(mission, st, due.exit, seed, due.k);
+    return { at: due.t, to: st6[to].id };
+  };
+  const seeds = [11, 12, 13, 14, 15, 16, 17, 18];
+  const west = seeds.map((sd) => islandOf({ 'tower-e-3': 200000 }, sd));
+  const east = seeds.map((sd) => islandOf({ 'tower-w-9': 200000 }, sd));
+  const both = seeds.map((sd) => islandOf({ 'tower-w-1': 200000, 'tower-e-12': 300000 }, sd));
+  const none = seeds.map((sd) => islandOf({}, sd));
+  check('stage 4 islands the corridor with no tower down: the west when the east has one down, the east when the west has, at the stage\'s end',
+    west.every((x) => x.to === 'island-west' && x.at === 600000) && east.every((x) => x.to === 'island-east' && x.at === 600000), JSON.stringify({ west, east }));
+  const lostWest = seeds.map((sd) => islandOf({ 'tower-e-3': 200000 }, sd, true));
+  const lostEast = seeds.map((sd) => islandOf({ 'tower-w-9': 200000 }, sd, true));
+  check('and the same when the stage is lost (no pilot left flying)',
+    lostWest.every((x) => x.to === 'island-west' && x.at === 600000) && lostEast.every((x) => x.to === 'island-east' && x.at === 600000), JSON.stringify({ lostWest, lostEast }));
+  check('and draws one when both or neither are, each met over eight seeds',
+    ['island-west', 'island-east'].every((id) => both.some((x) => x.to === id) && none.some((x) => x.to === id)), JSON.stringify({ both, none }));
+  const games = [];
+  for (const pilots of [1, 4]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const views = [];
+      const cues = [];
+      const born = [];
+      const dead = [];
+      const spots = [];
+      const clocks = [];
+      runOne({
+        pilots,
+        skill: 'good',
+        seed,
+        floorBuf,
+        spawn: SPAWN,
+        mission,
+        record: (m) => {
+          if (m.type === 'welcome' || m.type === 'daytime') {
+            clocks.push(m.daytime ?? null);
+          }
+          if (m.type !== 'war') {
+            return;
+          }
+          if (m.war) {
+            views.push(m.war);
+          } else if (m.op === 'cue') {
+            cues.push(...m.cues);
+          } else if (m.op === 'born') {
+            born.push(...m.agents);
+          } else if (m.op === 'dead') {
+            dead.push(m);
+          } else if (m.op === 'spot') {
+            spots.push(m);
+          }
+        },
+      });
+      games.push({
+        pilots, seed, views, cues, born, dead, spots, clocks,
+      });
+    }
+  }
+  const bad = [];
+  const twists = new Set();
+  const wins = [];
+  for (const g of games) {
+    const label = `x${g.pilots} s${g.seed}`;
+    const end = g.views.at(-1);
+    const entries = [];
+    for (const v of g.views) {
+      if (v.stage && entries.at(-1)?.id !== v.stage.id) {
+        entries.push({ id: v.stage.id, at: v.stage.at, n: v.stage.n });
+      }
+    }
+    const ids = entries.map((x) => x.id);
+    const twist = ids.find((id) => TWISTS.includes(id));
+    if (twist) {
+      twists.add(twist);
+    }
+    if (end.state === 'won') {
+      wins.push(label);
+    }
+    if (!(end.state === 'won' || (end.state === 'lost' && end.why === 'output'))) {
+      bad.push(`${label}: ended ${end.state} ${end.why}`);
+    }
+    if (end.state === 'won' && !(ids[0] === 'golden' && ids[1] === 'spread' && twist && /^island-(west|east)$/.test(ids[3]) && ids.length === 4)) {
+      bad.push(`${label}: stages ${ids.join(',')}`);
+    }
+    /* Spread Thin's lanes (stages.js lane): as many at once as the pilots
+     * have sectors, each one past them LANE_GAP_MS after the lane that
+     * many before it is gone. */
+    const spread = entries.find((x) => x.id === 'spread');
+    if (spread) {
+      const S = sectorsAt(g.pilots);
+      const lanes = st6.find((x) => x.id === 'spread').spawns.filter((w) => w.lane != null);
+      const first = (w) => g.born.filter((a) => a.wave === w.si && a.t0 >= spread.at).map((a) => a.t0)[0];
+      const goneAt = (w) => {
+        const mine = new Set(g.born.filter((a) => a.wave === w.si && a.t0 >= spread.at).map((a) => a.id));
+        const ts = g.dead.filter((m) => m.ids.some((id) => mine.has(id))).map((m) => m.at);
+        return ts.length ? Math.max(...ts) : null;
+      };
+      for (const w of lanes) {
+        const t = first(w);
+        const ok = w.lane < S ? t != null && t - spread.at < 30000 : t != null && Math.abs(t - goneAt(lanes.find((x) => x.lane === w.lane - S)) - LANE_GAP_MS) < 0.001;
+        if (!ok) {
+          bad.push(`${label}: lane ${w.lane} born ${t == null ? 'never' : t - spread.at} after the entry, at ${S} sectors`);
+        }
+      }
+    }
+    /* The islanding: the corridor stage 3 left intact, or one drawn; held,
+     * its towns islanded in every view after. */
+    const isle = entries.find((x) => /^island-/.test(x.id));
+    if (isle) {
+      const before = (ids2) => ids2.some((id) => g.views.some((v) => (v.down ?? []).includes(id) && v.stage && v.stage.at < isle.at));
+      const wDown = before(W);
+      const eDown = before(E);
+      const want = wDown && !eDown ? 'island-east' : eDown && !wDown ? 'island-west' : null;
+      if (want && isle.id !== want) {
+        bad.push(`${label}: islanded ${isle.id}, west down ${wDown}, east down ${eDown}`);
+      }
+      const held = g.views.map((v) => v.stage?.objectives?.find((o) => o.id === 'island')?.state).filter(Boolean).at(-1);
+      const towns = st6.find((x) => x.id === isle.id).objectives[0].island;
+      const told = end.restores ?? [];
+      if (held === 'done' ? !(told.length === 1 && told[0].island === true && told[0].districts.join() === towns.join()) : told.length !== 0) {
+        bad.push(`${label}: island ${held}, restores ${JSON.stringify(told)}`);
+      }
+    }
+    /* The story said: each stage's line, the twist's own and no other
+     * twist's, MIRADOR's spotting call once a pilot spots in Spread Thin,
+     * DESPACHO's on the towers once one falls; and CREST's guide for
+     * Spread Thin and the islanding. */
+    const said = g.cues.map((c) => c.radio).filter(Boolean);
+    const TURN = { 'yard-cover': 'itaipu-6-ta-turn', 'yard-wires': 'itaipu-6-tb-turn', 'yard-eyes': 'itaipu-6-tc-turn' };
+    const spreadSpot = spread && g.spots.some((m) => m.at >= spread.at && !entries.some((x) => x.at > spread.at && x.at <= m.at));
+    const want = ['itaipu-6-s1-lines', 'itaipu-6-s2-spread', 'itaipu-6-g-spread', ...(twist ? [TURN[twist]] : []), ...(isle ? ['itaipu-6-s4-island'] : []),
+      ...(spreadSpot ? ['itaipu-6-s2-spotted'] : []), ...(g.dead.some((m) => m.hit === true && /^tower-/.test(m.target ?? '') && (!isle || m.at < isle.at)) ? ['itaipu-6-s2-tower'] : [])];
+    const others = Object.entries(TURN).filter(([id]) => id !== twist).map(([, line]) => line);
+    if (end.state === 'won' && (want.some((id) => !said.includes(id)) || others.some((id) => said.includes(id)))) {
+      bad.push(`${label}: said ${said.filter((id) => id.startsWith('itaipu-6')).join(' ')}; want ${want.filter((id) => !said.includes(id)).join(' ')}`);
+    }
+    /* Spotting: by a pilot here, of attackers born in the stage. */
+    const kinds = new Map(g.born.map((a) => [a.id, a.kind]));
+    if (g.spots.some((m) => !(m.by > 0) || m.ids.some((id) => !kinds.has(id)))) {
+      bad.push(`${label}: spots ${JSON.stringify(g.spots.slice(0, 3))}`);
+    }
+  }
+  console.log(`    won ${wins.length} of ${games.length}; twists ${[...twists].join(', ')}; spots a game ${games.map((g) => g.spots.length).join(' ')}`);
+  check('ten games, 1 and 4 good pilots: each won or lost on the floor; a won one plays Golden Hour, Spread Thin, one twist of The Yard Again, one islanding',
+    bad.filter((x) => /ended|stages/.test(x)).length === 0, bad.filter((x) => /ended|stages/.test(x)).join(' | '));
+  check('Spread Thin\'s four lanes come as many at once as the pilots have sectors, the rest each LANE_GAP_MS after the lane it waits for is gone',
+    bad.filter((x) => /lane/.test(x)).length === 0, bad.filter((x) => /lane/.test(x)).join(' | '));
+  check('the islanding is the corridor stage 3 left intact (one drawn when both or neither were); held, its towns islanded in the view',
+    bad.filter((x) => /island/.test(x)).length === 0, bad.filter((x) => /island/.test(x)).join(' | '));
+  check('spotting: by a pilot here, of the mission\'s own attackers, in every game', bad.filter((x) => /spots/.test(x)).length === 0 && games.every((g) => g.spots.length > 0),
+    bad.filter((x) => /spots/.test(x)).join(' | '));
+  check('every stage\'s story said: the lines, the spread, the twist\'s own line and no other twist\'s, the spotting call once a pilot spots, the towers\' call once one falls, the islanding; the guide on the spread',
+    bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
+  check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
+  const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
+  check('the room\'s clock is the mission\'s light: the golden hour, the ramp into the night told as Spread Thin opens, the night from The Yard Again and over the end',
+    lightOff.length === 0 && games.every((g) => g.clocks.some((c) => c && c.rate > 0 && c.to === TIME_HOUR.night)), lightOff.join(' | '));
+  const [lo, hi] = mission.estimatedMinutes;
+  const won = games.filter((g) => g.views.at(-1).state === 'won');
+  const minutes = won.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
+  console.log(`    minutes from the go to the end: ${games.map((g) => ((g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000).toFixed(2)).join(' ')}`);
+  check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi), minutes.map((x) => x.toFixed(2)).join(' '));
+
+  /* Nobody shooting: the towers and the yard fall until the output is
+   * under the floor, and the restart offers the stage it was lost in. */
+  const rooms = [0.15, 0.3, 0.41].map((seed) => {
+    const r = warRoom(mission, { n: 1, seed, dev: true });
+    r.fly(GO + 1800000);
+    return r;
+  });
+  const ends = rooms.map((r) => r.view());
+  check('with nobody shooting The Corridor is lost under its floor, and offers the stage it was lost in again',
+    ends.every((x) => x.state === 'lost' && x.why === 'output' && x.checkpoint
+      && x.checkpoint.n === stagesOf(mission).findIndex((y) => y.id === x.checkpoint.stage)),
+    JSON.stringify(ends.map((x) => ({
+      state: x.state, why: x.why, cp: x.checkpoint, stage: x.stage && x.stage.id, output: x.output,
+    }))));
+}
+
 console.log('hit points: a carrier takes two detonations, a penetrator\'s one (TECH-NEEDS T1.7)');
 {
   /* One carrier on a short stretch of the river, parked from about 16 s;
@@ -2596,6 +2801,194 @@ console.log('launches: a carrier\'s children, born at its pose while it lives (T
   }, 90000);
   check('a store and a restore after a launch and a hurt change nothing after it', a.e.of(0, 'hurt').length === 1 && a.kids.length >= 3
     && JSON.stringify(told(a.e)) === JSON.stringify(told(r.e)), `${told(a.e).length} vs ${told(r.e).length}, hurt ${a.e.of(0, 'hurt').length}, kids ${a.kids.length}`);
+}
+
+console.log('The Corridor\'s mechanics: lanes, a line\'s towers, wire height, spotting any attacker, islanding (MISSIONS.md M6)');
+{
+  const base = MISSIONS['itaipu-1'];
+  const stage = (spawns, more = {}) => ({
+    id: 'corridor',
+    round: true,
+    spawns,
+    objectives: [],
+    cues: [],
+    exits: [{
+      when: { cleared: true }, to: 'won', after: 0, result: 'auto', clear: 'leave', why: 'waves',
+    }],
+    ...more,
+  });
+  const test = (spawns, more, routes = {}) => ({
+    ...base,
+    id: 'itaipu-corridor-test',
+    contain: undefined,
+    sectors: {},
+    stages: [stage(spawns, more)],
+    routes: { ...base.routes, ...routes },
+  });
+  /* Lanes (MISSIONS.md 1.6, sectors at once): four groups, one a lane. */
+  check('sectors at once: 1 for 1 pilot, 2 for 2 or 3, 3 for 4 to 6, 4 for 7 or 8',
+    [1, 2, 3, 4, 5, 6, 7, 8].map(sectorsAt).join() === '1,2,2,3,3,3,4,4');
+  const LANES = [0, 1, 2, 3].map((k) => ({
+    at: [4 + k, 4 + k], kind: 'strike', n: 1, per: 0, route: 'reservoir-mid', target: `intake-${k + 2}`, spread: 0, group: `lane-${k}`, lane: k,
+  }));
+  const laned = test(LANES);
+  const lanesOk = [1, 2, 4, 7].every((pilots) => {
+    const st = enter(laned, 0, 10000, 77, 1, { pilots });
+    const s = sectorsAt(pilots);
+    return st.due.every((d, k) => (k < s ? d.t === 10000 + (4 + k) * 1000 * (laned.pace?.[pilots] ?? 1) && !d.when
+      : d.t === null && d.ms === LANE_GAP_MS && d.when.gone.group === `lane-${k - s}`));
+  });
+  check('a lane past the sectors at once waits for the lane that many before it to be gone, then LANE_GAP_MS; the others come at their `at`', lanesOk);
+  /* arm(): the chained lane gets its time when the one before is gone. */
+  const st1 = enter(laned, 0, 10000, 77, 1, { pilots: 1 });
+  st1.due[0].born = true;
+  note(st1, {
+    t: 14000, e: 'born', id: 1, kind: 'strike', group: 'lane-0', sector: null,
+  });
+  const armCtx = {
+    mission: laned, m: { downAt: {}, path: [] }, st: st1, f: 50000, here: [1], pilots: [],
+  };
+  arm(armCtx);
+  const waiting = st1.due[1].t;
+  note(st1, {
+    t: 41000, e: 'gone', id: 1, kind: 'strike', group: 'lane-0', how: 'kill',
+  });
+  arm(armCtx);
+  check('alone: lane 1 has no time while lane 0 flies, then LANE_GAP_MS after lane 0 is gone', waiting === null && st1.due[1].t === 41000 + LANE_GAP_MS, `${waiting} ${st1.due[1].t}`);
+  /* And on the room, one pilot then two, nobody shooting: each lane's
+   * birth after the one it waits for is gone. */
+  const lanedPlay = (n) => {
+    const e = warRoom(laned, { n, seed: 0.4 });
+    e.fly(GO + 600000);
+    const born = e.of(0, 'born').flatMap((m) => m.agents);
+    const gone = new Map(e.of(0, 'dead').flatMap((m) => m.ids.map((id) => [id, m.at])));
+    return { born, gone, view: e.view() };
+  };
+  const solo = lanedPlay(1);
+  /* The room tells a death's ms to the micrometre (war.js mm). */
+  const after = (a, b, gone) => Math.abs(a.t0 - gone.get(b.id) - LANE_GAP_MS) < 0.001;
+  const soloOk = solo.born.length === 4 && solo.born.slice(1).every((a, k) => after(a, solo.born[k], solo.gone));
+  check('on the room, alone: the four lanes one at a time, each LANE_GAP_MS after the last is gone, and the mission ends', soloOk && solo.view.state !== 'live',
+    JSON.stringify(solo.born.map((a) => [a.wave, a.t0, solo.gone.get(a.id)])));
+  const pair = lanedPlay(2);
+  const pairOk = pair.born.length === 4 && pair.born[0].t0 - GO < 10000 && pair.born[1].t0 - GO < 10000
+    && [2, 3].every((k) => after(pair.born.find((a) => a.wave === k), pair.born.find((a) => a.wave === k - 2), pair.gone));
+  check('on the room, two pilots: lanes 0 and 1 at once, 2 and 3 each after the one two before it', pairOk,
+    JSON.stringify(pair.born.map((a) => [a.wave, a.t0, pair.gone.get(a.id)])));
+  /* A line's towers (worthOf): the line carries its mw once. */
+  const tower = (side, k, line, mw) => {
+    const t = TOWERS[side][k];
+    return {
+      mw, at: [t.x, t.y + 8, t.z], r: t.base, line,
+    };
+  };
+  const lined = {
+    ...base,
+    targets: {
+      ...base.targets, 'tower-e-0': tower('e', 0, 'fi1', 1750), 'tower-e-5': tower('e', 5, 'fi1', 1750), 'tower-w-0': tower('w', 0, 'west', 933),
+    },
+  };
+  const worthIs = (downAt, id) => worthOf(lined, null, { downAt }, id);
+  check('a tower costs its line\'s mw; another tower of the same line then costs nothing, one of another line its own; an intake as ever',
+    worthIs({ 'tower-e-0': 1 }, 'tower-e-0') === 1750 && worthIs({ 'tower-e-0': 1, 'tower-e-5': 2 }, 'tower-e-5') === 0
+    && worthIs({ 'tower-e-0': 1, 'tower-w-0': 2 }, 'tower-w-0') === 933 && worthIs({ 'tower-e-0': 1, 'intake-3': 2 }, 'intake-3') === 700);
+  /* Wire height (MISSIONS.md M6 twist B): a spawn's strikeP takes the
+   * place of STRIKE_P for each crossing of its flight. */
+  const corridorM = { ...MISSIONS['itaipu-3'] };
+  const runner = {
+    id: 1, kind: 'strike', route: 'corridor-west', t0: 0, k: 0, n: 1, err: 0, target: 'yard-right',
+  };
+  const xs = wireCrossings('itaipu', planAgent(corridorM, runner));
+  const half = () => 0.5;
+  check('a flight with power line crossings: none struck at STRIKE_P when every draw is 0.5; at p 0.6 the first crossing strikes',
+    xs.length > 0 && STRIKE_P < 0.5 && wireStrike(corridorM, runner, half) === null && wireStrike(corridorM, runner, half, null, 0.6) === xs[0].t, JSON.stringify(xs));
+  const wiresAt = (strikeP) => {
+    const m = {
+      ...corridorM,
+      id: 'itaipu-corridor-wires',
+      contain: undefined,
+      stages: [stage([{
+        at: 2, kind: 'strike', n: 6, per: 0, route: 'corridor-west', target: 'yard-right', spread: 25, group: 'wires', ...(strikeP != null ? { strikeP } : {}),
+      }])],
+    };
+    const e = warRoom(m, { n: 1, seed: 0.4 });
+    e.fly(GO + 4000);
+    return { m, born: e.of(0, 'born').flatMap((x) => x.agents) };
+  };
+  const always = wiresAt(1);
+  const crossed = always.born.filter((a) => wireCrossings('itaipu', planAgent(always.m, { ...a, wire: undefined })).length);
+  const plain = wiresAt(null);
+  check('on the room, strikeP 1: every attacker that crosses a line strikes it at its first crossing; without it fewer do',
+    crossed.length > 0 && crossed.every((a) => a.wire === wireCrossings('itaipu', planAgent(always.m, { ...a, wire: undefined }))[0].t)
+    && plain.born.filter((a) => a.wire != null).length < crossed.length,
+    `${crossed.length} of ${always.born.length} cross; ${plain.born.filter((a) => a.wire != null).length} struck without strikeP`);
+  /* Spotting any attacker (TECH-NEEDS T1.8, M6's spot objective): a
+   * Striker and a decoy spottable, a pilot near them for SPOT_MS spots
+   * them; the view and every screen mark each as its kind, the decoy as
+   * a decoy; the group's spot objective is done at the spot. A second
+   * group nobody goes near arrives first: its objective fails. */
+  /* Under First Light's own id and routes, so a screen (which plans from
+   * its own build's mission) can draw them. */
+  const spotM = { ...test([
+    {
+      at: 2, mix: [['strike', 1], ['decoy', 1]], n: 4, per: 0, route: 'reservoir-mid', target: 'intake-8', spread: 0, group: 'seen', spot: true,
+    },
+    {
+      at: 100, kind: 'strike', n: 1, per: 0, route: 'reservoir-mid', target: 'intake-12', spread: 0, group: 'unseen', spot: true,
+    },
+  ], {
+    objectives: [
+      {
+        id: 'spot-seen', text: 'war.obj.protect_intakes', kind: 'spot', done: { spot: { group: 'seen' } }, fail: { leaked: 1, group: 'seen' },
+      },
+      {
+        id: 'spot-unseen', text: 'war.obj.protect_intakes', kind: 'spot', done: { spot: { group: 'unseen' } }, fail: { leaked: 1, group: 'unseen' },
+      },
+    ],
+  }), id: 'itaipu-1' };
+  const se = warRoom(spotM, { n: 2, seed: 0.4, dev: true });
+  se.paths[0] = () => [4000, Y, 4000];
+  se.paths[1] = () => [4050, Y, 4000];
+  se.fly(GO + 4000);
+  const seen = se.of(0, 'born').flatMap((m) => m.agents).filter((a) => a.wave === 0);
+  const over = poseAt(planAgent(spotM, seen[0]), seen[0].t0 + 60000).p;
+  se.paths[0] = (t) => (t >= seen[0].t0 + 55000 && t < seen[0].t0 + 70000 ? [over[0] + 150, over[1] + 50, over[2]] : [4000, Y, 4000]);
+  se.fly(seen[0].t0 + 70000);
+  const sOps = se.of(0, 'spot');
+  const sView = se.view();
+  /* An objective's last state the views told. */
+  const lastObj = (e, id) => e.of(0).map((m) => m.war.stage?.objectives?.find((o) => o.id === id)?.state).filter(Boolean).at(-1);
+  const seenSpot = lastObj(se, 'spot-seen');
+  check('spotting a Striker group: each one spotted by the pilot near it, the view marking each as its kind, the decoys as decoys',
+    seen.some((a) => a.kind === 'decoy') && seen.every((a) => sOps.some((m) => m.ids.includes(a.id) && m.by > 0) && sView.spotted[a.id] === a.kind),
+    JSON.stringify({ ops: sOps.map((m) => [m.ids[0], m.by]), spotted: sView.spotted, kinds: seen.map((a) => a.kind) }));
+  const screen = createRoomWar(() => {});
+  for (const m of se.socks[1].got) {
+    if (m && m.type === 'welcome') {
+      screen.onWelcome(m);
+    } else if (m && m.type === 'war') {
+      screen.onMessage(m);
+    }
+  }
+  const drawnSeen = screen.attackersAt(se.clock).filter((x) => seen.some((a) => a.id === x.id));
+  check('a screen marks each spotted one as its kind, a decoy as a decoy (warmarkers.js reads it at any range)',
+    drawnSeen.length === seen.length && drawnSeen.every((x) => x.spotted === x.kind), JSON.stringify(drawnSeen.map((x) => [x.id, x.kind, x.spotted])));
+  se.fly(seen[0].t0 + 300000);
+  check('the spot objective of the group spotted is done; that of the one nobody went near fails when it arrives',
+    seenSpot === 'done' && lastObj(se, 'spot-unseen') === 'failed', `${seenSpot} ${lastObj(se, 'spot-unseen')}`);
+  /* Islanding (MISSIONS.md M6 stage 4): a hold with `island` names its
+   * districts in the view's restores, islanded, once it is done. */
+  const isle = test([{
+    at: 60, kind: 'strike', n: 1, per: 0, route: 'reservoir-mid', target: 'intake-12', spread: 0, group: 'late',
+  }], {
+    objectives: [{
+      id: 'island', text: 'war.obj.protect_intakes', kind: 'hold', ms: 20000, targets: 'intake-12', fail: { hit: 'intake-12' }, island: ['vila-c', 'foz-north-east'],
+    }],
+  });
+  const ie = warRoom(isle, { n: 1, seed: 0.4 });
+  ie.fly(GO + 30000);
+  check('a held islanding hold: the view\'s restores carry its districts, islanded, from the hold\'s end',
+    JSON.stringify(ie.view().restores) === JSON.stringify([{ at: GO + 20000, districts: ['vila-c', 'foz-north-east'], island: true }]), JSON.stringify(ie.view().restores));
 }
 
 console.log('legacy: the four missions against their record');
