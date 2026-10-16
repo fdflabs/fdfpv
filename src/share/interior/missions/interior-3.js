@@ -420,10 +420,12 @@ export default {
           card: 'card.classification_updated',
         },
         /* A strike on vehicle 1 or 2: a designation, then the strike
-         * platform's run over it (MISSIONS.md 1.6). */
+         * platform's run over it (MISSIONS.md 1.6). Rojas's "There were
+         * people in that one." is vehicle 1's alone: vehicle 2 is the
+         * empty decoy, and Vega's word stands for both. */
         ...['v1', 'v2'].map((v) => ({
           when: { all: [{ captured: `confirm_${v}` }, RUN(`${v}-stop`)] },
-          radio: ['int3-s3-error', 'int3-s3-error-2'],
+          radio: v === 'v1' ? ['int3-s3-error', 'int3-s3-error-2'] : 'int3-s3-error-2',
           move: [{ contacts: v, route: 'm3-stopped', alt: null }],
           choose: { name: `error-${v}`, value: 'yes' },
         })),

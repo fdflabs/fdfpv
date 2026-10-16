@@ -380,6 +380,8 @@ console.log('two civilian pickups struck: an error each, the second fails the mi
       }
     }
     check('the second: lost, errors', view(e).state === 'lost' && view(e).why === 'errors', `${view(e).state} ${view(e).why}`);
+    const told = (id) => e.r.ops.log.filter((x) => x.what === 'cue' && [x.radio].flat().includes(id)).length;
+    check('the empty decoy struck: Vega\'s word, not "There were people in that one."', told('int3-s3-error') === 1 && told('int3-s3-error-2') === 2, `${told('int3-s3-error')} ${told('int3-s3-error-2')}`);
   }
 }
 
