@@ -160,6 +160,85 @@ function lightAt(sinEl, out) {
 }
 
 /*
+ * THE WEATHER BY MISSION (BIBLE.md 2.3), laid over the hour's light: M1
+ * "hot, hazy" is LIGHT as it stands (clear, nothing changed); M2
+ * "humid, overcast, brightening" and M3 "unstable cloud" were drawn in
+ * M1's clear gold until 2026-10-16. A weather is, at an hour, its mean
+ * cloud `cover` (0 clear, 1 a full deck) and `sunlit`, the share of the
+ * sun a passing cloud leaves.
+ *
+ * The cover takes the sun off the ground (irradiance) and gives it back
+ * as the cloud's even light from the whole sky (env), so the shade lifts
+ * while the sunlit side falls: the low contrast of an overcast morning.
+ * The sky goes from blue to the haze's grey, the haze itself toward a
+ * neutral grey at its own lightness (humid air is white, not amber), the
+ * glow toward the sun and the disc go, the sun's colour whitens, and the
+ * gold grade and the print's S curve are eased. The deck itself is the
+ * sky's cumulus, unchanged: this is the light under it.
+ *
+ * `sunlit` moves only the directional sun, never the env, so a cloud
+ * passing over (M3) costs no environment bake (ENV_STEP's rebake reads
+ * env). It is a smooth noise of the hour, so every screen on the room's
+ * clock dims together: at M3's rate a gust period of GUST_H is about a
+ * minute and a half of room.
+ */
+const GUST_H = 0.04;
+function gustHash(n) {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+function gust(h) {
+  const t = h / GUST_H;
+  const i = Math.floor(t);
+  const f = t - i;
+  const hash = gustHash;
+  const v = hash(i) + (hash(i + 1) - hash(i)) * f * f * (3 - 2 * f);
+  return THREE.MathUtils.smoothstep(v, 0.35, 0.8);
+}
+/* Each weather writes its state at hour h into one shared object
+ * (WEATHER_AT) and returns it, so a frame allocates nothing. */
+const WEATHER_AT = { cover: 0, sunlit: 1 };
+const weatherIs = (cover, sunlit) => {
+  WEATHER_AT.cover = cover;
+  WEATHER_AT.sunlit = sunlit;
+  return WEATHER_AT;
+};
+export const WEATHER = {
+  clear: () => weatherIs(0, 1),
+  /* Full at the start (06:45), thinning from 07:15 to half by 08:30,
+   * where M2's clock ends a long run (clock.js M2_CLOCK). */
+  overcast: (h) => weatherIs(0.9 - 0.45 * THREE.MathUtils.smoothstep(h, 7.25, 8.5), 1),
+  /* Broken cloud: a third of the sky, and the sun in and out. */
+  unstable: (h) => weatherIs(0.4, 1 - 0.75 * gust(h)),
+};
+
+/* Scratch and constants for weatherOver, which runs every frame on a
+ * moving clock: no allocation per frame. */
+const WHITE_SUN = new THREE.Color(1, 0.97, 0.92);
+const GREY = new THREE.Color();
+const OVERCAST_SKY = new THREE.Color();
+
+/* The weather `at` (WEATHER's value at the hour) over LIGHT's values
+ * `now`, in place. */
+function weatherOver(now, at) {
+  const { cover: k, sunlit } = at;
+  if (k === 0 && sunlit === 1) {
+    return now;
+  }
+  now.irradiance *= (1 - 0.8 * k) * sunlit;
+  now.env *= 1 + 1.1 * k;
+  now.mie *= 1 - 0.85 * k;
+  now.sun.lerp(WHITE_SUN, 0.6 * k);
+  const l = 0.2126 * now.haze.r + 0.7152 * now.haze.g + 0.0722 * now.haze.b;
+  GREY.setRGB(l, l, l, THREE.LinearSRGBColorSpace);
+  now.haze.lerp(GREY, 0.7 * k).multiplyScalar(1 + 0.15 * k);
+  now.zenith.lerp(OVERCAST_SKY.copy(now.haze).multiplyScalar(0.8), 0.8 * k);
+  now.contrast += (0.62 - now.contrast) * k;
+  now.grade *= 1 - 0.7 * k;
+  return now;
+}
+
+/*
  * THE GRADE, after the print and before the antialiasing, on display
  * values: the middle tones warmed (fully at lightness 0.45 to 0.55,
  * fading out under 0.12 and over 0.9) and the darks a touch cooler, and
@@ -432,9 +511,14 @@ export async function makeLook({
     }
   }
 
+  let weather = WEATHER.clear;
+  let hourNow = hours;
   function setLocalTime(h) {
+    hourNow = h;
     sunDir.set(...sunAt(h).dir).normalize();
-    lightAt(sunDir.y, now);
+    const at = weather(h);
+    weatherOver(lightAt(sunDir.y, now), at);
+    su.uDisc.value = 1 - at.cover;
     light.irradiance = now.irradiance;
     sunState.irradiance = now.irradiance;
     su.uSun.value.copy(sunDir);
@@ -462,6 +546,16 @@ export async function makeLook({
     lit,
     ground,
     setLocalTime,
+    /* The mission's weather (WEATHER's name; null is clear), over the
+     * hour it stands at. */
+    setWeather(name) {
+      const w = WEATHER[name ?? 'clear'];
+      if (!w) {
+        throw new Error(`interior look: no weather ${name}`);
+      }
+      weather = w;
+      return setLocalTime(hourNow);
+    },
     sunIrradiance: () => now.irradiance,
     mats: {
       look,

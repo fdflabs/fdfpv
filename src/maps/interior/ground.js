@@ -333,7 +333,12 @@ vec3 inPasture(InField f, vec2 w, float fp) {
   float bare = smoothstep(0.62, 0.8, inFbm(w + 7.0, 4.0)) * smoothstep(0.3, 0.8, h);
   col = mix(col, IN_TRAIL * 0.9, bare * 0.6 * (1.0 - 0.5 * smoothstep(2.0, 10.0, fp)));
   col = inFieldTrack(col, f, fp);
-  /* Tracks: contour lines of a slow noise, a metre wide. */
+  /* Tracks: contour lines of a slow noise, a metre wide, kept in
+   * stretches and near the corner the cattle walk to. Whole, every
+   * level closed into a loop and low-colonia's pasture read as a
+   * contour map (2026-10-16); a cattle trail runs from somewhere to the
+   * gate and the water, and fades out in the open paddock. */
+  float corner = length(vec2(f.eu, f.ev));
   float n = inTex(w, 70.0, 0.27).r * 0.65 + inTex(w, 23.0, 0.83).g * 0.35;
   float grad = max(fwidth(n) / max(fp, 0.01), 2e-4);
   float track = 0.0;
@@ -341,10 +346,10 @@ vec3 inPasture(InField f, vec2 w, float fp) {
     float lev = 0.38 + 0.12 * float(k);
     track = max(track, inBand((n - lev) / grad, 0.55, fp));
   }
-  col = mix(col, IN_TRAIL * 0.85, track * 0.75);
+  float walked = max(smoothstep(0.48, 0.6, inTex(w, 40.0, 0.71).b), 1.0 - smoothstep(60.0, 220.0, corner));
+  col = mix(col, IN_TRAIL * 0.85, track * 0.75 * walked);
   /* Trodden bare round the paddock's corners, where the gate and the
    * water are. */
-  float corner = length(vec2(f.eu, f.ev));
   col = mix(col, IN_TRAIL * 0.8, (1.0 - smoothstep(12.0, 45.0 + 20.0 * big, corner)) * 0.8);
   /* Termite mounds, a metre across, one in a 14 m square now and then. */
   vec2 mc = floor(w / 14.0);

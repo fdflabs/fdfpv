@@ -1,8 +1,9 @@
 /*
  * interior-views.js: the Interior's fixed views and their budget
  * (TECH-NEEDS N1 `interior:views`): survey altitude over each sector, the
- * orbit round the camp at Claro Viejo at the standoff, and the low views a
- * pilot sees close to the ground, each shot from the same place every run.
+ * orbit round the camp at Claro Viejo at the standoff, the low views a
+ * pilot sees close to the ground, each mission's start at its hour and two
+ * overviews, each shot from the same place every run.
  *
  *     SIM_GPU=1 node scripts/interior-views.js OUT_DIR [--views=a,b] [--hour=17.5]
  *
@@ -54,7 +55,9 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { gridToWorld } from '../src/share/interior/frame.js';
 import { makeWorld } from '../src/share/interior/world.js';
-import { landEdit, PLACES } from '../src/share/interior/places.js';
+import { landEdit, PLACES, M2_AT } from '../src/share/interior/places.js';
+import { M1_CLOCK } from '../src/share/interior/clock.js';
+import { MISSIONS } from '../src/share/ops/missions.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const FOV = 44;
@@ -94,7 +97,27 @@ const CAMP = (() => {
   return out;
 })();
 
+/* Each mission's start as its pilot sees it, at its hour (the mission's
+ * clock, or M1's 16:40 where it has none, as src/maps/interior.js
+ * hourFor) and in its weather (src/maps/interior/look.js WEATHER): on Pista Cero's rail looking up the strip, and 300 m over the
+ * strip looking toward the mission's first ground (M1 Sector Alpha, M2
+ * Cruce Tranquera, M3 Puesto Arenal). */
+const FIRST = { 'interior-1': [5.4, 4.8], 'interior-2': M2_AT.cruce, 'interior-3': [4.0, 13.98] };
+const STARTS = Object.entries(FIRST).flatMap(([mission, [e, n]], k) => [
+  { id: `m${k + 1}-launch`, mission, cam: pose(2.8, 1.95, 3, 3.4, 2.1, 2) },
+  { id: `m${k + 1}-climb`, mission, cam: pose(3.0, 2.0, 300, e, n) },
+]);
+/* M3's climb 12 minutes on, when its unstable cloud has the sun covered
+ * (look.js WEATHER.unstable). */
+STARTS.push({ ...STARTS[5], id: 'm3-climb-12min', minutes: 12 });
+
 const VIEWS = [
+  ...STARTS,
+  /* Two overviews of the whole map at M1's hour: the south's farms and
+   * river from over Pista Cero, and the north's forest toward Puesto
+   * Arenal and Mission 2's ground. */
+  { id: 'overview-south-1800', mission: 'interior-1', cam: pose(3.0, 2.0, 1800, 8.5, 8.0) },
+  { id: 'overview-north-2000', mission: 'interior-1', cam: pose(6.0, 8.0, 2000, 10.0, 14.0) },
   /* Survey altitude (TECH-NEEDS N1, M1 stage 1's 500 m and the brief's
    * 600 to 1800 m), looking ahead and down over each sector. */
   { id: 'survey-alpha-600', cam: pose(3.2, 2.6, 600, 5.4, 5.0) },
@@ -262,6 +285,7 @@ try {
     throw new Error(`interior-views: the map was built at ${graphics}, not high`);
   }
   await page.evaluate('(document.getElementById("ui").style.display = "none", "")');
+  const builtHour = opts.hour ? Number(opts.hour) : M1_CLOCK.startHour;
   await page.evaluate(INSTALL);
   const renderer = await page.evaluate(`(() => { const g = document.getElementById('view').getContext('webgl2');
     return g.getParameter(g.getExtension('WEBGL_debug_renderer_info').UNMASKED_RENDERER_WEBGL); })()`);
@@ -277,6 +301,12 @@ try {
       nuevo: false, mast: 0, parked: Infinity, cold: false, ...v.camp,
     };
     await page.evaluate(`(window.__mapScene().userData.interior.life.setCamp({ nuevo: ${camp.nuevo}, mast: ${camp.mast}, parked: ${camp.parked}, cold: ${camp.cold} }), "")`);
+    const clock = v.mission ? MISSIONS[v.mission].clock ?? M1_CLOCK : null;
+    const hour = clock ? clock.startHour + ((v.minutes ?? 0) / 60) * clock.rate : builtHour;
+    const weather = v.mission ? MISSIONS[v.mission].weather ?? null : null;
+    await page.evaluate(`(() => { const u = window.__mapScene().userData.interior;
+      u.look.setWeather(${JSON.stringify(weather)});
+      const s = u.look.setLocalTime(${hour}); u.trees.setSun(s); u.life.setSun(s); return ""; })()`);
     await page.evaluate(`(window.__setCam(${v.cam.join(',')}, ${v.fov || FOV}), "")`);
     await settle(page);
     await page.sleep(2500);
@@ -287,7 +317,7 @@ try {
     const trees = await page.evaluate('window.__mapScene().userData.interior.trees.stats()');
     const gpu = await page.evaluate(`window.__interiorGpu(${FRAMES})`);
     const row = {
-      ...v, stats, trees, frameMs: gpu.frameMs, gpuMs: gpu.gpuMs, gpuLeastMs: gpu.gpuLeastMs, gpuDisjoint: gpu.disjoint,
+      ...v, hour, weather, stats, trees, frameMs: gpu.frameMs, gpuMs: gpu.gpuMs, gpuLeastMs: gpu.gpuLeastMs, gpuDisjoint: gpu.disjoint,
       clearance: { ground: y - ground, solid: gap },
     };
     const over = [];
@@ -302,7 +332,7 @@ try {
     }
     row.over = over;
     report.push(row);
-    console.log(`shot ${v.id.padEnd(20)} ${String(stats.calls).padStart(4)} calls ${(stats.triangles / 1e6).toFixed(2)} M tris `
+    console.log(`shot ${v.id.padEnd(20)} ${hour.toFixed(2)} h ${String(stats.calls).padStart(4)} calls ${(stats.triangles / 1e6).toFixed(2)} M tris `
       + `gpu ${gpu.gpuMs.toFixed(1)} (least ${gpu.gpuLeastMs.toFixed(1)}) ms  crowns ${trees.near}+${trees.mid} points ${trees.far} `
       + `clear ${(y - ground).toFixed(1)} m${Number.isFinite(gap) ? `, solid ${gap.toFixed(1)} m` : ''}`);
     if (Number.isFinite(gap) && gap < NEAR_SOLID) {
