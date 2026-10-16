@@ -241,7 +241,7 @@ console.log('data');
    * mission's own for an opening are voice lines. */
   const contained = Object.values(MISSIONS).filter((m) => m.contain);
   const missing = ['contain-breach', 'contain-retarget', 'contain-river', 'contain-half', 'contain-held', 'contain-lost', ...contained.map((m) => m.contain.op)].filter((id) => !lines.has(id));
-  check(`Contain's lines and each of the ${contained.length} missions' own opening line are voice lines`, contained.length === 5 && missing.length === 0, missing.join(', '));
+  check(`Contain's lines and each of the ${contained.length} missions' own opening line are voice lines`, contained.length === 6 && missing.length === 0, missing.join(', '));
 }
 
 check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6, Lights Out 4 of its 6',
@@ -2445,6 +2445,19 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
         bad.push(`${label}: island ${held}, restores ${JSON.stringify(told)}`);
       }
     }
+    /* The story said: each stage's line, the twist's own and no other
+     * twist's, MIRADOR's spotting call once a pilot spots in Spread Thin,
+     * DESPACHO's on the towers once one falls; and CREST's guide for
+     * Spread Thin and the islanding. */
+    const said = g.cues.map((c) => c.radio).filter(Boolean);
+    const TURN = { 'yard-cover': 'itaipu-6-ta-turn', 'yard-wires': 'itaipu-6-tb-turn', 'yard-eyes': 'itaipu-6-tc-turn' };
+    const spreadSpot = spread && g.spots.some((m) => m.at >= spread.at && !entries.some((x) => x.at > spread.at && x.at <= m.at));
+    const want = ['itaipu-6-s1-lines', 'itaipu-6-s2-spread', 'itaipu-6-g-spread', ...(twist ? [TURN[twist]] : []), ...(isle ? ['itaipu-6-s4-island'] : []),
+      ...(spreadSpot ? ['itaipu-6-s2-spotted'] : []), ...(g.dead.some((m) => m.hit === true && /^tower-/.test(m.target ?? '') && (!isle || m.at < isle.at)) ? ['itaipu-6-s2-tower'] : [])];
+    const others = Object.entries(TURN).filter(([id]) => id !== twist).map(([, line]) => line);
+    if (end.state === 'won' && (want.some((id) => !said.includes(id)) || others.some((id) => said.includes(id)))) {
+      bad.push(`${label}: said ${said.filter((id) => id.startsWith('itaipu-6')).join(' ')}; want ${want.filter((id) => !said.includes(id)).join(' ')}`);
+    }
     /* Spotting: by a pilot here, of attackers born in the stage. */
     const kinds = new Map(g.born.map((a) => [a.id, a.kind]));
     if (g.spots.some((m) => !(m.by > 0) || m.ids.some((id) => !kinds.has(id)))) {
@@ -2460,6 +2473,8 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
     bad.filter((x) => /island/.test(x)).length === 0, bad.filter((x) => /island/.test(x)).join(' | '));
   check('spotting: by a pilot here, of the mission\'s own attackers, in every game', bad.filter((x) => /spots/.test(x)).length === 0 && games.every((g) => g.spots.length > 0),
     bad.filter((x) => /spots/.test(x)).join(' | '));
+  check('every stage\'s story said: the lines, the spread, the twist\'s own line and no other twist\'s, the spotting call once a pilot spots, the towers\' call once one falls, the islanding; the guide on the spread',
+    bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
   const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
   check('the room\'s clock is the mission\'s light: the golden hour, the ramp into the night told as Spread Thin opens, the night from The Yard Again and over the end',

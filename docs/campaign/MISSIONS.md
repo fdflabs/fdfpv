@@ -365,8 +365,11 @@ islandings, 4 title keys; its objectives (the towers, a spot objective
 for each of Spread Thin's four groups, the yard, each twist's, each
 corridor's islanding hold); the nudge and the objective cards; its
 length 11 to 19 min measured; seeded NW and WATER sectors and its own
-LINES routes, war:routes PASS. Its radio, guide and film are M6's as
-built below.
+LINES routes, war:routes PASS; the table's 13 radio ids, `itaipu-6-op`
+and the film's 4, voiced en and es on the Orin; 8 guide lines
+`itaipu-6-g-*`; voiced debriefs; Contain with `itaipu-6-op`. No intro
+film: INTROS.md 5.6's shot 3 is DESPACHO's GRID insert, which no film can
+draw yet (Lights Out's film went round it); M6's as built below.
 
 Mission 4's column is checked against branch w39-mission-4 (2026-10-14):
 war:stages, war:routes, war:harness, war:legacy, war:radio, war:nudge,
@@ -1444,6 +1447,34 @@ choice of the act before Breach.
 | debrief-itaipu-6-win | won | CREST | calm | The lines held. Somebody tell the towns they owe the spotters. | Las líneas aguantaron. Que alguien les diga a los pueblos que se lo deben a los observadores. |
 | debrief-itaipu-6-lose | lost | DESPACHO | calm | Too many spans down. The grid can't carry it. Crest, pull them back. | Cayeron demasiados tramos. La red no lo soporta. Cresta, repliéguelos. |
 
+As built (branch w47-m6): the table's thirteen lines and `itaipu-6-op`
+are cued as written, `itaipu-6-s2-tower` on the first tower down in
+each of the stages before the islanding (the table's "a tower hit"),
+`itaipu-6-s2-spotted` on the first spot in Spread Thin. Every line of
+DESPACHO, CREST and MIRADOR in this mission (story, guide, debriefs,
+Contain line and the film's four, INTROS.md 5.6) is built on the Orin,
+so each speaker is one voice here. DESPACHO's "Rerouting what I can"
+has no reroute behind it: what a tower puts out stays out until the
+islanding.
+
+### Guide
+
+CREST's guide (`itaipu-guide`, written on branch w47-m6 in the voice of
+missions 1 to 5's): what to do now, after each stage's story, each one
+dropped once what it is about is gone. Wired in `itaipu-6.js`, built on
+the Orin with Whisper's check.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-6-g-west | stage 1, the west group born `+7` | CREST | calm | Protect the towers on the west corridor. The Strikers follow the wires in from the far end. Fly out along the lines and meet them. | Protejan las torres del corredor oeste. Los drones de ataque siguen los cables desde el extremo. Salgan por las líneas a su encuentro. |
+| itaipu-6-g-east | stage 1, the east group born `+3` | CREST | firm | Now the east corridor. Strikers along the wires from the south. Get to the towers before they do. | Ahora el corredor este. Drones de ataque por los cables desde el sur. Lleguen a las torres antes que ellos. |
+| itaipu-6-g-spread | stage 2 `enter+5` | CREST | firm | Split up, one pilot a corridor. Fly close to each group to spot it, then take it down. | Sepárense, un piloto por corredor. Acérquense a cada grupo para marcarlo, y después derríbenlo. |
+| itaipu-6-g-yard | stage 3, the yard's group born `+6` | CREST | firm | Decoys on the yard from the west arm, and one real Striker among them. Fly close and spot them before you spend a bird. | Señuelos sobre la subestación desde el brazo oeste, y un dron de ataque real entre ellos. Acérquense y márquenlos antes de gastar un aparato. |
+| itaipu-6-g-boats | twist A, its boats born `+6` | CREST | firm | Boats on the east intakes. Somebody leave the lines and get down to the water. | Lanchas sobre las tomas del este. Que alguien deje las líneas y baje al agua. |
+| itaipu-6-g-wires | twist B, its Strikers born `+6` | CREST | firm | They're under the wires. Come at them from above the lines, never between them. | Van bajo los cables. Atáquenlos por encima de las líneas, nunca entre los cables. |
+| itaipu-6-g-scout | twist C, the Scout born `+7` | CREST | firm | Climb to the scout over the east corridor and kill it. Alive, it guides their last run in. | Suban hasta el explorador sobre el corredor este y derríbenlo. Si sigue vivo, guía su último ataque. |
+| itaipu-6-g-island | stage 4 `enter+5` | CREST | firm | Hold the last corridor. They come at it from both ends. Split the squad, one end each. | Sostengan el último corredor. Vienen por los dos extremos. Divídanse, un extremo cada uno. |
+
 ### What the player learns
 
 Split the squad on purpose; spotting is a weapon; the grid is a network,
@@ -1576,7 +1607,7 @@ hold the one thing that fixes it.
 | 3 | 15 | 4 |
 | 4 | 14 | 4 |
 | 5 | 15 (MIRADOR's spotting call added on branch w46-m5b) | 4 |
-| 6 | 14 | 4 |
+| 6 | 14 (and 8 guide lines, written on branch w47-m6) | 4 |
 | 7 | 18 | 5 |
 | Shared calls (1.8) and Contain (1.9) | 17 | |
 | Total | 133 | 32 |

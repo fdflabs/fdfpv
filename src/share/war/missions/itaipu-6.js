@@ -56,8 +56,11 @@
  * clock into the night over NIGHT_MS (src/share/daytime.js missionClock),
  * so the yard and the islanding are flown at night with the towns lit.
  *
- * THE RADIO is the shared calls only until the mission's own lines are
- * voiced; the nudge is CREST's shared one.
+ * THE RADIO is the stages' cues (MISSIONS.md M6 Radio: DESPACHO, CREST,
+ * MIRADOR), the countdown's two lines, DESPACHO's and CREST's, the
+ * debriefs (`radio`), and CREST's guide (`itaipu-6-g-*`, MISSIONS.md M6
+ * Guide): what to do now, after each stage's story, each dropped once
+ * what it is about is down; the nudge is CREST's shared one.
  *
  * THE DIALS (MISSIONS.md 1.4), as First Light's: each group's time in a
  * window, the decoys' bearing, the boats' route, the twist, and stage
@@ -196,6 +199,10 @@ function exits(when, to, after, why) {
   ];
 }
 const STAGE_LOST = { when: { allOut: true }, radio: 'stage-lost' };
+/* DESPACHO on the first tower down in a stage (MISSIONS.md M6's
+ * itaipu-6-s2-tower: "a tower hit"), in every stage before the
+ * islanding. */
+const TOWER_DOWN = { when: { hit: 'tower' }, radio: 'itaipu-6-s2-tower' };
 const PROTECT = { id: 'towers', text: 'war.obj.itaipu_6.towers', kind: 'protect' };
 
 /* A Strikers' group along a corridor, spottable. */
@@ -231,7 +238,12 @@ function yard(id, twist, objective, cues, more = {}) {
         id: 'twist', kind: 'kill', show: { born: { group: 'twist' } }, done: { down: { group: 'twist' } }, fail: { leaked: 1, group: 'twist' }, ...objective,
       },
     ],
-    cues: [...cues, STAGE_LOST],
+    cues: [
+      { when: { born: { group: 'yard' } }, at: 6, radio: 'itaipu-6-g-yard', skip: { down: { group: 'yard' } } },
+      ...cues,
+      TOWER_DOWN,
+      STAGE_LOST,
+    ],
     exits: islandExits(more.ends ?? { cleared: true }),
   };
 }
@@ -261,7 +273,12 @@ function island(id, all, from, side, text) {
     objectives: [{
       id: 'island', text, kind: 'hold', ms: ISLAND_MS, targets: all, fail: { hit: all }, island: townsOf(side),
     }],
-    cues: [STAGE_LOST],
+    cues: [
+      { at: 1, radio: 'itaipu-6-s4-island' },
+      { at: 5, radio: 'itaipu-6-g-island', skip: { objective: 'island', is: 'failed' } },
+      { when: { objective: 'island', is: 'done' }, radio: 'itaipu-6-s4-done' },
+      STAGE_LOST,
+    ],
     /* The last: lost or held, the mission is won if the output is still
      * over the floor when it ends (as First Light's). */
     exits: exits({
@@ -297,10 +314,12 @@ export default withWaves({
   airframes: 4,
   /* Day two, dusk (MISSIONS.md M6 "Time: golden then night lights"). */
   time: 'golden',
-  /* The shared calls, as the drill's, until the mission's own are voiced. */
-  radio: { brief: [], win: 'win', lose: 'lose-output' },
+  radio: { brief: ['itaipu-6-s0-brief', 'itaipu-6-s0-rules'], win: 'debrief-itaipu-6-win', lose: 'debrief-itaipu-6-lose' },
   /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
   nudge: true,
+  /* When the face opens (src/share/war/contain.js, MISSIONS.md 1.9): the
+   * mission's own line after the opening is called, DESPACHO's. */
+  contain: { op: 'itaipu-6-op' },
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
   adapt: true,
   sectors: {
@@ -322,7 +341,13 @@ export default withWaves({
         },
       ],
       objectives: [PROTECT],
-      cues: [STAGE_LOST],
+      cues: [
+        { when: { born: { group: 'west' } }, at: 2, radio: 'itaipu-6-s1-lines' },
+        { when: { born: { group: 'west' } }, at: 7, radio: 'itaipu-6-g-west', skip: { gone: { group: 'west' } } },
+        { when: { born: { group: 'east' } }, at: 3, radio: 'itaipu-6-g-east', skip: { gone: { group: 'east' } } },
+        TOWER_DOWN,
+        STAGE_LOST,
+      ],
       exits: exits({ cleared: true }, 'spread', BEAT(12, 12)),
     },
     {
@@ -350,7 +375,13 @@ export default withWaves({
         spotObj('w-far', 'war.obj.itaipu_6.spot_w_far'),
         spotObj('e-far', 'war.obj.itaipu_6.spot_e_far'),
       ],
-      cues: [STAGE_LOST],
+      cues: [
+        { at: 1, radio: 'itaipu-6-s2-spread' },
+        { at: 5, radio: 'itaipu-6-g-spread' },
+        { when: { spot: {} }, radio: 'itaipu-6-s2-spotted' },
+        TOWER_DOWN,
+        STAGE_LOST,
+      ],
       exits: exits({ cleared: true }, { pick: ['yard-cover', 'yard-wires', 'yard-eyes'] }, BEAT(15, 15)),
     },
     /* Twist A, the corridor is cover: boats on the east intakes while the
@@ -359,14 +390,20 @@ export default withWaves({
       {
         at: [20, 35], kind: 'boat', n: 2, per: 0.5, route: { sector: 'WATER' }, target: INTAKES_EAST, spread: 15, group: 'twist', spot: true,
       },
-    ], { text: 'war.obj.itaipu_6.boats' }, []),
+    ], { text: 'war.obj.itaipu_6.boats' }, [
+      { when: { born: { group: 'twist' } }, at: 2, radio: 'itaipu-6-ta-turn' },
+      { when: { born: { group: 'twist' } }, at: 6, radio: 'itaipu-6-g-boats', skip: { down: { group: 'twist' } } },
+    ]),
     /* Twist B, under the wires: Strikers inside the east corridor at its
      * wires' height, each crossing STRIKE_B to take one. */
     yard('yard-wires', [
       {
         at: [20, 35], kind: 'strike', n: 1, per: 0.25, route: 'corridor-east-wires', sector: 'LINES', target: E_WIRES, spread: 0, group: 'twist', spot: true, strikeP: STRIKE_B,
       },
-    ], { text: 'war.obj.itaipu_6.wires' }, []),
+    ], { text: 'war.obj.itaipu_6.wires' }, [
+      { when: { born: { group: 'twist' } }, at: 2, radio: 'itaipu-6-tb-turn' },
+      { when: { born: { group: 'twist' } }, at: 6, radio: 'itaipu-6-g-wires', skip: { gone: { group: 'twist' } } },
+    ]),
     /* Twist C, eyes on the lines: a Scout over the east corridor. Alive or
      * gone home, stage 4 flies exactly; killed, its attackers draw their
      * error (the room's rule, as The Long Night's twist C). Over, as
@@ -376,7 +413,10 @@ export default withWaves({
       {
         at: [4, 8], kind: 'scout', n: 1, per: 0, route: 'corridor-orbit', group: 'twist', spot: true,
       },
-    ], { text: 'war.obj.itaipu_6.scout', fail: { left: 1, group: 'twist' } }, [], { ends: { all: [{ any: [{ down: { group: 'twist' } }, { left: 1, group: 'twist' }, { time: 80 }] }, { cleared: true }] } }),
+    ], { text: 'war.obj.itaipu_6.scout', fail: { left: 1, group: 'twist' } }, [
+      { when: { born: { group: 'twist' } }, at: 3, radio: 'itaipu-6-tc-turn' },
+      { when: { born: { group: 'twist' } }, at: 7, radio: 'itaipu-6-g-scout', skip: { any: [{ down: { group: 'twist' } }, { left: 1, group: 'twist' }] } },
+    ], { ends: { all: [{ any: [{ down: { group: 'twist' } }, { left: 1, group: 'twist' }, { time: 80 }] }, { cleared: true }] } }),
     island('island-west', W_ALL, [
       {
         at: [2, 6], kind: 'strike', n: 2, per: 0.75, route: 'corridor-west-far', sector: 'LINES', target: W_FAR, spread: 25, group: 'outer', spot: true,
