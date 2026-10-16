@@ -104,7 +104,10 @@
  *                                           (src/share/war/films,
  *                                           briefingMs), which every
  *                                           screen plays
- *                                           (src/render/warintro.js)
+ *                                           (src/render/warintro.js),
+ *                                           then the mission brief
+ *                                           card's CARD_MS
+ *                                           (src/ui/briefcard.js)
  *   { type: 'war', op: 'start', mission, from: 'checkpoint' }
  *                                           after a loss, that mission
  *                                           again from the stage it was
@@ -113,8 +116,10 @@
  *
  * A start of a campaign mission not yet released (its `release` in its
  * file, src/share/war/missions; campaign.js released) is refused 'unreleased', whatever the client showed.
- *   { type: 'war', op: 'skipIntro' }        cut the briefing short: the
- *                                           countdown starts now; refused
+ *   { type: 'war', op: 'skipIntro' }        the card's Deploy: the
+ *                                           briefing ends and the
+ *                                           countdown starts now; while
+ *                                           the film still runs, refused
  *                                           'unwatched' unless every pilot
  *                                           here has seen this film's
  *                                           version (docs/campaign/
@@ -141,7 +146,10 @@
  *
  *   { type: 'war', op: 'lost' }             my airframe is lost
  *   { type: 'war', op: 'ready' }            ready for what comes next
- *                                           (a stage's { ready })
+ *                                           (a stage's { ready }); in a
+ *                                           briefing, the card's Deploy
+ *                                           of a pilot who is not the
+ *                                           host (the view's `deployed`)
  *
  * and any pilot, any time: { type: 'war', op: 'seen', films: { id:
  * version } }, the films this pilot has watched to the end (kept by
@@ -294,6 +302,7 @@ import { released } from '../../src/game/campaign.js';
 import { STRIKE_P, wireStrike } from '../../src/share/war/wires.js';
 import { contactAt } from '../../src/share/war/contact.js';
 import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
+import { CARD_MS } from '../../src/share/war/intro.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
 import {
   attackerCharge, blast, defenderCharge, healthOf, leafMoved,
@@ -829,6 +838,8 @@ export class RoomWar {
        * host's skip waits on all of them). */
       film: { id: filmFor(mission).id, version: filmFor(mission).version },
       seen: this.seenHere(core),
+      /* The seats here that pressed the brief card's Deploy (ready). */
+      deployed: Object.keys(m.deployed ?? {}).map(Number).filter((seat) => here.has(seat)),
       f: m.f,
       wave: m.wave,
       waves: wavesOf(this.stages()).length,
@@ -1243,7 +1254,7 @@ export class RoomWar {
     /* A mission's prepMs lengthens its countdown: the night raid's, so
      * every screen has built its night world and seated its pilot well
      * before the go, never after it (itaipu-4.js). */
-    const goAt = (briefAt ?? Math.ceil(core.roomMs(now))) + (briefAt == null ? 0 : briefingMs(mission)) + COUNTDOWN_MS + (mission.prepMs ?? 0);
+    const goAt = (briefAt ?? Math.ceil(core.roomMs(now))) + (briefAt == null ? 0 : briefingMs(mission) + CARD_MS) + COUNTDOWN_MS + (mission.prepMs ?? 0);
     this.match = {
       id: this.nextId,
       startedAt: now,
@@ -1390,17 +1401,19 @@ export class RoomWar {
     });
   }
 
-  /* The host cuts the briefing short: the countdown runs from now, for
-   * everybody, once every pilot here has seen the film (a first viewing
-   * is never cut, INTROS.md section 3; the host's own skip then leaves
-   * only its own view). Nothing outside a briefing, so a late or repeated
-   * skip cannot move a countdown already under way. */
+  /* The host's Deploy on the brief card ends the briefing: the countdown
+   * runs from now, for everybody. Before the film's end only once every
+   * pilot here has seen it (a first viewing is never cut, INTROS.md
+   * section 3; a skip then leaves only its own view on the card); after
+   * it, the card's span is all that is cut. Nothing outside a briefing,
+   * so a late or repeated press cannot move a countdown under way. */
   skipIntro(core, conn, now) {
     const m = this.match;
     if (!m || m.state !== 'briefing') {
       return [];
     }
-    if (this.seenHere(core).length < this.players(core).length) {
+    const filmOver = core.roomMs(now) >= m.briefAt + briefingMs(this.mission());
+    if (!filmOver && this.seenHere(core).length < this.players(core).length) {
       return this.error(conn, 'unwatched');
     }
     m.goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
@@ -2819,9 +2832,15 @@ export class RoomWar {
     });
   }
 
-  /* A pilot says it is ready for what comes next: a stage's { ready }. */
+  /* A pilot says it is ready for what comes next: a stage's { ready },
+   * or in a briefing the brief card's Deploy, which only the host's ends
+   * (skipIntro) and the others' show on every card. */
   ready(core, conn, s, now) {
     const m = this.match;
+    if (m && m.state === 'briefing') {
+      m.deployed = { ...m.deployed, [s.seat]: Math.ceil(core.roomMs(now)) };
+      return this.changed(core);
+    }
     if (!m || m.state !== 'live' || !m.stage) {
       return this.error(conn, 'off');
     }

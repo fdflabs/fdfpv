@@ -1,9 +1,9 @@
 /*
  * intro.js: how long the war mode's default intro film runs, the room's
  * briefing for a mission with no film of its own (src/share/war/films,
- * film.js). Each mission's own is films/index.js briefingMs(mission);
- * this is the default's, which the room's checks use for their test
- * missions.
+ * film.js), and how long the mission brief card after any film holds.
+ * Each mission's own film is films/index.js briefingMs(mission); this is
+ * the default's, which the room's checks use for their test missions.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -26,3 +26,10 @@ import { briefingMs } from './films/index.js';
 /* The default film's whole length: the briefing of a mission without a
  * film of its own. */
 export const INTRO_MS = briefingMs(null);
+
+/* The mission brief card's span (src/ui/briefcard.js), after the film and
+ * before the countdown, in a room's briefing of either campaign
+ * (edge/rooms/war.js, ops.js): the host's Deploy cuts it short. 30 s is a
+ * card of about 120 words read at 4 a second, the last pilot's to finish
+ * it; a pilot who has read it presses Deploy. */
+export const CARD_MS = 30000;
