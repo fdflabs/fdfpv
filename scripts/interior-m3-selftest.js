@@ -294,6 +294,11 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     watch(e, c, 'v1-people', () => clsOf(e, 'v1') === 'civilian', 120000, 'v1 people seen leaving');
     watch(e, c, 'v2', () => e.r.ops.match.choices?.v2?.value === 'empty', 300000, 'v2 empty');
     watch(e, c, 'v3', () => clsOf(e, 'v3') === 'hostile', 300000, 'v3 meets');
+    {
+      const v3 = poseOf(e, 'v3');
+      const by = ['radio-man', 'command-2'].map((id) => poseOf(e, id)).filter(Boolean).map((p) => Math.round(Math.hypot(p[0] - v3[0], p[1] - v3[1])));
+      check('vehicle 3 met somebody: the command site\'s two within 100 m when it turns HOSTILE', by.length === 2 && Math.max(...by) < 100, JSON.stringify(by));
+    }
     until(e, stageIs(e, 'M3_CP_RELAY'), 30000, 'stage 4');
     check('the three pickups: CIVILIAN, EMPTY, HOSTILE CONFIRMED', clsOf(e, 'v1') === 'civilian' && clsOf(e, 'v3') === 'hostile' && view(e).stage.id === 'M3_CP_RELAY');
     as(e, 'recon');

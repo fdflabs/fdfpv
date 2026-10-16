@@ -400,7 +400,9 @@ export default {
         /* The three leave a few seconds apart. */
         { at: 5, spawn: [{ id: 'v1', route: 'm3-v1' }], radio: ['int3-s3-chassis', 'int3-s3-answers'] },
         { at: 11, spawn: [{ id: 'v2', route: 'm3-v2' }] },
-        { at: 17, spawn: [{ id: 'v3', route: 'm3-v3' }] },
+        /* The command site's two are there before vehicle 3 arrives, so
+         * the meeting that makes it HOSTILE has somebody at it. */
+        { at: 17, spawn: [{ id: 'v3', route: 'm3-v3' }, { id: 'radio-man', route: 'm3-radio-op' }, { id: 'command-2', route: 'm3-command-2' }] },
         { at: 6, radio: 'int3-tr-contact', heard: TRACKER },
         { when: { route: 'v1', point: 'v1-stopped' }, at: 4, spawn: [{ id: 'v1-people', route: 'm3-v1-people' }] },
         {
@@ -449,9 +451,7 @@ export default {
         { id: 'rule', text: 'ops.rule.confirmed_only', tier: 'rule' },
       ],
       cues: [
-        {
-          at: 0, card: 'card.primary_updated', spawn: [{ id: 'radio-man', route: 'm3-radio-op' }, { id: 'command-2', route: 'm3-command-2' }],
-        },
+        { at: 0, card: 'card.primary_updated' },
         /* The forward feed's loss is told, not drawn (CONTRACT-M3.md gap 4). */
         { when: { zone: 'command', roles: ['recon'] }, radio: ['int3-s4-losing', 'int3-s4-both', 'int3-s4-normal', 'int3-s4-talk', 'int3-s4-cando'], search: { id: 'relay-volume', at: GA('relay'), r: 350 } },
         { when: { zone: 'command', roles: ['recon'] }, at: 2, radio: 'int3-re-volume', heard: RELAY },
