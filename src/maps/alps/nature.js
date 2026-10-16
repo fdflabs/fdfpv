@@ -149,9 +149,11 @@ function beech() {
   ]);
 }
 
-/* One instanced mesh from a list of { x, y, z, yaw, sx, sy, sz }. */
-function instanced(geo, mat, places, name) {
+/* One instanced mesh from a list of { x, y, z, yaw, sx, sy, sz }, each
+ * instance tinted by tint(place, colour) when it is given. */
+function instanced(geo, mat, places, name, tint = null) {
   const mesh = new THREE.InstancedMesh(geo, mat, places.length);
+  const colour = new THREE.Color();
   const m = new THREE.Matrix4();
   const p = new THREE.Vector3();
   const q = new THREE.Quaternion();
@@ -167,6 +169,9 @@ function instanced(geo, mat, places, name) {
     s.set(t.sx, t.sy, t.sz);
     m.compose(p, q, s);
     mesh.setMatrixAt(i, m);
+    if (tint) {
+      mesh.setColorAt(i, tint(t, colour));
+    }
   });
   mesh.castShadow = true;
   mesh.name = name;
@@ -818,6 +823,33 @@ export function buildFoam(ctx, sites) {
 }
 
 /*
+ * No two trees of a species the same green. A stand of one geometry in
+ * one colour read as a printed pattern from the air; a forest is old and
+ * young trees, sun and shade, a sick one here and there. Per species,
+ * how far a tree's lightness strays either way and the colour the
+ * darker and the lighter ones lean to (linear multipliers). Read from
+ * the tree's own position, never from the forest's rng, so no tree moves
+ * and no collider with it.
+ */
+const TREE_TINTS = {
+  spruceTall: { spread: 0.22, dark: [0.86, 0.95, 1.06], light: [1.08, 1.06, 0.9] },
+  spruceSquat: { spread: 0.22, dark: [0.86, 0.95, 1.06], light: [1.08, 1.06, 0.9] },
+  larch: { spread: 0.2, dark: [0.92, 1.0, 0.96], light: [1.14, 1.06, 0.82] },
+  beech: { spread: 0.26, dark: [0.9, 0.98, 1.0], light: [1.12, 1.07, 0.8] },
+};
+function treeTint({ spread, dark, light }) {
+  return (t, out) => {
+    let h = Math.imul(Math.round(t.x * 8) + 7919, 374761393) ^ Math.imul(Math.round(t.z * 8) + 104729, 668265263);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    const u = ((h ^ (h >>> 16)) >>> 0) / 4294967296 * 2 - 1;
+    const lean = u < 0 ? dark : light;
+    const k = Math.abs(u);
+    const l = 1 + u * spread;
+    return out.setRGB(l * (1 + (lean[0] - 1) * k), l * (1 + (lean[1] - 1) * k), l * (1 + (lean[2] - 1) * k));
+  };
+}
+
+/*
  * TREES. Spruce from the foot of the walls to the tree line, larch
  * taking over toward it, beech at the foot of the walls and on the
  * floor along the stream and in the fields, all where forestDensity
@@ -918,9 +950,10 @@ export function buildForests(ctx, sites) {
     plant('beech', x, y, z, 0.8 + rng() * 0.8);
   }
   for (const name of Object.keys(species)) {
+    const tint = treeTint(TREE_TINTS[name]);
     stands[name].forEach((places, b) => {
       if (places.length) {
-        scene.add(instanced(species[name].geo, treeMat, places, `${name}-${b}`));
+        scene.add(instanced(species[name].geo, treeMat, places, `${name}-${b}`, tint));
       }
     });
   }

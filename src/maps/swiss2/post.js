@@ -87,6 +87,10 @@ import { rainBeta } from '../../render/rainair.js';
  * weighted deviation, 0.5 stops for lake-high to 1.6 into the sun),
  * between 1 and slopeMax. slope is the fixed one for a preset with no
  * meter, what spread gives the typical view's 0.75 stops.
+ *
+ * A map's air may also carry `grade` ({ saturation, white, lift }, each
+ * optional: 1, [1, 1, 1] and [0, 0, 0] when left out), its own print
+ * after the slope; the valley's has none (docs/LOOK.md).
  */
 export const AIR = {
   beta: new THREE.Vector3(5.6e-5, 7.5e-5, 10.6e-5),
@@ -415,6 +419,9 @@ const PhotoShader = {
     uGrain: { value: 0 },
     uFrame: { value: 0 },
     uGlare: { value: new THREE.Color(0, 0, 0) },
+    uSaturation: { value: 1 },
+    uWhite: { value: new THREE.Vector3(1, 1, 1) },
+    uLift: { value: new THREE.Vector3(0, 0, 0) },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -448,6 +455,9 @@ const PhotoShader = {
     uniform float uGrain;
     uniform float uFrame;
     uniform vec3 uGlare;
+    uniform float uSaturation;
+    uniform vec3 uWhite;
+    uniform vec3 uLift;
 
     ${AIR_GLSL}
 
@@ -572,6 +582,14 @@ const PhotoShader = {
       l1 = l1 < 0.14 ? 0.14 * exp((l1 - 0.14) / 0.14) : l1;
       l1 = l1 > 0.85 ? 1.0 - 0.15 * exp((0.85 - l1) / 0.15) : l1;
       dv = clamp(dv * (l1 / l0), 0.0, 1.0);
+      #ifdef PRINT_GRADE
+        /* The world's own grade (air.grade, docs/LOOK.md), on the print's
+         * display values: saturation about the lightness, a white balance,
+         * and a lift that tints the shadows and leaves white white. */
+        float lg = dot(dv, vec3(0.2126, 0.7152, 0.0722));
+        dv = mix(vec3(lg), dv, uSaturation) * uWhite;
+        dv = clamp(dv + uLift * (1.0 - dv), 0.0, 1.0);
+      #endif
       c = pow(dv, vec3(2.2));
       c *= 1.0 - uVignette * smoothstep(0.16, 0.55, r2);
       vec3 lo = c * 12.92;
@@ -728,6 +746,11 @@ class PhotoPass extends Pass {
     if (lens.grain > 0) {
       defines.LENS_GRAIN = '';
     }
+    /* Compiled in only for a world that grades, so one that does not
+     * draws the same pixels at the same cost as before it could. */
+    if (air.grade) {
+      defines.PRINT_GRADE = '';
+    }
     this.material = new THREE.ShaderMaterial({
       defines,
       uniforms: THREE.UniformsUtils.clone(PhotoShader.uniforms),
@@ -755,6 +778,12 @@ class PhotoPass extends Pass {
     u.uKey.value = air.meterKey ?? KEY;
     u.uContrast.value = air.contrast;
     u.uSlope.value = air.slope;
+    if (air.grade) {
+      const { saturation = 1, white = [1, 1, 1], lift = [0, 0, 0] } = air.grade;
+      u.uSaturation.value = saturation;
+      u.uWhite.value.fromArray(white);
+      u.uLift.value.fromArray(lift);
+    }
     this.fsQuad = new FullScreenQuad(this.material);
   }
 

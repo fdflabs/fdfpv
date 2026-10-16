@@ -154,6 +154,11 @@ export function hitCall(ev) {
   if (/^gantry-/.test(ev.target)) {
     return str('war.hit.gantry');
   }
+  /* A corridor's tower (mission 6): its line's mw, or none once another
+   * tower of that line is down (stages.js worthOf). */
+  if (/^tower-/.test(ev.target)) {
+    return ev.mw === 0 ? str('war.hit.tower_line') : str('war.hit.tower', { mw: mw(ev.mw) });
+  }
   if (ev.mw === 0) {
     return str('war.hit.down');
   }

@@ -15,6 +15,7 @@
  *   - the pilot's own FPV camera: a marker or an arrow for every one
  *   - mission 5's carrier: tagged CARRIER in orange, its model a hull
  *     bigger than a sea drone's
+ *   - a spotted decoy: marked as a decoy at any range (mission 6)
  *   - a spotted carrier: LAUNCHING in orange, the silent one EMPTY HULL
  *     in yellow
  *   - an attacker the room says is hurt (a carrier hit once) burns,
@@ -454,12 +455,22 @@ try {
       return s && dc ? { strike: [s.tag, s.colour], decoy: [dc.tag, dc.colour] } : null;
     };
     const out = { far: await at(1000), near: await at(200) };
+    /* Spotted (roomwar's spotted, routes.js spottedAs: its kind), a decoy
+     * reads as one at any range, the Striker as before. */
+    const list = [{ id: 1, kind: 'strike', p: [-40, 400, -1000], q, spotted: 'strike' }, { id: 2, kind: 'decoy', p: [40, 400, -1000], q, spotted: 'decoy' }];
+    mk.update(list, 0, [], null, 0, 400, 0);
+    await null;
+    const m = mk.shown().marks;
+    out.spotted = { strike: [m.find((k) => k.id === 1)?.tag, m.find((k) => k.id === 1)?.colour], decoy: [m.find((k) => k.id === 2)?.tag, m.find((k) => k.id === 2)?.colour] };
     mk.clear();
     return out;
   })()`);
   check('a decoy is marked exactly as a Striker until 300 m, and as a decoy inside it', decoy && decoy.far
     && JSON.stringify(decoy.far.strike) === JSON.stringify(decoy.far.decoy) && decoy.near && decoy.near.decoy[0] !== decoy.near.strike[0],
   JSON.stringify(decoy));
+  check('a spotted decoy is marked as a decoy at 1 km, as it is inside 300 m; a spotted Striker as a Striker',
+    decoy && decoy.spotted && JSON.stringify(decoy.spotted.decoy) === JSON.stringify(decoy.near.decoy) && JSON.stringify(decoy.spotted.strike) === JSON.stringify(decoy.far.strike),
+    JSON.stringify(decoy && decoy.spotted));
   /* Mission 5's carrier (src/share/war/routes.js KINDS): its own tag,
    * orange as what goes for the dam (what it launches does), and its model
    * a hull longer and higher than a sea drone's, with its pieces to throw. */

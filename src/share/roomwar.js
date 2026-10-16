@@ -50,7 +50,9 @@
  */
 
 import { decodeAgents, decodeHunts } from './roomwire.js';
-import { KINDS, planAgent, poseAt } from './war/routes.js';
+import {
+  KINDS, planAgent, poseAt, spottedAs,
+} from './war/routes.js';
 import { EXTRAP_MAX_MS } from '../game/peer.js';
 import { MISSIONS } from './war/missions/index.js';
 import { WATCH_SEAT } from './roomrace.js';
@@ -133,7 +135,8 @@ export function createRoomWar(send) {
   /* id -> { a (birth record), plan, samples ([{ t, p, q }], hunters),
    * hunts (a hunter's target seat, null for none, undefined unheard),
    * hp (the hit points a hurt one has left, null while it is whole),
-   * spotted ('launching' or 'silent' once spotted, else null) }. */
+   * spotted (what it was seen to be once spotted, routes.js spottedAs,
+   * else null) }. */
   let agents = new Map();
   /* What happened since the shell last asked, oldest first. */
   let events = [];
@@ -301,7 +304,7 @@ export function createRoomWar(send) {
         (m.ids || []).forEach((id, i) => {
           const x = agents.get(id);
           if (x) {
-            x.spotted = (m.silent || [])[i] ? 'silent' : 'launching';
+            x.spotted = spottedAs(x.a.kind, Boolean((m.silent || [])[i]));
           }
         });
       } else if (m.op === 'stall') {
@@ -381,7 +384,8 @@ export function createRoomWar(send) {
      * [x, y, z, w] }], scene world metres, y up, in id order, and on a
      * hunter whose HUNTS has been heard, hunts: the seat it chases or
      * null; on one hurt and alive (a carrier hit once), hp: what it has
-     * left; on one spotted, spotted: 'launching' or 'silent'. Only while a war is live; none before its birth or past its
+     * left; on one spotted, spotted: what it was seen to be (routes.js
+     * spottedAs). Only while a war is live; none before its birth or past its
      * route's end.
      */
     attackersAt(t) {
