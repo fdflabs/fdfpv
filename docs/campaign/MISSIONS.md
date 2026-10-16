@@ -960,7 +960,7 @@ unchanged), and voiced en and es on the Orin, Whisper checked.
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
 | itaipu-3-s1-learn | stage 1 `cleared`, after s1-clear | CREST | calm | This morning they timed us. This afternoon they read the gates. Now they've learned to lie. | Esta mañana nos midieron. Esta tarde leyeron las compuertas. Ahora aprendieron a mentir. |
-| itaipu-3-s4-carancho | The Dark, after s4-dark | CARANCHO | calm | Crest, Carancho. Lights are on downriver too. We're holding the river through the night. | Carancho. Río abajo también se encendieron las luces. Vamos a sostener el río toda la noche. |
+| itaipu-3-s4-carancho | Reroute over (its exit's own trigger), into the beat before The Dark | CARANCHO | calm | Crest, Carancho. Lights are on downriver too. We're holding the river through the night. | Carancho. Río abajo también se encendieron las luces. Vamos a sostener el río toda la noche. |
 
 ### What the player learns
 

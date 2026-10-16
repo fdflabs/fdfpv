@@ -133,6 +133,11 @@ function exits(when, to, after, why) {
   ];
 }
 const STAGE_LOST = { when: { allOut: true }, radio: 'stage-lost' };
+/* Reroute is over: its hold done or failed, and nothing left but scouts
+ * (its exit, and the line said as it ends). */
+const REROUTE_OVER = {
+  all: [{ any: [{ objective: 'reroute', is: 'done' }, { objective: 'reroute', is: 'failed' }] }, { cleared: true }],
+};
 
 /* Stage 3, the same in each of its twists but the twist's groups, its
  * objective (on the HUD once the twist is born, so the entry does not give
@@ -171,10 +176,12 @@ function reroute(id, twist, objective, cues) {
       { when: { objective: 'reroute', is: 'failed' }, radio: 'itaipu-3-s3-failed' },
       ...cues,
       STAGE_LOST,
+      /* The arc's thread (docs/campaign/BIBLE.md 10), last in the list so
+       * no cue before it draws again: as the stage ends (its exit's own
+       * trigger), into the beat before The Dark, the towns lit. */
+      { when: REROUTE_OVER, radio: 'itaipu-3-s4-carancho' },
     ],
-    exits: exits({
-      all: [{ any: [{ objective: 'reroute', is: 'done' }, { objective: 'reroute', is: 'failed' }] }, { cleared: true }],
-    }, 'dark', BEAT(15, 15)),
+    exits: exits(REROUTE_OVER, 'dark', BEAT(15, 15)),
   };
 }
 
@@ -325,9 +332,6 @@ export default withWaves({
         { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-3-s4-all' },
         { when: { born: { group: 'high' } }, at: 6, radio: 'itaipu-3-s4-order' },
         { when: { born: { group: 'high' } }, at: 10, radio: 'itaipu-3-g-dark' },
-        /* The arc's thread (docs/campaign/BIBLE.md 10), last in the list so
-         * no cue before it draws again. */
-        { at: 1, radio: 'itaipu-3-s4-carancho' },
       ],
       exits: exits({ cleared: true }, 'won', 0, 'waves'),
     },

@@ -743,7 +743,7 @@
     { "id": "itaipu-3-s4-dark", "group": "mission", "speaker": "crest", "delivery": "calm", "notes": "Mission 3 stage 4 opens. The Dark opens at night with the towns lit (T1.11, the Reroute's dusk), so the table's line.",
       "en": "Lights are on in town. Anything we lose now, they'll see from their kitchens.",
       "es": "Se encendieron las luces del pueblo. Lo que perdamos ahora se va a ver desde las cocinas." },
-    { "id": "itaipu-3-s4-carancho", "group": "mission", "speaker": "carancho", "delivery": "calm", "notes": "Mission 3, The Dark opens, after CREST's \"Lights are on in town.\" The lights downriver too, and the promise mission 5 opens on: they hold the river through the night (BIBLE.md 10).",
+    { "id": "itaipu-3-s4-carancho", "group": "mission", "speaker": "carancho", "delivery": "calm", "notes": "Mission 3, the Reroute over, in the beat before The Dark, the towns lit by the dusk the hold ran. The lights downriver too, and the promise mission 5 opens on: they hold the river through the night (BIBLE.md 10).",
       "en": "Crest, Carancho. Lights are on downriver too. We're holding the river through the night.",
       "es": "Carancho. Río abajo también se encendieron las luces. Vamos a sostener el río toda la noche." },
     { "id": "itaipu-3-s4-all", "group": "mission", "speaker": "mirador", "delivery": "urgent", "notes": "Mission 3 stage 4, the Loiterers born.",
