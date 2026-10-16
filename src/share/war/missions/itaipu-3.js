@@ -242,6 +242,9 @@ export default withWaves({
         { when: { born: { group: 'pair' } }, at: 2, radio: 'itaipu-3-s1-pair' },
         { when: { cleared: true }, radio: 'itaipu-3-s1-clear' },
         STAGE_LOST,
+        /* The arc's thread (docs/campaign/BIBLE.md 10), last in the list so
+         * no cue before it draws again. */
+        { when: { cleared: true }, radio: 'itaipu-3-s1-learn' },
       ],
       exits: exits({ cleared: true }, 'lie', BEAT(12, 12)),
     },
@@ -322,6 +325,9 @@ export default withWaves({
         { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-3-s4-all' },
         { when: { born: { group: 'high' } }, at: 6, radio: 'itaipu-3-s4-order' },
         { when: { born: { group: 'high' } }, at: 10, radio: 'itaipu-3-g-dark' },
+        /* The arc's thread (docs/campaign/BIBLE.md 10), last in the list so
+         * no cue before it draws again. */
+        { at: 1, radio: 'itaipu-3-s4-carancho' },
       ],
       exits: exits({ cleared: true }, 'won', 0, 'waves'),
     },

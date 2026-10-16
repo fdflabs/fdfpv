@@ -265,6 +265,9 @@ export default withWaves({
         { when: { killed: 1 }, radio: 'itaipu-1-s3-hold' },
         { when: { cleared: true }, radio: 'itaipu-1-s3-clear' },
         STAGE_LOST,
+        /* The arc's thread (docs/campaign/BIBLE.md 10), last in the list so
+         * no cue before it draws again. */
+        { when: { cleared: true }, radio: 'itaipu-1-s3-carancho' },
       ],
       exits: exits({ cleared: true }, { pick: ['back-door', 'low-water', 'come-for-you'] }, BEAT(15, 15)),
     },

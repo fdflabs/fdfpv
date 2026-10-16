@@ -126,6 +126,12 @@ const STAGE_LOST = { when: { allOut: true }, radio: 'stage-lost' };
  * the soonest (born 20 s in, then 125 to 136 s of flight on the N
  * routes, routes.js plans). */
 const HUNT_S = 150;
+/* The Hunters' stage is over (its exit below, and the line said as it
+ * ends): the cover gone, the Hunters down or HUNT_S passed, no closure
+ * open. */
+const HUNTERS_OUT = {
+  all: [{ gone: { group: 'cover' } }, { any: [{ down: { group: 'hunters' } }, { time: HUNT_S }] }, { contained: true }],
+};
 /* The dawn's ramp, ms: night at 22:00 to the morning's 07:47 (daytime.js
  * TIME_HOUR). The sun clears NIGHT_SIN about four fifths of the way in,
  * 190 s after Before Dawn opens, so a stage that runs its Hunters' HUNT_S
@@ -273,6 +279,9 @@ export default withWaves({
         { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-4-s2-high' },
         { when: { cleared: true }, radio: 'itaipu-4-s2-clear' },
         STAGE_LOST,
+        /* The arc's thread (docs/campaign/BIBLE.md 10), last in the list so
+         * no cue before it draws again. */
+        { when: { cleared: true }, radio: 'itaipu-4-s2-carancho' },
       ],
       exits: exits({ cleared: true }, 'hunters', BEAT(15, 15)),
     },
@@ -301,6 +310,10 @@ export default withWaves({
         { when: { born: { group: 'cover' } }, at: 2, radio: 'itaipu-4-s3-cover' },
         { when: { down: { group: 'hunters' } }, radio: 'itaipu-4-s3-down' },
         STAGE_LOST,
+        /* The arc's thread (docs/campaign/BIBLE.md 10), last in the list so
+         * no cue before it draws again, as the stage ends (its exit's own
+         * trigger), into the beat. */
+        { when: HUNTERS_OUT, radio: 'itaipu-4-s3-doors' },
       ],
       /* Survive: over when the cover is gone and the Hunters are down or
        * HUNT_S have passed. A Hunter lives until it is killed (warhunt.js
@@ -308,9 +321,7 @@ export default withWaves({
        * waited for every one of them to die would never end for a squad
        * that kept away from them. Not while the face is closing
        * (MISSIONS.md 1.9 point 4): it waits for the closure's hold. */
-      exits: exits({
-        all: [{ gone: { group: 'cover' } }, { any: [{ down: { group: 'hunters' } }, { time: HUNT_S }] }, { contained: true }],
-      }, { pick: ['station-dark', 'towns', 'dark-scout'] }, BEAT(15, 15)),
+      exits: exits(HUNTERS_OUT, { pick: ['station-dark', 'towns', 'dark-scout'] }, BEAT(15, 15)),
     },
     {
       id: 'towns',

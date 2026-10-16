@@ -162,6 +162,10 @@ const SOURCE_CUES = (at) => [
 /* CREST's guide on the source, every twist: where the hull is and what it
  * takes, after the order. */
 const SOURCE_GUIDE = { when: { born: { group: 'carrier' } }, at: 11, radio: 'itaipu-5-g-source', skip: DOWN };
+/* The act's turn (docs/campaign/BIBLE.md 10.4): MIRADOR, after TALLER
+ * marks the kill. Last in each twist's list, so no cue before it draws
+ * again. */
+const TURN = (when) => ({ when, radio: 'itaipu-5-s3-learn' });
 
 export default withWaves({
   id: 'itaipu-5',
@@ -278,6 +282,7 @@ export default withWaves({
         { when: { born: { group: 'carrier-2' } }, at: 6, radio: 'itaipu-5-g-hulls', skip: { objective: 'carrier', is: 'done' } },
         { when: { objective: 'carrier', is: 'done' }, radio: 'itaipu-5-s3-dead' },
         STAGE_LOST,
+        TURN({ objective: 'carrier', is: 'done' }),
       ],
       exits: exits({ all: [DOWN, { down: { group: 'carrier-2' } }, { cleared: true }] }, 'clear', BEAT(20, 20)),
     },
@@ -302,6 +307,7 @@ export default withWaves({
         { when: { born: { group: 'launched-hunters' } }, radio: 'itaipu-5-tb-turn' },
         { when: { born: { group: 'launched-hunters' } }, at: 4, radio: 'itaipu-5-g-deck', skip: DOWN },
         STAGE_LOST,
+        TURN(DOWN),
       ],
       /* Over when the carrier is dead and nothing is left, or its swarms
        * are gone and HUNT_S have passed: its Hunters, as stage 2's. */
@@ -325,6 +331,7 @@ export default withWaves({
         SOURCE_GUIDE,
         { when: { born: { group: 'launched' } }, at: 4, radio: 'itaipu-5-g-escort', skip: DOWN },
         STAGE_LOST,
+        TURN(DOWN),
       ],
       exits: exits({ all: [DOWN, { cleared: true }] }, 'clear', BEAT(20, 20)),
     },

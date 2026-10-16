@@ -31701,6 +31701,451 @@
     }
    },
    "machine": "orin"
+  },
+  "itaipu-1-s3-carancho.en": {
+   "text": "Crest, Carancho, on the river below. Quiet down here. The water under you is ours.",
+   "speaker": "carancho",
+   "seconds": 5.185,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4201697355,
+     "heard": "Crest, Karen Cho, on the river below, quiet down here, the water under you is ours.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 664337747,
+     "heard": "Crest, Carancho on the river below, quiet down here, the water under you is ours,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23637,
+     "sha256": "ca0a891fde9ca1869ec0a8ab869e116178998d7feaa0accb877b28ac4cdad5eb"
+    },
+    "mp3": {
+     "bytes": 24500,
+     "sha256": "5bb80190202b54301591afc0186ff9832e0308e853ca1e40abbe0f8de0c874b1"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-1-s3-carancho.es": {
+   "text": "Cresta, Carancho, en el río, aguas abajo. Tranquilo por acá. El agua de abajo la cuidamos nosotros.",
+   "speaker": "carancho",
+   "seconds": 6.925,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 389450847,
+     "heard": "Cresta, Carancho, en el río, aguas abajo. Tranquilo por acá. El agua de abajo la cuidamos nosotros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31209,
+     "sha256": "ed1244e8cf9480fc976e1c2c5c01f15f7ea705644bb10ef8d72b039c12603c15"
+    },
+    "mp3": {
+     "bytes": 31556,
+     "sha256": "9999f9f2d2dbce9e60aa8ab4353655f76c6c0549d22876edc965767d32eaa6d2"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-3-s1-learn.en": {
+   "text": "This morning they timed us. This afternoon they read the gates. Now they've learned to lie.",
+   "speaker": "crest",
+   "seconds": 5.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1695889133,
+     "heard": "This morning they timed us. This afternoon they read the gates. Now they've learned to lie.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25482,
+     "sha256": "776e102a06143f29f70c1d0b6ad14ae54c58a61894577a71afddc2b778abfb84"
+    },
+    "mp3": {
+     "bytes": 22628,
+     "sha256": "10f877de7f27839005448578dba11b8df532b2fa38cc28c22efebba4918ae206"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-3-s1-learn.es": {
+   "text": "Esta mañana nos midieron. Esta tarde leyeron las compuertas. Ahora aprendieron a mentir.",
+   "speaker": "crest",
+   "seconds": 6.095,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3397342105,
+     "heard": "Esta mañana nos midieron. Esta tarde leyeron las compuertas. Ahora aprendieron a mentir.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27804,
+     "sha256": "5840b489905c4ffcdf4efd1efc29687b0676e1f50969818ce1405ee7dffa3c1f"
+    },
+    "mp3": {
+     "bytes": 25148,
+     "sha256": "127cea8b64c6db8f143ff0b980521fb94b82eeb3845f4e01b7b7f9742dfa5cc2"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-s3-doors.en": {
+   "text": "Every time we stop them, they come back through another door.",
+   "speaker": "crest",
+   "seconds": 2.815,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3723557903,
+     "heard": "Every time we stop them they come back through another door.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13152,
+     "sha256": "68622177de51d8066526c8988087edb34123e044c1b397e172bed436786c0ab2"
+    },
+    "mp3": {
+     "bytes": 12356,
+     "sha256": "f02280c6d671bdbd9e43448384831017fc4928970043ff5994cbbd62f6f7b041"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-s3-doors.es": {
+   "text": "Cada vez que los frenamos, vuelven por otra puerta.",
+   "speaker": "crest",
+   "seconds": 3.025,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 988149026,
+     "heard": "Cada vez que los frenamos, vuelven por otra puerta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14000,
+     "sha256": "9743f0f9156bb1d4a1c97fc2508708987bd7444f2e60e969ee1bdd037e82af51"
+    },
+    "mp3": {
+     "bytes": 12884,
+     "sha256": "6fb7d368f59227e2788c6860318bfe0693d88f0a1819218e7ff48bcccf28b489"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s3-learn.en": {
+   "text": "They kept that hull back until they'd learned how we fly. They're getting ready for something.",
+   "speaker": "mirador",
+   "seconds": 5.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3556094764,
+     "heard": "They kept that hull back until they'd learned how we fly. They're getting ready for something.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24607,
+     "sha256": "e0846c1475d9e935985da7d8c3d1381b45bcb4bc2c92290ab82a80f0173ab26f"
+    },
+    "mp3": {
+     "bytes": 23780,
+     "sha256": "64bed89a2ae359f5139a483ee447c7d3191caa86ed62f8c6681aba12397771b3"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-s3-learn.es": {
+   "text": "Guardaron ese casco hasta aprender cómo volamos. Se están preparando para algo.",
+   "speaker": "mirador",
+   "seconds": 4.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2129128470,
+     "heard": "Guardaron ese casco hasta aprender cómo volamos. Se están preparando para algo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22027,
+     "sha256": "9aa7401c71baa5391bcd9342a7b71684be2aff468d5afe374fbb175034e3a6a8"
+    },
+    "mp3": {
+     "bytes": 21260,
+     "sha256": "30d8bad46985a1c4c918ae21e2854fd41b991f41aa25517586e4ebff92b4765b"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-2-s3-carancho.en": {
+   "text": "Crest, Carancho. We can see your spill from down here. The river's coming up. We're off the bank, still flying.",
+   "speaker": "carancho",
+   "seconds": 6.555,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1638517317,
+     "heard": "Crest, Karen Cho, we can see her spill from down here, the river's coming up, we're off the bank, still flying.",
+     "wer": 0.15,
+     "extra": 1,
+     "missing": [
+      "carancho",
+      "your"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3139567022,
+     "heard": "Crest, Carancho, we can see your spill from down here, the river's coming up, we're off the bank, still flying.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29675,
+     "sha256": "73c782af0f76e017848e20fd6d995cc3bcfd8c3f243dca58215a0138981ba8e9"
+    },
+    "mp3": {
+     "bytes": 30020,
+     "sha256": "9fae75a24998d77c9cd094b811140a255ed480a635c39e4d7e445f5c223f1c06"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-2-s3-carancho.es": {
+   "text": "Carancho. Vemos el vertido desde acá abajo. El río está subiendo. Salimos de la orilla, seguimos volando.",
+   "speaker": "carancho",
+   "seconds": 6.725,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2625054622,
+     "heard": "Carancho. Vemos el vertido desde acá abajo. El río está subiendo. Salimos de la orilla. Seguimos volando.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30358,
+     "sha256": "d4fddd6e8e1455e9dbb04c290cb2fc54894cf978e86233b1d94c4c655fe52702"
+    },
+    "mp3": {
+     "bytes": 30956,
+     "sha256": "b44af0566d5347e0d3d1bf5341157e6b6bef076d045d48250b9d657c54abecd5"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-3-s4-carancho.en": {
+   "text": "Crest, Carancho. Lights are on downriver too. We're holding the river through the night.",
+   "speaker": "carancho",
+   "seconds": 5.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 951290350,
+     "heard": "Crest, Carincho, lights are on downriver too, we're holding the river through the night.",
+     "wer": 0.071,
+     "extra": 0,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1310373678,
+     "heard": "Crest, Karen Cho. Lights are on downriver too. We're holding the river through the night. Um…",
+     "wer": 0.214,
+     "extra": 2,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1766975703,
+     "heard": "Crest, Karen Cho, lights are on downriver too, we're holding the river through the night.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 3121257282,
+     "heard": "Crest, Car and Cho. Lights are on downriver too. We're holding the river through the night.",
+     "wer": 0.214,
+     "extra": 2,
+     "missing": [
+      "carancho"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 1516690207,
+     "heard": "Crest, Carancho. Lights are on downriver too. We're holding the river through the night.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23033,
+     "sha256": "1ee715c3d899461e8d1fbf6c9a84bbc38be960daf18eebf8cc4c939b244d6cbd"
+    },
+    "mp3": {
+     "bytes": 23492,
+     "sha256": "7b48112d876169bd7cee00d7a791f6cb92c7ba958c19a270885ffd8a6797565f"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-3-s4-carancho.es": {
+   "text": "Carancho. Río abajo también se encendieron las luces. Vamos a sostener el río toda la noche.",
+   "speaker": "carancho",
+   "seconds": 5.875,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 863538147,
+     "heard": "Carancho. Río abajo también se encendieron las luces. Vamos a sostener el río toda la noche.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26549,
+     "sha256": "056f3657cd777585c97824705cc5c6486f3539150af0fb4828fefda3c9a1da22"
+    },
+    "mp3": {
+     "bytes": 25676,
+     "sha256": "765e98ee1407cc79f06bc259ad2377fa9298e1f237da7a8887248cef00ed6d2b"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-s2-carancho.en": {
+   "text": "Crest, Carancho. Running low on birds down here. We're holding the river until morning.",
+   "speaker": "carancho",
+   "seconds": 4.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 903867563,
+     "heard": "Crest, Carancho, running low on birds down here, we're holding the river until morning.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 20
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20599,
+     "sha256": "1eea69b05f023ea69aa50f06079b3e749bd32356b6fc3624ae7944eefcd2ae1b"
+    },
+    "mp3": {
+     "bytes": 22196,
+     "sha256": "a4076fe4a34affe239c2a097d90046af4a40c2dd5b603847714e7d748768155e"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-s2-carancho.es": {
+   "text": "Cresta, Carancho. Nos quedan pocos aparatos acá abajo. Sostenemos el río hasta la mañana.",
+   "speaker": "carancho",
+   "seconds": 5.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2960458410,
+     "heard": "Cresta, carancho. Nos quedan pocos aparatos acá abajo. Sostenemos el río hasta la mañana.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26622,
+     "sha256": "1b9dea6c828d870fcdf3e5a02144772adfdb6fa90ab575379b6f75d66310c2c3"
+    },
+    "mp3": {
+     "bytes": 27524,
+     "sha256": "54e80c2dcb85b1716478374361bde905d8656d4056d00961be007daf55533290"
+    }
+   },
+   "machine": "orin"
   }
  },
  "models": {
