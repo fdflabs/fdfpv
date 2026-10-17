@@ -199,7 +199,7 @@ function opsCard(mission, ctx) {
     threats: whys.map((w) => str(`brief.threat.ops.${w}`)),
     role: [
       {
-        label: str('brief.card.role'),
+        label: str('brief.card.role_row'),
         value: roleDef
           ? str('brief.card.role_value', { role: str(`ops.role.${roleDef.id}`), aircraft: craft(roleDef) })
           : str('brief.card.roles_open', { roles: mission.roles.map((r) => str('brief.card.role_value', { role: str(`ops.role.${r.id}`), aircraft: craft(r) })).join('; ') }),

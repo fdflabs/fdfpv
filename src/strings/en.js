@@ -3833,6 +3833,7 @@ export default {
   "brief.card.stars_note": "On a win, one star for each. All three is ★★★.",
   "brief.card.threats": "THREATS",
   "brief.card.role": "YOUR ROLE",
+  "brief.card.role_row": "Role",
   "brief.card.role_value": "{role}, in the {aircraft}",
   "brief.card.roles_open": "Dealt at random: {roles}",
   "brief.card.loadout": "Loadout",

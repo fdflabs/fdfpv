@@ -3838,6 +3838,7 @@ export default {
   "brief.card.stars_note": "Al ganar, una estrella por cada una. Las tres son ★★★.",
   "brief.card.threats": "AMENAZAS",
   "brief.card.role": "TU ROL",
+  "brief.card.role_row": "Rol",
   "brief.card.role_value": "{role}, en el {aircraft}",
   "brief.card.roles_open": "Se reparten al azar: {roles}",
   "brief.card.loadout": "Equipo",
