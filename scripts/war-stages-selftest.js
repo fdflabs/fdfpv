@@ -2538,6 +2538,15 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
     if (end.state === 'won' && (want.some((id) => !said.includes(id)) || others.some((id) => said.includes(id)) || wrongCrowd(said, g.pilots).length)) {
       bad.push(`${label}: said ${said.filter((id) => id.startsWith('itaipu-6')).join(' ')}; want ${want.filter((id) => !said.includes(id)).join(' ')}`);
     }
+    /* Twist B's objective settles before the stage leaves, however its
+     * Strikers end: a power line's kill counts as down (stages.js `down`),
+     * so one that a wire takes does not leave it open (w50-adv-b B16). */
+    if (twist === 'yard-wires') {
+      const tw = g.views.filter((v) => v.stage && v.stage.id === twist).at(-1)?.stage.objectives.find((o) => o.id === 'twist');
+      if (end.state === 'won' && !(tw && (tw.state === 'done' || tw.state === 'failed'))) {
+        bad.push(`${label}: twist ${twist}'s objective left ${tw && tw.state}`);
+      }
+    }
     /* Spotting: by a pilot here, of attackers born in the stage. */
     const kinds = new Map(g.born.map((a) => [a.id, a.kind]));
     if (g.spots.some((m) => !(m.by > 0) || m.ids.some((id) => !kinds.has(id)))) {
@@ -2555,6 +2564,8 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
     bad.filter((x) => /spots/.test(x)).join(' | '));
   check('every stage\'s story said: the lines, the spread, the twist\'s own line and no other twist\'s, the spotting call once a pilot spots, the towers\' call once one falls, the islanding; the guide on the spread',
     bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
+  check('twist B\'s objective settles, done or failed, before its stage leaves (a Striker a power line takes counts as down)',
+    bad.filter((x) => /objective left/.test(x)).length === 0, bad.filter((x) => /objective left/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
   const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
   check('the room\'s clock is the mission\'s light: the golden hour, the ramp into the night told as Spread Thin opens, the night from The Yard Again and over the end',
