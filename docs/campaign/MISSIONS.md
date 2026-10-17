@@ -1669,18 +1669,26 @@ the Orin with Whisper's check.
 | itaipu-6-g-scout | twist C, the Scout born `+7` | CREST | firm | Climb to the scout over the east corridor and kill it. Alive, it guides their last run in. | Suban hasta el explorador sobre el corredor este y derríbenlo. Si sigue vivo, guía su último ataque. |
 | itaipu-6-g-island | stage 4 `enter+5` | CREST | firm | Hold the last corridor. They come at it from both ends. Split the squad, one end each. | Sostengan el último corredor. Vienen por los dos extremos. Divídanse, un extremo cada uno. |
 
-### Story (proposed by w48-story; not wired, not voiced)
+### Story (proposed by w48-story; card and epilogues wired by w50-adv-b, radio not voiced)
 
 The arc (BIBLE.md 10) reaches here after the turn: the enemy has learned
 the defence and spends it where the squad is thinnest. The mission is
-built (w47-m6, above); this is its story in missions 1 to 5's shape, to
-wire when the owner wants it: the strings go in as
-`campaign.story.corridor` (with `_place` and `_when`) and
-`war.epilogue.itaipu_6.win` / `.lose`, which the campaign page's story
-card and the end banner already read (src/ui/campaign.js storyCard,
-src/game/debrief.js missionEpilogue), so wiring them is strings only.
-Nothing below is in a string table or lines.json, so no check reads
-it.
+built (w47-m6, above); this is its story in missions 1 to 5's shape.
+The story card and the two epilogues are wired since 2026-10-16
+(w50-adv-b, the owner's review to approve or veto): with the mission
+released and none of them in the string table, the campaign page showed
+no card before it and the end banner no epilogue after it, so the arc
+stopped at The River Below. They are `campaign.story.corridor` (with
+`_place` and `_when`) and `war.epilogue.itaipu_6.win` / `.lose` in
+src/strings, held by campaign:selftest and debrief:selftest for missions
+1 to 6. Two departures from the text below: the card's place is the
+slate's, "Itaipu, the power line corridors" / "Itaipú, los corredores de
+alta tensión", as missions 4 and 5 use one place on both, and the won
+epilogue opens "The grid held through the dusk." / "La red aguantó el
+atardecer." in place of "The lines held and the towns at the end of them
+are lit": in sixteen solo bot games every win had both lines cut and
+the islanding held in four, so a win is the grid holding, not the lines.
+The two radio lines below are not wired or voiced.
 
 - **Story card** (The lines west of the dam; Day two, dusk): "They have
   stopped hitting the dam. The lines that carry its power to both banks

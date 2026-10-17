@@ -546,17 +546,17 @@ check('mission end: nothing for a pilot who is not the host, nor before the end'
 
 /* A campaign mission's epilogue under its end banner (docs/campaign/BIBLE.md
  * 10): its key by the mission and the result, written in both languages
- * for Act 1's missions 1 to 5, win and loss, and for none other yet. */
+ * for Act 1's missions 1 to 6, win and loss, and for none other yet. */
 check('epilogue: a win and a loss name their keys, an end without a result none', missionEpilogue({ mission: 'itaipu-2', state: 'won' }) === 'war.epilogue.itaipu_2.win'
   && missionEpilogue({ mission: 'itaipu-2', state: 'lost' }) === 'war.epilogue.itaipu_2.lose'
   && missionEpilogue({ mission: 'itaipu-2', state: 'ended' }) === null && missionEpilogue({ mission: 'itaipu-2', state: 'live' }) === null
   && missionEpilogue({ mission: null, state: 'won' }) === null);
 {
-  const told = ACT1.slice(0, 5).flatMap((m) => ['won', 'lost'].map((state) => missionEpilogue({ mission: m.id, state })));
+  const told = ACT1.slice(0, 6).flatMap((m) => ['won', 'lost'].map((state) => missionEpilogue({ mission: m.id, state })));
   const missing = told.filter((k) => !en[k] || !es[k] || en[k] === es[k]);
-  check('epilogue: missions 1 to 5 have a win and a loss, in English and Spanish', told.length === 10 && missing.length === 0, missing.join(', '));
-  const later = ACT1.slice(5).flatMap((m) => ['won', 'lost'].map((state) => missionEpilogue({ mission: m.id, state }))).filter((k) => en[k]);
-  check('epilogue: none wired for missions 6 and 7 (being built)', later.length === 0, later.join(', '));
+  check('epilogue: missions 1 to 6 have a win and a loss, in English and Spanish', told.length === 12 && missing.length === 0, missing.join(', '));
+  const later = ACT1.slice(6).flatMap((m) => ['won', 'lost'].map((state) => missionEpilogue({ mission: m.id, state }))).filter((k) => en[k]);
+  check('epilogue: none wired for mission 7 (being built)', later.length === 0, later.join(', '));
 }
 
 console.log(failed ? `${failed} failed` : 'all passed');
