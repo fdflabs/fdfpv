@@ -934,7 +934,10 @@ export async function boot({
         flightMs: runAirMs,
         totalS: aircraftSecondsNow(),
         route: runRoute.snapshot(),
-        replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+        /* A seat that never left the rail has no flight to replay
+         * (docs/DEBRIEF.md: no clip under a second of flight), though the
+         * recorder kept the parked aircraft for the whole match. */
+        replay: replayState(crashCam && runAirMs >= 1000 ? crashCam.span() : null, mode === 'replay'),
         condition: conditionOf(crashFlags, fixedWing),
       },
     });
