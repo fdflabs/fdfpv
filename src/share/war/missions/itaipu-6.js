@@ -359,7 +359,8 @@ export default withWaves({
       round: true,
       title: 'war.stage.itaipu_6.golden',
       /* Reachable alone (w50-adv-b B3): one Striker a group for a solo
-       * pilot, who has one kill a sortie and is back on the crest after
+       * pilot (`solo`; a squad's groups as before), who has one kill a
+       * sortie and is back on the crest after
        * it, born late enough that the crest's 4.2 km out to tower w-4 is
        * flown before it gets there (it was born 4 to 8 s after the go and
        * hit the tower at 77 to 84 s, under the 119 s a 7 inch takes); the
@@ -368,10 +369,10 @@ export default withWaves({
        * the go and east as the west is gone, before either is born. */
       spawns: [
         {
-          at: [55, 65], kind: 'strike', n: 1, per: 0.75, route: 'corridor-west-near', sector: 'LINES', target: W_NEAR, spread: 25, group: 'west', spot: true,
+          at: [55, 65], kind: 'strike', n: 2, per: 0.5, solo: 1, route: 'corridor-west-near', sector: 'LINES', target: W_NEAR, spread: 25, group: 'west', spot: true,
         },
         {
-          when: { gone: { group: 'west' } }, at: [30, 40], kind: 'strike', n: 1, per: 0.75, route: 'corridor-east-mid', sector: 'LINES', target: E_MID, spread: 25, group: 'east', spot: true,
+          when: { gone: { group: 'west' } }, at: [30, 40], kind: 'strike', n: 2, per: 0.5, solo: 1, route: 'corridor-east-mid', sector: 'LINES', target: E_MID, spread: 25, group: 'east', spot: true,
         },
       ],
       objectives: [PROTECT],

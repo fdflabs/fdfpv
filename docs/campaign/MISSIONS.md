@@ -1587,7 +1587,7 @@ war:stages flies it on the room), held at `release: 'development'`:
   groups born late enough to reach, w50-fix-itaipu, and Spread Thin's
   four lanes one at a time), against section 2's guess of 12 to 16.
 - **Golden Hour solo** (w50-adv-b B3): one Striker a group for a solo
-  pilot, the west group born 55 to 65 s after the go (times pace), the
+  pilot (the spawn's `solo`; squads keep 2 plus 0.5 a pilot), the west group born 55 to 65 s after the go (times pace), the
   east one 30 to 40 s after the west is gone, on FI1's middle towers
   (e-4 to e-2, 2.4 km from the crest) instead of e-6. Before, the west
   group hit tower w-4 (4.2 km out) at 77 to 84 s in every solo game.
