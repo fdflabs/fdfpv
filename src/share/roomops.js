@@ -10,7 +10,7 @@
  * takeEvents() (what changed since it last asked: the state, the stage,
  * the cues, each new capture, each contact discovered or classified, each
  * refusal). What it sends: start and end and lock (the host's), cam (two a
- * second, an aim point), capture, take, active, swap, swapAccept,
+ * second, an aim point), capture, strike, take, active, swap, swapAccept,
  * swapDecline.
  *
  * Pure: no DOM, no timers, no three.js, the room clock handed in, so a
@@ -175,15 +175,26 @@ export function createRoomOps(send) {
     capture(msg) {
       send(msg);
     },
+    /* The strike pilot's strike at room ms t (MISSIONS.md 1.6): the room
+     * picks the target and refuses one not authorized. */
+    strike(t) {
+      say('strike', { t: Math.round(t) });
+    },
     /* The films this pilot watched to their end, { id: version }
      * (CONTRACT-P0.md 3 `seen`): the host's skip waits on everybody's. */
     seen(films) {
       say('seen', { films });
     },
-    /* The host's end of the briefing for everybody, once every pilot here
-     * has seen its film (refused 'unwatched' otherwise). */
+    /* The host's Deploy on the brief card: the briefing's end for
+     * everybody, before the film's end only once every pilot here has
+     * seen it (refused 'unwatched' otherwise). */
     skipIntro() {
       say('skipIntro');
+    },
+    /* This pilot's Deploy on the brief card in a briefing, shown on every
+     * card (the view's `deployed`); only the host's ends it, skipIntro. */
+    ready() {
+      say('ready');
     },
     take(role) {
       say('take', { role });

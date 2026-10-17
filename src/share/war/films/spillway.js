@@ -73,7 +73,7 @@ export const UPSTREAM_A = Math.atan2(UP[0], UP[1]);
 
 export default {
   id: 'spillway',
-  version: 3,
+  version: 4,
   cast: {
     ten: { airframe: '10inch', spins: true },
   },
@@ -175,7 +175,7 @@ export default {
       /* On a pier's nose by the gates: the ten inch, its warhead slung,
        * its props spinning up. */
       camera: {
-        type: 'handheld', lens: 50, at: gate(1.66, 1.2, 225.75), look: { cast: 'ten', up: 0.15 }, amp: 0.006, drift: 2,
+        type: 'handheld', lens: 35, agl: true, at: gate(1.57, 0.9, 0.3), look: { cast: 'ten', up: 0.12 }, amp: 0.004, drift: 2,
       },
       cast: {
         ten: { keys: [{ t: 0, p: gate(1.5, 0.4, null), yaw: UPSTREAM_A - Math.PI / 2 }], spin: [[0, 20], [2, 110]] },

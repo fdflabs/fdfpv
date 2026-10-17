@@ -105,6 +105,14 @@ function word(key, vars) {
 
 const skey = (id) => String(id).toLowerCase().replace(/[^a-z0-9_.]/g, '_');
 
+/* A star's words: its card objective's text when it names one, else its
+ * campaign's star string. The brief card names the stars the same way
+ * (briefcard.js). */
+export function starText(mission, s) {
+  const card = s.card ? (mission.stages ?? []).flatMap((st) => st.objectives ?? []).find((x) => x.id === s.card) : null;
+  return card ? word(card.text) : word(`ops.${skey(mission.campaign)}.star.${skey(s.id)}`);
+}
+
 /* The item ids a single item trigger names ({ captured: id } or
  * { captured: [ids] }), and none for a set. */
 function namedItems(when) {
@@ -298,8 +306,7 @@ export class Debrief {
     const stars = el('div', 'debrief-stars', box);
     const got = new Set((view.result && view.result.starIds) || []);
     for (const s of mission.stars ?? []) {
-      const card = s.card ? (mission.stages ?? []).flatMap((st) => st.objectives ?? []).find((x) => x.id === s.card) : null;
-      const text = card ? word(card.text) : word(`ops.${skey(camp)}.star.${skey(s.id)}`);
+      const text = starText({ ...mission, campaign: camp }, s);
       el('div', `debrief-star${got.has(s.id) ? ' on' : ''}`, stars, `${got.has(s.id) ? '★' : '☆'}  ${text}`);
     }
     if (view.restarted) {

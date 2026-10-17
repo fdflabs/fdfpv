@@ -10,8 +10,10 @@
  * scope and the Interior's BOARD, neither a grid, so DESPACHO's line plays
  * over Hernandarias on a long lens, the town the yard feeds. The town's
  * lights do not come on: the light does not change inside a film or a
- * mission (TECH-NEEDS T1.11), so the edge of town is crossed in the late
- * light, and the grade carries the dusk. And the last shot has no
+ * mission (TECH-NEEDS T1.11), so the grade carries the dusk, and the
+ * shot that crossed the edge of town (5.3's 4) is cut: with no lights
+ * coming on it was the town shot again, 9 s of the same scrub and roofs
+ * with no line over it (w50-films). And the last shot has no
  * aircraft on the road below: the orbit is the yard and the town beyond
  * it, with the mission's card.
  *
@@ -48,12 +50,17 @@ export const TOWERS = [[-2636, 262, -310], [-3546, 255, 104]];
  * the yard's north side, so the line stacks up the frame rather than one
  * tower filling it. */
 export const CORRIDOR_AT = [-2350, 290, -1150];
+/* The intro's opening lens: on the line's own axis, 900 m behind its
+ * first tower, so the first four (bearings 28.5 to 31.4 degrees from
+ * here) stack inside the 300 mm frame for the whole shot instead of the
+ * pan leaving them for open scrub. */
+const STACK_AT = [-2178, 262, -1340];
 /* A low place on the yard's pad between two rows of its equipment. */
 const AISLE = [-2270, 225, -455];
 
 export default {
   id: 'lights-out',
-  version: 2,
+  version: 3,
   routes: {
     /* The stage 1 pair down the west arm, side by side: the same shape,
      * the same speed. */
@@ -76,7 +83,7 @@ export default {
       /* The line's towers out of the yard, stacked by the long lens, the
        * pan running west along them toward the horizon. */
       camera: {
-        type: 'telephoto', lens: 300, ease: 'lin', at: CORRIDOR_AT, look: TOWERS,
+        type: 'telephoto', lens: 300, ease: 'io', at: STACK_AT, look: [[-2680, 258, -460], [-2900, 258, -130]],
       },
       /* The slate (INTROS.md 1.8): where, when and the stakes. */
       titles: [
@@ -108,16 +115,6 @@ export default {
        * over the right bank. */
       camera: {
         type: 'telephoto', lens: 135, ease: 'lin', at: [-3500, 300, -1000], look: [TOWN, [TOWN[0] - 150, TOWN[1], TOWN[2] + 100]],
-      },
-      out: 'cut',
-    },
-    {
-      id: 'edge',
-      min: 9,
-      grade: 'dusk',
-      /* Crossing the edge of town from 70 m up in the late light. */
-      camera: {
-        type: 'dolly', lens: 35, path: [[-3900, 300, -1500], [-4100, 300, -1350]], look: TOWN,
       },
       out: 'cut',
     },

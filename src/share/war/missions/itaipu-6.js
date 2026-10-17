@@ -18,8 +18,8 @@
  *
  * THE STAGES, each a round, with the radio's story (MISSIONS.md M6 Radio):
  *   1  Golden Hour   Strikers along the west corridor onto its near
- *                    towers, then, 10 to 20 s after they are gone, along
- *                    the east one
+ *                    towers, then, 30 to 40 s after they are gone, along
+ *                    the east one onto its middle towers
  *   2  Spread Thin   a group on each of four corridor lanes (the west and
  *                    east corridors' near and far towers), as many at once
  *                    as the pilots have sectors (stages.js `lane`, MISSIONS.md
@@ -82,6 +82,8 @@
  *                        yard end, towers w-0 to w-2
  *   corridor-east-near   along FI1 from the middle of the corridor toward
  *                        the dam, onto towers e-6 to e-4
+ *   corridor-east-mid    the same, on along FI1 to 250 m short of e-4,
+ *                        onto towers e-4 to e-2 (Golden Hour's east)
  *   corridor-east-far    along FI1 from the Foz do Iguacu substation,
  *                        onto towers e-15 to e-13
  *   corridor-east-dam    over the east arm of the reservoir and the left
@@ -93,7 +95,16 @@
  *                        dive onto the near towers
  *   corridor-orbit       the Scout's circle high over the east corridor
  *   reservoir-west, west-arm-low
- *                        decoys and a Striker onto the yard (Lights Out's)
+ *                        decoys and a Striker onto the yard: Lights Out's
+ *                        over the west arm, then a climb to 430 m over the
+ *                        yard's north edge and a steep dive, planned over
+ *                        the yard's lines as a real attacker would, so at
+ *                        no error in the spread does the run cross a span
+ *                        at wire height (wires.js wireCrossings: 0). The
+ *                        lines stay a hazard for whatever does cross them;
+ *                        a solo game with nobody shooting no longer turns
+ *                        on a power line taking the one yard Striker
+ *                        (w50-fix-itaipu, B4 follow-up)
  *   surface-east, east-shore-water
  *                        boats on the east intakes (First Light's)
  * scripts/war-routes-check.js flies every one.
@@ -152,6 +163,7 @@ const W_FAR = towerIds('w', [9, 8, 7]);
 const E_DAM = towerIds('e', [0, 1, 2]);
 const E_WIRES = towerIds('e', [1, 0]);
 const E_NEAR = towerIds('e', [6, 5, 4]);
+const E_MID = towerIds('e', [4, 3, 2]);
 const E_FAR = towerIds('e', [15, 14, 13]);
 const YARD = 'yard-right';
 const INTAKES_EAST = ids('intake', [13, 14, 15, 16, 17, 18, 19]);
@@ -285,7 +297,8 @@ function island(id, all, from, side, text) {
     }],
     cues: [
       { at: 1, radio: 'itaipu-6-s4-island' },
-      { at: 5, radio: 'itaipu-6-g-island', skip: { objective: 'island', is: 'failed' } },
+      { at: 5, radio: 'itaipu-6-g-island', skip: { objective: 'island', is: 'failed' }, solo: false },
+      { at: 5, radio: 'itaipu-6-g-island-solo', skip: { objective: 'island', is: 'failed' }, solo: true },
       { when: { objective: 'island', is: 'done' }, radio: 'itaipu-6-s4-done' },
       STAGE_LOST,
     ],
@@ -312,10 +325,11 @@ export default withWaves({
   map: 'itaipu',
   /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);
    * Operations' briefing shows it (src/ui/briefing.js). From the room:
-   * war:stages' ten good bot games end 11.9 to 18.8 minutes after the go
-   * (2026-10-15), against MISSIONS.md's first guess of 12 to 16: a solo
-   * pilot meets Spread Thin's four lanes one at a time (16.8 to 18.8). */
-  estimatedMinutes: [11, 19],
+   * war:stages' ten good bot games end 13.2 to 20.5 minutes after the go
+   * (2026-10-16, Golden Hour reachable solo), against MISSIONS.md's first
+   * guess of 12 to 16: a solo pilot waits out Golden Hour's late births
+   * and meets Spread Thin's four lanes one at a time (18.1 to 20.5). */
+  estimatedMinutes: [11, 21],
   targets,
   output: 14000,
   /* As Lights Out's (MISSIONS.md M6: "the yard and the towers are big
@@ -325,7 +339,15 @@ export default withWaves({
   airframes: 4,
   /* Day two, dusk (MISSIONS.md M6 "Time: golden then night lights"). */
   time: 'golden',
-  radio: { brief: ['itaipu-6-s0-brief', 'itaipu-6-s0-rules'], win: 'debrief-itaipu-6-win', lose: 'debrief-itaipu-6-lose' },
+  /* CREST's "The lines held" only when the islanding held; a win with
+   * the hold failed gets his "the plant's still running" (Lights Out's
+   * win, voiced, the same speaker), w50-adv-b B6. */
+  radio: {
+    brief: ['itaipu-6-s0-brief', 'itaipu-6-s0-rules'],
+    win: 'debrief-itaipu-6-win',
+    winIfNot: { objective: 'island', is: 'done', radio: 'debrief-itaipu-3-win' },
+    lose: 'debrief-itaipu-6-lose',
+  },
   /* Its film (films/corridor.js, INTROS.md 5.6); no outro: INTROS.md
    * writes none for M6, so a win ends on its debrief. */
   film: 'corridor',
@@ -346,19 +368,28 @@ export default withWaves({
       id: 'golden',
       round: true,
       title: 'war.stage.itaipu_6.golden',
+      /* Reachable alone (w50-adv-b B3): one Striker a group for a solo
+       * pilot (`solo`; a squad's groups as before), who has one kill a
+       * sortie and is back on the crest after
+       * it, born late enough that the crest's 4.2 km out to tower w-4 is
+       * flown before it gets there (it was born 4 to 8 s after the go and
+       * hit the tower at 77 to 84 s, under the 119 s a 7 inch takes); the
+       * east one on FI1's middle towers, 2.4 km from the crest, not its
+       * e-6 5 km from where the west ends. CREST sends the squad out at
+       * the go and east as the west is gone, before either is born. */
       spawns: [
         {
-          at: [4, 8], kind: 'strike', n: 2, per: 0.5, route: 'corridor-west-near', sector: 'LINES', target: W_NEAR, spread: 25, group: 'west', spot: true,
+          at: [55, 65], kind: 'strike', n: 2, per: 0.5, solo: 1, route: 'corridor-west-near', sector: 'LINES', target: W_NEAR, spread: 25, group: 'west', spot: true,
         },
         {
-          when: { gone: { group: 'west' } }, at: [10, 20], kind: 'strike', n: 2, per: 0.5, route: 'corridor-east-near', sector: 'LINES', target: E_NEAR, spread: 25, group: 'east', spot: true,
+          when: { gone: { group: 'west' } }, at: [30, 40], kind: 'strike', n: 2, per: 0.5, solo: 1, route: 'corridor-east-mid', sector: 'LINES', target: E_MID, spread: 25, group: 'east', spot: true,
         },
       ],
       objectives: [PROTECT],
       cues: [
-        { when: { born: { group: 'west' } }, at: 2, radio: 'itaipu-6-s1-lines' },
-        { when: { born: { group: 'west' } }, at: 7, radio: 'itaipu-6-g-west', skip: { gone: { group: 'west' } } },
-        { when: { born: { group: 'east' } }, at: 3, radio: 'itaipu-6-g-east', skip: { gone: { group: 'east' } } },
+        { at: 2, radio: 'itaipu-6-s1-lines' },
+        { at: 7, radio: 'itaipu-6-g-west', skip: { gone: { group: 'west' } } },
+        { when: { gone: { group: 'west' } }, at: 3, radio: 'itaipu-6-g-east', skip: { gone: { group: 'east' } } },
         TOWER_DOWN,
         STAGE_LOST,
       ],
@@ -391,7 +422,8 @@ export default withWaves({
       ],
       cues: [
         { at: 1, radio: 'itaipu-6-s2-spread' },
-        { at: 5, radio: 'itaipu-6-g-spread' },
+        { at: 5, radio: 'itaipu-6-g-spread', solo: false },
+        { at: 5, radio: 'itaipu-6-g-spread-solo', solo: true },
         { when: { spot: {} }, radio: 'itaipu-6-s2-spotted' },
         TOWER_DOWN,
         STAGE_LOST,
@@ -459,14 +491,15 @@ export default withWaves({
     'corridor-west-far': [[-5000, 271, -2600], [-5080, 256, -900], [-5250, 266, 160]],
     'corridor-west-yard': [[-1600, 259, -3200], [-1700, 259, -1700], [-2250, 267, -1050], [-2500, 271, -880]],
     'corridor-east-near': [[2024, 268, 3533], [1711, 255, 2707], [1433, 240, 1977], [1368, 234, 1799]],
+    'corridor-east-mid': [[2024, 268, 3533], [1711, 255, 2707], [1433, 240, 1977], [1268, 232, 1584], [1091, 230, 1105], [1047, 233, 988]],
     'corridor-east-far': [[4650, 287, 5110], [3535, 286, 4342]],
     'corridor-east-dam': [[2600, 259, -3600], [1400, 259, -2500], [950, 259, -1950], [760, 250, -1450]],
     'corridor-east-wires': [[1574, 233, 2343], [1225, 209.4, 1438], [1259, 209.4, 1241], [1128, 222, 890], [1010, 207, 576], [855, 204.3, 449], [576, 187, -294]],
     'high-west-lines': [[-4300, 700, -2000], [-3700, 650, -700]],
     'high-east-lines': [[2600, 700, 1200], [1900, 650, 1300]],
     'corridor-orbit': [[3000, 520, 3300], [1800, 520, 2200]],
-    'reservoir-west': [[-1600, 249, -3200], [-1600, 249, -1700], [-1800, 300, -1000]],
-    'west-arm-low': [[-2600, 249, -3400], [-2300, 249, -2000], [-2250, 300, -1100]],
+    'reservoir-west': [[-1600, 249, -3200], [-1600, 249, -1700], [-1700, 330, -1300], [-2146, 430, -560]],
+    'west-arm-low': [[-2600, 249, -3400], [-2300, 249, -2000], [-2250, 330, -1300], [-2146, 430, -560]],
     'surface-east': [[1000, 219, -2800], [700, 219, -2300], [450, 219, -1880]],
     'east-shore-water': [[2400, 219, -3000], [1300, 219, -2300], [650, 219, -1850]],
   },

@@ -12,8 +12,9 @@
  *     campaign's page opens, and a second press opens the page at once
  *   - INTRO: Mission 1's Play makes the room, whose briefing every screen
  *     plays as `int1-intro` over the Interior's map on the room's clock
- *     (from briefAt), held; it stops when the briefing ends and the pilot
- *     flies the match
+ *     (from briefAt), held; at its end the mission brief card opens
+ *     (src/ui/briefcard.js), whose Deploy ends the briefing, and the
+ *     film stops and the pilot flies the match
  *   - OUTRO: on a win (the room's view turned won), `int1-outro` plays on
  *     the room's clock from endAt over the Interior, asking for the
  *     squad's stills (this pilot's own given, the rest null: the
@@ -21,13 +22,18 @@
  *   - SEEN AND THE HOST'S SKIP: the intro watched to its end is told the
  *     room (`seen`); a second briefing with a pilot B who has not seen
  *     the cut: the host's line waits on B and the room refuses the skip
- *     ('unwatched'); once B has seen it the line offers the skip, and the
- *     host's hold ends the briefing for both (the countdown) (B is a
+ *     ('unwatched'); once B has seen it the line offers the skip, the
+ *     host's hold goes to the brief card, B's Deploy shows on it as
+ *     ready, and the host's Space ends the briefing for both (B is a
  *     second page in this one Chrome, scripts/lib/secondpage.js)
  *   - no page errors; pictures outside the repository
  *
- * The win is the room's view as a screen hears it, stood in for: a real
- * Mission 1 runs 20 to 30 minutes (ROOM's interior:stages flies it whole).
+ * The win is the room's own, its match finished by the rooms server in
+ * this process, as the landing's exit would: a real Mission 1 runs 20 to
+ * 30 minutes (ROOM's interior:stages flies it whole). A win only injected
+ * into the page's view is overwritten by the room's next view, still
+ * live, long before the outro is over, and the debrief rightly waits for
+ * an ended match (main.js opsDebrief).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -136,7 +142,13 @@ try {
   check('the room\'s briefing plays int1-intro over the Interior\'s map', intro.state === 'briefing' && intro.film === 'ops:int1-intro' && intro.map === 'interior' && intro.filmMap === 'interior', JSON.stringify(intro));
   check('on the room\'s clock: the briefing lasts the film', intro.ms > 30000 && intro.briefAt != null, `film ${intro.ms} ms`);
   await shot('films-intro.png');
-  await page.until("window.__ops.view().state === 'live'", 150000).catch(() => {});
+  /* The film over, the mission brief card (src/ui/briefcard.js); the
+   * host's Deploy on it ends the briefing. */
+  await page.until('window.__briefCard().shown', 150000).catch(() => {});
+  const card = await page.evaluate("({ card: window.__briefCard(), state: window.__ops.view().state, film: window.__warIntro() && window.__warIntro().for })");
+  check('at the film\'s end the mission brief card opens over the briefing', card.card.shown && card.state === 'briefing' && /THE OLD WAR/.test(card.card.title || ''), JSON.stringify(card));
+  await page.evaluate("(document.querySelector('.briefcard button[data-act=\"deploy\"]').click(), true)");
+  await page.until("window.__ops.view().state === 'live'", 30000).catch(() => {});
   await page.sleep(1500);
   const after = await page.evaluate(`({ state: window.__ops.view().state, film: ${FILM} ? ${FILM}.for : null, mode: window.__craftState().mode })`);
   check('when the briefing ends the film stops and the pilot flies the match', after.state === 'live' && after.film === null && after.mode === 'flight', JSON.stringify(after));
@@ -160,15 +172,17 @@ try {
   await page.until(`!${FILM}`, 15000).catch(() => {});
   check('the end scene ends on its own after the scene\'s seconds', !(await page.evaluate(FILM)));
 
-  /* OUTRO, on a win the screen hears. */
+  /* OUTRO, on the room's win: this pilot's own still of the bridge on
+   * this device, then the match finished as Mission 1's landing exit
+   * finishes it (edge/rooms/ops.js finish), told to the room's screens. */
   await page.evaluate("window.__ops.addStill('bridge', 'clean', 1000)");
   await page.sleep(500);
-  await page.evaluate(`(() => {
-    const v = window.__ops.view();
-    const now = window.__rooms().roomNow;
-    window.__ops.inject({ type: 'ops', ops: { ...v, state: 'won', endAt: now, why: 'landed', captures: [{ item: 'bridge', seat: window.__ops.seat(), grade: 'clean', t: 1000, at: 1000 }], result: { won: true, stars: 0, starIds: [], flags: {}, restarted: null } } });
-    return true;
-  })()`);
+  const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.ops && r.host.core.ops.on());
+  await room.enqueue(() => {
+    const core = room.host.core;
+    core.ops.finish(core, core.roomMs(Date.now()), 'won', 'landed');
+    room.host.run(core.ops.changed(core));
+  });
   await page.until(`${FILM} && ${FILM}.for === 'ops:int1-outro'`, 30000).catch(() => {});
   const out = await page.evaluate(`(() => { const f = ${FILM}; return f ? { for: f.for, map: f.map, debrief: window.__debrief().open } : null; })()`);
   check('a win plays int1-outro over the Interior, the debrief waiting', out && out.for === 'ops:int1-outro' && out.map === 'interior' && !out.debrief, JSON.stringify(out));
@@ -177,7 +191,8 @@ try {
   check('it asks for the squad\'s stills: this pilot\'s own given, the others the reconstruction', asked.bridge === true && Object.entries(asked).filter(([k]) => k !== 'bridge').every(([, v]) => v === false), JSON.stringify(asked));
   await shot('films-outro.png');
   await page.until('window.__debrief().open', 150000).catch(() => {});
-  check('the debrief opens when the outro is over', await page.evaluate('window.__debrief().open') && !(await page.evaluate(FILM)));
+  const over = await page.evaluate(`({ debrief: window.__debrief().open, film: ${FILM} ? ${FILM}.for : null, state: window.__ops.view().state, match: window.__ops.view().id })`);
+  check('the debrief opens when the outro is over', over.debrief && over.film === null, JSON.stringify(over));
   await page.evaluate("(document.querySelector('.debrief button[data-act=\"continue\"]').click(), true)");
 
   /* SEEN AND THE HOST'S SKIP. The room heard this pilot's intro seen. */
@@ -185,14 +200,9 @@ try {
   const mine = await page.evaluate("window.__ui.settings.campaign && window.__ui.settings.campaign.films");
   const sent = await page.evaluate("window.__ops.sent().filter((m) => m.op === 'seen').slice(-1)[0] || null");
   check('the intro watched to its end is kept and told the room (seen)', filmV && mine && mine[filmV.id] >= filmV.version && sent && sent.films[filmV.id] >= filmV.version, JSON.stringify({ filmV, mine, sent }));
-  /* A second briefing, with B, who has never seen the cut. The win above
-   * was this screen's view stood in: the room's match runs on, so the
-   * host ends it first (its debrief, closed). */
+  /* A second briefing, with B, who has never seen the cut: the host
+   * starts it from the room's won match (its debrief closed above). */
   const code = await page.evaluate('window.__rooms().code');
-  await page.evaluate('(window.__ops.end(), true)');
-  await page.until("window.__ops.view().state === 'ended'", 15000).catch(() => {});
-  await page.sleep(800);
-  await page.evaluate("(() => { const b = document.querySelector('.debrief button[data-act=\"continue\"]'); if (b) { b.click(); } return true; })()");
   await page.evaluate("(window.__ops.start('interior-1'), true)");
   await page.until("window.__ops.view().state === 'briefing'", 30000).catch(() => {});
   const B = await secondPage(page, outDir, {
@@ -219,15 +229,30 @@ try {
   await page.sleep(600);
   const ready = await page.evaluate("({ note: window.__opsHud().briefing, seen: window.__ops.view().seen })");
   const bSaid = await B.evaluate("({ films: window.__ui.settings.campaign && window.__ui.settings.campaign.films, sent: window.__ops.sent().filter((m) => m.op === 'seen'), seat: window.__ops.seat() })");
-  check('once everyone has seen it, the host\'s line offers the skip', /hold to end it for everyone/.test(ready.note || ''), JSON.stringify({ ready, bSaid }));
+  check('once everyone has seen it, the host\'s line offers the skip', /hold to skip to the mission brief/.test(ready.note || ''), JSON.stringify({ ready, bSaid }));
   /* The host holds any key on the film (SKIP_HOLD_MS, 2 s). */
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'KeyQ', key: 'q', windowsVirtualKeyCode: 81 }, page.sessionId);
   await page.sleep(2600);
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'KeyQ', key: 'q', windowsVirtualKeyCode: 81 }, page.sessionId);
+  /* The hold goes to the mission brief card, and B's Deploy shows on it
+   * as ready; the host's Deploy (Space) then ends the briefing for both. */
+  await page.until('window.__briefCard().shown', 15000).catch(() => {});
+  check('the host\'s hold skips to the mission brief card, the briefing still on', await page.evaluate("window.__briefCard().shown && window.__ops.view().state === 'briefing'"));
+  await B.evaluate('(window.__ops.ready(), true)');
+  await page.until('window.__ops.view().deployed.length === 1', 15000).catch(() => {});
+  await page.sleep(600);
+  const readyRow = await page.evaluate('window.__briefCard().pilots');
+  check('B\'s Deploy shows on the host\'s card: one pilot READY, the host READING', Array.isArray(readyRow) && readyRow.length === 2 && readyRow.some((p) => /READY$/.test(p)) && readyRow.some((p) => /READING$/.test(p)), JSON.stringify(readyRow));
+  await shot('card-room-ready.png');
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 }, page.sessionId);
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 }, page.sessionId);
   await page.until("window.__ops.view().state !== 'briefing'", 15000).catch(() => {});
+  /* The card closes on the frame after the room leaves its briefing, so
+   * reading it on the same tick as the state races the render loop. */
+  await page.until('!window.__briefCard().open', 3000).catch(() => {});
   const ended = await page.evaluate("window.__ops.view().state");
   const bState = await B.evaluate("window.__ops.view().state");
-  check('the host\'s hold ends the briefing for both: the countdown', ['countdown', 'live'].includes(ended) && ['countdown', 'live'].includes(bState), `${ended} / ${bState}`);
+  check('the host\'s Deploy ends the briefing for both: the countdown, the card closed', !(await page.evaluate('window.__briefCard().open')) && ['countdown', 'live'].includes(ended) && ['countdown', 'live'].includes(bState), `${ended} / ${bState}`);
   const bErrs = B.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors on B', bErrs.length === 0, bErrs.slice(0, 3).join(' | '));
   const errs = page.errors.filter((e) => !e.startsWith('network:'));

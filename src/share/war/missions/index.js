@@ -36,7 +36,8 @@
  * (itaipu-practice.js), Training's one Striker at a time.
  *
  * A wave is { at, kind, n, per, route, target, spread }: n attackers for
- * one pilot and `per` more for each pilot after the first (waveSize), all
+ * one pilot (`solo` instead, where it has one) and `per` more for each
+ * pilot after the first (waveSize), all
  * going for `target`, or, where it is a list, the k-th of them for
  * target[k % target.length] (waveTarget), so a group splits over several
  * and costs more than one target's megawatts when it gets through. The
@@ -92,8 +93,13 @@ export function missionTime(mission) {
   return mission?.time ?? (mission?.night ? 'night' : null);
 }
 
-/* How many attackers a wave sends against `pilots` pilots (at least 1). */
+/* How many attackers a wave sends against `pilots` pilots (at least 1):
+ * its `solo` for one pilot when it has one (a group a lone pilot meets
+ * smaller, the squad's sizes kept), else n and per. */
 export function waveSize(wave, pilots) {
+  if (pilots <= 1 && wave.solo != null) {
+    return wave.solo;
+  }
   return Math.max(1, Math.round(wave.n + (wave.per || 0) * (Math.max(1, pilots) - 1)));
 }
 

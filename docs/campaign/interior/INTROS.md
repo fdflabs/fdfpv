@@ -153,13 +153,18 @@ from the landing to the room).
 | 7 | 2 | board | | black | MISSION COMPLETE | | hold | | silence | cut (to the debrief) |
 
 Shot 3's still is the squad's symbol capture if `M1_SYMBOL_CAPTURED`,
-else the analyst reconstruction frame marked RECONSTRUCTION (N8).
+else the analyst reconstruction frame marked RECONSTRUCTION (N8). Its
+last line follows the same flag (W50, 2026-10-17): film-int1-13 quotes
+Ibarra's archive exchange (int1-s5-years), which plays only on the
+capture, so without it Rojas says his voiced "Come on." from the follow
+instead, timed as the longer of the two.
 
 | id | cue | who | EN |
 | --- | --- | --- | --- |
 | film-int1-11 | shot 3, lead 1.5, target 1.6 | ROJAS | So they're back. |
 | film-int1-12 | after 11, lead 0.6, target 0.8 | IBARRA | Maybe. |
-| film-int1-13 | after 12, lead 0.4, target 2.2 | ROJAS | You just said that's their symbol. |
+| film-int1-13 | after 12, lead 0.4, target 2.2 (if `M1_SYMBOL_CAPTURED`) | ROJAS | You just said that's their symbol. |
+| int1-s4-comeon | the same cue (if not) | ROJAS | Come on. |
 | film-int1-14 | shot 4, lead 1.0, target 3.6 | IBARRA | Symbols don't need permission to survive the people who created them. |
 | film-int1-15 | shot 5, lead 3.5, target 2.6 | VEGA | Tomorrow we stop looking at the camp. |
 | film-int1-16 | shot 6, lead 2.5, target 2.8 | VEGA | Tomorrow we look at everything around it. |
@@ -182,7 +187,7 @@ with nobody in frame (TECH-NEEDS F5); then two stills side by side.
 | 4 | 9 | board | | the split | the same | | hold | film-int2-5, film-int2-6, film-int2-7, film-int2-8 | | cut |
 | 5 | 7 | board | | `zoom` from the camp | the sector, `roads` appearing | the map expands | io | film-int2-9, film-int2-10 | | cut |
 | 6 | 6 | board | | `roads` | `roads` with sight lines from the roads to the camp | | io | film-int2-11, film-int2-12 | | cut |
-| 7 | 6 | drone | 35 | the recon quad on the ground at Claro Viejo's edge, nobody near | lifting under the canopy | rides its take off | in | film-int2-13 | the quad's motors | handoff |
+| 7 | 6 | drone | 35 | the recon quad on the ground at Pista Cero, nobody near | lifting off the field | rides its take off | in | film-int2-13 | the quad's motors | handoff |
 
 | id | cue | who | EN |
 | --- | --- | --- | --- |
@@ -201,6 +206,12 @@ with nobody in frame (TECH-NEEDS F5); then two stills side by side.
 | film-int2-12b | the same cue (if not) | IBARRA | We only got the symbol from a partial angle. |
 | film-int2-13 | shot 7, lead 1.0, target 2.4 | IBARRA | (new) Low and slow. Everything they left is a sentence. |
 
+Shot 7 as built (W50, 2026-10-17): at Pista Cero, not Claro Viejo's edge.
+Play starts at the base (the shell's spawn), about 9 km from the camp, so
+a hand-off from the clearing put the pilot there in one blend. The quad
+is held on the ground and lifts 10 m up the strip from the spawn, clear
+of every room slot's aircraft, the base's tent and container behind it.
+
 ### M2 outro (`int2-outro`, M2_10)
 
 **Idea:** two camps side by side; history matches only the old one; then
@@ -210,7 +221,7 @@ the alarm that starts Mission 3. **Length:** about 35 s.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 9 | board | | `split [cap:claro-viejo or rec, cap:claro-nuevo or rec]` | the same, personnel stills populating under each | historical photographs match some old faces as silhouettes (no faces rendered: matches are shown as frames joined by lines), no matches under the young | io | film-int2-14, film-int2-15 | room tone | cut |
 | 2 | 8 | board | | the split | the same | | hold | film-int2-16, film-int2-17, film-int2-18 | | cut |
-| 3 | 4 | board | | the split | `alert REMOTE SECURITY POST / COMMUNICATION LOST` on another screen | the alert | hold | film-int2-19 | an alert tone | smash |
+| 3 | 4 | board | | the split | `alert COMMUNICATION LOST / PUESTO ARENAL, 16:52` on another screen | the alert | hold | film-int2-19 | an alert tone | smash |
 | 4 | 8 | board | | the alert | `zoom` to Puesto Arenal | | io | film-int2-20, film-int2-21, film-int2-22 | | cut |
 | 5 | 4 | handheld | 50 | the BOARD from the player's station | the same | | hold | film-int2-23 | | smash |
 | 6 | 2 | board | | black | black | CUT TO BLACK | hold | | silence | cut |
@@ -227,6 +238,13 @@ the alarm that starts Mission 3. **Length:** about 35 s.
 | film-int2-21 | after 20, lead 0.4, target 0.8 | VEGA | How many? |
 | film-int2-22 | after 21, lead 0.4, target 0.8 | ROJAS | Twelve. |
 | film-int2-23 | shot 5, lead 1.2, target 0.8 | VEGA | Launch. |
+
+The alert's time (W50, 2026-10-17): Mission 2 ends in the morning
+(clock.js M2_CLOCK, about 08:30) and Mission 3 goes at 17:15 (M3_CLOCK,
+MISSIONS M3 "late afternoon into night"), so the alert carries its own
+time, 16:52, under COMMUNICATION LOST: the analysis of shots 1 and 2 is
+the day's, and the alert and Vega's "Launch." are that afternoon,
+handing off to Mission 3's opening at the post.
 
 ---
 

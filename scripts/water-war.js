@@ -42,7 +42,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
-import { INTRO_MS } from '../src/share/war/intro.js';
+import { CARD_MS, INTRO_MS } from '../src/share/war/intro.js';
 import { attackerCharge } from '../src/share/war/damage.js';
 import STRUCTURES from '../src/share/war/itaipu-chunks.js';
 
@@ -127,7 +127,7 @@ try {
   await a.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await a.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
   await a.evaluate(`window.__warDo('start', '${MISSION.id}')`);
-  await a.until("window.__war().view.state === 'live'", INTRO_MS + 30000 + (MISSION.prepMs ?? 0));
+  await a.until("window.__war().view.state === 'live'", INTRO_MS + CARD_MS + 30000 + (MISSION.prepMs ?? 0));
   const free = await flood(a);
   check('before the breach the map\'s water is Free Flight\'s spill', free.mode === 'free' && free.state === 'ready', `${free.mode} ${free.state}`);
   await shot(a, 'aerial-spill', '1-before-aerial');

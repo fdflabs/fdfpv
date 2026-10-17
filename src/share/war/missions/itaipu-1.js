@@ -161,8 +161,11 @@ export default withWaves({
   title: 'war.mission.itaipu_1',
   map: 'itaipu',
   /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);
-   * Operations' briefing shows it (src/ui/briefing.js). */
-  estimatedMinutes: [9, 13],
+   * Operations' briefing shows it (src/ui/briefing.js). From the room:
+   * war-balance's good bots, seeds 1 to 6 with the face never opened,
+   * end 12.5 to 13.8 minutes after the go alone and 10.9 to 12.6 as four
+   * (2026-10-16, w50-adv-a), past the first guess of 9 to 13. */
+  estimatedMinutes: [11, 14],
   targets,
   output: 14000,
   floorMw: 7700,
@@ -344,15 +347,20 @@ export default withWaves({
       id: 'first-light',
       round: true,
       title: 'war.stage.itaipu_1.first_light',
+      /* A solo pilot meets the climax smaller (`solo`, w50-adv-a A4): one
+       * Loiterer, one Striker, two FPVs. With the squad's sizes the free
+       * first mission was the hardest of the act for a careless solo
+       * pilot (6 of 16 won against the Spillway's 15), its losses the
+       * floor crossed here; squads of two or more meet it as before. */
       spawns: [
         {
-          at: 2, kind: 'loiter', n: 2, per: 1, route: 'high-west', target: GATES, spread: 25, group: 'gates',
+          at: 2, kind: 'loiter', n: 2, per: 1, solo: 1, route: 'high-west', target: GATES, spread: 25, group: 'gates',
         },
         {
-          at: [24, 30], kind: 'strike', n: 2, per: 1.5, route: { sector: ['N', 'NE'] }, target: [...INTAKES_MID, ...INTAKES_EAST], spread: 30, group: 'face',
+          at: [24, 30], kind: 'strike', n: 2, per: 1.5, solo: 1, route: { sector: ['N', 'NE'] }, target: [...INTAKES_MID, ...INTAKES_EAST], spread: 30, group: 'face',
         },
         {
-          at: [30, 36], kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10, group: 'swarm',
+          at: [30, 36], kind: 'fpv', n: 4, per: 1.5, solo: 2, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10, group: 'swarm',
         },
         /* The kinds of the two twists that did not fire, smaller. */
         {

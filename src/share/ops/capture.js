@@ -11,7 +11,8 @@
  * Campaign agnostic: an ITEM is mission data, { id, at: [x, y, z] (or a
  * dial's { dial, map } of them) or `contact` (a contact's id or group:
  * the best framed of them), size (metres across), set?, view? (inBand),
- * open? (a trigger after which the view no longer limits it) }.
+ * open? (a trigger after which the view no longer limits it), from? (a
+ * trigger before which the room refuses it: 'early') }.
  *
  * VIEW's scorer should call gradeOf with its own size and off, so the
  * screen and the room cut the grades at the same numbers.

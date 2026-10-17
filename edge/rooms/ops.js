@@ -17,10 +17,11 @@
  *
  * What a client sends and what the room says: CONTRACT-P0.md sections 3
  * and 4. In short, { type: 'ops', op } with op start, end, lock (the
- * host's), cam, capture, take, active, swap, swapAccept, swapDecline (any
- * seat's, about itself); and the room's { type: 'ops', ops } view on every
- * change, { type: 'ops', op: 'cue', cues } filtered per seat by who hears
- * each line, and { type: 'ops', error } to a refused sender. A watcher
+ * host's), cam, capture, strike, take, active, swap, swapAccept,
+ * swapDecline (any seat's, about itself); and the room's { type: 'ops',
+ * ops } view on every change, { type: 'ops', op: 'cue', cues } filtered
+ * per seat by who hears each line, and { type: 'ops', error } to a
+ * refused sender. A watcher
  * (core.js watch) is sent the view with no result and the lines told to
  * all, and so is a seat whose pilot did not take part in the match
  * (took). The view's uid is the match's id across every room (war.js
@@ -73,6 +74,7 @@ import { airframeById } from '../../configs/airframes.js';
 import {
   BOUNDARY_MS, applyCue, cardsView, drawDials, dueCues, resolve, starsOf, toldOf, trigger,
 } from '../../src/share/ops/stages.js';
+import { CARD_MS } from '../../src/share/war/intro.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
@@ -122,6 +124,7 @@ function shiftTimes(m, d) {
   }
   m.flagAt = Object.fromEntries(Object.entries(m.flagAt).map(([k, t]) => [k, mv(t)]));
   m.choices = Object.fromEntries(Object.entries(m.choices).map(([k, c]) => [k, { ...c, t: mv(c.t) }]));
+  m.strikes = (m.strikes ?? []).map((x) => ({ ...x, t: mv(x.t) }));
 }
 
 /* A camera at p looking at c.aim, or null when it is there. */
@@ -278,6 +281,8 @@ export class RoomOps {
        * that have seen it: the host's skip waits on all of them. */
       film: mission.film ? { id: mission.film.id, version: mission.film.version } : null,
       seen: this.seenHere(core),
+      /* The seats here that pressed the brief card's Deploy (ready). */
+      deployed: [...core.seats.values()].map((t) => t.seat).filter((seat) => m.deployed?.[seat] != null),
       checkpoint: m.state === 'lost' && m.checkpoint ? { stage: m.checkpoint.id, n: m.checkpoint.idx, title: stagesOf(mission)[m.checkpoint.idx].title ?? null } : null,
       restarted: m.restarted ?? null,
     };
@@ -387,9 +392,11 @@ export class RoomOps {
     switch (msg.op) {
       case 'cam': return this.cam(core, conn, s, msg, roomNow);
       case 'capture': return this.capture(core, conn, s, msg, roomNow);
+      case 'strike': return this.strike(core, conn, s, msg, roomNow);
       case 'take': case 'active': case 'swap': case 'swapAccept': case 'swapDecline':
         return this.role(core, conn, s, msg, roomNow);
       case 'seen': return this.seenFilms(core, conn, s, msg.films);
+      case 'ready': return this.ready(core, conn, s, roomNow);
       case 'hold': return this.hold(core, conn, s, msg, roomNow);
       default: break;
     }
@@ -434,19 +441,34 @@ export class RoomOps {
     return [...core.seats.values()].filter((t) => (this.seen.get(t.token)?.[f.id] ?? -1) >= f.version).map((t) => t.seat);
   }
 
+  /* A pilot's Deploy on the brief card, in a briefing: shown on every
+   * card; only the host's ends the briefing (skipIntro). Refused 'off'
+   * outside one. */
+  ready(core, conn, s, roomNow) {
+    const m = this.match;
+    if (!m || m.state !== 'briefing') {
+      return this.error(conn, 'off');
+    }
+    m.deployed = { ...m.deployed, [s.seat]: Math.ceil(roomNow) };
+    return this.changed(core);
+  }
+
   /*
-   * The host cuts the briefing short: the countdown runs from now, for
-   * everybody, once every pilot here has seen the film (a first viewing
-   * is never cut, docs/campaign/INTROS.md section 3, the war's rule:
-   * war.js skipIntro); refused 'unwatched' otherwise. Nothing outside a
-   * briefing, so a late or repeated skip cannot move a countdown.
+   * The host's Deploy on the brief card ends the briefing: the countdown
+   * runs from now, for everybody. Before the film's end only once every
+   * pilot here has seen it (a first viewing is never cut,
+   * docs/campaign/INTROS.md section 3, the war's rule: war.js
+   * skipIntro), refused 'unwatched' otherwise; after it, the card's
+   * span is all that is cut. Nothing outside a briefing, so a late or
+   * repeated press cannot move a countdown.
    */
   skipIntro(core, conn, now) {
     const m = this.match;
     if (!m || m.state !== 'briefing') {
       return [];
     }
-    if (this.seenHere(core).length < core.seats.size) {
+    const filmOver = core.roomMs(now) >= m.briefAt + this.mission().filmMs;
+    if (!filmOver && this.seenHere(core).length < core.seats.size) {
       return this.error(conn, 'unwatched');
     }
     m.goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
@@ -494,7 +516,7 @@ export class RoomOps {
     }
     const roomNow = Math.ceil(core.roomMs(now));
     const briefAt = msg.intro === true && !cp && mission.filmMs ? roomNow : null;
-    const goAt = (briefAt == null ? roomNow : briefAt + mission.filmMs) + COUNTDOWN_MS;
+    const goAt = (briefAt == null ? roomNow : briefAt + mission.filmMs + CARD_MS) + COUNTDOWN_MS;
     const seed = cp ? cp.seed : Math.floor(this.random() * 4294967296) >>> 0;
     const m = {
       id: this.nextId,
@@ -514,6 +536,7 @@ export class RoomOps {
       dials: drawDials(mission, seed),
       contacts: [],
       captures: [],
+      strikes: [],
       flags: {},
       flagAt: {},
       sites: Object.fromEntries((mission.sites ?? []).map((x) => [x.id, siteState()])),
@@ -544,7 +567,7 @@ export class RoomOps {
     };
     if (cp) {
       Object.assign(m, copy({
-        dials: cp.dials, contacts: cp.contacts, captures: cp.captures, flags: cp.flags, flagAt: cp.flagAt, sites: cp.sites, search: cp.search, choices: cp.choices, path: cp.path,
+        dials: cp.dials, contacts: cp.contacts, captures: cp.captures, strikes: cp.strikes ?? [], flags: cp.flags, flagAt: cp.flagAt, sites: cp.sites, search: cp.search, choices: cp.choices, path: cp.path,
       }), { entries: cp.entry - 1, from: cp.idx, restarted: cp.id });
       /* The stage opens again at the go, but its aircraft start on the
        * rail, maybe kilometres from the action: the stage's `restartLead`
@@ -794,6 +817,11 @@ export class RoomOps {
     if (!spots.length) {
       return this.error(conn, 'capture', 'item');
     }
+    /* An item with `from` is not taken before that trigger (Mission 2's
+     * choice boxes before the handoff, w50-adv-c B4). */
+    if (item.from && fired(item.from, this.ctx(core, m.f)) == null) {
+      return this.error(conn, 'capture', 'early');
+    }
     const open = item.open ? fired(item.open, this.ctx(core, m.f)) != null : false;
     const view = item.view ? { ...item.view, dir: resolve(item.view.dir, m.dials) } : null;
     if (view && !open && !spots.some((at) => inBand(view, at, q.p))) {
@@ -813,6 +841,62 @@ export class RoomOps {
     });
     this.log.push({
       what: 'capture', item: item.id, seat: s.seat, t: msg.t, grade,
+    });
+    return this.changed(core);
+  }
+
+  /*
+   * A strike asked by a seat (MISSIONS.md 1.6; CONTRACT-M3.md gap 2): the
+   * pilot's own deliberate action, never a place flown over. The seat
+   * must be flying a role of the mission's `strike.roles`; the target is
+   * the nearest contact of `strike.targets` in its `stage` whose `when`
+   * has fired (Vega's clearance, a pilot's designation) within `strike.r`
+   * metres across the ground of the aircraft at the strike's ms. A match
+   * restored from before strikes were kept has none. Refused, with the reason,
+   * when the seat flies another role, when only a target not yet
+   * authorized or no target is in reach. The room keeps it in `strikes`;
+   * the mission's cues read it (`struck`).
+   */
+  strike(core, conn, s, msg, roomNow) {
+    const m = this.match;
+    const def = this.mission().strike;
+    if (!m || m.state !== 'live' || !def) {
+      return this.error(conn, 'off');
+    }
+    const key = m.roles?.active?.[s.seat];
+    if (key == null || !def.roles.includes(roles.roleOf(key))) {
+      return this.error(conn, 'strike', 'role');
+    }
+    if (!Number.isFinite(msg.t) || msg.t > roomNow + AHEAD_MS || msg.t < m.f - CAPTURE_BACK_MS) {
+      return this.error(conn, 'strike', 'time');
+    }
+    const q = this.poseOf(s.seat, msg.t);
+    if (!q) {
+      return this.error(conn, 'strike', 'pose');
+    }
+    m.strikes ??= [];
+    const world = this.worldOf();
+    const ctx = this.ctx(core, m.f);
+    const near = [];
+    for (const tg of def.targets) {
+      const ok = tg.stage === m.stage?.id && fired(tg.when, ctx) != null;
+      for (const c of membersOf(m.contacts, tg.contacts)) {
+        const at = m.strikes.some((x) => x.contact === c.id) ? null : centreOf(c, world, msg.t);
+        const d = at ? Math.hypot(at[0] - q.p[0], at[1] - q.p[1]) : Infinity;
+        if (d <= def.r) {
+          near.push({ c, d, ok });
+        }
+      }
+    }
+    const hit = near.filter((x) => x.ok).sort((a, b) => a.d - b.d)[0];
+    if (!hit) {
+      return this.error(conn, 'strike', near.length ? 'authorized' : 'range');
+    }
+    m.strikes.push({
+      contact: hit.c.id, seat: s.seat, t: Math.round(msg.t), at: Math.ceil(roomNow),
+    });
+    this.log.push({
+      what: 'strike', contact: hit.c.id, seat: s.seat, t: msg.t,
     });
     return this.changed(core);
   }
@@ -1081,7 +1165,7 @@ export class RoomOps {
     /* The match as this stage opens: what a restart from it comes back
      * to (MISSIONS.md 1.1). */
     m.checkpoint = copy({
-      id: def.id, idx, at, seed: m.seed, entry: m.entries, dials: m.dials, contacts: m.contacts, captures: m.captures, flags: m.flags, flagAt: m.flagAt, sites: m.sites, search: m.search, choices: m.choices, path: m.path,
+      id: def.id, idx, at, seed: m.seed, entry: m.entries, dials: m.dials, contacts: m.contacts, captures: m.captures, strikes: m.strikes ?? [], flags: m.flags, flagAt: m.flagAt, sites: m.sites, search: m.search, choices: m.choices, path: m.path,
     });
     m.stage = enter(mission, idx, at, m.seed, m.entries, { pilots: Math.max(1, core.seats.size) });
     m.path.push({ id: def.id, at });
@@ -1160,9 +1244,10 @@ export class RoomOps {
     return { dirty: true, told };
   }
 
-  /* A fail's line (a loss rule's own, else the mission's), to everybody. */
+  /* A fail's line (a loss rule's own, else the mission's; a rule's null
+   * is none), to everybody. */
   endLines(st, t, own = undefined) {
-    const radio = own ?? this.mission().lines?.fail;
+    const radio = own === undefined ? this.mission().lines?.fail : own;
     return radio ? [{
       at: t, stage: st.id, heard: 'all', radio,
     }] : [];

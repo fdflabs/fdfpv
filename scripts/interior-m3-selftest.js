@@ -4,8 +4,11 @@
  * lints clean against MISSIONS.md and the world, the live room refuses
  * it and a dev room starts it, and scripted solo pilots fly it: a clean
  * run to the northern exit with POSITIVE ID and the command site's star,
- * a run that never stops the pair (the post overrun), and a run that
- * strikes two civilian pickups (two errors fail).
+ * a run that never stops the pair (the post overrun), a run that
+ * strikes two civilian pickups (two errors fail), and the strike as the
+ * pilot's own action (MISSIONS.md 1.6): hovering over a designated
+ * civilian never engages it, a strike before Vega's word or from another
+ * role is refused.
  *
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -35,8 +38,11 @@ import EN from '../src/strings/en.js';
 import ES from '../src/strings/es.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { check, finish, opsRoom } from './lib/opsroom.js';
+
+const checkOnce = check;
 import { withHeld } from './lib/held.js';
 import { feedSnow } from '../src/share/ops/feed.js';
+import { focusOf } from '../src/share/ops/guide.js';
 
 const W = worldFor('interior');
 const RAW = MISSIONS['interior-3'];
@@ -249,6 +255,24 @@ function as(e, key) {
   e.fly(e.clock + 500);
   return e.view(0).roles?.active?.[e.seatOf(0)] === key;
 }
+/* The strike pilot over contact `id` (`h` up, following it) until the
+ * room has its pose there, then its strike: the key pressed twice, which
+ * the shell sends as one message. Returns the room's refusal, or null. */
+function strike(e, c, id, h = 150) {
+  c.target = (t) => {
+    const p = poseOf(e, id);
+    return p ? [p[0], p[1], p[2] + h] : c.p;
+  };
+  until(e, () => {
+    const p = poseOf(e, id);
+    return p && Math.hypot(p[0] - c.p[0], p[1] - c.p[1]) < 20;
+  }, 600000, `over ${id}`);
+  e.fly(e.clock + 1000);
+  const n = e.errors(0).length;
+  e.sayLate(0, { type: 'ops', op: 'strike', t: e.clock - 100 });
+  e.fly(e.clock + 600);
+  return e.errors(0).slice(n).find((x) => x.error === 'strike')?.why ?? null;
+}
 function flyTo(e, c, p, label, ms = 1200000) {
   c.target = p;
   return until(e, () => dist(c.p, p) < 2, ms, label);
@@ -267,13 +291,17 @@ function toTheGate(e, c) {
   watch(e, c, 'parked', () => clsOf(e, 'parked') === 'poi', 400000, 'D\'s pattern');
   watch(e, c, 'courier', () => clsOf(e, 'parked') === 'hostile', 400000, 'D meets the courier');
   until(e, stageIs(e, 'M3_CP_CONFIRMED_CONTACT'), 30000, 'stage 2');
-  c.target = over([...M.points['strike-gate'].at, M.z0]);
+  c.target = over([...M.points['gate-near'].at, M.z0]);
   until(e, () => contact(e, 'pair-a'), 120000, 'the pair appears');
   return watch(e, c, 'pair-a', () => e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-contact')), 300000, 'the hostile action');
 }
 
-console.log('a clean run: every classification earned, one strike, the relay, north');
-{
+/* The clean run, and the same run once more to stage 5 with nobody
+ * following the northern vehicle (its checks said once). */
+for (const follow of [true, false]) {
+  console.log(follow ? 'a clean run: every classification earned, one strike, the relay, north'
+    : 'the same run, the northern vehicle left alone (w50-adv-c A3)');
+  const check = follow ? checkOnce : () => {};
   const e = opsRoom(M, ROOM);
   const c = pilot(e, 0, BASE);
   if (toTheGate(e, c)) {
@@ -283,17 +311,42 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     until(e, () => e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-cleared')), 10000, 'cleared');
     check('CONFIRM IDENTIFICATION on the pair after its action: cleared, HOSTILE CONFIRMED, not yet stopped',
       clsOf(e, 'pair-a') === 'hostile' && contact(e, 'pair-a') && !e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped')));
+    {
+      /* A2 (w50-adv-c): after "Cleared." the strike pilot's screen says
+       * what to do now; a solo pilot holds the strike role, so it is the
+       * guide's focus (src/share/ops/guide.js focusOf). */
+      const cards = view(e).cards;
+      const focus = focusOf(M, view(e), ['isr', 'recon', 'strike', 'relay']);
+      check('after "Cleared.": FLY THE STRIKE AIRCRAFT TO THE GATE AND STRIKE first, the strike role\'s, the solo pilot\'s focus',
+        cards[0]?.id === 'strike' && cards[0].roles?.join() === 'strike' && cards[0].state === 'active' && focus?.card.id === 'strike'
+        && EN['ops.interior.m3.obj.strike'] && ES['ops.interior.m3.obj.strike'], JSON.stringify(cards.map((x) => x.id)));
+      check('and an ISR pilot who holds no strike role keeps IDENTIFY THREATS', focusOf(M, view(e), ['isr'])?.card.id === 'threats');
+    }
+    {
+      const at = (id) => e.r.ops.log.findIndex((x) => x.what === 'cue' && [x.radio].flat().includes(id));
+      check('the strike role told it will be called when the stage opens, before Vega clears it', at('int3-st-ready') >= 0 && at('int3-st-ready') < at('int3-s2-contact') && at('int3-s2-cleared') > 0);
+    }
+    check('the strike refused from the ISR aircraft: only the strike role engages', strike(e, c, 'pair-a') === 'role');
     check('the pilot takes the strike role for the run', as(e, 'strike'));
-    flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 250], 'the strike run');
+    flyTo(e, c, [...M.points['gate-near'].at, M.z0 + 250], 'over the gate');
+    e.fly(e.clock + 5000);
+    check('the strike aircraft held over the cleared pair: nothing engaged without the strike', !e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped'))
+      && !e.r.ops.match.strikes.length && view(e).stage.id === 'M3_CP_CONFIRMED_CONTACT');
+    check('the strike on the cleared pair: accepted', strike(e, c, 'pair-a') === null && e.r.ops.match.strikes.some((x) => x.contact.startsWith('pair-')));
     until(e, stageIs(e, 'M3_CP_FIRST_ENGAGEMENT'), 60000, 'stage 3');
     as(e, 'isr');
-    check('the run over the gate: THREAT STOPPED, the pair gone, stage 3', e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped'))
+    check('THREAT STOPPED, the pair gone, stage 3', e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped'))
       && !view(e).contacts.some((k) => k.group === 'pair' && poseOf(e, k.id)));
     until(e, () => contact(e, 'v3'), 60000, 'the pickups');
     watch(e, c, 'v1', () => contact(e, 'v1-people'), 300000, 'v1 stops');
     watch(e, c, 'v1-people', () => clsOf(e, 'v1') === 'civilian', 120000, 'v1 people seen leaving');
     watch(e, c, 'v2', () => e.r.ops.match.choices?.v2?.value === 'empty', 300000, 'v2 empty');
     watch(e, c, 'v3', () => clsOf(e, 'v3') === 'hostile', 300000, 'v3 meets');
+    {
+      const v3 = poseOf(e, 'v3');
+      const by = ['radio-man', 'command-2'].map((id) => poseOf(e, id)).filter(Boolean).map((p) => Math.round(Math.hypot(p[0] - v3[0], p[1] - v3[1])));
+      check('vehicle 3 met somebody: the command site\'s two within 100 m when it turns HOSTILE', by.length === 2 && Math.max(...by) < 100, JSON.stringify(by));
+    }
     until(e, stageIs(e, 'M3_CP_RELAY'), 30000, 'stage 4');
     check('the three pickups: CIVILIAN, EMPTY, HOSTILE CONFIRMED', clsOf(e, 'v1') === 'civilian' && clsOf(e, 'v3') === 'hostile' && view(e).stage.id === 'M3_CP_RELAY');
     as(e, 'recon');
@@ -310,6 +363,15 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     snap(e, c, 'radio_op', 'radio-man');
     until(e, stageIs(e, 'M3_CP_AIR_CONTACT'), 30000, 'stage 5');
     until(e, () => contact(e, 'north'), 120000, 'the northern vehicle');
+    if (!follow) {
+      /* Parked over the command site, looking at it, as the vehicle
+       * drives off north out of every picture. */
+      until(e, () => ended(e), 900000, 'the end');
+      const v = view(e);
+      checkOnce('not followed: lost as unfollowed, never won, no flag', v.state === 'lost' && v.why === 'unfollowed' && !v.flags?.M3_ZERO_CIVILIAN_ERRORS
+        && v.checkpoint?.stage === 'M3_CP_AIR_CONTACT', `${v.state} ${v.why} ${JSON.stringify(v.checkpoint)}`);
+      continue;
+    }
     watch(e, c, 'north', () => ended(e), 600000, 'over the northern exit');
     const v = view(e);
     check(`won at the northern exit, ${Math.round((e.clock - v.goAt) / 60000)} min after the go (MISSIONS.md: 30 to 40)`, v.state === 'won', `${v.state} ${v.why ?? ''}`);
@@ -341,6 +403,7 @@ console.log('a designation before the action is refused by Ibarra and stops noth
   watch(e, c, 'courier', () => clsOf(e, 'parked') === 'hostile', 400000, 'D meets the courier');
   until(e, () => contact(e, 'pair-a'), 120000, 'the pair appears');
   watch(e, c, 'pair-a', () => contact(e, 'pair-a') && clsOf(e, 'pair-a') === 'poi', 120000, 'the pair seen');
+  check('before the clearance no strike card', !view(e).cards.some((x) => x.id === 'strike'));
   /* The pair is first seen through a gap in the crowns it walks out
    * under, so the first still may be BLOCKED BY CANOPY: no designation,
    * and the pilot takes another, as a player told so would. */
@@ -360,6 +423,23 @@ console.log('a designation before the action is refused by Ibarra and stops noth
     && e.r.ops.match.captures.filter((x) => x.item === 'confirm_pair').length === 1);
 }
 
+console.log('a strike before Vega\'s word is refused: not authorized');
+{
+  const e = opsRoom(M, ROOM);
+  const c = pilot(e, 0, BASE);
+  until(e, () => view(e)?.state === 'live', 30000, 'live');
+  c.air = true;
+  flyTo(e, c, over([...M.points.post.at, M.z0]), 'the post');
+  watch(e, c, 'police', () => clsOf(e, 'police') === 'friendly', 240000, 'B friendly');
+  watch(e, c, 'parked', () => clsOf(e, 'parked') === 'poi', 400000, 'D\'s pattern');
+  watch(e, c, 'courier', () => clsOf(e, 'parked') === 'hostile', 400000, 'D meets the courier');
+  until(e, () => contact(e, 'pair-a'), 120000, 'the pair appears');
+  as(e, 'strike');
+  const why = strike(e, c, 'pair-a');
+  check('the strike on the pair before its action and the clearance: refused, not authorized, nothing stopped', why === 'authorized'
+    && !e.r.ops.match.strikes.length && !e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped')), why);
+}
+
 console.log('two civilian pickups struck: an error each, the second fails the mission');
 {
   const e = opsRoom(M, ROOM);
@@ -367,19 +447,43 @@ console.log('two civilian pickups struck: an error each, the second fails the mi
   if (toTheGate(e, c)) {
     snap(e, c, 'confirm_pair', 'pair-a');
     check('the pilot takes the strike role for the run', as(e, 'strike'));
-    flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 250], 'the strike run');
+    strike(e, c, 'pair-a');
     until(e, stageIs(e, 'M3_CP_FIRST_ENGAGEMENT'), 60000, 'stage 3');
     const said = (id) => e.r.ops.log.some((x) => x.what === 'cue' && [x.radio].flat().includes(id));
     for (const v of ['v1', 'v2']) {
+      as(e, 'isr');
       watch(e, c, v, () => e.r.ops.match.contacts.find((k) => k.id === v)?.reached[`${v}-stopped`] != null, 300000, `${v} stopped`);
+      if (v === 'v1') {
+        as(e, 'strike');
+        check('the strike on vehicle 1 before anyone designated it: refused, not authorized', strike(e, c, v) === 'authorized' && !e.r.ops.match.strikes.some((x) => x.contact === v));
+        as(e, 'isr');
+      }
       snap(e, c, `confirm_${v}`, v);
-      flyTo(e, c, [...M.points[`${v}-stop`].at, M.z0 + 250], `the run over ${v}`);
+      as(e, 'strike');
+      if (v === 'v1') {
+        /* A1 (w50-adv-c): the capture key on the pickup, then the strike
+         * aircraft held over it, "helping them watch". */
+        c.target = (t) => {
+          const p = poseOf(e, v);
+          return p ? [p[0] + 40, p[1], p[2] + 120] : c.p;
+        };
+        e.fly(e.clock + 20000);
+        check('the strike aircraft 20 s over a designated civilian pickup without a strike: no error, nothing said, still live',
+          !e.r.ops.match.choices?.['error-v1'] && !said('int3-s3-error') && view(e).state === 'live' && !e.r.ops.match.strikes.some((x) => x.contact === v));
+      }
+      check(`the strike on designated ${v}: accepted`, strike(e, c, v) === null);
       e.fly(e.clock + 4000);
       if (v === 'v1') {
-        check('the first: "There were people in that one. Stop." and Vega\'s word; the mission goes on', said('int3-s3-error') && said('int3-s3-error-2') && view(e).state === 'live');
+        check('the first: "There were people in that one. Stop." and Vega\'s word; the error counted; the mission goes on', said('int3-s3-error') && said('int3-s3-error-2')
+          && e.r.ops.match.choices?.['error-v1']?.value === 'yes' && view(e).state === 'live');
       }
     }
     check('the second: lost, errors', view(e).state === 'lost' && view(e).why === 'errors', `${view(e).state} ${view(e).why}`);
+    const endWords = e.cues(0).flatMap((q) => [q.radio].flat()).filter(Boolean);
+    check('its own end (A9): the second error\'s lines, not "We\'ve lost the picture"; the debrief says a wrong vehicle twice',
+      endWords.at(-1) === 'int3-s3-error-2' && !endWords.includes('int-fail-function') && /wrong vehicle/.test(EN['ops.why.errors']) && /equivocado/.test(ES['ops.why.errors']), endWords.slice(-4).join());
+    const told = (id) => e.r.ops.log.filter((x) => x.what === 'cue' && [x.radio].flat().includes(id)).length;
+    check('the empty decoy struck: Vega\'s word, not "There were people in that one."', told('int3-s3-error') === 1 && told('int3-s3-error-2') === 2, `${told('int3-s3-error')} ${told('int3-s3-error-2')}`);
   }
 }
 

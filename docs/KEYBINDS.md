@@ -12,7 +12,9 @@ The Controller screen (Hangar, Controller; or Settings, Controller) has a
 Keys and buttons row. It opens a page listing
 every flight action with its key: Reset (R), Unstick (X), Flip over, hold
 (T), Launch or launch control (L), Parachute (P), Flaps (F), Landing gear
-(G), Smoke (O), Change view (C). Press a row (Enter or a click), then the
+(G), Smoke (O), Change view (C), Strike (2: an ops mission's strike
+aircraft only, pressed twice; no pad default, since A is the camera
+ball's zoom out). Press a row (Enter or a click), then the
 new key. Escape cancels, Backspace puts that row's default back. The
 first row, Keys for, chooses Every aircraft or the seated aircraft; a key
 set for one aircraft shows "(this aircraft)" and wins over the every

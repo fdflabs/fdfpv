@@ -79,6 +79,16 @@ const TRANSIT_S = (at) => {
 const TRACK = { soft: 20, hard: 45 };
 const NUEVO = [1, 2, 3, 4, 5, 6].map((k) => `nuevo-${k}`);
 const DETECTED = { chosen: 'detected', is: 'yes' };
+/* THE WATCHERS (MISSIONS.md M2 stars): every post found, in any stage.
+ * Stage 1 ends 24 to 54 s after the required watcher is seen and the
+ * zones are 2 to 2.5 km apart, so a flag only stage 1 could set needed the
+ * required zone searched last, which nobody can know. Silent after stage
+ * 1 (its "Another one." would replay at each stage's opening for a
+ * watcher found before it), and each later stage's last cue, so the cues
+ * before it keep their seeded windows (stages.js draws by cue index). */
+const ALL_WATCHERS = {
+  when: { all: [{ discovered: 'watcher' }, { discovered: 'watch-opt-1' }, { discovered: 'watch-opt-2' }] }, flag: 'M2_ALL_WATCHERS_FOUND',
+};
 const RECON = { role: ['recon'] };
 const ISR_TRACKER = { role: ['isr', 'tracker'] };
 /* Being seen by the people photographed (docs/campaign/interior/
@@ -95,6 +105,9 @@ export default {
   campaign: 'interior',
   title: 'ops.interior.m2.title',
   map: 'interior',
+  /* Minutes, low and high, a squad takes (docs/campaign/interior/
+   * MISSIONS.md M2 Length); the brief card shows it (src/ui/briefcard.js). */
+  estimatedMinutes: [25, 35],
   ground: true,
   z0: 0,
   /* The briefing: Mission 2's intro film, held for its length, and the
@@ -176,12 +189,14 @@ export default {
     {
       id: 'diagram', set: 'camp-close', at: P(CAMP_PROPS.shelters[0].at, 1.2), size: 0.6,
     },
-    /* The box on a contact at the handoff is the choice (stage 2). */
+    /* The box on a contact at the handoff is the choice (stage 2): not
+     * before the two separate, so a still of the watcher taken while
+     * following him never chooses Contact A unasked (w50-adv-c B4). */
     {
-      id: 'follow_a', set: 'choice', contact: 'watcher', size: 1.8,
+      id: 'follow_a', set: 'choice', contact: 'watcher', size: 1.8, from: { chosen: 'split', is: 'done' },
     },
     {
-      id: 'follow_b', set: 'choice', contact: 'second', size: 1.7,
+      id: 'follow_b', set: 'choice', contact: 'second', size: 1.7, from: { chosen: 'split', is: 'done' },
     },
     /* Estancia La Ceniza, inside the house (stage 3, RECON). */
     {
@@ -286,7 +301,9 @@ export default {
           when: { captured: 'diagram' },
           radio: ['int2-s1-notmap', 'int2-s1-road', 'int2-s1-points'],
         },
-        { when: { captured: 'diagram' }, at: 4, radio: 'int2-s1-back', heard: { role: ['isr'] } },
+        /* Sent back up high with the posts card, once the camp is done:
+         * the diagram is any one of its five stills, not always the last. */
+        { when: { captured: { set: 'camp-close' }, n: 5 }, at: 4, radio: 'int2-s1-back', heard: { role: ['isr'] } },
         { when: { captured: { set: 'camp-close' }, n: 5 }, card: ['card.primary_updated', 'card.search_area'] },
         ...ZONES.map((z) => ({ when: { captured: { set: 'camp-close' }, n: 5 }, search: { id: `zone-${z}`, at: GA(z), r: 300 } })),
         { when: { captured: { set: 'camp-close' }, n: 5 }, at: 2, radio: 'int2-tr-zone', heard: { role: ['tracker'] } },
@@ -294,13 +311,14 @@ export default {
         ...ZONES.map((z) => ({ when: { discovered: 'watcher' }, unsearch: `zone-${z}` })),
         { when: { discovered: 'watch-opt-1' }, radio: 'int2-s1-optional', heard: ISR_TRACKER },
         { when: { discovered: 'watch-opt-2' }, radio: 'int2-s1-optional', heard: ISR_TRACKER },
-        {
-          when: { all: [{ discovered: 'watcher' }, { discovered: 'watch-opt-1' }, { discovered: 'watch-opt-2' }] }, flag: 'M2_ALL_WATCHERS_FOUND',
-        },
+        ALL_WATCHERS,
         /* The convoy crosses the distant road 20 s after he is seen, in a
-         * seeded window of 30 s, and he leaves at once. */
+         * seeded window of 30 s, and he leaves at once. Never before the
+         * camp is inspected: an ISR scouting the zones while the quad is
+         * still on its way would otherwise end the stage with the camp
+         * and its diagram unseen. */
         {
-          when: { discovered: 'watcher' },
+          when: { all: [{ discovered: 'watcher' }, { captured: { set: 'camp-close' }, n: 5 }] },
           at: [20, 50],
           spawn: [1, 2, 3].map((k) => ({ id: `convoy-${k}`, route: `m2-convoy-${k}` })),
           choose: { name: 'convoy', value: 'passed' },
@@ -381,6 +399,7 @@ export default {
           when: { lost: 'courier', s: TRACK.soft }, repeat: true, card: 'card.last_known', search: { id: 'courier-lkp', contact: 'courier', r: 150 },
         },
         { when: { reacquired: 'courier' }, repeat: true, unsearch: 'courier-lkp' },
+        ALL_WATCHERS,
       ],
       exits: [
         { when: { all: [{ chosen: 'follow', is: 'b' }, { route: 'second', point: 'property-yard' }] }, to: 'next' },
@@ -429,6 +448,7 @@ export default {
           when: { lost: 'returner', s: TRACK.soft }, repeat: true, card: 'card.last_known', search: { id: 'returner-lkp', contact: 'returner', r: 150 },
         },
         { when: { reacquired: 'returner' }, repeat: true, unsearch: 'returner-lkp' },
+        ALL_WATCHERS,
       ],
       exits: [{ when: { route: 'returner', point: 'property-gate' }, to: 'next', after: 5000 }],
     },
@@ -476,6 +496,7 @@ export default {
         {
           when: { chosen: 'meeting', is: 'over' }, at: 6, radio: ['int2-s4-cells', 'int2-s4-orgs', 'int2-s4-routes'], choose: { name: 'cells', value: 'said' },
         },
+        ALL_WATCHERS,
       ],
       /* The outro film carries the emergency transition (INTROS M2). */
       exits: [{ when: { chosen: 'cells', is: 'said' }, to: 'won', why: 'documented', after: 8000 }],

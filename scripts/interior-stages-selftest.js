@@ -89,6 +89,7 @@ import EN from '../src/strings/en.js';
 import ES from '../src/strings/es.js';
 import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
+import { CARD_MS } from '../src/share/war/intro.js';
 import { SPOT_ORBIT, spotFilm } from '../src/share/ops/spotfilm.js';
 import { cameraAt, timing } from '../src/share/war/film.js';
 import {
@@ -268,8 +269,25 @@ console.log('the briefing: a first viewing never cut, the host\'s skip for every
   check('and the mission goes live at that go, the briefing cut short', e.view(0).state === 'live' && e.view(0).stage?.id === 'M1_CP_START' && w.goAt < 20000 + 6000);
   const f = opsRoom(FILM, { ...ROOM, n: 1, start: false });
   f.say(0, { type: 'ops', op: 'start', mission: FILM.id, intro: true });
-  f.fly(f.clock + 20000 + 6000 + 200);
-  check('unskipped, the briefing runs its whole film, then the countdown, then live', f.view(0).state === 'live' && f.view(0).goAt === f.view(0).briefAt + 20000 + 6000);
+  f.say(0, { type: 'ops', op: 'ready' });
+  check('a pilot\'s Deploy on the brief card is its ready, in the view, and the briefing holds',
+    f.view(0).deployed.join() === String(f.seatOf(0)) && f.view(0).state === 'briefing', JSON.stringify(f.view(0).deployed));
+  f.fly(f.clock + 20000 + 200);
+  check('the film over, the brief card holds the briefing for CARD_MS', f.view(0).state === 'briefing');
+  f.fly(f.clock + CARD_MS + 6000);
+  check('unskipped, the briefing runs its whole film and the card, then the countdown, then live', f.view(0).state === 'live' && f.view(0).goAt === f.view(0).briefAt + 20000 + CARD_MS + 6000);
+  f.say(0, { type: 'ops', op: 'ready' });
+  check('a Deploy outside a briefing is refused off', f.errors(0).at(-1)?.error === 'off');
+  {
+    /* After the film nobody's viewing is cut: the host's Deploy ends the
+     * card's span whoever has seen what. */
+    const o = opsRoom(FILM, { ...ROOM, n: 2, start: false });
+    o.say(0, { type: 'ops', op: 'start', mission: FILM.id, intro: true });
+    o.fly(o.clock + 20000 + 500);
+    o.say(0, { type: 'ops', op: 'skipIntro' });
+    check('after the film, the host\'s Deploy with nobody having seen it: the countdown for everybody, now',
+      o.view(1).state === 'countdown' && o.view(1).goAt === o.clock + 6000, JSON.stringify([o.view(1).state, o.view(1).goAt, o.clock]));
+  }
   f.say(0, { type: 'ops', op: 'skipIntro' });
   check('a skip after the briefing moves nothing', f.view(0).state === 'live');
 }
@@ -673,7 +691,7 @@ const SOLO = {};
   check('the camp documented: five captures', ['shelters', 'motorcycles', 'antenna', 'personnel', 'access'].every((id) => ['clean', 'usable'].includes(camp.grades[id])), JSON.stringify(camp.grades));
   check('the tarp moved: the mark taken from any side', ['clean', 'usable'].includes(camp.grades.symbol), camp.grades.symbol);
   check('the mark: its flag, the archive exchange, the camp COLUMN-LINKED with its label', e.view(0).flags.M1_SYMBOL_CAPTURED === true
-    && heard(e, 0, 'int1-s5-remembers') && contact(e, 'camp-1').cls === 'column-linked' && contact(e, 'camp-1').label === 'ops.label.new_column_unconfirmed'
+    && heard(e, 0, 'int1-s5-remembers') && contact(e, 'camp-1').cls === 'column-linked' && contact(e, 'camp-1').label === 'ops.label.column_linked_unconfirmed'
     && contact(e, 'pair-a').cls === 'column-linked');
   check('an orbit at standoff never alerted the camp', camp.alert === 0, `${camp.alert}`);
   check('the required intel in: the dispersal, its exchange', e.r.ops.match.choices?.dispersal?.value === 'started' && heard(e, 0, 'int1-s5-understand'));

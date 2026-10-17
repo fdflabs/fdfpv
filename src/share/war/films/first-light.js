@@ -48,6 +48,6 @@ const SLATE = {
 export default {
   ...film2030,
   id: 'first-light',
-  version: 5,
+  version: 6,
   shots: film2030.shots.map((s) => ({ ...s, lines: LINES[s.id] ?? [], titles: [...(s.titles ?? []), ...(SLATE[s.id] ?? [])] })),
 };

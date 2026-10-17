@@ -22,7 +22,7 @@
  *
  * An OPS MISSION is { id, campaign, title, map, z0, classes, roles,
  * contacts, items, points, sites, dials, boundary, lost, stars, lines,
- * filmMs?, stages } (src/share/interior/missions/interior-1.js is the
+ * strike?, filmMs?, stages } (src/share/interior/missions/interior-1.js is the
  * first). It names no attackers and no output floor: it is lost by its
  * `lost` rules ({ when, why }), its boundary, or a stage exit to 'lost'.
  *
@@ -214,6 +214,11 @@ export function trigger(trig, ctx) {
   if (trig.looking != null || trig.spotted != null) {
     const id = trig.looking ?? trig.spotted;
     return after(m.spot?.[id]?.at[trig.looking != null ? 'looking' : 'spotted'] ?? null);
+  }
+  /* A pilot's strike on a contact (the room's `strike`), the first. */
+  if (trig.struck != null) {
+    const ids = new Set(membersOf(m.contacts, trig.struck).map((c) => c.id));
+    return after(earliest((m.strikes ?? []).filter((x) => ids.has(x.contact)).map((x) => x.t)));
   }
   if (trig.route != null) {
     const ts = membersOf(m.contacts, trig.route).map((c) => c.reached[trig.point]).filter((t) => t != null);

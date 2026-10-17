@@ -147,6 +147,9 @@ export default {
   campaign: 'interior',
   title: 'ops.interior.m1.title',
   map: 'interior',
+  /* Minutes, low and high, a squad takes (docs/campaign/interior/
+   * MISSIONS.md M1 Length); the brief card shows it (src/ui/briefcard.js). */
+  estimatedMinutes: [20, 30],
   /* Every height here is over the ground; z0 is Pista Cero's ground. */
   ground: true,
   z0: 0,
@@ -495,7 +498,7 @@ export default {
           radio: ['int1-s5-receiving', 'int1-s5-weare', 'int1-s5-checking', 3, 'int1-s5-historical', 'int1-s5-column', 'int1-s5-years', 'int1-s5-answer', 'int1-s5-no', 1, 'int1-s5-remembers'],
           classify: [
             {
-              contacts: ['camp', 'pair'], to: 'column-linked', label: 'ops.label.new_column_unconfirmed', why: 'ev.historical_mark',
+              contacts: ['camp', 'pair'], to: 'column-linked', label: 'ops.label.column_linked_unconfirmed', why: 'ev.historical_mark',
             },
           ],
         },

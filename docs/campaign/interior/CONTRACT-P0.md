@@ -72,17 +72,19 @@ answered `{ type: 'ops', error }` to the sender alone.
 
 | op | Who | Fields | What the room does |
 | --- | --- | --- | --- |
-| `start` | host | `mission` (id), `intro` (bool), `from: 'checkpoint'` (optional) | starts it: a briefing of the mission's `filmMs` when `intro` and it has one, then the countdown (`COUNTDOWN_MS`), then the first stage; or again from the stage a lost match was lost in. Refused: `mission`, `unreleased` (campaign.js gate), `map`, `busy` (another game on), `private` (a public room: P0 runs only in private rooms), `checkpoint` |
+| `start` | host | `mission` (id), `intro` (bool), `from: 'checkpoint'` (optional) | starts it: a briefing of the mission's `filmMs` and the brief card's `CARD_MS` (src/share/war/intro.js) when `intro` and it has one, then the countdown (`COUNTDOWN_MS`), then the first stage; or again from the stage a lost match was lost in. Refused: `mission`, `unreleased` (campaign.js gate), `map`, `busy` (another game on), `private` (a public room: P0 runs only in private rooms), `checkpoint` |
 | `end` | host | | ends the match, `state: 'ended'` |
 | `cam` | any seat | `t` (room ms), `aim` [x,y,z] (ops frame: the ground point the camera's axis is on, its lock point when locked), `tanHalf` (> 0), `aspect` (width / height) | the seat's camera from `t` until its next report, at most `CAM_STALE_MS` = 1500 ms. `t` is the client's estimate of the room clock (`roomLinkState.roomNow()`); an axis that meets no ground (the sky, past the map) reports the point 20 km along it. Its direction at each grid ms is from the seat's pose then toward `aim`, so a locked camera stays exact between reports while the aircraft orbits. **Two a second** (`CAM_MIN_MS` = 400 ms; text messages share the room's allowance of 5 a second per seat). **Before the camera ball (N14) lands, send where the nose's axis meets the ground and the screen's own `tanHalf`.** Nothing is seen by a seat that sends no `cam` |
 | `capture` | any seat | `item` (id), `t` (room ms of the still), `grade` (`clean`, `usable`, `poor`), `framing` { `size` (fraction of frame width), `off` (0 centre to 1 edge), `blur` (0 to 1) } | judged (section 7): recorded, or refused `capture` with `why` |
+| `strike` | any seat flying a role of the mission's `strike.roles` | `t` (room ms) | judged by the room (MISSIONS.md 1.6): the nearest contact of `strike.targets` (each `{ contacts, when, stage }`) in its `stage` whose `when` fired, within `strike.r` m across the ground of the seat's pose at t, is kept in `strikes` (trigger `struck`); else refused `strike` with `why` `role`, `authorized` (a target in reach, not authorized), `range`, `time` or `pose` |
 | `take` | any seat | `role` (a role id) | takes a free role: an unheld core role, or a new copy of a scaling role (section 5). Refused `locked`, `role` |
 | `active` | any seat | `key` (a role key it holds) | which of its roles it is flying now |
 | `swap` | any seat | `seat` (the other), `give` (a key the sender holds, or null), `take` (a key the other holds, or null; not both null) | a request, in the view's `roles.swaps`, until `SWAP_MS` = 20 000 ms |
 | `swapAccept`, `swapDecline` | the asked seat | `id` (the request's) | accept exchanges the keys at once; decline drops it |
 | `lock` | host | `on` (bool) | host lock: no role changes until unlocked |
 | `seen` | any seat | `films` { film id: version } | the films this pilot has watched to the end (kept by token, in memory, as the war keeps them); refused `seen` if malformed |
-| `skipIntro` | host | | ends the briefing for everybody (the countdown runs from now), only once every pilot here has seen the mission's `film` at its version or newer; refused `unwatched` otherwise (a first viewing is never cut, INTROS.md section 3); nothing outside a briefing |
+| `ready` | any seat | | in a briefing, this pilot pressed the brief card's Deploy (the view's `deployed`); refused `off` outside one |
+| `skipIntro` | host | | the brief card's Deploy: ends the briefing for everybody (the countdown runs from now); while the film still runs, only once every pilot here has seen the mission's `film` at its version or newer, refused `unwatched` otherwise (a first viewing is never cut, INTROS.md section 3); nothing outside a briefing |
 
 ## 4. Room to client
 
@@ -123,6 +125,7 @@ binary **0xC0 to 0xCF held, none used**, JSON type **`ops`**.
   result,       // null, or at the end { won, stars, starIds, flags, restarted }; null always to a watcher and to a seat whose pilot did not take part (edge/rooms/ops.js took: seated while the match was on, by token)
   film,         // the briefing's film { id, version } (the mission's `film`), or null
   seen,         // [seats]: the seats here that have seen that film's version
+  deployed,     // [seats]: the seats here that pressed the brief card's Deploy in this briefing (op `ready`)
   checkpoint,   // a lost match's stage to play again from: { stage, n, title }, or null
   restarted,    // the checkpoint stage id this match restarted from, or null (stars capped at 2)
 }
@@ -309,6 +312,7 @@ triggers, in the ops frame:
 | `{ flag: NAME }` | the flag was set |
 | `{ chosen: name, is }` | the choice `name` was made `is` (a cue `choose`) |
 | `{ hards: C, n }` | C moved by n hard thresholds in the stage |
+| `{ struck: C }` | the room accepted a pilot's `strike` on C (a member of it) |
 
 - **Mission loss rule** in place of the war's output floor: the mission's
   `lost: [{ when, why }]`, checked in every stage; the first to fire loses
@@ -355,7 +359,9 @@ WORLD for. Card event keys are `card.primary_updated`,
 objective texts `ops.interior.m1.obj.*`, stage titles
 `ops.interior.m1.s1` to `s5`, the rule `ops.rule.no_engagement`, the
 tutorial prompts `ops.tut.*` (stage 1's `tutorial`, cleared by the
-screen), the group label `ops.label.new_column_unconfirmed`.
+screen), the group label `ops.label.column_linked_unconfirmed`
+(MISSIONS.md int1-s5-remembers; NEW COLUMN (UNCONFIRMED) is Mission 2's
+Claro Nuevo, until 2026-10-17 also used here).
 
 What the screen reads from the mission itself: `clock` (WORLD's
 `M1_CLOCK`), `camp.mark` (the mark's dial to the map's shelter, one table

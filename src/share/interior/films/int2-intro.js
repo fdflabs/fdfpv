@@ -3,9 +3,9 @@
  * M2_00, docs/campaign/interior/INTROS.md M2): Claro Viejo the morning
  * after, empty, walked into at a man's height with nobody in frame; the
  * camp then and now side by side on the BOARD; the question turned round
- * (not how they escaped, what they saw); the recon quad lifting at the
- * clearing's edge. The room's briefing (missions/interior-2.js filmMs).
- * Data only (src/share/war/film.js).
+ * (not how they escaped, what they saw); the recon quad lifting off Pista
+ * Cero, where the pilot takes it over. The room's briefing (missions/
+ * interior-2.js filmMs). Data only (src/share/war/film.js).
  *
  * Faceless (PLAN.md 9 B): no person in any shot; the walk is a camera's.
  *
@@ -17,6 +17,9 @@
  *     player's M1_SYMBOL_CAPTURED flag picks which is said
  *   - the quad's shot is held on the ground and lifting, not ridden: the
  *     mission hands off to the pilot's own launch
+ *   - shot 7 is at Pista Cero, not Claro Viejo's edge: play starts at the
+ *     base (the shell's spawn), about 9 km from the camp, and a hand-off
+ *     from the clearing put the pilot there in one blend (W50 B7)
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -34,8 +37,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { BOARD_CAMERA } from './common.js';
-import { CAMP_PROPS, PLACES } from '../places.js';
+import { BOARD_CAMERA, yawTo } from './common.js';
+import { CAMP_PROPS, PLACES, dirOf } from '../places.js';
 
 /* Claro Viejo to the three places a watcher could see the road from, with
  * a margin, on the BOARD at 16:9. */
@@ -53,12 +56,23 @@ const CAMP_VIEW = { at: CV, span: 900 };
 const [CX, CZ] = CAMP_PROPS.middle;
 const near = (ox, h, oz) => [CX + ox, h, CZ + oz];
 const ROPE = CAMP_PROPS.hammocks[0].from;
-/* The quad at the clearing's south edge, facing out over the camp. */
-const PAD = near(4, 0.25, 22);
+/* Where play starts: the shell's spawn on Pista Cero (src/maps/
+ * interior.js SPAWN), 180 m west of the strip's middle, facing up the
+ * strip. A point `fwd` metres up the strip from it and `right` metres to
+ * its right, h over the ground. */
+const [PX, PZ] = PLACES.pistaCero.at;
+const STRIP = dirOf(PLACES.pistaCero.at, [PX + 460, PZ - 90]);
+const fromSpawn = (fwd, right, h) => [PX - 180 + STRIP[0] * fwd - STRIP[1] * right, h, PZ + 30 + STRIP[1] * fwd + STRIP[0] * right];
+/* The quad 10 m up the strip from the spawn and 4 m right, clear of every
+ * room slot's aircraft (src/game/slots.js, 8 m apart across the heading)
+ * and the pilots' line behind them; the base's tent and container stand
+ * behind it from the camera. */
+const PAD = fromSpawn(10, 4, 0.25);
+const PAD_YAW = yawTo(STRIP[0], STRIP[1]);
 
 export default {
   id: 'int2-intro',
-  version: 1,
+  version: 2,
   map: 'interior',
   music: null,
   cast: {
@@ -169,17 +183,17 @@ export default {
       min: 6,
       grade: 'air',
       music: 'interior',
-      /* The recon quad at the clearing's edge, nobody near; its motors
-       * spin up and it lifts to a man's height, under the crowns. */
+      /* The recon quad on Pista Cero, nobody near; its motors spin up
+       * and it lifts to a man's height. */
       cast: {
         quad: {
           agl: true,
-          keys: [{ t: 0, p: PAD, yaw: 0 }, { t: { at: 'end', s: -3.0 }, p: PAD, yaw: 0 }, { t: { at: 'end' }, p: [PAD[0], 2.2, PAD[2]], yaw: 0 }],
+          keys: [{ t: 0, p: PAD, yaw: PAD_YAW }, { t: { at: 'end', s: -3.0 }, p: PAD, yaw: PAD_YAW }, { t: { at: 'end' }, p: [PAD[0], 2.2, PAD[2]], yaw: PAD_YAW }],
           spin: [[0, 0], [{ at: 'end', s: -3.4 }, 0], [{ at: 'end', s: -3.0 }, 200]],
         },
       },
       camera: {
-        type: 'telephoto', agl: true, lens: 35, at: [PAD[0] + 4, 1.2, PAD[2] + 5], look: { cast: 'quad', up: 0.2 },
+        type: 'telephoto', agl: true, lens: 35, at: fromSpawn(5, 6.5, 1.2), look: { cast: 'quad', up: 0.2 },
       },
       lines: [{ line: 'film-int2-13', lead: 1.0, tail: 1.4 }],
       out: 'handoff',

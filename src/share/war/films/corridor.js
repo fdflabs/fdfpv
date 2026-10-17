@@ -60,7 +60,7 @@ const onRoad = (x) => ({ keys: [{ t: 0, p: crest(LINE_AT, LINE_OFF, null, PAIR_M
 
 export default {
   id: 'corridor',
-  version: 2,
+  version: 3,
   cast: {
     strk: CAST.strk,
     int: CAST.int,
@@ -127,7 +127,7 @@ export default {
       /* The west corridor to the horizon on a 600 mm lens, its towers
        * stacked, and one Striker coming down it along the wires. */
       camera: {
-        type: 'telephoto', lens: 600, ease: 'lin', at: [-2930, 300, -110], look: { agent: 'one' },
+        type: 'telephoto', lens: 600, ease: 'lin', at: [-2930, 256, -110], look: { agent: 'one' },
       },
       hero: { agent: 'one', minPx: 40 },
       out: 'cut',

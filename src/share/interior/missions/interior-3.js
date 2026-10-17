@@ -3,8 +3,9 @@
  * room's ops modules (src/share/ops/, docs/campaign/interior/
  * CONTRACT-P0.md). The authority is docs/campaign/interior/MISSIONS.md's
  * M3 section; what is built here and what is not is CONTRACT-M3.md (the
- * strike, the relay and the post are stood in for with the room's
- * existing triggers; the unknown drone is not built). Text is string
+ * strike is the strike pilot's own action, `strike` below; the relay and
+ * the post are stood in for with the room's existing triggers; the
+ * unknown drone is not built). Text is string
  * keys only; the radio is lines.json's, by line id (the int3 voices are
  * not generated yet: a screen plays nothing for an id it does not have).
  *
@@ -77,14 +78,13 @@ const TRACK = { soft: 20, hard: 45 };
 const STRIKE = { role: ['strike'] };
 const RELAY = { role: ['relay'] };
 const TRACKER = { role: ['tracker'] };
-/* A strike: the strike platform held 3 s over the place (CONTRACT-M3.md
- * gap 2: the room has no weapon; the run over a cleared target is it). */
-const RUN = (point) => ({ zone: point, roles: ['strike'], ms: 3000 });
 const CLEARED = { chosen: 'cleared', is: 'yes' };
 const STOPPED = { chosen: 'threat', is: 'stopped' };
 const ERR = (v) => ({ chosen: `error-${v}`, is: 'yes' });
 const ERRORS = { any: [ERR('v1'), ERR('v2')] };
+const DESIGNATED = (v) => ({ captured: `confirm_${v}` });
 const RELAYED = { chosen: 'relay', is: 'held' };
+const FOLLOWED = { vanished: 'north', watched: true };
 const STAGE1 = ['civ-pickup', 'police', 'walker-1', 'walker-2', 'parked', 'worker-1', 'worker-2', 'worker-3', 'family'];
 
 
@@ -93,6 +93,9 @@ export default {
   campaign: 'interior',
   title: 'ops.interior.m3.title',
   map: 'interior',
+  /* Minutes, low and high, a squad takes (docs/campaign/interior/
+   * MISSIONS.md M3 Length); the brief card shows it (src/ui/briefcard.js). */
+  estimatedMinutes: [30, 40],
   ground: true,
   z0: 0,
   /* The briefing: Mission 3's intro film, held for its length, and which
@@ -212,9 +215,6 @@ export default {
     'obs-b': { at: GA('obsB'), r: 15 },
     meet: { at: GA('meet'), r: 15 },
     'south-road': { at: G(4.4, 13.0), r: 40 },
-    'strike-gate': { at: GA('gate'), r: 150 },
-    'v1-stop': { at: GA('v1Stop'), r: 150 },
-    'v2-stop': { at: GA('v2Stop'), r: 150 },
     'v1-stopped': { at: GA('v1Stop'), r: 15 },
     'v2-stopped': { at: GA('v2Stop'), r: 15 },
     'v3-meet': { at: G(7.12, 15.215), r: 20 },
@@ -223,6 +223,22 @@ export default {
     turn: { at: GA('turn'), r: 20 },
     edge: { at: GA('edge'), r: 20 },
     exit: { at: GA('exit'), r: 30 },
+  },
+  /* The strike (MISSIONS.md 1.6, CONTRACT-M3.md gap 2): the strike
+   * pilot's own action, refused unless a target here is authorized: the
+   * pair once Vega clears it, a pickup once a pilot designated it (a wrong
+   * designation struck is the error). Vehicle 3 is not one: its evidence
+   * is the meeting at the command site the mission goes on to. Watching,
+   * capturing or flying over never engages. Within `r` metres across the
+   * ground of the strike aircraft, at any height; each target only in the
+   * stage whose cues answer its strike. */
+  strike: {
+    roles: ['strike'],
+    r: 150,
+    targets: [
+      { contacts: 'pair', when: CLEARED, stage: 'M3_CP_CONFIRMED_CONTACT' },
+      ...['v1', 'v2'].map((v) => ({ contacts: v, when: DESIGNATED(v), stage: 'M3_CP_FIRST_ENGAGEMENT' })),
+    ],
   },
   dials: {
     order: ['ab', 'ba'],
@@ -238,9 +254,9 @@ export default {
   /* Who notices a low aircraft (src/share/ops/spot.js, the owner's rule
    * of 2026-10-08), Mission 1's numbers: the courier at the meeting and
    * the concealed pair, the two groups the ISR photographs. The strike
-   * run counts over the gate at any height (RUN), so it is flown above
-   * the pair's 200 m like any other look. The command site is the recon
-   * quad's close work and has no spotter. */
+   * reaches at any height (`strike.r` is across the ground), so it is
+   * flown above the pair's 200 m like any other look. The command site
+   * is the recon quad's close work and has no spotter. */
   spotters: [
     {
       ...SPOT, id: 'courier', group: 'courier', stage: 'M3_CP_START', scatter: [{ contacts: 'courier', route: 'm3-courier-scatter' }],
@@ -256,7 +272,11 @@ export default {
     { when: { spotted: 'courier' }, why: 'spotted', spot: 'courier' },
     { when: { spotted: 'pair' }, why: 'spotted', spot: 'pair' },
     { when: { downed: ['isr'], alone: true }, why: 'isr-down', radio: 'int-fail-function' },
-    { when: { all: [ERR('v1'), ERR('v2')] }, why: 'errors', radio: 'int-fail-function' },
+    /* Not "We've lost the picture" (w50-adv-c A9): the second error's
+     * own lines (Rojas's, Vega's "Nobody engages anything else without
+     * my word.") have just played, and the debrief says why
+     * (ops.why.errors). No new voice: one is built only on the Orin. */
+    { when: { all: [ERR('v1'), ERR('v2')] }, why: 'errors', radio: null },
     { when: { route: 'pair', point: 'post' }, why: 'post', radio: 'int-fail-function' },
   ],
   stars: [
@@ -337,6 +357,14 @@ export default {
       title: 'ops.interior.m3.s2',
       restartLead: TRANSIT_S(GA('post')),
       objectives: [
+        /* After Vega's "Cleared.", on the strike pilot's screen (a solo
+         * pilot holds the role): what to do now, before the pair reaches
+         * the post (w50-adv-c A2). First, so it is the guide's focus. */
+        {
+          id: 'strike', text: 'ops.interior.m3.obj.strike', tier: 'primary', roles: ['strike'], show: CLEARED, done: STOPPED, guide: {
+            isr: 'int3-g-strike', tracker: 'int3-g-strike', recon: 'int3-g-strike', strike: 'int3-g-strike', relay: 'int3-g-strike',
+          },
+        },
         {
           id: 'threats', text: 'ops.interior.m3.obj.threats', tier: 'primary', done: STOPPED, guide: { isr: 'int3-g-threats', tracker: 'int3-g-threats', recon: 'int3-g-threats', strike: 'int3-g-strike', relay: 'int3-g-threats' },
         },
@@ -371,12 +399,15 @@ export default {
           when: { all: [{ route: 'pair', point: 'gate-near' }, { captured: 'confirm_pair' }] },
           radio: 'int3-s2-cleared',
           classify: { contacts: 'pair', to: 'hostile', why: 'ev.hostile_action' },
-          card: 'card.classification_updated',
+          card: ['card.classification_updated', 'card.primary_updated'],
           choose: { name: 'cleared', value: 'yes' },
         },
-        { when: CLEARED, radio: 'int3-st-ready', heard: STRIKE },
+        /* The strike role's job opens with the stage (MISSIONS.md M3: "the
+         * strike role unlocked"): told after Vega's "Cleared.", its "Not
+         * before." read as a no at the moment it was a go. */
+        { at: 1, radio: 'int3-st-ready', heard: STRIKE },
         {
-          when: { all: [CLEARED, RUN('strike-gate')] },
+          when: { struck: 'pair' },
           text: 'ops.interior.m3.stopped',
           radio: ['int3-s2-stopped', 'int3-s2-continue'],
           move: [{ contacts: 'pair', route: 'm3-stopped', alt: null }],
@@ -400,7 +431,9 @@ export default {
         /* The three leave a few seconds apart. */
         { at: 5, spawn: [{ id: 'v1', route: 'm3-v1' }], radio: ['int3-s3-chassis', 'int3-s3-answers'] },
         { at: 11, spawn: [{ id: 'v2', route: 'm3-v2' }] },
-        { at: 17, spawn: [{ id: 'v3', route: 'm3-v3' }] },
+        /* The command site's two are there before vehicle 3 arrives, so
+         * the meeting that makes it HOSTILE has somebody at it. */
+        { at: 17, spawn: [{ id: 'v3', route: 'm3-v3' }, { id: 'radio-man', route: 'm3-radio-op' }, { id: 'command-2', route: 'm3-command-2' }] },
         { at: 6, radio: 'int3-tr-contact', heard: TRACKER },
         { when: { route: 'v1', point: 'v1-stopped' }, at: 4, spawn: [{ id: 'v1-people', route: 'm3-v1-people' }] },
         {
@@ -420,10 +453,12 @@ export default {
           card: 'card.classification_updated',
         },
         /* A strike on vehicle 1 or 2: a designation, then the strike
-         * platform's run over it (MISSIONS.md 1.6). */
+         * pilot's action on it (MISSIONS.md 1.6). Rojas's "There were
+         * people in that one." is vehicle 1's alone: vehicle 2 is the
+         * empty decoy, and Vega's word stands for both. */
         ...['v1', 'v2'].map((v) => ({
-          when: { all: [{ captured: `confirm_${v}` }, RUN(`${v}-stop`)] },
-          radio: ['int3-s3-error', 'int3-s3-error-2'],
+          when: { struck: v },
+          radio: v === 'v1' ? ['int3-s3-error', 'int3-s3-error-2'] : 'int3-s3-error-2',
           move: [{ contacts: v, route: 'm3-stopped', alt: null }],
           choose: { name: `error-${v}`, value: 'yes' },
         })),
@@ -447,9 +482,7 @@ export default {
         { id: 'rule', text: 'ops.rule.confirmed_only', tier: 'rule' },
       ],
       cues: [
-        {
-          at: 0, card: 'card.primary_updated', spawn: [{ id: 'radio-man', route: 'm3-radio-op' }, { id: 'command-2', route: 'm3-command-2' }],
-        },
+        { at: 0, card: 'card.primary_updated' },
         /* The forward feed's loss is told, not drawn (CONTRACT-M3.md gap 4). */
         { when: { zone: 'command', roles: ['recon'] }, radio: ['int3-s4-losing', 'int3-s4-both', 'int3-s4-normal', 'int3-s4-talk', 'int3-s4-cando'], search: { id: 'relay-volume', at: GA('relay'), r: 350 } },
         { when: { zone: 'command', roles: ['recon'] }, at: 2, radio: 'int3-re-volume', heard: RELAY },
@@ -471,7 +504,7 @@ export default {
        * contact (CONTRACT-M3.md gap 5). The northern vehicle is. */
       objectives: [
         {
-          id: 'north', text: 'ops.interior.m3.obj.north', tier: 'primary', done: { route: 'north', point: 'exit' }, guide: { isr: 'int3-g-north', tracker: 'int3-g-north', recon: 'int3-g-north', strike: 'int3-g-north', relay: 'int3-g-north' },
+          id: 'north', text: 'ops.interior.m3.obj.north', tier: 'primary', done: FOLLOWED, guide: { isr: 'int3-g-north', tracker: 'int3-g-north', recon: 'int3-g-north', strike: 'int3-g-north', relay: 'int3-g-north' },
         },
         { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
@@ -483,9 +516,16 @@ export default {
         { when: { route: 'north', point: 'edge' }, radio: ['int3-s5-edge', 'int3-s5-boundary'] },
         { when: { lost: 'north', s: 20 }, repeat: true, search: { id: 'north-lkp', contact: 'north', r: 200 }, card: 'card.last_known' },
         { when: { reacquired: 'north' }, repeat: true, unsearch: 'north-lkp' },
-        { when: { route: 'north', point: 'exit' }, unless: ERRORS, flag: 'M3_ZERO_CIVILIAN_ERRORS' },
+        { when: FOLLOWED, unless: ERRORS, flag: 'M3_ZERO_CIVILIAN_ERRORS' },
       ],
-      exits: [{ when: { route: 'north', point: 'exit' }, to: 'won', why: 'north', after: 3000 }],
+      /* Won only by the follow (w50-adv-c A3: it was won by doing
+       * nothing): the vehicle in somebody's picture in its last 30 s
+       * (contacts.js WATCH_MS) as it leaves coverage. Not watched as it
+       * goes, the picture is lost; the first exit wins a tie. */
+      exits: [
+        { when: FOLLOWED, to: 'won', why: 'north', after: 3000 },
+        { when: { vanished: 'north' }, to: 'lost', why: 'unfollowed' },
+      ],
     },
   ],
 };

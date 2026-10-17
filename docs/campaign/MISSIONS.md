@@ -199,6 +199,12 @@ thing that can happen in a stage.
 3. The Aggressor sees it. The next group born after the opening is
    retargeted at the gantry, and MIRADOR says so (`contain-retarget`).
 4. The stage cannot clear while a closure runs; its beat waits for it.
+   *Changed 2026-10-17 (w50-fix-itaipu, adv-a A3):* a stage clears on its
+   last attacker and a closure still running goes on into the next stage
+   (the next group turns at its gantry there); a mission won with one
+   still open has it held at the win, since nothing is left to hit the
+   gantry. Waiting on a queue of closures held the sky empty for up to
+   five minutes.
 5. **Held**: the opening closes (the contract's opening event at zero
    size), the water settles (the flood solver), the lost output stays
    lost. The mission's stars are capped at two (*held* is false).
@@ -251,10 +257,14 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 - Point 8: an opening made in the lost stage is undone with it; one made
   before it closes again from the restart's go, and the next group turns
   again.
-- Point 4 holds through the `cleared` trigger in missions 1 to 3, and in
-  The Long Night's Hunters and Before Dawn, which end on their groups
-  gone, through `{ contained: true }` (no closure open; war.js's stage
-  hook): every exit that is not a loss waits for the closure.
+- Point 4, as changed: `cleared` no longer waits for a closure, and an
+  exit to `won` holds what is still open (contain.js holdOpen; told shut
+  at the win). The Long Night's Hunters and Before Dawn and The River
+  Below's exits that name `{ contained: true }` still wait for it, as
+  their data says. Bot games (war:balance, 16 seeds, 1 and 2 pilots):
+  wins and outputs unchanged in every row; the Spillway's mean length
+  15.8 to 17.6 min down to 13.6 to 14.4, First Light careless x2 17.2 to
+  14.8.
 - `STING` is not sent: no mission has a music cue path for it yet.
 - M2's spill hold pauses while the spillway gantry closes a gate (M2, If
   the face opens; the objective's `pause`, stages.js): its clock stands,
@@ -287,7 +297,7 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 
 | # | id | Title | When | New for the player | Length |
 | --- | --- | --- | --- | --- | --- |
-| 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 9 to 13 min |
+| 1 | itaipu-1 | First Light | Day 1, dawn | scouts, intercepts, high and low | 11 to 14 min (12.5 to 13.8 measured alone and 10.9 to 12.6 as four with good bots, the face never opened; was 9 to 13) |
 | 2 | itaipu-2 | The Spillway | Day 1, afternoon | boats; a hold objective | 12 to 15 min (13.1 to 17.4 measured with bot squads when the face opens: 1.9's closures hold a stage up to 2.5 min each) |
 | 3 | itaipu-3 | Lights Out | Day 1, dusk into dark | decoys; Despacho; lights going out and coming back | 10 to 14 min |
 | 4 | itaipu-4 | The Long Night | Night 1 to sunrise | night; hunters in force | 11 to 16 min |
@@ -370,7 +380,7 @@ released 2026-10-16: 4 stages, 3 twists and 2
 islandings, 4 title keys; its objectives (the towers, a spot objective
 for each of Spread Thin's four groups, the yard, each twist's, each
 corridor's islanding hold); the nudge and the objective cards; its
-length 11 to 19 min measured; seeded NW and WATER sectors and its own
+length 11 to 21 min measured; seeded NW and WATER sectors and its own
 LINES routes, war:routes PASS; the table's 13 radio ids, `itaipu-6-op`
 and the film's 4, voiced en and es on the Orin; 8 guide lines
 `itaipu-6-g-*`; voiced debriefs; Contain with `itaipu-6-op`. No intro
@@ -493,6 +503,10 @@ whole first mission in one minute.
 As today (WARFARE-PLAN 10a): won with output at or over 7 700 MW at the
 end; lost the instant it falls under. Stars: held, noLosses, output over
 11 200.
+
+A solo pilot meets stage 5 smaller (the spawns' `solo`, w50-adv-a A4):
+one Loiterer, one Striker, two FPVs. Careless solo bot games won 20 of
+48 before, 38 of 48 after (the Spillway 37 of 48); squads unchanged.
 
 ### Roles that shine
 
@@ -901,7 +915,9 @@ town lit behind the yard: every hit now shows.
 
 ### Win, lose, stars
 
-Floor 9 700, starMw 12 600 (as today). The hold folds into *held*.
+Floor 9 700, starMw 11 200: the yard lost and nothing else (w50-adv-a
+A1; at 12 600 the yard could never fall and 0 of 96 bot games earned
+it). The hold folds into *held*.
 
 ### Pilots
 
@@ -944,6 +960,8 @@ and the closure run at the same time.
 | itaipu-3-s1-pair | stage 1, Striker born | MIRADOR | firm | Fast movers, west arm. Same shape. One of them is lying. | Rápidos, brazo oeste. Misma forma. Uno de ellos miente. |
 | itaipu-3-s2-wasted | stage 2, a pilot spends a bird on a decoy | TALLER | calm | That one was cardboard. Don't feed it birds. | Ese era de cartón. No le den aparatos. |
 | itaipu-3-s3-despacho | stage 3 opens | DESPACHO | calm | Crest, Dispatch. Starting the reroute. I need the yard standing until I call it. | Cresta, Despacho. Empezamos a redirigir. Necesito la subestación en pie hasta que avise. |
+| itaipu-3-s3-despacho-down | stage 3 opens with the yard already down (w50-adv-a A2) | DESPACHO | calm | Crest, Dispatch. The yard's gone. I'm rerouting round it anyway. Keep them off the plant. | Cresta, Despacho. Perdimos la subestación. Igual redirijo alrededor. Que no lleguen a la central. |
+| itaipu-3-g-reroute-down | after it (guide; g-reroute when the yard stands); the HUD's hold reads war.obj.itaipu_3.reroute_down | CREST | firm | The yard is down. Keep them off the west intakes until Dispatch calls it. | La subestación cayó. Que no lleguen a las tomas del oeste hasta que Despacho avise. |
 | itaipu-3-s3-half | hold at half | DESPACHO | calm | Halfway. The far towns are moved. Hernandarias is next. | Vamos por la mitad. Los pueblos lejanos ya están. Sigue Hernandarias. |
 | itaipu-3-s3-done | `held` | DESPACHO | calm | Reroute complete. If you lose the yard now, the right bank stays lit. | Redirección completa. Si ahora pierden la subestación, la margen derecha sigue con luz. |
 | itaipu-3-s3-back | `held` after a yard hit | DESPACHO | calm | Reroute complete. Bringing half the right bank back up. Hernandarias last. | Terminé de redirigir. Vuelvo a encender la mitad de la margen derecha. Los de cerca, al final. |
@@ -1322,6 +1340,17 @@ war:stages flies it on the room), held at `release: 'development'`:
   solo squad chased the swarms forever and never ended the stage.
 - **Length** 7 to 14 minutes: ten good bot games end 8.0 to 13.5 minutes
   after the go, against section 2's guess of 11 to 15.
+- **The Source ends at eight minutes** (w50-adv-b, 2026-10-16). Its exits
+  wait for the carrier to sink, and in twist B, once it launches only
+  Hunters, nothing touches the output: two good bot pilots who kept
+  killing Hunters and never reached the hull were still live at
+  war:balance's 25 minute cap with the output whole, and twists A and C
+  outlasted the cap against squads that shot every swarm. `itaipu-5.js`
+  `SOURCE_S`: 480 s after the stage opens, a hull still afloat gets away,
+  what it launched gets through, the round is damaged, CREST's
+  `stage-lost` is said (unless the source is already down), and Clear the
+  River comes next. Fourteen of sixteen solo bot games sank it in 140 to
+  294 s; the other two lost first.
 - **The film** is `films/river-below.js` (INTROS.md 5.5), with no smoke
   downriver in shot 1 and shot 3's own rider near the face for 8 s (the
   film's header says why). The campaign card's line is the Briefing
@@ -1397,7 +1426,7 @@ where the fight is, so the squad must split.
 | itaipu-5-s3-dead | `killed(carrier)` | TALLER | firm | That's the nest. Aguyje. | Ese era el nido. Aguyje. |
 | itaipu-5-ta-turn | twist A | MIRADOR | urgent | A second hull. One of them isn't launching anything. | Un segundo casco. Uno de los dos no lanza nada. |
 | itaipu-5-tb-turn | twist B | MIRADOR | urgent | It's launching Hunters now. They want you. | Ahora está lanzando cazadores. Los quieren a ustedes. |
-| itaipu-5-ta-spot | twist A, the silent hull spotted and the second on the water | MIRADOR | urgent | Eyes on it. That hull is empty. The other one is launching. | Lo tengo a la vista. Ese casco está vacío. El que lanza es el otro. |
+| itaipu-5-ta-spot | twist A, the silent hull spotted and the second on the water, `+3` (after ta-turn when the spot came first) | MIRADOR | urgent | Eyes on it. That hull is empty. The other one is launching. | Lo tengo a la vista. Ese casco está vacío. El que lanza es el otro. |
 | itaipu-5-tc-turn | twist C | CARANCHO | urgent | Crest, Carancho. One last bird up. I've got eyes on the hull, marking it. Beleza, go. | Cresta, Carancho. Último aparato arriba. Tengo el casco a la vista, lo marco. Beleza, vayan. |
 | itaipu-5-s4-last | stage 4 opens | CREST | firm | Whatever it launched is still coming. Clear the river. | Lo que lanzó todavía viene. Limpien el río. |
 | debrief-itaipu-5-win | won | CARANCHO | calm | Crest, Carancho. River's quiet. Thanks for covering us. | Cresta, Carancho. El río está tranquilo. Gracias por cubrirnos. |
@@ -1553,9 +1582,22 @@ war:stages flies it on the room), held at `release: 'development'`:
   each with both corridors' lines down and the output 11 317 MW; they do
   not fly kilometres down a corridor to a tower they cannot reach in
   time.
-- **Length** 11 to 19 minutes: ten good bot games end 11.9 to 18.8
-  minutes after the go, a solo pilot's 16.8 to 18.8 (Spread Thin's four
-  lanes one at a time), against section 2's guess of 12 to 16.
+- **Length** 11 to 21 minutes: ten good bot games end 13.2 to 20.5
+  minutes after the go, a solo pilot's 18.1 to 20.5 (Golden Hour's
+  groups born late enough to reach, w50-fix-itaipu, and Spread Thin's
+  four lanes one at a time), against section 2's guess of 12 to 16.
+- **Golden Hour solo** (w50-adv-b B3): one Striker a group for a solo
+  pilot (the spawn's `solo`; squads keep 2 plus 0.5 a pilot), the west group born 55 to 65 s after the go (times pace), the
+  east one 30 to 40 s after the west is gone, on FI1's middle towers
+  (e-4 to e-2, 2.4 km from the crest) instead of e-6. Before, the west
+  group hit tower w-4 (4.2 km out) at 77 to 84 s in every solo game.
+- **The yard's approach** (B4 follow-up): the decoys and the Striker of
+  The Yard Again come over the west arm, climb to 430 m over the yard's
+  north edge and dive, a path over the yard's lines (0 wire crossings at
+  any error in the spread), so a lone yard Striker is not saved by a
+  power line. Nobody shooting: 4 of 18 room seeds won before, 0 after.
+- **The win line** (B6): "The lines held" only when the islanding held;
+  a win with it failed is CREST's Lights Out win line.
 
 ### The twist (stage 3)
 
@@ -1577,8 +1619,8 @@ squad converging on it from wherever they were strung out.
 
 ### Win, lose, stars
 
-Floor 9 700, starMw 12 600 (as mission 3, since the yard and the towers
-are big single losses).
+Floor 9 700, starMw 12 600 (mission 3's before w50-fix-itaipu, since the
+yard and the towers are big single losses; unreached solo, B4).
 
 ### Pilots
 
@@ -1658,18 +1700,26 @@ the Orin with Whisper's check.
 | itaipu-6-g-scout | twist C, the Scout born `+7` | CREST | firm | Climb to the scout over the east corridor and kill it. Alive, it guides their last run in. | Suban hasta el explorador sobre el corredor este y derríbenlo. Si sigue vivo, guía su último ataque. |
 | itaipu-6-g-island | stage 4 `enter+5` | CREST | firm | Hold the last corridor. They come at it from both ends. Split the squad, one end each. | Sostengan el último corredor. Vienen por los dos extremos. Divídanse, un extremo cada uno. |
 
-### Story (proposed by w48-story; not wired, not voiced)
+### Story (proposed by w48-story; card and epilogues wired by w50-adv-b, radio not voiced)
 
 The arc (BIBLE.md 10) reaches here after the turn: the enemy has learned
 the defence and spends it where the squad is thinnest. The mission is
-built (w47-m6, above); this is its story in missions 1 to 5's shape, to
-wire when the owner wants it: the strings go in as
-`campaign.story.corridor` (with `_place` and `_when`) and
-`war.epilogue.itaipu_6.win` / `.lose`, which the campaign page's story
-card and the end banner already read (src/ui/campaign.js storyCard,
-src/game/debrief.js missionEpilogue), so wiring them is strings only.
-Nothing below is in a string table or lines.json, so no check reads
-it.
+built (w47-m6, above); this is its story in missions 1 to 5's shape.
+The story card and the two epilogues are wired since 2026-10-16
+(w50-adv-b, the owner's review to approve or veto): with the mission
+released and none of them in the string table, the campaign page showed
+no card before it and the end banner no epilogue after it, so the arc
+stopped at The River Below. They are `campaign.story.corridor` (with
+`_place` and `_when`) and `war.epilogue.itaipu_6.win` / `.lose` in
+src/strings, held by campaign:selftest and debrief:selftest for missions
+1 to 6. Two departures from the text below: the card's place is the
+slate's, "Itaipu, the power line corridors" / "Itaipú, los corredores de
+alta tensión", as missions 4 and 5 use one place on both, and the won
+epilogue opens "The grid held through the dusk." / "La red aguantó el
+atardecer." in place of "The lines held and the towns at the end of them
+are lit": in sixteen solo bot games every win had both lines cut and
+the islanding held in four, so a win is the grid holding, not the lines.
+The two radio lines below are not wired or voiced.
 
 - **Story card** (The lines west of the dam; Day two, dusk): "They have
   stopped hitting the dam. The lines that carry its power to both banks
