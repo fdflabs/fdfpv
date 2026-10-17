@@ -387,4 +387,89 @@ console.log('spotted: low over the watcher (CONTRACT-SPOTTED.md)');
   check('lost as spotted after its scene, with advice', v.why === 'spotted' && v.endAt === t + 6000 && v.spotAdvice?.id === 'watchers', JSON.stringify({ why: v.why, advice: v.spotAdvice }));
 }
 
+/* An ISR that scouts the zones while the quad is still on its way (a
+ * squad's natural split, w50 adversarial pass) must not end the camp's
+ * stage before the camp is seen. */
+console.log('the watcher found before the camp is inspected');
+{
+  const e = opsRoom(RAW, { ...ROOM, n: 1, seed: 0.6 });
+  const c = pilot(e, 0);
+  e.fly(e.clock + 7000);
+  c.air = true;
+  const zone = view(e).dials.watch.split('-')[0];
+  const at = M.points[`zone-${zone}`].at;
+  goto(e, c, [at[0], at[1] - 350], 250, 'isr');
+  c.aim = () => posOf(e, 'watcher');
+  c.th = 0.01;
+  until(e, () => contact(e, 'watcher')?.state !== 'undiscovered' && contact(e, 'watcher')?.cls, 60000, 'the watcher seen first');
+  /* Past the convoy's whole window (20 to 50 s) and its 4 s exit. */
+  e.fly(e.clock + 60000);
+  check('no convoy and no stage 2 before the camp: still the camp\'s stage', view(e).stage?.id === 'M2_CP_START' && !view(e).choices?.convoy, `${view(e).stage?.id} ${JSON.stringify(view(e).choices)}`);
+  const cv = M.points['claro-viejo'].at;
+  goto(e, c, [cv[0] - 30, cv[1] - 30], 120, 'isr');
+  for (const id of ['fire', 'cable', 'impressions', 'tracks', 'diagram']) {
+    const a = resolve(M.items.find((x) => x.id === id).at, view(e).dials);
+    goto(e, c, [a[0] - 3, a[1] - 3], 4, 'recon');
+    snap(e, c, id);
+  }
+  until(e, () => view(e).stage?.id === 'M2_CP_WATCHER', 120000, 'stage 2 after the camp');
+  check('the camp inspected: the diagram\'s beat, then the convoy and stage 2', heard(e, 'int2-s1-points') && view(e).stage?.id === 'M2_CP_WATCHER');
+}
+
+/* THE WATCHERS when the required one is found first: stage 1 is over
+ * before another zone can be reached, so the other two count after it
+ * (w50 adversarial pass). */
+console.log('the watchers star with the required watcher found first');
+{
+  const e = opsRoom(RAW, { ...ROOM, n: 1, seed: 0.6 });
+  const c = pilot(e, 0);
+  e.fly(e.clock + 7000);
+  c.air = true;
+  const cv = M.points['claro-viejo'].at;
+  goto(e, c, [cv[0] - 30, cv[1] - 30], 120, 'isr');
+  for (const id of ['fire', 'cable', 'impressions', 'tracks', 'diagram']) {
+    const a = resolve(M.items.find((x) => x.id === id).at, view(e).dials);
+    goto(e, c, [a[0] - 3, a[1] - 3], 4, 'recon');
+    snap(e, c, id);
+  }
+  const zone = view(e).dials.watch.split('-')[0];
+  for (const z of [zone, ...['cruce', 'loma', 'corral'].filter((x) => x !== zone)]) {
+    const at = M.points[`zone-${z}`].at;
+    goto(e, c, [at[0], at[1] - 350], 250, 'isr');
+    const id = z === zone ? 'watcher' : view(e).contacts.find((k) => k.group === 'watchers' && k.id !== 'watcher' && Math.hypot(posOf(e, k.id)[0] - at[0], posOf(e, k.id)[1] - at[1]) < 300)?.id;
+    c.aim = () => posOf(e, id);
+    c.th = 0.01;
+    until(e, () => contact(e, id)?.state !== 'undiscovered' && contact(e, id)?.cls, 60000, `${id} seen in ${z}`);
+    if (z === zone) {
+      until(e, () => view(e).stage?.id === 'M2_CP_WATCHER', 120000, 'stage 2');
+    }
+  }
+  check('the other two found in stage 2: THE WATCHERS\' flag', view(e).stage?.id !== 'M2_CP_START' && view(e).flags.M2_ALL_WATCHERS_FOUND === true, `${view(e).stage?.id} ${JSON.stringify(view(e).flags)}`);
+}
+
+/* The diagram taken first: "Back up high" waits for the other four, so a
+ * solo pilot is not sent away from the camp with stills still to take
+ * (w50 adversarial pass). */
+console.log('the diagram taken first');
+{
+  const e = opsRoom(RAW, { ...ROOM, n: 1, seed: 0.6 });
+  const c = pilot(e, 0);
+  e.fly(e.clock + 7000);
+  c.air = true;
+  const cv = M.points['claro-viejo'].at;
+  goto(e, c, [cv[0] - 30, cv[1] - 30], 120, 'isr');
+  const ids = ['diagram', 'fire', 'cable', 'impressions', 'tracks'];
+  for (const id of ids) {
+    const a = resolve(M.items.find((x) => x.id === id).at, view(e).dials);
+    goto(e, c, [a[0] - 3, a[1] - 3], 4, 'recon');
+    snap(e, c, id);
+    if (id === 'diagram') {
+      e.fly(e.clock + 15000);
+      check('the diagram\'s beat at once, but not "Back up high" with four stills to go', heard(e, 'int2-s1-points') && !heard(e, 'int2-s1-back'));
+    }
+  }
+  e.fly(e.clock + 15000);
+  check('"Back up high" once the camp is done', heard(e, 'int2-s1-back') && view(e).cards.some((x) => x.id === 'posts'));
+}
+
 finish();

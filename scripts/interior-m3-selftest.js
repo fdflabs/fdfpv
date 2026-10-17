@@ -283,6 +283,10 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     until(e, () => e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-cleared')), 10000, 'cleared');
     check('CONFIRM IDENTIFICATION on the pair after its action: cleared, HOSTILE CONFIRMED, not yet stopped',
       clsOf(e, 'pair-a') === 'hostile' && contact(e, 'pair-a') && !e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped')));
+    {
+      const at = (id) => e.r.ops.log.findIndex((x) => x.what === 'cue' && [x.radio].flat().includes(id));
+      check('the strike role told it will be called when the stage opens, before Vega clears it', at('int3-st-ready') >= 0 && at('int3-st-ready') < at('int3-s2-contact') && at('int3-s2-cleared') > 0);
+    }
     check('the pilot takes the strike role for the run', as(e, 'strike'));
     flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 250], 'the strike run');
     until(e, stageIs(e, 'M3_CP_FIRST_ENGAGEMENT'), 60000, 'stage 3');
@@ -294,6 +298,11 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     watch(e, c, 'v1-people', () => clsOf(e, 'v1') === 'civilian', 120000, 'v1 people seen leaving');
     watch(e, c, 'v2', () => e.r.ops.match.choices?.v2?.value === 'empty', 300000, 'v2 empty');
     watch(e, c, 'v3', () => clsOf(e, 'v3') === 'hostile', 300000, 'v3 meets');
+    {
+      const v3 = poseOf(e, 'v3');
+      const by = ['radio-man', 'command-2'].map((id) => poseOf(e, id)).filter(Boolean).map((p) => Math.round(Math.hypot(p[0] - v3[0], p[1] - v3[1])));
+      check('vehicle 3 met somebody: the command site\'s two within 100 m when it turns HOSTILE', by.length === 2 && Math.max(...by) < 100, JSON.stringify(by));
+    }
     until(e, stageIs(e, 'M3_CP_RELAY'), 30000, 'stage 4');
     check('the three pickups: CIVILIAN, EMPTY, HOSTILE CONFIRMED', clsOf(e, 'v1') === 'civilian' && clsOf(e, 'v3') === 'hostile' && view(e).stage.id === 'M3_CP_RELAY');
     as(e, 'recon');
@@ -380,6 +389,8 @@ console.log('two civilian pickups struck: an error each, the second fails the mi
       }
     }
     check('the second: lost, errors', view(e).state === 'lost' && view(e).why === 'errors', `${view(e).state} ${view(e).why}`);
+    const told = (id) => e.r.ops.log.filter((x) => x.what === 'cue' && [x.radio].flat().includes(id)).length;
+    check('the empty decoy struck: Vega\'s word, not "There were people in that one."', told('int3-s3-error') === 1 && told('int3-s3-error-2') === 2, `${told('int3-s3-error')} ${told('int3-s3-error-2')}`);
   }
 }
 
