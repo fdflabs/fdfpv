@@ -391,6 +391,13 @@ hard morning light, high contrast in the gorge. **Music:** drums.
 
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
+As built, re-shot 2026-10-16 (w50-films, version 3): no smoke downriver,
+which the world does not draw, so shot 1 (`river`) is a 135 mm lens from
+over the right bank easing down the river's reach, the gorge's banks and
+the line across it (on 400 mm it held flat water and one wire). The
+outro is RIVER-BELOW-OUTRO.md; it opens on the same lens with nothing on
+the water.
+
 | film-itaipu-5-1 | shot 1, lead 1.0 s, target 4.0 s | CARANCHO | urgent | Crest, Carancho. That's the last of our birds. We can't hold the river. | Cresta, Carancho. Ese fue nuestro último aparato. No podemos sostener el río. |
 | film-itaipu-5-2 | shot 2, lead 2.0 s, target 3.5 s | CREST | firm | Copy. Everything coming up the gorge is ours. | Copiado. Todo lo que suba por el cañón es nuestro. |
 | film-itaipu-5-3 | shot 4, lead 0.5 s, target 4.5 s | MIRADOR | firm | They all start from the same stretch of river. Something is launching them. | Todos salen del mismo tramo del río. Algo los está lanzando. |
