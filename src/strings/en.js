@@ -4353,6 +4353,7 @@ export default {
   "ops.capture.why.pose": "NO POSITION YET: TRY AGAIN",
   "ops.capture.why.cam": "CAMERA NOT REPORTED YET: TRY AGAIN",
   "ops.capture.why.off": "NO MISSION IN PROGRESS",
+  "ops.capture.why.early": "NOT YET: WAIT FOR THE CALL",
   "ops.strike.button": "STRIKE [{key}]",
   "ops.strike.confirm": "CONFIRM STRIKE: PRESS [{key}] AGAIN",
   "ops.strike.sent": "STRIKE SENT",

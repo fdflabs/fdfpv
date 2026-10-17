@@ -798,6 +798,11 @@ export class RoomOps {
     if (!spots.length) {
       return this.error(conn, 'capture', 'item');
     }
+    /* An item with `from` is not taken before that trigger (Mission 2's
+     * choice boxes before the handoff, w50-adv-c B4). */
+    if (item.from && fired(item.from, this.ctx(core, m.f)) == null) {
+      return this.error(conn, 'capture', 'early');
+    }
     const open = item.open ? fired(item.open, this.ctx(core, m.f)) != null : false;
     const view = item.view ? { ...item.view, dir: resolve(item.view.dir, m.dials) } : null;
     if (view && !open && !spots.some((at) => inBand(view, at, q.p))) {

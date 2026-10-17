@@ -4358,6 +4358,7 @@ export default {
   "ops.capture.why.pose": "SIN POSICIÓN TODAVÍA: PRUEBEN DE NUEVO",
   "ops.capture.why.cam": "CÁMARA SIN REPORTAR TODAVÍA: PRUEBEN DE NUEVO",
   "ops.capture.why.off": "NO HAY MISIÓN EN CURSO",
+  "ops.capture.why.early": "TODAVÍA NO: ESPEREN LA LLAMADA",
   "ops.strike.button": "ATACAR [{key}]",
   "ops.strike.confirm": "CONFIRMAR ATAQUE: PULSEN [{key}] DE NUEVO",
   "ops.strike.sent": "ATAQUE ENVIADO",
