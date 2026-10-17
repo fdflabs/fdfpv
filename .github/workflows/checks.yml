@@ -422,6 +422,15 @@ jobs:
       # The camp changes on screen as its people act: the tarp, the mast
       # and the pushed motorcycles read off the contacts the room tells.
       - run: npm run interior:camp
+      # interior:filmplay (the Interior's prologue, intro, brief card,
+      # outro and debrief as the screen plays them, two pages in one
+      # Chrome, scripts/interior-filmplay-check.js) stays a local check:
+      # 227 s here on 20 cores and a GPU, most of it the films' fixed
+      # lengths on the room clock, and its second page is the kind a 2-core
+      # software runner draws too slowly to read (rooms:safety). It sat in
+      # no list at all and rotted unseen (already failing at f8d121a9f,
+      # found 2026-10-17). tools/local-ci.sh runs the local-only lines.
+      # local-only: interior:filmplay -- /tmp/interior-filmplay
       # The owner's allowlist (DEV_ACCOUNTS): only a host on it starts
       # missions in development on a live server.
       - run: npm run dev:accounts
