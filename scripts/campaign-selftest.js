@@ -321,11 +321,11 @@ console.log('the story goes on with the first mission not won (docs/campaign/BIB
     && at(applyResult(won(['itaipu-1']), 'itaipu-2', { stars: 0, credits: 10, won: false })) === 'itaipu-2:2'
     && at(won(['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'])) === 'itaipu-5:5'
     && at(won(ACT1.map((m) => m.id))) === null);
-  const keys = ACT1.slice(0, 5).flatMap((m) => ['', '_place', '_when'].map((x) => `campaign.story.${m.key}${x}`));
+  const keys = ACT1.slice(0, 6).flatMap((m) => ['', '_place', '_when'].map((x) => `campaign.story.${m.key}${x}`));
   const missing = keys.filter((k) => !EN[k] || !ES[k] || EN[k] === ES[k]);
-  check('missions 1 to 5 have a story card, its place, hour and text, in English and Spanish', missing.length === 0 && Boolean(EN['campaign.story_label'] && ES['campaign.story_label']), missing.join(', '));
-  const later = ACT1.slice(5).map((m) => `campaign.story.${m.key}`).filter((k) => EN[k]);
-  check('none for missions 6 and 7 (being built; their beats are MISSIONS.md\'s)', later.length === 0, later.join(', '));
+  check('missions 1 to 6 have a story card, its place, hour and text, in English and Spanish', missing.length === 0 && Boolean(EN['campaign.story_label'] && ES['campaign.story_label']), missing.join(', '));
+  const later = ACT1.slice(6).map((m) => `campaign.story.${m.key}`).filter((k) => EN[k]);
+  check('none for mission 7 (being built; its beats are MISSIONS.md\'s)', later.length === 0, later.join(', '));
 }
 
 console.log('an ops match\'s result is paid once, by the room\'s id for it (the war\'s rule, COMPLETENESS 2)');

@@ -131,6 +131,22 @@ const STAGE_LOST = { when: { allOut: true }, radio: 'stage-lost' };
 /* Seconds from a stage's entry after which its Hunters no longer hold it
  * open, its other groups still gone: The Long Night's (itaipu-4.js). */
 const HUNT_S = 150;
+/* Seconds from The Source's entry after which a hull still afloat gets
+ * away. Its exits wait for the carrier to sink, and in twist B, once it
+ * launches only Hunters, nothing touches the output: a squad that keeps
+ * killing them and never reaches the hull played on forever (war:balance,
+ * two good pilots, seed 3: still live at its 25 minute cap with the
+ * output whole). Eight minutes, against the 140 to 294 s fourteen of
+ * sixteen solo bot games took to sink it, the other two lost first
+ * (2026-10-16): a choice, not a measurement. */
+const SOURCE_S = 480;
+/* The Source's way out at SOURCE_S, after its own exits: what it launched
+ * gets through, the round is damaged, and the river comes next; CREST's
+ * stage-lost line says so unless the source is already down. */
+const ESCAPE = {
+  when: { all: [{ time: SOURCE_S }, { contained: true }] }, to: 'clear', after: BEAT(20, 20), result: 'damaged', clear: 'through',
+};
+const ESCAPED = { when: ESCAPE.when, radio: 'stage-lost', skip: { objective: 'carrier', is: 'done' } };
 
 /* What a carrier launches (MISSIONS.md M5: "a swarm group every 35 to 50
  * s", and for the pilots "a solo pilot's carrier launches every 50 s,
@@ -273,19 +289,24 @@ export default withWaves({
       objectives: [KILL({ all: [DOWN, { down: { group: 'carrier-2' } }] })],
       /* MIRADOR calls the hull "launching" only once one is: the first
        * hull may be the silent one. Once a pilot has spotted the silent
-       * one and the second is on the water, MIRADOR says which. */
+       * one and the second is on the water, MIRADOR says which, 3 s after
+       * the later of the two: after ta-turn (the second hull +2 s) when
+       * the spot came first, since the radio says its lines in the order
+       * they are cued (src/render/warradio.js) and "that hull is empty"
+       * before "a second hull" answers a question not yet asked. */
       cues: [
         { when: { born: { group: 'launched' } }, radio: 'itaipu-5-s3-carrier' },
         { when: { born: { group: 'launched' } }, at: 4, radio: 'itaipu-5-s3-order', skip: { objective: 'carrier', is: 'done' } },
         { when: { born: { group: 'carrier-2' } }, at: 2, radio: 'itaipu-5-ta-turn' },
-        { when: { all: [{ spot: { silent: true } }, { born: { group: 'carrier-2' } }] }, at: 1, radio: 'itaipu-5-ta-spot', skip: { objective: 'carrier', is: 'done' } },
+        { when: { all: [{ spot: { silent: true } }, { born: { group: 'carrier-2' } }] }, at: 3, radio: 'itaipu-5-ta-spot', skip: { objective: 'carrier', is: 'done' } },
         SOURCE_GUIDE,
         { when: { born: { group: 'carrier-2' } }, at: 6, radio: 'itaipu-5-g-hulls', skip: { objective: 'carrier', is: 'done' } },
         { when: { objective: 'carrier', is: 'done' }, radio: 'itaipu-5-s3-dead' },
         STAGE_LOST,
         TURN({ objective: 'carrier', is: 'done' }),
+        ESCAPED,
       ],
-      exits: exits({ all: [DOWN, { down: { group: 'carrier-2' } }, { cleared: true }] }, 'clear', BEAT(20, 20)),
+      exits: [...exits({ all: [DOWN, { down: { group: 'carrier-2' } }, { cleared: true }] }, 'clear', BEAT(20, 20)), ESCAPE],
     },
     {
       /* Twist B: once every one of its first swarm is killed, Hunters. */
@@ -309,12 +330,13 @@ export default withWaves({
         { when: { born: { group: 'launched-hunters' } }, at: 4, radio: 'itaipu-5-g-deck', skip: DOWN },
         STAGE_LOST,
         TURN(DOWN),
+        ESCAPED,
       ],
       /* Over when the carrier is dead and nothing is left, or its swarms
        * are gone and HUNT_S have passed: its Hunters, as stage 2's. */
-      exits: exits({
+      exits: [...exits({
         all: [DOWN, { any: [{ cleared: true }, { all: [{ gone: { group: 'launched' } }, { time: HUNT_S }] }] }, { contained: true }],
-      }, 'clear', BEAT(20, 20)),
+      }, 'clear', BEAT(20, 20)), ESCAPE],
     },
     {
       /* Twist C: Carancho's last bird marks the hull, spotted as it is
@@ -333,8 +355,9 @@ export default withWaves({
         { when: { born: { group: 'launched' } }, at: 4, radio: 'itaipu-5-g-escort', skip: DOWN },
         STAGE_LOST,
         TURN(DOWN),
+        ESCAPED,
       ],
-      exits: exits({ all: [DOWN, { cleared: true }] }, 'clear', BEAT(20, 20)),
+      exits: [...exits({ all: [DOWN, { cleared: true }] }, 'clear', BEAT(20, 20)), ESCAPE],
     },
     {
       id: 'clear',

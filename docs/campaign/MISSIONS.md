@@ -1322,6 +1322,17 @@ war:stages flies it on the room), held at `release: 'development'`:
   solo squad chased the swarms forever and never ended the stage.
 - **Length** 7 to 14 minutes: ten good bot games end 8.0 to 13.5 minutes
   after the go, against section 2's guess of 11 to 15.
+- **The Source ends at eight minutes** (w50-adv-b, 2026-10-16). Its exits
+  wait for the carrier to sink, and in twist B, once it launches only
+  Hunters, nothing touches the output: two good bot pilots who kept
+  killing Hunters and never reached the hull were still live at
+  war:balance's 25 minute cap with the output whole, and twists A and C
+  outlasted the cap against squads that shot every swarm. `itaipu-5.js`
+  `SOURCE_S`: 480 s after the stage opens, a hull still afloat gets away,
+  what it launched gets through, the round is damaged, CREST's
+  `stage-lost` is said (unless the source is already down), and Clear the
+  River comes next. Fourteen of sixteen solo bot games sank it in 140 to
+  294 s; the other two lost first.
 - **The film** is `films/river-below.js` (INTROS.md 5.5), with no smoke
   downriver in shot 1 and shot 3's own rider near the face for 8 s (the
   film's header says why). The campaign card's line is the Briefing
@@ -1397,7 +1408,7 @@ where the fight is, so the squad must split.
 | itaipu-5-s3-dead | `killed(carrier)` | TALLER | firm | That's the nest. Aguyje. | Ese era el nido. Aguyje. |
 | itaipu-5-ta-turn | twist A | MIRADOR | urgent | A second hull. One of them isn't launching anything. | Un segundo casco. Uno de los dos no lanza nada. |
 | itaipu-5-tb-turn | twist B | MIRADOR | urgent | It's launching Hunters now. They want you. | Ahora está lanzando cazadores. Los quieren a ustedes. |
-| itaipu-5-ta-spot | twist A, the silent hull spotted and the second on the water | MIRADOR | urgent | Eyes on it. That hull is empty. The other one is launching. | Lo tengo a la vista. Ese casco está vacío. El que lanza es el otro. |
+| itaipu-5-ta-spot | twist A, the silent hull spotted and the second on the water, `+3` (after ta-turn when the spot came first) | MIRADOR | urgent | Eyes on it. That hull is empty. The other one is launching. | Lo tengo a la vista. Ese casco está vacío. El que lanza es el otro. |
 | itaipu-5-tc-turn | twist C | CARANCHO | urgent | Crest, Carancho. One last bird up. I've got eyes on the hull, marking it. Beleza, go. | Cresta, Carancho. Último aparato arriba. Tengo el casco a la vista, lo marco. Beleza, vayan. |
 | itaipu-5-s4-last | stage 4 opens | CREST | firm | Whatever it launched is still coming. Clear the river. | Lo que lanzó todavía viene. Limpien el río. |
 | debrief-itaipu-5-win | won | CARANCHO | calm | Crest, Carancho. River's quiet. Thanks for covering us. | Cresta, Carancho. El río está tranquilo. Gracias por cubrirnos. |
@@ -1658,18 +1669,26 @@ the Orin with Whisper's check.
 | itaipu-6-g-scout | twist C, the Scout born `+7` | CREST | firm | Climb to the scout over the east corridor and kill it. Alive, it guides their last run in. | Suban hasta el explorador sobre el corredor este y derríbenlo. Si sigue vivo, guía su último ataque. |
 | itaipu-6-g-island | stage 4 `enter+5` | CREST | firm | Hold the last corridor. They come at it from both ends. Split the squad, one end each. | Sostengan el último corredor. Vienen por los dos extremos. Divídanse, un extremo cada uno. |
 
-### Story (proposed by w48-story; not wired, not voiced)
+### Story (proposed by w48-story; card and epilogues wired by w50-adv-b, radio not voiced)
 
 The arc (BIBLE.md 10) reaches here after the turn: the enemy has learned
 the defence and spends it where the squad is thinnest. The mission is
-built (w47-m6, above); this is its story in missions 1 to 5's shape, to
-wire when the owner wants it: the strings go in as
-`campaign.story.corridor` (with `_place` and `_when`) and
-`war.epilogue.itaipu_6.win` / `.lose`, which the campaign page's story
-card and the end banner already read (src/ui/campaign.js storyCard,
-src/game/debrief.js missionEpilogue), so wiring them is strings only.
-Nothing below is in a string table or lines.json, so no check reads
-it.
+built (w47-m6, above); this is its story in missions 1 to 5's shape.
+The story card and the two epilogues are wired since 2026-10-16
+(w50-adv-b, the owner's review to approve or veto): with the mission
+released and none of them in the string table, the campaign page showed
+no card before it and the end banner no epilogue after it, so the arc
+stopped at The River Below. They are `campaign.story.corridor` (with
+`_place` and `_when`) and `war.epilogue.itaipu_6.win` / `.lose` in
+src/strings, held by campaign:selftest and debrief:selftest for missions
+1 to 6. Two departures from the text below: the card's place is the
+slate's, "Itaipu, the power line corridors" / "Itaipú, los corredores de
+alta tensión", as missions 4 and 5 use one place on both, and the won
+epilogue opens "The grid held through the dusk." / "La red aguantó el
+atardecer." in place of "The lines held and the towns at the end of them
+are lit": in sixteen solo bot games every win had both lines cut and
+the islanding held in four, so a win is the grid holding, not the lines.
+The two radio lines below are not wired or voiced.
 
 - **Story card** (The lines west of the dam; Day two, dusk): "They have
   stopped hitting the dam. The lines that carry its power to both banks

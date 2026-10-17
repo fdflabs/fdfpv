@@ -2155,7 +2155,7 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
     const silentSpots = g.spots.filter((m) => m.silent[0]);
     const carrier2 = hulls.find((h) => groupOf(twist, h) === 'carrier-2');
     const firstDown = Math.max(...hulls.map((h) => g.dead.find((m) => m.ids.includes(h.id))?.at ?? Infinity));
-    const callDue = twist === 'two-hulls' && silentSpots.length && carrier2 && Math.max(silentSpots[0].at, carrier2.t0) + 1000 < firstDown;
+    const callDue = twist === 'two-hulls' && silentSpots.length && carrier2 && Math.max(silentSpots[0].at, carrier2.t0) + 3000 < firstDown;
     if (g.spots.some((m) => m.ids.length !== 1 || !hullIds.has(m.ids[0]))
       || (twist === 'last-bird' && !(g.spots.length === 1 && g.spots[0].by === 0 && g.spots[0].at === hulls[0].t0 && !g.spots[0].silent[0]))
       || (twist !== 'last-bird' && g.spots.some((m) => !(m.by > 0)))
