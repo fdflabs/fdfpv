@@ -140,9 +140,9 @@ try {
   await shot('films-intro.png');
   /* The film over, the mission brief card (src/ui/briefcard.js); the
    * host's Deploy on it ends the briefing. */
-  await page.until('window.__briefCard().open', 150000).catch(() => {});
+  await page.until('window.__briefCard().shown', 150000).catch(() => {});
   const card = await page.evaluate("({ card: window.__briefCard(), state: window.__ops.view().state, film: window.__warIntro() && window.__warIntro().for })");
-  check('at the film\'s end the mission brief card opens over the briefing', card.card.open && card.state === 'briefing' && /THE OLD WAR/.test(card.card.title || ''), JSON.stringify(card));
+  check('at the film\'s end the mission brief card opens over the briefing', card.card.shown && card.state === 'briefing' && /THE OLD WAR/.test(card.card.title || ''), JSON.stringify(card));
   await page.evaluate("(document.querySelector('.briefcard button[data-act=\"deploy\"]').click(), true)");
   await page.until("window.__ops.view().state === 'live'", 30000).catch(() => {});
   await page.sleep(1500);
@@ -234,8 +234,8 @@ try {
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'KeyQ', key: 'q', windowsVirtualKeyCode: 81 }, page.sessionId);
   /* The hold goes to the mission brief card, and B's Deploy shows on it
    * as ready; the host's Deploy (Space) then ends the briefing for both. */
-  await page.until('window.__briefCard().open', 15000).catch(() => {});
-  check('the host\'s hold skips to the mission brief card, the briefing still on', await page.evaluate("window.__briefCard().open && window.__ops.view().state === 'briefing'"));
+  await page.until('window.__briefCard().shown', 15000).catch(() => {});
+  check('the host\'s hold skips to the mission brief card, the briefing still on', await page.evaluate("window.__briefCard().shown && window.__ops.view().state === 'briefing'"));
   await B.evaluate('(window.__ops.ready(), true)');
   await page.until('window.__ops.view().deployed.length === 1', 15000).catch(() => {});
   await page.sleep(600);

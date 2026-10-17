@@ -260,7 +260,7 @@ const CSS = `
 .briefcard-role { display: grid; grid-template-columns: auto 1fr; gap: 0.25em 1em; margin: 0; }
 .briefcard-role dt { color: rgba(236, 244, 240, 0.55); }
 .briefcard-role dd { margin: 0; }
-.briefcard-map { display: block; width: 100%; max-height: 13em; margin-top: 0.3em; background: rgba(236, 244, 240, 0.04);
+.briefcard-map { display: block; width: 100%; max-height: 10em; margin-top: 0.3em; background: rgba(236, 244, 240, 0.04);
   border: 1px solid rgba(236, 244, 240, 0.15); }
 .briefcard-ends { display: grid; grid-template-columns: auto 1fr; gap: 0.25em 1em; margin: 0.9em 0 0; padding-top: 0.7em;
   border-top: 1px solid rgba(236, 244, 240, 0.18); }
@@ -339,6 +339,7 @@ export class BriefCard {
     document.head.append(style);
     this.act = act;
     this.el = el('div', 'briefcard', root);
+    this.el.id = 'brief-card';
     this.box = el('div', 'briefcard-box', this.el);
     this.box.setAttribute('role', 'dialog');
     this.isOpen = false;
@@ -373,6 +374,8 @@ export class BriefCard {
     }, true);
     window.__briefCard = () => ({
       open: this.isOpen,
+      /* What the pilot sees: open, and not hidden by anything over it. */
+      shown: this.isOpen && getComputedStyle(this.el).visibility === 'visible' && getComputedStyle(this.el).display !== 'none',
       key: this.key,
       title: this.isOpen ? this.box.querySelector('h2').textContent : null,
       sections: this.isOpen ? Object.fromEntries([...this.box.querySelectorAll('section')].map((s) => [s.dataset.part, s.querySelectorAll('li, dd').length])) : null,
@@ -423,7 +426,9 @@ export class BriefCard {
       el('dt', '', dl, r.label);
       el('dd', '', dl, r.value);
     }
-    const map = el('section', '', right);
+    /* Under the stars, the shorter column, so the card fits a 720 line
+     * screen without scrolling to its buttons. */
+    const map = el('section', '', left);
     map.dataset.part = 'map';
     el('h3', '', map, str('brief.card.map'));
     map.append(mapSvg(card.map));
@@ -453,6 +458,10 @@ export class BriefCard {
     }
     this.isOpen = true;
     this.el.classList.add('open');
+    /* Over a film, which hides the body's other children with a rule
+     * appended at each play (warintro.js), so only an inline one wins:
+     * the card is the one thing shown over its orbit or last frame. */
+    this.el.style.setProperty('visibility', 'visible', 'important');
     /* A pad button held as the card opens (the film's hold to skip) is
      * not a press on it. */
     this.padWas = { a: true, x: true };
@@ -466,6 +475,7 @@ export class BriefCard {
     }
     this.isOpen = false;
     this.el.classList.remove('open');
+    this.el.style.removeProperty('visibility');
     if (this.box.contains(document.activeElement)) {
       document.activeElement.blur();
     }

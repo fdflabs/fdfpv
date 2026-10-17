@@ -6357,7 +6357,9 @@ export async function boot({
         /* The room's countdown starts here (edge/rooms/war.js start and
          * advance: a mission's prepMs keeps the briefing that much longer). */
         cardEnd: war.briefAt + filmMs + CARD_MS + (WAR_MISSIONS[war.mission]?.prepMs ?? 0),
-        pilots: (war.scores ?? []).filter((r) => !r.gone).map((r) => r.seat),
+        /* The match's players here, and any who deployed before the
+         * room listed them. */
+        pilots: [...new Set([...(war.scores ?? []).filter((r) => !r.gone).map((r) => r.seat), ...(war.deployed ?? [])])],
       };
     }
     if (ops.state === 'briefing' && ops.briefAt != null && roomOps.mission()) {
@@ -6415,7 +6417,10 @@ export async function boot({
     }
     const now = roomLinkState.roomNow();
     const filmOver = now != null && now >= b.v.briefAt + b.filmMs;
-    if (briefReplaying || ui.screen !== 'flight' || !(filmOver || briefSkipped === b.match)) {
+    /* Over whatever screen the film was over (a pilot still on the room
+     * screen at the start sees the film there, then the card), but not
+     * the pause menu, whose keys are its own. */
+    if (briefReplaying || ui.screen === 'paused' || !(filmOver || briefSkipped === b.match)) {
       briefCard.hide();
       return;
     }

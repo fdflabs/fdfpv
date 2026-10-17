@@ -127,7 +127,7 @@ try {
   const code = await A.evaluate('window.__rooms().code');
   /* The film, then the mission brief card (src/ui/briefcard.js), whose
    * Deploy ends the briefing. */
-  await A.until('window.__briefCard().open', 120000).catch(() => {});
+  await A.until('window.__briefCard().shown', 120000).catch(() => {});
   await A.evaluate("(() => { const d = document.querySelector('.briefcard button[data-act=\"deploy\"]'); if (d) { d.click(); } return true; })()");
   await A.until("window.__ops.view().state === 'live'", 60000).catch(() => {});
   check('A makes the room from the card and the mission goes live', Boolean(code) && (await A.evaluate("window.__ops.view().state")) === 'live', code);

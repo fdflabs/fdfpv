@@ -106,15 +106,36 @@ const page = await openPage({
   root, width: 1280, height: 720, url: `/index.html?${query}`, seed,
   args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'],
 });
+/* The guest's window takes the focus: the host's page must not pause on
+ * the blur it would hear (interior-coop-check does the same). */
+await page.cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true }, page.sessionId);
 async function shot(p, name) {
   const r = await p.cdp.send('Page.captureScreenshot', { format: 'png' }, p.sessionId);
   await writeFile(join(outDir, name), Buffer.from(r.data, 'base64'));
 }
+/* The guest page has no DevTools input of its own (scripts/lib/
+ * secondpage.js): its keys are dispatched in the page, which the film's
+ * hold and the card both read from window. */
 async function key(p, code, holdMs = 0) {
+  if (!p.cdp) {
+    const k = JSON.stringify({ code, key: code === 'Space' ? ' ' : 'q', bubbles: true });
+    await p.evaluate(`(window.dispatchEvent(new KeyboardEvent('keydown', ${k})), true)`);
+    await p.sleep(holdMs || 50);
+    await p.evaluate(`(window.dispatchEvent(new KeyboardEvent('keyup', ${k})), true)`);
+    return;
+  }
   const k = code === 'Space' ? { code, key: ' ', windowsVirtualKeyCode: 32 } : { code, key: 'q', windowsVirtualKeyCode: 81 };
   await p.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...k }, p.sessionId);
   await p.sleep(holdMs || 50);
   await p.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...k }, p.sessionId);
+}
+
+/* Up in the room's world from its screen (its Fly), where a briefing
+ * finds a pilot who flew before the host started: the film's hold reads
+ * the flight screen's frames, a menu's being throttled. */
+async function fly(p) {
+  await p.evaluate("(() => { window.__ui.act('fly'); return true; })()");
+  await p.until("window.__craftState().mode === 'flight'", 120000).catch(() => {});
 }
 
 const isOps = (id) => id.startsWith('interior-');
@@ -132,23 +153,41 @@ try {
       await page.until(`window.__rooms().phase === 'open' && window.__rooms().roomNow != null && window.__map().id === ${JSON.stringify(map)} && window.__map().ready`, 400000).catch(() => {});
     }
     console.log(id);
+    if ((await page.evaluate('window.__craftState().mode')) !== 'flight') {
+      await fly(page);
+    }
     await page.evaluate(isOps(id) ? `(window.__ops.start(${JSON.stringify(id)}), true)` : `(window.__warDo('brief', ${JSON.stringify(id)}), true)`);
     await page.until(`${VIEW(id)}.state === 'briefing' && ${VIEW(id)}.mission === ${JSON.stringify(id)}`, 30000).catch(() => {});
     await page.until('window.__warIntro() && window.__warIntro().t > 3000 && window.__warIntro().skippable', 240000).catch(() => {});
-    check(`${id}: its film plays in the briefing, skippable (seen)`, await page.evaluate('Boolean(window.__warIntro() && window.__warIntro().skippable)'));
+    /* Held with time left in the film, so the card comes from the skip
+     * and not from the film's end: a film the room started late (its
+     * world slow to build) leaves too little to tell them apart. */
+    const film = await page.evaluate('(() => { const f = window.__warIntro(); return f ? { t: Math.round(f.t), ms: f.ms, skippable: f.skippable } : null; })()');
+    check(`${id}: its film plays in the briefing, skippable (seen), at least 15 s of it left to skip`, Boolean(film && film.skippable && film.ms - film.t > 15000), JSON.stringify(film));
     await key(page, 'KeyQ', 2400);
-    await page.until('window.__briefCard().open', 15000).catch(() => {});
+    await page.until('window.__briefCard().shown', 15000).catch(() => {});
     await page.sleep(800);
     const card = await page.evaluate('window.__briefCard()');
-    const state = await page.evaluate(`${VIEW(id)}.state`);
-    check(`${id}: the skipped film goes straight to the card, the room still in its briefing`, card.open && state === 'briefing', `${card.open} ${state}`);
+    const at = await page.evaluate(`({ state: ${VIEW(id)}.state, filmLeft: ${VIEW(id)}.briefAt + ${film ? film.ms : 0} - window.__rooms().roomNow, orbit: Boolean(window.__warIntro() && window.__warIntro().orbit) })`);
+    check(`${id}: the skipped film goes straight to the card, shown over the film's orbit before the film's end, the room still in its briefing`,
+      card.shown && at.state === 'briefing' && at.filmLeft > 0 && at.orbit, JSON.stringify(at));
     const s = card.sections || {};
     check(`${id}: the card has its title and situation, objectives, stars, threats and role, none empty`, Boolean(card.title)
       && ['situation', 'objectives', 'stars', 'threats', 'role'].every((k) => s[k] > 0) && s.situation === 2, JSON.stringify({ title: card.title, s }));
     await shot(page, `card-${id}-${LANG}.png`);
+    /* Replay film: the film again on this screen, the card hidden under
+     * it, and back when it is over (here a hold skips it). */
+    await page.evaluate("(document.querySelector('.briefcard button[data-act=\"replay\"]').click(), true)");
+    await page.until("window.__warIntro() && !window.__warIntro().orbit && !window.__briefCard().shown", 15000).catch(() => {});
+    const replay = await page.evaluate("({ for: window.__warIntro() && window.__warIntro().for, card: window.__briefCard().shown })");
+    check(`${id}: Replay film plays the film again over the card's place`, Boolean(replay.for) && !replay.card, JSON.stringify(replay));
+    await page.until('window.__warIntro() && window.__warIntro().t > 1500', 30000).catch(() => {});
+    await key(page, 'KeyQ', 2400);
+    await page.until('window.__briefCard().shown', 15000).catch(() => {});
+    check(`${id}: and the card is back when it is over`, await page.evaluate(`window.__briefCard().shown && ${VIEW(id)}.state === 'briefing'`));
     await key(page, 'Space');
-    await page.until(`${VIEW(id)}.state !== 'briefing'`, 15000).catch(() => {});
-    const after = await page.evaluate(`({ state: ${VIEW(id)}.state, card: window.__briefCard().open })`);
+    await page.until(`${VIEW(id)}.state !== 'briefing' && !window.__briefCard().open`, 15000).catch(() => {});
+    const after = await page.evaluate(`({ state: ${VIEW(id)}.state, card: window.__briefCard().open, status: window.__briefCard().status, seen: ${VIEW(id)}.seen, refusal: window.__war().error ?? null })`);
     check(`${id}: Space is the host's Deploy: the countdown, the card gone`, ['countdown', 'live'].includes(after.state) && !after.card, JSON.stringify(after));
     await page.evaluate(isOps(id) ? '(window.__ops.end(), true)' : "(window.__warDo('end'), true)");
     /* An ended match's debrief stays: the next start closes it, and its
@@ -163,27 +202,34 @@ try {
       await page.evaluate("window.__roomCreate({ map: 'itaipu' })");
       await page.until("window.__rooms().phase === 'open' && window.__map().id === 'itaipu' && window.__map().ready", 400000).catch(() => {});
     }
+    if ((await page.evaluate('window.__craftState().mode')) !== 'flight') {
+      await fly(page);
+    }
     const code = await page.evaluate('window.__rooms().code');
     guest = await secondPage(page, outDir, { url: `/index.html?${query}&room=${code}`, seed });
     await guest.until('!!window.__shellReady', 300000);
     await guest.until("window.__rooms().phase === 'open' && window.__map().id === 'itaipu' && window.__map().ready", 400000).catch(() => {});
+    await fly(guest);
     await page.evaluate("(window.__warDo('brief', 'itaipu-1'), true)");
     for (const p of [page, guest]) {
       await p.until('window.__warIntro() && window.__warIntro().t > 3000 && window.__warIntro().skippable', 240000).catch(() => {});
       await key(p, 'KeyQ', 2400);
-      await p.until('window.__briefCard().open', 15000).catch(() => {});
+      await p.until('window.__briefCard().shown', 15000).catch(() => {});
     }
     await guest.evaluate("(document.querySelector('.briefcard button[data-act=\"deploy\"]').click(), true)");
     await page.until("(window.__war().view.deployed || []).length === 1", 15000).catch(() => {});
     await page.sleep(800);
     const pilots = await page.evaluate('window.__briefCard().pilots');
+    if (!pilots) {
+      console.log(`  info  the host's card is shut: ${JSON.stringify(await page.evaluate("({ screen: window.__ui.screen, mode: window.__craftState().mode, war: window.__war().view.state, deployed: window.__war().view.deployed, intro: window.__warIntro() && window.__warIntro().orbit })"))}`);
+    }
     const word = LANG === 'es' ? ['LISTO', 'LEYENDO'] : ['READY', 'READING'];
     check('a room: the guest\'s Deploy shows on the host\'s card, the guest READY and the host READING, the briefing on',
       Array.isArray(pilots) && pilots.length === 2 && pilots.some((x) => x.endsWith(word[0])) && pilots.some((x) => x.endsWith(word[1]))
       && (await page.evaluate("window.__war().view.state")) === 'briefing', JSON.stringify(pilots));
     await shot(page, `card-room-ready-${LANG}.png`);
     await key(page, 'Space');
-    await guest.until("window.__war().view.state !== 'briefing'", 15000).catch(() => {});
+    await guest.until("window.__war().view.state !== 'briefing' && !window.__briefCard().open", 15000).catch(() => {});
     const both = [await page.evaluate("window.__war().view.state"), await guest.evaluate("window.__war().view.state"), await guest.evaluate('window.__briefCard().open')];
     check('the host\'s Deploy starts everyone: the countdown on both, the guest\'s card gone', ['countdown', 'live'].includes(both[0]) && ['countdown', 'live'].includes(both[1]) && !both[2], JSON.stringify(both));
     const gErrs = guest.errors.filter((e) => !e.startsWith('network:'));

@@ -568,8 +568,8 @@ try {
   await page.evaluate("window.__warDo('brief')");
   await page.until('window.__warIntro() && window.__warIntro().t > 3000', 30000);
   await holdKey(page, HOLD_MS);
-  await page.until('window.__briefCard().open', 10000).catch(() => {});
-  row('the host\'s hold opens the mission brief card, the room still in its briefing', await page.evaluate("window.__briefCard().open && window.__war().view.state === 'briefing'"));
+  await page.until('window.__briefCard().shown', 10000).catch(() => {});
+  row('the host\'s hold opens the mission brief card, the room still in its briefing', await page.evaluate("window.__briefCard().shown && window.__war().view.state === 'briefing'"));
   await page.evaluate("(document.querySelector('.briefcard button[data-act=\"deploy\"]').click(), true)");
   await page.until("window.__war().view.state === 'countdown'", 10000).catch(() => {});
   await guest.until('window.__warIntro() === null', 5000).catch(() => {});
