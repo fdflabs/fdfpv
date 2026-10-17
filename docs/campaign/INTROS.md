@@ -329,6 +329,15 @@ on. Shot 1 stands 900 m off the first tower so the line stacks up the
 frame. Shot 6 has no aircraft on the road; it is the yard, the town
 beyond and the card. The outro is LIGHTS-OUT-OUTRO.md.
 
+Re-shot 2026-10-16 (w50-films, version 3): shot 1 (`corridor`) stands on
+the west line's own axis, 900 m behind its first tower, so the first four
+towers stack in the 300 mm frame for the whole shot (the pan from over
+the yard's north side left them for open scrub by its middle). Shot 4
+(`edge`) is cut: with no lights to come on it was shot 3 again, 9 s of
+the same scrub and roofs with no line, so the film runs 50 s, not 59.
+Tried and not kept: the pair (shot 5) low over the west arm on 300 mm
+lost the far shore and left two aircraft on a grey sky.
+
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
 | film-itaipu-3-1 | shot 2, lead 2.0 s, target 4.0 s | CREST | calm | Everything the right bank makes leaves the dam through this yard. | Todo lo que genera la margen derecha sale de la represa por esta subestación. |

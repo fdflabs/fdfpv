@@ -353,8 +353,8 @@ try {
     row('the hand-off: the letterbox open by the last frame', shot('orbit').opened > 0.95, shot('orbit').opened.toFixed(3));
   }
   if (FILM.id === 'lights-out') {
-    row('corridor, yard, town and edge: the lines, the yard and the town, no attacker', ['corridor', 'yard', 'town', 'edge'].every((id) => Object.values(shot(id).drawn).every((n) => !n)),
-      ['corridor', 'yard', 'town', 'edge'].map((id) => JSON.stringify(shot(id).drawn)).join(' '));
+    row('corridor, yard and town: the lines, the yard and the town, no attacker', ['corridor', 'yard', 'town'].every((id) => Object.values(shot(id).drawn).every((n) => !n)),
+      ['corridor', 'yard', 'town'].map((id) => JSON.stringify(shot(id).drawn)).join(' '));
     row('pair: two attackers over the west arm, a Striker and its decoy', (shot('pair').drawn.strike ?? 0) + (shot('pair').drawn.decoy ?? 0) === 2, JSON.stringify(shot('pair').drawn));
     row('orbit: the mission\'s own card, its title over "Mission 3"', shot('orbit').titles.includes(EN['war.mission.itaipu_3']), shot('orbit').titles.join(' | '));
     row('the hand-off: the letterbox open by the last frame', shot('orbit').opened > 0.95, shot('orbit').opened.toFixed(3));
