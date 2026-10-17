@@ -4538,7 +4538,7 @@ export default {
   "ops.interior.m3.obj.pickups": "SEGUIR LOS VEHÍCULOS QUE PARTEN",
   "ops.interior.m3.obj.relay": "RESTABLECER EL ENLACE DE LA RED DE DRONES",
   "ops.interior.m3.obj.command": "DOCUMENTAR EL PUESTO DE MANDO",
-  "ops.interior.m3.obj.north": "SEGUIR EL VEHÍCULO DEL NORTE",
+  "ops.interior.m3.obj.north": "SEGUIR EL VEHÍCULO QUE SALE AL NORTE",
   "ops.interior.m3.confirm": "CONFIRMAR IDENTIFICACIÓN: CAPTUREN EL CONTACTO EN SU RECUADRO",
   "ops.interior.m3.stopped": "AMENAZA NEUTRALIZADA",
   "ops.rule.confirmed_only": "ATACAR SOLO CONTACTOS HOSTILES CONFIRMADOS",
