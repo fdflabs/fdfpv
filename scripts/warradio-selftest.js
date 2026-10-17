@@ -78,6 +78,16 @@ for (const m of Object.values(MISSIONS)) {
     && (!m.outro || FILMS[m.outro].shots[0].lines[0].line === r.win)
     && same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output', mission: m.id }), [r.lose]));
 }
+{
+  /* The Corridor's win names the lines held only when the islanding held
+   * (its radio's winIfNot, w50-adv-b B6). */
+  const end = (state) => ({
+    ...v0, state: 'won', mission: 'itaipu-6', stage: { id: 'island-west', objectives: [{ id: 'island', state }] },
+  });
+  check('The Corridor won with the islanding held says "The lines held", with it failed Lights Out\'s "the plant\'s still running"',
+    same(say([{ type: 'state', to: 'won' }], end('done')), ['debrief-itaipu-6-win'])
+    && same(say([{ type: 'state', to: 'won' }], end('failed')), ['debrief-itaipu-3-win']));
+}
 check('First Light\'s briefing is CREST\'s then TALLER\'s, its own', same(radioOf(MISSIONS['itaipu-1']).brief, ['itaipu-1-s0-brief', 'itaipu-1-s0-rules']));
 for (const kind of KINDS.filter((k) => k !== 'jammer' && k !== 'carrier')) {
   /* A decoy is called as the Striker it looks like. */

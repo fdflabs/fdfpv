@@ -5846,7 +5846,7 @@ export async function boot({
    * radio cues, and each mission's briefing and debrief. The calls
    * (bearings, kinds, hits) are the HUD's callouts already. Their words
    * are lines.json's, in the page's language, fetched once. */
-  const WAR_SUBTITLED = new Set([...Object.values(BRIEF_LINES).flat(), ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
+  const WAR_SUBTITLED = new Set([...Object.values(BRIEF_LINES).flat(), ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose, ...(d.winIfNot ? [d.winIfNot.radio] : [])])]);
   let warLineWords = null;
   function warSubtitles(items, prio, hud, now = false) {
     if (!ui.settings.subtitles) {

@@ -264,7 +264,8 @@ export default withWaves({
       cues: [
         { at: 1, radio: 'itaipu-5-s2-pattern' },
         { when: { born: { group: 'swarm' } }, at: 3, radio: 'itaipu-5-g-rim', skip: { down: { group: 'swarm' } } },
-        { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-5-g-hunters', skip: { down: { group: 'hunters' } } },
+        { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-5-g-hunters', skip: { down: { group: 'hunters' } }, solo: false },
+        { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-5-g-hunters-solo', skip: { down: { group: 'hunters' } }, solo: true },
         STAGE_LOST,
       ],
       /* Over when the swarm is gone and the Hunters are down or HUNT_S
@@ -328,7 +329,8 @@ export default withWaves({
         ...SOURCE_CUES(3),
         SOURCE_GUIDE,
         { when: { born: { group: 'launched-hunters' } }, radio: 'itaipu-5-tb-turn' },
-        { when: { born: { group: 'launched-hunters' } }, at: 4, radio: 'itaipu-5-g-deck', skip: DOWN },
+        { when: { born: { group: 'launched-hunters' } }, at: 4, radio: 'itaipu-5-g-deck', skip: DOWN, solo: false },
+        { when: { born: { group: 'launched-hunters' } }, at: 4, radio: 'itaipu-5-g-deck-solo', skip: DOWN, solo: true },
         STAGE_LOST,
         TURN(DOWN),
         ESCAPED,

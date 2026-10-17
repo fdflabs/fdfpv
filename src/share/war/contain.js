@@ -21,7 +21,9 @@
  *
  * One gantry closes one opening at a time (1.9 point 7): a closure starts
  * at its opening or when the one before it on the same gantry is held,
- * whichever is later, and is held `ms` after it starts (schedule). The
+ * whichever is later, and is held `ms` after it starts (schedule). A stage
+ * does not wait for its closures (w50-adv-a A3): they run on into the
+ * next, and a won mission holds what is still open (holdOpen). The
  * output its opening cost stays lost (point 5; damage.js: an opening loses
  * its target as a hit does), so a closure restores nothing: what it buys
  * is the plant kept running. Its gantry hit while it runs shuts the plant
@@ -123,6 +125,26 @@ export function runningAt(list, gantry, t) {
  * stage cannot clear while one is (1.9 point 4). */
 export function openAt(list, t) {
   return schedule(list).some((x) => x.c.at <= t && t < x.until && x.c.lost == null);
+}
+
+/* Every closure still open at room ms t held at t, its stoplogs down
+ * (its ms cut to what it had run, a queued one's to 0), and its half and
+ * held lines marked said: the mission was won at t with nothing left to
+ * hit a gantry, so what remains of the wait decides nothing (w50-adv-a
+ * A3). Mutates the list, as the room's match keeps it. */
+export function holdOpen(list, t) {
+  for (const c of list ?? []) {
+    const x = schedule(list).find((y) => y.c === c);
+    if (c.lost != null || c.at > t || x.until <= t) {
+      continue;
+    }
+    c.ms = Math.max(0, t - x.from);
+    for (const key of ['half', 'held']) {
+      if (!c.said.includes(key)) {
+        c.said.push(key);
+      }
+    }
+  }
 }
 
 /* The latest room ms a closure was held at or before t, or null. */

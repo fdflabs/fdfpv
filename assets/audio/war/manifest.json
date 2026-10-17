@@ -33861,6 +33861,522 @@
     }
    },
    "machine": "orin"
+  },
+  "itaipu-3-s3-despacho-down.en": {
+   "text": "Crest, Dispatch. The yard's gone. I'm rerouting round it anyway. Keep them off the plant.",
+   "speaker": "despacho",
+   "seconds": 6.825,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1295140894,
+     "heard": "Crest. Dispatch. The yard's gone. I'm rerouting round it anyway. Keep them off the plant. Gree. Ah...",
+     "wer": 0.133,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 4062738583,
+     "heard": "Crest. Dispatch. The yard's gone. I'm rerouting round it anyway. Keep them off the plant.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31087,
+     "sha256": "2db5d89a8a60e695258f5c04cd0bb3fb82894d58f48358909d5f6f0ccc55443a"
+    },
+    "mp3": {
+     "bytes": 30212,
+     "sha256": "c2c59465cc0f0630b76444d794c81a772f16c460fa46caf0d218b9e4e5e69f70"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-3-s3-despacho-down.es": {
+   "text": "Cresta, Despacho. Perdimos la subestación. Igual redirijo alrededor. Que no lleguen a la central.",
+   "speaker": "despacho",
+   "seconds": 5.955,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3820002086,
+     "heard": "Cresta, despacho, perdimos la subestación. Igual, redirijo alrededor que no lleguen a la central.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27364,
+     "sha256": "281d7420d92a00f6e754569bc9012b65df721eee8af25e6d0f27e516649a4457"
+    },
+    "mp3": {
+     "bytes": 27308,
+     "sha256": "6f0413492d0c73e77c33b5d94bd59a06c1b045e8d43cb62c588658e94eaaed42"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-3-g-reroute-down.en": {
+   "text": "The yard is down. Keep them off the west intakes until Dispatch calls it.",
+   "speaker": "crest",
+   "seconds": 4.445,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 844000295,
+     "heard": "The yard is down. Keep them off the west intakes until dispatch calls it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20303,
+     "sha256": "b24dfe215584e85d4a2def2205b9acf9f592c6b22d9078462cc14a1c33608641"
+    },
+    "mp3": {
+     "bytes": 17972,
+     "sha256": "14d61b4bbaab00fbd270b0d150d10147e63a66f4f33ace6131cd26c33746ecda"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-3-g-reroute-down.es": {
+   "text": "La subestación cayó. Que no lleguen a las tomas del oeste hasta que Despacho avise.",
+   "speaker": "crest",
+   "seconds": 5.325,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2269507532,
+     "heard": "La subestación cayó, que no lleguen a las tomas del oeste hasta que despacho avise.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 160
+    },
+    {
+     "attempt": 1,
+     "seed": 2098211894,
+     "heard": "La subestación cayó. Que no lleguen a las tomas del oeste hasta que despacho avise.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24393,
+     "sha256": "3faefc2403ba9bd6b8aba46462d9692a0c9274eaec806b164a0742fbeedaa5cb"
+    },
+    "mp3": {
+     "bytes": 22532,
+     "sha256": "15d085ebd26ddf8df4c9f4d4f3bbb697b11aabe7b156976d42de79e161b97b29"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-g-hunters-solo.en": {
+   "text": "The Hunters chase your bird. Let it close, then turn hard into it and take it head on.",
+   "speaker": "crest",
+   "seconds": 5.435,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 919176462,
+     "heard": "The hunters chase your bird, let it close, then turn hard into it and take it head on.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24809,
+     "sha256": "84944ff95852487607733caeddd7ddd945eb44bffea333a6e49962c966d6ab7b"
+    },
+    "mp3": {
+     "bytes": 22460,
+     "sha256": "9957a554b61dfe152d2ec6a8bb9a0a8e83a9f2e32b090c176f86c948c3194b14"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-g-hunters-solo.es": {
+   "text": "Los cazadores persiguen su aparato. Déjenlo acercarse, después giren fuerte hacia él y derríbenlo de frente.",
+   "speaker": "crest",
+   "seconds": 7.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2471639110,
+     "heard": "Los cazadores persiguen su aparato, déjenlo acercarse, después giren fuerte hacia él y derríbenlo de frente.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 32540,
+     "sha256": "2d143b8bf15a05e131064eb1ce220bd9d743c6eccf0905b45eb5c84542c28114"
+    },
+    "mp3": {
+     "bytes": 29540,
+     "sha256": "ce0ccdcd3deaf9b166d2e081c7ce276610c947114a53cd3ba29f64dfa4844f7f"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-g-intakes-solo.en": {
+   "text": "Protect the intakes. Boats come on two bearings. Take the nearer one first, then the other.",
+   "speaker": "crest",
+   "seconds": 5.575,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2963783256,
+     "heard": "Protect the intakes. Boats come on two bearings. Take the nearer one first, then the other.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25517,
+     "sha256": "b0bfab8f833dec7c633f2c72978edf556ec361d7ca0a812c23fb45680497de1d"
+    },
+    "mp3": {
+     "bytes": 22628,
+     "sha256": "0db7ed2e7f758af4625fc216ae6fe4b5705e9df1266bebb26c98da1fdeb66609"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-4-g-intakes-solo.es": {
+   "text": "Protejan las tomas. Las lanchas vienen por dos lados. Primero la más cercana, después la otra.",
+   "speaker": "crest",
+   "seconds": 5.725,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 699741338,
+     "heard": "Proteja las tomas. Las lanchas vienen por dos lados. Primero la más cercana, después la otra.",
+     "wer": 0.062,
+     "extra": 0,
+     "missing": [
+      "protejan"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 52070173,
+     "heard": "protejan las tomas. Las lanchas vienen por dos lados, primero la más cercana después la otra.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26158,
+     "sha256": "541ca5f8337563088737dc33516986d1b6baf0c54f97014ae177edb057a6242c"
+    },
+    "mp3": {
+     "bytes": 24500,
+     "sha256": "31d7dd546293e98b2fad32bed8e10f48409c626f4650b730d78f03545aa8cb00"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-hunters-solo.en": {
+   "text": "Hunters in the gorge. They chase your bird. Turn into them and take them head on.",
+   "speaker": "crest",
+   "seconds": 4.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 752019991,
+     "heard": "Hunters in the gorge, they chase your bird, turn into them and take them head on.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20666,
+     "sha256": "f27c7660fa047b8299f24e05772e57c41da715bd6ce7c996d13d703d72a25264"
+    },
+    "mp3": {
+     "bytes": 19964,
+     "sha256": "daf18b97a40bb68ad8cd49be93078518597eca2f9f00c7c1b2d6df4da48cc843"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-hunters-solo.es": {
+   "text": "Cazadores en el cañón. Persiguen su aparato. Giren hacia ellos y derríbenlos de frente.",
+   "speaker": "crest",
+   "seconds": 5.565,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2433906536,
+     "heard": "Cazadores en el cañón, persiguen su aparato, giren hacia ellos y derriben los de frente.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "derribenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3923620971,
+     "heard": "Cazadores en el cañón. Persiguen su aparato, giren hacia ellos y derríbenlos de frente.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25342,
+     "sha256": "eecbf71241139c20b1c49138958da2acc74c2a8e3edc75e1903e56081d6a455a"
+    },
+    "mp3": {
+     "bytes": 23252,
+     "sha256": "1724ce45f04b5ce411d9ca787d4c845a11c3704433e28328e0d3674f05734e0d"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-deck-solo.en": {
+   "text": "Hunters off its deck. Take them head on, and keep after the hull.",
+   "speaker": "crest",
+   "seconds": 4.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 709607858,
+     "heard": "Hunters off its deck, take them head on and keep after the hull.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19679,
+     "sha256": "df6e7d9ce1f7dab2a311bf4434528c2a14b31a24714709809fdd352c2852c70e"
+    },
+    "mp3": {
+     "bytes": 18620,
+     "sha256": "817339261ae66c6331f4971a1457374718d4a79fe2a98471c99b6b9a8e2313f6"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-5-g-deck-solo.es": {
+   "text": "Cazadores desde su cubierta. Enfréntenlos de frente, y sigan tras el casco.",
+   "speaker": "crest",
+   "seconds": 5.045,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3132223342,
+     "heard": "Cazadores, deseen su cubierta. Enfrentenlos de frente y sigan tras el casco.",
+     "wer": 0.083,
+     "extra": 0,
+     "missing": [
+      "desde"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1527555353,
+     "heard": "Cazadores desde su cubierta, enfréntelos de frente y sigan tras el casco.",
+     "wer": 0.083,
+     "extra": 0,
+     "missing": [
+      "enfrentenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 865826305,
+     "heard": "Cazadores desde su cubierta, enfrenten los de frente y sigan tras el casco.",
+     "wer": 0.167,
+     "extra": 1,
+     "missing": [
+      "enfrentenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2277044948,
+     "heard": "Cazadores desde su cubierta. Enfrenten los de frente y sigan tras el casco.",
+     "wer": 0.167,
+     "extra": 1,
+     "missing": [
+      "enfrentenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 1949190209,
+     "heard": "Cazadores desde su cubierta. Enfréntenlos de frente y sigan tras el casco.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23029,
+     "sha256": "d1b1f554ddd560f09dd5121eec56bbc2d652458e86dc1b19fdb9e03ef74dfa14"
+    },
+    "mp3": {
+     "bytes": 21260,
+     "sha256": "a1783b59f26506ba7f37fa22f901f43f42090d86d787890cfcfb294330c0a5b4"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-6-g-spread-solo.en": {
+   "text": "One corridor at a time. Fly close to each group to spot it, then take it down.",
+   "speaker": "crest",
+   "seconds": 5.115,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1730783327,
+     "heard": "one corridor at a time, fly close to each group to spot it then take it down,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23372,
+     "sha256": "9f603ec5e93645f688b1cd772303cda2cc2a62ff1bc154501442e864bfe6cdcd"
+    },
+    "mp3": {
+     "bytes": 21668,
+     "sha256": "008c7b9a98c112cad8c24b682d850d4889556739c29cd99a5f14dcd9078739db"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-6-g-spread-solo.es": {
+   "text": "Un corredor por vez. Acérquense a cada grupo para marcarlo, y después derríbenlo.",
+   "speaker": "crest",
+   "seconds": 5.215,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2383232432,
+     "heard": "Un corredor por vez. Acérquense a cada grupo para marcarlo y después derríbenlo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23920,
+     "sha256": "3ac94f532dcedf7efb6f397080b925bc5e2a857df3ab0dab70d7fd5ca27c5a9b"
+    },
+    "mp3": {
+     "bytes": 22124,
+     "sha256": "fa6fea9a980fe07cd34d58de39d7e2d94c053daee7954f959fb15a895b6a4205"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-6-g-island-solo.en": {
+   "text": "Hold the last corridor. They come at it from both ends. Take the nearer end first.",
+   "speaker": "crest",
+   "seconds": 5.635,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 700770986,
+     "heard": "Hold the last corridor. They come at it from both ends. Take the nearer end first.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25675,
+     "sha256": "4b096f5993c1227974135e5ca6d1842d58b87c633faa6d91eaf60168f413db33"
+    },
+    "mp3": {
+     "bytes": 22964,
+     "sha256": "00d2eedb43df2d0773ad5cac7334a0a5b80a6894685af65e8b2d1a7c27e87c86"
+    }
+   },
+   "machine": "orin"
+  },
+  "itaipu-6-g-island-solo.es": {
+   "text": "Sostengan el último corredor. Vienen por los dos extremos. Primero el extremo más cercano.",
+   "speaker": "crest",
+   "seconds": 6.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1314062737,
+     "heard": "Sostengan el último corredor. Vienen por los dos extremos. Primero, el extremo más cercano.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27967,
+     "sha256": "6a32fde77024b9f13e3dfc0cb3a00a281f6d6003498bf3ccb81d6913779f59bd"
+    },
+    "mp3": {
+     "bytes": 25748,
+     "sha256": "61639025e4c6ab99fd25d0da58e246bca9e21d66ffca2d281ab9c9bad7749473"
+    }
+   },
+   "machine": "orin"
   }
  },
  "models": {

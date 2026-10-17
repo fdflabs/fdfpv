@@ -50,7 +50,9 @@
  *               triggers, and the first to fire settles it ('done' or
  *               'failed'). With ms it is a hold: done ms after `from` fires
  *               (the entry without one), unless it failed first; the view
- *               shows how long it has been held. With pause (a name
+ *               shows how long it has been held. With downText (a string
+ *               key), a hold whose targets were all down at the stage's
+ *               entry, and so cannot fail, shows that text. With pause (a name
  *               ctx.pauses answers with room ms windows: war.js, a
  *               gantry closing the face) its clock stands still in
  *               them. A count ({ killed }, { leaked }, { hit },
@@ -67,7 +69,9 @@
  *                          short look at a place (src/render/warcutaway.js)
  *                 text     a string key for the HUD's stage line
  *               skip, a trigger: a cue not yet told when it has fired is
- *               dropped (a guide line about an objective already settled)
+ *               dropped (a guide line about an objective already settled).
+ *               solo, true or false: told only when the stage was entered
+ *               with one pilot here (true) or more (false)
  *   exits       [{ when, to, after?, result?, clear?, why? }], below
  *   worth       { set: factor }: the set's targets cost the output their
  *               mw times factor when hit in this stage (T1.9: the working
@@ -474,7 +478,7 @@ export function enter(mission, idx, at, seed, entry, { was = null, pilots = 1 } 
   });
   const silent = st.silent ? st.silent[Math.floor(drawFor(seed, SALT.silent, entry, 0) * st.silent.length)] : null;
   return {
-    idx, id: st.id, at, entry, pace, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null, sector: lastSector, ...(silent ? { silent } : {}),
+    idx, id: st.id, at, entry, pace, solo: pilots <= 1, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null, sector: lastSector, ...(silent ? { silent } : {}),
   };
 }
 
@@ -781,6 +785,16 @@ export function failedAny(st) {
   return Object.values(st.obj).some((o) => o.state === 'failed');
 }
 
+/* Whether a hold with a downText had every one of its targets down when
+ * its stage was entered: a hold that cannot fail (its fail counts hits in
+ * the stage), whose own words would ask for what is already lost. */
+function downAtEntry(o, ctx) {
+  if (o.downText == null || o.targets == null) {
+    return false;
+  }
+  return idsOf(o.targets, ctx.m.sets).every((id) => ctx.m.downAt?.[id] != null && ctx.m.downAt[id] <= ctx.st.at);
+}
+
 /* The stage's objectives as the view shows them: text, state, and for a
  * count how far it has got, for a hold how long it has been held (ms, to
  * the frontier). */
@@ -788,7 +802,7 @@ export function objectivesView(ctx) {
   const st = ctx.st;
   return (stagesOf(ctx.mission)[st.idx].objectives ?? []).filter((o) => !o.show || st.obj[o.id]).map((o) => {
     const state = st.obj[o.id]?.state ?? 'active';
-    const out = { id: o.id, text: o.text, kind: o.kind ?? null, state };
+    const out = { id: o.id, text: downAtEntry(o, ctx) ? o.downText : o.text, kind: o.kind ?? null, state };
     const d = o.done;
     if (d && (d.killed != null || d.leaked != null)) {
       const n = d.killed ?? d.leaked;
@@ -927,6 +941,13 @@ export function dueCues(ctx) {
   const out = [];
   for (const [i, c] of (stagesOf(ctx.mission)[st.idx].cues ?? []).entries()) {
     if (st.cued.includes(i)) {
+      continue;
+    }
+    /* A cue for one pilot alone (solo true) or for a squad (false), by the
+     * pilots here at the entry: a lone pilot is not told to pair up
+     * (w50-adv-b B8). */
+    if (c.solo != null && c.solo !== Boolean(st.solo)) {
+      st.cued.push(i);
       continue;
     }
     /* A cue whose skip has fired before it was said is dropped: a guide

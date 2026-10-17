@@ -347,15 +347,20 @@ export default withWaves({
       id: 'first-light',
       round: true,
       title: 'war.stage.itaipu_1.first_light',
+      /* A solo pilot meets the climax smaller (`solo`, w50-adv-a A4): one
+       * Loiterer, one Striker, two FPVs. With the squad's sizes the free
+       * first mission was the hardest of the act for a careless solo
+       * pilot (6 of 16 won against the Spillway's 15), its losses the
+       * floor crossed here; squads of two or more meet it as before. */
       spawns: [
         {
-          at: 2, kind: 'loiter', n: 2, per: 1, route: 'high-west', target: GATES, spread: 25, group: 'gates',
+          at: 2, kind: 'loiter', n: 2, per: 1, solo: 1, route: 'high-west', target: GATES, spread: 25, group: 'gates',
         },
         {
-          at: [24, 30], kind: 'strike', n: 2, per: 1.5, route: { sector: ['N', 'NE'] }, target: [...INTAKES_MID, ...INTAKES_EAST], spread: 30, group: 'face',
+          at: [24, 30], kind: 'strike', n: 2, per: 1.5, solo: 1, route: { sector: ['N', 'NE'] }, target: [...INTAKES_MID, ...INTAKES_EAST], spread: 30, group: 'face',
         },
         {
-          at: [30, 36], kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10, group: 'swarm',
+          at: [30, 36], kind: 'fpv', n: 4, per: 1.5, solo: 2, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10, group: 'swarm',
         },
         /* The kinds of the two twists that did not fire, smaller. */
         {

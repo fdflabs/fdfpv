@@ -274,7 +274,8 @@ export default withWaves({
       objectives: [{ id: 'intakes', text: 'war.obj.protect_intakes', kind: 'protect' }],
       cues: [
         { at: 1, radio: 'itaipu-4-s2-water' },
-        { at: 2, radio: 'itaipu-4-g-intakes' },
+        { at: 2, radio: 'itaipu-4-g-intakes', solo: false },
+        { at: 2, radio: 'itaipu-4-g-intakes-solo', solo: true },
         { when: { born: { group: 'boats-2' } }, at: 2, radio: 'itaipu-4-s2-split' },
         { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-4-s2-high' },
         { when: { cleared: true }, radio: 'itaipu-4-s2-clear' },
@@ -306,7 +307,8 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'hunters' } }, radio: 'itaipu-4-s3-hunt' },
         { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-4-s3-pairs' },
-        { when: { born: { group: 'hunters' } }, at: 8, radio: 'itaipu-4-g-hunters', skip: { down: { group: 'hunters' } } },
+        { when: { born: { group: 'hunters' } }, at: 8, radio: 'itaipu-4-g-hunters', skip: { down: { group: 'hunters' } }, solo: false },
+        { when: { born: { group: 'hunters' } }, at: 8, radio: 'itaipu-4-g-hunters-solo', skip: { down: { group: 'hunters' } }, solo: true },
         { when: { born: { group: 'cover' } }, at: 2, radio: 'itaipu-4-s3-cover' },
         { when: { down: { group: 'hunters' } }, radio: 'itaipu-4-s3-down' },
         STAGE_LOST,

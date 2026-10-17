@@ -159,13 +159,20 @@ function reroute(id, twist, objective, cues) {
       },
     ],
     objectives: [{
-      id: 'reroute', text: 'war.obj.itaipu_3.reroute', kind: 'hold', ms: HOLD_MS, targets: YARD, fail: { hit: YARD }, restore: REROUTED,
+      id: 'reroute', text: 'war.obj.itaipu_3.reroute', downText: 'war.obj.itaipu_3.reroute_down', kind: 'hold', ms: HOLD_MS, targets: YARD, fail: { hit: YARD }, restore: REROUTED,
     }, {
       id: 'twist', kind: 'kill', show: { born: { group: 'twist' } }, done: { down: { group: 'twist' } }, fail: { leaked: 1, group: 'twist' }, ...objective,
     }],
     cues: [
-      { at: 1, radio: 'itaipu-3-s3-despacho' },
-      { at: 2, radio: 'itaipu-3-g-reroute' },
+      /* The yard standing as the stage opens: keep it so. Already down
+       * (it fell in Dusk or The Lie): DESPACHO reroutes round it and CREST
+       * puts the squad on the plant (w50-adv-a A2). `destroyed` fires at
+       * the entry for a yard down before it, so the down lines' skip at
+       * 3 s keeps a yard lost later in the stage to s3-failed's. */
+      { at: 1, radio: 'itaipu-3-s3-despacho', skip: { destroyed: YARD } },
+      { at: 2, radio: 'itaipu-3-g-reroute', skip: { destroyed: YARD } },
+      { when: { destroyed: YARD }, at: 1, radio: 'itaipu-3-s3-despacho-down', skip: { time: 3 } },
+      { when: { destroyed: YARD }, at: 2, radio: 'itaipu-3-g-reroute-down', skip: { time: 3 } },
       { when: { held: 'reroute', f: 0.5 }, radio: 'itaipu-3-s3-half' },
       /* Held with the yard standing, or held with it already down (it
        * fell before the stage, so nothing could fail the hold): then
@@ -204,7 +211,11 @@ export default withWaves({
   targets,
   output: 14000,
   floorMw: 9700,
-  starMw: 12600,
+  /* The output star: the yard lost and nothing else (w50-adv-a A1). At
+   * 12 600 it asked for the yard never to fall, which every stage goes
+   * for: 0 of 96 bot games earned it. At 11 200, base bot games (16
+   * seeds x 1 and 2 pilots): good 23/32, average 20/32, careless 3/32. */
+  starMw: 11200,
   airframes: 4,
   radio: { brief: ['itaipu-3-s0-brief', 'itaipu-3-s0-rules'], win: 'debrief-itaipu-3-win', lose: 'debrief-itaipu-3-lose' },
   film: 'lights-out',

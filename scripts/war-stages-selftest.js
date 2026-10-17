@@ -742,6 +742,15 @@ function warRoom(mission, {
   return env;
 }
 
+/* A lone pilot's guide lines and the squad's they stand in for (w50-adv-b
+ * B8): the ids of either said in a game of `pilots` that belong to the
+ * other, which a check wants empty. */
+const SOLO_GUIDE = ['itaipu-4-g-hunters', 'itaipu-4-g-intakes', 'itaipu-5-g-hunters', 'itaipu-5-g-deck', 'itaipu-6-g-spread', 'itaipu-6-g-island'];
+const soloOf = (id, pilots) => (pilots <= 1 ? `${id}-solo` : id);
+function wrongCrowd(said, pilots) {
+  return SOLO_GUIDE.map((id) => (pilots <= 1 ? id : `${id}-solo`)).filter((id) => said.includes(id));
+}
+
 /* How long the face's closures held a bot game's stages past their last
  * attacker, ms (MISSIONS.md 1.9 point 4: a stage waits for its closure),
  * time a mission's pacing does not set: its estimatedMinutes leave it
@@ -922,7 +931,10 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   /* One stage that waits for an opening, then sends a group after it:
    * Strikers (turned at the gantry) or a Scout (never turned, no target).
    * Its targets are the plant's, the gantries among them. */
-  const contain = (kind) => ({
+  /* `keep`: when a last Scout is born, s, which keeps the stage from
+   * clearing until then: a stage no longer waits for its closures
+   * (w50-adv-a A3), so a test of them keeps it live past them. */
+  const contain = (kind, keep = 400) => ({
     ...STORY,
     id: `contain-${kind}`,
     targets: MISSIONS['itaipu-1'].targets,
@@ -935,6 +947,8 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
       id: 'hold',
       spawns: [{
         when: { breach: true }, at: 5, kind, n: 1, route: 'n', ...(kind === 'scout' ? {} : { target: 'intake-3' }), group: 'after',
+      }, {
+        at: keep, kind: 'scout', n: 1, route: 'n', group: 'keep',
       }],
       exits: [{ when: { cleared: true }, to: 'won', why: 'waves' }, {
         when: { allOut: true }, to: 'lost', why: 'out', clear: 'through',
@@ -999,10 +1013,53 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
     objs['contain-intake-3'].state === 'done' && objs['contain-penstock-5'].state === 'active' && objs['contain-penstock-5'].heldFrom === GO + 121000
     && objs['contain-gate-2'].state === 'active' && objs['contain-gate-2'].heldFrom === GO + 3000 && objs['contain-gate-2'].ms === 150000 && objs['contain-gate-2'].text === 'war.obj.contain_spillway',
     JSON.stringify(mid.stage.objectives));
-  check('the stage cannot clear while one is open', mid.state === 'live' && JSON.stringify(mid.contain) === '["gantry-intakes","gantry-spillway"]', `${mid.state} ${JSON.stringify(mid.contain)}`);
+  check('while they run both gantries are ringed', mid.state === 'live' && JSON.stringify(mid.contain) === '["gantry-intakes","gantry-spillway"]', `${mid.state} ${JSON.stringify(mid.contain)}`);
   b.fly(GO + 250000);
-  const won = b.view();
-  check('it clears when the last is held', won.state === 'won' && won.endAt === GO + 241000, `${won.state} ${won.endAt}`);
+  const after = b.view();
+  check('the last held at 241 s, none ringed after', after.state === 'live' && JSON.stringify(after.contain) === '[]'
+    && after.stage.objectives.filter((o) => /^contain-/.test(o.id)).every((o) => o.state === 'done'), `${after.state} ${JSON.stringify(after.contain)}`);
+  /* A stage before the last clears on its last attacker and its closures
+   * run on into the next (w50-adv-a A3, the dead air); the last waits for
+   * them, so nothing is won with the face open. */
+  /* A stage leaves on its last attacker, closures open or not (w50-adv-a
+   * A3: waiting on them held the sky empty for minutes); they run on into
+   * the next, shown there, and a won mission holds what is still open at
+   * the win: its stoplogs down, told shut at zero size, no half or held
+   * said after. */
+  const two = contain('scout', 20);
+  two.id = 'contain-two';
+  two.stages = [{ ...two.stages[0], exits: [{ when: { cleared: true }, to: 'next', after: 0 }] }, {
+    id: 'after',
+    spawns: [{
+      at: 40, kind: 'scout', n: 1, route: 'n', group: 'eyes',
+    }],
+    exits: two.stages[0].exits,
+  }];
+  const t2 = warRoom(two);
+  t2.fly(GO + 900);
+  t2.r.war.match.wreck['gate-2'] = {
+    gone: [],
+    open: {
+      id: 'gate-2', target: 'gate-2', kind: 'gate', at: GO + 3000, sill: [-1000, 212, -1010], width_m: 4, height_m: 3, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null,
+    },
+  };
+  t2.r.war.breach('intake-3', GO + 1000);
+  t2.r.war.breach('penstock-5', GO + 2000);
+  t2.r.war.breach('gate-2', GO + 3000);
+  t2.fly(GO + 30000);
+  const on = t2.view();
+  t2.fly(GO + 120000);
+  const end2 = t2.view();
+  const shut2 = t2.of(0, 'damage').filter((m) => m.by === 'stoplogs');
+  const late = radios(t2).filter(([r, t]) => (r === 'contain-half' || r === 'contain-held') && t >= end2.endAt - GO);
+  check('a stage before the last leaves on its last attacker, its closures running on and shown in the next',
+    on.state === 'live' && on.stage.id === 'after' && ['contain-intake-3', 'contain-penstock-5', 'contain-gate-2'].every((id) => on.stage.objectives.some((o) => o.id === id && o.state === 'active')),
+    `${on.state} ${on.stage && on.stage.id} ${JSON.stringify(on.stage && on.stage.objectives)}`);
+  check('won with closures open, they are held at the win: done, none ringed, the gate told shut at the win, no half or held said after',
+    end2.state === 'won' && end2.endAt < GO + 121000 && JSON.stringify(end2.contain) === '[]'
+    && schedule(t2.r.war.match.contain).every((x) => x.until <= end2.endAt)
+    && shut2.length === 1 && shut2[0].target === 'gate-2' && shut2[0].at === end2.endAt && late.length === 0,
+    `${end2.state} ${end2.endAt - GO} ${JSON.stringify(end2.contain)} ${JSON.stringify(shut2.map((x) => x.at - GO))} ${JSON.stringify(late)}`);
   const said = radios(b);
   check('each opening called, the mission\'s line once, each half and each hold',
     JSON.stringify(said.filter(([r]) => r === 'contain-breach').map(([, t]) => t)) === '[1000,2000,3000]' && said.filter(([r]) => r === 'test-op' || r === 'contain-river').length === 2
@@ -1065,8 +1122,8 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   const d = warRoom(contain('scout'));
   d.fly(GO + 900);
   d.r.war.breach('yard-right', GO + 1000);
-  c.fly(GO + 20000);
-  d.fly(GO + 20000);
+  c.fly(GO + 410000);
+  d.fly(GO + 410000);
   check('no closure without the mission\'s contain, nor for the yard', c.view().state === 'won' && d.view().state === 'won' && !c.of(0, 'cue').length && !d.of(0, 'cue').length,
     `${c.view().state} ${d.view().state}`);
 }
@@ -1681,11 +1738,23 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
       bad.push(`${label}: ended ${end.state} ${end.why}`);
     }
     const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
-    const want = ['itaipu-3-g-yard', 'itaipu-3-s1-eyes', 'itaipu-3-s1-pair', 'itaipu-3-s2-stream', 'itaipu-3-s2-why', 'itaipu-3-s3-despacho', 'itaipu-3-g-reroute', ...TWIST[twist] ?? [],
+    /* Reroute opens on the yard as it is (w50-adv-a A2): standing, keep
+     * it standing; already down, DESPACHO reroutes round it and CREST
+     * sends the squad to the plant, and the HUD's hold says so. */
+    const inReroute = g.views.filter((v) => v.stage && v.stage.id === twist);
+    const downAtOpen = Boolean(inReroute[0]?.down?.includes('yard-right'));
+    const opening = downAtOpen ? ['itaipu-3-s3-despacho-down', 'itaipu-3-g-reroute-down'] : ['itaipu-3-s3-despacho', 'itaipu-3-g-reroute'];
+    const notOpening = downAtOpen ? ['itaipu-3-s3-despacho', 'itaipu-3-g-reroute'] : ['itaipu-3-s3-despacho-down', 'itaipu-3-g-reroute-down'];
+    const want = ['itaipu-3-g-yard', 'itaipu-3-s1-eyes', 'itaipu-3-s1-pair', 'itaipu-3-s2-stream', 'itaipu-3-s2-why', ...opening, ...TWIST[twist] ?? [],
       'itaipu-3-s4-dark', 'itaipu-3-s4-all', 'itaipu-3-s4-order', 'itaipu-3-g-dark'];
     const missing = want.filter((id) => !said.includes(id));
     if (missing.length) {
       bad.push(`${label}: never said ${missing.join(',')}`);
+    }
+    const wrongOpening = notOpening.filter((id) => said.includes(id));
+    const holdText = inReroute[0]?.stage.objectives.find((o) => o.id === 'reroute')?.text;
+    if (wrongOpening.length || holdText !== (downAtOpen ? 'war.obj.itaipu_3.reroute_down' : 'war.obj.itaipu_3.reroute')) {
+      bad.push(`${label}: Reroute opened on a yard ${downAtOpen ? 'down' : 'standing'} and said ${wrongOpening.join(',')}, showed ${holdText}`);
     }
     const others = Object.entries(TWIST).filter(([k]) => k !== twist).flatMap(([, ids]) => ids).filter((id) => said.includes(id));
     if (others.length) {
@@ -1729,7 +1798,10 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
   check('ten games, 1 and 4 good pilots: Dusk, The Lie, one twist of Reroute, The Dark, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
     bad.filter((x) => /stages|ended/.test(x)).join(' | '));
   check('every stage\'s story and guide said: each objective\'s guide line, the scout, the pair, the stream and why, DESPACHO, the twist\'s two lines and no other twist\'s, the dark and its order',
-    bad.filter((x) => /said/.test(x) && !/hold/.test(x)).length === 0, bad.filter((x) => /said/.test(x) && !/hold/.test(x)).join(' | '));
+    bad.filter((x) => /said/.test(x) && !/hold|Reroute opened/.test(x)).length === 0, bad.filter((x) => /said/.test(x) && !/hold|Reroute opened/.test(x)).join(' | '));
+  check('Reroute opens on the yard as it is: standing, DESPACHO and CREST ask to keep it standing; already down, they reroute round it and send the squad to the plant, and the HUD\'s hold says which (w50-adv-a A2)',
+    bad.filter((x) => /Reroute opened/.test(x)).length === 0 && holds.some((x) => /yard down/.test(x)) && holds.some((x) => !/yard down/.test(x)),
+    bad.filter((x) => /Reroute opened/.test(x)).join(' | '));
   check('the reroute\'s hold settles, held or failed, before its stage ends, and DESPACHO says which', bad.filter((x) => /hold/.test(x)).length === 0,
     bad.filter((x) => /hold/.test(x)).join(' | '));
   check('a hold that is done restores its four towns from the room ms it held, told in its own stage and every view after; a failed one restores nothing',
@@ -1873,7 +1945,7 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
       bad.push(`${label}: ended ${end.state} ${end.why}`);
     }
     const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
-    const want = ['itaipu-4-g-standby', 'itaipu-4-s1-quiet', 'itaipu-4-s1-boat', 'itaipu-4-s2-water', 'itaipu-4-g-intakes', 'itaipu-4-s2-split', 'itaipu-4-s2-high', 'itaipu-4-s3-hunt', 'itaipu-4-s3-pairs',
+    const want = ['itaipu-4-g-standby', 'itaipu-4-s1-quiet', 'itaipu-4-s1-boat', 'itaipu-4-s2-water', soloOf('itaipu-4-g-intakes', g.pilots), 'itaipu-4-s2-split', 'itaipu-4-s2-high', 'itaipu-4-s3-hunt', 'itaipu-4-s3-pairs',
       'itaipu-4-s3-cover', ...TWIST[twist] ?? [], 'itaipu-4-s5-all', 'itaipu-4-s5-order', 'itaipu-4-g-all', 'itaipu-4-s5-near'];
     const missing = want.filter((id) => !said.includes(id));
     if (missing.length) {
@@ -1882,6 +1954,9 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
     const others = Object.entries(TWIST).filter(([k]) => k !== twist).flatMap(([, x]) => x).filter((id) => said.includes(id));
     if (others.length) {
       bad.push(`${label}: said another twist's ${others.join(',')}`);
+    }
+    if (wrongCrowd(said, g.pilots).length) {
+      bad.push(`${label}: said ${wrongCrowd(said, g.pilots).join(',')} to ${g.pilots === 1 ? 'a lone pilot' : 'a squad'}`);
     }
     /* The quiet: STAND BY on the HUD and nothing born until the boat, at
      * least 40 s (paced) after the go; then the boat's objective, and
@@ -2143,8 +2218,9 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
     const GUIDE_TWIST = { 'two-hulls': 'itaipu-5-g-hulls', 'hunters-launched': 'itaipu-5-g-deck', 'last-bird': 'itaipu-5-g-escort' };
     const noGuide = ['itaipu-5-g-source', 'itaipu-5-g-all'].filter((id) => !said.includes(id));
     const otherGuide = Object.entries(GUIDE_TWIST).filter(([k]) => k !== twist).map(([, id]) => id).filter((id) => said.includes(id));
-    if (noGuide.length || otherGuide.length) {
-      guideBad.push(`${label}: guide: never said ${noGuide.join(',')}; said another twist's ${otherGuide.join(',')}`);
+    const otherDeck = twist !== 'hunters-launched' && said.includes('itaipu-5-g-deck-solo') ? ['itaipu-5-g-deck-solo'] : [];
+    if (noGuide.length || otherGuide.length || otherDeck.length || wrongCrowd(said, g.pilots).length) {
+      guideBad.push(`${label}: guide: never said ${noGuide.join(',')}; said another twist's ${[...otherGuide, ...otherDeck].join(',')}; to the wrong crowd ${wrongCrowd(said, g.pilots).join(',')}`);
     }
     /* Spotting: only a carrier; twist C's at its birth by nobody, the
      * others' by a pilot here; a hull spotted silent never launched, and
@@ -2456,11 +2532,20 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
     const said = g.cues.map((c) => c.radio).filter(Boolean);
     const TURN = { 'yard-cover': 'itaipu-6-ta-turn', 'yard-wires': 'itaipu-6-tb-turn', 'yard-eyes': 'itaipu-6-tc-turn' };
     const spreadSpot = spread && g.spots.some((m) => m.at >= spread.at && !entries.some((x) => x.at > spread.at && x.at <= m.at));
-    const want = ['itaipu-6-s1-lines', 'itaipu-6-s2-spread', 'itaipu-6-g-spread', ...(twist ? [TURN[twist]] : []), ...(isle ? ['itaipu-6-s4-island'] : []),
+    const want = ['itaipu-6-s1-lines', 'itaipu-6-s2-spread', soloOf('itaipu-6-g-spread', g.pilots), ...(twist ? [TURN[twist]] : []), ...(isle ? ['itaipu-6-s4-island'] : []),
       ...(spreadSpot ? ['itaipu-6-s2-spotted'] : []), ...(g.dead.some((m) => m.hit === true && /^tower-/.test(m.target ?? '') && (!isle || m.at < isle.at)) ? ['itaipu-6-s2-tower'] : [])];
     const others = Object.entries(TURN).filter(([id]) => id !== twist).map(([, line]) => line);
-    if (end.state === 'won' && (want.some((id) => !said.includes(id)) || others.some((id) => said.includes(id)))) {
+    if (end.state === 'won' && (want.some((id) => !said.includes(id)) || others.some((id) => said.includes(id)) || wrongCrowd(said, g.pilots).length)) {
       bad.push(`${label}: said ${said.filter((id) => id.startsWith('itaipu-6')).join(' ')}; want ${want.filter((id) => !said.includes(id)).join(' ')}`);
+    }
+    /* Twist B's objective settles before the stage leaves, however its
+     * Strikers end: a power line's kill counts as down (stages.js `down`),
+     * so one that a wire takes does not leave it open (w50-adv-b B16). */
+    if (twist === 'yard-wires') {
+      const tw = g.views.filter((v) => v.stage && v.stage.id === twist).at(-1)?.stage.objectives.find((o) => o.id === 'twist');
+      if (end.state === 'won' && !(tw && (tw.state === 'done' || tw.state === 'failed'))) {
+        bad.push(`${label}: twist ${twist}'s objective left ${tw && tw.state}`);
+      }
     }
     /* Spotting: by a pilot here, of attackers born in the stage. */
     const kinds = new Map(g.born.map((a) => [a.id, a.kind]));
@@ -2479,6 +2564,8 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
     bad.filter((x) => /spots/.test(x)).join(' | '));
   check('every stage\'s story said: the lines, the spread, the twist\'s own line and no other twist\'s, the spotting call once a pilot spots, the towers\' call once one falls, the islanding; the guide on the spread',
     bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
+  check('twist B\'s objective settles, done or failed, before its stage leaves (a Striker a power line takes counts as down)',
+    bad.filter((x) => /objective left/.test(x)).length === 0, bad.filter((x) => /objective left/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
   const lightOff = games.map((g) => lightTold(mission, g)).filter(Boolean);
   check('the room\'s clock is the mission\'s light: the golden hour, the ramp into the night told as Spread Thin opens, the night from The Yard Again and over the end',
