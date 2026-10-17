@@ -1681,11 +1681,23 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
       bad.push(`${label}: ended ${end.state} ${end.why}`);
     }
     const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
-    const want = ['itaipu-3-g-yard', 'itaipu-3-s1-eyes', 'itaipu-3-s1-pair', 'itaipu-3-s2-stream', 'itaipu-3-s2-why', 'itaipu-3-s3-despacho', 'itaipu-3-g-reroute', ...TWIST[twist] ?? [],
+    /* Reroute opens on the yard as it is (w50-adv-a A2): standing, keep
+     * it standing; already down, DESPACHO reroutes round it and CREST
+     * sends the squad to the plant, and the HUD's hold says so. */
+    const inReroute = g.views.filter((v) => v.stage && v.stage.id === twist);
+    const downAtOpen = Boolean(inReroute[0]?.down?.includes('yard-right'));
+    const opening = downAtOpen ? ['itaipu-3-s3-despacho-down', 'itaipu-3-g-reroute-down'] : ['itaipu-3-s3-despacho', 'itaipu-3-g-reroute'];
+    const notOpening = downAtOpen ? ['itaipu-3-s3-despacho', 'itaipu-3-g-reroute'] : ['itaipu-3-s3-despacho-down', 'itaipu-3-g-reroute-down'];
+    const want = ['itaipu-3-g-yard', 'itaipu-3-s1-eyes', 'itaipu-3-s1-pair', 'itaipu-3-s2-stream', 'itaipu-3-s2-why', ...opening, ...TWIST[twist] ?? [],
       'itaipu-3-s4-dark', 'itaipu-3-s4-all', 'itaipu-3-s4-order', 'itaipu-3-g-dark'];
     const missing = want.filter((id) => !said.includes(id));
     if (missing.length) {
       bad.push(`${label}: never said ${missing.join(',')}`);
+    }
+    const wrongOpening = notOpening.filter((id) => said.includes(id));
+    const holdText = inReroute[0]?.stage.objectives.find((o) => o.id === 'reroute')?.text;
+    if (wrongOpening.length || holdText !== (downAtOpen ? 'war.obj.itaipu_3.reroute_down' : 'war.obj.itaipu_3.reroute')) {
+      bad.push(`${label}: Reroute opened on a yard ${downAtOpen ? 'down' : 'standing'} and said ${wrongOpening.join(',')}, showed ${holdText}`);
     }
     const others = Object.entries(TWIST).filter(([k]) => k !== twist).flatMap(([, ids]) => ids).filter((id) => said.includes(id));
     if (others.length) {
@@ -1729,7 +1741,10 @@ console.log('Lights Out (itaipu-3), flown on the room by bot squads');
   check('ten games, 1 and 4 good pilots: Dusk, The Lie, one twist of Reroute, The Dark, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
     bad.filter((x) => /stages|ended/.test(x)).join(' | '));
   check('every stage\'s story and guide said: each objective\'s guide line, the scout, the pair, the stream and why, DESPACHO, the twist\'s two lines and no other twist\'s, the dark and its order',
-    bad.filter((x) => /said/.test(x) && !/hold/.test(x)).length === 0, bad.filter((x) => /said/.test(x) && !/hold/.test(x)).join(' | '));
+    bad.filter((x) => /said/.test(x) && !/hold|Reroute opened/.test(x)).length === 0, bad.filter((x) => /said/.test(x) && !/hold|Reroute opened/.test(x)).join(' | '));
+  check('Reroute opens on the yard as it is: standing, DESPACHO and CREST ask to keep it standing; already down, they reroute round it and send the squad to the plant, and the HUD\'s hold says which (w50-adv-a A2)',
+    bad.filter((x) => /Reroute opened/.test(x)).length === 0 && holds.some((x) => /yard down/.test(x)) && holds.some((x) => !/yard down/.test(x)),
+    bad.filter((x) => /Reroute opened/.test(x)).join(' | '));
   check('the reroute\'s hold settles, held or failed, before its stage ends, and DESPACHO says which', bad.filter((x) => /hold/.test(x)).length === 0,
     bad.filter((x) => /hold/.test(x)).join(' | '));
   check('a hold that is done restores its four towns from the room ms it held, told in its own stage and every view after; a failed one restores nothing',

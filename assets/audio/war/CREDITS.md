@@ -266,6 +266,7 @@ other missions and speakers keep their desktop builds.
 | itaipu-3-s2-wasted | `voice/en/itaipu-3-s2-wasted.webm`, `voice/en/itaipu-3-s2-wasted.mp3`, `voice/es/itaipu-3-s2-wasted.webm`, `voice/es/itaipu-3-s2-wasted.mp3` |
 | itaipu-3-s2-clear | `voice/en/itaipu-3-s2-clear.webm`, `voice/en/itaipu-3-s2-clear.mp3`, `voice/es/itaipu-3-s2-clear.webm`, `voice/es/itaipu-3-s2-clear.mp3` |
 | itaipu-3-s3-despacho | `voice/en/itaipu-3-s3-despacho.webm`, `voice/en/itaipu-3-s3-despacho.mp3`, `voice/es/itaipu-3-s3-despacho.webm`, `voice/es/itaipu-3-s3-despacho.mp3` |
+| itaipu-3-s3-despacho-down | `voice/en/itaipu-3-s3-despacho-down.webm`, `voice/en/itaipu-3-s3-despacho-down.mp3`, `voice/es/itaipu-3-s3-despacho-down.webm`, `voice/es/itaipu-3-s3-despacho-down.mp3` |
 | itaipu-3-s3-half | `voice/en/itaipu-3-s3-half.webm`, `voice/en/itaipu-3-s3-half.mp3`, `voice/es/itaipu-3-s3-half.webm`, `voice/es/itaipu-3-s3-half.mp3` |
 | itaipu-3-s3-done | `voice/en/itaipu-3-s3-done.webm`, `voice/en/itaipu-3-s3-done.mp3`, `voice/es/itaipu-3-s3-done.webm`, `voice/es/itaipu-3-s3-done.mp3` |
 | itaipu-3-s3-back | `voice/en/itaipu-3-s3-back.webm`, `voice/en/itaipu-3-s3-back.mp3`, `voice/es/itaipu-3-s3-back.webm`, `voice/es/itaipu-3-s3-back.mp3` |
@@ -298,6 +299,7 @@ other missions and speakers keep their desktop builds.
 | itaipu-3-g-yard | `voice/en/itaipu-3-g-yard.webm`, `voice/en/itaipu-3-g-yard.mp3`, `voice/es/itaipu-3-g-yard.webm`, `voice/es/itaipu-3-g-yard.mp3` |
 | itaipu-3-g-lie | `voice/en/itaipu-3-g-lie.webm`, `voice/en/itaipu-3-g-lie.mp3`, `voice/es/itaipu-3-g-lie.webm`, `voice/es/itaipu-3-g-lie.mp3` |
 | itaipu-3-g-reroute | `voice/en/itaipu-3-g-reroute.webm`, `voice/en/itaipu-3-g-reroute.mp3`, `voice/es/itaipu-3-g-reroute.webm`, `voice/es/itaipu-3-g-reroute.mp3` |
+| itaipu-3-g-reroute-down | `voice/en/itaipu-3-g-reroute-down.webm`, `voice/en/itaipu-3-g-reroute-down.mp3`, `voice/es/itaipu-3-g-reroute-down.webm`, `voice/es/itaipu-3-g-reroute-down.mp3` |
 | itaipu-3-g-pack | `voice/en/itaipu-3-g-pack.webm`, `voice/en/itaipu-3-g-pack.mp3`, `voice/es/itaipu-3-g-pack.webm`, `voice/es/itaipu-3-g-pack.mp3` |
 | itaipu-3-g-feint | `voice/en/itaipu-3-g-feint.webm`, `voice/en/itaipu-3-g-feint.mp3`, `voice/es/itaipu-3-g-feint.webm`, `voice/es/itaipu-3-g-feint.mp3` |
 | itaipu-3-g-wires | `voice/en/itaipu-3-g-wires.webm`, `voice/en/itaipu-3-g-wires.mp3`, `voice/es/itaipu-3-g-wires.webm`, `voice/es/itaipu-3-g-wires.mp3` |

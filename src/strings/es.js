@@ -3957,6 +3957,7 @@ export default {
   "war.stage.itaipu_3.dark": "La oscuridad",
   "war.obj.protect_yard": "Protejan la subestación",
   "war.obj.itaipu_3.reroute": "Mantengan la subestación en pie mientras se redirige la red",
+  "war.obj.itaipu_3.reroute_down": "Que no lleguen a la central mientras se redirige la red",
   "war.obj.itaipu_3.pack": "Encuentren el dron de ataque real en el grupo",
   "war.obj.itaipu_3.feint": "Detengan a los drones de ataque sobre las tomas del oeste",
   "war.obj.itaipu_3.wires": "Detengan a los drones de ataque bajo los cables",

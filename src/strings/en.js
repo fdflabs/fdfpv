@@ -3952,6 +3952,7 @@ export default {
   "war.stage.itaipu_3.dark": "The Dark",
   "war.obj.protect_yard": "Protect the switchyard",
   "war.obj.itaipu_3.reroute": "Keep the switchyard standing through the reroute",
+  "war.obj.itaipu_3.reroute_down": "Keep them off the plant through the reroute",
   "war.obj.itaipu_3.pack": "Find the real Striker in the pack",
   "war.obj.itaipu_3.feint": "Stop the Strikers on the west intakes",
   "war.obj.itaipu_3.wires": "Stop the Strikers under the wires",
