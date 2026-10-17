@@ -33686,6 +33686,181 @@
     }
    },
    "machine": "orin"
+  },
+  "film-itaipu-5-o2.en": {
+   "text": "The heavy ones came home. I'll have them armed again by dusk.",
+   "speaker": "taller",
+   "seconds": 4.015,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2219773822,
+     "heard": "The heavy ones came home. I'll have them armed again by dusk.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18235,
+     "sha256": "54c510672c7c3967ffd5cd6ffdbc7fcd27528539b2aac62a18839981043dbe02"
+    },
+    "mp3": {
+     "bytes": 19556,
+     "sha256": "ee2ab7d19520ce51d33c04d40ba20d7947fec46d87b784aede134e36a7653af8"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-o2.es": {
+   "text": "Los pesados volvieron. Los tengo armados de nuevo antes del atardecer.",
+   "speaker": "taller",
+   "seconds": 4.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1315147791,
+     "heard": "Los pesados volvieron. Los tengo armados de nuevo antes del atardecer.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19377,
+     "sha256": "6b153b870990872583a929c2b2ff3e296cb390899e4ee06565b93b2eda4bae66"
+    },
+    "mp3": {
+     "bytes": 20084,
+     "sha256": "20dac7e2e1210d156888d6af6a1a4e7c2b126e6f80fc80af336c9fa92dfccc57"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-o3.en": {
+   "text": "Nothing on the river. Nothing coming up the gorge.",
+   "speaker": "mirador",
+   "seconds": 3.325,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2702365221,
+     "heard": "Nothing on the river. Nothing coming up the gorge.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15148,
+     "sha256": "c0a0211973b84810eed8f95bff757a30fa078c94b06e8eb2bf059bf2b9a869a0"
+    },
+    "mp3": {
+     "bytes": 15308,
+     "sha256": "943d8080d5d93ea71a8eb619b86dd11aea411a7eb95256a897d4e63af9474097"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-o3.es": {
+   "text": "Nada en el río. Nada subiendo por el cañón.",
+   "speaker": "mirador",
+   "seconds": 2.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 408225792,
+     "heard": "Nada en el río, nada subiendo por el cañón.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13178,
+     "sha256": "b61fb3022d6179000f27ca98198cb86d11d01114a942082b1b7adf95eb22020a"
+    },
+    "mp3": {
+     "bytes": 12908,
+     "sha256": "9e3d7bf75f589bd52b8da87af68f70c8282cbfcacd32cd768b53473377246939"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-o4.en": {
+   "text": "They can't reach the dam from the river now. So they'll go after what it feeds.",
+   "speaker": "crest",
+   "seconds": 4.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1413923845,
+     "heard": "The cat reached the dam from the river now, so they'll go after what it feeds.",
+     "wer": 0.188,
+     "extra": 0,
+     "missing": [
+      "they",
+      "cant",
+      "reach"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2594205345,
+     "heard": "They can't reach the dam from the river now, so they'll go after what it feeds.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19011,
+     "sha256": "09920df387b6f8617cb555287999a06db0fc8701a7eab31237b13298207966b2"
+    },
+    "mp3": {
+     "bytes": 17828,
+     "sha256": "f6dcdac96636ac6317f94a0e5dd33caf2cf8bb32beceaaea8aa7c0c74b8353e6"
+    }
+   },
+   "machine": "orin"
+  },
+  "film-itaipu-5-o4.es": {
+   "text": "Ya no llegan a la represa por el río. Así que van a ir por lo que alimenta.",
+   "speaker": "crest",
+   "seconds": 4.375,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3736015020,
+     "heard": "Ya no llegan a la represa por el río, así que van a ir por lo que alimenta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20140,
+     "sha256": "b8366f12e0b7f5dc9c201eb1d88b24befedf7e49720ce3abedbad05135c6eb86"
+    },
+    "mp3": {
+     "bytes": 19004,
+     "sha256": "467f24e4bf5e7e3b600ffbf030a16408fdbe52445662ca1b0fe594072e20520f"
+    }
+   },
+   "machine": "orin"
   }
  },
  "models": {

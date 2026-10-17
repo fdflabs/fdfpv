@@ -235,6 +235,15 @@ steel. **Music:** the intro track (built), from black. **Length:** 70 s.
 Only the war's aircraft are in the film (configs/airframes.js
 `WAR_AIRFRAMES`, held by films:lint).
 
+Re-shot 2026-10-16 (w50-films, version 6): shot 4 (`ten`) flies 12 m
+behind and 10 m out from the end of the ten's line on a 24 mm lens,
+looking down the row to its fourth, so the row recedes from one
+Striker big enough to show its prop to the far end of the V (films:lint:
+all ten in frame, the nearest at least 209 px wide; it was 40 m out on 32
+mm, ten specks across the water, the nearest 103 px). Shot 7b (`thrown`)
+rides 2.4 m behind the Striker, not 4.5: it was a dot in the sky, now an
+aircraft with its pusher turning.
+
 **Changes from today:** shot 2 is split into a telephoto reveal (2), a
 pass over the lens that is now solved from the route (3) and a long lens
 on the ten (4), so the pass that was never seen is the centre of the
@@ -277,6 +286,11 @@ As built (src/share/war/films/spillway.js, version 2, 52.5 s with its
 preload): no rain, which the world does not draw; the gates are not seen
 to open, since at the hoist's half a metre a minute a 15 s shot moves a
 leaf 12 cm, and the film does not fake a faster one.
+Re-shot 2026-10-16 (w50-films, version 4): shot 5 (`pier`) sits 0.3 m
+over the bridge road on a 35 mm lens, 1 m from the ten inch, so the
+parapets run to the towers beyond the gates and the warhead fills the
+foot of the frame (it was 1.2 m up on 50 mm, the aircraft small in the
+middle of an empty road).
 
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
@@ -314,6 +328,15 @@ inside a film or a mission (TECH-NEEDS T1.11), so no street lights come
 on. Shot 1 stands 900 m off the first tower so the line stacks up the
 frame. Shot 6 has no aircraft on the road; it is the yard, the town
 beyond and the card. The outro is LIGHTS-OUT-OUTRO.md.
+
+Re-shot 2026-10-16 (w50-films, version 3): shot 1 (`corridor`) stands on
+the west line's own axis, 900 m behind its first tower, so the first four
+towers stack in the 300 mm frame for the whole shot (the pan from over
+the yard's north side left them for open scrub by its middle). Shot 4
+(`edge`) is cut: with no lights to come on it was shot 3 again, 9 s of
+the same scrub and roofs with no line, so the film runs 50 s, not 59.
+Tried and not kept: the pair (shot 5) low over the west arm on 300 mm
+lost the far shore and left two aircraft on a grey sky.
 
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
@@ -368,6 +391,13 @@ hard morning light, high contrast in the gorge. **Music:** drums.
 
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
+As built, re-shot 2026-10-16 (w50-films, version 3): no smoke downriver,
+which the world does not draw, so shot 1 (`river`) is a 135 mm lens from
+over the right bank easing down the river's reach, the gorge's banks and
+the line across it (on 400 mm it held flat water and one wire). The
+outro is RIVER-BELOW-OUTRO.md; it opens on the same lens with nothing on
+the water.
+
 | film-itaipu-5-1 | shot 1, lead 1.0 s, target 4.0 s | CARANCHO | urgent | Crest, Carancho. That's the last of our birds. We can't hold the river. | Cresta, Carancho. Ese fue nuestro último aparato. No podemos sostener el río. |
 | film-itaipu-5-2 | shot 2, lead 2.0 s, target 3.5 s | CREST | firm | Copy. Everything coming up the gorge is ours. | Copiado. Todo lo que suba por el cañón es nuestro. |
 | film-itaipu-5-3 | shot 4, lead 0.5 s, target 4.5 s | MIRADOR | firm | They all start from the same stretch of river. Something is launching them. | Todos salen del mismo tramo del río. Algo los está lanzando. |
@@ -401,7 +431,10 @@ not the Bramor and the Skyhunter, which do not fly in a war
 (configs/airframes.js `WAR_AIRFRAMES`, held by films:lint). Shot 2
 (`ride`) is a dolly 15 m off the west line level with its phases, on 24
 mm, not 18. Shot 4 (`wires`) follows its one Striker on the 600 mm from
-over the line's third tower. No outro: none is written for M6.
+over the line's third tower, from 256 m (re-shot 2026-10-16, w50-films,
+version 3: from 300 m its long lens looked down onto the far terrain's
+smeared ground, now the towers and their wires stand against the sky
+with the Striker between them). No outro: none is written for M6.
 
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |

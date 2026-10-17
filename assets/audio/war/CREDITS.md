@@ -387,6 +387,9 @@ other missions and speakers keep their desktop builds.
 | film-itaipu-5-2 | `voice/en/film-itaipu-5-2.webm`, `voice/en/film-itaipu-5-2.mp3`, `voice/es/film-itaipu-5-2.webm`, `voice/es/film-itaipu-5-2.mp3` |
 | film-itaipu-5-3 | `voice/en/film-itaipu-5-3.webm`, `voice/en/film-itaipu-5-3.mp3`, `voice/es/film-itaipu-5-3.webm`, `voice/es/film-itaipu-5-3.mp3` |
 | film-itaipu-5-4 | `voice/en/film-itaipu-5-4.webm`, `voice/en/film-itaipu-5-4.mp3`, `voice/es/film-itaipu-5-4.webm`, `voice/es/film-itaipu-5-4.mp3` |
+| film-itaipu-5-o2 | `voice/en/film-itaipu-5-o2.webm`, `voice/en/film-itaipu-5-o2.mp3`, `voice/es/film-itaipu-5-o2.webm`, `voice/es/film-itaipu-5-o2.mp3` |
+| film-itaipu-5-o3 | `voice/en/film-itaipu-5-o3.webm`, `voice/en/film-itaipu-5-o3.mp3`, `voice/es/film-itaipu-5-o3.webm`, `voice/es/film-itaipu-5-o3.mp3` |
+| film-itaipu-5-o4 | `voice/en/film-itaipu-5-o4.webm`, `voice/en/film-itaipu-5-o4.mp3`, `voice/es/film-itaipu-5-o4.webm`, `voice/es/film-itaipu-5-o4.mp3` |
 | film-itaipu-6-1 | `voice/en/film-itaipu-6-1.webm`, `voice/en/film-itaipu-6-1.mp3`, `voice/es/film-itaipu-6-1.webm`, `voice/es/film-itaipu-6-1.mp3` |
 | film-itaipu-6-2 | `voice/en/film-itaipu-6-2.webm`, `voice/en/film-itaipu-6-2.mp3`, `voice/es/film-itaipu-6-2.webm`, `voice/es/film-itaipu-6-2.mp3` |
 | film-itaipu-6-3 | `voice/en/film-itaipu-6-3.webm`, `voice/en/film-itaipu-6-3.mp3`, `voice/es/film-itaipu-6-3.webm`, `voice/es/film-itaipu-6-3.mp3` |
