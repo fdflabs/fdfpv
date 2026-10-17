@@ -204,7 +204,11 @@ export default withWaves({
   targets,
   output: 14000,
   floorMw: 9700,
-  starMw: 12600,
+  /* The output star: the yard lost and nothing else (w50-adv-a A1). At
+   * 12 600 it asked for the yard never to fall, which every stage goes
+   * for: 0 of 96 bot games earned it. At 11 200, base bot games (16
+   * seeds x 1 and 2 pilots): good 23/32, average 20/32, careless 3/32. */
+  starMw: 11200,
   airframes: 4,
   radio: { brief: ['itaipu-3-s0-brief', 'itaipu-3-s0-rules'], win: 'debrief-itaipu-3-win', lose: 'debrief-itaipu-3-lose' },
   film: 'lights-out',

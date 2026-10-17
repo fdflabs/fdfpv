@@ -901,7 +901,9 @@ town lit behind the yard: every hit now shows.
 
 ### Win, lose, stars
 
-Floor 9 700, starMw 12 600 (as today). The hold folds into *held*.
+Floor 9 700, starMw 11 200: the yard lost and nothing else (w50-adv-a
+A1; at 12 600 the yard could never fall and 0 of 96 bot games earned
+it). The hold folds into *held*.
 
 ### Pilots
 
@@ -1596,8 +1598,8 @@ squad converging on it from wherever they were strung out.
 
 ### Win, lose, stars
 
-Floor 9 700, starMw 12 600 (as mission 3, since the yard and the towers
-are big single losses).
+Floor 9 700, starMw 12 600 (mission 3's before w50-fix-itaipu, since the
+yard and the towers are big single losses; unreached solo, B4).
 
 ### Pilots
 
