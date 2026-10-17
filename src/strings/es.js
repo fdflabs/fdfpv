@@ -1970,6 +1970,7 @@ export default {
   "interior.film.title": "El Interior",
   "interior.film.complete": "Misión cumplida",
   "interior.film.m2_alert": "COMUNICACIÓN PERDIDA",
+  "interior.film.m2_alert_at": "PUESTO ARENAL, 16:52",
   "interior.film.ball_eo": "EO  AMPLIO",
   "interior.film.ball_rec": "REC",
   "interior.film.ball_gimbal": "AZ {az}  EL {el}",

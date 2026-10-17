@@ -221,7 +221,7 @@ the alarm that starts Mission 3. **Length:** about 35 s.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 9 | board | | `split [cap:claro-viejo or rec, cap:claro-nuevo or rec]` | the same, personnel stills populating under each | historical photographs match some old faces as silhouettes (no faces rendered: matches are shown as frames joined by lines), no matches under the young | io | film-int2-14, film-int2-15 | room tone | cut |
 | 2 | 8 | board | | the split | the same | | hold | film-int2-16, film-int2-17, film-int2-18 | | cut |
-| 3 | 4 | board | | the split | `alert REMOTE SECURITY POST / COMMUNICATION LOST` on another screen | the alert | hold | film-int2-19 | an alert tone | smash |
+| 3 | 4 | board | | the split | `alert COMMUNICATION LOST / PUESTO ARENAL, 16:52` on another screen | the alert | hold | film-int2-19 | an alert tone | smash |
 | 4 | 8 | board | | the alert | `zoom` to Puesto Arenal | | io | film-int2-20, film-int2-21, film-int2-22 | | cut |
 | 5 | 4 | handheld | 50 | the BOARD from the player's station | the same | | hold | film-int2-23 | | smash |
 | 6 | 2 | board | | black | black | CUT TO BLACK | hold | | silence | cut |
@@ -238,6 +238,13 @@ the alarm that starts Mission 3. **Length:** about 35 s.
 | film-int2-21 | after 20, lead 0.4, target 0.8 | VEGA | How many? |
 | film-int2-22 | after 21, lead 0.4, target 0.8 | ROJAS | Twelve. |
 | film-int2-23 | shot 5, lead 1.2, target 0.8 | VEGA | Launch. |
+
+The alert's time (W50, 2026-10-17): Mission 2 ends in the morning
+(clock.js M2_CLOCK, about 08:30) and Mission 3 goes at 17:15 (M3_CLOCK,
+MISSIONS M3 "late afternoon into night"), so the alert carries its own
+time, 16:52, under COMMUNICATION LOST: the analysis of shots 1 and 2 is
+the day's, and the alert and Vega's "Launch." are that afternoon,
+handing off to Mission 3's opening at the post.
 
 ---
 

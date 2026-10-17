@@ -14,8 +14,10 @@
  *     mission's, else its reconstruction): one frame a camp, no portraits
  *   - shot 5, the BOARD from the player's station, is the BOARD alone (no
  *     room set in this film, as Mission 3's): the line carries it
- *   - the alert's card reads COMMUNICATION LOST alone: the card's letter
- *     spacing runs a longer one off a 16:9 screen
+ *   - the alert's card reads COMMUNICATION LOST, with PUESTO ARENAL and
+ *     the alert's time, 16:52, under it: the card's letter spacing runs a
+ *     longer line off a 16:9 screen, and the time puts the alert in the
+ *     afternoon Mission 3 opens in, hours after this mission's morning
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -46,7 +48,7 @@ const ARENAL = { at: gridToWorld(...M3_AT.post), span: 2400 };
 
 export default {
   id: 'int2-outro',
-  version: 1,
+  version: 2,
   map: 'interior',
   music: null,
   shots: [
@@ -97,8 +99,11 @@ export default {
       music: '',
       camera: BOARD_CAMERA,
       board: { view: BOTH, layers: [{ id: 'land' }, { id: 'roads' }, { id: 'm2-camps' }] },
+      /* The alert's time under it: Mission 2 ends in the morning (clock.js
+       * M2_CLOCK, about 08:30) and Mission 3 goes at 17:15 (M3_CLOCK), so
+       * the alert, and Vega's "Launch." after it, is that afternoon. */
       titles: [{
-        key: 'interior.film.m2_alert', from: 0.3, to: { at: 'end' }, kind: 'card',
+        key: 'interior.film.m2_alert', sub: 'interior.film.m2_alert_at', from: 0.3, to: { at: 'end' }, kind: 'card',
       }],
       lines: [{ line: 'film-int2-19', lead: 0.6, tail: 0.8 }],
       out: 'smash',
