@@ -878,8 +878,8 @@ The intro and outro (M3_00, M3_09) are films.
 | int3-s2-notyet | CONFIRM IDENTIFICATION before the evidence | IBARRA | all | (new) We don't have that yet. |
 | int3-s3-chassis | the three pickups leave | FERRER | all | Same chassis. Same heat. Same road. |
 | int3-s3-answers | after s3-chassis | IBARRA | all | Different answers. |
-| int3-s3-error | a strike on vehicle 1 or 2 | ROJAS | all | (new) There were people in that one. Stop. |
-| int3-s3-error-2 | after s3-error | VEGA | all | (new) Nobody engages anything else without my word. |
+| int3-s3-error | a strike on vehicle 1 (vehicle 2 is the empty decoy: only s3-error-2) | ROJAS | all | (new) There were people in that one. Stop. |
+| int3-s3-error-2 | after s3-error, or a strike on vehicle 2 | VEGA | all | (new) Nobody engages anything else without my word. |
 | int3-s4-losing | the forward feed starts degrading | FERRER | all | You're losing the forward feed. |
 | int3-s4-both | after s4-losing; card RESTORE DRONE NETWORK LINK | FERRER | all | Keep another aircraft where the network can still see both sides. |
 | int3-s4-normal | after s4-both | ROJAS | all | In normal language? |
