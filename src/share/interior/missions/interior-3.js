@@ -269,7 +269,11 @@ export default {
     { when: { spotted: 'courier' }, why: 'spotted', spot: 'courier' },
     { when: { spotted: 'pair' }, why: 'spotted', spot: 'pair' },
     { when: { downed: ['isr'], alone: true }, why: 'isr-down', radio: 'int-fail-function' },
-    { when: { all: [ERR('v1'), ERR('v2')] }, why: 'errors', radio: 'int-fail-function' },
+    /* Not "We've lost the picture" (w50-adv-c A9): the second error's
+     * own lines (Rojas's, Vega's "Nobody engages anything else without
+     * my word.") have just played, and the debrief says why
+     * (ops.why.errors). No new voice: one is built only on the Orin. */
+    { when: { all: [ERR('v1'), ERR('v2')] }, why: 'errors', radio: null },
     { when: { route: 'pair', point: 'post' }, why: 'post', radio: 'int-fail-function' },
   ],
   stars: [

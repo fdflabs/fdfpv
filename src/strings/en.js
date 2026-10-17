@@ -4647,7 +4647,7 @@ export default {
   "ops.interior.star.notalone": "NOT ALONE: the unknown drone intercepted",
   "ops.interior.star.command": "THE COMMAND SITE: documented with the relay held",
   "ops.why.post": "The post was overrun",
-  "ops.why.errors": "Civilians were engaged twice",
+  "ops.why.errors": "A wrong vehicle was engaged twice",
   "ops.why.north": "The vehicle left coverage",
   "ops.why.unfollowed": "The northern vehicle was not followed out",
   "ops.debrief.ended": "MISSION ENDED BY THE HOST",

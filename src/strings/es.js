@@ -4652,7 +4652,7 @@ export default {
   "ops.interior.star.notalone": "NO ESTAMOS SOLOS: el dron desconocido interceptado",
   "ops.interior.star.command": "EL PUESTO DE MANDO: documentado con el relé sostenido",
   "ops.why.post": "El puesto fue tomado",
-  "ops.why.errors": "Se atacó a civiles dos veces",
+  "ops.why.errors": "Se atacó dos veces un vehículo equivocado",
   "ops.why.north": "El vehículo salió de la cobertura",
   "ops.why.unfollowed": "No siguieron al vehículo hasta que salió por el norte",
   "ops.debrief.ended": "MISIÓN TERMINADA POR EL ANFITRIÓN",

@@ -1220,9 +1220,10 @@ export class RoomOps {
     return { dirty: true, told };
   }
 
-  /* A fail's line (a loss rule's own, else the mission's), to everybody. */
+  /* A fail's line (a loss rule's own, else the mission's; a rule's null
+   * is none), to everybody. */
   endLines(st, t, own = undefined) {
-    const radio = own ?? this.mission().lines?.fail;
+    const radio = own === undefined ? this.mission().lines?.fail : own;
     return radio ? [{
       at: t, stage: st.id, heard: 'all', radio,
     }] : [];
