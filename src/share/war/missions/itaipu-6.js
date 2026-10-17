@@ -95,7 +95,16 @@
  *                        dive onto the near towers
  *   corridor-orbit       the Scout's circle high over the east corridor
  *   reservoir-west, west-arm-low
- *                        decoys and a Striker onto the yard (Lights Out's)
+ *                        decoys and a Striker onto the yard: Lights Out's
+ *                        over the west arm, then a climb to 430 m over the
+ *                        yard's north edge and a steep dive, planned over
+ *                        the yard's lines as a real attacker would, so at
+ *                        no error in the spread does the run cross a span
+ *                        at wire height (wires.js wireCrossings: 0). The
+ *                        lines stay a hazard for whatever does cross them;
+ *                        a solo game with nobody shooting no longer turns
+ *                        on a power line taking the one yard Striker
+ *                        (w50-fix-itaipu, B4 follow-up)
  *   surface-east, east-shore-water
  *                        boats on the east intakes (First Light's)
  * scripts/war-routes-check.js flies every one.
@@ -489,8 +498,8 @@ export default withWaves({
     'high-west-lines': [[-4300, 700, -2000], [-3700, 650, -700]],
     'high-east-lines': [[2600, 700, 1200], [1900, 650, 1300]],
     'corridor-orbit': [[3000, 520, 3300], [1800, 520, 2200]],
-    'reservoir-west': [[-1600, 249, -3200], [-1600, 249, -1700], [-1800, 300, -1000]],
-    'west-arm-low': [[-2600, 249, -3400], [-2300, 249, -2000], [-2250, 300, -1100]],
+    'reservoir-west': [[-1600, 249, -3200], [-1600, 249, -1700], [-1700, 330, -1300], [-2146, 430, -560]],
+    'west-arm-low': [[-2600, 249, -3400], [-2300, 249, -2000], [-2250, 330, -1300], [-2146, 430, -560]],
     'surface-east': [[1000, 219, -2800], [700, 219, -2300], [450, 219, -1880]],
     'east-shore-water': [[2400, 219, -3000], [1300, 219, -2300], [650, 219, -1850]],
   },

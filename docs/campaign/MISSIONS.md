@@ -1591,6 +1591,11 @@ war:stages flies it on the room), held at `release: 'development'`:
   east one 30 to 40 s after the west is gone, on FI1's middle towers
   (e-4 to e-2, 2.4 km from the crest) instead of e-6. Before, the west
   group hit tower w-4 (4.2 km out) at 77 to 84 s in every solo game.
+- **The yard's approach** (B4 follow-up): the decoys and the Striker of
+  The Yard Again come over the west arm, climb to 430 m over the yard's
+  north edge and dive, a path over the yard's lines (0 wire crossings at
+  any error in the spread), so a lone yard Striker is not saved by a
+  power line. Nobody shooting: 4 of 18 room seeds won before, 0 after.
 - **The win line** (B6): "The lines held" only when the islanding held;
   a win with it failed is CREST's Lights Out win line.
 
