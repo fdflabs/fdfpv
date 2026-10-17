@@ -247,6 +247,9 @@ try {
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 }, page.sessionId);
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 }, page.sessionId);
   await page.until("window.__ops.view().state !== 'briefing'", 15000).catch(() => {});
+  /* The card closes on the frame after the room leaves its briefing, so
+   * reading it on the same tick as the state races the render loop. */
+  await page.until('!window.__briefCard().open', 3000).catch(() => {});
   const ended = await page.evaluate("window.__ops.view().state");
   const bState = await B.evaluate("window.__ops.view().state");
   check('the host\'s Deploy ends the briefing for both: the countdown, the card closed', !(await page.evaluate('window.__briefCard().open')) && ['countdown', 'live'].includes(ended) && ['countdown', 'live'].includes(bState), `${ended} / ${bState}`);
