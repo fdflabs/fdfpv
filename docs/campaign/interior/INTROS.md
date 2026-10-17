@@ -153,13 +153,18 @@ from the landing to the room).
 | 7 | 2 | board | | black | MISSION COMPLETE | | hold | | silence | cut (to the debrief) |
 
 Shot 3's still is the squad's symbol capture if `M1_SYMBOL_CAPTURED`,
-else the analyst reconstruction frame marked RECONSTRUCTION (N8).
+else the analyst reconstruction frame marked RECONSTRUCTION (N8). Its
+last line follows the same flag (W50, 2026-10-17): film-int1-13 quotes
+Ibarra's archive exchange (int1-s5-years), which plays only on the
+capture, so without it Rojas says his voiced "Come on." from the follow
+instead, timed as the longer of the two.
 
 | id | cue | who | EN |
 | --- | --- | --- | --- |
 | film-int1-11 | shot 3, lead 1.5, target 1.6 | ROJAS | So they're back. |
 | film-int1-12 | after 11, lead 0.6, target 0.8 | IBARRA | Maybe. |
-| film-int1-13 | after 12, lead 0.4, target 2.2 | ROJAS | You just said that's their symbol. |
+| film-int1-13 | after 12, lead 0.4, target 2.2 (if `M1_SYMBOL_CAPTURED`) | ROJAS | You just said that's their symbol. |
+| int1-s4-comeon | the same cue (if not) | ROJAS | Come on. |
 | film-int1-14 | shot 4, lead 1.0, target 3.6 | IBARRA | Symbols don't need permission to survive the people who created them. |
 | film-int1-15 | shot 5, lead 3.5, target 2.6 | VEGA | Tomorrow we stop looking at the camp. |
 | film-int1-16 | shot 6, lead 2.5, target 2.8 | VEGA | Tomorrow we look at everything around it. |
