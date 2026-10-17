@@ -27,7 +27,8 @@
  * events as they are told, classification chips that change as the room
  * classifies, the compass tape, ALT, SPD, HDG and the mission clock, a
  * minimap with a scale bar, the boundary warning, and the stage's
- * tutorial prompts (the screen's own: the room cannot see a mode switch).
+ * tutorial prompts (the screen's own: the room cannot see a mode switch),
+ * and on a screen flying a strike role its STRIKE button.
  *
  * THE GUIDE'S MARKS (src/share/ops/guide.js), under the same rule: the
  * objective as one line with its count under the compass tape, a ring
@@ -203,6 +204,11 @@ const CSS = `
   background: rgba(6, 10, 12, 0.45); border: 1px solid rgba(236, 244, 240, 0.35); padding: 0.25em 0.7em; min-height: 40px; cursor: pointer; }
 .ops-fleet button.flown { border-color: #fff; cursor: default; }
 .ops-fleet .ops-k { margin: 0 0 0 0.8em; }
+.ops-strike { pointer-events: auto; white-space: nowrap; }
+.ops-strike:empty { display: none; }
+.ops-strike button { font: inherit; letter-spacing: 0.16em; color: ${INK}; background: rgba(6, 10, 12, 0.55);
+  border: 1px solid rgba(236, 244, 240, 0.55); min-height: 48px; padding: 0 1em; cursor: pointer; }
+.ops-strike button.armed { color: ${AMBER}; border-color: ${AMBER}; }
 .ops-touch { display: none; z-index: 5; pointer-events: auto; gap: 0.5em; align-items: center; touch-action: none; }
 .ops-touch.on { display: flex; }
 .ops-touch button { font: inherit; letter-spacing: 0.12em; color: ${INK}; background: rgba(6, 10, 12, 0.45);
@@ -375,6 +381,12 @@ export class OpsHud {
     this.fleet = el('div', 'ops-panel ops-fleet', this.el);
     this.fleetKey = null;
     this.onFleet = null;
+    /* The strike (MISSIONS.md 1.6), on a screen flying a strike role
+     * only: one button, the key's twin, armed by a first press and sent
+     * by a second. onStrike() is the shell's. */
+    this.strikeEl = el('div', 'ops-panel ops-strike', this.el);
+    this.strikeKey = null;
+    this.onStrike = null;
     this.mapBox = el('div', 'ops-panel ops-map', this.el);
     this.mapCanvas = el('canvas', '', this.mapBox);
     this.mg = this.mapCanvas.getContext('2d');
@@ -470,6 +482,7 @@ export class OpsHud {
       subtitle: this.sub.v,
       goal: this.goalText,
       first: this.firstKey ? this.first.textContent : null,
+      strike: this.strikeEl.textContent || null,
       fleet: [...this.fleet.querySelectorAll('button')].map((b) => ({ key: b.dataset.act.slice(4), text: b.textContent, flown: b.classList.contains('flown') })),
     });
   }
@@ -499,6 +512,24 @@ export class OpsHud {
     }
   }
 
+  /* strike: null (not this screen's), or { armed, key } (the key's
+   * label). */
+  strikeText(strike) {
+    const key = strike ? `${strike.armed ? 1 : 0}${strike.key}` : null;
+    if (key === this.strikeKey) {
+      return;
+    }
+    this.strikeKey = key;
+    this.strikeEl.textContent = '';
+    if (!strike) {
+      return;
+    }
+    const b = el('button', strike.armed ? 'armed' : '', this.strikeEl, str(strike.armed ? 'ops.strike.confirm' : 'ops.strike.button', { key: strike.key }));
+    b.type = 'button';
+    b.dataset.act = 'strike';
+    b.addEventListener('click', () => this.onStrike && this.onStrike());
+  }
+
   /* The panels' rectangles, CSS px, for the layout check. */
   rects() {
     const r = (e) => {
@@ -522,6 +553,7 @@ export class OpsHud {
       subtitle: r(this.sub.el),
       first: r(this.first),
       fleet: r(this.fleet),
+      strike: r(this.strikeEl),
     };
   }
 
@@ -681,7 +713,7 @@ export class OpsHud {
         x: r.left, y: r.top, w: r.width, h: r.height,
       });
     }
-    const order = [[this.goal, 'c', 't'], [this.mapBox, 'l', 'b'], [this.inset, 'r', 'b'], [this.row, 'c', 'b'], [this.sub.el, 'c', 'b'], [this.obj, 'l', 't'], [this.readEl, 'r', 't'], [this.fleet, 'r', 't', 'l'], [this.touchEl, 'c', 't']];
+    const order = [[this.goal, 'c', 't'], [this.mapBox, 'l', 'b'], [this.inset, 'r', 'b'], [this.row, 'c', 'b'], [this.sub.el, 'c', 'b'], [this.obj, 'l', 't'], [this.readEl, 'r', 't'], [this.fleet, 'r', 't', 'l'], [this.touchEl, 'c', 't'], [this.strikeEl, 'r', 'b']];
     for (const [p] of order) {
       p.classList.remove('ops-off');
     }
@@ -802,6 +834,7 @@ export class OpsHud {
       this.fLock.set(str(b.lock ? (b.track ? 'ops.hud.lock_track' : 'ops.hud.lock_ground') : 'ops.hud.lock_free'));
     }
     this.fleetText(src.fleet);
+    this.strikeText(src.strike ?? null);
     const c = src.craft;
     this.fAlt.set(c ? str('ops.hud.alt_of', { m: Math.round(c.agl) }) : '');
     this.fSpd.set(c ? str('ops.hud.spd_of', { kmh: Math.round(c.speed * 3.6) }) : '');
@@ -927,7 +960,7 @@ export class OpsHud {
 
   /* What changes the panels' sizes: placed again when it does. */
   shapeKey() {
-    return [this.readEl, this.obj, this.row, this.mapBox, this.inset, this.goal, this.sub.el, this.stage.el].map((e) => `${e.offsetWidth}x${e.offsetHeight}`).join();
+    return [this.readEl, this.obj, this.row, this.mapBox, this.inset, this.goal, this.sub.el, this.stage.el, this.strikeEl].map((e) => `${e.offsetWidth}x${e.offsetHeight}`).join();
   }
 
   resize() {

@@ -10,7 +10,7 @@
  * takeEvents() (what changed since it last asked: the state, the stage,
  * the cues, each new capture, each contact discovered or classified, each
  * refusal). What it sends: start and end and lock (the host's), cam (two a
- * second, an aim point), capture, take, active, swap, swapAccept,
+ * second, an aim point), capture, strike, take, active, swap, swapAccept,
  * swapDecline.
  *
  * Pure: no DOM, no timers, no three.js, the room clock handed in, so a
@@ -174,6 +174,11 @@ export function createRoomOps(send) {
     /* A capture message from src/avionics/capture.js's still(). */
     capture(msg) {
       send(msg);
+    },
+    /* The strike pilot's strike at room ms t (MISSIONS.md 1.6): the room
+     * picks the target and refuses one not authorized. */
+    strike(t) {
+      say('strike', { t: Math.round(t) });
     },
     /* The films this pilot watched to their end, { id: version }
      * (CONTRACT-P0.md 3 `seen`): the host's skip waits on everybody's. */

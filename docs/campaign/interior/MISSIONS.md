@@ -786,7 +786,7 @@ site, the northern exit (1.9).
 | 2 | `M3_CP_CONFIRMED_CONTACT` | M3_03 | stage 1's exit, 20 to 40 s later (dial) | primary IDENTIFY THREATS NEAR THE POST | thermal signatures in the vegetation round the post: some civilians moving away (authored, they leave by the road), some concealed and watching; when hostile action is unambiguous (a concealed pair moves on the post's gate with long objects raised, scripted), Rojas calls contact; CONFIRM IDENTIFICATION; Vega clears; the strike role unlocks | the threat stopped |
 | 3 | `M3_CP_FIRST_ENGAGEMENT` | M3_04 | stage 2's exit | primary TRACK DEPARTING VEHICLES | three look alike pickups leave the post's outskirts on three roads: 1 civilians (to the colonia's road), 2 an empty decoy (stops in a field, nobody leaves it), 3 confirmed hostile occupants (toward the command site); all UNKNOWN; scripted evidence resolves each (people seen leaving 1, nobody near 2, 3 meeting a known contact) | all three resolved, or 3 stopped or lost after its evidence |
 | 4 | `M3_CP_RELAY` | M3_05, M3_06 | stage 3's exit | primary RESTORE DRONE NETWORK LINK; then the forward recon identifies the radio operator, temporary shelter, motorcycles, route markers | the forward feed degrades (N11) as the quad passes the ridge line toward the command site; a highlighted broad volume; a relay aircraft held in it for 10 s restores the feed | the four command site items captured |
-| 5 | `M3_CP_AIR_CONTACT` | M3_07 to M3_09 | stage 4's exit | primary TRACK OR INTERCEPT UNKNOWN DRONE; then FOLLOW THE NORTHERN VEHICLE | a small quad appears near the post, observes friendly positions, repositions to keep watching; tracked until it leaves (about 3 minutes) or intercepted; night deepens; one tracked vehicle leaves north; engagement not allowed; at the edge of coverage it disappears | the vehicle crosses the northern exit, then the outro film |
+| 5 | `M3_CP_AIR_CONTACT` | M3_07 to M3_09 | stage 4's exit | primary TRACK OR INTERCEPT UNKNOWN DRONE; then FOLLOW THE NORTHERN VEHICLE | a small quad appears near the post, observes friendly positions, repositions to keep watching; tracked until it leaves (about 3 minutes) or intercepted; night deepens; one tracked vehicle leaves north; engagement not allowed; at the edge of coverage it disappears | the vehicle crosses the northern exit with someone watching it (in a picture in its last 30 s), then the outro film; unwatched, the picture is lost (fail) |
 
 ### The post's condition
 
@@ -811,7 +811,8 @@ arrival bearing; the northern vehicle's departure time.
 - **Unknown drone completes its watch** (soft consequence): the outro
   and M4's intro note friendly positions were exposed (a variant line).
 - **Fail:** the post `critical` for 60 s; all ISR capability lost;
-  repeated engagement of civilians or friendlies; abandoning the zone.
+  repeated engagement of civilians or friendlies; abandoning the zone;
+  the northern vehicle leaving coverage with nobody watching it.
 
 ### Stars and flags
 
@@ -877,8 +878,8 @@ The intro and outro (M3_00, M3_09) are films.
 | int3-s2-notyet | CONFIRM IDENTIFICATION before the evidence | IBARRA | all | (new) We don't have that yet. |
 | int3-s3-chassis | the three pickups leave | FERRER | all | Same chassis. Same heat. Same road. |
 | int3-s3-answers | after s3-chassis | IBARRA | all | Different answers. |
-| int3-s3-error | a strike on vehicle 1 or 2 | ROJAS | all | (new) There were people in that one. Stop. |
-| int3-s3-error-2 | after s3-error | VEGA | all | (new) Nobody engages anything else without my word. |
+| int3-s3-error | a strike on vehicle 1 (vehicle 2 is the empty decoy: only s3-error-2) | ROJAS | all | (new) There were people in that one. Stop. |
+| int3-s3-error-2 | after s3-error, or a strike on vehicle 2 | VEGA | all | (new) Nobody engages anything else without my word. |
 | int3-s4-losing | the forward feed starts degrading | FERRER | all | You're losing the forward feed. |
 | int3-s4-both | after s4-losing; card RESTORE DRONE NETWORK LINK | FERRER | all | Keep another aircraft where the network can still see both sides. |
 | int3-s4-normal | after s4-both | ROJAS | all | In normal language? |

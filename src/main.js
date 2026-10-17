@@ -934,7 +934,10 @@ export async function boot({
         flightMs: runAirMs,
         totalS: aircraftSecondsNow(),
         route: runRoute.snapshot(),
-        replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+        /* A seat that never left the rail has no flight to replay
+         * (docs/DEBRIEF.md: no clip under a second of flight), though the
+         * recorder kept the parked aircraft for the whole match. */
+        replay: replayState(crashCam && runAirMs >= 1000 ? crashCam.span() : null, mode === 'replay'),
         condition: conditionOf(crashFlags, fixedWing),
       },
     });
@@ -1424,6 +1427,8 @@ export async function boot({
         opsHud.tell(str('ops.capture.recorded', { item: str(`ops.${v.campaign}.item.${e.item}`), grade: str(`ops.grade.${e.grade}`) }), { grade: e.grade });
       } else if (e.type === 'error' && e.error === 'capture') {
         opsHud.tell(str(`ops.capture.why.${e.why ?? 'item'}`), { warn: true });
+      } else if (e.type === 'error' && e.error === 'strike') {
+        opsHud.tell(str(`ops.strike.why.${e.why ?? 'authorized'}`), { warn: true });
       } else if (e.type === 'error' && e.error === 'unwatched') {
         /* Said for a few seconds over the waiting line (opsFilmFrame). */
         opsBriefRefusedUntil = performance.now() + 4000;
@@ -1614,6 +1619,38 @@ export async function boot({
     };
     opsHud.tell(str('ops.capture.sent', { item: str(`ops.${v.campaign}.item.${r.item}`), grade: str(`ops.grade.${r.grade}`) }), { grade: r.grade });
   }
+
+  /* The strike (MISSIONS.md 1.6), heard only on a screen flying one of
+   * the mission's strike roles in a live match: a first press arms it
+   * for STRIKE_ARM_MS, a second sends it, so no single press engages.
+   * The room picks the target and refuses one not authorized. */
+  const STRIKE_ARM_MS = 4000;
+  let opsStrikeArmed = 0;
+  function opsStrikeRole(v) {
+    const mission = roomOps.mission();
+    const key = roomOps.live() && mission && mission.strike ? opsActiveKey(v) : null;
+    return key != null && mission.strike.roles.includes(String(key).split(':')[0]);
+  }
+  function opsStrikeNow() {
+    if (!opsStrikeRole(roomOps.view())) {
+      opsStrikeArmed = 0;
+      opsHud.tell(str(roomOps.mission() && roomOps.mission().strike ? 'ops.strike.why.role' : 'ops.strike.why.off'), { warn: true });
+      return;
+    }
+    const now = performance.now();
+    if (now >= opsStrikeArmed) {
+      opsStrikeArmed = now + STRIKE_ARM_MS;
+      return;
+    }
+    opsStrikeArmed = 0;
+    roomOps.strike(opsStillT());
+    opsHud.tell(str('ops.strike.sent'));
+  }
+  /* The HUD's strike button: null off a strike role. */
+  function opsStrikeHud(v) {
+    return opsStrikeRole(v) ? { armed: performance.now() < opsStrikeArmed, key: keyLabel(effectiveKeys(ui.settings.keybinds, runAirframe).strike) } : null;
+  }
+  opsHud.onStrike = () => opsStrikeNow();
 
   /* After a drawn frame: the still, from the picture just drawn (the
    * drawing buffer still holds it inside this task), downscaled, kept on
@@ -2002,6 +2039,7 @@ export async function boot({
       insetMode: sensors.state.pipMode,
       tutorial: v ? opsTutorial(v, mission) : null,
       fleet: v ? opsFleet(v) : null,
+      strike: v ? opsStrikeHud(v) : null,
       /* The guide's line and marks, under the Mission guidance setting. */
       guide: v && ui.settings.missionGuidance && opsGuide.focus ? opsGuide : null,
       edgeDir: opsEdgeDir,
@@ -2234,6 +2272,7 @@ export async function boot({
       return Boolean(ball);
     },
     capture: () => opsCaptureNow(),
+    strike: () => opsStrikeNow(),
     /* Checks only: room messages and a world stood in locally, so the
      * HUD can be shown a view over a map that is not the mission's. */
     welcome: (w) => roomOps.onWelcome(w),
@@ -17358,6 +17397,13 @@ export async function boot({
      * the inset's size and Y how much is drawn (settings, so kept). */
     /* The camera ball's keys while its picture is the view (THE CAMERA
      * BALL); its slew and zoom are held keys, read every frame. */
+    /* A held key's repeat never confirms: two presses are two presses. */
+    if (ui.screen === 'flight' && code === 'Digit2' && roomOps.live()) {
+      if (!repeat) {
+        opsStrikeNow();
+      }
+      return;
+    }
     if (ui.screen === 'flight' && ballOn && BALL_KEYS.has(code)) {
       if (code === 'KeyU') {
         ballToggleLock();

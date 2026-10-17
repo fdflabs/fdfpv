@@ -51,6 +51,11 @@ export const ACTIONS = Object.freeze([
   /* Every letter is taken in flight (an action above, or RESERVED), and
    * F, the plan's first pick, is the flaps, which a pilot sets parked. */
   { id: 'foot', key: 'Digit1', pad: 'b', own: true },
+  /* An ops mission's strike, heard only while flying its strike role
+   * (MISSIONS.md 1.6). Never on the capture key, so a still never
+   * engages; no pad default: A, the one free button, is the camera
+   * ball's zoom out until an action takes it, so a pad pilot binds it. */
+  { id: 'strike', key: 'Digit2', pad: null },
   { id: 'replay', key: null, pad: 'x' },
   { id: 'talk', key: null, pad: 'lt' },
   { id: 'swap', key: null, pad: 'y' },

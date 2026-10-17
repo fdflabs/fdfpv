@@ -1448,7 +1448,7 @@ heading('phase 20: one action table, read by name from every source');
   check('every action is unique and has a key or a pad default',
     new Set(ACTIONS.map((a) => a.id)).size === ACTIONS.length && ACTIONS.every((a) => a.key || a.pad), show(ACTIONS));
   check('the keyboard table is the rows with a key, in order, as before',
-    show(kb.ACTIONS.map((a) => a.code)) === show(['KeyR', 'KeyX', 'KeyT', 'KeyL', 'KeyP', 'KeyF', 'KeyG', 'KeyO', 'KeyC', 'Digit1']));
+    show(kb.ACTIONS.map((a) => a.code)) === show(['KeyR', 'KeyX', 'KeyT', 'KeyL', 'KeyP', 'KeyF', 'KeyG', 'KeyO', 'KeyC', 'Digit1', 'Digit2']));
   check('the pad defaults are the buttons the readers used: replay X, talk LT, swap Y, foot B',
     show(Object.fromEntries(ACTIONS.filter((a) => a.pad).map((a) => [a.id, a.pad]))) === show({ foot: 'b', replay: 'x', talk: 'lt', swap: 'y' }));
   check('no pad default is reserved', ACTIONS.every((a) => !a.pad || !pb.PAD_RESERVED.has(a.pad)));

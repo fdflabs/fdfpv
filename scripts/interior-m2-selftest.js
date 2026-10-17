@@ -280,6 +280,18 @@ function fly(follow, { seen = false } = {}) {
   mark();
   check(`${follow}: "That your guy?" to "You're welcome."`, heard(e, 'int2-s1-welcome'));
   check(`${follow}: the convoy passes, "Now he's interesting."`, heard(e, 'int2-s2-interesting') && contact(e, 'convoy-1'));
+  if (follow === 'b') {
+    /* B4 (w50-adv-c): Mission 1's habit, the followed contact centred
+     * and captured, before the handoff offers the choice. */
+    let early = 'none in sight';
+    for (let i = 0; i < 40 && early === 'none in sight' && !view(e).choices?.split; i += 1) {
+      early = snap(e, c, 'follow_a');
+      shadow(e, c, 'watcher');
+    }
+    check('b: the watcher captured while following, before the handoff: refused NOT YET, nothing chosen',
+      early === 'early' && !view(e).choices?.follow && !view(e).choices?.split && EN['ops.capture.why.early'] && ES['ops.capture.why.early'], `${early} ${JSON.stringify(view(e).choices)}`);
+    shadow(e, c, 'watcher');
+  }
   until(e, () => view(e).choices?.split, 1500000, 'the handoff');
   check(`${follow}: the handoff: "Which one?" to "only to see"`, heard(e, 'int2-s2-see'));
   const who = follow === 'a' ? 'watcher' : 'second';

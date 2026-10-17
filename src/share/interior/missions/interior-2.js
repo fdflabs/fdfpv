@@ -186,12 +186,14 @@ export default {
     {
       id: 'diagram', set: 'camp-close', at: P(CAMP_PROPS.shelters[0].at, 1.2), size: 0.6,
     },
-    /* The box on a contact at the handoff is the choice (stage 2). */
+    /* The box on a contact at the handoff is the choice (stage 2): not
+     * before the two separate, so a still of the watcher taken while
+     * following him never chooses Contact A unasked (w50-adv-c B4). */
     {
-      id: 'follow_a', set: 'choice', contact: 'watcher', size: 1.8,
+      id: 'follow_a', set: 'choice', contact: 'watcher', size: 1.8, from: { chosen: 'split', is: 'done' },
     },
     {
-      id: 'follow_b', set: 'choice', contact: 'second', size: 1.7,
+      id: 'follow_b', set: 'choice', contact: 'second', size: 1.7, from: { chosen: 'split', is: 'done' },
     },
     /* Estancia La Ceniza, inside the house (stage 3, RECON). */
     {
