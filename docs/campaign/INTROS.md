@@ -286,6 +286,11 @@ As built (src/share/war/films/spillway.js, version 2, 52.5 s with its
 preload): no rain, which the world does not draw; the gates are not seen
 to open, since at the hoist's half a metre a minute a 15 s shot moves a
 leaf 12 cm, and the film does not fake a faster one.
+Re-shot 2026-10-16 (w50-films, version 4): shot 5 (`pier`) sits 0.3 m
+over the bridge road on a 35 mm lens, 1 m from the ten inch, so the
+parapets run to the towers beyond the gates and the warhead fills the
+foot of the frame (it was 1.2 m up on 50 mm, the aircraft small in the
+middle of an empty road).
 
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
