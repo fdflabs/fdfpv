@@ -28,8 +28,12 @@
  *     second page in this one Chrome, scripts/lib/secondpage.js)
  *   - no page errors; pictures outside the repository
  *
- * The win is the room's view as a screen hears it, stood in for: a real
- * Mission 1 runs 20 to 30 minutes (ROOM's interior:stages flies it whole).
+ * The win is the room's own, its match finished by the rooms server in
+ * this process, as the landing's exit would: a real Mission 1 runs 20 to
+ * 30 minutes (ROOM's interior:stages flies it whole). A win only injected
+ * into the page's view is overwritten by the room's next view, still
+ * live, long before the outro is over, and the debrief rightly waits for
+ * an ended match (main.js opsDebrief).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -168,15 +172,17 @@ try {
   await page.until(`!${FILM}`, 15000).catch(() => {});
   check('the end scene ends on its own after the scene\'s seconds', !(await page.evaluate(FILM)));
 
-  /* OUTRO, on a win the screen hears. */
+  /* OUTRO, on the room's win: this pilot's own still of the bridge on
+   * this device, then the match finished as Mission 1's landing exit
+   * finishes it (edge/rooms/ops.js finish), told to the room's screens. */
   await page.evaluate("window.__ops.addStill('bridge', 'clean', 1000)");
   await page.sleep(500);
-  await page.evaluate(`(() => {
-    const v = window.__ops.view();
-    const now = window.__rooms().roomNow;
-    window.__ops.inject({ type: 'ops', ops: { ...v, state: 'won', endAt: now, why: 'landed', captures: [{ item: 'bridge', seat: window.__ops.seat(), grade: 'clean', t: 1000, at: 1000 }], result: { won: true, stars: 0, starIds: [], flags: {}, restarted: null } } });
-    return true;
-  })()`);
+  const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.ops && r.host.core.ops.on());
+  await room.enqueue(() => {
+    const core = room.host.core;
+    core.ops.finish(core, core.roomMs(Date.now()), 'won', 'landed');
+    room.host.run(core.ops.changed(core));
+  });
   await page.until(`${FILM} && ${FILM}.for === 'ops:int1-outro'`, 30000).catch(() => {});
   const out = await page.evaluate(`(() => { const f = ${FILM}; return f ? { for: f.for, map: f.map, debrief: window.__debrief().open } : null; })()`);
   check('a win plays int1-outro over the Interior, the debrief waiting', out && out.for === 'ops:int1-outro' && out.map === 'interior' && !out.debrief, JSON.stringify(out));
@@ -185,7 +191,8 @@ try {
   check('it asks for the squad\'s stills: this pilot\'s own given, the others the reconstruction', asked.bridge === true && Object.entries(asked).filter(([k]) => k !== 'bridge').every(([, v]) => v === false), JSON.stringify(asked));
   await shot('films-outro.png');
   await page.until('window.__debrief().open', 150000).catch(() => {});
-  check('the debrief opens when the outro is over', await page.evaluate('window.__debrief().open') && !(await page.evaluate(FILM)));
+  const over = await page.evaluate(`({ debrief: window.__debrief().open, film: ${FILM} ? ${FILM}.for : null, state: window.__ops.view().state, match: window.__ops.view().id })`);
+  check('the debrief opens when the outro is over', over.debrief && over.film === null, JSON.stringify(over));
   await page.evaluate("(document.querySelector('.debrief button[data-act=\"continue\"]').click(), true)");
 
   /* SEEN AND THE HOST'S SKIP. The room heard this pilot's intro seen. */
@@ -193,14 +200,9 @@ try {
   const mine = await page.evaluate("window.__ui.settings.campaign && window.__ui.settings.campaign.films");
   const sent = await page.evaluate("window.__ops.sent().filter((m) => m.op === 'seen').slice(-1)[0] || null");
   check('the intro watched to its end is kept and told the room (seen)', filmV && mine && mine[filmV.id] >= filmV.version && sent && sent.films[filmV.id] >= filmV.version, JSON.stringify({ filmV, mine, sent }));
-  /* A second briefing, with B, who has never seen the cut. The win above
-   * was this screen's view stood in: the room's match runs on, so the
-   * host ends it first (its debrief, closed). */
+  /* A second briefing, with B, who has never seen the cut: the host
+   * starts it from the room's won match (its debrief closed above). */
   const code = await page.evaluate('window.__rooms().code');
-  await page.evaluate('(window.__ops.end(), true)');
-  await page.until("window.__ops.view().state === 'ended'", 15000).catch(() => {});
-  await page.sleep(800);
-  await page.evaluate("(() => { const b = document.querySelector('.debrief button[data-act=\"continue\"]'); if (b) { b.click(); } return true; })()");
   await page.evaluate("(window.__ops.start('interior-1'), true)");
   await page.until("window.__ops.view().state === 'briefing'", 30000).catch(() => {});
   const B = await secondPage(page, outDir, {
