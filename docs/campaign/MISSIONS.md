@@ -504,6 +504,10 @@ As today (WARFARE-PLAN 10a): won with output at or over 7 700 MW at the
 end; lost the instant it falls under. Stars: held, noLosses, output over
 11 200.
 
+A solo pilot meets stage 5 smaller (the spawns' `solo`, w50-adv-a A4):
+one Loiterer, one Striker, two FPVs. Careless solo bot games won 20 of
+48 before, 38 of 48 after (the Spillway 37 of 48); squads unchanged.
+
 ### Roles that shine
 
 | Role | Aircraft | Where |
