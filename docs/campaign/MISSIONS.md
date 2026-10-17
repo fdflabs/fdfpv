@@ -199,6 +199,12 @@ thing that can happen in a stage.
 3. The Aggressor sees it. The next group born after the opening is
    retargeted at the gantry, and MIRADOR says so (`contain-retarget`).
 4. The stage cannot clear while a closure runs; its beat waits for it.
+   *Changed 2026-10-17 (w50-fix-itaipu, adv-a A3):* a stage clears on its
+   last attacker and a closure still running goes on into the next stage
+   (the next group turns at its gantry there); a mission won with one
+   still open has it held at the win, since nothing is left to hit the
+   gantry. Waiting on a queue of closures held the sky empty for up to
+   five minutes.
 5. **Held**: the opening closes (the contract's opening event at zero
    size), the water settles (the flood solver), the lost output stays
    lost. The mission's stars are capped at two (*held* is false).
@@ -251,10 +257,14 @@ war:stages' Contain section, 2026-10-14), with what each point became:
 - Point 8: an opening made in the lost stage is undone with it; one made
   before it closes again from the restart's go, and the next group turns
   again.
-- Point 4 holds through the `cleared` trigger in missions 1 to 3, and in
-  The Long Night's Hunters and Before Dawn, which end on their groups
-  gone, through `{ contained: true }` (no closure open; war.js's stage
-  hook): every exit that is not a loss waits for the closure.
+- Point 4, as changed: `cleared` no longer waits for a closure, and an
+  exit to `won` holds what is still open (contain.js holdOpen; told shut
+  at the win). The Long Night's Hunters and Before Dawn and The River
+  Below's exits that name `{ contained: true }` still wait for it, as
+  their data says. Bot games (war:balance, 16 seeds, 1 and 2 pilots):
+  wins and outputs unchanged in every row; the Spillway's mean length
+  15.8 to 17.6 min down to 13.6 to 14.4, First Light careless x2 17.2 to
+  14.8.
 - `STING` is not sent: no mission has a music cue path for it yet.
 - M2's spill hold pauses while the spillway gantry closes a gate (M2, If
   the face opens; the objective's `pause`, stages.js): its clock stands,

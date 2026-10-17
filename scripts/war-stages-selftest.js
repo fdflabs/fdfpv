@@ -922,7 +922,10 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   /* One stage that waits for an opening, then sends a group after it:
    * Strikers (turned at the gantry) or a Scout (never turned, no target).
    * Its targets are the plant's, the gantries among them. */
-  const contain = (kind) => ({
+  /* `keep`: when a last Scout is born, s, which keeps the stage from
+   * clearing until then: a stage no longer waits for its closures
+   * (w50-adv-a A3), so a test of them keeps it live past them. */
+  const contain = (kind, keep = 400) => ({
     ...STORY,
     id: `contain-${kind}`,
     targets: MISSIONS['itaipu-1'].targets,
@@ -935,6 +938,8 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
       id: 'hold',
       spawns: [{
         when: { breach: true }, at: 5, kind, n: 1, route: 'n', ...(kind === 'scout' ? {} : { target: 'intake-3' }), group: 'after',
+      }, {
+        at: keep, kind: 'scout', n: 1, route: 'n', group: 'keep',
       }],
       exits: [{ when: { cleared: true }, to: 'won', why: 'waves' }, {
         when: { allOut: true }, to: 'lost', why: 'out', clear: 'through',
@@ -999,10 +1004,53 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
     objs['contain-intake-3'].state === 'done' && objs['contain-penstock-5'].state === 'active' && objs['contain-penstock-5'].heldFrom === GO + 121000
     && objs['contain-gate-2'].state === 'active' && objs['contain-gate-2'].heldFrom === GO + 3000 && objs['contain-gate-2'].ms === 150000 && objs['contain-gate-2'].text === 'war.obj.contain_spillway',
     JSON.stringify(mid.stage.objectives));
-  check('the stage cannot clear while one is open', mid.state === 'live' && JSON.stringify(mid.contain) === '["gantry-intakes","gantry-spillway"]', `${mid.state} ${JSON.stringify(mid.contain)}`);
+  check('while they run both gantries are ringed', mid.state === 'live' && JSON.stringify(mid.contain) === '["gantry-intakes","gantry-spillway"]', `${mid.state} ${JSON.stringify(mid.contain)}`);
   b.fly(GO + 250000);
-  const won = b.view();
-  check('it clears when the last is held', won.state === 'won' && won.endAt === GO + 241000, `${won.state} ${won.endAt}`);
+  const after = b.view();
+  check('the last held at 241 s, none ringed after', after.state === 'live' && JSON.stringify(after.contain) === '[]'
+    && after.stage.objectives.filter((o) => /^contain-/.test(o.id)).every((o) => o.state === 'done'), `${after.state} ${JSON.stringify(after.contain)}`);
+  /* A stage before the last clears on its last attacker and its closures
+   * run on into the next (w50-adv-a A3, the dead air); the last waits for
+   * them, so nothing is won with the face open. */
+  /* A stage leaves on its last attacker, closures open or not (w50-adv-a
+   * A3: waiting on them held the sky empty for minutes); they run on into
+   * the next, shown there, and a won mission holds what is still open at
+   * the win: its stoplogs down, told shut at zero size, no half or held
+   * said after. */
+  const two = contain('scout', 20);
+  two.id = 'contain-two';
+  two.stages = [{ ...two.stages[0], exits: [{ when: { cleared: true }, to: 'next', after: 0 }] }, {
+    id: 'after',
+    spawns: [{
+      at: 40, kind: 'scout', n: 1, route: 'n', group: 'eyes',
+    }],
+    exits: two.stages[0].exits,
+  }];
+  const t2 = warRoom(two);
+  t2.fly(GO + 900);
+  t2.r.war.match.wreck['gate-2'] = {
+    gone: [],
+    open: {
+      id: 'gate-2', target: 'gate-2', kind: 'gate', at: GO + 3000, sill: [-1000, 212, -1010], width_m: 4, height_m: 3, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null,
+    },
+  };
+  t2.r.war.breach('intake-3', GO + 1000);
+  t2.r.war.breach('penstock-5', GO + 2000);
+  t2.r.war.breach('gate-2', GO + 3000);
+  t2.fly(GO + 30000);
+  const on = t2.view();
+  t2.fly(GO + 120000);
+  const end2 = t2.view();
+  const shut2 = t2.of(0, 'damage').filter((m) => m.by === 'stoplogs');
+  const late = radios(t2).filter(([r, t]) => (r === 'contain-half' || r === 'contain-held') && t >= end2.endAt - GO);
+  check('a stage before the last leaves on its last attacker, its closures running on and shown in the next',
+    on.state === 'live' && on.stage.id === 'after' && ['contain-intake-3', 'contain-penstock-5', 'contain-gate-2'].every((id) => on.stage.objectives.some((o) => o.id === id && o.state === 'active')),
+    `${on.state} ${on.stage && on.stage.id} ${JSON.stringify(on.stage && on.stage.objectives)}`);
+  check('won with closures open, they are held at the win: done, none ringed, the gate told shut at the win, no half or held said after',
+    end2.state === 'won' && end2.endAt < GO + 121000 && JSON.stringify(end2.contain) === '[]'
+    && schedule(t2.r.war.match.contain).every((x) => x.until <= end2.endAt)
+    && shut2.length === 1 && shut2[0].target === 'gate-2' && shut2[0].at === end2.endAt && late.length === 0,
+    `${end2.state} ${end2.endAt - GO} ${JSON.stringify(end2.contain)} ${JSON.stringify(shut2.map((x) => x.at - GO))} ${JSON.stringify(late)}`);
   const said = radios(b);
   check('each opening called, the mission\'s line once, each half and each hold',
     JSON.stringify(said.filter(([r]) => r === 'contain-breach').map(([, t]) => t)) === '[1000,2000,3000]' && said.filter(([r]) => r === 'test-op' || r === 'contain-river').length === 2
@@ -1065,8 +1113,8 @@ console.log('the room: when the face opens (Contain, MISSIONS.md 1.9)');
   const d = warRoom(contain('scout'));
   d.fly(GO + 900);
   d.r.war.breach('yard-right', GO + 1000);
-  c.fly(GO + 20000);
-  d.fly(GO + 20000);
+  c.fly(GO + 410000);
+  d.fly(GO + 410000);
   check('no closure without the mission\'s contain, nor for the yard', c.view().state === 'won' && d.view().state === 'won' && !c.of(0, 'cue').length && !d.of(0, 'cue').length,
     `${c.view().state} ${d.view().state}`);
 }

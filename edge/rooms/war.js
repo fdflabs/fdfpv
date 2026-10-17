@@ -300,7 +300,7 @@ import {
 } from '../../src/share/war/damage.js';
 import { openAt } from '../../src/share/war/hoist.js';
 import {
-  GANTRIES, TURNS, closureFor, gantriesAt, lastHeld, linesDue, objectivesOf, openAt as containOpen, pausesOf, restartAt, retargetFor, runningAt, shutDue,
+  GANTRIES, TURNS, closureFor, gantriesAt, holdOpen, lastHeld, linesDue, objectivesOf, openAt as containOpen, pausesOf, restartAt, retargetFor, runningAt, shutDue,
 } from '../../src/share/war/contain.js';
 import { REST, leafTurn } from '../../src/share/war/leaf.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
@@ -2491,8 +2491,12 @@ export class RoomWar {
     }
     const allowed = here.reduce((sum, seat) => sum + this.allowance(seat), 0);
     const spent = here.reduce((sum, seat) => sum + (m.spent?.[seat] ?? 0), 0);
-    /* A stage cannot clear while a closure is open, and one that was
-     * waiting on it clears when it is held (MISSIONS.md 1.9 point 4). */
+    /* A stage clears on its last attacker, closures open or not: one
+     * still closing runs on into the next stage, whose next group turns
+     * at its gantry, and the last stage's are held at the win (stageStep,
+     * contain.js holdOpen). Waiting on them held the sky empty for up to
+     * five minutes (w50-adv-a A3). `held` is still the `contained`
+     * trigger's (The Long Night's and The River Below's exits). */
     const held = lastHeld(m.contain, f);
     return {
       mission: this.mission(),
@@ -2503,8 +2507,8 @@ export class RoomWar {
       pilots,
       spent: allowed > 0 ? spent / allowed : 0,
       allBorn: allBorn(st),
-      cleared: !m.agents.some((a) => a.kind !== 'scout') && !containOpen(m.contain, f),
-      lastGone: held == null ? m.lastGone : Math.max(m.lastGone ?? held, held),
+      cleared: !m.agents.some((a) => a.kind !== 'scout'),
+      lastGone: m.lastGone,
       allOut: here.length > 0 && !here.some((seat) => this.stillFlying(seat, roomNow)),
       /* { contained: true }: no closure open, since the last was held
        * (or the entry): an exit that is not a loss waits on it where it
@@ -2619,6 +2623,12 @@ export class RoomWar {
     }
     const to = exitTarget(mission, st, exit, m.seed, k);
     if (to === 'won' || to === 'lost') {
+      /* Won, nothing is left to hit a gantry: its stoplogs are down by the
+       * end, not minutes of empty sky later (the hold told shut at once,
+       * containShut). */
+      if (to === 'won') {
+        holdOpen(m.contain, t);
+      }
       this.finish(t, to, exit.why ?? 'stages');
       return out;
     }
