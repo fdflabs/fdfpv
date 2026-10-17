@@ -36,18 +36,18 @@ import {
 import { PLUME } from './spillway.js';
 
 /* The river below the dam (the map's water.json `river`). */
-const RIVER_Y = 103.5;
+export const RIVER_Y = 103.5;
 /* Where the carrier holds on the river (itaipu-5.js river-surface's end),
  * the point the scope's tracks climb off. */
 const SOURCE = [-900, RIVER_Y, 300];
 /* The heavy pair on the road, side by side where the line of aircraft
  * stands (2030.js), 5 m apart: the ten inch and the Striker. */
-const PAIR_MID = (along('ten') + along('strk')) / 2;
-const onRoad = (x) => ({ keys: [{ t: 0, p: crest(LINE_AT, LINE_OFF, null, PAIR_MID + x), yaw: FACE_UP }] });
+export const PAIR_MID = (along('ten') + along('strk')) / 2;
+export const onRoad = (x) => ({ keys: [{ t: 0, p: crest(LINE_AT, LINE_OFF, null, PAIR_MID + x), yaw: FACE_UP }] });
 
 export default {
   id: 'river-below',
-  version: 2,
+  version: 3,
   cast: {
     ten: CAST.ten,
     strk: CAST.strk,
@@ -87,7 +87,7 @@ export default {
       /* The river far below the dam on a long lens, in the morning haze,
        * down its reach to the south west. */
       camera: {
-        type: 'telephoto', lens: 400, ease: 'hold', at: [-450, 230, -1000], look: [-1300, 110, 1600],
+        type: 'telephoto', lens: 135, ease: 'io', at: [-450, 240, -1000], look: [[-1150, RIVER_Y, 800], [-1250, RIVER_Y, 1050]],
       },
       /* The slate (INTROS.md 1.8): where, when and the stakes. */
       titles: [
