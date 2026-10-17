@@ -10,6 +10,9 @@
  *     relay holds: the feed's snow is up over the picture
  *   - the relay held (the room's `relay: held` choice): the picture clears
  *   - another role flown there, or the next stage: no snow
+ *   - the strike (MISSIONS.md 1.6): flying the strike role, a STRIKE
+ *     button with its key; one press arms it (CONFIRM), the second sends
+ *     the room's `strike`; flying another role, no button and no strike
  *   - no page errors; pictures outside the repository
  *
  *
@@ -151,6 +154,41 @@ try {
   await page.sleep(800);
   const next = await snow();
   check('the next stage: no snow', next.level === 0 && !next.shown, JSON.stringify(next));
+
+  /* The strike, on the strike role's screen in stage 2. */
+  const s2 = { id: 'M3_CP_CONFIRMED_CONTACT', n: 1, at: 1000, title: 'ops.interior.m3.s2', text: null, music: null, lockRoles: false };
+  const flying = (role) => {
+    const v = view({ stage: s2 });
+    v.roles.active = { 1: role };
+    return v;
+  };
+  const hudNow = () => page.evaluate("(() => { const h = window.__opsHud(); return { strike: h.strike, say: h.say, rect: h.rects.strike, rects: h.rects }; })()");
+  const strikes = () => page.evaluate("window.__ops.sent().filter((x) => x.op === 'strike').length");
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(flying('isr'))} }), true)`);
+  await page.sleep(1500);
+  const offStrike = await hudNow();
+  await shot('strike-isr-1280x720.png');
+  check('flying the ISR: no STRIKE button', offStrike.strike === null, JSON.stringify(offStrike.strike));
+  await page.evaluate('(window.__ops.strike(), window.__ops.strike(), true)');
+  await page.sleep(300);
+  check('and the key there sends nothing: only the strike aircraft can engage', (await strikes()) === 0 && /STRIKE AIRCRAFT/.test((await hudNow()).say || ''), (await hudNow()).say);
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(flying('strike'))} }), true)`);
+  await page.sleep(1500);
+  const btn = await hudNow();
+  await shot('strike-button-1280x720.png');
+  const clashes = Object.entries(btn.rects).filter(([k, r]) => k !== 'strike' && r && btn.rect && r.x < btn.rect.x + btn.rect.w && btn.rect.x < r.x + r.w && r.y < btn.rect.y + btn.rect.h && btn.rect.y < r.y + r.h).map(([k]) => k);
+  check('flying the strike role: STRIKE [2], on screen, clear of the other panels', btn.strike === 'STRIKE [2]' && btn.rect && btn.rect.x >= 0 && btn.rect.x + btn.rect.w <= 1281 && !clashes.length,
+    JSON.stringify({ strike: btn.strike, rect: btn.rect, clashes }));
+  await page.evaluate('(window.__ops.strike(), true)');
+  await page.sleep(400);
+  const armed = await hudNow();
+  await shot('strike-armed-1280x720.png');
+  check('one press arms it: CONFIRM, nothing sent', /^CONFIRM STRIKE/.test(armed.strike || '') && (await strikes()) === 0, JSON.stringify(armed.strike));
+  await page.evaluate('(window.__ops.strike(), true)');
+  await page.sleep(400);
+  const sent = await hudNow();
+  check('the second press sends the room one strike, and the button is back to STRIKE', (await strikes()) === 1 && sent.strike === 'STRIKE [2]' && sent.say === 'STRIKE SENT', JSON.stringify(sent));
+  await shot('strike-sent-1280x720.png');
   check('no page errors', page.errors.length === 0, page.errors.slice(0, 3).join(' | '));
 } finally {
   await page.close();

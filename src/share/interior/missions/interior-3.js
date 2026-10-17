@@ -3,8 +3,9 @@
  * room's ops modules (src/share/ops/, docs/campaign/interior/
  * CONTRACT-P0.md). The authority is docs/campaign/interior/MISSIONS.md's
  * M3 section; what is built here and what is not is CONTRACT-M3.md (the
- * strike, the relay and the post are stood in for with the room's
- * existing triggers; the unknown drone is not built). Text is string
+ * strike is the strike pilot's own action, `strike` below; the relay and
+ * the post are stood in for with the room's existing triggers; the
+ * unknown drone is not built). Text is string
  * keys only; the radio is lines.json's, by line id (the int3 voices are
  * not generated yet: a screen plays nothing for an id it does not have).
  *
@@ -77,13 +78,11 @@ const TRACK = { soft: 20, hard: 45 };
 const STRIKE = { role: ['strike'] };
 const RELAY = { role: ['relay'] };
 const TRACKER = { role: ['tracker'] };
-/* A strike: the strike platform held 3 s over the place (CONTRACT-M3.md
- * gap 2: the room has no weapon; the run over a cleared target is it). */
-const RUN = (point) => ({ zone: point, roles: ['strike'], ms: 3000 });
 const CLEARED = { chosen: 'cleared', is: 'yes' };
 const STOPPED = { chosen: 'threat', is: 'stopped' };
 const ERR = (v) => ({ chosen: `error-${v}`, is: 'yes' });
 const ERRORS = { any: [ERR('v1'), ERR('v2')] };
+const DESIGNATED = (v) => ({ captured: `confirm_${v}` });
 const RELAYED = { chosen: 'relay', is: 'held' };
 const STAGE1 = ['civ-pickup', 'police', 'walker-1', 'walker-2', 'parked', 'worker-1', 'worker-2', 'worker-3', 'family'];
 
@@ -212,9 +211,6 @@ export default {
     'obs-b': { at: GA('obsB'), r: 15 },
     meet: { at: GA('meet'), r: 15 },
     'south-road': { at: G(4.4, 13.0), r: 40 },
-    'strike-gate': { at: GA('gate'), r: 150 },
-    'v1-stop': { at: GA('v1Stop'), r: 150 },
-    'v2-stop': { at: GA('v2Stop'), r: 150 },
     'v1-stopped': { at: GA('v1Stop'), r: 15 },
     'v2-stopped': { at: GA('v2Stop'), r: 15 },
     'v3-meet': { at: G(7.12, 15.215), r: 20 },
@@ -223,6 +219,22 @@ export default {
     turn: { at: GA('turn'), r: 20 },
     edge: { at: GA('edge'), r: 20 },
     exit: { at: GA('exit'), r: 30 },
+  },
+  /* The strike (MISSIONS.md 1.6, CONTRACT-M3.md gap 2): the strike
+   * pilot's own action, refused unless a target here is authorized: the
+   * pair once Vega clears it, a pickup once a pilot designated it (a wrong
+   * designation struck is the error). Vehicle 3 is not one: its evidence
+   * is the meeting at the command site the mission goes on to. Watching,
+   * capturing or flying over never engages. Within `r` metres across the
+   * ground of the strike aircraft, at any height; each target only in the
+   * stage whose cues answer its strike. */
+  strike: {
+    roles: ['strike'],
+    r: 150,
+    targets: [
+      { contacts: 'pair', when: CLEARED, stage: 'M3_CP_CONFIRMED_CONTACT' },
+      ...['v1', 'v2'].map((v) => ({ contacts: v, when: DESIGNATED(v), stage: 'M3_CP_FIRST_ENGAGEMENT' })),
+    ],
   },
   dials: {
     order: ['ab', 'ba'],
@@ -238,9 +250,9 @@ export default {
   /* Who notices a low aircraft (src/share/ops/spot.js, the owner's rule
    * of 2026-10-08), Mission 1's numbers: the courier at the meeting and
    * the concealed pair, the two groups the ISR photographs. The strike
-   * run counts over the gate at any height (RUN), so it is flown above
-   * the pair's 200 m like any other look. The command site is the recon
-   * quad's close work and has no spotter. */
+   * reaches at any height (`strike.r` is across the ground), so it is
+   * flown above the pair's 200 m like any other look. The command site
+   * is the recon quad's close work and has no spotter. */
   spotters: [
     {
       ...SPOT, id: 'courier', group: 'courier', stage: 'M3_CP_START', scatter: [{ contacts: 'courier', route: 'm3-courier-scatter' }],
@@ -379,7 +391,7 @@ export default {
          * before." read as a no at the moment it was a go. */
         { at: 1, radio: 'int3-st-ready', heard: STRIKE },
         {
-          when: { all: [CLEARED, RUN('strike-gate')] },
+          when: { struck: 'pair' },
           text: 'ops.interior.m3.stopped',
           radio: ['int3-s2-stopped', 'int3-s2-continue'],
           move: [{ contacts: 'pair', route: 'm3-stopped', alt: null }],
@@ -425,11 +437,11 @@ export default {
           card: 'card.classification_updated',
         },
         /* A strike on vehicle 1 or 2: a designation, then the strike
-         * platform's run over it (MISSIONS.md 1.6). Rojas's "There were
+         * pilot's action on it (MISSIONS.md 1.6). Rojas's "There were
          * people in that one." is vehicle 1's alone: vehicle 2 is the
          * empty decoy, and Vega's word stands for both. */
         ...['v1', 'v2'].map((v) => ({
-          when: { all: [{ captured: `confirm_${v}` }, RUN(`${v}-stop`)] },
+          when: { struck: v },
           radio: v === 'v1' ? ['int3-s3-error', 'int3-s3-error-2'] : 'int3-s3-error-2',
           move: [{ contacts: v, route: 'm3-stopped', alt: null }],
           choose: { name: `error-${v}`, value: 'yes' },

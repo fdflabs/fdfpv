@@ -76,6 +76,7 @@ answered `{ type: 'ops', error }` to the sender alone.
 | `end` | host | | ends the match, `state: 'ended'` |
 | `cam` | any seat | `t` (room ms), `aim` [x,y,z] (ops frame: the ground point the camera's axis is on, its lock point when locked), `tanHalf` (> 0), `aspect` (width / height) | the seat's camera from `t` until its next report, at most `CAM_STALE_MS` = 1500 ms. `t` is the client's estimate of the room clock (`roomLinkState.roomNow()`); an axis that meets no ground (the sky, past the map) reports the point 20 km along it. Its direction at each grid ms is from the seat's pose then toward `aim`, so a locked camera stays exact between reports while the aircraft orbits. **Two a second** (`CAM_MIN_MS` = 400 ms; text messages share the room's allowance of 5 a second per seat). **Before the camera ball (N14) lands, send where the nose's axis meets the ground and the screen's own `tanHalf`.** Nothing is seen by a seat that sends no `cam` |
 | `capture` | any seat | `item` (id), `t` (room ms of the still), `grade` (`clean`, `usable`, `poor`), `framing` { `size` (fraction of frame width), `off` (0 centre to 1 edge), `blur` (0 to 1) } | judged (section 7): recorded, or refused `capture` with `why` |
+| `strike` | any seat flying a role of the mission's `strike.roles` | `t` (room ms) | judged by the room (MISSIONS.md 1.6): the nearest contact of `strike.targets` (each `{ contacts, when, stage }`) in its `stage` whose `when` fired, within `strike.r` m across the ground of the seat's pose at t, is kept in `strikes` (trigger `struck`); else refused `strike` with `why` `role`, `authorized` (a target in reach, not authorized), `range`, `time` or `pose` |
 | `take` | any seat | `role` (a role id) | takes a free role: an unheld core role, or a new copy of a scaling role (section 5). Refused `locked`, `role` |
 | `active` | any seat | `key` (a role key it holds) | which of its roles it is flying now |
 | `swap` | any seat | `seat` (the other), `give` (a key the sender holds, or null), `take` (a key the other holds, or null; not both null) | a request, in the view's `roles.swaps`, until `SWAP_MS` = 20 000 ms |
@@ -309,6 +310,7 @@ triggers, in the ops frame:
 | `{ flag: NAME }` | the flag was set |
 | `{ chosen: name, is }` | the choice `name` was made `is` (a cue `choose`) |
 | `{ hards: C, n }` | C moved by n hard thresholds in the stage |
+| `{ struck: C }` | the room accepted a pilot's `strike` on C (a member of it) |
 
 - **Mission loss rule** in place of the war's output floor: the mission's
   `lost: [{ when, why }]`, checked in every stage; the first to fire loses
