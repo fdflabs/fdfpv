@@ -742,6 +742,15 @@ function warRoom(mission, {
   return env;
 }
 
+/* A lone pilot's guide lines and the squad's they stand in for (w50-adv-b
+ * B8): the ids of either said in a game of `pilots` that belong to the
+ * other, which a check wants empty. */
+const SOLO_GUIDE = ['itaipu-4-g-hunters', 'itaipu-4-g-intakes', 'itaipu-5-g-hunters', 'itaipu-5-g-deck', 'itaipu-6-g-spread', 'itaipu-6-g-island'];
+const soloOf = (id, pilots) => (pilots <= 1 ? `${id}-solo` : id);
+function wrongCrowd(said, pilots) {
+  return SOLO_GUIDE.map((id) => (pilots <= 1 ? id : `${id}-solo`)).filter((id) => said.includes(id));
+}
+
 /* How long the face's closures held a bot game's stages past their last
  * attacker, ms (MISSIONS.md 1.9 point 4: a stage waits for its closure),
  * time a mission's pacing does not set: its estimatedMinutes leave it
@@ -1936,7 +1945,7 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
       bad.push(`${label}: ended ${end.state} ${end.why}`);
     }
     const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
-    const want = ['itaipu-4-g-standby', 'itaipu-4-s1-quiet', 'itaipu-4-s1-boat', 'itaipu-4-s2-water', 'itaipu-4-g-intakes', 'itaipu-4-s2-split', 'itaipu-4-s2-high', 'itaipu-4-s3-hunt', 'itaipu-4-s3-pairs',
+    const want = ['itaipu-4-g-standby', 'itaipu-4-s1-quiet', 'itaipu-4-s1-boat', 'itaipu-4-s2-water', soloOf('itaipu-4-g-intakes', g.pilots), 'itaipu-4-s2-split', 'itaipu-4-s2-high', 'itaipu-4-s3-hunt', 'itaipu-4-s3-pairs',
       'itaipu-4-s3-cover', ...TWIST[twist] ?? [], 'itaipu-4-s5-all', 'itaipu-4-s5-order', 'itaipu-4-g-all', 'itaipu-4-s5-near'];
     const missing = want.filter((id) => !said.includes(id));
     if (missing.length) {
@@ -1945,6 +1954,9 @@ console.log('The Long Night (itaipu-4), flown on the room by bot squads');
     const others = Object.entries(TWIST).filter(([k]) => k !== twist).flatMap(([, x]) => x).filter((id) => said.includes(id));
     if (others.length) {
       bad.push(`${label}: said another twist's ${others.join(',')}`);
+    }
+    if (wrongCrowd(said, g.pilots).length) {
+      bad.push(`${label}: said ${wrongCrowd(said, g.pilots).join(',')} to ${g.pilots === 1 ? 'a lone pilot' : 'a squad'}`);
     }
     /* The quiet: STAND BY on the HUD and nothing born until the boat, at
      * least 40 s (paced) after the go; then the boat's objective, and
@@ -2206,8 +2218,9 @@ console.log('The River Below (itaipu-5), flown on the room by bot squads');
     const GUIDE_TWIST = { 'two-hulls': 'itaipu-5-g-hulls', 'hunters-launched': 'itaipu-5-g-deck', 'last-bird': 'itaipu-5-g-escort' };
     const noGuide = ['itaipu-5-g-source', 'itaipu-5-g-all'].filter((id) => !said.includes(id));
     const otherGuide = Object.entries(GUIDE_TWIST).filter(([k]) => k !== twist).map(([, id]) => id).filter((id) => said.includes(id));
-    if (noGuide.length || otherGuide.length) {
-      guideBad.push(`${label}: guide: never said ${noGuide.join(',')}; said another twist's ${otherGuide.join(',')}`);
+    const otherDeck = twist !== 'hunters-launched' && said.includes('itaipu-5-g-deck-solo') ? ['itaipu-5-g-deck-solo'] : [];
+    if (noGuide.length || otherGuide.length || otherDeck.length || wrongCrowd(said, g.pilots).length) {
+      guideBad.push(`${label}: guide: never said ${noGuide.join(',')}; said another twist's ${[...otherGuide, ...otherDeck].join(',')}; to the wrong crowd ${wrongCrowd(said, g.pilots).join(',')}`);
     }
     /* Spotting: only a carrier; twist C's at its birth by nobody, the
      * others' by a pilot here; a hull spotted silent never launched, and
@@ -2519,10 +2532,10 @@ console.log('The Corridor (itaipu-6), flown on the room by bot squads');
     const said = g.cues.map((c) => c.radio).filter(Boolean);
     const TURN = { 'yard-cover': 'itaipu-6-ta-turn', 'yard-wires': 'itaipu-6-tb-turn', 'yard-eyes': 'itaipu-6-tc-turn' };
     const spreadSpot = spread && g.spots.some((m) => m.at >= spread.at && !entries.some((x) => x.at > spread.at && x.at <= m.at));
-    const want = ['itaipu-6-s1-lines', 'itaipu-6-s2-spread', 'itaipu-6-g-spread', ...(twist ? [TURN[twist]] : []), ...(isle ? ['itaipu-6-s4-island'] : []),
+    const want = ['itaipu-6-s1-lines', 'itaipu-6-s2-spread', soloOf('itaipu-6-g-spread', g.pilots), ...(twist ? [TURN[twist]] : []), ...(isle ? ['itaipu-6-s4-island'] : []),
       ...(spreadSpot ? ['itaipu-6-s2-spotted'] : []), ...(g.dead.some((m) => m.hit === true && /^tower-/.test(m.target ?? '') && (!isle || m.at < isle.at)) ? ['itaipu-6-s2-tower'] : [])];
     const others = Object.entries(TURN).filter(([id]) => id !== twist).map(([, line]) => line);
-    if (end.state === 'won' && (want.some((id) => !said.includes(id)) || others.some((id) => said.includes(id)))) {
+    if (end.state === 'won' && (want.some((id) => !said.includes(id)) || others.some((id) => said.includes(id)) || wrongCrowd(said, g.pilots).length)) {
       bad.push(`${label}: said ${said.filter((id) => id.startsWith('itaipu-6')).join(' ')}; want ${want.filter((id) => !said.includes(id)).join(' ')}`);
     }
     /* Spotting: by a pilot here, of attackers born in the stage. */

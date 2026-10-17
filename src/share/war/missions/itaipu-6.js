@@ -288,7 +288,8 @@ function island(id, all, from, side, text) {
     }],
     cues: [
       { at: 1, radio: 'itaipu-6-s4-island' },
-      { at: 5, radio: 'itaipu-6-g-island', skip: { objective: 'island', is: 'failed' } },
+      { at: 5, radio: 'itaipu-6-g-island', skip: { objective: 'island', is: 'failed' }, solo: false },
+      { at: 5, radio: 'itaipu-6-g-island-solo', skip: { objective: 'island', is: 'failed' }, solo: true },
       { when: { objective: 'island', is: 'done' }, radio: 'itaipu-6-s4-done' },
       STAGE_LOST,
     ],
@@ -412,7 +413,8 @@ export default withWaves({
       ],
       cues: [
         { at: 1, radio: 'itaipu-6-s2-spread' },
-        { at: 5, radio: 'itaipu-6-g-spread' },
+        { at: 5, radio: 'itaipu-6-g-spread', solo: false },
+        { at: 5, radio: 'itaipu-6-g-spread-solo', solo: true },
         { when: { spot: {} }, radio: 'itaipu-6-s2-spotted' },
         TOWER_DOWN,
         STAGE_LOST,

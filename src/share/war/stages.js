@@ -69,7 +69,9 @@
  *                          short look at a place (src/render/warcutaway.js)
  *                 text     a string key for the HUD's stage line
  *               skip, a trigger: a cue not yet told when it has fired is
- *               dropped (a guide line about an objective already settled)
+ *               dropped (a guide line about an objective already settled).
+ *               solo, true or false: told only when the stage was entered
+ *               with one pilot here (true) or more (false)
  *   exits       [{ when, to, after?, result?, clear?, why? }], below
  *   worth       { set: factor }: the set's targets cost the output their
  *               mw times factor when hit in this stage (T1.9: the working
@@ -476,7 +478,7 @@ export function enter(mission, idx, at, seed, entry, { was = null, pilots = 1 } 
   });
   const silent = st.silent ? st.silent[Math.floor(drawFor(seed, SALT.silent, entry, 0) * st.silent.length)] : null;
   return {
-    idx, id: st.id, at, entry, pace, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null, sector: lastSector, ...(silent ? { silent } : {}),
+    idx, id: st.id, at, entry, pace, solo: pilots <= 1, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null, sector: lastSector, ...(silent ? { silent } : {}),
   };
 }
 
@@ -939,6 +941,13 @@ export function dueCues(ctx) {
   const out = [];
   for (const [i, c] of (stagesOf(ctx.mission)[st.idx].cues ?? []).entries()) {
     if (st.cued.includes(i)) {
+      continue;
+    }
+    /* A cue for one pilot alone (solo true) or for a squad (false), by the
+     * pilots here at the entry: a lone pilot is not told to pair up
+     * (w50-adv-b B8). */
+    if (c.solo != null && c.solo !== Boolean(st.solo)) {
+      st.cued.push(i);
       continue;
     }
     /* A cue whose skip has fired before it was said is dropped: a guide
