@@ -187,7 +187,7 @@ with nobody in frame (TECH-NEEDS F5); then two stills side by side.
 | 4 | 9 | board | | the split | the same | | hold | film-int2-5, film-int2-6, film-int2-7, film-int2-8 | | cut |
 | 5 | 7 | board | | `zoom` from the camp | the sector, `roads` appearing | the map expands | io | film-int2-9, film-int2-10 | | cut |
 | 6 | 6 | board | | `roads` | `roads` with sight lines from the roads to the camp | | io | film-int2-11, film-int2-12 | | cut |
-| 7 | 6 | drone | 35 | the recon quad on the ground at Claro Viejo's edge, nobody near | lifting under the canopy | rides its take off | in | film-int2-13 | the quad's motors | handoff |
+| 7 | 6 | drone | 35 | the recon quad on the ground at Pista Cero, nobody near | lifting off the field | rides its take off | in | film-int2-13 | the quad's motors | handoff |
 
 | id | cue | who | EN |
 | --- | --- | --- | --- |
@@ -205,6 +205,12 @@ with nobody in frame (TECH-NEEDS F5); then two stills side by side.
 | film-int2-12 | after 11, lead 1.0, target 2.2 (if `M1_SYMBOL_CAPTURED`) | IBARRA | You caught the symbol before I did. |
 | film-int2-12b | the same cue (if not) | IBARRA | We only got the symbol from a partial angle. |
 | film-int2-13 | shot 7, lead 1.0, target 2.4 | IBARRA | (new) Low and slow. Everything they left is a sentence. |
+
+Shot 7 as built (W50, 2026-10-17): at Pista Cero, not Claro Viejo's edge.
+Play starts at the base (the shell's spawn), about 9 km from the camp, so
+a hand-off from the clearing put the pilot there in one blend. The quad
+is held on the ground and lifts 10 m up the strip from the spawn, clear
+of every room slot's aircraft, the base's tent and container behind it.
 
 ### M2 outro (`int2-outro`, M2_10)
 
