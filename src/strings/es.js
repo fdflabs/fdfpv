@@ -4654,6 +4654,7 @@ export default {
   "ops.why.post": "El puesto fue tomado",
   "ops.why.errors": "Se atacó a civiles dos veces",
   "ops.why.north": "El vehículo salió de la cobertura",
+  "ops.why.unfollowed": "No siguieron al vehículo hasta que salió por el norte",
   "ops.debrief.ended": "MISIÓN TERMINADA POR EL ANFITRIÓN",
   "ops.touch.slew": "Mover la torreta",
   "ops.touch.zoom_in": "ZOOM +",

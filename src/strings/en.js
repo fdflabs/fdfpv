@@ -4649,6 +4649,7 @@ export default {
   "ops.why.post": "The post was overrun",
   "ops.why.errors": "Civilians were engaged twice",
   "ops.why.north": "The vehicle left coverage",
+  "ops.why.unfollowed": "The northern vehicle was not followed out",
   "ops.debrief.ended": "MISSION ENDED BY THE HOST",
   "ops.touch.slew": "Slew the camera ball",
   "ops.touch.zoom_in": "ZOOM +",

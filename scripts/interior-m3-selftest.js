@@ -38,6 +38,8 @@ import EN from '../src/strings/en.js';
 import ES from '../src/strings/es.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { check, finish, opsRoom } from './lib/opsroom.js';
+
+const checkOnce = check;
 import { withHeld } from './lib/held.js';
 import { feedSnow } from '../src/share/ops/feed.js';
 import { focusOf } from '../src/share/ops/guide.js';
@@ -294,8 +296,12 @@ function toTheGate(e, c) {
   return watch(e, c, 'pair-a', () => e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-contact')), 300000, 'the hostile action');
 }
 
-console.log('a clean run: every classification earned, one strike, the relay, north');
-{
+/* The clean run, and the same run once more to stage 5 with nobody
+ * following the northern vehicle (its checks said once). */
+for (const follow of [true, false]) {
+  console.log(follow ? 'a clean run: every classification earned, one strike, the relay, north'
+    : 'the same run, the northern vehicle left alone (w50-adv-c A3)');
+  const check = follow ? checkOnce : () => {};
   const e = opsRoom(M, ROOM);
   const c = pilot(e, 0, BASE);
   if (toTheGate(e, c)) {
@@ -357,6 +363,15 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     snap(e, c, 'radio_op', 'radio-man');
     until(e, stageIs(e, 'M3_CP_AIR_CONTACT'), 30000, 'stage 5');
     until(e, () => contact(e, 'north'), 120000, 'the northern vehicle');
+    if (!follow) {
+      /* Parked over the command site, looking at it, as the vehicle
+       * drives off north out of every picture. */
+      until(e, () => ended(e), 900000, 'the end');
+      const v = view(e);
+      checkOnce('not followed: lost as unfollowed, never won, no flag', v.state === 'lost' && v.why === 'unfollowed' && !v.flags?.M3_ZERO_CIVILIAN_ERRORS
+        && v.checkpoint?.stage === 'M3_CP_AIR_CONTACT', `${v.state} ${v.why} ${JSON.stringify(v.checkpoint)}`);
+      continue;
+    }
     watch(e, c, 'north', () => ended(e), 600000, 'over the northern exit');
     const v = view(e);
     check(`won at the northern exit, ${Math.round((e.clock - v.goAt) / 60000)} min after the go (MISSIONS.md: 30 to 40)`, v.state === 'won', `${v.state} ${v.why ?? ''}`);

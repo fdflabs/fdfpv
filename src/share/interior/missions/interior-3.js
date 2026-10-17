@@ -84,6 +84,7 @@ const ERR = (v) => ({ chosen: `error-${v}`, is: 'yes' });
 const ERRORS = { any: [ERR('v1'), ERR('v2')] };
 const DESIGNATED = (v) => ({ captured: `confirm_${v}` });
 const RELAYED = { chosen: 'relay', is: 'held' };
+const FOLLOWED = { vanished: 'north', watched: true };
 const STAGE1 = ['civ-pickup', 'police', 'walker-1', 'walker-2', 'parked', 'worker-1', 'worker-2', 'worker-3', 'family'];
 
 
@@ -496,7 +497,7 @@ export default {
        * contact (CONTRACT-M3.md gap 5). The northern vehicle is. */
       objectives: [
         {
-          id: 'north', text: 'ops.interior.m3.obj.north', tier: 'primary', done: { route: 'north', point: 'exit' }, guide: { isr: 'int3-g-north', tracker: 'int3-g-north', recon: 'int3-g-north', strike: 'int3-g-north', relay: 'int3-g-north' },
+          id: 'north', text: 'ops.interior.m3.obj.north', tier: 'primary', done: FOLLOWED, guide: { isr: 'int3-g-north', tracker: 'int3-g-north', recon: 'int3-g-north', strike: 'int3-g-north', relay: 'int3-g-north' },
         },
         { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
@@ -508,9 +509,16 @@ export default {
         { when: { route: 'north', point: 'edge' }, radio: ['int3-s5-edge', 'int3-s5-boundary'] },
         { when: { lost: 'north', s: 20 }, repeat: true, search: { id: 'north-lkp', contact: 'north', r: 200 }, card: 'card.last_known' },
         { when: { reacquired: 'north' }, repeat: true, unsearch: 'north-lkp' },
-        { when: { route: 'north', point: 'exit' }, unless: ERRORS, flag: 'M3_ZERO_CIVILIAN_ERRORS' },
+        { when: FOLLOWED, unless: ERRORS, flag: 'M3_ZERO_CIVILIAN_ERRORS' },
       ],
-      exits: [{ when: { route: 'north', point: 'exit' }, to: 'won', why: 'north', after: 3000 }],
+      /* Won only by the follow (w50-adv-c A3: it was won by doing
+       * nothing): the vehicle in somebody's picture in its last 30 s
+       * (contacts.js WATCH_MS) as it leaves coverage. Not watched as it
+       * goes, the picture is lost; the first exit wins a tie. */
+      exits: [
+        { when: FOLLOWED, to: 'won', why: 'north', after: 3000 },
+        { when: { vanished: 'north' }, to: 'lost', why: 'unfollowed' },
+      ],
     },
   ],
 };
