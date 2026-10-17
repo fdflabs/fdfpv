@@ -60,14 +60,27 @@ const radioOf = (m) => ({
   brief: m.radio?.brief ?? [`brief-${m.id}-1`, `brief-${m.id}-2`],
   win: m.radio?.win ?? `debrief-${m.id}-win`,
   lose: m.radio?.lose ?? `debrief-${m.id}-lose`,
+  winIfNot: m.radio?.winIfNot ?? null,
 });
 export const BRIEF_LINES = Object.fromEntries(Object.values(MISSIONS).map((m) => [m.id, radioOf(m).brief]));
-export const DEBRIEF_LINES = Object.fromEntries(Object.values(MISSIONS).map((m) => [m.id, { win: radioOf(m).win, lose: radioOf(m).lose }]));
+export const DEBRIEF_LINES = Object.fromEntries(Object.values(MISSIONS).map((m) => {
+  const r = radioOf(m);
+  return [m.id, { win: r.win, lose: r.lose, winIfNot: r.winIfNot }];
+}));
+/* The win line a won view `v` gets: the mission's `win`, or its
+ * winIfNot's line when the end view shows that objective settled other
+ * than `is` (The Corridor's "The lines held" only when the islanding
+ * held, w50-adv-b B6). An objective the view does not show leaves `win`. */
+export function winLineOf(d, v) {
+  const alt = d.winIfNot;
+  const state = alt && v?.stage?.objectives?.find((o) => o.id === alt.objective)?.state;
+  return state && state !== 'active' && state !== alt.is ? alt.radio : d.win;
+}
 /* The missions whose win plays an outro film (a mission's `outro`). */
 export const OUTROS = new Set(Object.values(MISSIONS).filter((m) => m.outro).map((m) => m.id));
 /* The lines that end a mission: said at once, over whatever was queued. */
 export const END_LINES = new Set(['win', 'lose-output', 'lose-rack',
-  ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
+  ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose, ...(d.winIfNot ? [d.winIfNot.radio] : [])])]);
 /* The music's level on the music setting, before the master: the intro
  * is a trailer and carries the countdown, the loop sits under the voice. */
 export const INTRO_BUS = 0.5;
@@ -169,7 +182,8 @@ export function createWarCalls() {
         /* A mission with an outro film says its win in the film (its first
          * line is the debrief, the owner 2026-10-08), not over it. */
       } else if (ev.type === 'state' && (ev.to === 'won' || ev.to === 'lost')) {
-        const debrief = v && DEBRIEF_LINES[v.mission]?.[ev.to === 'won' ? 'win' : 'lose'];
+        const d = v && DEBRIEF_LINES[v.mission];
+        const debrief = d && (ev.to === 'won' ? winLineOf(d, v) : d.lose);
         out.push(END_LINES.has(debrief) ? debrief : ev.to === 'won' ? 'win' : 'lose-output');
       } else if (ev.type === 'born') {
         /* A decoy is called as what it looks like. A group drawn from a

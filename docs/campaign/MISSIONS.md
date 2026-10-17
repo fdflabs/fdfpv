@@ -370,7 +370,7 @@ released 2026-10-16: 4 stages, 3 twists and 2
 islandings, 4 title keys; its objectives (the towers, a spot objective
 for each of Spread Thin's four groups, the yard, each twist's, each
 corridor's islanding hold); the nudge and the objective cards; its
-length 11 to 19 min measured; seeded NW and WATER sectors and its own
+length 11 to 21 min measured; seeded NW and WATER sectors and its own
 LINES routes, war:routes PASS; the table's 13 radio ids, `itaipu-6-op`
 and the film's 4, voiced en and es on the Orin; 8 guide lines
 `itaipu-6-g-*`; voiced debriefs; Contain with `itaipu-6-op`. No intro
@@ -1564,9 +1564,17 @@ war:stages flies it on the room), held at `release: 'development'`:
   each with both corridors' lines down and the output 11 317 MW; they do
   not fly kilometres down a corridor to a tower they cannot reach in
   time.
-- **Length** 11 to 19 minutes: ten good bot games end 11.9 to 18.8
-  minutes after the go, a solo pilot's 16.8 to 18.8 (Spread Thin's four
-  lanes one at a time), against section 2's guess of 12 to 16.
+- **Length** 11 to 21 minutes: ten good bot games end 13.2 to 20.5
+  minutes after the go, a solo pilot's 18.1 to 20.5 (Golden Hour's
+  groups born late enough to reach, w50-fix-itaipu, and Spread Thin's
+  four lanes one at a time), against section 2's guess of 12 to 16.
+- **Golden Hour solo** (w50-adv-b B3): one Striker a group for a solo
+  pilot, the west group born 55 to 65 s after the go (times pace), the
+  east one 30 to 40 s after the west is gone, on FI1's middle towers
+  (e-4 to e-2, 2.4 km from the crest) instead of e-6. Before, the west
+  group hit tower w-4 (4.2 km out) at 77 to 84 s in every solo game.
+- **The win line** (B6): "The lines held" only when the islanding held;
+  a win with it failed is CREST's Lights Out win line.
 
 ### The twist (stage 3)
 
