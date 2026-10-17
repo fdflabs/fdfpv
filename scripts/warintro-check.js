@@ -39,8 +39,9 @@
  *             time; the host who has seen it holding to skip while the
  *             guest has not leaves the host on the orbit and the room in
  *             its briefing; the guest watches to the end, which makes it
- *             seen; the next briefing, both seen, ends for the room on
- *             the host's hold; a guest who joins mid briefing starts the
+ *             seen; the next briefing, both seen, goes to the brief card
+ *             on the host's hold and ends for the room on its Deploy;
+ *             a guest who joins mid briefing starts the
  *             film where the room is
  *
  * OUT_DIR (default the system temp dir's warintro-frames) gets three frames
@@ -76,6 +77,7 @@ import { MISSIONS } from '../src/share/war/missions/index.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { startRooms } from '../edge/rooms/node.js';
 import { WORLD_LEAD_MS } from '../edge/rooms/war.js';
+import { CARD_MS } from '../src/share/war/intro.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -546,7 +548,7 @@ try {
   row('the host\'s hold leaves only the host\'s view, for the orbit, while the guest has not seen it: the room keeps its briefing',
     r1[0] && r1[0].orbit && r1[1] && !r1[1].orbit && !r1[1].skipped && r1[2].state === 'briefing',
     `${r1[2].state}, host orbit ${r1[0] && r1[0].orbit}, guest skipped ${r1[1] && r1[1].skipped}`);
-  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + WORLD_LEAD_MS + 20000);
+  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + WORLD_LEAD_MS + CARD_MS + 20000);
   const filmsOf = (p) => p.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).campaign.films || {}`);
   row('a viewing joined late does not make it seen', ((await filmsOf(guest))[GAME_FILM.id] ?? 0) < GAME_FILM.version, JSON.stringify(await filmsOf(guest)));
   await page.evaluate("window.__warDo('end')");
@@ -555,20 +557,24 @@ try {
   /* 2: the whole film on both, from the start. */
   await page.evaluate("window.__warDo('brief')");
   await guest.until('window.__warIntro() && window.__warIntro().t > 0', 30000);
-  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + WORLD_LEAD_MS + 20000);
+  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + WORLD_LEAD_MS + CARD_MS + 20000);
   row('the guest, having watched it from its start to its end, has seen it', ((await filmsOf(guest))[GAME_FILM.id] ?? 0) >= GAME_FILM.version, JSON.stringify(await filmsOf(guest)));
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000);
   await page.until('(window.__war().view.seen || []).length === 2', 10000).catch(() => {});
 
-  /* 3: both seen; the host's hold ends the briefing for the room. */
+  /* 3: both seen; the host's hold goes to the mission brief card
+   * (src/ui/briefcard.js), whose Deploy ends the briefing for the room. */
   await page.evaluate("window.__warDo('brief')");
   await page.until('window.__warIntro() && window.__warIntro().t > 3000', 30000);
   await holdKey(page, HOLD_MS);
+  await page.until('window.__briefCard().open', 10000).catch(() => {});
+  row('the host\'s hold opens the mission brief card, the room still in its briefing', await page.evaluate("window.__briefCard().open && window.__war().view.state === 'briefing'"));
+  await page.evaluate("(document.querySelector('.briefcard button[data-act=\"deploy\"]').click(), true)");
   await page.until("window.__war().view.state === 'countdown'", 10000).catch(() => {});
   await guest.until('window.__warIntro() === null', 5000).catch(() => {});
   const r2 = await Promise.all([page, guest].map((p) => p.evaluate('({ i: window.__warIntro(), v: window.__war().view, room: window.__rooms().roomNow })')));
-  row('both seen: the host\'s hold ends the briefing for the room, and the film is gone from both screens', r2.every((x) => x.v.state === 'countdown' && !x.i)
+  row('both seen: the host\'s Deploy ends the briefing for the room, and the film is gone from both screens', r2.every((x) => x.v.state === 'countdown' && !x.i)
     && r2[0].v.goAt - r2[0].room <= COUNTDOWN_MS, r2.map((x) => `${x.v.state} ${Boolean(x.i)}`).join(' / '));
   await page.evaluate("window.__warDo('end')");
 

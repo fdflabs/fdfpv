@@ -12,8 +12,9 @@
  *     campaign's page opens, and a second press opens the page at once
  *   - INTRO: Mission 1's Play makes the room, whose briefing every screen
  *     plays as `int1-intro` over the Interior's map on the room's clock
- *     (from briefAt), held; it stops when the briefing ends and the pilot
- *     flies the match
+ *     (from briefAt), held; at its end the mission brief card opens
+ *     (src/ui/briefcard.js), whose Deploy ends the briefing, and the
+ *     film stops and the pilot flies the match
  *   - OUTRO: on a win (the room's view turned won), `int1-outro` plays on
  *     the room's clock from endAt over the Interior, asking for the
  *     squad's stills (this pilot's own given, the rest null: the
@@ -21,8 +22,9 @@
  *   - SEEN AND THE HOST'S SKIP: the intro watched to its end is told the
  *     room (`seen`); a second briefing with a pilot B who has not seen
  *     the cut: the host's line waits on B and the room refuses the skip
- *     ('unwatched'); once B has seen it the line offers the skip, and the
- *     host's hold ends the briefing for both (the countdown) (B is a
+ *     ('unwatched'); once B has seen it the line offers the skip, the
+ *     host's hold goes to the brief card, B's Deploy shows on it as
+ *     ready, and the host's Space ends the briefing for both (B is a
  *     second page in this one Chrome, scripts/lib/secondpage.js)
  *   - no page errors; pictures outside the repository
  *
@@ -136,7 +138,13 @@ try {
   check('the room\'s briefing plays int1-intro over the Interior\'s map', intro.state === 'briefing' && intro.film === 'ops:int1-intro' && intro.map === 'interior' && intro.filmMap === 'interior', JSON.stringify(intro));
   check('on the room\'s clock: the briefing lasts the film', intro.ms > 30000 && intro.briefAt != null, `film ${intro.ms} ms`);
   await shot('films-intro.png');
-  await page.until("window.__ops.view().state === 'live'", 150000).catch(() => {});
+  /* The film over, the mission brief card (src/ui/briefcard.js); the
+   * host's Deploy on it ends the briefing. */
+  await page.until('window.__briefCard().open', 150000).catch(() => {});
+  const card = await page.evaluate("({ card: window.__briefCard(), state: window.__ops.view().state, film: window.__warIntro() && window.__warIntro().for })");
+  check('at the film\'s end the mission brief card opens over the briefing', card.card.open && card.state === 'briefing' && /THE OLD WAR/.test(card.card.title || ''), JSON.stringify(card));
+  await page.evaluate("(document.querySelector('.briefcard button[data-act=\"deploy\"]').click(), true)");
+  await page.until("window.__ops.view().state === 'live'", 30000).catch(() => {});
   await page.sleep(1500);
   const after = await page.evaluate(`({ state: window.__ops.view().state, film: ${FILM} ? ${FILM}.for : null, mode: window.__craftState().mode })`);
   check('when the briefing ends the film stops and the pilot flies the match', after.state === 'live' && after.film === null && after.mode === 'flight', JSON.stringify(after));
@@ -219,15 +227,27 @@ try {
   await page.sleep(600);
   const ready = await page.evaluate("({ note: window.__opsHud().briefing, seen: window.__ops.view().seen })");
   const bSaid = await B.evaluate("({ films: window.__ui.settings.campaign && window.__ui.settings.campaign.films, sent: window.__ops.sent().filter((m) => m.op === 'seen'), seat: window.__ops.seat() })");
-  check('once everyone has seen it, the host\'s line offers the skip', /hold to end it for everyone/.test(ready.note || ''), JSON.stringify({ ready, bSaid }));
+  check('once everyone has seen it, the host\'s line offers the skip', /hold to skip to the mission brief/.test(ready.note || ''), JSON.stringify({ ready, bSaid }));
   /* The host holds any key on the film (SKIP_HOLD_MS, 2 s). */
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'KeyQ', key: 'q', windowsVirtualKeyCode: 81 }, page.sessionId);
   await page.sleep(2600);
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'KeyQ', key: 'q', windowsVirtualKeyCode: 81 }, page.sessionId);
+  /* The hold goes to the mission brief card, and B's Deploy shows on it
+   * as ready; the host's Deploy (Space) then ends the briefing for both. */
+  await page.until('window.__briefCard().open', 15000).catch(() => {});
+  check('the host\'s hold skips to the mission brief card, the briefing still on', await page.evaluate("window.__briefCard().open && window.__ops.view().state === 'briefing'"));
+  await B.evaluate('(window.__ops.ready(), true)');
+  await page.until('window.__ops.view().deployed.length === 1', 15000).catch(() => {});
+  await page.sleep(600);
+  const readyRow = await page.evaluate('window.__briefCard().pilots');
+  check('B\'s Deploy shows on the host\'s card: one pilot READY, the host READING', Array.isArray(readyRow) && readyRow.length === 2 && readyRow.some((p) => /READY$/.test(p)) && readyRow.some((p) => /READING$/.test(p)), JSON.stringify(readyRow));
+  await shot('card-room-ready.png');
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 }, page.sessionId);
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 }, page.sessionId);
   await page.until("window.__ops.view().state !== 'briefing'", 15000).catch(() => {});
   const ended = await page.evaluate("window.__ops.view().state");
   const bState = await B.evaluate("window.__ops.view().state");
-  check('the host\'s hold ends the briefing for both: the countdown', ['countdown', 'live'].includes(ended) && ['countdown', 'live'].includes(bState), `${ended} / ${bState}`);
+  check('the host\'s Deploy ends the briefing for both: the countdown, the card closed', !(await page.evaluate('window.__briefCard().open')) && ['countdown', 'live'].includes(ended) && ['countdown', 'live'].includes(bState), `${ended} / ${bState}`);
   const bErrs = B.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors on B', bErrs.length === 0, bErrs.slice(0, 3).join(' | '));
   const errs = page.errors.filter((e) => !e.startsWith('network:'));

@@ -636,6 +636,7 @@
     "daytime:war": "node scripts/daytime-war-check.js",
     "briefing:selftest": "node scripts/briefing-selftest.js",
     "briefcard:selftest": "node scripts/briefcard-selftest.js",
+    "briefcard:check": "node scripts/briefcard-check.js",
     "sky:smooth": "node scripts/sky-smooth-check.js",
     "kits:selftest": "node scripts/kits-selftest.js",
     "kits:quads": "node scripts/kits-quads-check.js",

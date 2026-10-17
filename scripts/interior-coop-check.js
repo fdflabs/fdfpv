@@ -125,7 +125,11 @@ try {
   await A.evaluate("(document.querySelector('[data-mission=\"interior-1\"] .campaign-play').click(), true)");
   await A.until("window.__rooms().phase === 'open' && window.__rooms().code != null", 60000);
   const code = await A.evaluate('window.__rooms().code');
-  await A.until("window.__ops.view().state === 'live'", 120000).catch(() => {});
+  /* The film, then the mission brief card (src/ui/briefcard.js), whose
+   * Deploy ends the briefing. */
+  await A.until('window.__briefCard().open', 120000).catch(() => {});
+  await A.evaluate("(() => { const d = document.querySelector('.briefcard button[data-act=\"deploy\"]'); if (d) { d.click(); } return true; })()");
+  await A.until("window.__ops.view().state === 'live'", 60000).catch(() => {});
   check('A makes the room from the card and the mission goes live', Boolean(code) && (await A.evaluate("window.__ops.view().state")) === 'live', code);
 
   /* B: its own context, in the interceptor, the consent never answered. */
