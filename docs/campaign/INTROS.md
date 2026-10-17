@@ -235,6 +235,15 @@ steel. **Music:** the intro track (built), from black. **Length:** 70 s.
 Only the war's aircraft are in the film (configs/airframes.js
 `WAR_AIRFRAMES`, held by films:lint).
 
+Re-shot 2026-10-16 (w50-films, version 6): shot 4 (`ten`) flies 12 m
+behind and 10 m out from the end of the ten's line on a 24 mm lens,
+looking down the row to its fourth, so the row recedes from one
+Striker big enough to show its prop to the far end of the V (films:lint:
+all ten in frame, the nearest at least 209 px wide; it was 40 m out on 32
+mm, ten specks across the water, the nearest 103 px). Shot 7b (`thrown`)
+rides 2.4 m behind the Striker, not 4.5: it was a dot in the sky, now an
+aircraft with its pusher turning.
+
 **Changes from today:** shot 2 is split into a telephoto reveal (2), a
 pass over the lens that is now solved from the route (3) and a long lens
 on the ten (4), so the pass that was never seen is the centre of the

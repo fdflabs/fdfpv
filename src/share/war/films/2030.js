@@ -138,7 +138,7 @@ const LONE_PASS = [150, 228, -2500];
 
 export default {
   id: '2030',
-  version: 5,
+  version: 6,
   cast: CAST,
   routes: {
     /* The lone Striker, low over the water straight at the lens. */
@@ -232,9 +232,9 @@ export default {
        * their line, looking across the V: every one wholly in frame, the
        * nearest an aircraft, not a dot (the lead, 3 Oct). */
       camera: {
-        type: 'drone', lens: 32, ride: { agent: 'ten', k: 9 }, off: [20, 5, -40], lag: 0, look: { agent: 'ten', k: 6 },
+        type: 'drone', lens: 24, ride: { agent: 'ten', k: 9 }, off: [10, 2, -12], lag: 0, look: { agent: 'ten', k: 3 },
       },
-      hero: { agent: 'ten', minPx: 40 },
+      hero: { agent: 'ten', minPx: 180 },
       out: 'cut',
     },
     {
@@ -296,7 +296,7 @@ export default {
       grade: 'warm',
       /* Behind the Striker just off its rail on the crest, climbing out. */
       camera: {
-        type: 'drone', lens: 18, ride: { cast: 'launch' }, back: 4.5, up: 1.0, lag: 250, ease: 'lin',
+        type: 'drone', lens: 18, ride: { cast: 'launch' }, back: 2.4, up: 0.5, lag: 150, ease: 'lin',
       },
       cast: {
         launch: {
