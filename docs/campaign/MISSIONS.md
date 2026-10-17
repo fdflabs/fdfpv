@@ -1408,7 +1408,7 @@ where the fight is, so the squad must split.
 | itaipu-5-s3-dead | `killed(carrier)` | TALLER | firm | That's the nest. Aguyje. | Ese era el nido. Aguyje. |
 | itaipu-5-ta-turn | twist A | MIRADOR | urgent | A second hull. One of them isn't launching anything. | Un segundo casco. Uno de los dos no lanza nada. |
 | itaipu-5-tb-turn | twist B | MIRADOR | urgent | It's launching Hunters now. They want you. | Ahora está lanzando cazadores. Los quieren a ustedes. |
-| itaipu-5-ta-spot | twist A, the silent hull spotted and the second on the water | MIRADOR | urgent | Eyes on it. That hull is empty. The other one is launching. | Lo tengo a la vista. Ese casco está vacío. El que lanza es el otro. |
+| itaipu-5-ta-spot | twist A, the silent hull spotted and the second on the water, `+3` (after ta-turn when the spot came first) | MIRADOR | urgent | Eyes on it. That hull is empty. The other one is launching. | Lo tengo a la vista. Ese casco está vacío. El que lanza es el otro. |
 | itaipu-5-tc-turn | twist C | CARANCHO | urgent | Crest, Carancho. One last bird up. I've got eyes on the hull, marking it. Beleza, go. | Cresta, Carancho. Último aparato arriba. Tengo el casco a la vista, lo marco. Beleza, vayan. |
 | itaipu-5-s4-last | stage 4 opens | CREST | firm | Whatever it launched is still coming. Clear the river. | Lo que lanzó todavía viene. Limpien el río. |
 | debrief-itaipu-5-win | won | CARANCHO | calm | Crest, Carancho. River's quiet. Thanks for covering us. | Cresta, Carancho. El río está tranquilo. Gracias por cubrirnos. |

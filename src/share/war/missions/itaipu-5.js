@@ -289,12 +289,16 @@ export default withWaves({
       objectives: [KILL({ all: [DOWN, { down: { group: 'carrier-2' } }] })],
       /* MIRADOR calls the hull "launching" only once one is: the first
        * hull may be the silent one. Once a pilot has spotted the silent
-       * one and the second is on the water, MIRADOR says which. */
+       * one and the second is on the water, MIRADOR says which, 3 s after
+       * the later of the two: after ta-turn (the second hull +2 s) when
+       * the spot came first, since the radio says its lines in the order
+       * they are cued (src/render/warradio.js) and "that hull is empty"
+       * before "a second hull" answers a question not yet asked. */
       cues: [
         { when: { born: { group: 'launched' } }, radio: 'itaipu-5-s3-carrier' },
         { when: { born: { group: 'launched' } }, at: 4, radio: 'itaipu-5-s3-order', skip: { objective: 'carrier', is: 'done' } },
         { when: { born: { group: 'carrier-2' } }, at: 2, radio: 'itaipu-5-ta-turn' },
-        { when: { all: [{ spot: { silent: true } }, { born: { group: 'carrier-2' } }] }, at: 1, radio: 'itaipu-5-ta-spot', skip: { objective: 'carrier', is: 'done' } },
+        { when: { all: [{ spot: { silent: true } }, { born: { group: 'carrier-2' } }] }, at: 3, radio: 'itaipu-5-ta-spot', skip: { objective: 'carrier', is: 'done' } },
         SOURCE_GUIDE,
         { when: { born: { group: 'carrier-2' } }, at: 6, radio: 'itaipu-5-g-hulls', skip: { objective: 'carrier', is: 'done' } },
         { when: { objective: 'carrier', is: 'done' }, radio: 'itaipu-5-s3-dead' },
