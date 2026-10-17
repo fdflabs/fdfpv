@@ -238,3 +238,275 @@ export function cardOf(id, ctx = {}) {
   }
   return Object.hasOwn(WAR_MISSIONS, id) ? warCard(WAR_MISSIONS[id], c) : opsCard(OPS_MISSIONS[id], c);
 }
+
+const CSS = `
+.briefcard { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 9002;
+  background: rgba(3, 5, 6, 0.72); font-family: ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; pointer-events: auto; }
+.briefcard.open { display: flex; }
+.briefcard-box { width: min(72em, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; box-sizing: border-box;
+  color: rgba(236, 244, 240, 0.92); padding: 1.1em 1.4em 0; border: 1px solid rgba(236, 244, 240, 0.3);
+  background: rgba(8, 12, 14, 0.94); font-size: clamp(11px, 1.55vh, 15px); letter-spacing: 0.04em; line-height: 1.45; }
+.briefcard-eyebrow { color: rgba(236, 244, 240, 0.55); letter-spacing: 0.3em; font-size: 0.85em; }
+.briefcard-box h2 { margin: 0.15em 0 0.5em; font-weight: normal; letter-spacing: 0.16em; font-size: 1.4em; }
+.briefcard-facts { display: flex; flex-wrap: wrap; gap: 0.3em 1.6em; margin: 0 0 0.9em; padding-bottom: 0.7em;
+  border-bottom: 1px solid rgba(236, 244, 240, 0.18); }
+.briefcard-facts span { color: rgba(236, 244, 240, 0.55); margin-right: 0.5em; }
+.briefcard-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24em, 100%), 1fr)); gap: 0 2em; }
+.briefcard h3 { margin: 0.7em 0 0.3em; font-weight: normal; font-size: 0.85em; letter-spacing: 0.3em; color: #f2d48a; }
+.briefcard ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.25em; }
+.briefcard li::before { content: '\\25b8'; color: rgba(236, 244, 240, 0.45); margin-right: 0.6em; }
+.briefcard li.star::before { content: '\\2605'; color: #f2d48a; }
+.briefcard-note { color: rgba(236, 244, 240, 0.6); margin-top: 0.3em; }
+.briefcard-role { display: grid; grid-template-columns: auto 1fr; gap: 0.25em 1em; margin: 0; }
+.briefcard-role dt { color: rgba(236, 244, 240, 0.55); }
+.briefcard-role dd { margin: 0; }
+.briefcard-map { display: block; width: 100%; max-height: 13em; margin-top: 0.3em; background: rgba(236, 244, 240, 0.04);
+  border: 1px solid rgba(236, 244, 240, 0.15); }
+.briefcard-ends { display: grid; grid-template-columns: auto 1fr; gap: 0.25em 1em; margin: 0.9em 0 0; padding-top: 0.7em;
+  border-top: 1px solid rgba(236, 244, 240, 0.18); }
+.briefcard-ends dt { letter-spacing: 0.2em; }
+.briefcard-ends dt.win { color: #8dffb5; }
+.briefcard-ends dt.lose { color: #ffc04a; }
+.briefcard-ends dd { margin: 0; }
+.briefcard-pilots { display: flex; flex-wrap: wrap; gap: 0.4em 1.2em; margin-top: 0.8em; }
+.briefcard-pilot.ready b { color: #8dffb5; }
+.briefcard-pilot b { font-weight: normal; letter-spacing: 0.14em; color: rgba(236, 244, 240, 0.5); margin-left: 0.5em; }
+.briefcard-row { display: flex; align-items: center; justify-content: flex-end; gap: 0.8em; flex-wrap: wrap;
+  position: sticky; bottom: 0; padding: 0.8em 0 1em; margin-top: 0.8em; background: rgba(8, 12, 14, 0.97); }
+.briefcard-status { flex: 1 1 18em; color: rgba(236, 244, 240, 0.75); }
+.briefcard-keys { color: rgba(236, 244, 240, 0.45); font-size: 0.85em; }
+.briefcard-btn { font: inherit; letter-spacing: 0.14em; color: #fff; background: transparent; border: 1px solid rgba(236, 244, 240, 0.5);
+  padding: 0.55em 1.1em; min-height: 44px; min-width: 44px; cursor: pointer; }
+.briefcard-btn.deploy { background: rgba(141, 255, 181, 0.14); border-color: #8dffb5; }
+.briefcard-btn:focus-visible { outline: 2px solid #f2d48a; outline-offset: 2px; }
+`;
+
+function el(tag, cls, parent, text) {
+  const n = document.createElement(tag);
+  if (cls) {
+    n.className = cls;
+  }
+  if (text != null) {
+    n.textContent = text;
+  }
+  if (parent) {
+    parent.append(n);
+  }
+  return n;
+}
+
+const SVG = 'http://www.w3.org/2000/svg';
+function mapSvg(map) {
+  const svg = document.createElementNS(SVG, 'svg');
+  svg.setAttribute('class', 'briefcard-map');
+  svg.setAttribute('viewBox', `-4 -4 ${map.w + 8} ${map.h + 8}`);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', str('brief.card.map'));
+  for (const line of map.lines) {
+    const p = document.createElementNS(SVG, 'polyline');
+    p.setAttribute('points', line.map((q) => q.join(',')).join(' '));
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', 'rgba(255, 192, 74, 0.7)');
+    p.setAttribute('stroke-width', '0.5');
+    svg.append(p);
+  }
+  for (const [x, y] of map.points) {
+    const c = document.createElementNS(SVG, 'circle');
+    c.setAttribute('cx', x);
+    c.setAttribute('cy', y);
+    c.setAttribute('r', '0.9');
+    c.setAttribute('fill', 'rgba(141, 255, 181, 0.85)');
+    svg.append(c);
+  }
+  return svg;
+}
+
+/*
+ * The card on screen. act: { deploy(), replay() }. show(card, key) draws
+ * a card (once per key: a match and a locale); state(s) each frame says
+ * what changes under it: { pilots: [{ name, ready, host }] or [] alone,
+ * deployed (this pilot pressed it), host, left (s to the countdown),
+ * waiting (the host must wait for the film's end) }.
+ *
+ * Keys while open, ahead of the game's: Space or Enter deploys, V
+ * replays the film; the pad's A and View do the same (main.js reads the
+ * pad, pad(a, x)). Tab moves between the two buttons.
+ */
+export class BriefCard {
+  constructor(root, act) {
+    const style = document.createElement('style');
+    style.textContent = CSS;
+    document.head.append(style);
+    this.act = act;
+    this.el = el('div', 'briefcard', root);
+    this.box = el('div', 'briefcard-box', this.el);
+    this.box.setAttribute('role', 'dialog');
+    this.isOpen = false;
+    this.key = null;
+    this.shown = '';
+    this.padWas = { a: true, x: true };
+    window.addEventListener('keydown', (e) => {
+      if (!this.isOpen) {
+        return;
+      }
+      const deploy = e.code === 'Space' || (e.code === 'Enter' && document.activeElement !== this.replayBtn);
+      if (!deploy && e.code !== 'KeyV') {
+        return;
+      }
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      /* A key held since before the card (the film's hold to skip)
+       * repeats: never a press. */
+      if (e.repeat) {
+        return;
+      }
+      this.pressed = true;
+      (deploy ? this.deployBtn : this.replayBtn).click();
+    }, true);
+    /* A key held down before the card opened (Space held to skip the
+     * film) must not press the focused Deploy as it comes up. */
+    window.addEventListener('keyup', (e) => {
+      if (this.isOpen && !this.pressed && (e.code === 'Space' || e.code === 'Enter')) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    }, true);
+    window.__briefCard = () => ({
+      open: this.isOpen,
+      key: this.key,
+      title: this.isOpen ? this.box.querySelector('h2').textContent : null,
+      sections: this.isOpen ? Object.fromEntries([...this.box.querySelectorAll('section')].map((s) => [s.dataset.part, s.querySelectorAll('li, dd').length])) : null,
+      text: this.isOpen ? this.box.textContent : null,
+      status: this.isOpen ? this.status.textContent : null,
+      pilots: this.isOpen ? [...this.pilots.children].map((p) => p.textContent) : null,
+    });
+  }
+
+  show(card, key) {
+    if (this.key === key) {
+      this.open();
+      return;
+    }
+    this.key = key;
+    this.shown = '';
+    const box = this.box;
+    box.textContent = '';
+    el('div', 'briefcard-eyebrow', box, str('brief.card.eyebrow'));
+    el('h2', '', box, card.title);
+    const facts = el('div', 'briefcard-facts', box);
+    for (const f of card.facts) {
+      const d = el('div', '', facts);
+      el('span', '', d, f.label);
+      d.append(f.value);
+    }
+    const cols = el('div', 'briefcard-cols', box);
+    const left = el('div', '', cols);
+    const right = el('div', '', cols);
+    const list = (parent, part, title, items, cls = '') => {
+      const s = el('section', '', parent);
+      s.dataset.part = part;
+      el('h3', '', s, title);
+      const ul = el('ul', '', s);
+      items.forEach((t) => el('li', cls, ul, t));
+      return s;
+    };
+    list(left, 'situation', str('brief.card.situation'), card.situation);
+    list(left, 'objectives', str('brief.card.objectives'), card.objectives);
+    const stars = list(left, 'stars', str('brief.card.stars'), card.stars, 'star');
+    el('div', 'briefcard-note', stars, str('brief.card.stars_note'));
+    list(right, 'threats', str('brief.card.threats'), card.threats);
+    const role = el('section', '', right);
+    role.dataset.part = 'role';
+    el('h3', '', role, str('brief.card.role'));
+    const dl = el('dl', 'briefcard-role', role);
+    for (const r of card.role) {
+      el('dt', '', dl, r.label);
+      el('dd', '', dl, r.value);
+    }
+    const map = el('section', '', right);
+    map.dataset.part = 'map';
+    el('h3', '', map, str('brief.card.map'));
+    map.append(mapSvg(card.map));
+    const ends = el('dl', 'briefcard-ends', box);
+    el('dt', 'win', ends, str('brief.card.win'));
+    el('dd', '', ends, card.win);
+    el('dt', 'lose', ends, str('brief.card.lose'));
+    el('dd', '', ends, card.lose);
+    this.pilots = el('div', 'briefcard-pilots', box);
+    const row = el('div', 'briefcard-row', box);
+    this.status = el('div', 'briefcard-status', row);
+    el('div', 'briefcard-keys', row, str('brief.card.keys'));
+    this.replayBtn = el('button', 'briefcard-btn', row, str('brief.card.replay'));
+    this.replayBtn.type = 'button';
+    this.replayBtn.dataset.act = 'replay';
+    this.replayBtn.addEventListener('click', () => this.act.replay());
+    this.deployBtn = el('button', 'briefcard-btn deploy', row, str('brief.deploy'));
+    this.deployBtn.type = 'button';
+    this.deployBtn.dataset.act = 'deploy';
+    this.deployBtn.addEventListener('click', () => this.act.deploy());
+    this.open();
+  }
+
+  open() {
+    if (this.isOpen) {
+      return;
+    }
+    this.isOpen = true;
+    this.el.classList.add('open');
+    /* A pad button held as the card opens (the film's hold to skip) is
+     * not a press on it. */
+    this.padWas = { a: true, x: true };
+    this.pressed = false;
+    this.deployBtn.focus({ preventScroll: true });
+  }
+
+  hide() {
+    if (!this.isOpen) {
+      return;
+    }
+    this.isOpen = false;
+    this.el.classList.remove('open');
+    if (this.box.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
+  }
+
+  /* The pad's Deploy and replay buttons (A and View), each a press on
+   * its rising edge. */
+  pad(a, x) {
+    if (this.isOpen && a && !this.padWas.a) {
+      this.deployBtn.click();
+    }
+    if (this.isOpen && x && !this.padWas.x) {
+      this.replayBtn.click();
+    }
+    this.padWas = { a, x };
+  }
+
+  state(s) {
+    if (!this.isOpen) {
+      return;
+    }
+    const status = [
+      s.waiting ? str('brief.card.unwatched') : null,
+      s.left != null ? str('brief.card.deploy_in', { s: s.left }) : null,
+      s.pilots.length > 1 ? str(s.deployed && !s.host ? 'brief.card.you_deployed' : 'brief.card.host_deploys') : null,
+    ].filter(Boolean).join(' ');
+    const pilots = s.pilots.length > 1 ? s.pilots.map((p) => `${p.name}${p.host ? ` (${str('lobby.host')})` : ''}|${p.ready}`).join(';') : '';
+    const shown = `${status}#${pilots}#${Boolean(s.waiting)}`;
+    if (shown === this.shown) {
+      return;
+    }
+    this.shown = shown;
+    this.status.textContent = status;
+    /* The room would refuse it ('unwatched') until the film's end. */
+    this.deployBtn.disabled = Boolean(s.waiting);
+    this.pilots.textContent = '';
+    if (s.pilots.length > 1) {
+      for (const p of s.pilots) {
+        const d = el('div', `briefcard-pilot${p.ready ? ' ready' : ''}`, this.pilots, p.host ? `${p.name} (${str('lobby.host')})` : p.name);
+        el('b', '', d, str(p.ready ? 'brief.card.ready' : 'brief.card.reading'));
+      }
+    }
+  }
+}

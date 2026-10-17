@@ -487,8 +487,9 @@ export function createRoomWar(send) {
     },
 
     /* Host only, the room checks. With intro, the room holds a briefing
-     * of INTRO_MS (src/share/war/intro.js) before the countdown, for
-     * every screen to play the intro over; skipIntro cuts it short. With
+     * of the mission's film and the brief card's CARD_MS
+     * (src/share/war/intro.js) before the countdown, for every screen to
+     * play the intro over; skipIntro, the card's Deploy, cuts it short. With
      * from 'checkpoint', a lost mission again from its lost stage. */
     start(missionId, { intro = false, from = null } = {}) {
       send({
@@ -519,7 +520,8 @@ export function createRoomWar(send) {
         type: 'war', op: 'world', map, time,
       });
     },
-    /* Any pilot: ready for what comes next (a stage's { ready }). */
+    /* Any pilot: ready for what comes next (a stage's { ready }), or in a
+     * briefing its Deploy on the brief card (the view's `deployed`). */
     ready() {
       send({ type: 'war', op: 'ready' });
     },

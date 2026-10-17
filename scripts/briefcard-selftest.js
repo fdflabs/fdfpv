@@ -52,7 +52,7 @@ check('the drill and the practice have none: no film, no briefing', cardOf('itai
 
 /* A shown text: words, never a key or a placeholder left unfilled. */
 const KEY = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/;
-const shown = (t) => typeof t === 'string' && t.trim().length > 0 && !KEY.test(t) && !/[{}]/.test(t) && !/[–—]/.test(t);
+const shown = (t) => typeof t === 'string' && t.trim().length > 0 && !KEY.test(t) && !/[{}]/.test(t) && !/[\u2013\u2014]/.test(t);
 
 const byLocale = {};
 for (const locale of LOCALES) {
