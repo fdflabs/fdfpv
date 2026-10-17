@@ -40,6 +40,7 @@ import { AIRFRAMES } from '../configs/airframes.js';
 import { check, finish, opsRoom } from './lib/opsroom.js';
 import { withHeld } from './lib/held.js';
 import { feedSnow } from '../src/share/ops/feed.js';
+import { focusOf } from '../src/share/ops/guide.js';
 
 const W = worldFor('interior');
 const RAW = MISSIONS['interior-3'];
@@ -305,6 +306,17 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     check('CONFIRM IDENTIFICATION on the pair after its action: cleared, HOSTILE CONFIRMED, not yet stopped',
       clsOf(e, 'pair-a') === 'hostile' && contact(e, 'pair-a') && !e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped')));
     {
+      /* A2 (w50-adv-c): after "Cleared." the strike pilot's screen says
+       * what to do now; a solo pilot holds the strike role, so it is the
+       * guide's focus (src/share/ops/guide.js focusOf). */
+      const cards = view(e).cards;
+      const focus = focusOf(M, view(e), ['isr', 'recon', 'strike', 'relay']);
+      check('after "Cleared.": FLY THE STRIKE AIRCRAFT TO THE GATE AND STRIKE first, the strike role\'s, the solo pilot\'s focus',
+        cards[0]?.id === 'strike' && cards[0].roles?.join() === 'strike' && cards[0].state === 'active' && focus?.card.id === 'strike'
+        && EN['ops.interior.m3.obj.strike'] && ES['ops.interior.m3.obj.strike'], JSON.stringify(cards.map((x) => x.id)));
+      check('and an ISR pilot who holds no strike role keeps IDENTIFY THREATS', focusOf(M, view(e), ['isr'])?.card.id === 'threats');
+    }
+    {
       const at = (id) => e.r.ops.log.findIndex((x) => x.what === 'cue' && [x.radio].flat().includes(id));
       check('the strike role told it will be called when the stage opens, before Vega clears it', at('int3-st-ready') >= 0 && at('int3-st-ready') < at('int3-s2-contact') && at('int3-s2-cleared') > 0);
     }
@@ -376,6 +388,7 @@ console.log('a designation before the action is refused by Ibarra and stops noth
   watch(e, c, 'courier', () => clsOf(e, 'parked') === 'hostile', 400000, 'D meets the courier');
   until(e, () => contact(e, 'pair-a'), 120000, 'the pair appears');
   watch(e, c, 'pair-a', () => contact(e, 'pair-a') && clsOf(e, 'pair-a') === 'poi', 120000, 'the pair seen');
+  check('before the clearance no strike card', !view(e).cards.some((x) => x.id === 'strike'));
   /* The pair is first seen through a gap in the crowns it walks out
    * under, so the first still may be BLOCKED BY CANOPY: no designation,
    * and the pilot takes another, as a player told so would. */

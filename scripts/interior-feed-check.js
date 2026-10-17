@@ -157,8 +157,11 @@ try {
 
   /* The strike, on the strike role's screen in stage 2. */
   const s2 = { id: 'M3_CP_CONFIRMED_CONTACT', n: 1, at: 1000, title: 'ops.interior.m3.s2', text: null, music: null, lockRoles: false };
+  const strikeCard = {
+    id: 'strike', text: 'ops.interior.m3.obj.strike', tier: 'primary', state: 'active', roles: ['strike'], star: false,
+  };
   const flying = (role) => {
-    const v = view({ stage: s2 });
+    const v = view({ stage: s2, cards: [strikeCard] });
     v.roles.active = { 1: role };
     return v;
   };
@@ -180,14 +183,19 @@ try {
   check('flying the strike role: STRIKE [2], on screen, clear of the other panels', btn.strike === 'STRIKE [2]' && btn.rect && btn.rect.x >= 0 && btn.rect.x + btn.rect.w <= 1281 && !clashes.length,
     JSON.stringify({ strike: btn.strike, rect: btn.rect, clashes }));
   await page.evaluate('(window.__ops.strike(), true)');
-  await page.sleep(400);
+  await page.sleep(1200);
   const armed = await hudNow();
   await shot('strike-armed-1280x720.png');
-  check('one press arms it: CONFIRM, nothing sent', /^CONFIRM STRIKE/.test(armed.strike || '') && (await strikes()) === 0, JSON.stringify(armed.strike));
-  await page.evaluate('(window.__ops.strike(), true)');
+  check('one press arms it: CONFIRM, nothing sent, the wider button still inside the window', /^CONFIRM STRIKE/.test(armed.strike || '') && (await strikes()) === 0
+    && armed.rect && armed.rect.x >= 0 && armed.rect.x + armed.rect.w <= 1281, JSON.stringify({ strike: armed.strike, rect: armed.rect }));
+  /* The arming lasts 4 s, longer than a loaded box may take for the
+   * picture above: the sending pair is pressed back to back. */
+  await page.sleep(4200);
+  check('left alone, the arming lapses back to STRIKE', (await hudNow()).strike === 'STRIKE [2]' && (await strikes()) === 0);
+  await page.evaluate('(window.__ops.strike(), window.__ops.strike(), true)');
   await page.sleep(400);
   const sent = await hudNow();
-  check('the second press sends the room one strike, and the button is back to STRIKE', (await strikes()) === 1 && sent.strike === 'STRIKE [2]' && sent.say === 'STRIKE SENT', JSON.stringify(sent));
+  check('two presses send the room one strike, and the button is back to STRIKE', (await strikes()) === 1 && sent.strike === 'STRIKE [2]' && sent.say === 'STRIKE SENT', JSON.stringify(sent));
   await shot('strike-sent-1280x720.png');
   check('no page errors', page.errors.length === 0, page.errors.slice(0, 3).join(' | '));
 } finally {

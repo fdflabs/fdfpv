@@ -4527,6 +4527,7 @@ export default {
   "ops.interior.m3.s5": "NORTH",
   "ops.interior.m3.obj.classify": "CLASSIFY KEY CONTACTS AROUND THE POST",
   "ops.interior.m3.obj.threats": "IDENTIFY THREATS NEAR THE POST",
+  "ops.interior.m3.obj.strike": "CLEARED: FLY THE STRIKE AIRCRAFT TO THE GATE AND STRIKE",
   "ops.interior.m3.obj.pickups": "TRACK DEPARTING VEHICLES",
   "ops.interior.m3.obj.relay": "RESTORE DRONE NETWORK LINK",
   "ops.interior.m3.obj.command": "DOCUMENT THE COMMAND SITE",

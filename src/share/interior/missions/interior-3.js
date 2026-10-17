@@ -349,6 +349,14 @@ export default {
       title: 'ops.interior.m3.s2',
       restartLead: TRANSIT_S(GA('post')),
       objectives: [
+        /* After Vega's "Cleared.", on the strike pilot's screen (a solo
+         * pilot holds the role): what to do now, before the pair reaches
+         * the post (w50-adv-c A2). First, so it is the guide's focus. */
+        {
+          id: 'strike', text: 'ops.interior.m3.obj.strike', tier: 'primary', roles: ['strike'], show: CLEARED, done: STOPPED, guide: {
+            isr: 'int3-g-strike', tracker: 'int3-g-strike', recon: 'int3-g-strike', strike: 'int3-g-strike', relay: 'int3-g-strike',
+          },
+        },
         {
           id: 'threats', text: 'ops.interior.m3.obj.threats', tier: 'primary', done: STOPPED, guide: { isr: 'int3-g-threats', tracker: 'int3-g-threats', recon: 'int3-g-threats', strike: 'int3-g-strike', relay: 'int3-g-threats' },
         },
@@ -383,7 +391,7 @@ export default {
           when: { all: [{ route: 'pair', point: 'gate-near' }, { captured: 'confirm_pair' }] },
           radio: 'int3-s2-cleared',
           classify: { contacts: 'pair', to: 'hostile', why: 'ev.hostile_action' },
-          card: 'card.classification_updated',
+          card: ['card.classification_updated', 'card.primary_updated'],
           choose: { name: 'cleared', value: 'yes' },
         },
         /* The strike role's job opens with the stage (MISSIONS.md M3: "the

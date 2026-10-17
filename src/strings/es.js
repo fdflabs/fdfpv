@@ -4532,6 +4532,7 @@ export default {
   "ops.interior.m3.s5": "AL NORTE",
   "ops.interior.m3.obj.classify": "CLASIFICAR LOS CONTACTOS CLAVE ALREDEDOR DEL PUESTO",
   "ops.interior.m3.obj.threats": "IDENTIFICAR AMENAZAS CERCA DEL PUESTO",
+  "ops.interior.m3.obj.strike": "AUTORIZADO: LLEVEN LA AERONAVE DE ATAQUE AL PORTÓN Y ATAQUEN",
   "ops.interior.m3.obj.pickups": "SEGUIR LOS VEHÍCULOS QUE PARTEN",
   "ops.interior.m3.obj.relay": "RESTABLECER EL ENLACE DE LA RED DE DRONES",
   "ops.interior.m3.obj.command": "DOCUMENTAR EL PUESTO DE MANDO",
