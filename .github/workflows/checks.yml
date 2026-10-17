@@ -142,6 +142,9 @@ jobs:
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).
       - run: npm run briefing:selftest
+      # The mission brief card whole for every playable mission, in every
+      # language (src/ui/briefcard.js).
+      - run: npm run briefcard:selftest
       # The shell's contact pass, step for step, on fixed frames
       # (scripts/contact-golden.js): about 30 s here, deterministic since
       # its plans search from the spawn and its frames are fixed.

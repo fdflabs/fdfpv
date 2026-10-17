@@ -54,7 +54,7 @@ import { airframeById } from '../configs/airframes.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { FLAG_CRASHED, FLAG_SPAWNING } from '../src/share/roomwire.js';
 import { MISSIONS, waveSize } from '../src/share/war/missions/index.js';
-import { INTRO_MS } from '../src/share/war/intro.js';
+import { CARD_MS, INTRO_MS } from '../src/share/war/intro.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const itaipu1 = MISSIONS['itaipu-1'];
@@ -237,7 +237,7 @@ try {
     await a.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
     await a.evaluate(`window.__warDo('start', '${itaipu1.id}')`);
   }
-  await a.until("window.__war().view.state === 'live'", INTRO_MS + 30000 + (itaipu1.prepMs ?? 0));
+  await a.until("window.__war().view.state === 'live'", INTRO_MS + CARD_MS + 30000 + (itaipu1.prepMs ?? 0));
   const goAt = (await warOf(a)).view.goAt;
   const seatA = await a.evaluate('window.__rooms().seat');
   /* The first stage's waves due in its first seconds are told by then

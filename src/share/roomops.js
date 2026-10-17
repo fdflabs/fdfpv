@@ -185,10 +185,16 @@ export function createRoomOps(send) {
     seen(films) {
       say('seen', { films });
     },
-    /* The host's end of the briefing for everybody, once every pilot here
-     * has seen its film (refused 'unwatched' otherwise). */
+    /* The host's Deploy on the brief card: the briefing's end for
+     * everybody, before the film's end only once every pilot here has
+     * seen it (refused 'unwatched' otherwise). */
     skipIntro() {
       say('skipIntro');
+    },
+    /* This pilot's Deploy on the brief card in a briefing, shown on every
+     * card (the view's `deployed`); only the host's ends it, skipIntro. */
+    ready() {
+      say('ready');
     },
     take(role) {
       say('take', { role });

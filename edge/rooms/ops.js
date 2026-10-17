@@ -74,6 +74,7 @@ import { airframeById } from '../../configs/airframes.js';
 import {
   BOUNDARY_MS, applyCue, cardsView, drawDials, dueCues, resolve, starsOf, toldOf, trigger,
 } from '../../src/share/ops/stages.js';
+import { CARD_MS } from '../../src/share/war/intro.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
@@ -280,6 +281,8 @@ export class RoomOps {
        * that have seen it: the host's skip waits on all of them. */
       film: mission.film ? { id: mission.film.id, version: mission.film.version } : null,
       seen: this.seenHere(core),
+      /* The seats here that pressed the brief card's Deploy (ready). */
+      deployed: [...core.seats.values()].map((t) => t.seat).filter((seat) => m.deployed?.[seat] != null),
       checkpoint: m.state === 'lost' && m.checkpoint ? { stage: m.checkpoint.id, n: m.checkpoint.idx, title: stagesOf(mission)[m.checkpoint.idx].title ?? null } : null,
       restarted: m.restarted ?? null,
     };
@@ -393,6 +396,7 @@ export class RoomOps {
       case 'take': case 'active': case 'swap': case 'swapAccept': case 'swapDecline':
         return this.role(core, conn, s, msg, roomNow);
       case 'seen': return this.seenFilms(core, conn, s, msg.films);
+      case 'ready': return this.ready(core, conn, s, roomNow);
       case 'hold': return this.hold(core, conn, s, msg, roomNow);
       default: break;
     }
@@ -437,19 +441,34 @@ export class RoomOps {
     return [...core.seats.values()].filter((t) => (this.seen.get(t.token)?.[f.id] ?? -1) >= f.version).map((t) => t.seat);
   }
 
+  /* A pilot's Deploy on the brief card, in a briefing: shown on every
+   * card; only the host's ends the briefing (skipIntro). Refused 'off'
+   * outside one. */
+  ready(core, conn, s, roomNow) {
+    const m = this.match;
+    if (!m || m.state !== 'briefing') {
+      return this.error(conn, 'off');
+    }
+    m.deployed = { ...m.deployed, [s.seat]: Math.ceil(roomNow) };
+    return this.changed(core);
+  }
+
   /*
-   * The host cuts the briefing short: the countdown runs from now, for
-   * everybody, once every pilot here has seen the film (a first viewing
-   * is never cut, docs/campaign/INTROS.md section 3, the war's rule:
-   * war.js skipIntro); refused 'unwatched' otherwise. Nothing outside a
-   * briefing, so a late or repeated skip cannot move a countdown.
+   * The host's Deploy on the brief card ends the briefing: the countdown
+   * runs from now, for everybody. Before the film's end only once every
+   * pilot here has seen it (a first viewing is never cut,
+   * docs/campaign/INTROS.md section 3, the war's rule: war.js
+   * skipIntro), refused 'unwatched' otherwise; after it, the card's
+   * span is all that is cut. Nothing outside a briefing, so a late or
+   * repeated press cannot move a countdown.
    */
   skipIntro(core, conn, now) {
     const m = this.match;
     if (!m || m.state !== 'briefing') {
       return [];
     }
-    if (this.seenHere(core).length < core.seats.size) {
+    const filmOver = core.roomMs(now) >= m.briefAt + this.mission().filmMs;
+    if (!filmOver && this.seenHere(core).length < core.seats.size) {
       return this.error(conn, 'unwatched');
     }
     m.goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
@@ -497,7 +516,7 @@ export class RoomOps {
     }
     const roomNow = Math.ceil(core.roomMs(now));
     const briefAt = msg.intro === true && !cp && mission.filmMs ? roomNow : null;
-    const goAt = (briefAt == null ? roomNow : briefAt + mission.filmMs) + COUNTDOWN_MS;
+    const goAt = (briefAt == null ? roomNow : briefAt + mission.filmMs + CARD_MS) + COUNTDOWN_MS;
     const seed = cp ? cp.seed : Math.floor(this.random() * 4294967296) >>> 0;
     const m = {
       id: this.nextId,

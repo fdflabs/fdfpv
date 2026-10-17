@@ -147,6 +147,9 @@ export default {
   campaign: 'interior',
   title: 'ops.interior.m1.title',
   map: 'interior',
+  /* Minutes, low and high, a squad takes (docs/campaign/interior/
+   * MISSIONS.md M1 Length); the brief card shows it (src/ui/briefcard.js). */
+  estimatedMinutes: [20, 30],
   /* Every height here is over the ground; z0 is Pista Cero's ground. */
   ground: true,
   z0: 0,

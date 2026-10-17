@@ -22,9 +22,10 @@
  *           and coming back REACT_MS after its own blast, as a client
  *           does on hearing its boom
  *   brief   the head on pass behind a briefing (the intro, section 7.1):
- *           the host starts with { intro: true }, the room holds INTRO_MS
- *           before its countdown, and the pass must go off as it does
- *           without one, INTRO_MS later, every client seeing the same
+ *           the host starts with { intro: true }, the room holds BRIEF_MS
+ *           (the film and the brief card) before its countdown, and the
+ *           pass must go off as it does without one, BRIEF_MS later,
+ *           every client seeing the same
  *           briefing, countdown and go
  *   striker the head on pass with the Striker (docs/COMBAT-DRONES.md
  *           section 7) as the defender at 40 m/s, inside and outside its
@@ -96,7 +97,10 @@ import { LATE_MS, hullDistance, hullFor } from '../src/game/midair.js';
 import {
   BLAST_M, KIND, planAgent, poseAt,
 } from '../src/share/war/routes.js';
-import { INTRO_MS } from '../src/share/war/intro.js';
+import { CARD_MS, INTRO_MS } from '../src/share/war/intro.js';
+
+/* A room's whole briefing: the film and the brief card after it. */
+const BRIEF_MS = INTRO_MS + CARD_MS;
 import { fuzeM } from '../src/share/war/fuze.js';
 import ITAIPU_WIRES from '../src/share/war/itaipu-wires.js';
 import { BAND_M } from '../src/share/war/wires.js';
@@ -284,7 +288,7 @@ function radiusOf(sc, seat) {
 /* Head on: the Strike along +x through the origin, 300 m after its birth
  * at GO + 1 s, the defender along -x at `speed` with its nearest part
  * passing `reach` from it. `lead` is a briefing before the countdown
- * (INTRO_MS, or 0 for none); `airframe` the defender, a Cub unless another
+ * (BRIEF_MS, or 0 for none); `airframe` the defender, a Cub unless another
  * is named; `warhead` the loadout it sends (none: the standard). `chain`
  * puts a second Strike flying alongside the first, that many metres from
  * it on the side away from the defender, for the blast to take with it. */
@@ -729,7 +733,7 @@ function report(clock, results) {
 }
 
 /*
- * The briefing: passes inside and outside BLAST_M behind INTRO_MS of it,
+ * The briefing: passes inside and outside BLAST_M behind BRIEF_MS of it,
  * over the same random link sets, against the same passes with none.
  */
 function briefing() {
@@ -738,9 +742,9 @@ function briefing() {
     console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
     failed += ok ? 0 : 1;
   };
-  const go = GO + INTRO_MS;
+  const go = GO + BRIEF_MS;
   const reaches = [5.5, 6.5];
-  const briefed = reaches.map((r) => sweep(pass(r, INTRO_MS), 0));
+  const briefed = reaches.map((r) => sweep(pass(r, BRIEF_MS), 0));
   let shifted = 0;
   let states = 0;
   let early = 0;
@@ -749,8 +753,8 @@ function briefing() {
   for (const r of reaches) {
     for (const seed of [1, 2, 3]) {
       const zero = (sc) => runOne({ sc, seed, clock: 0, links: sc.air.map(() => ({ base: 0, jitter: 0 })) });
-      const plain = zero(pass(r)).log.map((e) => `${e.what}:${e.seat}:${e.t + INTRO_MS}`).join(',');
-      const withIt = zero(pass(r, INTRO_MS));
+      const plain = zero(pass(r)).log.map((e) => `${e.what}:${e.seat}:${e.t + BRIEF_MS}`).join(',');
+      const withIt = zero(pass(r, BRIEF_MS));
       shifted += withIt.log.map((e) => `${e.what}:${e.seat}:${e.t}`).join(',') === plain ? 0 : 1;
       for (const c of withIt.clients) {
         clients += 1;
@@ -760,12 +764,12 @@ function briefing() {
     }
   }
   const sum = (f) => briefed.reduce((n, x) => n + x[f], 0);
-  console.log(`\nthe briefing: INTRO_MS ${INTRO_MS} ms before the countdown, head on passes at ${reaches.join(' and ')} m, ${sum('runs')} runs`);
+  console.log(`\nthe briefing: BRIEF_MS ${BRIEF_MS} ms before the countdown, head on passes at ${reaches.join(' and ')} m, ${sum('runs')} runs`);
   row('every client has the room\'s booms and deaths', sum('disagree') === 0, `${sum('disagree')} of ${sum('runs')} disagree`);
   row('the booms and deaths are the zero latency run\'s, every run inside LATE_MS', sum('notRef') === 0, `${sum('notRef')} differ`);
   row('the pass inside BLAST_M goes off and the one outside does not', briefed[0].boomRuns === briefed[0].runs && briefed[1].booms === 0,
     `${briefed[0].boomRuns} of ${briefed[0].runs}, ${briefed[1].booms} booms`);
-  row('behind a briefing, the zero latency run is the one without, INTRO_MS later', shifted === 0, `${shifted} of ${reaches.length * 3} differ`);
+  row('behind a briefing, the zero latency run is the one without, BRIEF_MS later', shifted === 0, `${shifted} of ${reaches.length * 3} differ`);
   row('every client sees briefing, countdown and live, to one go', states === 0 && clients > 0, `${states} of ${clients} otherwise`);
   row('nothing is born for the go before it', early === 0, `${early} early births`);
   return failed;

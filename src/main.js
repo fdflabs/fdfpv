@@ -202,7 +202,10 @@ import { createGrid as createWarGrid } from './share/war/grid.js';
 import { stationOrder } from './share/war/stationdark.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
-import { FILMS as WAR_FILMS, filmFor } from './share/war/films/index.js';
+import { FILMS as WAR_FILMS, briefingMs as warBriefingMs, filmFor } from './share/war/films/index.js';
+import { BriefCard, cardOf } from './ui/briefcard.js';
+import { CARD_MS } from './share/war/intro.js';
+import { roleOf } from './share/ops/roles.js';
 import { filmMs } from './share/war/film.js';
 import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
@@ -873,6 +876,9 @@ export async function boot({
     lock: (on) => roomOps.lock(on),
   }, (seat) => opsSeatName(seat));
   opsHud.mount(rolesBoard.opener);
+  /* The mission brief card in a briefing (briefCardFrame), made here so
+   * the ops frame below may ask whether it is up. */
+  const briefCard = new BriefCard(document.body, { deploy: () => briefDeploy(), replay: () => briefReplay() });
   /* The debrief over the squad's stills (src/ui/debrief.js), when the
    * room ends a match. */
   const debrief = new Debrief(uiRoot, {
@@ -1831,7 +1837,7 @@ export async function boot({
     opsSeenTell();
     /* The host's line over the briefing: holding ends it for everybody
      * once everyone has seen this cut, else who it waits for. */
-    const briefingNow = v.state === 'briefing' && v.film && opsHost() === roomOps.seat();
+    const briefingNow = v.state === 'briefing' && v.film && opsHost() === roomOps.seat() && !briefCard.isOpen;
     if (briefingNow) {
       const b = opsBriefingSeen(v);
       opsHud.briefingNote(!b.all && performance.now() < opsBriefRefusedUntil
@@ -1861,16 +1867,9 @@ export async function boot({
       const briefAt = v.briefAt;
       opsFilmPlay(intro, {
         clock: () => roomLinkState.roomNow() - briefAt,
+        /* A hold to skip waits on the orbit under the brief card
+         * (briefCardFrame), whose Deploy is the host's end of it. */
         hold: true,
-        /* A host's hold ends the briefing for everybody when everybody
-         * has seen this cut (the room refuses it otherwise); anyone
-         * else's, or a host's while someone has not, waits on the orbit. */
-        onSkip: () => {
-          const now = roomOps.view();
-          if (opsHost() === roomOps.seat() && now.state === 'briefing' && opsBriefingSeen(now).all) {
-            roomOps.skipIntro();
-          }
-        },
         title: { key: mission.title, n: INTERIOR.findIndex((m) => m.id === v.mission) + 1 },
       });
     } else if (intro && opsFilmOn(intro) && !briefing) {
@@ -2237,6 +2236,7 @@ export async function boot({
     openCampaign: () => opsCampaignOpen(),
     /* Checks only: the host's skip sent as it is, and a start. */
     skipIntro: () => roomOps.skipIntro(),
+    ready: () => roomOps.ready(),
     start: (mission) => roomOps.start(mission, { intro: true }),
     filmAsked: () => Object.fromEntries(opsFilmAsked),
     /* The aircraft this page flies now. */
@@ -6269,9 +6269,10 @@ export async function boot({
   /* A room's briefing plays its mission's film on the room's clock, from
    * where the room is in it (a pilot joining late starts there, and that
    * viewing does not make it seen); its music and lines are the film's
-   * own. A pilot who holds to skip waits on the orbit; a host's skip asks
-   * the room to end the briefing, which it does once every pilot there
-   * has seen this cut. */
+   * own. A pilot who holds to skip waits on the orbit under the mission
+   * brief card (briefCardFrame), whose Deploy is the host's end of the
+   * briefing; the room takes it before the film's end only once every
+   * pilot there has seen this cut. */
   function warIntroFrame(v) {
     warSeenTell();
     const briefing = v.state === 'briefing' && v.briefAt != null && mode !== 'replay';
@@ -6294,12 +6295,6 @@ export async function boot({
         clock: () => roomLinkState.roomNow() - briefAt,
         hold: true,
         named: Object.values(v.sets ?? {}).flat().filter((id) => targets[id]).map((id) => targets[id].at),
-        onSkip: () => {
-          const w = roomLinkState.state().welcome;
-          if (w && w.host === w.seat) {
-            roomWar.skipIntro();
-          }
-        },
       });
     } else if (warIntro && warIntroFor !== 'watch' && !String(warIntroFor).startsWith('ops:') && !warOutroOn(v) && !briefing) {
       warIntroStop();
@@ -6358,6 +6353,150 @@ export async function boot({
     } else {
       warIntroWatchAsked = true;
     }
+  }
+
+  /*
+   * THE MISSION BRIEF CARD (src/ui/briefcard.js) in a room's briefing, the
+   * war's or an ops mission's: after the film, or at once when this pilot
+   * held to skip it, until the countdown (the room holds the briefing
+   * CARD_MS for it, edge/rooms/war.js and ops.js). Deploy: the host's ends
+   * the briefing for everybody (skipIntro), anyone else's says ready.
+   * Replay film plays the film again on this screen, from its start; the
+   * card comes back after it.
+   */
+  /* lines.json's speaker by line id, fetched once: who the card says is
+   * on the radio. Until it lands the card is drawn without them, and
+   * drawn again once it has. */
+  let briefSpeakers = null;
+  let briefSpeakersIn = false;
+  function briefSpeakerOf() {
+    if (!briefSpeakers) {
+      briefSpeakers = new Map();
+      fetch(new URL('../assets/audio/war/lines.json', import.meta.url).href).then((r) => r.json()).then((j) => {
+        briefSpeakers = new Map(j.lines.map((l) => [l.id, l.speaker]));
+        briefSpeakersIn = true;
+      }).catch((e) => logWarn('mission', `brief card: no radio cast: ${e.message}`));
+    }
+    return (id) => briefSpeakers.get(id);
+  }
+  /* The match this pilot held to skip the film of, or replayed it in. */
+  let briefSkipped = null;
+  let briefReplaying = false;
+
+  /* The briefing on now, war or ops: { game, v, match, filmMs, cardEnd,
+   * host, seat, pilots: [seat] }, or null. */
+  function briefNow() {
+    const war = roomWar.view();
+    const ops = roomOps.view();
+    if (war.state === 'briefing' && war.briefAt != null) {
+      const w = roomLinkState.state().welcome;
+      const filmMs = warBriefingMs(WAR_MISSIONS[war.mission] ?? null);
+      return {
+        game: 'war', v: war, match: roomWar.match(), filmMs, host: roomHost(w), seat: roomWar.seat(),
+        /* The room's countdown starts here (edge/rooms/war.js start and
+         * advance: a mission's prepMs keeps the briefing that much longer). */
+        cardEnd: war.briefAt + filmMs + CARD_MS + (WAR_MISSIONS[war.mission]?.prepMs ?? 0),
+        /* The match's players here, and any who deployed before the
+         * room listed them. */
+        pilots: [...new Set([...(war.scores ?? []).filter((r) => !r.gone).map((r) => r.seat), ...(war.deployed ?? [])])],
+      };
+    }
+    if (ops.state === 'briefing' && ops.briefAt != null && roomOps.mission()) {
+      return {
+        game: 'ops', v: ops, match: roomOps.match(), filmMs: roomOps.mission().filmMs, host: opsHost() === roomOps.seat(), seat: roomOps.seat(),
+        cardEnd: ops.briefAt + roomOps.mission().filmMs + CARD_MS,
+        pilots: Object.keys(ops.roles?.held ?? {}).map(Number),
+      };
+    }
+    return null;
+  }
+
+  function briefDeploy() {
+    const b = briefNow();
+    if (!b) {
+      return;
+    }
+    const link = b.game === 'war' ? roomWar : roomOps;
+    if (b.host) {
+      link.skipIntro();
+    } else {
+      link.ready();
+    }
+  }
+
+  function briefReplay() {
+    const b = briefNow();
+    if (!b) {
+      return;
+    }
+    briefReplaying = true;
+    briefCard.hide();
+    if (b.game === 'war') {
+      warIntroPlay('card-replay', { mission: b.v.mission });
+    } else {
+      const mission = roomOps.mission();
+      opsFilmPlay(opsFilmOf(b.v.mission, 'intro'), { title: { key: mission.title, n: INTERIOR.findIndex((m) => m.id === b.v.mission) + 1 } });
+    }
+  }
+
+  function briefCardFrame() {
+    const b = mode === 'replay' ? null : briefNow();
+    if (briefReplaying && !warIntro) {
+      briefReplaying = false;
+    }
+    if (!b) {
+      briefCard.hide();
+      briefReplaying = false;
+      return;
+    }
+    /* A hold to skip leaves the film for its orbit (warintro.js): the
+     * card from then on, for this match. */
+    if (warIntro && warIntro.state().orbit) {
+      briefSkipped = b.match;
+    }
+    const now = roomLinkState.roomNow();
+    const filmOver = now != null && now >= b.v.briefAt + b.filmMs;
+    /* Over whatever screen the film was over (a pilot still on the room
+     * screen at the start sees the film there, then the card), but not
+     * the pause menu, whose keys are its own. */
+    if (briefReplaying || ui.screen === 'paused' || !(filmOver || briefSkipped === b.match)) {
+      briefCard.hide();
+      return;
+    }
+    const mission = b.game === 'war' ? WAR_MISSIONS[b.v.mission] : roomOps.mission();
+    const role = b.game === 'ops' ? (b.v.roles?.active?.[b.seat] ?? b.v.roles?.held?.[b.seat]?.[0] ?? null) : null;
+    const ctx = {
+      speakerOf: briefSpeakerOf(),
+      pilots: b.pilots.length,
+      loadout: b.game === 'war' ? b.v.loadouts?.[b.seat] ?? null : null,
+      role: role ? roleOf(role) : null,
+    };
+    /* Built only when what it says changes, not every frame. */
+    const key = `${b.match}:${currentLocale()}:${briefSpeakersIn}:${ctx.pilots}:${ctx.role}:${JSON.stringify(ctx.loadout)}`;
+    if (briefCard.key !== key) {
+      const card = cardOf(mission.id, ctx);
+      if (!card) {
+        briefCard.hide();
+        return;
+      }
+      briefCard.show(card, key);
+    } else {
+      briefCard.open();
+    }
+    const deployed = new Set(b.v.deployed ?? []);
+    const host = b.game === 'war' ? roomLinkState.state().welcome?.host : opsHost();
+    briefCard.state({
+      pilots: b.pilots.map((seat) => ({ name: b.game === 'war' ? roomSeatName(seat) : opsSeatName(seat), ready: deployed.has(seat), host: seat === host })),
+      deployed: deployed.has(b.seat),
+      host: b.host,
+      left: now == null ? null : Math.max(0, Math.ceil((b.cardEnd - now) / 1000)),
+      waiting: b.host && !filmOver && (b.v.seen ?? []).length < b.pilots.length,
+    });
+    /* A gives way to a flight action the pilot bound to it, as the ball's
+     * zoom does (ballPad). The film's replay is View (back), which no
+     * flight action may take (padbinds.js PAD_RESERVED): X is the crash
+     * replay's, which opens on the flight screen this card is over. */
+    briefCard.pad(input.padButton('a') && !input.padActionOn('a'), input.padButton('back'));
   }
 
   /* The room link closed. */
@@ -20663,6 +20802,7 @@ export async function boot({
       sensors.update(telemetry.state.tS, dt / 1000, avxVideo);
     }
     opsFrame(mode === 'flight' && flightScreen);
+    briefCardFrame();
     opsGuideFrame(roomOps.view(), roomOps.on() ? roomOps.mission() : null, (mode === 'flight' || mode === 'paused') && flightScreen, nowWall);
     const opsHudUp = ballHudUp || (roomOps.on() && mode === 'flight' && !camOverride && flightScreen);
     opsHud.tick(opsHudUp, ui.screen === 'paused', nowWall, opsHudUp ? opsHudSrc() : null);

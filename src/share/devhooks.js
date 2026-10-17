@@ -74,6 +74,7 @@ export const HOOKS = [
   ['__avionicsHud', null],
   ['__avionics', 'denies telemetry, switches the avionics AI, seeds tracks'],
   ['__boot', null],
+  ['__briefCard', null],
   ['__budget', null],
   ['__build', 'the track builder: places, moves and deletes pieces'],
   ['__camGround', null],

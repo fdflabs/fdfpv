@@ -66,6 +66,7 @@ import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS, missionTime } from '../src/share/war/missions/index.js';
 import { stagesOf } from '../src/share/war/stages.js';
 import { FILMS, briefingMs } from '../src/share/war/films/index.js';
+import { CARD_MS } from '../src/share/war/intro.js';
 import { filmMs } from '../src/share/war/film.js';
 import { WAR_AIRFRAMES, WAR_DEFAULT } from '../configs/airframes.js';
 
@@ -490,7 +491,7 @@ try {
   /* Won once flown, past its briefing: a win in the briefing ended the
    * match at its go, still to come, and its outro waited for the room's
    * clock to reach it, over the lobby. */
-  await a.until("window.__war().view.state === 'live'", briefingMs(MISSIONS['itaipu-1']) + 30000).catch(() => {});
+  await a.until("window.__war().view.state === 'live'", briefingMs(MISSIONS['itaipu-1']) + CARD_MS + 30000).catch(() => {});
   const full = winNow(code);
   check('and won from there, every criterion met, it earns all 3 stars', full && full.won && full.stars === 3, JSON.stringify(full));
 

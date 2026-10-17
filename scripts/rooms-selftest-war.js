@@ -36,7 +36,7 @@ import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import { WAR_AIRFRAMES, WAR_DEFAULT } from '../configs/airframes.js';
 import { idsMayBe } from '../src/share/war/stages.js';
 import { contactAt } from '../src/share/war/contact.js';
-import { INTRO_MS } from '../src/share/war/intro.js';
+import { CARD_MS, INTRO_MS } from '../src/share/war/intro.js';
 import { filmFor } from '../src/share/war/films/index.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
@@ -363,8 +363,8 @@ export function warSection(check) {
       type: 'war', op: 'start', mission: 'test-1', intro: true,
     });
     const v = e.view(1);
-    const go = 500 + INTRO_MS + COUNTDOWN_MS;
-    check(`a start with the intro is a briefing of INTRO_MS (${INTRO_MS / 1000} s) before the countdown, told to everybody`,
+    const go = 500 + INTRO_MS + CARD_MS + COUNTDOWN_MS;
+    check(`a start with the intro is a briefing of INTRO_MS (${INTRO_MS / 1000} s) and the brief card's CARD_MS (${CARD_MS / 1000} s) before the countdown, told to everybody`,
       e.r.war.on() && v.state === 'briefing' && v.briefAt === 500 && v.goAt === go && e.view(0).goAt === go, JSON.stringify(v));
     {
       /* A mission at a time of day of its own: a screen not yet on that
@@ -438,6 +438,11 @@ export function warSection(check) {
     e.fly(500 + INTRO_MS - 40);
     check('it holds for the whole intro: no birth, no rack', e.view().state === 'briefing' && !e.of(1, 'born').length && e.view().rack === 0);
     e.fly(500 + INTRO_MS + 40);
+    check('the film over, the brief card holds the briefing: still no birth, no rack', e.view().state === 'briefing' && !e.of(1, 'born').length && e.view().rack === 0);
+    e.say(1, { type: 'war', op: 'ready' });
+    check('another pilot\'s Deploy on the card is its ready, in every view, and the briefing holds',
+      JSON.stringify(e.view(0).deployed) === '[2]' && e.view(1).state === 'briefing', JSON.stringify(e.view(0).deployed));
+    e.fly(500 + INTRO_MS + CARD_MS + 40);
     const cd = e.view(1);
     check('then the countdown, to the same go', cd.state === 'countdown' && cd.goAt === go && cd.briefAt === 500, JSON.stringify(cd));
     e.fly(go + 1040);
@@ -461,6 +466,18 @@ export function warSection(check) {
     s.say(1, { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version - 1 } });
     s.say(0, { type: 'war', op: 'skipIntro' });
     check('and so is it when that pilot saw only an older cut of it', s.errors(0).at(-1) === 'unwatched' && s.view(1).state === 'briefing');
+    {
+      /* Once the film is over nobody's viewing is cut: the host's Deploy
+       * on the card ends the briefing whoever has seen what. */
+      const o = warRoom({ mission: plain, start: false });
+      o.say(0, {
+        type: 'war', op: 'start', mission: 'test-1', intro: true,
+      });
+      o.fly(INTRO_MS + 1000);
+      o.say(0, { type: 'war', op: 'skipIntro' });
+      check('after the film, the host\'s Deploy with nobody having seen it: the countdown starts now', o.view(1).state === 'countdown'
+        && o.view(1).goAt === INTRO_MS + 1000 + COUNTDOWN_MS && !o.errors(0).includes('unwatched'), JSON.stringify(o.view(1)));
+    }
     s.say(1, { type: 'war', op: 'seen', films: 'all' });
     check('a seen that is not { film: version } is refused "seen"', s.errors(1).at(-1) === 'seen');
     s.say(1, seen);
@@ -491,7 +508,7 @@ export function warSection(check) {
     again.war.restore(r.stored);
     const rv = again.war.view(again);
     check('a room that restarted in a briefing keeps it, and its go', again.war.on() && rv.state === 'briefing' && rv.briefAt === 0
-      && rv.goAt === INTRO_MS + COUNTDOWN_MS);
+      && rv.goAt === INTRO_MS + CARD_MS + COUNTDOWN_MS);
 
     /* Nobody sends a pose while the film plays, and the room ticks only
      * while it is waiting() (host.js's alarm): the briefing must keep
@@ -500,7 +517,7 @@ export function warSection(check) {
     q.say(0, {
       type: 'war', op: 'start', mission: 'test-1', intro: true,
     });
-    const qGo = INTRO_MS + COUNTDOWN_MS;
+    const qGo = INTRO_MS + CARD_MS + COUNTDOWN_MS;
     let idle = null;
     for (let t = q.clock + 1; t <= qGo + 40; t += 1) {
       q.clock = t;
