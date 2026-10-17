@@ -245,11 +245,10 @@ const CSS = `
 .briefcard.open { display: flex; }
 .briefcard-box { width: min(72em, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; box-sizing: border-box;
   color: rgba(236, 244, 240, 0.92); padding: 1.1em 1.4em 0; border: 1px solid rgba(236, 244, 240, 0.3);
-  background: rgba(8, 12, 14, 0.94); font-size: clamp(11px, 1.55vh, 15px); letter-spacing: 0.04em; line-height: 1.45; }
+  background: rgba(8, 12, 14, 0.94); font-size: clamp(10px, 1.5vh, 15px); letter-spacing: 0.03em; line-height: 1.4; }
 .briefcard-eyebrow { color: rgba(236, 244, 240, 0.55); letter-spacing: 0.3em; font-size: 0.85em; }
 .briefcard-box h2 { margin: 0.15em 0 0.5em; font-weight: normal; letter-spacing: 0.16em; font-size: 1.4em; }
-.briefcard-facts { display: flex; flex-wrap: wrap; gap: 0.3em 1.6em; margin: 0 0 0.9em; padding-bottom: 0.7em;
-  border-bottom: 1px solid rgba(236, 244, 240, 0.18); }
+.briefcard-facts { display: flex; flex-wrap: wrap; gap: 0.3em 1.6em; margin: 0 0 0.6em; }
 .briefcard-facts span { color: rgba(236, 244, 240, 0.55); margin-right: 0.5em; }
 .briefcard-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24em, 100%), 1fr)); gap: 0 2em; }
 .briefcard h3 { margin: 0.7em 0 0.3em; font-weight: normal; font-size: 0.85em; letter-spacing: 0.3em; color: #f2d48a; }
@@ -260,19 +259,21 @@ const CSS = `
 .briefcard-role { display: grid; grid-template-columns: auto 1fr; gap: 0.25em 1em; margin: 0; }
 .briefcard-role dt { color: rgba(236, 244, 240, 0.55); }
 .briefcard-role dd { margin: 0; }
-.briefcard-map { display: block; width: 100%; max-height: 10em; margin-top: 0.3em; background: rgba(236, 244, 240, 0.04);
+.briefcard-map { display: block; width: 100%; max-height: 7em; margin-top: 0.3em; background: rgba(236, 244, 240, 0.04);
   border: 1px solid rgba(236, 244, 240, 0.15); }
-.briefcard-ends { display: grid; grid-template-columns: auto 1fr; gap: 0.25em 1em; margin: 0.9em 0 0; padding-top: 0.7em;
-  border-top: 1px solid rgba(236, 244, 240, 0.18); }
+.briefcard-ends { display: grid; grid-template-columns: auto 1fr; gap: 0.2em 1em; margin: 0 0 0.4em; padding-bottom: 0.6em;
+  border-bottom: 1px solid rgba(236, 244, 240, 0.18); }
 .briefcard-ends dt { letter-spacing: 0.2em; }
 .briefcard-ends dt.win { color: #8dffb5; }
 .briefcard-ends dt.lose { color: #ffc04a; }
 .briefcard-ends dd { margin: 0; }
-.briefcard-pilots { display: flex; flex-wrap: wrap; gap: 0.4em 1.2em; margin-top: 0.8em; }
+.briefcard-pilots { display: flex; flex-wrap: wrap; gap: 0.3em 1.2em; flex: 1 1 100%; }
+.briefcard-pilots:empty { display: none; }
 .briefcard-pilot.ready b { color: #8dffb5; }
 .briefcard-pilot b { font-weight: normal; letter-spacing: 0.14em; color: rgba(236, 244, 240, 0.5); margin-left: 0.5em; }
 .briefcard-row { display: flex; align-items: center; justify-content: flex-end; gap: 0.8em; flex-wrap: wrap;
-  position: sticky; bottom: 0; padding: 0.8em 0 1em; margin-top: 0.8em; background: rgba(8, 12, 14, 0.97); }
+  position: sticky; bottom: 0; padding: 0.6em 0 0.8em; margin-top: 0.6em; background: rgba(8, 12, 14, 0.97);
+  border-top: 1px solid rgba(236, 244, 240, 0.18); }
 .briefcard-status { flex: 1 1 18em; color: rgba(236, 244, 240, 0.75); }
 .briefcard-keys { color: rgba(236, 244, 240, 0.45); font-size: 0.85em; }
 .briefcard-btn { font: inherit; letter-spacing: 0.14em; color: #fff; background: transparent; border: 1px solid rgba(236, 244, 240, 0.5);
@@ -402,6 +403,12 @@ export class BriefCard {
       el('span', '', d, f.label);
       d.append(f.value);
     }
+    /* Win and lose under the header: the two lines a pilot must not miss. */
+    const ends = el('dl', 'briefcard-ends', box);
+    el('dt', 'win', ends, str('brief.card.win'));
+    el('dd', '', ends, card.win);
+    el('dt', 'lose', ends, str('brief.card.lose'));
+    el('dd', '', ends, card.lose);
     const cols = el('div', 'briefcard-cols', box);
     const left = el('div', '', cols);
     const right = el('div', '', cols);
@@ -432,13 +439,10 @@ export class BriefCard {
     map.dataset.part = 'map';
     el('h3', '', map, str('brief.card.map'));
     map.append(mapSvg(card.map));
-    const ends = el('dl', 'briefcard-ends', box);
-    el('dt', 'win', ends, str('brief.card.win'));
-    el('dd', '', ends, card.win);
-    el('dt', 'lose', ends, str('brief.card.lose'));
-    el('dd', '', ends, card.lose);
-    this.pilots = el('div', 'briefcard-pilots', box);
+    /* The room's pilots and the buttons stay in sight at the foot, the
+     * card's words scrolling over them on a short screen. */
     const row = el('div', 'briefcard-row', box);
+    this.pilots = el('div', 'briefcard-pilots', row);
     this.status = el('div', 'briefcard-status', row);
     el('div', 'briefcard-keys', row, str('brief.card.keys'));
     this.replayBtn = el('button', 'briefcard-btn', row, str('brief.card.replay'));
@@ -501,7 +505,7 @@ export class BriefCard {
       s.waiting ? str('brief.card.unwatched') : null,
       s.left != null ? str('brief.card.deploy_in', { s: s.left }) : null,
       s.pilots.length > 1 ? str(s.deployed && !s.host ? 'brief.card.you_deployed' : 'brief.card.host_deploys') : null,
-    ].filter(Boolean).join(' ');
+    ].filter(Boolean).join(' · ');
     const pilots = s.pilots.length > 1 ? s.pilots.map((p) => `${p.name}${p.host ? ` (${str('lobby.host')})` : ''}|${p.ready}`).join(';') : '';
     const shown = `${status}#${pilots}#${Boolean(s.waiting)}`;
     if (shown === this.shown) {
