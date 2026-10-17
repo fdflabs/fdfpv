@@ -1965,6 +1965,7 @@ export default {
   "interior.film.title": "The Interior",
   "interior.film.complete": "Mission complete",
   "interior.film.m2_alert": "COMMUNICATION LOST",
+  "interior.film.m2_alert_at": "PUESTO ARENAL, 16:52",
   "interior.film.ball_eo": "EO  WIDE",
   "interior.film.ball_rec": "REC",
   "interior.film.ball_gimbal": "AZ {az}  EL {el}",

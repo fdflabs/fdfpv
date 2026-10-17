@@ -11,6 +11,12 @@
  * Shot 3's new image of the mark is cap:symbol when M1_SYMBOL_CAPTURED,
  * else rec:symbol, by that same rule.
  *
+ * Shot 3's last line is Rojas's "You just said that's their symbol." only
+ * when M1_SYMBOL_CAPTURED: it quotes Ibarra's archive exchange in the
+ * flight (int1-s5-years), which plays only on that capture. Without it he
+ * says his "Come on." from the follow (int1-s4-comeon), the same voice,
+ * so the outro never quotes a line the squad did not hear.
+ *
  * Departures from INTROS M1: the sustained COLUMN note is THE COLUMN's
  * bed, which opens on one held note (FILMS.md, music), from shot 3 to the
  * dip; the landing's canopy flutter is the 'wind' bed.
@@ -48,7 +54,7 @@ const REGION = { at: CAMP, span: Math.round((2 * PLAY_HALF * 16) / 9) };
 
 export default {
   id: 'int1-outro',
-  version: 1,
+  version: 2,
   map: 'interior',
   music: null,
   cast: {
@@ -116,7 +122,7 @@ export default {
       lines: [
         { line: 'film-int1-11', lead: 1.5, tail: 0.2 },
         { line: 'film-int1-12', lead: 0.6, tail: 0.2 },
-        { line: 'film-int1-13', lead: 0.4, tail: 0.8 },
+        { line: 'film-int1-13', or: { line: 'int1-s4-comeon', flag: 'M1_SYMBOL_CAPTURED' }, lead: 0.4, tail: 0.8 },
       ],
       out: 'cut',
     },
