@@ -424,7 +424,10 @@ not the Bramor and the Skyhunter, which do not fly in a war
 (configs/airframes.js `WAR_AIRFRAMES`, held by films:lint). Shot 2
 (`ride`) is a dolly 15 m off the west line level with its phases, on 24
 mm, not 18. Shot 4 (`wires`) follows its one Striker on the 600 mm from
-over the line's third tower. No outro: none is written for M6.
+over the line's third tower, from 256 m (re-shot 2026-10-16, w50-films,
+version 3: from 300 m its long lens looked down onto the far terrain's
+smeared ground, now the towers and their wires stand against the sky
+with the Striker between them). No outro: none is written for M6.
 
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |
