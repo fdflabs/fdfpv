@@ -4430,6 +4430,7 @@ export default {
   "ops.class.network_linked": "NETWORK-LINKED",
   "ops.class.hostile": "HOSTILE CONFIRMED",
   "ops.label.new_column_unconfirmed": "NEW COLUMN (UNCONFIRMED)",
+  "ops.label.column_linked_unconfirmed": "COLUMN-LINKED (UNCONFIRMED)",
   "ops.rule.no_engagement": "ENGAGEMENT NOT AVAILABLE",
   "ops.tut.launch": "THROTTLE UP OR PRESS L TO LAUNCH",
   "ops.tut.climb": "CLIMB TO SURVEY ALTITUDE",

@@ -673,7 +673,7 @@ const SOLO = {};
   check('the camp documented: five captures', ['shelters', 'motorcycles', 'antenna', 'personnel', 'access'].every((id) => ['clean', 'usable'].includes(camp.grades[id])), JSON.stringify(camp.grades));
   check('the tarp moved: the mark taken from any side', ['clean', 'usable'].includes(camp.grades.symbol), camp.grades.symbol);
   check('the mark: its flag, the archive exchange, the camp COLUMN-LINKED with its label', e.view(0).flags.M1_SYMBOL_CAPTURED === true
-    && heard(e, 0, 'int1-s5-remembers') && contact(e, 'camp-1').cls === 'column-linked' && contact(e, 'camp-1').label === 'ops.label.new_column_unconfirmed'
+    && heard(e, 0, 'int1-s5-remembers') && contact(e, 'camp-1').cls === 'column-linked' && contact(e, 'camp-1').label === 'ops.label.column_linked_unconfirmed'
     && contact(e, 'pair-a').cls === 'column-linked');
   check('an orbit at standoff never alerted the camp', camp.alert === 0, `${camp.alert}`);
   check('the required intel in: the dispersal, its exchange', e.r.ops.match.choices?.dispersal?.value === 'started' && heard(e, 0, 'int1-s5-understand'));

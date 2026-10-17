@@ -495,7 +495,7 @@ export default {
           radio: ['int1-s5-receiving', 'int1-s5-weare', 'int1-s5-checking', 3, 'int1-s5-historical', 'int1-s5-column', 'int1-s5-years', 'int1-s5-answer', 'int1-s5-no', 1, 'int1-s5-remembers'],
           classify: [
             {
-              contacts: ['camp', 'pair'], to: 'column-linked', label: 'ops.label.new_column_unconfirmed', why: 'ev.historical_mark',
+              contacts: ['camp', 'pair'], to: 'column-linked', label: 'ops.label.column_linked_unconfirmed', why: 'ev.historical_mark',
             },
           ],
         },

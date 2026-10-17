@@ -357,7 +357,9 @@ WORLD for. Card event keys are `card.primary_updated`,
 objective texts `ops.interior.m1.obj.*`, stage titles
 `ops.interior.m1.s1` to `s5`, the rule `ops.rule.no_engagement`, the
 tutorial prompts `ops.tut.*` (stage 1's `tutorial`, cleared by the
-screen), the group label `ops.label.new_column_unconfirmed`.
+screen), the group label `ops.label.column_linked_unconfirmed`
+(MISSIONS.md int1-s5-remembers; NEW COLUMN (UNCONFIRMED) is Mission 2's
+Claro Nuevo, until 2026-10-17 also used here).
 
 What the screen reads from the mission itself: `clock` (WORLD's
 `M1_CLOCK`), `camp.mark` (the mark's dial to the map's shelter, one table

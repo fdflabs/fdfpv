@@ -4435,6 +4435,7 @@ export default {
   "ops.class.network_linked": "VINCULADO A LA RED",
   "ops.class.hostile": "HOSTIL CONFIRMADO",
   "ops.label.new_column_unconfirmed": "COLUMNA NUEVA (SIN CONFIRMAR)",
+  "ops.label.column_linked_unconfirmed": "VINCULADO A LA COLUMNA (SIN CONFIRMAR)",
   "ops.rule.no_engagement": "ENFRENTAMIENTO NO DISPONIBLE",
   "ops.tut.launch": "SUBAN EL THROTTLE O PULSEN L PARA LANZAR",
   "ops.tut.climb": "SUBAN A ALTITUD DE RELEVAMIENTO",
