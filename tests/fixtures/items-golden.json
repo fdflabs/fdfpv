@@ -137,11 +137,6 @@
        "key": "ace"
       },
       {
-       "label": "Trick Battle",
-       "action": "way-jam",
-       "key": "jam"
-      },
-      {
        "label": "Learn to fly",
        "action": "way-training",
        "key": "training"
@@ -291,21 +286,6 @@
       "Invite code"
      ],
      "svg": "<svg 412 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-jam",
-     "label": "Trick Battle",
-     "action": "way-jam",
-     "card": "jam",
-     "art": "assets/gate/flight.jpg",
-     "blurb": "One spot, one run each while the others watch. Hard tricks, clean landings, no repeats.",
-     "facts": [
-      "45 to 90 second runs",
-      "Best of three rounds",
-      "Invite code"
-     ],
-     "svg": "<svg 339 chars>",
      "drives": {}
     },
     {
@@ -27536,11 +27516,6 @@
        "key": "ace"
       },
       {
-       "label": "Batalla de Trucos",
-       "action": "way-jam",
-       "key": "jam"
-      },
-      {
        "label": "Aprender a volar",
        "action": "way-training",
        "key": "training"
@@ -27690,21 +27665,6 @@
       "Código de invitación"
      ],
      "svg": "<svg 412 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-jam",
-     "label": "Batalla de Trucos",
-     "action": "way-jam",
-     "card": "jam",
-     "art": "assets/gate/flight.jpg",
-     "blurb": "Un lugar, una pasada cada uno mientras los demás miran. Trucos difíciles, aterrizajes limpios, sin repetir.",
-     "facts": [
-      "Pasadas de 45 a 90 segundos",
-      "Al mejor de tres rondas",
-      "Código de invitación"
-     ],
-     "svg": "<svg 339 chars>",
      "drives": {}
     },
     {
