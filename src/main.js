@@ -5749,7 +5749,9 @@ export async function boot({
    */
   function lobbySetupRows(host) {
     const w = roomLinkState.state().welcome;
-    if (!host || !w || w.public || w.setupInPlace !== true) {
+    /* A room made for a game this build no longer has (a server not yet
+     * redeployed after a cut) has no row to show its game in. */
+    if (!host || !w || w.public || w.setupInPlace !== true || !modeOfRoom(w.mode)) {
       return [];
     }
     const offered = MODES.map((m) => m.id).filter((id) => id !== 'war' || warFits(w));
@@ -7088,7 +7090,7 @@ export async function boot({
    * why, on the room screen and over the flight. */
   function roomRefused(why) {
     const key = `rooms.refused_${why}`;
-    const text = str(key) === key ? str('rooms.refused_host') : str(key);
+    const text = str(hasStr(key) ? key : 'rooms.refused_host');
     roomRefusal = { text, untilMs: performance.now() + 8000 };
     /* On the room screen its own row says it; over a flight, the banner. */
     if (ui.screen === 'flight') {
@@ -8655,8 +8657,10 @@ export async function boot({
        * who pressed Defend Itaipu and then went into a public room still
        * carries 'war', and the heading said the public room was set up for
        * it. The room says it only where the war may run; elsewhere its
-       * block still leads, saying why not. */
-      const game = wanted === 'war' && !warFits(w) ? null : wanted;
+       * block still leads, saying why not. A game this build no longer
+       * has, from a server not yet redeployed after a cut, heads nothing. */
+      const known = Object.hasOwn(GAME_CARDS, wanted) ? wanted : null;
+      const game = known === 'war' && !warFits(w) ? null : known;
       const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
       const blocks = {
         race: roomRaceRows(host),
