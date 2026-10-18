@@ -200,8 +200,6 @@
     "bots:selftest": "node scripts/bots-selftest.js",
     "bots:twopage": "node scripts/bots-two-page.js",
     "airace:twopage": "node scripts/airace-two-page.js",
-    "jam:selftest": "node scripts/jam-selftest.js",
-    "jam:twopage": "node scripts/jam-two-page.js",
     "voicechat:selftest": "node scripts/voicechat-selftest.js",
     "voicechat:twopage": "node scripts/voicechat-two-page.js",
     "rooms:clock": "node scripts/roomclock-check.js",

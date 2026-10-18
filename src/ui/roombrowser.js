@@ -215,7 +215,7 @@ export function createRoomBrowser({
     if (r.game === 'war' && r.wave) {
       return str('roombrowser.flying_wave', { flying, w: r.wave, of: r.waves });
     }
-    if ((r.game === 'combat' || r.game === 'jam') && r.round) {
+    if (r.game === 'combat' && r.round) {
       return str('roombrowser.flying_round', { flying, n: r.round });
     }
     return flying;

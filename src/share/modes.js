@@ -39,7 +39,6 @@
  */
 
 import { GOALS } from './roomtag.js';
-import { RUN_SECONDS } from './roomjam.js';
 
 /* A combat round's lengths in minutes, the host's choice between rounds;
  * the first is a room's until its host picks. */
@@ -145,29 +144,6 @@ export const MODES = [
     consent: false,
     publicOnlyWhenMadeFor: false,
     straightToLobby: true,
-    makeable: true,
-    onFoot: false,
-    hidden: false,
-  },
-  {
-    id: 'jam',
-    category: 'flightclub',
-    card: {
-      way: 'jam', label: 'jam.card', blurb: 'jam.card_blurb', facts: ['jam.card_runs', 'jam.card_rounds', 'friends.card_code'],
-      art: 'assets/gate/flight.jpg', home: 'swiss2',
-    },
-    minPlayers: 1,
-    minElsewhere: 2,
-    allowSolo: true,
-    allowAI: false,
-    /* A newcomer watches the match out: its turn order was set at the
-     * start (docs/JAM-PLAN.md). */
-    allowDropIn: false,
-    openEnded: false,
-    setting: { key: 'seconds', choices: RUN_SECONDS },
-    consent: false,
-    publicOnlyWhenMadeFor: false,
-    straightToLobby: false,
     makeable: true,
     onFoot: false,
     hidden: false,
@@ -286,8 +262,8 @@ export function minPlayersFor(id, roomMode) {
  *   live       the round flying
  *   between    a round of a match over and the next to come: a combat
  *              round's results before the next (not in a room made for
- *              combat, which goes back to its lobby), a jam's next round's
- *              first turn, the war's round result
+ *              combat, which goes back to its lobby), the war's round
+ *              result
  *   over       the round or match ended, its results standing
  *   abandoned  ended by the room because too few of its players were here
  *              (edge/rooms/core.js settleGames, ABANDON_MS), not by its end
@@ -312,7 +288,6 @@ export const GAME_STATES = {
   race: ['lobby', 'on', 'results'],
   tag: ['lobby', 'countdown', 'live', 'results'],
   combat: ['idle', 'countdown', 'on', 'over'],
-  jam: ['lobby', 'turn', 'run', 'results'],
   war: ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'],
   free: ['lobby', 'live'],
 };
@@ -327,14 +302,6 @@ const GAME_SESSION = {
   },
   combat: {
     idle: (v) => (v.abandoned ? 'abandoned' : 'lobby'), countdown: () => 'countdown', on: () => 'live', over: (v) => (v.nextAt > 0 ? 'between' : 'over'),
-  },
-  /* A jam's turn is the wait before a run: its first a countdown, the
-   * first of a later round between rounds, any other the match live. */
-  jam: {
-    lobby: () => 'lobby',
-    turn: (v) => (v.turn !== 0 ? 'live' : v.round === 1 ? 'countdown' : 'between'),
-    run: () => 'live',
-    results: ended,
   },
   war: {
     lobby: () => 'lobby',

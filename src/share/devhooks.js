@@ -183,8 +183,6 @@ export const HOOKS = [
   ['__roofTop', null],
   ['__roofs', null],
   ['__roomCreate', 'makes a room and joins it'],
-  ['__roomJam', null],
-  ['__roomJamStart', 'starts a room\'s jam'],
   ['__roomJoin', 'joins a room by code'],
   ['__roomJoinPublic', 'joins the map\'s public room'],
   ['__roomMute', 'mutes a seat'],

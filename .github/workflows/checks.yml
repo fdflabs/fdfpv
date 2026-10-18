@@ -615,7 +615,6 @@ jobs:
           npm run world:layer -- --three="$RUNNER_TEMP/package"
         env:
           FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
-      - run: npm run jam:selftest
       - run: npm run figures:selftest
       - run: npm run personpilot:selftest
       # The first AI pilot behind a ghost on the plant, judged by race.js.

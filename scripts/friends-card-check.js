@@ -9,13 +9,13 @@
  *   ROOMS_DB=/tmp/rooms.db PORT=8797 node edge/rooms/node.js
  *   node scripts/friends-card-check.js http://127.0.0.1:8797 [outdir]
  *
- * Page A, 1280 by 720: home is three hubs, and Flight Club's six cards
+ * Page A, 1280 by 720: home is three hubs, and Flight Club's five cards
  * (NAMES below) have no Fly with friends among them. Flight Club's rooms panel's Make a
  * room, one click, then Friends (its code shown) and
  * Make the room: A is in the room's lobby, free flight, its invite code
  * there to read out, Ready under the cursor. R: A flies, in the room.
  *
- * Page B, 390 by 844, a phone held upright: Flight Club's six cards
+ * Page B, 390 by 844, a phone held upright: Flight Club's five cards
  * stacked inside the window, and at 360 by 640 and 844 by 390 too. The
  * panel's All rooms, one click, then Join with a code, a second, the code typed: B is in A's room
  * on seat 2, and in the air with A, the room's flight being on. Escape
@@ -127,7 +127,7 @@ async function arrowTo(page, want) {
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`a private room by its code, rooms at ${rooms}`);
-const NAMES = ['Track Day', 'Free Flight', 'Streamer Combat', 'Catch the Ace!', 'Trick Battle', 'Learn to fly'];
+const NAMES = ['Track Day', 'Free Flight', 'Streamer Combat', 'Catch the Ace!', 'Learn to fly'];
 const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
 const FLYING = "window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'";
 const a = await openPage({ root, url, width: 1280, height: 720 });

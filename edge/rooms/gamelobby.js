@@ -31,9 +31,9 @@
  * A round on has no lobby: a pilot who joins then is in it where its
  * game's allowDropIn (src/share/modes.js, read by core.js join) says so
  * (war.js late join; combat.js arrive() gives a newcomer paper; tag.js
- * makes a newcomer a hunter; free flight is just flying). A race on and a
- * jam on cannot be joined: a race went off a grid, and its racers were the
- * ones on it; a jam's turns were set at its start. When the round starts every flag is cleared, so its end finds the
+ * makes a newcomer a hunter; free flight is just flying). A race on cannot
+ * be joined: a race went off a grid, and its racers were the ones on it.
+ * When the round starts every flag is cleared, so its end finds the
  * room back in the lobby with nobody ready. Free flight has no end: its
  * round is on from its first start until the room is empty.
  *
@@ -77,7 +77,6 @@
 
 import { MISSIONS } from '../../src/share/war/missions/index.js';
 import { GOALS, GOAL_MAX, GOAL_MIN } from '../../src/share/roomtag.js';
-import { RUN_SECONDS, RUN_SECONDS_DEFAULT } from '../../src/share/roomjam.js';
 import { MODES, ROUND_MINUTES, modeById, modeOfWire, sessionOf } from '../../src/share/modes.js';
 
 export const LOBBY_COUNTDOWN_MS = 5000;
@@ -115,7 +114,6 @@ export function warMission(core) {
 }
 
 const combatMinutes = (core) => (ROUND_MINUTES.includes(core.meta.minutes) ? core.meta.minutes : ROUND_MINUTES[0]);
-const jamSeconds = (core) => (RUN_SECONDS.includes(core.meta.seconds) ? core.meta.seconds : RUN_SECONDS_DEFAULT);
 const tagGoal = (core) => (Number.isInteger(core.meta.goal) && core.meta.goal >= GOAL_MIN && core.meta.goal <= GOAL_MAX ? core.meta.goal : GOALS[0].goal);
 
 /* The key of game `id`'s one setting, from the mode registry. */
@@ -163,13 +161,6 @@ const GAMES = {
     can: () => true,
     on: (core) => core.tag.on(),
     start: (core, conn, s, now) => core.tag.message(core, conn, s, { type: 'tag', op: 'start', goal: tagGoal(core) }, now),
-  },
-  jam: {
-    set: { key: settingKey('jam'), valid: (core, v) => RUN_SECONDS.includes(v) },
-    show: (core) => ({ seconds: jamSeconds(core) }),
-    can: () => true,
-    on: (core) => core.jam.on(),
-    start: (core, conn, s, now) => core.jam.message(core, conn, s, { type: 'jam', op: 'start', seconds: jamSeconds(core) }, now),
   },
   /* The racers are the pilots on the track's grid when it goes (race.js
    * start, its own ready): a pilot in the lobby has the room's track

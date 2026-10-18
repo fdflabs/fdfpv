@@ -7,7 +7,7 @@
  * multi"):
  *
  *   SIM_GPU=1 node scripts/game-lobby-check.js --game=combat [outdir]
- *   (--game= combat, tag, jam, war, free or race; npm run game:lobby -- --game=tag)
+ *   (--game= combat, tag, war, free or race; npm run game:lobby -- --game=tag)
  *
  *   A clicks the card, one click, and is in the lobby of a public room
  *   made for the game, named for A. Escape from it is the title's cards,
@@ -118,12 +118,6 @@ const GAMES = {
     on: "['countdown', 'live'].includes(window.__roomTag().view.state)",
     results: 'window.__roomTag().results',
     end: (core, now) => core.tag.abandon(core, now),
-  },
-  jam: {
-    card: 'jam', world: 'swiss2', chip: 'Trick Battle', upMs: 60000,
-    on: "['turn', 'run'].includes(window.__roomJam().view.state)",
-    results: 'window.__roomJam().results',
-    end: (core, now) => core.jam.abandon(core, now),
   },
   war: {
     card: 'campaign', world: 'itaipu', chip: 'War 1', upMs: 150000,
@@ -735,7 +729,7 @@ try {
     check('both press R: the round on both pages', await a.evaluate(G.on) && await b.evaluate(G.on));
     endRound(code);
     /* Combat's end shows its results screen first (605006770), and the
-     * Ace's and the Trick Battle's too (roomTagFrame, roomJamFrame), also
+     * Ace's too (roomTagFrame), also
      * to a pilot still on the lobby screen when the round ends, which a
      * round ended in its countdown leaves both on: read at once, the
      * lobby was the one before the end, and the results came over it a

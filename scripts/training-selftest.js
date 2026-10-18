@@ -485,7 +485,7 @@ expect('two tracks at once', certsEarned({ ...allOf('racing'), ...allOf('multiro
   expect('crash: each crash restarts the steps and is counted once, however many frames report it', [crashes.crashes, crashes.step].join(), '2,0');
   expect('rooms: Racing a pilot keeps Track Day\'s, not Streamer Combat\'s', [lessonFliesIn(lessonById('race_pilot'), 'race'), lessonFliesIn(lessonById('race_pilot'), 'combat')].join(), 'true,false');
   expect('rooms: a Defence lesson keeps the war\'s', LESSONS.filter((l) => l.track === 'defence').every((l) => lessonFliesIn(l, 'war')), true);
-  expect('rooms: a solo lesson keeps none', ['race', 'war', 'combat', 'tag', 'jam', 'free'].some((m) => lessonFliesIn(lessonById('first_turns'), m)), false);
+  expect('rooms: a solo lesson keeps none', ['race', 'war', 'combat', 'tag', 'free'].some((m) => lessonFliesIn(lessonById('first_turns'), m)), false);
   for (const k of ['training.interrupted', 'training.interrupt_held', 'training.interrupt_crash', 'training.interrupt_room', 'training.interrupt_reload']) {
     expect(`${k} en and es`, typeof en[k] === 'string' && typeof es[k] === 'string' && en[k] !== es[k], true);
   }

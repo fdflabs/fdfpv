@@ -537,7 +537,7 @@ export function gameLobbySection(check) {
       !outWar.includes(3) && outWar.length === 2 && flipped.r.war.on(), JSON.stringify(outWar));
   }
   {
-    /* Combat, the Ace and the jam read the same field (COMPLETENESS 7):
+    /* Combat and the Ace read the same field (COMPLETENESS 7):
      * each game's newcomer, then the same with the field turned over. */
     const begun = (e) => {
       e.at(100);
@@ -570,14 +570,6 @@ export function gameLobbySection(check) {
     check('with the Ace\'s allowDropIn turned over, that pilot flies but is no hunter and not drawn',
       tagOut.r.tag.on() && !Object.hasOwn(tagOut.r.tag.match.players, 3) && !tagOut.r.tag.flying(tagOut.r).some((f) => f.seat === 3),
       JSON.stringify(Object.keys(tagOut.r.tag.match.players)));
-
-    const jam = begun(lobbyRoom({ mode: 'jam', mission: null }));
-    check('a pilot who comes during a jam watches it out: no turn', jam.r.jam.on() && !Object.hasOwn(jam.r.jam.match.players, 3) && !jam.r.jam.match.order.includes(3),
-      JSON.stringify(jam.r.jam.match.order));
-    const jamIn = begun(lobbyRoom({ mode: 'jam', mission: null, flip: 'jam' }));
-    check('with the jam\'s allowDropIn turned over, that pilot is one of its pilots, its turn last this round',
-      jamIn.r.jam.on() && jamIn.r.jam.players(jamIn.r).includes(3) && jamIn.r.jam.match.order.at(-1) === 3 && jamIn.socks[0].got.filter((m) => m.type === 'jam').at(-1).jam.order.includes(3),
-      JSON.stringify(jamIn.r.jam.match.order));
   }
   {
     const e = lobbyRoom({ mode: null });
@@ -813,16 +805,16 @@ export function loadFailSection(check) {
     check('a racer whose page fails mid race is retired from it, the race on', r.state === 'on' && r.out[2] === 'retired' && !e.r.race.readySeats().includes(2),
       JSON.stringify(r.out));
   }
-  for (const mode of ['tag', 'jam']) {
-    const e = lobbyRoom({ mode, mission: null, n: 3 });
+  {
+    const e = lobbyRoom({ mode: 'tag', mission: null, n: 3 });
     fail(e, 2);
     e.at(100);
     e.ready(0);
     e.ready(1);
     e.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    const g = e.r[mode];
-    check(`${mode === 'tag' ? 'a tag match' : 'a jam'} goes without the failed seat: not one of its players${mode === 'jam' ? ', no turn' : ''}`,
-      g.on() && !Object.hasOwn(g.match.players, 3) && !g.players(e.r).includes(3) && (mode !== 'jam' || !g.match.order.includes(3)),
+    const g = e.r.tag;
+    check('a tag match goes without the failed seat: not one of its players',
+      g.on() && !Object.hasOwn(g.match.players, 3) && !g.players(e.r).includes(3),
       JSON.stringify(Object.keys(g.match.players)));
   }
   {
@@ -835,10 +827,9 @@ export function loadFailSection(check) {
     e.at(100);
     fail(e, 1);
     e.say(0, { type: 'tag', op: 'start', goal: 5 });
-    e.say(0, { type: 'jam', op: 'start', seconds: 45 });
-    check('with the other pilot failed, tag and jam in passing are refused as alone, nothing on, nothing to abandon',
-      !e.r.tag.on() && !e.r.jam.on() && errors('tag') === 'alone' && errors('jam') === 'alone' && e.r.abandoned.size === 0,
-      JSON.stringify({ tag: errors('tag'), jam: errors('jam') }));
+    check('with the other pilot failed, tag in passing is refused as alone, nothing on, nothing to abandon',
+      !e.r.tag.on() && errors('tag') === 'alone' && e.r.abandoned.size === 0,
+      JSON.stringify({ tag: errors('tag') }));
     e.say(1, { type: 'profile', profile: { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null } });
     e.say(0, { type: 'tag', op: 'start', goal: 5 });
     check('one on another world is not counted either', !e.r.tag.on() && errors('tag') === 'alone,alone', errors('tag'));
@@ -902,28 +893,6 @@ export function sessionStatesSection(check) {
     e.say(0, { type: 'race', op: 'retire', race: e.r.race.race.id });
     e.say(0, { type: 'race', op: 'end' });
     check('a race: lobby, countdown, live once its go has passed, over', heard(e, view('race')) === 'lobby,countdown,live,over', heard(e, view('race')));
-  }
-  {
-    const e = lobbyRoom({ mode: 'jam', mission: null });
-    e.at(100);
-    go(e);
-    while (e.r.jam.on()) {
-      e.at(e.clock + 1000);
-    }
-    const first = heard(e, view('jam'));
-    check('a jam: lobby, countdown, live, between its rounds, live, over', /^lobby,countdown,live,(between,live,)+over$/.test(first), first);
-  }
-  {
-    /* A jam skips a runner not here, so one with nobody left runs out to
-     * its results; started in passing in a free flight room, where two are
-     * its least, one counted out abandons it. */
-    const e = lobbyRoom({ mode: null });
-    e.at(100);
-    e.say(0, { type: 'jam', op: 'start', seconds: 45 });
-    e.at(e.clock + 100);
-    e.say(1, { type: 'fail', map: 'itaipu' });
-    e.at(e.clock + ABANDON_MS + 200);
-    check('a jam in passing: countdown, live, abandoned when one of its two failed', heard(e, view('jam')) === 'lobby,countdown,live,abandoned', heard(e, view('jam')));
   }
   {
     /* Combat started in passing in a free flight room runs round after

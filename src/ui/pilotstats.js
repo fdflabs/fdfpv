@@ -43,13 +43,12 @@ import { flightTimeText } from './carousel.js';
 import { el } from './dom.js';
 
 /* The Flight Club modes whose time is shown, each under its card's name.
- * Catch the Ace! and Trick Battle add their matches won and best score. */
+ * Catch the Ace! adds its matches won and best score. */
 const MODE_TIME = [
   ['race', 'ui.track_mode'],
   ['free', 'ui.free_flight_card'],
   ['combat', 'combat.card'],
   ['tag', 'roomtag.section'],
-  ['jam', 'jam.card'],
 ];
 
 /* A float version is the land plane with a toggle on (configs/airframes.js
@@ -119,7 +118,7 @@ export function pilotStats(settings, wallet = null) {
     modes: MODE_TIME.map(([id]) => total.byActivity[id] || 0),
     flights: counts.flights,
     landings: landingTotal(progress.landings),
-    games: { tag: counts.tag, jam: counts.jam },
+    games: { tag: counts.tag },
     bests: bestsShown(progress.bests),
     tokens: wallet && Number.isFinite(wallet.balance) ? wallet.balance : null,
   };
