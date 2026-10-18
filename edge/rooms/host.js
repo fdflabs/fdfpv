@@ -56,6 +56,7 @@ import {
 } from '../../src/share/roomwire.js';
 import { reportRoom } from './lobby.js';
 import { retiredMap } from '../../src/maps/retired.js';
+import { modeById } from '../../src/share/modes.js';
 
 /*
  * AN EMPTY ROOM CLOSES PURGE_MS AFTER ITS LAST PILOT LEFT, and a pilot
@@ -98,9 +99,13 @@ export function nextTickDue(lastDue, now) {
 }
 
 export class RoomHost {
-  constructor(ctx, env) {
+  /* options.modeById is the mode registry's entry by id (src/share/modes.js
+   * modeById), handed on to the core: a check's own registry stands in for
+   * a build that no longer has a game (rooms:selftest). */
+  constructor(ctx, env, options = {}) {
     this.ctx = ctx;
     this.env = env;
+    this.modeById = options.modeById ?? modeById;
     this.core = null;
     this.timer = null;
     this.tickDue = null; /* wall ms the tick last timed was due, nextTickDue */
@@ -112,6 +117,16 @@ export class RoomHost {
     }
     const meta = await this.ctx.storage.get('meta');
     if (!meta) {
+      return null;
+    }
+    /* A room stored for a game this build no longer has is closed as it
+     * wakes, and answers as a code nobody made (nosuch): there is no game
+     * to wake it into, and a free flight room in its place is not what its
+     * code was given out for. meta.mode is only ever null or a registry id
+     * (front.js create, core.js setup), so an id the registry does not know
+     * is a game since removed (the combat-only cut, 2026-10-18). */
+    if (meta.mode != null && !this.modeById(meta.mode)) {
+      await this.ctx.storage.deleteAll();
       return null;
     }
     /* A room stored on a world since retired (src/maps/retired.js) wakes
@@ -128,16 +143,24 @@ export class RoomHost {
      * env.DEV_MISSIONS is node.js's, for a check's own server. */
     this.core = new RoomCore(meta, {
       turn: this.env.TURN || null, devMissions: this.env.DEV_MISSIONS === true, devAccounts: devAccountsOf(this.env.DEV_ACCOUNTS),
-      publicRooms: this.env.PUBLIC_ROOMS === 'on',
+      publicRooms: this.env.PUBLIC_ROOMS === 'on', modeById: this.modeById,
     });
     /* Every key a { store } action wrote is the name of the core's part
      * that keeps it (core.race for 'race'), restored before the seats. A
-     * key with no such part is a bug and throws here, not a race that
-     * silently comes back empty. */
+     * key with no such part is one stored by a build that had it, a part
+     * since removed (the Hercules' drops in a free flight room, after the
+     * combat-only cut): it is left unread, and the room's purge takes it.
+     * The log names it, since a part renamed without its key reads the
+     * same way and its state comes back empty. */
     for (const [key, value] of await this.ctx.storage.list()) {
-      if (key !== 'meta') {
-        this.core[key].restore(value);
+      if (key === 'meta') {
+        continue;
       }
+      if (typeof this.core[key]?.restore !== 'function') {
+        console.error(`room ${meta.code}: stored '${key}' has no part in this build; left unread`);
+        continue;
+      }
+      this.core[key].restore(value);
     }
     this.core.restore(this.ctx.getWebSockets().map((ws) => ({ conn: ws, attachment: ws.deserializeAttachment() })));
     /* After a hibernation or a restart, when the room went empty is what

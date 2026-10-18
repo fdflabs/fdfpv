@@ -37,6 +37,7 @@ import es from '../src/strings/es.js';
 import front from '../edge/rooms/front.js';
 import { PURGE_MS, RoomHost } from '../edge/rooms/host.js';
 import { PRIVATE_CAP } from '../edge/rooms/core.js';
+import { modeById } from '../src/share/modes.js';
 import {
   LIST_GRACE_MS, Lobby, LobbyBook, MAX_ROOMS, PENDING_MS, listingOf,
 } from '../edge/rooms/lobby.js';
@@ -95,8 +96,10 @@ const texts = (c, type) => c.got.filter((m) => m && m.type === type);
 
 /* The rooms server of node.js in one process, minus the sockets: one
  * RoomHost per name, one Lobby, and front.js answering. `stores` outlives
- * a server, so a second one over it is the same rooms after a restart. */
-export function server(stores = new Map(), publicRooms = 'on') {
+ * a server, so a second one over it is the same rooms after a restart.
+ * `registry`, when given, is the rooms' mode registry by id in place of
+ * modes.js's (host.js RoomHost options.modeById). */
+export function server(stores = new Map(), publicRooms = 'on', registry = undefined) {
   const env = { PUBLIC_ROOMS: publicRooms };
   const rooms = new Map();
   env.ROOMS = {
@@ -107,7 +110,7 @@ export function server(stores = new Map(), publicRooms = 'on') {
           stores.set(name, memoryStorage());
         }
         const sockets = new Set();
-        const host = new RoomHost({ storage: stores.get(name), getWebSockets: () => [...sockets] }, env);
+        const host = new RoomHost({ storage: stores.get(name), getWebSockets: () => [...sockets] }, env, { modeById: registry });
         rooms.set(name, {
           host,
           sockets,
@@ -275,6 +278,44 @@ export async function browserSection(check) {
     `${wakes.welcome && wakes.welcome.map} ${oldStore.kept.get('meta').map}`);
   await wakes.say({ type: 'world', map: 'yellowstone' });
   check('and its host cannot move it back there', oldStore.kept.get('meta').map === 'swiss2' && texts(wakes, 'world').length === 0);
+
+  /* The combat-only cut (2026-10-18) takes every room game but the war,
+   * and the VM keeps rooms across the restart that brings it. A room
+   * stored for Catch the Ace, as the build before kept it, wakes in a
+   * build whose registry has no 'tag': this check's own registry stands
+   * in for that build while this one still has the game. */
+  console.log('room browser: a game since removed');
+  const noTag = (id) => (id === 'tag' ? null : modeById(id));
+  const tagMade = await old.create({ map: 'itaipu' });
+  const tagStore = old.stores.get(`prv:${tagMade.code}`);
+  tagStore.kept.set('meta', { ...tagStore.kept.get('meta'), map: 'swiss2', mode: 'tag' });
+  tagStore.kept.set('tag', { match: null, nextId: 2 });
+  tagStore.kept.set('hosting', { token: 'a'.repeat(32) });
+  const cut = server(old.stores, 'on', noTag);
+  const tagWakes = await cut.join({ code: tagMade.code });
+  check('a room stored for a game the build no longer has is closed as it wakes: no seat, nosuch, and forgotten',
+    !tagWakes.welcome && tagWakes.closed && tagWakes.closed.code === CLOSE.nosuch && tagStore.kept.size === 0,
+    `${JSON.stringify(tagWakes.closed)} ${[...tagStore.kept.keys()].join()}`);
+  const tagAgain = await cut.join({ code: tagMade.code });
+  check('and its code stays nosuch', !tagAgain.welcome && tagAgain.closed && tagAgain.closed.code === CLOSE.nosuch);
+  /* A key no part of this build keeps, as a removed part (the Hercules'
+   * drops) leaves in a free flight room: the room wakes, and the log
+   * names the key it left unread. */
+  const freeMade = await old.create({ map: 'itaipu' });
+  const freeStore = old.stores.get(`prv:${freeMade.code}`);
+  freeStore.kept.set('poker', { hands: 3 });
+  const logged = [];
+  const consoleError = console.error;
+  console.error = (...args) => logged.push(args.join(' '));
+  let freeWakes;
+  try {
+    freeWakes = await cut.join({ code: freeMade.code });
+  } finally {
+    console.error = consoleError;
+  }
+  check('a free flight room holding a key no part keeps wakes and seats its pilot, the key left unread and logged',
+    freeWakes.welcome && freeWakes.welcome.code === freeMade.code && !freeWakes.closed && freeStore.kept.has('poker')
+    && logged.length === 1 && logged[0].includes(freeMade.code) && logged[0].includes("'poker'"), logged.join(' | '));
 
   console.log('room browser: the list');
   let list = await s.list();
