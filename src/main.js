@@ -553,13 +553,15 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * resource timing for them): a wrong count moves the bar at the wrong pace
  * and cannot break a load. A map with no entry weighs 4.
  *
- * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 42 in
- * all. The Alps modules it builds through, and the asset library's
- * (src/render/library/, where its tree models went), are under their own
- * prefixes, so they are not in this number, and a pilot who flew the Alps
- * first already has them. Check 16 asserts this count against what the
- * browser actually fetched on choosing the valley, because a bar weight
- * that is wrong cannot break a load and so nothing else would notice: 61
+ * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 39 in
+ * all. The Alps modules it builds through, the asset library's
+ * (src/render/library/, where its tree models went) and the photographic
+ * look it shares with Itaipu and the Interior (src/maps/look/) are under
+ * their own prefixes, so they are not in this number, and a pilot who flew
+ * the Alps first already has the Alps'. Check 16 asserts this count
+ * against what the browser actually fetched on choosing the valley,
+ * because a bar weight that is wrong cannot break a load and so nothing
+ * else would notice: 61
  * sat here for a round for the city while the real count was 63.
  *
  * The freestyle town and the airfield were removed on 2026-09-28, and the
@@ -581,10 +583,10 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * flood's water/live.js, surface.js, bed.js and flood.js, whose water
  * Free Flight draws from the map's build on, and breach.js, the water
  * through a hole torn in a gate, drawn with it, docs/FLOOD.md). The
- * terrain engine (src/maps/terrain/) and the swiss2 look it is built
- * with are under their own prefixes, as the Alps' modules are for
- * swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 42, itaipu: 34 };
+ * terrain engine (src/maps/terrain/) and the photographic look it is
+ * built with (src/maps/look/) are under their own prefixes, as the Alps'
+ * modules are for swiss2. */
+const MAP_MODULE_COUNT = { swiss2: 39, itaipu: 34 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */

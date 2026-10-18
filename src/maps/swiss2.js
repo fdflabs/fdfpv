@@ -21,8 +21,8 @@
  *   swiss2/ground.js     the terrain's splat, and its masks
  *   swiss2/light.js      the mountains' shadow (the sun: library/sun.js)
  *   library/photolook.js the material every builder asks for, by name
- *   swiss2/post.js       occlusion, aerial perspective, the camera, AgX, FXAA
- *   swiss2/clouds.js     the low cloud in the valley, marched in the post chain
+ *   look/post.js         occlusion, aerial perspective, the camera, AgX, FXAA
+ *   look/clouds.js       the low cloud in the valley, marched in the post chain
  *   swiss2/rock/         the carved rock on the walls' cliffs and faces
  *   swiss2/vegetation/   the forests, the boulders and the meadow
  *   swiss2/water/        the lake, the stream, the fall and its headwall
@@ -68,7 +68,7 @@ import { shareInstancedDepth } from '../render/shell.js';
 import { str } from '../strings/index.js';
 import { makeRng } from '../render/library/noise.js';
 import {
-  HALF, CELL, CELLS, groundPaths, buildHeightfield,
+  FIELD, HALF, CELL, CELLS, groundPaths, buildHeightfield,
 } from './alps/terrain.js';
 import {
   swissGroundGeometry, wallRise, apronAt, bayLayout,
@@ -90,8 +90,8 @@ import {
 } from './swiss2/light.js';
 import { makePhotoLook, finishScene } from '../render/library/photolook.js';
 import { makeSun } from '../render/library/sun.js';
-import { buildPhotoComposer, AIR } from './swiss2/post.js';
-import { makeClouds } from './swiss2/clouds.js';
+import { buildPhotoComposer, AIR } from './look/post.js';
+import { makeClouds, FIELD as CLOUD_FIELD, CELLS as CLOUD_CELLS } from './look/clouds.js';
 import { buildVegetation } from './swiss2/vegetation/index.js';
 import { buildWater } from './swiss2/water/index.js';
 import { swissBuildings } from './swiss2/buildings/index.js';
@@ -99,10 +99,16 @@ import { swissVehicles } from './swiss2/vehicles/index.js';
 import { buildProps } from './swiss2/props/index.js';
 import { buildLakeside } from './swiss2/props/lakeside.js';
 import { makeBake } from '../render/library/kit.js';
-import { photoCraftLook } from './swiss2/craftlook.js';
+import { photoCraftLook } from './look/craftlook.js';
 import { buildPeople } from './swiss2/village/people.js';
 import { buildCliffs, occupiedCells, trimGround } from './swiss2/rock/index.js';
 import { valleyLayout } from './swiss2/vegetation/zones.js';
+
+/* The clouds read the heights handed to setTerrain on their own copy of
+ * this grid; a valley reshaped without it would put mist in the air. */
+if (CLOUD_FIELD !== FIELD || CLOUD_CELLS !== CELLS) {
+  throw new Error(`swiss2: look/clouds.js marches a ${CLOUD_FIELD} m, ${CLOUD_CELLS} cell grid, the valley is ${FIELD} m, ${CELLS} cells`);
+}
 
 const CAMERA_FAR = 14000;
 /* The paints the cars in the village's yards come in, by yards.js's
@@ -659,7 +665,7 @@ function photoStyle() {
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
-      /* Rain thickens the air (src/main.js rainFrame, swiss2/post.js setWet). */
+      /* Rain thickens the air (src/main.js rainFrame, maps/look/post.js setWet). */
       map.setWet = post.setWet;
       /* The post chain that draws this scene, for the sensor checks, as
        * Itaipu's and the Interior's (scripts/thermal-physics-check.js). */

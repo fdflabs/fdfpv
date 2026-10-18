@@ -51,7 +51,7 @@
 import * as THREE from 'three';
 import { FIELD, HALF, CELLS } from '../alps/terrain.js';
 import { SUN_U, SUN_ELEVATION_DEG } from './assets.js';
-import { LOW_COVER_GLSL, LOW_SHADOW_Y, LOW_SHADOW_DEPTH } from './clouds.js';
+import { LOW_COVER_GLSL, LOW_SHADOW_Y, LOW_SHADOW_DEPTH } from '../look/clouds.js';
 
 /* Toward the sun, from the photograph's own sun: three's equirect maps u
  * to atan(z, x) / 2 pi + 0.5. */

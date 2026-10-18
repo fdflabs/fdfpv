@@ -144,7 +144,10 @@ const ROWS = [
     kind: 'worlds', where: 'src/maps/<id>/', owner: 'src/maps/registry.js',
     files: dirsIn('src/maps'),
     entries: MAPS.filter((m) => m.load).map((m) => m.id),
-    support: { terrain: 'the terrain engine every world builds on' },
+    support: {
+      terrain: 'the terrain engine every world builds on',
+      look: 'the photographic look Itaipu, the Interior and the Swiss valley draw with',
+    },
     /* Not every world has a folder of its own: the Swiss valley is one
      * module over the alps' builders and one assets.js. */
     complete: false,

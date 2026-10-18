@@ -63,7 +63,7 @@ const EXCUSED = new Map([
   ['src/render/post.js', 'GLSL'],
   ['src/maps/swiss2/ground.js', 'GLSL patches'],
   ['src/maps/swiss2/light.js', 'GLSL patches'],
-  ['src/maps/swiss2/craftlook.js', 'GLSL patches for the palette craft look'],
+  ['src/maps/look/craftlook.js', 'GLSL patches for the palette craft look'],
   ['src/fc/dump.js', 'Betaflight CLI lines'],
   ['src/fc/catalog-data.js', 'the Betaflight value table, firmware data'],
   ['src/render/budget.js', 'a developer overlay of GPU allocations'],

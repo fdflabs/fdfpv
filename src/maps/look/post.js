@@ -823,7 +823,7 @@ class PhotoPass extends Pass {
 export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds, air = AIR) {
   const lens = LENS[q.id];
   if (!lens) {
-    throw new Error(`swiss2 post: no lens for the ${q.id} preset; say what it spends in src/maps/swiss2/post.js`);
+    throw new Error(`swiss2 post: no lens for the ${q.id} preset; say what it spends in src/maps/look/post.js`);
   }
   if (lens.glare && !lens.meter) {
     throw new Error('swiss2 post: the glare reads the meter for how much of the sun the lens sees');
