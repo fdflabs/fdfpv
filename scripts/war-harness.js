@@ -65,6 +65,9 @@
  *   5. no boom is decided later than LATE_MS and a tick after it happened
  * Run 1 has exact clocks; run 2 puts each client's clock off by up to 10 ms
  * either way and reports the bands of 3 and 4 rather than holding them.
+ * The pass and the swarm are run again on the airframes the war seats
+ * (keptScenarios), and the cost on the interceptor, each reported on its
+ * own.
  *
  *   node scripts/war-harness.js [--seeds=6] [--runs=16] [--run=1|2|cost]
  *
@@ -119,6 +122,10 @@ const STALL_MS = 200;
 const STALL_P = 0.25;
 const GO = COUNTDOWN_MS; /* the host starts at room ms 0 */
 const Y = 300;
+/* The Cub's referee hull reach, m (src/game/midair.js hullFor('cub1400'),
+ * configs/hulls.js at bc2b0170f: 0.7662), what the cost's shell layout
+ * was set on. */
+const CUB_REACH = 0.7662;
 const DEEP_M = 0.15;
 const INTERP_M = 0.05;
 const BALL = 3;
@@ -323,9 +330,8 @@ function pass(reach, lead = 0, airframe = 'cub1400', { speed = 20, warhead = nul
 }
 
 /* Waves of six FPVs through the ball from four sides, every 2.5 s. */
-function swarm(seed) {
+function swarm(seed, air = ['cub1400', 'interceptor', 'p51d1450', 'bombshell1118'], tag = '') {
   const rand = rng(seed * 31 + 7);
-  const air = ['cub1400', 'interceptor', 'p51d1450', 'bombshell1118'];
   const L = 700;
   const routes = {
     e: [[-L, Y, 0], [L, Y, 0]], w: [[L, Y + 2, 0], [-L, Y + 2, 0]], n: [[0, Y - 2, L], [0, Y - 2, -L]], s: [[3, Y, -L], [3, Y, L]],
@@ -339,7 +345,7 @@ function swarm(seed) {
   }
   waves.sort((a, b) => a.at - b.at);
   return {
-    name: `swarm ${seed}`, kind: 'swarm', air, mission: mission('swarm', waves, routes), paths: air.map(() => wander(rand)), end: GO + 36000,
+    name: `swarm ${seed}${tag}`, kind: 'swarm', air, mission: mission('swarm', waves, routes), paths: air.map(() => wander(rand)), end: GO + 36000,
   };
 }
 
@@ -589,9 +595,17 @@ function sweep(sc, clock) {
  * The CPU the room spends in its own calls (poses and ticks), per second
  * of play from the go.
  */
-function cost(layout, parked = 52, hunters = 8) {
+function cost(layout, parked = 52, hunters = 8, airframe = 'cub1400') {
   const seats = 8;
-  const air = Array.from({ length: seats }, () => 'cub1400');
+  const air = Array.from({ length: seats }, () => airframe);
+  /* The shell's jammers sit 6.45 to 6.59 m from a Cub's centre: 0.45 to
+   * 0.59 m past BLAST_M, inside its hull's 0.766 m reach. Another hull
+   * takes the same fractions of its own reach (src/game/midair.js
+   * hullFor), so it is as hard for the broadphase as the Cub's. */
+  const fit = airframe === 'cub1400' ? 1 : hullFor(airframe).hull.reach / CUB_REACH;
+  if (!(fit > 0)) {
+    throw new Error(`cost: ${airframe} has no referee hull`);
+  }
   const crowd = layout === 'crowd';
   const at = air.map((_, i) => (crowd ? [2 * Math.cos(i * Math.PI / 4), Y, 2 * Math.sin(i * Math.PI / 4)] : [i * 120 - 420, Y, 0]));
   const routes = {};
@@ -609,7 +623,7 @@ function cost(layout, parked = 52, hunters = 8) {
       const k = Math.floor(n / seats);
       const ang = (k * 2 * Math.PI) / 7 + i;
       const up = k % 2 ? -1 : 1;
-      p = [at[i][0] + 0.3 * Math.cos(ang), Y + up * (6.45 + (0.14 * k) / Math.ceil(parked / seats)), at[i][2] + 0.3 * Math.sin(ang)];
+      p = [at[i][0] + 0.3 * fit * Math.cos(ang), Y + up * (BLAST_M + fit * (0.45 + (0.14 * k) / Math.ceil(parked / seats))), at[i][2] + 0.3 * fit * Math.sin(ang)];
     }
     routes[`j${n}`] = [[p[0] - 0.5, p[1], p[2]], p];
     waves.push({ at: 0.5, kind: 'jammer', n: 1, route: `j${n}` });
@@ -697,7 +711,24 @@ function scenarios() {
   return out;
 }
 
-function report(clock, results) {
+/* The same on the airframes the war seats (configs/airframes.js
+ * WAR_AIRFRAMES): the head on pass with the interceptor as the defender,
+ * on the FPV row's fuze radius as the Cub's (src/share/war/fuze.js), its
+ * offset from its own hull (offsetFor), and the swarm with the seven
+ * inch, the interceptor, the Striker and the ten inch. Reported on their
+ * own, so the rows above stay the record they were. */
+function keptScenarios() {
+  const out = [];
+  for (let dm = 50; dm <= 70; dm += 1) {
+    out.push(pass(dm / 10, 0, 'interceptor'));
+  }
+  for (let s = 1; s <= SEEDS; s += 1) {
+    out.push(swarm(s, ['7inch', 'interceptor', 'striker2500', '10inch'], ' (kept)'));
+  }
+  return out;
+}
+
+function report(clock, results, tag = '') {
   let failed = 0;
   const row = (name, ok, detail) => {
     console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
@@ -707,7 +738,7 @@ function report(clock, results) {
   const all = (f) => results.flatMap((r) => r[f]);
   const passes = results.filter((r) => r.kind === 'pass');
   const swarms = results.filter((r) => r.kind === 'swarm');
-  console.log(`\nrun ${clock + 1}, ${clock ? 'clocks off by up to 10 ms either way' : 'exact clocks'}: ${sum('runs')} runs, ${sum('onTime')} of them inside LATE_MS`);
+  console.log(`\nrun ${clock + 1}${tag}, ${clock ? 'clocks off by up to 10 ms either way' : 'exact clocks'}: ${sum('runs')} runs, ${sum('onTime')} of them inside LATE_MS`);
   console.log(`    swarms: ${swarms.length} seeds x ${RUNS} runs, ${sum('booms', swarms)} detonations in ${sum('boomRuns', swarms)} runs`);
   const band = passes.map((r) => `${r.reach.toFixed(2)}:${Math.round((100 * r.boomRuns) / Math.max(1, r.runs))}%`).join(' ');
   console.log(`    head on pass, closest truth reach from the Strike's centre in m: percent of runs that went off (BLAST_M ${BLAST_M} m)\n      ${band}`);
@@ -1109,6 +1140,10 @@ let failed = 0;
 for (const clock of clocks) {
   failed += report(clock, list.map((sc) => sweep(sc, clock)));
 }
+const kept = keptScenarios();
+for (const clock of clocks) {
+  failed += report(clock, kept.map((sc) => sweep(sc, clock)), ', the airframes the war seats');
+}
 if (arg('run', 'both') !== 'cost') {
   failed += briefing();
   failed += striker();
@@ -1121,11 +1156,11 @@ if (arg('run', 'both') !== 'cost') {
  * once in any Act 1 mission at 8 pilots is its largest round: 52
  * (First Light's last), and the most Hunters in one is 5 (itaipu-4's
  * last), so both rows bound every one. */
-for (const [parked, hunters] of [[52, 8], [115, 5]]) {
+for (const [airframe, parked, hunters] of [['cub1400', 52, 8], ['cub1400', 115, 5], ['interceptor', 52, 8], ['interceptor', 115, 5]]) {
   const all = parked + hunters;
-  console.log(`\nthe cost of a war room: 8 pilots, ${all} attackers (${hunters} hunters), 30 s of play`);
+  console.log(`\nthe cost of a war room: 8 pilots${airframe === 'cub1400' ? '' : ` on the ${airframe}`}, ${all} attackers (${hunters} hunters), 30 s of play`);
   for (const layout of ['crowd', 'shell']) {
-    const c = cost(layout, parked, hunters);
+    const c = cost(layout, parked, hunters, airframe);
     const ok = c.msPerS < CPU_MS_PER_S && c.alive >= all - 1 && c.booms === 0;
     console.log(`  ${ok ? 'pass' : 'FAIL'}  ${layout}: the room's CPU for 8 pilots and ${all} attackers is under ${CPU_MS_PER_S} ms a second  (${c.msPerS.toFixed(1)} ms a second; ${c.alive.toFixed(1)} alive, ${c.pairs} pairs, ${c.booms} detonations)`);
     failed += ok ? 0 : 1;

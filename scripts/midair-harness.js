@@ -38,7 +38,9 @@
  *      50 ms links, within a median of 1 m of where the referee had it
  * Rows 5 to 8 are exact on run 1; on run 2 they are reported as a band,
  * the graze depth at which false hits start and misses stop, which is the
- * rule's real resolution against the clock.
+ * rule's real resolution against the clock. Every scenario is flown again
+ * on the aircraft PDCS seats, on Itaipu (keptScenarios), and held to the
+ * same rows on its own.
  *
  *   node scripts/midair-harness.js [--seeds=20] [--jobs=N] [--run=1|2] [--only=name]
  *
@@ -175,6 +177,59 @@ function scenarios() {
   return out;
 }
 
+/*
+ * The same on the aircraft PDCS seats, on Itaipu, judged on their own so
+ * the rows above stay the record they were: the war's rams (the
+ * interceptor and the seven inch into the Striker, head on, crossing, and
+ * the interceptor running one down from behind, the job it is named for),
+ * the interceptor's 6 g turn across a Striker, two Strikers in formation,
+ * the stalled and the reconnecting link, and both grazes between two
+ * Strikers. The Striker flies 25 m/s, between its 13.53 m/s stall and its
+ * 34.2 m/s top (configs/airframes.js). Its graze edge is found on its own
+ * hull (src/game/midair.js hullFor) by bisection on the truth, as the
+ * Cub's crossing graze is, where the Cub's head on graze takes its tip,
+ * CUB_TIP, as written.
+ */
+function keptScenarios() {
+  const S = 'striker2500';
+  const out = [
+    { name: 'kept head on', a: 'interceptor', b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [-1, 0, 0], 25), deep: true },
+    { name: 'kept crossing 90', a: '7inch', b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [0, 0, 1], 25), deep: true },
+    { name: 'kept overtaking', a: 'interceptor', b: S, A: flight([0, Y, 0], [1, 0, 0], 35), B: flight([0, Y, 0], [1, 0, 0], 25), deep: true },
+    { name: 'kept turning crossing', a: 'interceptor', b: S, A: turn([0, Y, 0], 30, 6), B: flight([0, Y, 0], [0, 0, 1], 25), deep: true },
+    { name: 'kept stalled mid pass', a: 'interceptor', b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [-1, 0, 0], 25), stallA: T0 - 60 },
+    { name: 'kept reconnect mid pass', a: 'interceptor', b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [-1, 0, 0], 25), dropA: [T0 - 500, T0 + 900] },
+  ];
+  /* The edge: the largest offset that still touches, in metres. */
+  const edge = (make) => {
+    let lo = 0;
+    let hi = 6;
+    while (hi - lo > 1e-4) {
+      const mid = (lo + hi) / 2;
+      if (truthOf(make(mid)).touch) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
+  };
+  const side = (z) => ({ a: S, b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, z], [1, 0, 0], 25) });
+  out.push({ name: 'kept formation 1 m', ...side(edge(side) + 1), clear: true });
+  const head = (z) => ({ a: S, b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, z], [-1, 0, 0], 25) });
+  const headEdge = edge(head);
+  for (let cm = -20; cm <= 20; cm += 1) {
+    out.push({ name: `kept graze ${cm} cm`, graze: cm / 100, series: 'kept head on', ...head(headEdge - cm / 100) });
+  }
+  const cross = (x) => ({ a: S, b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([x, Y, 0], [0, 0, 1], 25) });
+  const crossEdge = edge(cross);
+  for (let cm = -40; cm <= 40; cm += 2) {
+    out.push({ name: `kept crossing graze ${cm} cm`, graze: cm / 100, series: 'kept crossing', ...cross(crossEdge - cm / 100) });
+  }
+  return out.map((sc) => ({ ...sc, map: 'itaipu' }));
+}
+const allScenarios = () => [...scenarios(), ...keptScenarios()];
+
 /* ------------------------------------------------------------- truth */
 
 /* The truth: the scripted poses themselves on every millisecond, the same
@@ -269,7 +324,7 @@ class Queue {
 
 /* ---------------------------------------------------------------- run */
 
-const PROFILE = (airframe) => ({ airframe, map: 'swiss2', figure: 0, livery: null, parts: null });
+const PROFILE = (airframe, map = 'swiss2') => ({ airframe, map, figure: 0, livery: null, parts: null });
 
 /*
  * One run: two clients, the room, the links. cfg: { sc, seed, la, lb
@@ -296,7 +351,7 @@ function runOne(cfg) {
   const down = [0, 1].map((i) => link(lk[i].base, lk[i].jitter, null, linkRand));
 
   const q = new Queue();
-  const room = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: Boolean(cfg.friendly), map: 'swiss2', epoch: 0 });
+  const room = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: Boolean(cfg.friendly), map: sc.map ?? 'swiss2', epoch: 0 });
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
   const clients = [0, 1].map((i) => ({
@@ -330,7 +385,7 @@ function runOne(cfg) {
     }
   };
   const helloMsg = (c, airframe) => JSON.stringify({
-    type: 'hello', proto: PROTO, build: 'harness', name: [1, 2, 42], profile: PROFILE(airframe), ...(c.token ? { token: c.token } : {}),
+    type: 'hello', proto: PROTO, build: 'harness', name: [1, 2, 42], profile: PROFILE(airframe, sc.map ?? 'swiss2'), ...(c.token ? { token: c.token } : {}),
   });
   const air = [sc.a, sc.b];
   for (const c of clients) {
@@ -513,7 +568,7 @@ const pct = (xs, p) => {
   return s[Math.min(s.length - 1, Math.floor(p * s.length))];
 };
 
-function report(clock, results) {
+function report(clock, results, tag = '', seriesNames = ['head on', 'crossing'], turningName = 'turning crossing') {
   let failed = 0;
   const row = (name, ok, detail) => {
     console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
@@ -524,7 +579,7 @@ function report(clock, results) {
   const sum = (f) => results.reduce((n, r) => n + r[f], 0);
   const runs = sum('runs');
   const all = (f) => results.flatMap((r) => r[f]);
-  console.log(`\nrun ${clock + 1}, ${clock ? 'synced clocks, 0 to 20 ms asymmetry' : 'exact clocks'}: ${runs} runs over ${results.length} scenarios`);
+  console.log(`\nrun ${clock + 1}${tag}, ${clock ? 'synced clocks, 0 to 20 ms asymmetry' : 'exact clocks'}: ${runs} runs over ${results.length} scenarios`);
   for (const r of results) {
     if (r.graze == null) {
       console.log(`    ${r.name.padEnd(20)} truth ${r.truth.touch ? `touch at ${r.truth.tc} ms` : 'clear'}, judged a hit in ${r.hitRuns} of ${r.runs}`);
@@ -533,7 +588,7 @@ function report(clock, results) {
       console.log(`      ${e}`);
     }
   }
-  for (const series of ['head on', 'crossing']) {
+  for (const series of seriesNames) {
     const grazes = results.filter((r) => r.series === series);
     /* Runs inside LATE_MS only: a late run's miss is promise 3, not the
      * rule's resolution. */
@@ -553,7 +608,7 @@ function report(clock, results) {
   const d95 = pct(all('delays'), 0.95);
   accuracy('decision delay over max(LA, LB), p95, under 60 ms', d95 < 60, `${d95.toFixed(1)} ms over ${all('delays').length} hits`);
   const dm = pct(all('drawn'), 0.5);
-  const turning = (results.find((r) => r.name === 'turning crossing') || { drawn: [] }).drawn;
+  const turning = (results.find((r) => r.name === turningName) || { drawn: [] }).drawn;
   accuracy('near peer drawn at the contact, 50 ms links, median under 1 m', dm < 1,
     `median ${dm.toFixed(2)} m, p95 ${pct(all('drawn'), 0.95).toFixed(2)} m over ${all('drawn').length}; in the 6 g turn median ${pct(turning, 0.5).toFixed(2)} m, worst ${pct(turning, 1).toFixed(2)} m`);
   const lat = all('latency');
@@ -565,13 +620,14 @@ function report(clock, results) {
 
 if (!isMainThread) {
   const { names, clock } = workerData;
-  const list = scenarios().filter((s) => names.includes(s.name));
+  const list = allScenarios().filter((s) => names.includes(s.name));
   parentPort.postMessage(list.map((sc) => sweep(sc, clock)));
 } else {
   const clocks = arg('run', 'both') === 'both' ? [0, 1] : [Number(arg('run', 1)) - 1];
   const jobs = Math.max(1, Number(arg('jobs', Math.max(1, Math.floor(availableParallelism() / 2)))));
   const only = arg('only', null);
-  const names = scenarios().map((s) => s.name).filter((n) => !only || n === only);
+  const names = allScenarios().map((s) => s.name).filter((n) => !only || n === only);
+  const keptNames = new Set(keptScenarios().map((s) => s.name));
   const started = Date.now();
   console.log(`midair harness: ${names.length} scenarios, ${BASES.length}x${BASES.length} base latencies, ${JITTERS.length} jitters, ${SEEDS} seeds, ${jobs} jobs`);
   let failed = 0;
@@ -583,7 +639,11 @@ if (!isMainThread) {
       w.once('error', reject);
     })));
     const byName = new Map(parts.flat().map((r) => [r.name, r]));
-    failed += report(clock, names.map((n) => byName.get(n)));
+    failed += report(clock, names.filter((n) => !keptNames.has(n)).map((n) => byName.get(n)));
+    const kept = names.filter((n) => keptNames.has(n));
+    if (kept.length) {
+      failed += report(clock, kept.map((n) => byName.get(n)), ', the aircraft PDCS seats, on itaipu', ['kept head on', 'kept crossing'], 'kept turning crossing');
+    }
   }
   console.log(`\n${failed ? `${failed} FAILED` : 'all passed'} in ${((Date.now() - started) / 1000).toFixed(0)} s`);
   process.exit(failed ? 1 : 0);
