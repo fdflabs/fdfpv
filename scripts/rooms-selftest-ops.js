@@ -22,7 +22,7 @@
  */
 
 import { PROTO } from '../src/share/roomwire.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import { AWAY_MS, RoomOps } from '../edge/rooms/ops.js';
 import { createRoomOps } from '../src/share/roomops.js';
 import { makeWorld } from '../src/share/ops/fixtures/world.js';

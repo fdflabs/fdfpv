@@ -25,7 +25,7 @@ import {
   checkProfile, decodeAgents, decodeHunts, encodeAgents, encodeHunts, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import {
   EMP_MS, GROUND_MS, MISSIONS, RESPAWN_MS, RESULT_MS, STALE_MS, WARHEADS, WORLD_LEAD_MS, parseLoadout,
 } from '../edge/rooms/war.js';

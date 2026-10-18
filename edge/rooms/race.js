@@ -66,10 +66,10 @@ import { orderStandings } from '../../src/share/roomrace.js';
 import { sessionOf } from '../../src/share/modes.js';
 import { decodePose } from '../../src/share/roomwire.js';
 import { Witness } from './anticheat.js';
+import { COUNTDOWN_MS } from './timing.js';
 
-/* Long enough for a pilot on a menu to be put on the start line and see
- * the numbers before they fly. */
-export const COUNTDOWN_MS = 6000;
+/* The race's own checks read the countdown from here. */
+export { COUNTDOWN_MS };
 export const LAPS_MIN = 1;
 export const LAPS_MAX = 10;
 /* The plan's cap (section 4). A 150 gate course is 59 kB; the logos, which

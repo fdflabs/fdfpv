@@ -28,7 +28,7 @@ export const RUN_SECONDS = [45, 60, 90];
 export const RUN_SECONDS_DEFAULT = 60;
 export const ROUNDS = 3;
 /* The count before every run after the match's first, whose count is the
- * race's (edge/rooms/race.js COUNTDOWN_MS). */
+ * race's (edge/rooms/timing.js COUNTDOWN_MS). */
 export const TURN_MS = 3000;
 /* How long past a run's end the room still takes the runner's numbers: a
  * last message in flight when its clock ran out. */

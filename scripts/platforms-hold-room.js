@@ -30,7 +30,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import { makeWorld } from '../src/share/ops/fixtures/world.js';
 import { check, finish, opsRoom } from './lib/opsroom.js';
 

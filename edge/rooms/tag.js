@@ -72,16 +72,10 @@ import {
 import {
   BUBBLE_M, CROWNS_SHOWN, GOAL_MAX, GOAL_MIN, POINT_MS, PROTECT_MS, orderScores,
 } from '../../src/share/roomtag.js';
-import { COUNTDOWN_MS } from './race.js';
+import { COUNTDOWN_MS, WAIT_MS } from './timing.js';
 import { minPlayersFor, sessionOf } from '../../src/share/modes.js';
 import { AHEAD_MS } from './referee.js';
 
-/* A seat silent for longer than this (a menu, a tab in the background) is
- * not waited for. Shorter silences are, a stall or a pause for breath: a
- * seat that the frontier ran past while it was quiet would have its first
- * samples back judged as not there, by how late they are, and lag would
- * decide. The midair referee's KEEP_MS, how much past a room holds. */
-export const WAIT_MS = 2000;
 /* The match is written to storage on every STORE_POINTS points the Ace
  * adds, besides every change of state or crown. */
 const STORE_POINTS = 10;
