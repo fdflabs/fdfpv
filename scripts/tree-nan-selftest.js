@@ -11,8 +11,9 @@
  * which no checks.yml step runs; this is the same failure in seconds, in
  * checks.yml.
  *
- * For the F-16 (plant 16) at 40 and 60 m/s, level through a conifer's
- * crown to its trunk, crash damage on, on the module dist/sim.wasm:
+ * For the F-16 (plant 16) at 40 and 60 m/s, and the fixed wings PDCS
+ * seats at their own speeds (PLANES), level through a conifer's crown to
+ * its trunk, crash damage on, on the module dist/sim.wasm:
  *
  *   1. every state of 2 s is finite;
  *   2. no step ends with more than 1 percent more energy than the throw
@@ -54,7 +55,17 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasm = new Uint8Array(await readFile(process.argv[2] ?? join(root, 'dist/sim.wasm')));
 const config = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 
-const F16 = 16;
+/* The F-16 at the audit's speeds; the kept fixed wings at speeds their
+ * own rows give (configs/airframes.js: the Striker jet's 66.3 m/s top and
+ * the 40 m/s the owner rams at, scripts/war-harness.js striker; the prop's
+ * 34.2 m/s top and its 20 m/s cruise; the Bramor's 28.48 m/s top and its
+ * 16 m/s VBE, tests/bramor-thresholds.json b1). */
+const PLANES = [
+  { name: 'F-16', id: 16, speeds: [40, 60] },
+  { name: 'Striker jet', id: 28, speeds: [40, 60] },
+  { name: 'Striker prop', id: 27, speeds: [20, 34] },
+  { name: 'Bramor', id: 8, speeds: [16, 28] },
+];
 const G0 = 9.80665;
 const SLACK = 0.01;
 const MS = 2000;
@@ -101,9 +112,9 @@ function fly(r, v) {
   return { finite, firstBad, gain: eMax / e0 - 1 };
 }
 
-for (const v of [40, 60]) {
-  console.log(`F-16 at ${v} m/s through a conifer's crown`);
-  const r = await Rig.create(loadSim, wasm, config, { id: F16, ground: 'grass' });
+for (const { name, id, speeds } of PLANES) for (const v of speeds) {
+  console.log(`${name} at ${v} m/s through a conifer's crown`);
+  const r = await Rig.create(loadSim, wasm, config, { id, ground: 'grass' });
   setTree(r);
   const first = fly(r, v);
   check(`${v} m/s: every state is finite`, first.finite, first.finite ? `${MS} ms` : `NaN from t = ${first.firstBad} s`);
@@ -120,7 +131,7 @@ for (const v of [40, 60]) {
   const again = new Rig(sim);
   setTree(again);
   const second = fly(again, v);
-  const fresh = await Rig.create(loadSim, wasm, config, { id: F16, ground: 'grass' });
+  const fresh = await Rig.create(loadSim, wasm, config, { id, ground: 'grass' });
   setTree(fresh);
   fly(fresh, v);
   check(`${v} m/s: reset on the same module, the same throw again is finite and a fresh module's, bit for bit`,

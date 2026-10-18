@@ -23,7 +23,8 @@
  *     on it, and taxis along it;
  *   a Skyhunter flown into the channel with crash physics on goes into
  *     the water, as into the lake, and the same throw with no channel
- *     declared does not.
+ *     declared does not; the same for the Bramor and both Strikers, and
+ *     each 3 m over the channel off its line is not in its water.
  *
  * Exits 1 on any failure.
  *
@@ -50,7 +51,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK, SIM_ERR_BAD_ARG, SIM_ERR_BAD_STATE } from '../tests/lib/simmod.js';
 import {
-  TIMBERF_AIRFRAME, FLOAT_REST, SKY_AIRFRAME, RC_STEP_MS, floatState, floatTakeoffSticks, attitude, must, rudderHold,
+  TIMBERF_AIRFRAME, FLOAT_REST, SKY_AIRFRAME, BRAMOR_AIRFRAME, STRIKER_PROP_AIRFRAME, STRIKER_JET_AIRFRAME, RC_STEP_MS, floatState, floatTakeoffSticks, attitude, must, rudderHold,
 } from '../tests/lib/wingpilot.js';
 import { DAMAGE_FLAGS } from '../configs/parts.js';
 
@@ -274,11 +275,14 @@ function takeOff(ms0 = 0) {
     `${(taxi.x - afloat.x).toFixed(1)} m in 10 s at 30 percent, ${taxi.v.toFixed(2)} m/s, wet throughout: ${taxi.wetFor >= 10000}`);
 }
 
+/* The kept fixed wings, by sim id (src/native/sim_abi.h). */
+const KEPT_WINGS = [['Bramor', BRAMOR_AIRFRAME], ['Striker prop', STRIKER_PROP_AIRFRAME], ['Striker jet', STRIKER_JET_AIRFRAME]];
+
 /* A landplane into it, crash physics on, the ground at the surface as the
  * shell puts it over water. */
-function skyInto(declare) {
+function skyInto(declare, airframe = SKY_AIRFRAME) {
   must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_set_airframe(SKY_AIRFRAME), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_damage(1), 'sim_set_damage');
   must(sim.e.sim_water_clear(), 'sim_water_clear');
@@ -304,6 +308,14 @@ function skyInto(declare) {
     river.wet && !dry.wet,
     `channel: in the water ${river.wet}, ${river.v.toFixed(2)} m/s after 2 s; none: in the water ${dry.wet}, ${dry.v.toFixed(2)} m/s`);
 }
+/* The same throw on the fixed wings the war and The Interior seat. */
+for (const [name, id] of KEPT_WINGS) {
+  const river = skyInto(true, id);
+  const dry = skyInto(false, id);
+  check(`a ${name} flown into the channel goes into the water, and with no channel it does not`,
+    river.wet && !dry.wet,
+    `channel: in the water ${river.wet}, ${river.v.toFixed(2)} m/s after 2 s; none: in the water ${dry.wet}, ${dry.v.toFixed(2)} m/s`);
+}
 
 /*
  * A Skyhunter over the channel in the open air, near its bank: two pilots
@@ -315,9 +327,9 @@ function skyInto(declare) {
  * as swiss2's does from the torrent to the valley floor; the craft flies
  * the level run 3 m up, 2 m off the line, its tip 2.9 m off it.
  */
-function skyAlongBank() {
+function skyAlongBank(airframe = SKY_AIRFRAME) {
   must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_set_airframe(SKY_AIRFRAME), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_damage(1), 'sim_set_damage');
   must(sim.e.sim_water_clear(), 'sim_water_clear');
@@ -344,6 +356,13 @@ function skyAlongBank() {
   const r = skyAlongBank();
   const wreck = DAMAGE_FLAGS.wingLost | DAMAGE_FLAGS.tailLost | DAMAGE_FLAGS.batteryEjected;
   check('a Skyhunter 3 m over a channel, off its line, is not in its water: a tip past the chunk boxes reads the surface there, not the head of the stream',
+    (r.flags & DAMAGE_FLAGS.inWater) === 0 && (r.flags & wreck) === 0 && r.low > 1.5,
+    `in the water ${(r.flags & DAMAGE_FLAGS.inWater) !== 0}, flags 0x${r.flags.toString(16)}, lowest ${r.low.toFixed(2)} m, ${r.v.toFixed(2)} m/s after 1 s`);
+}
+for (const [name, id] of KEPT_WINGS) {
+  const r = skyAlongBank(id);
+  const wreck = DAMAGE_FLAGS.wingLost | DAMAGE_FLAGS.tailLost | DAMAGE_FLAGS.batteryEjected;
+  check(`a ${name} 3 m over a channel, off its line, is not in its water`,
     (r.flags & DAMAGE_FLAGS.inWater) === 0 && (r.flags & wreck) === 0 && r.low > 1.5,
     `in the water ${(r.flags & DAMAGE_FLAGS.inWater) !== 0}, flags 0x${r.flags.toString(16)}, lowest ${r.low.toFixed(2)} m, ${r.v.toFixed(2)} m/s after 1 s`);
 }
