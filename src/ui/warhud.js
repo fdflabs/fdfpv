@@ -44,7 +44,7 @@
 
 import { hasStr, plural, str } from '../strings/index.js';
 import { allowanceOf, roundOf, spentOf } from './warround.js';
-import { WATCH_SEAT } from '../share/roomrace.js';
+import { WATCH_SEAT } from '../share/watchseat.js';
 import { missionEndActions, missionEpilogue } from '../game/debrief.js';
 import en from '../strings/en.js';
 

@@ -55,7 +55,7 @@ import {
 } from './war/routes.js';
 import { EXTRAP_MAX_MS } from '../game/peer.js';
 import { MISSIONS } from './war/missions/index.js';
-import { WATCH_SEAT } from './roomrace.js';
+import { WATCH_SEAT } from './watchseat.js';
 
 /* A hunter's samples older than this behind its newest are dropped: the
  * far interest band sends one a second, and the shell draws near now. */

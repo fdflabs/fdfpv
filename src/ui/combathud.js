@@ -28,7 +28,7 @@
 
 import { str, plural } from '../strings/index.js';
 import { streamerColour } from '../share/roomwire.js';
-import { WATCH_SEAT } from '../share/roomrace.js';
+import { WATCH_SEAT } from '../share/watchseat.js';
 
 const LINE_MS = 5000;
 const SHOUT_MS = 1600;

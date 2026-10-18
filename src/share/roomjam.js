@@ -20,7 +20,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { WATCH_SEAT } from './roomrace.js';
+import { WATCH_SEAT } from './watchseat.js';
 
 /* A run's length in seconds, the host's choice between matches; the
  * second is a room's until its host picks. */

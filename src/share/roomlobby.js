@@ -26,7 +26,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { FINISH_RESEND_MS, WATCH_SEAT } from './roomrace.js';
+import { FINISH_RESEND_MS } from './roomrace.js';
+import { WATCH_SEAT } from './watchseat.js';
 
 /* send(obj) puts one text message on the room's socket. */
 export function createLobbyReady(send) {
