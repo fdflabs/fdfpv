@@ -48,7 +48,7 @@ import {
   FLAG_AIRBORNE, PROTO, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import {
   BIRTH_LEAD_MS, MISSIONS, RESTART_STARS, resultOf,
 } from '../edge/rooms/war.js';

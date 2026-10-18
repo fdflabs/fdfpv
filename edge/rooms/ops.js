@@ -75,9 +75,8 @@ import {
   BOUNDARY_MS, applyCue, cardsView, drawDials, dueCues, resolve, starsOf, toldOf, trigger,
 } from '../../src/share/ops/stages.js';
 import { CARD_MS } from '../../src/share/war/intro.js';
-import { COUNTDOWN_MS } from './race.js';
+import { COUNTDOWN_MS, WAIT_MS } from './timing.js';
 import { AHEAD_MS } from './referee.js';
-import { WAIT_MS } from './tag.js';
 import { warUid } from './war.js';
 import { watchedView } from './core.js';
 

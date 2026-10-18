@@ -73,7 +73,7 @@ import {
   FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, decodePose, encodePose,
 } from '../src/share/roomwire.js';
 import { RoomCore, PRIVATE_CAP } from '../edge/rooms/core.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import { BUBBLE_M, POINT_MS, PROTECT_MS } from '../src/share/roomtag.js';
 import {
   GAP_MS, LATE_MS, hullDistance, hullFor,

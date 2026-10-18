@@ -46,11 +46,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* The seat a watcher is welcomed to (edge/rooms/core.js watch): it sees
- * the room's games and plays in none. Here because this file imports
- * nothing, so the other games' modules (roomtag.js, roomjam.js, which
- * src/share/modes.js imports) take it without an import cycle. */
-export const WATCH_SEAT = 0;
+import { WATCH_SEAT } from './watchseat.js';
 
 /* How often an unanswered finish is sent again. A text message over the
  * room's rate is dropped, not queued (edge/rooms/core.js TEXT_PER_S), and

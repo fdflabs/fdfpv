@@ -33,7 +33,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { WATCH_SEAT } from './roomrace.js';
+import { WATCH_SEAT } from './watchseat.js';
 
 /* One point a second of reign (docs/TAG-PLAN.md decision 5). */
 export const POINT_MS = 1000;

@@ -38,7 +38,7 @@ import { minPlayersFor, sessionOf } from '../../src/share/modes.js';
 import {
   ROUNDS, RUN_SECONDS, SLACK_MS, TURN_MS, cleanNumbers, matchWinners, roundOrder, standings,
 } from '../../src/share/roomjam.js';
-import { COUNTDOWN_MS } from './race.js';
+import { COUNTDOWN_MS } from './timing.js';
 
 const NOTHING = () => ({
   total: 0, tricks: 0, unique: 0, crashes: 0, last: null,

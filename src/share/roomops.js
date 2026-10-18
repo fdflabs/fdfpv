@@ -33,7 +33,7 @@
  */
 
 import { MISSIONS } from './ops/missions.js';
-import { WATCH_SEAT } from './roomrace.js';
+import { WATCH_SEAT } from './watchseat.js';
 
 /* Camera reports: two a second (CONTRACT-P0.md 3; the room keeps one per
  * CAM_MIN_MS = 400 ms and text shares 5 a second per seat). */

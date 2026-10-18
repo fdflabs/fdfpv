@@ -21,7 +21,7 @@
 
 import { PROTO } from '../src/share/roomwire.js';
 import { RoomCore } from '../edge/rooms/core.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import {
   ROUNDS, SLACK_MS, TURN_MS, matchWinners, roundOrder, roundWinners, standings,
 } from '../src/share/roomjam.js';

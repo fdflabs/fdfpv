@@ -90,7 +90,7 @@ import {
   FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, decodePose, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import { MISSIONS, WARHEADS } from '../edge/rooms/war.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
 import { LATE_MS, hullDistance, hullFor } from '../src/game/midair.js';

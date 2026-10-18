@@ -313,9 +313,8 @@ import {
 } from '../../src/share/war/contain.js';
 import { REST, leafTurn } from '../../src/share/war/leaf.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
-import { COUNTDOWN_MS } from './race.js';
+import { COUNTDOWN_MS, WAIT_MS } from './timing.js';
 import { AHEAD_MS } from './referee.js';
-import { WAIT_MS } from './tag.js';
 import { POSE_MAX_SPEED } from './safety.js';
 import { CLEAR_M as HUNTER_CLEAR_M, Hunters, loadHeight } from './warhunt.js';
 import { HERE_MS, interestEvery, watchedView } from './core.js';
