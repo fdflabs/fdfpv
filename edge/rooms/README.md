@@ -59,7 +59,9 @@ What a feature must keep across a hibernation or a restart it returns as
 `core[key].restore(value)`, before the seats are restored. So a part of
 the core named `race` stores under `'race'`, one named `tag` under
 `'tag'`, and neither needs a line in any adapter. A stored key with no
-such part throws at load rather than coming back empty.
+such part (one a removed part stored) is left unread at load, and logged;
+a room stored for a game the registry no longer has is closed at load,
+and its code answers `nosuch`.
 
 Only a new kind of action changes `host.js`, once, and then both
 platforms have it. Nothing ever needs to change in `do.js` or `node.js`
