@@ -1357,8 +1357,10 @@ void plant_wing_reset(void) {
   g_esc_ramp = 0.0;
   g_prop_n = 0.0;
   g_prop_dn = 0.0;
-  /* A motor is stopped at a reset; an engine is already idling. */
-  g_prop_hot = PLANT.fw->current_full > 0.0 ? 0 : 1;
+  /* A motor is stopped at a reset; an engine is already idling. A quad
+   * has no table (PLANT.fw is 0), so nothing of this is read until a
+   * fixed wing is seated, which resets it again (sim_set_airframe). */
+  g_prop_hot = PLANT.fw != 0 && !(PLANT.fw->current_full > 0.0) ? 1 : 0;
   g_discus = 0;
   g_discus_t = 0.0;
 }

@@ -308,6 +308,14 @@ function skyInto(declare, airframe = SKY_AIRFRAME) {
     river.wet && !dry.wet,
     `channel: in the water ${river.wet}, ${river.v.toFixed(2)} m/s after 2 s; none: in the water ${dry.wet}, ${dry.v.toFixed(2)} m/s`);
 }
+/* The same throw on the fixed wings the war and The Interior seat. */
+for (const [name, id] of KEPT_WINGS) {
+  const river = skyInto(true, id);
+  const dry = skyInto(false, id);
+  check(`a ${name} flown into the channel goes into the water, and with no channel it does not`,
+    river.wet && !dry.wet,
+    `channel: in the water ${river.wet}, ${river.v.toFixed(2)} m/s after 2 s; none: in the water ${dry.wet}, ${dry.v.toFixed(2)} m/s`);
+}
 
 /*
  * A Skyhunter over the channel in the open air, near its bank: two pilots
@@ -351,22 +359,7 @@ function skyAlongBank(airframe = SKY_AIRFRAME) {
     (r.flags & DAMAGE_FLAGS.inWater) === 0 && (r.flags & wreck) === 0 && r.low > 1.5,
     `in the water ${(r.flags & DAMAGE_FLAGS.inWater) !== 0}, flags 0x${r.flags.toString(16)}, lowest ${r.low.toFixed(2)} m, ${r.v.toFixed(2)} m/s after 1 s`);
 }
-
-/* The same two on the fixed wings the war and The Interior seat, each
- * flight on a module of its own, after the Skyhunter's, so theirs fly
- * as they always did: an electric fixed wing's first flight on a module
- * is not its next after sim_reset (the Skyhunter's along the bank, 16.882
- * m/s fresh and 16.807 after a reset, the Bramor's 17.003 and 16.817),
- * and a case's answer must not hang on the one flown before it. */
 for (const [name, id] of KEPT_WINGS) {
-  sim = await freshSim();
-  const river = skyInto(true, id);
-  sim = await freshSim();
-  const dry = skyInto(false, id);
-  check(`a ${name} flown into the channel goes into the water, and with no channel it does not`,
-    river.wet && !dry.wet,
-    `channel: in the water ${river.wet}, ${river.v.toFixed(2)} m/s after 2 s; none: in the water ${dry.wet}, ${dry.v.toFixed(2)} m/s`);
-  sim = await freshSim();
   const r = skyAlongBank(id);
   const wreck = DAMAGE_FLAGS.wingLost | DAMAGE_FLAGS.tailLost | DAMAGE_FLAGS.batteryEjected;
   check(`a ${name} 3 m over a channel, off its line, is not in its water`,
