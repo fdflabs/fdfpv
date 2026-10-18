@@ -10,6 +10,9 @@
  *    still air is the arithmetic of before.
  * 3. A Radian gliding power off sinks by the air's rise less: a still air
  *    glide against one in 0.5 m/s of rise, the same to 2 percent of it.
+ *    The same for the fixed wings PDCS seats, the Bramor and both
+ *    Strikers, each let go at its own speed in the air's frame (see
+ *    KEPT).
  * 4. A quad dropped with its motors off falls slower in rising air.
  * 5. It outlives sim_reset and sim_set_wind(0, 0, 0), as the wind does,
  *    and 0 takes it away.
@@ -37,7 +40,10 @@ import { fileURLToPath } from 'node:url';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { replayTrace } from '../tests/lib/replay.js';
 import { decodeRec } from '../tests/lib/recfile.js';
-import { must, cubGroundPrelude } from '../tests/lib/wingpilot.js';
+import { must, cubGroundPrelude, bramorPrelude, BRAMOR_AIRFRAME } from '../tests/lib/wingpilot.js';
+import { seatStriker } from './lib/strikerpilot.js';
+import { airframeById } from '../configs/airframes.js';
+import { combatChoice } from '../configs/combat.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -82,16 +88,66 @@ console.log('2. still air is the arithmetic of before');
   })).slice(0, 16);
   check('the Cub\'s recording, never set, is its pinned hash', never === want, `${never} against ${want}`);
   check('and with 0 set before it', zero === want, zero);
+  /* The Bramor's recorded catapult flight, pinned beside the Cub's
+   * (tests/tigermoth-thresholds.json t16_unmoved.bramor). */
+  const bramorRec = decodeRec(new Uint8Array(await readFile(join(root, 'tests/inputs/bramor-baseline.rec'))));
+  const bramorWant = tigerTh.t16_unmoved.bramor;
+  const bramorNever = (await replayTrace(await loadSim(wasmBytes), bramorRec, { ...replayBase, prelude: bramorPrelude })).slice(0, 16);
+  const bramorZero = (await replayTrace(await loadSim(wasmBytes), bramorRec, {
+    ...replayBase,
+    prelude: (s) => { must(s.e.sim_set_air_vertical(0), 'air'); bramorPrelude(s); },
+  })).slice(0, 16);
+  check('the Bramor\'s recording, never set, is its pinned hash', bramorNever === bramorWant, `${bramorNever} against ${bramorWant}`);
+  check('and with 0 set before it', bramorZero === bramorWant, bramorZero);
 }
+
+/*
+ * The kept fixed wings and the speed each glide is let go at: the
+ * Bramor's 16 m/s, the speed its glide band is flown at
+ * (tests/bramor-thresholds.json b3_glide); the Striker's 19 m/s, its
+ * rail's release, 1.3 times the trimmed stall of its heaviest warhead
+ * (configs/airframes.js STRIKER_RAIL), both over their stall (13 m/s,
+ * 13.53 and 14.07 m/s, configs/airframes.js). The Striker is seated as
+ * the shell seats it, its standard warhead and the bay's trim lead on
+ * (scripts/lib/strikerpilot.js seatStriker): the bare plant flies at the
+ * CG the lead moves.
+ *
+ * Each is let go in the air's frame, its launch velocity plus the air's
+ * rise, where the Radian is let go in the ground's: then the two glides
+ * are the same flight in the air and their sink differs by the rise at
+ * every step. Let go in the ground's frame, a rise is a change of angle
+ * of attack at the release, and a 4.5 to 13.8 kg airframe's phugoid is
+ * still swinging 20 s later (the Bramor's still air speed spans 12.9 to
+ * 16.0 m/s in its first 30 s, 14.2 to 14.6 in its second), where the
+ * 0.6 kg Radian's has settled.
+ */
+const strikerAf = airframeById('striker2500');
+const strikerTune = await readFile(join(root, `configs/${strikerAf.defaultTune}.diff`), 'utf8');
+const KEPT = [
+  { name: 'Bramor', v0: 16, seat: () => fresh(BRAMOR_AIRFRAME) },
+  ...['prop', 'jet'].map((propulsion) => ({
+    name: `Striker ${propulsion}`,
+    v0: 19,
+    seat: async () => {
+      const sim = await seatStriker(loadSim, wasmBytes, strikerTune, strikerAf, combatChoice(strikerAf, { propulsion }));
+      must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+      return sim;
+    },
+  })),
+];
 
 /* A power off glide in Manual from the pose, the sticks centred: the mean
  * vertical speed over its last 5 s. */
-function glide(sim, w) {
+function glide(sim, w, v0 = 8, airFrame = false) {
   must(sim.reset(), 'reset');
   must(sim.e.sim_wing_set_stab(0), 'stab');
   must(sim.e.sim_set_air_vertical(w), 'air');
   must(sim.e.sim_set_pose(0, 600, 300, 1, 0, 0, 0), 'pose');
-  must(sim.e.sim_wing_launch(8), 'launch');
+  must(sim.e.sim_wing_launch(v0), 'launch');
+  if (airFrame) {
+    const s = sim.readState().state;
+    must(sim.e.sim_set_velocity(s[4], s[5], s[6] + w, s[11], s[12], s[13]), 'velocity');
+  }
   let sum = 0;
   let n = 0;
   for (let ms = 0; ms < 25000; ms += 4) {
@@ -112,6 +168,12 @@ console.log('3. a glider in rising air');
   const still = glide(sim, 0);
   const rise = glide(sim, 0.5);
   check('a Radian\'s glide sinks 0.5 m/s less in 0.5 m/s of rise', Math.abs(rise - still - 0.5) <= 0.01, `${still.toFixed(3)} m/s still, ${rise.toFixed(3)} in the rise`);
+  for (const { name, v0, seat } of KEPT) {
+    const k = await seat();
+    const kStill = glide(k, 0, v0, true);
+    const kRise = glide(k, 0.5, v0, true);
+    check(`a ${name}'s glide sinks 0.5 m/s less in 0.5 m/s of rise`, Math.abs(kRise - kStill - 0.5) <= 0.01, `${kStill.toFixed(3)} m/s still, ${kRise.toFixed(3)} in the rise`);
+  }
 }
 
 console.log('4. a quad falling');

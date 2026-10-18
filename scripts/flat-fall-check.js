@@ -59,6 +59,8 @@ import { fileURLToPath } from 'node:url';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
+import { seatStriker } from './lib/strikerpilot.js';
+import { combatChoice } from '../configs/combat.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -77,6 +79,39 @@ const W_REF = 1;
 const HOLD_MS = 150;
 
 const PLANES = ['extra3d1308', 'cap1702', 'slick2680', 'cub1400', 'timber1500', 'nighttimber1200', 'p51d1450'];
+const STAB_ON = 1;
+/*
+ * The fixed wings PDCS seats, each in the modes its tunes ship: Manual and
+ * Stabilised (wingStab 1: aircraft/bramor2300/aircraft.js, the wing-stab
+ * tune; aircraft/striker2500/aircraft.js, striker-stab). Neither has an
+ * AS3X tune, so neither has the full Heading drop. The Bramor is the
+ * plant as the shell seats its stock build; the Striker is seated as the
+ * shell seats it, on each propulsion with its standard warhead and the
+ * bay's trim lead (scripts/lib/strikerpilot.js seatStriker): the bare
+ * plant flies at the CG the lead moves.
+ */
+const strikerAf = AIRFRAMES.find((a) => a.id === 'striker2500');
+const strikerTune = await readFile(join(root, `configs/${strikerAf.defaultTune}.diff`), 'utf8');
+const KEPT = [
+  {
+    id: 'bramor2300',
+    seat: async () => {
+      const sim = await loadSim(wasmBytes);
+      must(sim.init(configText), 'sim_init');
+      must(sim.e.sim_set_airframe(AIRFRAMES.find((a) => a.id === 'bramor2300').simId), 'sim_set_airframe');
+      must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+      return sim;
+    },
+  },
+  ...['prop', 'jet'].map((propulsion) => ({
+    id: `striker2500 ${propulsion}`,
+    seat: async () => {
+      const sim = await seatStriker(loadSim, wasmBytes, strikerTune, strikerAf, combatChoice(strikerAf, { propulsion }));
+      must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+      return sim;
+    },
+  })),
+];
 
 function qmul(a, b) {
   return [
@@ -189,15 +224,10 @@ const say = (ok, what) => {
   console.log(`  ${ok ? 'pass' : 'FAIL'}  ${what}`);
   if (!ok) bad += 1;
 };
-for (const id of PLANES) {
-  const af = AIRFRAMES.find((a) => a.id === id);
-  const sim = await loadSim(wasmBytes);
-  must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');
-  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+async function judge(id, sim, modes, fullHeading) {
   const [mass, ...iner] = inertia(sim);
   for (const c of CASES) {
-    for (const [mode, stab] of [['Manual', STAB_OFF], ['AS3X', STAB_AS3X]]) {
+    for (const [mode, stab] of modes) {
       must(sim.e.sim_wing_set_stab(stab), 'sim_wing_set_stab');
       must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
       const table = [];
@@ -217,9 +247,21 @@ for (const id of PLANES) {
         `${tag}: nose within ${FLAT_FALL.noseDeg} deg of the path at ${flown.into == null ? 'never' : flown.into.toFixed(2) + ' s'}, within ${limit.toFixed(2)} s (${FLAT_FALL.multiple} x its own swing, ${t1.toFixed(2)} s; damping ${damp.toFixed(4)} N m s/m)`);
       say(flown.flat === 0, `${tag}: never flat over the last 5 s (${flown.flat.toFixed(2)} s more than ${FLAT_FALL.flatDeg} deg off the path turning under ${FLAT_FALL.spinDps} deg/s)`);
     }
+    if (!fullHeading) continue;
     const held1 = drop(sim, c, STAB_AS3X, 1);
     say(held1.flat === 0, `${id} ${c.name}, AS3X at full Heading: never flat over the last 5 s (${held1.flat.toFixed(2)} s; nose within ${FLAT_FALL.noseDeg} deg of the path at ${held1.into == null ? 'never' : held1.into.toFixed(2) + ' s'})`);
   }
+}
+for (const id of PLANES) {
+  const af = AIRFRAMES.find((a) => a.id === id);
+  const sim = await loadSim(wasmBytes);
+  must(sim.init(configText), 'sim_init');
+  must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  await judge(id, sim, [['Manual', STAB_OFF], ['AS3X', STAB_AS3X]], true);
+}
+for (const k of KEPT) {
+  await judge(k.id, await k.seat(), [['Manual', STAB_OFF], ['Stabilised', STAB_ON]], false);
 }
 if (bad) {
   console.log(`${bad} FAILED`);
