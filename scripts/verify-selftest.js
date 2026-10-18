@@ -65,7 +65,7 @@ const SCALE_GOOD = {
   other: { expectedModules: 49 },
 };
 const SCALE_BAD = {
-  urls: [ALPS.concat(SWISS(1)), ALPS.concat(SWISS(40))],
+  urls: [ALPS.concat(SWISS(1)), ALPS.concat(SWISS(30))],
   budget: BUDGET,
   budget2: { ...BUDGET, p1: 290, p5: 31.4, cel: 14 },
   craft: { craft: { ...CRAFT, bodyLength: 0.18, sweepMeasured: 0.2470 }, gateScale: 1.2 },
@@ -99,7 +99,7 @@ const SCENARIOS = {
 
 /* Two digests: the SKIP scenario is pinned apart because it is only
  * reachable where the vendored sources are absent (see the top). */
-const PINNED_CORE = '242dd230f1d6fde624e923704476439ea207da43f96508886e55ff6209b1dc87';
+const PINNED_CORE = '9c0d31df9197156dd1066db046b6c994c5d38d82f85614170a526b90e93d5fc8';
 const PINNED_SKIP = '546adafc1fa60b06910b4ff49e092bfb4c5a2d5525588d759c0a3d9fe85d17be';
 
 function log(role, argv) {
