@@ -1548,7 +1548,7 @@ export async function boot({
       opsHoldsClear();
       opsFlownKey = activeKey;
       const w = roomLinkState.state().welcome;
-      if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
+      if (mode === 'flight' && w && roomWorldReady(w.map)) {
         ui.onAction('restart');
       } else {
         roomCall('game', { restart: true });
@@ -4173,7 +4173,7 @@ export async function boot({
       roomWarJoinGate(w);
       /* Crash damage is on in this room: a pilot already flying its world
        * with it off starts again, as a war's does (warBegin). */
-      if (mode === 'flight' && damage.available && crashDamageWanted(ui.settings) !== runDamage && roomTagWorldReady(w.map)) {
+      if (mode === 'flight' && damage.available && crashDamageWanted(ui.settings) !== runDamage && roomWorldReady(w.map)) {
         ui.onAction('restart');
       }
       ui.checkVersion();
@@ -4686,7 +4686,7 @@ export async function boot({
    * each seat's speedMul (1 to 1.15) in the view's loadouts, and this
    * pilot flies its own with the plant's boost while a war counts down or
    * runs, 1 otherwise (between wars, and once the pilot has left the
-   * room: the view is then the lobby's). tagBoost sets the plant with it,
+   * room: the view is then the lobby's). roomBoost sets the plant with it,
    * so the crash cam's journal keeps it like the chase boost.
    */
   /*
@@ -4745,6 +4745,55 @@ export async function boot({
     }
     const l = roomWar.view().loadouts?.[roomWar.seat()];
     return l && Number.isFinite(l.speedMul) ? l.speedMul : 1;
+  }
+  /*
+   * THE PLANT'S BOOST, sim_set_boost: the loadout's speed (warSpeedMul)
+   * times Catch the Ace's chase boost (src/share/roomtag.js CHASE_BOOST,
+   * every pilot who is not the Ace in a live match), set on the flight
+   * frame either changes on the room clock and put back to 1 the frame
+   * the war, the match or the room is over. A call into the plant, so the
+   * crash cam's journal keeps it and a take over flies it again.
+   */
+  function roomBoost() {
+    if (mode !== 'flight' || typeof sim.e.sim_set_boost !== 'function') {
+      return;
+    }
+    const now = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
+    const want = now == null ? 1 : roomTag.boost(now) * warSpeedMul();
+    if (sim.e.sim_boost() === want) {
+      return;
+    }
+    const code = sim.e.sim_set_boost(want);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_boost refused ${want}: ${simErrorName(code)}`);
+    }
+  }
+  /* A seat's name on every room screen: this pilot's own, a peer's, or one
+   * who left. Every game's client is handed the room's welcome seat at
+   * once and cleared at once (createRoomLink's onWelcome and onState), so
+   * the war's seat is this pilot's whatever the room plays. */
+  function roomSeatName(seat) {
+    if (seat === roomWar.seat()) {
+      return str('friends.you', { name: roomName(ownName()) });
+    }
+    const peer = roomPeers.get(seat);
+    return peer ? roomName(peer.name) : str('roomrace.gone');
+  }
+  /*
+   * The debrief on a card shown in flight (the war's round, a combat
+   * round's results): the pilot flies on, so no screen of facts, one line
+   * and the key that opens the replay (docs/DEBRIEF.md). The condition is
+   * the HUD's word as the card is drawn, so a war airframe spent on its
+   * target reads Destroyed until the pilot is back in the air.
+   */
+  function debriefCardLine() {
+    const route = runRoute.snapshot();
+    return str('debrief.card_line', {
+      air: formatRunClock(runAirMs),
+      dist: lengthText(route ? route.distanceM : 0),
+      cond: str(`debrief.cond_${conditionOf(crashFlags, airframeById(runAirframe).fixedWing)}`),
+      key: crashCam ? crashCam.replayKey() : 'V',
+    });
   }
   /* The end banner's host presses (COMPLETENESS 76): the same mission
    * again, straight to the countdown (a lost one from the stage it was
@@ -4888,6 +4937,12 @@ export async function boot({
   function roomWatching() {
     const st = roomLinkState.state();
     return st.phase === 'open' && Boolean(st.welcome && st.welcome.watch) && (mode === 'flight' || mode === 'paused');
+  }
+
+  /* The room's world standing, in free flight: where a war, an ops
+   * mission or a match is played. */
+  function roomWorldReady(map) {
+    return Boolean(view) && view.id === map && race.freestyle && mapReady && !swapInFlight && worldMatchesSettings();
   }
 
   /* A pilot of a Trick Battle while another flies its run: held on its
@@ -6126,7 +6181,7 @@ export async function boot({
     if (roomWar.watcher() || sitsOut()) {
       return;
     }
-    if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
+    if (mode === 'flight' && w && roomWorldReady(w.map)) {
       ui.onAction('restart');
     } else {
       roomCall('game', { restart: true });
@@ -7227,7 +7282,7 @@ export async function boot({
     raceHoldMs = 0;
     /* Put up again below when there is a live match to put it round. */
     roomTagBubble.set(0);
-    tagBoost();
+    roomBoost();
     /* A ?room= link, or the room this tab was in before a reload: joined
      * once the shell is up, never during boot, because the hello reads
      * the seated aircraft. */
@@ -9138,10 +9193,6 @@ export async function boot({
     roomRaceRunId = null;
   }
 
-  /* The screens a room's results are shown over and a match's results
-   * wait on. */
-  const ROOM_SEAT_SCREENS = ['title', 'paused', 'results', 'launch', 'friends'];
-
   /* Every frame the room is open, after the aircraft is posed. */
   function roomRaceFrame(now, wallMs) {
     if (wallMs > roomRaceCheckAt) {
@@ -9205,55 +9256,6 @@ export async function boot({
     }
   }
 
-  function roomSeatName(seat) {
-    if (seat === roomRace.seat()) {
-      return str('friends.you', { name: roomName(ownName()) });
-    }
-    const peer = roomPeers.get(seat);
-    return peer ? roomName(peer.name) : str('roomrace.gone');
-  }
-  /*
-   * A room match's debrief (src/game/debrief.js fromRoom) from the room's
-   * order: rows of { seat, place, points? }. The replay and the
-   * aircraft's condition are offered only when this pilot's own flight is
-   * what ended here (mode 'results'); a pilot who was on a room screen has
-   * no flight of theirs to replay or to judge.
-   */
-  function roomDebrief(activity, rows, seat, final) {
-    const me = rows.find((row) => row.seat === seat) || null;
-    const flew = mode === 'results';
-    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
-    return withBests(fromRoom({
-      activity,
-      aircraft: runAirframe,
-      fixedWing,
-      place: me ? me.place : null,
-      of: rows.length,
-      final,
-      events: ui.progress.flight.events,
-      flightMs: runAirMs,
-      totalS: aircraftSecondsNow(),
-      route: runRoute.snapshot(),
-      replay: flew ? replayState(crashCam ? crashCam.span() : null, false) : null,
-      condition: flew ? conditionOf(crashFlags, fixedWing) : null,
-    }), ui.progress.runBests());
-  }
-  /*
-   * The debrief on a card shown in flight (the war's round, a combat
-   * round's results): the pilot flies on, so no screen of facts, one line
-   * and the key that opens the replay (docs/DEBRIEF.md). The condition is
-   * the HUD's word as the card is drawn, so a war airframe spent on its
-   * target reads Destroyed until the pilot is back in the air.
-   */
-  function debriefCardLine() {
-    const route = runRoute.snapshot();
-    return str('debrief.card_line', {
-      air: formatRunClock(runAirMs),
-      dist: lengthText(route ? route.distanceM : 0),
-      cond: str(`debrief.cond_${conditionOf(crashFlags, airframeById(runAirframe).fixedWing)}`),
-      key: crashCam ? crashCam.replayKey() : 'V',
-    });
-  }
   /* The results screen, from the room's order; again as it changes. */
   function roomShowResults() {
     const view = resultsView(roomRace, roomSeatName);
@@ -9384,6 +9386,37 @@ export async function boot({
     return true;
   };
 
+  /* The screens a room's results are shown over and a match's results
+   * wait on. */
+  const ROOM_SEAT_SCREENS = ['title', 'paused', 'results', 'launch', 'friends'];
+
+  /*
+   * A room match's debrief (src/game/debrief.js fromRoom) from the room's
+   * order: rows of { seat, place, points? }. The replay and the
+   * aircraft's condition are offered only when this pilot's own flight is
+   * what ended here (mode 'results'); a pilot who was on a room screen has
+   * no flight of theirs to replay or to judge.
+   */
+  function roomDebrief(activity, rows, seat, final) {
+    const me = rows.find((row) => row.seat === seat) || null;
+    const flew = mode === 'results';
+    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
+    return withBests(fromRoom({
+      activity,
+      aircraft: runAirframe,
+      fixedWing,
+      place: me ? me.place : null,
+      of: rows.length,
+      final,
+      events: ui.progress.flight.events,
+      flightMs: runAirMs,
+      totalS: aircraftSecondsNow(),
+      route: runRoute.snapshot(),
+      replay: flew ? replayState(crashCam ? crashCam.span() : null, false) : null,
+      condition: flew ? conditionOf(crashFlags, fixedWing) : null,
+    }), ui.progress.runBests());
+  }
+
   /*
    * CATCH THE ACE! (¡Atrapa al As!), docs/TAG-PLAN.md: a private room's
    * tag match (src/share/roomtag.js, the room's half edge/rooms/tag.js).
@@ -9397,7 +9430,7 @@ export async function boot({
    * bright pulse, a big banner and an edge flash (tagShout); and the
    * results when the room says the match is over. A collision in a match
    * is a mid air crash like any other, judged by the room's referee; the
-   * one thing here that touches the plant is the chase boost (tagBoost).
+   * one thing here that touches the plant is the chase boost (roomBoost).
    */
   /* The host's goal: a preset of GOALS, or 'custom' with its points. */
   let roomTagPick = { preset: GOALS[0].id, custom: 30 };
@@ -9429,29 +9462,6 @@ export async function boot({
   function roomTagHoldMs(now) {
     return roomTagRunId != null && roomTagRunId === roomTag.view().id ? roomTag.holdMs(now) : 0;
   }
-  /*
-   * THE CHASE BOOST (src/share/roomtag.js CHASE_BOOST): every pilot who is
-   * not the Ace flies a live match with the plant's sim_set_boost, set here
-   * on the flight frame the role changes on the room clock, and put back to
-   * 1 the frame the match or the room is over. A war's loadout speed
-   * (warSpeedMul, DEFEND ITAIPU) multiplies it, the same way. A call into the plant, so
-   * the crash cam's journal keeps it and a take over flies it again.
-   */
-  function tagBoost() {
-    if (mode !== 'flight' || typeof sim.e.sim_set_boost !== 'function') {
-      return;
-    }
-    const now = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
-    const want = now == null ? 1 : roomTag.boost(now) * warSpeedMul();
-    if (sim.e.sim_boost() === want) {
-      return;
-    }
-    const code = sim.e.sim_set_boost(want);
-    if (code !== SIM_OK) {
-      throw new Error(`sim_set_boost refused ${want}: ${simErrorName(code)}`);
-    }
-  }
-
   /* Where a seat's aircraft is drawn on this screen, or null. */
   function roomTagSeatAt(seat) {
     if (seat == null) {
@@ -9519,10 +9529,6 @@ export async function boot({
   function roomTagName(seat, name) {
     return roomTag.ace() === seat ? str('roomtag.ace_name', { name }) : name;
   }
-  /* The room's world standing, in free flight: where a match is played. */
-  function roomTagWorldReady(map) {
-    return Boolean(view) && view.id === map && race.freestyle && mapReady && !swapInFlight && worldMatchesSettings();
-  }
 
   /* Every frame the room is open, after the race's. */
   let roomTagJoined = null;
@@ -9538,7 +9544,7 @@ export async function boot({
     const start = roomTag.takeStart(now);
     if (start && w) {
       roomLeaveCrashCam();
-      if (roomTagWorldReady(w.map)) {
+      if (roomWorldReady(w.map)) {
         roomTagRunId = start.id;
         ui.onAction('restart');
       } else {
