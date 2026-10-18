@@ -1910,7 +1910,6 @@
    "result": {
     "title": "<titleHelp>",
     "howto": "<howtoHelp>",
-    "tricks": "<trickHelp>",
     "credits": "<creditsHelp>",
     "courses": "<coursesHelp>",
     "freestyle": "<freestyleHelp>",
@@ -2359,11 +2358,6 @@
     "noteInteraction",
     "markCards",
     "markBars 3",
-    "noteInteraction",
-    "renderTricks",
-    "markBars 3",
-    "scrollIntoView <row2> {\"block\":\"nearest\"}",
-    "sound move",
     "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}"
@@ -5807,7 +5801,6 @@
    "result": {
     "title": "<titleHelp>",
     "howto": "<howtoHelp>",
-    "tricks": "<trickHelp>",
     "credits": "<creditsHelp>",
     "courses": "<coursesHelp>",
     "freestyle": "<freestyleHelp>",
@@ -6256,11 +6249,6 @@
     "noteInteraction",
     "markCards",
     "markBars 3",
-    "noteInteraction",
-    "renderTricks",
-    "markBars 3",
-    "scrollIntoView <row2> {\"block\":\"nearest\"}",
-    "sound move",
     "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}"

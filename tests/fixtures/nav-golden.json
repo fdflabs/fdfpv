@@ -3043,8 +3043,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -3071,7 +3070,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -3248,8 +3246,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -3276,7 +3273,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -3453,8 +3449,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -3497,7 +3492,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -3669,8 +3663,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -3696,7 +3689,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -3841,8 +3833,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -3868,7 +3859,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -4034,8 +4024,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -4078,7 +4067,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -4250,8 +4238,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -4277,7 +4264,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -4443,8 +4429,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -4468,7 +4453,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -4620,8 +4604,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -4647,7 +4630,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -4799,8 +4781,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -4827,7 +4808,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -4979,8 +4959,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -5007,7 +4986,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -5146,9 +5124,9 @@
       }
      }
     },
-    "tricks": {
+    "howto": {
      "state": {
-      "screen": "tricks",
+      "screen": "howto",
       "cursor": 0,
       "rowOffset": 0,
       "focusId": null,
@@ -5159,8 +5137,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -5186,7 +5163,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -5231,23 +5207,9 @@
        "children": [
         {
          "tag": "SPAN",
-         "cls": "crumb-up",
-         "children": [
-          "Freestyle"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-sep",
-         "children": [
-          "/"
-         ]
-        },
-        {
-         "tag": "SPAN",
          "cls": "crumb-here",
          "children": [
-          "Trick list"
+          "How to fly"
          ]
         }
        ]
@@ -5343,7 +5305,6 @@
    "log": [
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5355,7 +5316,6 @@
     "onScreenChange rates",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5367,7 +5327,6 @@
     "onScreenChange rates",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "makeSwitch sw 4",
@@ -5387,7 +5346,6 @@
     "onScreenChange quad",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5399,7 +5357,6 @@
     "onScreenChange pids",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5411,7 +5368,6 @@
     "onScreenChange fc",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5423,7 +5379,6 @@
     "onScreenChange pids",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "makeSwitch sw 4",
@@ -5446,7 +5401,6 @@
     "loadLocalCourses",
     "loadBoardCourses",
     "loadCloudCourses",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "renderMapCards",
@@ -5461,7 +5415,6 @@
     "closeDrop",
     "stopReels",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "renderMapCards",
@@ -5475,7 +5428,6 @@
     "onScreenChange freestyle",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "renderTitleCards",
@@ -5489,7 +5441,6 @@
     "onScreenChange title",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5501,7 +5452,6 @@
     "onScreenChange paused",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "syncChips",
@@ -5509,7 +5459,6 @@
     "closeDrop",
     "noteInteraction",
     "renderHowto",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5518,15 +5467,7 @@
     "syncPids",
     "syncFcChrome",
     "syncChips",
-    "onScreenChange howto",
-    "closeDrop",
-    "noteInteraction",
-    "syncScoreVisible",
-    "syncChips",
-    "closeDrop",
-    "renderTricks",
-    "syncChips",
-    "onScreenChange tricks"
+    "onScreenChange howto"
    ]
   },
   "showCollaborators": {
@@ -5540,7 +5481,6 @@
      "cursorMemory": {
       "title": "fly",
       "friends": "fr",
-      "tricks": "t",
       "credits": "back"
      },
      "padRearm": true,
@@ -5573,7 +5513,6 @@
      "cursorMemory": {
       "title": "fly",
       "friends": "fr",
-      "tricks": "t",
       "credits": "back"
      },
      "padRearm": true,
@@ -5597,42 +5536,6 @@
      ],
      "url": "https://example.test/"
     },
-    "tricks": {
-     "trickShown": "",
-     "state": {
-      "screen": "tricks",
-      "cursor": 0,
-      "rowOffset": 0,
-      "focusId": null,
-      "returnTo": null,
-      "cursorMemory": {
-       "title": "fly",
-       "friends": "fr",
-       "tricks": "t",
-       "credits": "back"
-      },
-      "padRearm": true,
-      "swapPadPrev": null,
-      "numberFocusWanted": null,
-      "ratesFrom": null,
-      "pidsFrom": null,
-      "fcFrom": null,
-      "roomFrom": null,
-      "ratesNotice": null,
-      "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
-      ],
-      "menuRows": [
-       "<div.row \"Rooms\">"
-      ],
-      "url": "https://example.test/"
-     }
-    },
     "credits": {
      "screen": "credits",
      "cursor": 0,
@@ -5642,7 +5545,6 @@
      "cursorMemory": {
       "title": "fly",
       "friends": "fr",
-      "tricks": "t",
       "credits": "back"
      },
      "padRearm": true,
@@ -5675,7 +5577,6 @@
      "cursorMemory": {
       "title": "fly",
       "friends": "fr",
-      "tricks": "t",
       "credits": "back"
      },
      "padRearm": true,
@@ -5703,7 +5604,6 @@
    "log": [
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5715,7 +5615,6 @@
     "onScreenChange friends",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5727,7 +5626,6 @@
     "onScreenChange friends",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5741,20 +5639,7 @@
     "carousel.close",
     "hangar.cancel",
     "noteInteraction",
-    "renderTricks",
-    "syncScoreVisible",
-    "syncChips",
-    "closeDrop",
-    "renderTricks",
-    "syncChips",
-    "onScreenChange tricks",
-    "closeDrop",
-    "carousel.close",
-    "hangar.cancel",
-    "noteInteraction",
-    "trickPlayer.stop",
     "history.replaceState https://example.test/#credits",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5768,8 +5653,6 @@
     "carousel.close",
     "hangar.cancel",
     "noteInteraction",
-    "trickPlayer.stop",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5782,8 +5665,6 @@
     "carousel.close",
     "hangar.cancel",
     "noteInteraction",
-    "trickPlayer.stop",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -6008,7 +5889,6 @@
    "log": [
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -6020,7 +5900,6 @@
     "onScreenChange credits",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -6032,7 +5911,6 @@
     "onScreenChange credits",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -6045,7 +5923,6 @@
     "closeDrop",
     "history.replaceState https://example.test/play/?map=alps",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "titleStop",
@@ -6059,7 +5936,6 @@
     "closeDrop",
     "noteInteraction",
     "history.replaceState https://example.test/play/#credits",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -6071,7 +5947,6 @@
     "onScreenChange credits",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -7526,135 +7401,6 @@
         "cls": "crumb-here",
         "children": [
          "How to fly"
-        ]
-       }
-      ]
-     },
-     "context": {
-      "tag": "DIV",
-      "name": "frameContext",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "frame-chip",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "frame-chip-key",
-          "children": [
-           "Flying"
-          ]
-         },
-         {
-          "tag": "B",
-          "children": [
-           "The Alps"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     "legend": {
-      "tag": "DIV",
-      "name": "frameLegend",
-      "children": [
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↑"
-          ]
-         },
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↓"
-          ]
-         },
-         " Move"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Enter"
-          ]
-         },
-         " Choose"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Esc"
-          ]
-         },
-         " Back"
-        ]
-       }
-      ]
-     },
-     "primary": {
-      "tag": "BUTTON",
-      "name": "framePrimary",
-      "hidden": true,
-      "children": [
-       "Fly"
-      ]
-     }
-    },
-    "tricks": {
-     "top": {
-      "tag": "DIV",
-      "name": "frameTop",
-      "hidden": false
-     },
-     "bot": {
-      "tag": "DIV",
-      "name": "frameBot",
-      "hidden": false
-     },
-     "rootCls": "bar-shown",
-     "rootStyle": {
-      "--bar-top": "48px",
-      "--bar-bot": "52px"
-     },
-     "crumb": {
-      "tag": "DIV",
-      "name": "crumb",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "crumb-up",
-        "children": [
-         "Freestyle"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-sep",
-        "children": [
-         "/"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-here",
-        "children": [
-         "Trick list"
         ]
        }
       ]
@@ -13480,8 +13226,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -13508,7 +13253,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -13685,8 +13429,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -13713,7 +13456,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -13890,8 +13632,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -13934,7 +13675,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -14106,8 +13846,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -14133,7 +13872,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -14278,8 +14016,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -14305,7 +14042,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -14471,8 +14207,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -14515,7 +14250,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -14687,8 +14421,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -14714,7 +14447,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -14880,8 +14612,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -14905,7 +14636,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -15057,8 +14787,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -15084,7 +14813,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -15236,8 +14964,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -15264,7 +14991,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -15416,8 +15142,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -15444,7 +15169,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -15583,9 +15307,9 @@
       }
      }
     },
-    "tricks": {
+    "howto": {
      "state": {
-      "screen": "tricks",
+      "screen": "howto",
       "cursor": 0,
       "rowOffset": 0,
       "focusId": null,
@@ -15596,8 +15320,7 @@
        "pids": "p1",
        "fc": "f1",
        "courses": "c1",
-       "paused": "resume",
-       "howto": "h"
+       "paused": "resume"
       },
       "padRearm": true,
       "swapPadPrev": null,
@@ -15623,7 +15346,6 @@
      "displays": {
       "title": null,
       "howto": null,
-      "tricks": null,
       "credits": null,
       "courses": null,
       "freestyle": null,
@@ -15668,23 +15390,9 @@
        "children": [
         {
          "tag": "SPAN",
-         "cls": "crumb-up",
-         "children": [
-          "Freestyle"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-sep",
-         "children": [
-          "/"
-         ]
-        },
-        {
-         "tag": "SPAN",
          "cls": "crumb-here",
          "children": [
-          "Trick list"
+          "How to fly"
          ]
         }
        ]
@@ -15780,7 +15488,6 @@
    "log": [
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15792,7 +15499,6 @@
     "onScreenChange rates",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15804,7 +15510,6 @@
     "onScreenChange rates",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "makeSwitch sw 4",
@@ -15824,7 +15529,6 @@
     "onScreenChange quad",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15836,7 +15540,6 @@
     "onScreenChange pids",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15848,7 +15551,6 @@
     "onScreenChange fc",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15860,7 +15562,6 @@
     "onScreenChange pids",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "makeSwitch sw 4",
@@ -15883,7 +15584,6 @@
     "loadLocalCourses",
     "loadBoardCourses",
     "loadCloudCourses",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "renderMapCards",
@@ -15898,7 +15598,6 @@
     "closeDrop",
     "stopReels",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "renderMapCards",
@@ -15912,7 +15611,6 @@
     "onScreenChange freestyle",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "renderTitleCards",
@@ -15926,7 +15624,6 @@
     "onScreenChange title",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15938,7 +15635,6 @@
     "onScreenChange paused",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "syncChips",
@@ -15946,7 +15642,6 @@
     "closeDrop",
     "noteInteraction",
     "renderHowto",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15955,15 +15650,7 @@
     "syncPids",
     "syncFcChrome",
     "syncChips",
-    "onScreenChange howto",
-    "closeDrop",
-    "noteInteraction",
-    "syncScoreVisible",
-    "syncChips",
-    "closeDrop",
-    "renderTricks",
-    "syncChips",
-    "onScreenChange tricks"
+    "onScreenChange howto"
    ]
   },
   "showCollaborators": {
@@ -15977,7 +15664,6 @@
      "cursorMemory": {
       "title": "fly",
       "friends": "fr",
-      "tricks": "t",
       "credits": "back"
      },
      "padRearm": true,
@@ -16010,7 +15696,6 @@
      "cursorMemory": {
       "title": "fly",
       "friends": "fr",
-      "tricks": "t",
       "credits": "back"
      },
      "padRearm": true,
@@ -16034,42 +15719,6 @@
      ],
      "url": "https://example.test/"
     },
-    "tricks": {
-     "trickShown": "",
-     "state": {
-      "screen": "tricks",
-      "cursor": 0,
-      "rowOffset": 0,
-      "focusId": null,
-      "returnTo": null,
-      "cursorMemory": {
-       "title": "fly",
-       "friends": "fr",
-       "tricks": "t",
-       "credits": "back"
-      },
-      "padRearm": true,
-      "swapPadPrev": null,
-      "numberFocusWanted": null,
-      "ratesFrom": null,
-      "pidsFrom": null,
-      "fcFrom": null,
-      "roomFrom": null,
-      "ratesNotice": null,
-      "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
-      ],
-      "menuRows": [
-       "<div.row \"Rooms\">"
-      ],
-      "url": "https://example.test/"
-     }
-    },
     "credits": {
      "screen": "credits",
      "cursor": 0,
@@ -16079,7 +15728,6 @@
      "cursorMemory": {
       "title": "fly",
       "friends": "fr",
-      "tricks": "t",
       "credits": "back"
      },
      "padRearm": true,
@@ -16112,7 +15760,6 @@
      "cursorMemory": {
       "title": "fly",
       "friends": "fr",
-      "tricks": "t",
       "credits": "back"
      },
      "padRearm": true,
@@ -16140,7 +15787,6 @@
    "log": [
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16152,7 +15798,6 @@
     "onScreenChange friends",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16164,7 +15809,6 @@
     "onScreenChange friends",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16178,20 +15822,7 @@
     "carousel.close",
     "hangar.cancel",
     "noteInteraction",
-    "renderTricks",
-    "syncScoreVisible",
-    "syncChips",
-    "closeDrop",
-    "renderTricks",
-    "syncChips",
-    "onScreenChange tricks",
-    "closeDrop",
-    "carousel.close",
-    "hangar.cancel",
-    "noteInteraction",
-    "trickPlayer.stop",
     "history.replaceState https://example.test/#credits",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16205,8 +15836,6 @@
     "carousel.close",
     "hangar.cancel",
     "noteInteraction",
-    "trickPlayer.stop",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16219,8 +15848,6 @@
     "carousel.close",
     "hangar.cancel",
     "noteInteraction",
-    "trickPlayer.stop",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16445,7 +16072,6 @@
    "log": [
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16457,7 +16083,6 @@
     "onScreenChange credits",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16469,7 +16094,6 @@
     "onScreenChange credits",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16482,7 +16106,6 @@
     "closeDrop",
     "history.replaceState https://example.test/play/?map=alps",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "titleStop",
@@ -16496,7 +16119,6 @@
     "closeDrop",
     "noteInteraction",
     "history.replaceState https://example.test/play/#credits",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -16508,7 +16130,6 @@
     "onScreenChange credits",
     "closeDrop",
     "noteInteraction",
-    "syncScoreVisible",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -17963,135 +17584,6 @@
         "cls": "crumb-here",
         "children": [
          "How to fly"
-        ]
-       }
-      ]
-     },
-     "context": {
-      "tag": "DIV",
-      "name": "frameContext",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "frame-chip",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "frame-chip-key",
-          "children": [
-           "Volando"
-          ]
-         },
-         {
-          "tag": "B",
-          "children": [
-           "The Alps"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     "legend": {
-      "tag": "DIV",
-      "name": "frameLegend",
-      "children": [
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↑"
-          ]
-         },
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↓"
-          ]
-         },
-         " Mover"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Enter"
-          ]
-         },
-         " Elegir"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Esc"
-          ]
-         },
-         " Volver"
-        ]
-       }
-      ]
-     },
-     "primary": {
-      "tag": "BUTTON",
-      "name": "framePrimary",
-      "hidden": true,
-      "children": [
-       "Fly"
-      ]
-     }
-    },
-    "tricks": {
-     "top": {
-      "tag": "DIV",
-      "name": "frameTop",
-      "hidden": false
-     },
-     "bot": {
-      "tag": "DIV",
-      "name": "frameBot",
-      "hidden": false
-     },
-     "rootCls": "bar-shown",
-     "rootStyle": {
-      "--bar-top": "48px",
-      "--bar-bot": "52px"
-     },
-     "crumb": {
-      "tag": "DIV",
-      "name": "crumb",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "crumb-up",
-        "children": [
-         "Freestyle"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-sep",
-        "children": [
-         "/"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-here",
-        "children": [
-         "Trick list"
         ]
        }
       ]
