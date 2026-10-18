@@ -2519,6 +2519,13 @@ SIM_EXPORT int sim_set_airframe(int id) {
   plant_set_airframe(id);
   /* The new aircraft's own power system, with a full pack and tank. */
   plant_power_reset(&S);
+  /* And its own drive, surfaces and stabiliser, as a reset under it sets
+   * them: a motor stopped, an engine or a turbine idling, the servos
+   * centred. Without it the last aircraft's were flown, and a module reset
+   * under a quad, whose plant has no table, handed the first wing seated
+   * after it an electric motor already running (reset:determinism, the
+   * seat in either order). */
+  plant_wing_reset();
   /* A canopy belongs to the aircraft that pulled it, and so do flaps, and
    * a discus launch to the glider being thrown. */
   plant_wing_chute(0);
