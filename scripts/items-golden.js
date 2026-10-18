@@ -214,8 +214,6 @@ function makeUi(fields = {}) {
     resultsFastest: null,
     timePosted: null,
     osdMode: 'race',
-    freestyleRun: null,
-    runPosted: null,
     ratesNotice: '',
     cardSubject: null,
     newTrackOpen: false,
@@ -237,7 +235,6 @@ function makeUi(fields = {}) {
     everyoneFlightAsked: true,
     everyoneFlightS: null,
     stickProbe: null,
-    trickList: null,
     fc: { items: () => [{ label: 'bench row', action: 'fc-row' }] },
     friendsRow: null,
     friendsRows: null,
@@ -491,11 +488,9 @@ const SCENARIOS = [
   scenario('courses-new-track', { fields: { screen: 'courses', localCourses: localCourses(), newTrackOpen: true } }),
   scenario('courses-new-track-plane', { settings: { airframe: 'cub1400' }, fields: { screen: 'courses', newTrackOpen: true } }),
 
-  scenario('tricks', { fields: { screen: 'tricks' } }),
-
-  /* Freestyle: scoring off and on. */
+  /* Freestyle: as it stands and arcade with crash damage off. */
   scenario('freestyle-off', { settings: { map: 'swiss2' }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
-  scenario('freestyle-on-arcade', { settings: { map: 'swiss2', freestyleScoring: 'on', flightStyle: 'arcade', crashDamage: false }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
+  scenario('freestyle-arcade', { settings: { map: 'swiss2', flightStyle: 'arcade', crashDamage: false }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
 
   /* Quad: between runs, paused with and without the hot swap, the yaw tip. */
   scenario('quad', { fields: { screen: 'quad' } }),
@@ -562,12 +557,6 @@ const SCENARIOS = [
   scenario('results-room', { fields: { screen: 'results', roomResults: true, roomResultsRows: () => [{ label: 'Room results', action: 'friends-results' }, { label: 'Back to title', action: 'title' }], inRoom: () => true } }),
   scenario('results-room-no-rows', { fields: { screen: 'results', roomResults: true } }),
   scenario('results-freestyle-nothing', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle' } }),
-  scenario('results-freestyle-run', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5 } } }),
-  scenario('results-freestyle-untimed', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5, timed: false } } }),
-  scenario('results-freestyle-assisted', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5, assisted: true } } }),
-  scenario('results-freestyle-posted', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5 }, runPosted: { rank: 3, score: 1234 } } }),
-  scenario('results-freestyle-posted-norank', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5 }, runPosted: { score: 1234 } } }),
-  scenario('results-freestyle-stands', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 900, tricks: 2 }, runPosted: { improved: false, score: 1500 }, inRoom: () => true } }),
   scenario('results-free-world', { settings: { map: 'alps' }, fields: { screen: 'results' } }),
   scenario('results-no-seat', { fields: { screen: 'results' } }),
   scenario('results-local-seat', { seed: seedLocalSeat, fields: { screen: 'results', resultsFastest: 61234 } }),

@@ -1,17 +1,16 @@
 /*
  * flightrig.js: fly the compiled plant headless, the way the shell flies it.
  *
- * The checks that judge contacts and trick names need a real aircraft, not a
- * kinematic stand in, and they need it in Node with no renderer. This rig
- * runs dist/sim.wasm on the sim clock and wraps it in the shell's seams: the
- * frame conversions (spawn yaw included), the ground plane, a port of the
- * obstacle contact pass with its rotor bleed, and the feed into the trick
- * recogniser. A small guidance law tracks planned paths so a check can say
- * "fly this circle" instead of scripting sticks.
+ * The checks that judge contacts need a real aircraft, not a kinematic
+ * stand in, and they need it in Node with no renderer. This rig runs
+ * dist/sim.wasm on the sim clock and wraps it in the shell's seams: the
+ * frame conversions (spawn yaw included), the ground plane, and a port of
+ * the obstacle contact pass with its rotor bleed. A small guidance law
+ * tracks planned paths so a check can say "fly this circle" instead of
+ * scripting sticks.
  *
- * Every number here is bit exact on purpose: golden records digest the
- * detector calls this rig makes, so one ulp in a stick changes the flight
- * and the record. Formulas keep their operation order, and the pilot and
+ * Every number here is bit exact on purpose: one ulp in a stick changes
+ * the flight. Formulas keep their operation order, and the pilot and
  * path generators use Math trig at the same places (they are not the plant,
  * which stays in the WASM).
  *
@@ -38,7 +37,6 @@ import {
   GROUND_MU, GROUND_E, GRAZE_SPEED_MAX, BOUNCE_SEPARATION,
   PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace,
 } from '../../src/game/collide.js';
-import { TrickDetector } from '../../src/game/trickdetect.js';
 
 export { GRAZE_SPEED_MAX };
 
@@ -46,7 +44,6 @@ export { GRAZE_SPEED_MAX };
  * reproduces rather than following a refactor of the shell silently. */
 const PLANT_LIFT = 0.045;   /* m, plant origin above the spawn point */
 const PASS_MS = 4;          /* contact pass cadence, sim steps */
-const BUMP_GAP_MS = 180;    /* least sim ms between two recogniser bumps */
 const RC_PERIOD = 1 / 250;  /* s, RC sample period */
 const G = 9.81;
 
@@ -184,15 +181,14 @@ export function seqPath(...parts) {
 
 /* --- Worlds --- */
 
-export function buildWorld(parts, deriveObstacles, groundY = 0) {
+export function buildWorld(parts) {
   const c = new Colliders();
   for (const s of parts) {
     if (s.kind === 'box') c.addBox(s.material ?? 'wall', s.x0, s.y0, s.z0, s.x1, s.y1, s.z1);
     else if (s.kind === 'capsule') c.add(s.material ?? 'obstacle', s.ax, s.ay, s.az, s.bx, s.by, s.bz, s.r);
   }
   c.build();
-  const field = deriveObstacles ? deriveObstacles(c, () => groundY) : null;
-  return { colliders: c, field };
+  return { colliders: c };
 }
 
 /* --- The rig --- */
@@ -235,7 +231,7 @@ function frameSeam(spawn, spawnYaw) {
 const speedOf = (st) => Math.sqrt(st[4] * st[4] + st[5] * st[5] + st[6] * st[6]);
 
 export async function makeRig({
-  wasmBytes, diffText, colliders = null, field = null,
+  wasmBytes, diffText, colliders = null,
   spawn = V(0, 0, 0), spawnYaw = 0, groundY = 0, cell = 4.0,
 } = {}) {
   const sim = await loadSim(wasmBytes);
@@ -243,26 +239,10 @@ export async function makeRig({
   sim.reset();
   if (cell) sim.setCellVoltage(cell);
 
-  const tricks = [];
-  const det = new TrickDetector((t) => tricks.push(t), field);
-  if (colliders) {
-    det.solids = {
-      gapAt: (x, y, z, r) => colliders.gapAt(x, y, z, r),
-      axisAt(x, y, z, r) {
-        if (!colliders.axisAt(x, y, z, r)) return null;
-        return {
-          gap: colliders.axisGap,
-          dx: colliders.axisDx, dy: colliders.axisDy, dz: colliders.axisDz,
-          cx: colliders.axisCx, cy: colliders.axisCy, cz: colliders.axisCz,
-        };
-      },
-    };
-  }
-
   const seam = frameSeam(spawn, spawnYaw);
   const read = () => sim.readState().state;
   let st = read();
-  const clock = { steps: 0, nextRc: 0, phase: 0, lastBump: -1e9 };
+  const clock = { steps: 0, nextRc: 0, phase: 0 };
   let sticks = [0, 0, 0, 0];
   let lastPassAt = null;
   const press = { held: 0, idle: 0, on: false };
@@ -430,18 +410,11 @@ export async function makeRig({
 
     const c = craft();
     track.push([c.p.x, c.p.y, c.p.z]);
-    det.step(0.001, st[11], st[12], st[13], st[8], st[9], speedOf(st),
-      c.p.x, c.p.y, c.p.z, c.fwd.x, c.fwd.y, c.fwd.z, c.up.x, c.up.y, c.up.z);
-    if (colliders && clock.phase === 0) det.near(colliders.gapAt(c.p.x, c.p.y, c.p.z, 2.0));
 
     clock.phase += 1;
     if (clock.phase < PASS_MS) return;
     clock.phase = 0;
-    const pass = contactPass();
-    if (pass.touched && clock.steps - clock.lastBump >= BUMP_GAP_MS) {
-      clock.lastBump = clock.steps;
-      det.bump(pass.closing);
-    }
+    contactPass();
   }
 
   /* Takes effect at the next RC sample, as a radio would. */
@@ -549,15 +522,11 @@ export async function makeRig({
 
   function done(tailMs = 900) {
     hold(tailMs, 0, 0, 0, 0.5);
-    det.flush(craft().upZ);
-    return tricks;
   }
 
   return {
-    sim, det, stick, hold, stickUntil, quarter, fly, settle, done, craft, tricks, track, stats,
+    sim, stick, hold, stickUntil, quarter, fly, settle, done, craft, track, stats,
     state: () => st,
     simMs: () => clock.steps,
-    names: () => tricks.map((t) => t.name).join(' + '),
-    graded: () => tricks.map((t) => `${t.name}:${t.execution}`).join(' + '),
   };
 }

@@ -129,7 +129,6 @@ function conditionWord(c) {
  * the one a pilot most often wants after a flight. */
 const NEXT = {
   race: ['again', 'replay', 'aircraft', 'title'],
-  free: ['again', 'replay', 'aircraft', 'title'],
   /* A room's own rows (the host's Again, Fly on, the room's) lead; the
    * replay and another aircraft for the next round follow them. */
   roomrace: ['room', 'replay', 'aircraft', 'title'],
@@ -199,14 +198,13 @@ function timeRecord(totalS, flightMs) {
  * EVENT LOG (src/game/events.js, COMPLETENESS.md item 26): every fact
  * that is an event is read from the log, so a debrief rebuilt from a
  * saved log says what the one shown said: a race's laps (`lap` and
- * `lap_void`), freestyle's tricks and bails (`trick`, `bail`), an ops
- * mission's result (its `mission_end`) and a room game's points (its
- * `round`). `events` is the run's (src/ui/progress-ui.js runEvents), a
- * room's the flight's. Handed in: what is measured, not an event (the
- * time in the air, the route, the replay, the condition, a freestyle
- * run's clock), what the scorer and the room work out from it (the
- * score, the places), and what the course and the mission are (the
- * record chased, the stars there are).
+ * `lap_void`), an ops mission's result (its `mission_end`) and a room
+ * game's points (its `round`). `events` is the run's
+ * (src/ui/progress-ui.js runEvents), a room's the flight's. Handed in:
+ * what is measured, not an event (the time in the air, the route, the
+ * replay, the condition), what the room works out from it (the places),
+ * and what the course and the mission are (the record chased, the stars
+ * there are).
  */
 
 /*
@@ -329,18 +327,6 @@ export function fromOps({ events, match, items, starsOf, flight }) {
   };
 }
 
-/* The record with the board's answer to a posted run as its record line,
- * which arrives after the screen is up. The board answers with its kept
- * score: this run's when it improved (the old best is not sent back), the
- * standing best when it did not. Pure: a new record. */
-export function withPosted(d, posted) {
-  if (!posted || !Number.isFinite(posted.score)) {
-    return d;
-  }
-  const line = { what: 'debrief.run_best', now: d.score, before: posted.score, improved: posted.improved !== false };
-  return { ...d, records: [line, ...d.records.filter((r) => r.what !== 'debrief.run_best')] };
-}
-
 /*
  * The bests a run set (src/game/progress.js awardBest's `best` events,
  * src/ui/progress-ui.js runBests) as record lines, first on the list: a
@@ -377,41 +363,4 @@ export function withBests(d, bests) {
   }
   const lines = [...byKey.values(), ...done.values()];
   return lines.length ? { ...d, records: [...lines, ...d.records] } : d;
-}
-
-/*
- * A freestyle run. events: its run's log, whose `trick` rows are the
- * tricks the scorer took and `bail` rows the bails it counted; summary
- * score.js's summary(), for the score and the run's clock. posted is the
- * board's answer when the run was sent ({ score, improved }), else null:
- * the board holds the pilot's best, so the record line is its answer, not
- * a local copy.
- */
-export function fromFree({ aircraft, fixedWing = false, summary, events, flightMs, totalS, route = null, replay, landed = null, posted = null, condition = null }) {
-  const scored = summary.timed !== false;
-  const tricks = events.filter((e) => e.type === 'trick');
-  const kind = tricks.length > 0 ? 'complete' : 'ended';
-  const accuracy = [];
-  if (tricks.length > 0) {
-    accuracy.push({ what: 'debrief.tricks_kinds', n: new Set(tricks.map((e) => e.id)).size, of: tricks.length });
-  }
-  accuracy.push({ what: 'debrief.crashes', n: events.filter((e) => e.type === 'bail').length, of: null });
-  const records = [];
-  if (posted && Number.isFinite(posted.score)) {
-    records.push({ what: 'debrief.run_best', now: summary.total, before: posted.score, improved: posted.improved !== false });
-  }
-  return {
-    activity: 'free',
-    score: summary.total,
-    aircraft,
-    fixedWing,
-    result: { kind, landed: fixedWing ? landed : null },
-    condition: conditionWord(condition),
-    route,
-    time: { flightMs, runMs: scored ? summary.durationMs : null },
-    accuracy,
-    records: records.concat(timeRecord(totalS, flightMs)),
-    replay,
-    next: nextActions('free'),
-  };
 }

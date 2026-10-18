@@ -9,7 +9,7 @@
  * The methods are called off Ui.prototype on a stand-in Ui, so the same
  * script reads the class before the split and the installed module after
  * it. Every collaborator outside the range (the row controls, the cursor
- * painter, the card and trick painters, the course loaders, the chips) is
+ * painter, the card painters, the course loaders, the chips) is
  * a stub that writes a line to a log, and a small stand-in document records
  * what each method builds, the attributes it sets, the scroll it keeps, the
  * events a row answers and the URL it rewrites. Each scenario keeps its log,
@@ -192,7 +192,7 @@ function named(tag, name, cls = '') {
   return n;
 }
 
-const MENU_SCREENS = ['title', 'howto', 'tricks', 'credits', 'courses', 'freestyle', 'pilot', 'friends', 'quad', 'launch',
+const MENU_SCREENS = ['title', 'howto', 'credits', 'courses', 'freestyle', 'pilot', 'friends', 'quad', 'launch',
   'standings', 'rates', 'pids', 'fc', 'paused', 'results'];
 
 /* The frame, the title's hint line and one menu host per screen, named so
@@ -229,14 +229,14 @@ function makeUi(extra = {}) {
   Object.assign(ui, frameNodes(), {
     screen: 'quad', returnTo: null, cursor: 0, rowOffset: 0, menuRows: [], focusId: null, cursorMemory: {},
     settings: { map: 'alps', airframe: 'quad' }, mode: 'race', craftGate: false, hub: null, firstRun: false,
-    lastInput: 'keys', lists: {}, numberFocusWanted: null, inRoom: null, carousel: null, hangar: null, trickPlayer: null,
+    lastInput: 'keys', lists: {}, numberFocusWanted: null, inRoom: null, carousel: null, hangar: null,
     ratesFrom: null, pidsFrom: null, fcFrom: null, roomFrom: null, ratesNotice: null, padRearm: false, swapPadPrev: {},
     mapCards: 'x', courseCards: 'x', courseCardKey: 'x', cardSubject: null, lastCardKey: null, newTrackOpen: true,
   });
   ui.items = () => ui.lists[ui.screen] || [];
-  const quiet = ['syncChips', 'paintStandings', 'closeDrop', 'renderMapCards', 'renderCourseCards', 'renderTricks', 'renderTitleCards',
+  const quiet = ['syncChips', 'paintStandings', 'closeDrop', 'renderMapCards', 'renderCourseCards', 'renderTitleCards',
     'renderTitleRooms', 'hoverCursor', 'syncCursor', 'select', 'focusNumber', 'restoreFocusRow', 'syncRates', 'syncPids', 'syncFcChrome',
-    'stopReels', 'loadLocalCourses', 'loadBoardCourses', 'loadCloudCourses', 'renderHowto', 'noteInteraction', 'syncScoreVisible',
+    'stopReels', 'loadLocalCourses', 'loadBoardCourses', 'loadCloudCourses', 'renderHowto', 'noteInteraction',
     'act', 'back'];
   for (const n of quiet) ui[n] = (...a) => say(n, ...a);
   ui.setCursor = (i, pointer) => { say('setCursor', i, pointer ?? ''); ui.cursor = i; };
@@ -444,7 +444,6 @@ const scenarios = {
     ui.lists.credits = [{ id: 'back', label: 'Back' }];
     ui.lists.paused = [{ section: true, label: 'Paused' }, { id: 'resume', label: 'Resume', primary: true }];
     ui.lists.howto = [{ id: 'h', label: 'Keys' }];
-    ui.lists.tricks = [{ id: 't', label: 'Roll' }];
     ui.lists.friends = [{ id: 'fr', label: 'Rooms' }];
     const displays = () => Object.fromEntries(Object.entries(ui.screens).map(([k, v]) => [k, v.style.props.display ?? null]));
     const snap = (name) => { out[name] = { state: state(ui), displays: displays(), osd: tree(ui.osd), frame: frame(ui) }; };
@@ -480,8 +479,7 @@ const scenarios = {
     ui.show('flight');
     snap('flight');
     ui.show('howto');
-    ui.show('tricks');
-    snap('tricks');
+    snap('howto');
     return out;
   },
 
@@ -490,7 +488,6 @@ const scenarios = {
     const ui = makeUi({ screen: 'title' });
     ui.lists.title = [{ id: 'fly', label: 'Fly' }];
     ui.lists.friends = [{ id: 'fr', label: 'Rooms' }];
-    ui.lists.tricks = [{ id: 't', label: 'Roll' }];
     ui.lists.credits = [{ id: 'back', label: 'Back' }];
     ui.inRoom = () => true;
     ui.show('title');
@@ -501,10 +498,6 @@ const scenarios = {
     ui.show('friends');
     ui.show('friends');
     out.pickersClosed = state(ui);
-    ui.trickPlayer = { stop: () => say('trickPlayer.stop') };
-    ui.trickShown = 'roll';
-    ui.show('tricks');
-    out.tricks = { trickShown: ui.trickShown, state: state(ui) };
     ui.show('credits');
     out.credits = state(ui);
     ui.onScreenChange = null;

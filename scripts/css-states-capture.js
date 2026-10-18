@@ -98,10 +98,8 @@ const GROUPS = [
     cap('osd-waiting-ahead-launch', '.osd');
     ui.setOsd({ ...osdBase, bounces: 2, launchState: 2, ghostGapMs: 800, flaps: 1, gear: 'down' });
     cap('osd-behind-hot-bounces', '.osd');
-    ui.setOsd({ ...osdBase, mode: 'freestyle', runScored: true, runTimed: true, runState: 'flying', runRemainMs: 4000, launchState: 3 });
+    ui.setOsd({ ...osdBase, mode: 'freestyle', launchState: 3 });
     cap('osd-late-go', '.osd');
-    ui.setOsd({ ...osdBase, mode: 'freestyle', runScored: true, runTimed: false, flightMode: 'turtle' });
-    cap('osd-free', '.osd');
     ui.osd.className = 'osd dim';
     cap('osd-dim', '.osd');
     fly();
@@ -138,26 +136,6 @@ const GROUPS = [
     ui.setBanner('A boxed line in the middle of the frame', true);
     cap('banner-panel', '.banner');
     ui.setBanner('', false);
-    /* The score overlay: tiers 3 to 5, rows by execution, verdicts and rings. */
-    ui.osdMode = 'freestyle';
-    ui.settings.freestyleScoring = 'on';
-    const hud = ui.scoreHud;
-    hud.reset();
-    hud.setVisible(true);
-    for (const [mult, name] of [[2, 'tier2'], [3, 'tier3'], [4, 'tier4'], [5, 'tier5']]) {
-      hud.update({ total: 1234 * mult, combo: { points: 300 * mult, mult, remain: 0.6 } });
-      cap('score-' + name, '.score-hud');
-    }
-    hud.update({ total: 9000, combo: { points: 300, mult: 5, remain: 0.3 } });
-    hud.events([{ kind: 'trick', name: 'Power loop', points: 400, execution: 'CLEAN' }, { kind: 'trick', name: 'Split S', points: 200, execution: 'SLOPPY' }, { kind: 'trick', name: 'Matty flip', points: 100, execution: 'BUMP' }, { kind: 'bank', points: 700 }]);
-    cap('score-rows-bank', '.score-hud');
-    hud.update({ total: 9000, combo: null });
-    hud.events([{ kind: 'bail', points: 300 }]);
-    cap('score-bail', '.score-hud');
-    hud.events([{ kind: 'bail', points: 0 }]);
-    hud.setVisible(false);
-    cap('score-off', '.score-hud');
-    hud.reset();
     /* The room standings, as main.js mounts them. */
     const { RoomRaceHud } = await import('/src/ui/roomhud.js');
     const rr = new RoomRaceHud(R);
@@ -220,8 +198,6 @@ const GROUPS = [
     cap('results-off', ui.screens.results);
     ui.showResults([{ n: 1, ms: null, reason: 'Crashed' }], 30000, 30000, null);
     cap('results-empty', ui.screens.results);
-    ui.showFreestyleResults({ crashes: 0, tricks: 14, unique: 6, total: 12345, bestCombo: 4000, bonus: 500, timed: true, rows: Array.from({ length: 12 }, (_, i) => ({ name: 'Trick ' + i, count: i % 3 + 1, points: 2000 - i * 100 })) });
-    cap('results-freestyle-clean', ui.screens.results);
     ui.showRoomResults({ win: true, kicker: 'Room race', head: 'You won', heroCap: 'Best lap', heroTime: '29.88', heroMeta: '3 pilots', rows: [{ label: 'Tester', time: '29.88', me: true, tag: 'best' }, { label: 'Wingman', time: 'out', out: true }] });
     cap('results-room', ui.screens.results);
     ui.setBest(28123, 'race');
@@ -563,10 +539,8 @@ const GROUPS = [
     ui.show('title');
   }],
   ['rows', async () => {
-    /* Rows the menu screens build only in some states: the scoring row's
-     * warning (src/ui/items.js), the pad trouble row (padTroubleItem in
-     * src/ui/ui.js). */
-    ui.settings.freestyleScoring = 'scored';
+    /* Rows the menu screens build only in some states: the pad trouble row
+     * (padTroubleItem in src/ui/ui.js). */
     const report = {};
     for (const s of Object.keys(ui.screens)) {
       ui.show(s);
@@ -744,7 +718,6 @@ const GROUPS = [
     if (barAt >= 0) { ui.setCursor(barAt); cap('cursor-update-bar', [ui.frameBot, ui.screens.paused]); }
     ui.updateReady = false;
     ui.syncChips();
-    ui.settings.freestyleScoring = 'scored';
     ui.show('freestyle');
     const warnAt = ui.items().findIndex((x) => x.rowClass === 'row-warn');
     if (warnAt >= 0) { ui.setCursor(warnAt); cap('cursor-row-warn', ui.screens.freestyle); }
@@ -844,7 +817,6 @@ const NOTES = {
   "sticks": "The stick ghosts and the air slider (src/ui/widgets.js makeGimbal, makeWeightSlider) as setStickOverlay, setAirSlider and paintAir in src/ui/overlay.js leave them.",
   "lock": "The target mark (buildTargetLock, setTargetLock in src/ui/overlay.js).",
   "banner": "The banner line under the OSD block (setBanner in src/ui/overlay.js).",
-  "score": "The freestyle score overlay (src/ui/scorehud.js ScoreHud) after update() and events().",
   "room": "The room standings (src/ui/roomhud.js RoomRaceHud), mounted on #ui as src/main.js mounts it.",
   "touch": "The thumb sticks (src/input/touchsticks.js mountTouchSticks), with #ui's classes as src/main.js toggles them in flight.",
   "friends": "The room screen in a room (refreshFriends in src/ui/session.js) and the war lobby over it (setWarLobby, drawLobby in src/ui/session.js).",

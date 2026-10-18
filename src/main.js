@@ -83,11 +83,7 @@ import { ControlRecorder, controlRecName, keepLast } from './share/controlrec.js
 import { PLANE_REACH, Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
 import { floatStart } from './builder/course.js';
-import { TrickDetector } from './game/trickdetect.js';
-import { FigureDetector } from './game/figuredetect.js';
-import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
-import { FreestyleScore, formatScore } from './game/score.js';
-import { createRoute, fromFree, fromRace, fromRoom, replayState, withBests } from './game/debrief.js';
+import { createRoute, fromRace, fromRoom, replayState, withBests } from './game/debrief.js';
 import { formatRunClock, lengthText } from './ui/format.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { AiOpponent, seatOpponent } from './game/aiopponent.js';
@@ -104,7 +100,7 @@ import { createTrackManager } from './avionics/tracks.js';
 import { hudStateOf } from './avionics/hudstate.js';
 import {
   adoptShareFromLocation, fetchGhost, fetchTrackDocument,
-  fetchTrackTimes, postFreestyleRun, postTime,
+  fetchTrackTimes, postTime,
 } from './share/board.js';
 import { findBoardTwin, inspectCourse, layoutFingerprint, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
@@ -511,9 +507,7 @@ const FRAME_DT_MAX = 100;
  * wall time since the last is slow, and in a room the pilot is told
  * (roomSlowFrame). One hitch is not most frames. */
 const SLOW_WINDOW_MS = 2000;
-/* The radius the trick detector's wall query asks with, metres. A Wall
- * Ride is flown far closer; the query only has to find the wall before
- * the craft is beside it (TrickDetector.near). */
+/* The radius __nearSolid's gap query asks with by default, metres. */
 const WALL_NEAR_M = 2.0;
 
 /* The pack gauge's ends per cell, volts, times the airframe's cell count.
@@ -2477,8 +2471,8 @@ export async function boot({
       return null;
     }
   }
-  /* A Catch the Ace! or Trick Battle match this pilot had a seat in, from
-   * the room's final standings. */
+  /* A Catch the Ace! match this pilot had a seat in, from the room's
+   * final standings. */
   function recordGameResult(game, result) {
     ui.settings.pilotCounts = addGameResult(mergePilotCounts(ui.settings.pilotCounts, storedCounts()), flightDevice, game, result);
     ui.persistSettings();
@@ -3653,100 +3647,6 @@ export async function boot({
    * here because the ghost below asks whether a run is its test flight. See
    * buildHost. */
   let build = null;
-  /*
-   * Freestyle scoring (freestyle maps only) has two halves on two clocks.
-   * TrickDetector integrates body rates, so it must see every 1 ms physics
-   * step; sampled per frame, a fast roll would be a handful of points and
-   * its rotation count a guess. Its per-step cost is tiny, which is what
-   * makes running it at physics rate affordable. FreestyleScore is ticked
-   * per frame but on simulation time, so frame drops and pause cannot
-   * change when a combo banks.
-   */
-  /* Decided per frame, consulted every step. */
-  let scoring = false;
-  /* Reused buffers for the detector's per-step pose: the step loop must
-   * not allocate. */
-  const scorePos = new THREE.Vector3();
-  const scoreFwd = new THREE.Vector3();
-  /* Body up in world space. Nose alone cannot separate a loop's rotation
-   * from the bank angle it was flown at; nose plus up can (debankLap). */
-  const scoreUp = new THREE.Vector3();
-  const scoreQuat = new THREE.Quaternion();
-  /*
-   * settings.freestyleScoring, read at each run start: 'scored' runs a
-   * two minute timed run with a leaderboard, 'free' scores without a
-   * clock, 'off' (the default, see DEFAULTS in src/ui/ui.js) hides it.
-   * 'off' only hides: detection and scoring keep running underneath, so
-   * there is a single in-flight code path and real flights keep exercising
-   * the scorer while it matures. Timing is on for 'scored' alone.
-   */
-  const scoredRun = () => ui.settings.freestyleScoring === 'scored';
-  const scoringWanted = () => ui.settings.freestyleScoring !== 'off';
-  const score = new FreestyleScore({ timed: scoredRun() });
-  /* Trick targets (deriveObstacles output) for the current map, or null,
-   * in which case the detector recognises open-air tricks only. */
-  let obstacles = null;
-  const trickDetector = new TrickDetector((trick) => {
-    const took = score.land(trick);
-    if (took) {
-      ui.progress.trick(took.name, took.net);
-    }
-  });
-  /* A fixed wing's aerobatic figures (docs/TRICKS-CATALOG.md), landed
-   * through the same scorers. A fixed wing feeds this one and not the
-   * quad detector, whose flips and rolls would name its loops. */
-  const figureDetector = new FigureDetector((figure) => trickDetector.onTrick(figure));
-  /* Decided per frame with `scoring`, consulted every step. */
-  let figureCraft = false;
-  /* The checks land a trick as a detector would (scripts/callouts-check.js). */
-  devHooks.__trickLand = (trick) => trickDetector.onTrick({ endMs: simTimeMs, ...trick });
-  /* A bail, logged with its cause (src/game/events.js bail): every one
-   * the scorer counts is the freestyle debrief's. */
-  function scoreCrash(cause) {
-    score.crash();
-    ui.progress.bail(cause);
-  }
-  /*
-   * Called on every map change. Race courses get no trick targets. Heights
-   * come from the map's own ground query so a wall modelled deep into the
-   * terrain is measured from where it meets the ground.
-   *
-   * Every exit sets obstacles AND solids: leaving solids from the previous
-   * freestyle map would let the detector query a world no longer loaded.
-   */
-  function rebuildObstacles() {
-    const col = view && view.mode === 'freestyle' ? view.colliders : null;
-    obstacles = col ? deriveObstacles(col, (x, z, fromY) => view.height(x, z, fromY)) : null;
-    trickDetector.obstacles = obstacles;
-    trickDetector.solids = col ? solidsQuery(col) : null;
-  }
-  /* TrickDetector wants plain answers: a gap distance, and an axis record
-   * {gap,dx,dy,dz,cx,cy,cz} or null. Colliders.axisAt instead reports a
-   * hit as a boolean and leaves the record in its own fields, so it is
-   * copied out here. The detector uses these to ask whether anything solid
-   * sat inside the figure flown, and along which line. */
-  function solidsQuery(col) {
-    return {
-      gapAt: (x, y, z, r) => col.gapAt(x, y, z, r),
-      axisAt(x, y, z, r) {
-        if (!col.axisAt(x, y, z, r)) {
-          return null;
-        }
-        return {
-          gap: col.axisGap,
-          dx: col.axisDx,
-          dy: col.axisDy,
-          dz: col.axisDz,
-          cx: col.axisCx,
-          cy: col.axisCy,
-          cz: col.axisCz,
-        };
-      },
-    };
-  }
-  /* The boot map skips swapMap, so it is set up here; this call has to
-   * follow the trickDetector const or it hits the temporal dead zone. */
-  rebuildObstacles();
   const racePrev = new THREE.Vector3();
   let raceHasPrev = false;
 
@@ -10970,10 +10870,6 @@ export async function boot({
    * fall decides the step they act at; a staging that must give the same
    * steps every run fixes the frame. */
   let harnessFrameMs = 0;
-  /* The trick recogniser's contact cooldown, apart from the sound's so one
-   * cannot swallow the other, and on the sim clock because it decides
-   * what counts as a trick, which must not depend on the frame rate. */
-  let trickTouchAtSimMs = -1e9;
   /*
    * Per branch counts of the contact pass, read by __contacts, so a hit
    * the game failed to register can be traced to the branch it took. The
@@ -11108,10 +11004,6 @@ export async function boot({
    * first. */
   let vHalfFrame = craftVerticalHalf(0);
   let airtimeMs = 0;
-  /* The freestyle clock for the OSD, from score.view() just before setOsd,
-   * so the readout is this frame's. */
-  let scoreState = 'ready';
-  let scoreRemainMs = 0;
   let fps = 0;
   let camTilt = ui.settings.cameraAngle;
   /* The pack and the flight style this run flies on. Both change only
@@ -11752,7 +11644,7 @@ export async function boot({
 
   /*
    * A frame of the turtle in place of a plant step. Time still passes on
-   * the sim clock (the trick recogniser is told how much), the stick is
+   * the sim clock, the stick is
    * read for a poke, the flip is played on that clock, and a waiting craft
    * is held where it lies.
    */
@@ -11761,7 +11653,6 @@ export async function boot({
     const steps = Math.floor(acc / MS_PER_STEP);
     acc -= steps * MS_PER_STEP;
     simTimeMs += steps * MS_PER_STEP;
-    trickDetector.idle(steps * MS_PER_STEP);
     adoptSimClock();
     if (turtleResumeGate && !touchStillHidden() && turtlePush() < TURTLE_STICK_MIN) {
       turtleResumeGate = false;
@@ -13494,9 +13385,9 @@ export async function boot({
 
   /*
    * THE RULES OF A WRECK. The lap it happened in is over (race.voidLap,
-   * the same bookkeeping a weight change mid lap gets); in freestyle it is
-   * a bail. Nothing is moved and nothing is disarmed: the wreck lies where
-   * the physics left it, and a quad with three props and airmode on
+   * the same bookkeeping a weight change mid lap gets). Nothing is moved
+   * and nothing is disarmed: the wreck lies where the physics left it,
+   * and a quad with three props and airmode on
    * thrashes on the grass the way a real one does until its pilot lets go
    * of the sticks or resets: control ends when the pack leaves, not when
    * the shell decides the flight is over.
@@ -13509,11 +13400,6 @@ export async function boot({
     }
     setCrashflip(false);
     turtleRecover = false;
-    if (view.mode === 'freestyle') {
-      trickDetector.reset();
-      figureDetector.reset();
-      scoreCrash('wreck');
-    }
     voidRaceLap('wreck', 'main.wrecked_lap_over', nowWall);
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
   }
@@ -14049,14 +13935,6 @@ export async function boot({
     crashed = true;
     clipCrashKind = kind;
     clipCrashUntil = nowWall + CLIP_CRASH_HOLD_MS;
-    /* A bail: the open combo is lost and the streak goes back to one. The
-     * detector's buffer goes too, or half a roll before the crash would
-     * pair with half a roll after it. Race maps never reach the scorer. */
-    if (view.mode === 'freestyle') {
-      trickDetector.reset();
-      figureDetector.reset();
-      scoreCrash('crash');
-    }
     dropTurtle();
     sim.rest();
     stateCurr = readState();
@@ -14228,20 +14106,11 @@ export async function boot({
     /* The lap clock goes back here, and with it every stamp taken on it,
      * or a stale stamp keeps a fresh run inside an expired cooldown. */
     simTimeMs = 0;
-    trickTouchAtSimMs = -1e9;
     runAirMs = 0;
     runRoute.reset();
     resetCraft(null);
     race.reset();
     raceLogAt = 0;
-    /* Scored or free flight is re-read every run: the pilot switches it on
-     * the Freestyle screen between runs. The detector restarts with the
-     * clock so the two agree on when a trick happened. */
-    score.timed = scoredRun();
-    score.reset();
-    trickDetector.restart();
-    figureDetector.restart();
-    ui.resetScore();
     /* Only the recording in flight dies; the session book keeps its laps. */
     ghostRecorder.abort();
     ghostGap = null;
@@ -14557,10 +14426,6 @@ export async function boot({
     launcherLeft = null;
     chaseValid = false;
     introMs = -1;
-    if (view.mode === 'freestyle') {
-      trickDetector.reset();
-      figureDetector.reset();
-    }
     seatRestHeight(to, !inAir && onWater);
 
     if (midLap) {
@@ -14763,9 +14628,6 @@ export async function boot({
       showCourseNotes();
     }
     finishLoadingOnFrame = true;
-    /* Scanning every collider for what is worth flying round is a once per
-     * world job, never a once per run one. */
-    rebuildObstacles();
     mapReady = true;
   }
 
@@ -15068,9 +14930,8 @@ export async function boot({
      * A proportional input (the thumb sticks, the mouse, a radio, or the
      * harness's window.__stick, which writes a gimbal's channels) flies the
      * mode the pilot chose. So does anything in freestyle, keys included:
-     * angle holds the craft to about thirty degrees of bank, which puts
-     * every trick in the catalogue out of reach, and freestyle exists for
-     * them whether or not the scorer is on.
+     * angle holds the craft to about thirty degrees of bank, and a
+     * freestyle world is flown the way the pilot set it.
      *
      * Keys on a race force angle: a key is all or nothing, and acro on one
      * cannot hold a line.
@@ -15756,31 +15617,6 @@ export async function boot({
     }
   }
 
-  /*
-   * A results screen over a flight that has ended: the freestyle horn's,
-   * through the harness hook as well as the clock so both take the same
-   * path, and a room match's end.
-   */
-  function endFreestyleRun() {
-    leaveFlightForResults();
-    const summary = score.summary();
-    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
-    ui.showFreestyleResults(summary, withBests(fromFree({
-      aircraft: runAirframe,
-      fixedWing,
-      summary,
-      events: ui.progress.runEvents(),
-      flightMs: runAirMs,
-      totalS: aircraftSecondsNow(),
-      route: runRoute.snapshot(),
-      replay: replayState(crashCam ? crashCam.span() : null, false),
-      /* Down and whole when the run ends: a plane put on the ground, not
-       * one still in the air or in pieces when the horn went. */
-      landed: fixedWing ? landed && !crashed && !wrecked : null,
-      condition: conditionOf(crashFlags, fixedWing),
-    }), ui.progress.runBests()));
-  }
-
   /* Puts the flight down. A craft left parked upside down (waiting for the
    * turtle, or mid flip) is set on its wheels first, or the next run would
    * start with its motors still parked. */
@@ -15798,60 +15634,6 @@ export async function boot({
     turtleOnSupport = false;
     setTurtleParkMotors(false);
     poseLock = false;
-  }
-
-  /*
-   * Why a finished freestyle run cannot be posted, or null. Unlike a lap,
-   * an arcade run CAN be posted: the freestyle board names the model on
-   * every row and lets a reader filter by it. Weight off stock cannot,
-   * because the board has no column for it and such a row would look like
-   * a stock one.
-   */
-  function freestyleRefusal(summary) {
-    if (summary.timed === false) {
-      /* Free flight has no clock, so any total could be beaten by staying
-       * out longer. */
-      return { text: str('main.free_flight_has_no_clock_so'), ms: 4200 };
-    }
-    if (!summary.tricks || !(summary.total > 0)) {
-      return { text: str('main.a_run_with_no_tricks_in'), ms: 2800 };
-    }
-    if (summary.assisted) {
-      /* A trick landed through the harness is not a flown run. */
-      return { text: str('main.that_run_used_the_harness_hooks'), ms: 3200 };
-    }
-    if (runWeight !== WEIGHT_STOCK) {
-      return { text: str('main.runs_flown_at_percent_weight_stay', { runWeight }), ms: 4200 };
-    }
-    return null;
-  }
-
-  async function submitFreestyleRun() {
-    const summary = score.summary();
-    const refused = freestyleRefusal(summary);
-    if (refused) {
-      flashNotice(refused.text, refused.ms);
-      return;
-    }
-    const name = await boardName('main.a_run_on_the_public_board');
-    if (!name) {
-      return;
-    }
-    try {
-      const style = runStyle === 'arcade' ? 'arcade' : 'expert';
-      const posted = await postFreestyleRun({ name, map: view.id, style, summary });
-      /* The board keeps each pilot's best run only, and answers a worse one
-       * with improved false: say that the old score stands, not "posted". */
-      if (posted.improved === false) {
-        flashNotice(str('main.your_still_stands_only_your_best', { formatScore: formatScore(posted.score) }), 3600);
-      } else {
-        const rank = posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '';
-        flashNotice(str('main.posted', { name, formatScore: formatScore(summary.total), v3: rank }), 3600);
-      }
-      ui.markRunPosted(posted);
-    } catch (e) {
-      flashNotice(str('main.could_not_post_that_run', { v1: e.message ?? e }), 3600);
-    }
   }
 
   /*
@@ -16647,7 +16429,6 @@ export async function boot({
       importPilotKey();
     }],
     ['posttime', () => submitBoardTime()],
-    ['postrun', () => submitFreestyleRun()],
     ['watchreplay', watchReplayFromResults],
   ]);
 
@@ -18873,10 +18654,6 @@ export async function boot({
       if (landed) {
         const steps = takeSteps();
         simTimeMs += steps * MS_PER_STEP;
-        /* The scorer ticks on simTimeMs and measures its combo window from
-         * the recogniser's clock, so the two have to advance together even
-         * while no motion is read. */
-        trickDetector.idle(steps * MS_PER_STEP);
         adoptSimClock();
         statePrev = stateCurr;
       }
@@ -18890,8 +18667,6 @@ export async function boot({
       resyncToModule(moduleIdx);
       return;
     }
-    scoring = view.mode === 'freestyle' && !crashed;
-    figureCraft = Boolean(airframeById(runAirframe).fixedWing);
     fr.groundClosing = 0;
     fr.groundSpeed = 0;
     fr.groundHit = false;
@@ -19098,9 +18873,6 @@ export async function boot({
         tracePost(st);
       }
       logObstacleStep(st);
-      if (scoring) {
-        feedRecogniser(st);
-      }
       obsPhase += 1;
       if (obsPhase >= OBSTACLE_STEP) {
         obsPhase = 0;
@@ -19130,30 +18902,6 @@ export async function boot({
       statePrev = stateCurr;
     }
     stateCurr = st;
-  }
-
-  /*
-   * The recogniser works in the plant's own frame: body rates, the two
-   * quaternion components the attitude test needs, speed, and the craft's
-   * position, nose and up in the WORLD frame, where the obstacles are.
-   * Both go through frame.js, so nothing new crosses the frame boundary.
-   */
-  function feedRecogniser(st) {
-    if (figureCraft) {
-      figureDetector.step(0.001, st);
-      return;
-    }
-    poseFromState(st, scorePos);
-    simQuatToThree(st[7], st[8], st[9], st[10], scoreQuat);
-    scoreQuat.premultiply(qSpawn);
-    scoreFwd.set(0, 0, -1).applyQuaternion(scoreQuat);
-    scoreUp.set(0, 1, 0).applyQuaternion(scoreQuat);
-    trickDetector.step(
-      0.001, st[11], st[12], st[13], st[8], st[9], plantSpeed(st),
-      scorePos.x, scorePos.y, scorePos.z,
-      scoreFwd.x, scoreFwd.y, scoreFwd.z,
-      scoreUp.x, scoreUp.y, scoreUp.z,
-    );
   }
 
   /*
@@ -19247,16 +18995,6 @@ export async function boot({
         crashCam.noteCrash('ground');
       }
     }
-    if (view.mode === 'freestyle') {
-      if (hard) {
-        trickDetector.reset();
-        figureDetector.reset();
-        scoreCrash('bounce');
-      } else {
-        /* The ground is not tappable (TrickDetector.bump). */
-        trickDetector.bump(undefined, false);
-      }
-    }
     feelImpact(closing > hitSpeed ? closing : hitSpeed, 'ground');
   }
 
@@ -19338,10 +19076,6 @@ export async function boot({
     const contact = obsContact;
     if (obsRoof) {
       turtleOnSupport = true;
-    }
-    if (view.mode === 'freestyle' && touched && simTimeMs - trickTouchAtSimMs >= BOUNCE_COOLDOWN_MS) {
-      trickTouchAtSimMs = simTimeMs;
-      trickDetector.bump(closing);
     }
     if (obsImpulse > 0) {
       if (simTimeMs - bounceAtSimMs >= BOUNCE_COOLDOWN_MS || obsImpulse > lastImpulse * 1.6) {
@@ -20403,11 +20137,8 @@ export async function boot({
   }
 
   /*
-   * THE HUD. In flight: how near the craft is to something solid (a Wall
-   * Ride never touches the wall, so one inflated broadphase query a frame
-   * is the one thing that separates it from a banked turn), the score on
-   * the sim clock, the readout, the telemetry, the progress, the stick
-   * pictures and the next gate mark. Off every other screen but a pause,
+   * THE HUD. In flight: the readout, the telemetry, the progress, the
+   * stick pictures and the next gate mark. Off every other screen but a pause,
    * which keeps what it had.
    */
   function hudFrame() {
@@ -20420,13 +20151,6 @@ export async function boot({
       }
       hudChrome();
       return;
-    }
-    if (view.mode === 'freestyle' && view.colliders) {
-      const q = shell.quad.position;
-      trickDetector.near(view.colliders.gapAt(q.x, q.y, q.z, WALL_NEAR_M));
-    }
-    if (view.mode === 'freestyle') {
-      scoreFrame();
     }
     const osdView = readoutNow(nowWall);
     ui.setOsd(osdView);
@@ -20489,33 +20213,6 @@ export async function boot({
     hudChrome();
   }
 
-  /*
-   * THE HORN. A scored freestyle run is two minutes and it ENDS, which is
-   * why its score can be posted at all; read off score.over() rather than
-   * off the drained events, which belong to the overlay.
-   */
-  function landedClean(e) {
-    return e.kind === 'trick' && (typeof e.grade === 'number' ? e.grade >= 6 : e.execution === 'CLEAN');
-  }
-  function scoreFrame() {
-    const wasOver = score.over();
-    score.tick(simTimeMs);
-    const scoreView = score.view();
-    scoreState = scoreView.state;
-    scoreRemainMs = scoreView.remainMs;
-    ui.setScore(scoreView);
-    const events = score.drainEvents();
-    ui.scoreEvents(events);
-    /* The landed chime for a trick landed clean, only where its callout
-     * is on screen. */
-    if (events && ui.scoreHud.visible && events.some(landedClean)) {
-      flightCue('trick');
-    }
-    if (!wasOver && score.over()) {
-      endFreestyleRun();
-    }
-  }
-
   /* The flight mode the OSD names, and the crash cam keeps with each row
    * (src/replay/sticks.js MODES). */
   function flightModeNow() {
@@ -20550,10 +20247,6 @@ export async function boot({
     return {
       mode: view.mode,
       lapMs: race.freestyle ? airtimeMs : race.currentLapMs(fr.simNow),
-      runState: scoreState,
-      runTimed: score.timed,
-      runScored: scoringWanted(),
-      runRemainMs: scoreRemainMs,
       gate: race.next + 1,
       gateCount: race.gates.length,
       gateCue: race.reach > 0 ? str('osd.score', { n: race.runScore }) : (nextGt && nextGt.cue ? nextGt.cue : ''),
@@ -20878,12 +20571,7 @@ export async function boot({
     } else {
       start = str('main.throttle_up_to_take_off');
     }
-    let second = str('main.the_green_gate_starts_your_lap_2');
-    if (race.freestyle) {
-      second = scoredRun()
-        ? str('main.two_minutes_the_clock_starts_on')
-        : (scoringWanted() ? str('main.no_clock_and_no_gates_a') : '');
-    }
+    const second = race.freestyle ? '' : str('main.the_green_gate_starts_your_lap_2');
     return `${start}${second}`;
   }
 
@@ -20975,8 +20663,8 @@ export async function boot({
   let firstFrameMs = -1;
   let frames = 0;
   /*
-   * HARNESS PROBES, part one: the craft, the ground under it, the score and
-   * the colliders.
+   * HARNESS PROBES, part one: the craft, the ground under it and the
+   * colliders.
    *
    * Everything named window.__* below exists for the checks in scripts/ and
    * for capture rigs. The shell never calls them. Their names and the shape
@@ -21151,28 +20839,8 @@ export async function boot({
     return { x: at.x, y: at.y, z: at.z, tx: dir.x, tz: dir.z, ground: view.height(at.x, at.z) };
   };
 
-  /*
-   * Freestyle scoring: the run's summary, and the horn without waiting out
-   * the clock, which a headless page would take minutes to reach.
-   */
-  window.__score = () => score.summary();
-  devHooks.__scoreFinish = () => {
-    score.finish();
-    endFreestyleRun();
-    return score.summary();
-  };
-
-  /* The obstacle field the trick recogniser reads, counted by kind; null
-   * on a map without one. */
-  window.__obstacles = () => {
-    if (!obstacles) {
-      return null;
-    }
-    return { count: obstacles.count, poles: obstacles.countOf(OB_POLE), bars: obstacles.countOf(OB_BAR) };
-  };
-
-  /* Distance to the nearest solid by the recogniser's own query (the Wall
-   * Ride test, see WALL_NEAR_M); null on a map without colliders. */
+  /* Distance to the nearest solid within r (WALL_NEAR_M by default); null
+   * on a map without colliders. */
   window.__nearSolid = (x, y, z, r = WALL_NEAR_M) => (view.colliders ? view.colliders.gapAt(x, y, z, r) : null);
 
   /*
@@ -21711,7 +21379,6 @@ export async function boot({
     if (o.clockMs != null) {
       simTimeMs = o.clockMs;
       simClockPrevMs = simTimeMs;
-      trickTouchAtSimMs = -1e9;
       race.prevSimMs = null;
     }
     const placed = window.__placeCraft(o.x, o.y, o.z);
@@ -22466,8 +22133,6 @@ export async function boot({
       crashWorldPhase = 0;
       refreshCrashWorld(back);
     }
-    trickDetector.reset();
-    figureDetector.reset();
     voidRaceLap('replay', 'replay.lap_void', nowWall);
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     mode = 'flight';

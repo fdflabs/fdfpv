@@ -4,12 +4,12 @@
  * The home gate and its hubs, with the rooms panel beside them; the
  * Freestyle world cards and the short flight that plays on each; My tracks,
  * where the pilot's own tracks, the board's and the tracks server's are
- * cards; the standings table one of those opens; and the Tricks screen's
- * caption. Each is drawn from the same items() the menu rows come from, so
- * one cursor walks cards and rows alike, and each card is built once and
- * only re-marked as the cursor moves: the menu is rebuilt on every key
- * press, and a card rebuilt that often would throw away its picture and its
- * playing clip twenty times a second.
+ * cards; and the standings table one of those opens. Each is drawn from
+ * the same items() the menu rows come from, so one cursor walks cards and
+ * rows alike, and each card is built once and only re-marked as the
+ * cursor moves: the menu is rebuilt on every key press, and a card rebuilt
+ * that often would throw away its picture and its playing clip twenty
+ * times a second.
  *
  * Installed onto Ui.prototype at the end of src/ui/ui.js, so `this` is the
  * Ui and main.js, the checks and the rest of the shell still call
@@ -33,7 +33,6 @@
 
 import { airframeById } from '../../configs/airframes.js';
 import { raceGatesOf } from '../builder/course.js';
-import { formatScore } from '../game/score.js';
 import { medalTimes } from '../game/medals.js';
 import { planesFor } from '../game/verify.js';
 import {
@@ -51,15 +50,13 @@ import { readWallet } from '../share/account.js';
 import {
   readBind, readEditKey, readShareImport, writeShareImport,
 } from '../share/trackseat.js';
-import { currentLocale, str, plural } from '../strings/index.js';
+import { currentLocale, str } from '../strings/index.js';
 import { duplicateTrack, toPlain } from '../trackbuilder/model.js';
 import {
   listMapTracks, loadMapTrack, readOnlineStates, saveTrack,
 } from '../trackbuilder/storage.js';
 import { formatDay, formatTime } from './format.js';
 import { paintPilotStats, pilotStats } from './pilotstats.js';
-import { filmFor, trickLevel } from './trickfilm.js';
-import { scoreableTricks, trickStatus } from './trickslist.js';
 /* A cycle: ui.js installs this module. These are read only inside methods,
  * after both modules have run, never at this module's top level. */
 import {
@@ -451,50 +448,6 @@ export const cardMethods = {
       this.titleStatsKey = shape;
       paintPilotStats(host, st);
     }
-  },
-
-  /*
-   * The Tricks screen's list, each trick with its film. Built once and
-   * kept: a film is a few closures over numbers, cheap to make sixty of and
-   * wasteful to remake on every key press.
-   */
-  trickRows() {
-    if (!this.trickList) {
-      this.trickList = scoreableTricks().map((trick) => {
-        const film = filmFor(trick.steps);
-        return {
-          ...trick, film, how: film.caption, view: film.view, status: trickStatus(trick),
-        };
-      });
-    }
-    return this.trickList;
-  },
-
-  /*
-   * The trick under the cursor: its caption, and its film playing. Only
-   * when the trick changes, because this runs on every menu render and
-   * restarting a film already playing is a visible stutter.
-   */
-  renderTricks() {
-    const rows = this.trickRows();
-    if (!rows.length || !this.trickPlayer) {
-      return;
-    }
-    const at = Math.min(rows.length - 1, Math.max(0, this.cursor));
-    const trick = rows[at] || rows[0];
-    if (trick.name === this.trickShown) {
-      return;
-    }
-    this.trickShown = trick.name;
-    const say = this.constructor.text;
-    say(this.trickName, trick.name);
-    const points = plural('count.points', trick.points, { n: formatScore(trick.points) });
-    say(this.trickMeta, [str('ui.points', { points, difficulty: trickLevel(trick.difficulty) }), trick.category, trick.status.tag].join(SEP));
-    say(this.trickHow, `${trick.how} ${trick.status.line}`);
-    /* The camera's side, said: a roll seen side on looks like a craft not
-     * moving at all, so the reader must know which angle they are shown. */
-    say(this.trickView, str('ui.seen_the_pink_nose_is_the', { view: str(`trickfilm.view.${trick.view}`) }));
-    this.trickPlayer.show(trick.film);
   },
 
   /*

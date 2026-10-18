@@ -1,9 +1,9 @@
 /*
  * figures.js: the aerobatic figure catalogue (docs/TRICKS-CATALOG.md).
  *
- * One row per figure a fixed wing flies: its id (the strings' figure.<id>
- * holds the name in en and es), its family, its difficulty K and where K
- * comes from, and whether today's plant can fly it. Aresti K values are
+ * One row per figure a fixed wing flies: its id, its family, its
+ * difficulty K and where K comes from, and whether today's plant can fly
+ * it. Aresti K values are
  * the powered column of the FAI Aresti catalogue as OpenAero encodes it
  * (data/figures/figures19.js, GPLv3); a figure built from an Aresti base
  * and a roll adds the two, as the catalogue's own sequence sheets do. The
@@ -11,8 +11,9 @@
  * set) carry K on this game's own scale, anchored to Aresti figures of the
  * same skill, and say so in `source`.
  *
- * Quad freestyle tricks keep their own catalogue (tricks.js, the scoring
- * workbook) and their own detector (trickdetect.js).
+ * PDCS scores no figures. This catalogue and figuredetect.js stay only as
+ * the instrument of the figures:* plant checks, which fly the planes the
+ * combat-only cut moved out, and leave with those plants.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -29,13 +30,6 @@
  * You should have received a copy of the GNU General Public License
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
-
-/*
- * A perfect figure scores K x 10 (the grade) x this. 2 makes a perfect
- * Aresti loop (K 10) worth 200, a quad Powerloop's price in the workbook,
- * so the two kinds of aircraft meet on one scale in a Trick Battle room.
- */
-export const POINTS_PER_K = 2;
 
 /*
  * `aresti`: the catalogue numbers K is summed from, or null for a figure
@@ -128,36 +122,7 @@ export function figureById(id) {
   return byId.get(id);
 }
 
-/* The catalogue name a figure is scored and sent under. */
+/* The name a figure is reported under. */
 export function figureTrickName(id) {
   return `fig:${id}`;
-}
-
-export function figureIdOfTrick(name) {
-  return typeof name === 'string' && name.startsWith('fig:') ? name.slice(4) : null;
-}
-
-/* A perfect figure's points. */
-export function figurePoints(id) {
-  const f = byId.get(id);
-  if (!f) throw new Error(`figures: no figure ${id}`);
-  return f.k * 10 * POINTS_PER_K;
-}
-
-/*
- * The grade words, best first, as the HUD shouts them, on this game's
- * bands (docs/TRICKS-CATALOG.md): 9.5 and up nothing worth a deduction,
- * 8 a small fault, 6 a fault you can see, under that sloppy, and a zero
- * when a judge would give nothing.
- */
-export const GRADE_WORDS = [
-  { at: 9.5, key: 'aerobatic.grade_perfect' },
-  { at: 8, key: 'aerobatic.grade_sharp' },
-  { at: 6, key: 'aerobatic.grade_clean' },
-  { at: 0.5, key: 'aerobatic.grade_sloppy' },
-  { at: 0, key: 'aerobatic.grade_zero' },
-];
-
-export function gradeWordKey(grade) {
-  return GRADE_WORDS.find((w) => grade >= w.at).key;
 }

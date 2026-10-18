@@ -164,7 +164,7 @@ const RACE_MAP = MAPS.find((m) => m.mode !== 'freestyle').id;
 const SPIES = ['show', 'renderMenu', 'renderHowto', 'maybeOfferFeel', 'writeSettings', 'onSettings'];
 const FIELDS = [
   'calCanSave', 'calCanSkip', 'calCanReverse', 'calCanZeroThrottle', 'calMoving', 'calOnConfirm', 'padPickPhase',
-  'padPickReason', 'roomResults', 'freestyleRun', 'runPosted', 'timePosted', 'resultsFastest', 'lastBestMs', 'osdMode',
+  'padPickReason', 'roomResults', 'timePosted', 'resultsFastest', 'lastBestMs', 'osdMode',
   'stickModeDrawn', 'airHintDone', 'bannerText', 'padInfo', 'gpuInfo', 'everyoneFlightS', 'everyoneFlightAsked',
 ];
 
@@ -175,16 +175,9 @@ function stubUi() {
   for (const name of SPIES) ui[name] = (...args) => note(`call.${name}`, JSON.stringify(args.length ? args[0] : null));
   /* onSettings is handed the whole profile; its weight is the range's part. */
   ui.onSettings = (s) => note('call.onSettings', JSON.stringify({ weight: s.weight, same: s === ui.settings }));
-  ui.settings = { ...DEFAULTS, map: RACE_MAP, stickMode: 2, weight: WEIGHT_STOCK, freestyleScoring: 'scored' };
+  ui.settings = { ...DEFAULTS, map: RACE_MAP, stickMode: 2, weight: WEIGHT_STOCK };
   ui.screen = 'flight';
   ui.share = null;
-  ui.scoreHud = {
-    setCalloutsOnly: (on) => note('score.setCalloutsOnly', on),
-    setVisible: (on) => note('score.setVisible', on),
-    update: (v) => note('score.update', JSON.stringify(v)),
-    events: (l) => note('score.events', JSON.stringify(l)),
-    reset: () => note('score.reset'),
-  };
   for (const k of ['brandSub', 'titleBest', 'osdBest', 'resultsBody', 'resultsFacts', 'resultsNote', 'resultsKicker', 'resultsHead',
     'resultsHeroCap', 'resultsHeroTime', 'resultsHeroMeta', 'announcer', 'osdTopBlock',
     'osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdGhost', 'osdPackBar', 'osdSpeed', 'osdFlight',
@@ -212,8 +205,6 @@ function stubUi() {
   ui.airHintDone = false;
   ui.airHintTimer = 0;
   ui.timePosted = null;
-  ui.freestyleRun = null;
-  ui.runPosted = null;
   ui.padInfo = { count: 0, using: 'Keyboard' };
   ui.gpuInfo = null;
   ui.stickProbe = null;
@@ -277,11 +268,9 @@ async function snapshot() {
     call(ui, 'setBest', undefined); step('unbuilt race seat', n());
     ui.settings.map = FREESTYLE_MAP;
     call(ui, 'setBest', undefined); step('unbuilt freestyle seat', n());
-    call(ui, 'setBest', 5000, 'freestyle'); step('freestyle scored', n());
-    ui.settings.freestyleScoring = 'free'; ui.screen = 'paused';
-    call(ui, 'refreshBest'); step('freestyle free paused', n());
-    ui.settings.freestyleScoring = 'off';
-    call(ui, 'refreshBest'); step('freestyle off', n());
+    call(ui, 'setBest', 5000, 'freestyle'); step('freestyle', n());
+    ui.screen = 'paused';
+    call(ui, 'refreshBest'); step('freestyle paused', n());
     ui.settings.map = 'track';
     call(ui, 'setBest', 4000, 'race'); step('track seat', n());
     const bare = stubUi();
@@ -342,36 +331,6 @@ async function snapshot() {
     call(ui, 'showRoomResults', { ...v, win: false, head: 'Second', rows: [] }); step('again on results', resultNodes(ui));
   });
 
-  out.freestyle = await scenario((ui, step) => {
-    const rows = Array.from({ length: 12 }, (_, i) => ({ name: `Trick ${i}`, count: (i % 3) + 1, points: i === 9 ? 30 : 1200 - i * 100 }));
-    call(ui, 'showFreestyleResults', { tricks: 0, unique: 0, total: 0, bestCombo: 0, bonus: 0, crashes: 0, rows: [] });
-    step('nothing landed', resultNodes(ui));
-    call(ui, 'showFreestyleResults', { timed: false, tricks: 0, unique: 0, total: 0, bestCombo: 0, bonus: 0, crashes: 2, rows: [] });
-    step('free flight, nothing landed', resultNodes(ui));
-    const clean = { tricks: 14, unique: 12, total: 9876, bestCombo: 1500, bonus: 300, crashes: 0, rows };
-    call(ui, 'showFreestyleResults', clean); step('clean, twelve kinds', resultNodes(ui));
-    call(ui, 'showFreestyleResults', { ...clean, crashes: 1, bestCombo: 0, bonus: 0, rows: rows.slice(0, 11) }); step('one crash, eleven kinds', resultNodes(ui));
-    call(ui, 'showFreestyleResults', { ...clean, timed: false, crashes: 3, rows: [{ name: 'Flip', count: 1, points: 0 }] }); step('zero point row', resultNodes(ui));
-    call(ui, 'markRunPosted', null); step('posted off results', {});
-    ui.screen = 'results';
-    call(ui, 'markRunPosted', { ok: false, why: 'x' }); step('posted on results', {});
-    call(ui, 'resetScore'); step('reset', {});
-  });
-
-  out.score = await scenario((ui, step) => {
-    ui.osdMode = 'freestyle';
-    for (const [screen, scoring] of [['flight', 'scored'], ['paused', 'free'], ['title', 'scored'], ['flight', 'off']]) {
-      ui.screen = screen; ui.settings.freestyleScoring = scoring;
-      call(ui, 'syncScoreVisible'); step(`${screen} ${scoring}`, {});
-    }
-    ui.osdMode = 'race'; ui.screen = 'flight';
-    call(ui, 'syncScoreVisible'); step('race', {});
-    call(ui, 'setScore', { total: 5 }); call(ui, 'scoreEvents', [{ name: 'Flip' }]); step('view and events', {});
-    const bare = stubUi();
-    bare.scoreHud = null;
-    out.scoreNoHud = call(bare, 'syncScoreVisible');
-  });
-
   out.banner = await scenario((ui, step) => {
     const n = () => ({ banner: ui.banner, announcer: ui.announcer });
     call(ui, 'setBanner', ''); step('empty', n());
@@ -427,13 +386,8 @@ async function snapshot() {
       ['plane flaps gear', { ...frame, flaps: 1, gear: 'up' }],
       ['plane flaps full gear down', { ...frame, flaps: 2, gear: 'down' }],
       ['plane gear moving', { ...frame, flaps: 0, gear: 'moving' }],
-      ['freestyle scoring off', { ...frame, mode: 'freestyle', runScored: false, lapMs: 65000, lastLapMs: 3000, ghostGapMs: 10 }],
-      ['freestyle scoring off, waiting', { ...frame, mode: 'freestyle', runScored: false, lapMs: NaN }],
-      ['freestyle free flight', { ...frame, mode: 'freestyle', runTimed: false }],
-      ['freestyle ready', { ...frame, mode: 'freestyle', runState: 'ready', runRemainMs: 120000 }],
-      ['freestyle flying', { ...frame, mode: 'freestyle', runState: 'flying', runRemainMs: 65400 }],
-      ['freestyle last ten', { ...frame, mode: 'freestyle', runState: 'flying', runRemainMs: 10000 }],
-      ['freestyle over', { ...frame, mode: 'freestyle', runState: 'over', runRemainMs: undefined }],
+      ['freestyle', { ...frame, mode: 'freestyle', lapMs: 65000, lastLapMs: 3000, ghostGapMs: 10 }],
+      ['freestyle, waiting', { ...frame, mode: 'freestyle', lapMs: NaN }],
       ['bounces back to zero', { ...frame, bounces: 0 }],
     ];
     for (const [name, f] of frames) {

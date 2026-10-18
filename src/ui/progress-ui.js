@@ -632,17 +632,6 @@ export class Progress {
     this.event('lap_void', { ms, reason });
   }
 
-  /* A bail the freestyle scorer counted, `cause` 'crash', 'wreck' or
-   * 'bounce' (src/main.js scoreCrash), and a trick it took, `id` its
-   * name and `score` its points: the debrief's, paying nothing. */
-  bail(cause) {
-    this.event('bail', { cause });
-  }
-
-  trick(id, score) {
-    this.event('trick', { id, score });
-  }
-
   tick(state) {
     this.simMs = state.simMs;
     const logged = this.flight.events.length;

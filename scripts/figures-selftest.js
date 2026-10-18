@@ -6,9 +6,7 @@
  * named that figure and graded high, and a sloppy one (a wandering line, a
  * lumpy loop, a roll stopped short) must be named the same and graded
  * lower. Then: the same state stream twice gives the same figures
- * (determinism); every catalogue row has a detector row, a K and its names
- * in en and es; a graded figure reaches the scorer at K x grade x
- * POINTS_PER_K with every quad trick still priced as before.
+ * (determinism); every catalogue row has a detector row and a K.
  *
  *   node scripts/figures-selftest.js
  *
@@ -29,7 +27,7 @@
  */
 
 import { FigureDetector, FIGURE_IDS, bandDeduction } from '../src/game/figuredetect.js';
-import { FIGURES, ARESTI_K, figureById, figurePoints, figureTrickName, POINTS_PER_K } from '../src/game/figures.js';
+import { FIGURES, ARESTI_K, figureById } from '../src/game/figures.js';
 import { flyPath, pull, push, straight, roll, attitudeQuat, DEG } from '../tests/lib/figurepath.js';
 
 let pass = 0;
@@ -187,12 +185,10 @@ if (process.argv[2] === '--prims') {
   process.exit(0);
 }
 
-/* 1. Every catalogue row has a detector and names. */
-const en = (await import('../src/strings/en.js')).default;
-const es = (await import('../src/strings/es.js')).default;
+/* 1. Every catalogue row has a detector. */
 for (const f of FIGURES) {
-  check(`catalogue ${f.id}: detector row, K, en and es names`,
-    FIGURE_IDS.includes(f.id) && f.k > 0 && Boolean(en[`aerobatic.${f.id}`]) && Boolean(es[`aerobatic.${f.id}`])
+  check(`catalogue ${f.id}: detector row, K`,
+    FIGURE_IDS.includes(f.id) && f.k > 0
       && ['flown', 'waits', 'unproven'].includes(f.physics)
       && (f.aresti === null || f.aresti.reduce((a, n) => a + ARESTI_K[n], 0) === f.k),
     `K ${f.k}${f.aresti ? ` = Aresti ${f.aresti.join(' + ')}` : ', game scale'}, ${f.physics}`);
@@ -370,19 +366,6 @@ for (const [id, path] of Object.entries(SLOPPY)) {
 /* 5. The judge's arithmetic: half a point per 7.5 deg. */
 check('bands: 0 deg takes nothing, 15 deg one point, 45 deg three',
   bandDeduction(1) === 0 && bandDeduction(Math.cos(15.5 * DEG)) === 1 && bandDeduction(Math.cos(46 * DEG)) === 3);
-
-/* 6. Points: K x grade x POINTS_PER_K, through the scorer. */
-{
-  const { FreestyleScore } = await import('../src/game/score.js');
-  const { trickPoints } = await import('../src/game/tricks.js');
-  const sc = new FreestyleScore({ timed: false });
-  const rec = sc.land({ name: figureTrickName('loop'), grade: 7.5, execution: 'CLEAN', endMs: 1000 });
-  check('a loop at 7.5 scores K 10 x 7.5 x 2 = 150', rec && rec.raw === 150 && figurePoints('loop') === 10 * 10 * POINTS_PER_K, rec && String(rec.raw));
-  check('quad tricks keep their workbook prices', trickPoints('Powerloop') === 200 && trickPoints('Flip') === 50);
-  const sc2 = new FreestyleScore({ timed: false });
-  const r2 = sc2.land({ name: 'Flip', execution: 'SLOPPY', endMs: 10 });
-  check('a quad trick without a grade scores as before (Flip SLOPPY 32.5)', r2.raw === 32.5, String(r2.raw));
-}
 
 console.log(`\nfigures selftest: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

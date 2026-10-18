@@ -61,7 +61,7 @@ const BASELINE_PATH = join(ROOT, 'tests', 'shell-baseline.json');
 
 const SCREENS = [
   'title', 'courses', 'freestyle', 'quad', 'pilot', 'launch', 'rates', 'pids', 'fc', 'paused',
-  'results', 'howto', 'tricks', 'credits',
+  'results', 'howto', 'credits',
 ];
 const FC_TABS = ['setup', 'configuration', 'pid', 'receiver', 'motors'];
 
@@ -286,19 +286,6 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     ui.show('pilot');
     const got = items()[ui.cursor].label;
     return { want, got, ok: want === got };
-  });
-
-  out.trickFilm = caught(() => {
-    ui.show('tricks');
-    ui.setCursor(ui.firstStop(items()));
-    const first = ui.trickName.textContent;
-    ui.move(1);
-    const second = ui.trickName.textContent;
-    ui.move(1);
-    const third = ui.trickName.textContent;
-    return {
-      first, second, third, rows: items().length, ok: Boolean(first) && first !== second && second !== third,
-    };
   });
 
   out.freshOpen = caught(() => {
@@ -1113,13 +1100,6 @@ const BEHAVIOUR = [
   ['focusMemory', 'focus memory', (r, fail) => {
     if (!r.ok) {
       fail(`focus memory: left Settings on "${r.want}", came back on "${r.got}"`);
-    }
-  }],
-  ['trickFilm', 'trick film', (r, fail, note) => {
-    if (!r.ok) {
-      fail(`trick film: the panel does not follow the cursor. Across three rows it showed "${r.first}", "${r.second}", "${r.third}"`);
-    } else {
-      note(`trick film: follows the cursor across ${r.rows} tricks`);
     }
   }],
   ['freshOpen', null, (r, fail) => {

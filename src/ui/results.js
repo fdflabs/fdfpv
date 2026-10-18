@@ -2,12 +2,12 @@
  * results.js: the results screen and the title's record line, as Ui
  * methods installed onto the class at the end of ui.js.
  *
- * One screen serves three endings: a timed race (laps against the track
- * record), a room's race (rows the shell writes, because only it knows the
- * other pilots), and a freestyle run (the tricks that earned the score).
- * They share the hero block (kicker, headline, caption, big number, a meta
- * line) and the row idiom (label, figure, optional tag, optional bar), so
- * the three writers share the two helpers below and nothing else.
+ * One screen serves two endings: a timed race (laps against the track
+ * record) and a room's game (rows the shell writes, because only it knows
+ * the other pilots). They share the hero block (kicker, headline, caption,
+ * big number, a meta line) and the row idiom (label, figure, optional tag,
+ * optional bar), so the two writers share the two helpers below and
+ * nothing else.
  *
  * `this` is the Ui. Callers are src/main.js and the Ui's own menus; the
  * names and arguments are theirs and must not change.
@@ -32,19 +32,12 @@ import { MAPS } from '../maps/registry.js';
 import { activeCourseSummary } from '../share/summary.js';
 import { inspectCourse } from '../share/listing.js';
 import { writePendingTime } from '../share/trackseat.js';
-import { formatScore } from '../game/score.js';
 import { str, plural } from '../strings/index.js';
-import { withPosted } from '../game/debrief.js';
 import { factLines } from './factlines.js';
 import { formatDelta, formatTime } from './format.js';
 import { el } from './widgets.js';
 /* A cycle (ui.js installs these methods), so only read inside methods. */
 import { lapCraftOf, seatIsRace } from './ui.js';
-
-/* A freestyle run can name two dozen kinds of trick and the tail is
- * quarter rolls worth a few points. The screen answers "what earned", so
- * it lists the top ten and the note counts the rest. */
-const TRICK_ROWS = 10;
 
 const worldOf = (settings) => MAPS.find((m) => m.id === settings.map) ?? MAPS[0];
 
@@ -179,9 +172,6 @@ export const resultsMethods = {
     this.lastBestMs = ms;
     const unbuilt = ms === undefined;
     const freestyle = unbuilt ? !seatIsRace(this.settings) : this.osdMode === 'freestyle';
-    /* The score overlay hangs off the mode as well as the screen, and a map
-     * swap changes the mode without a screen change. */
-    this.syncScoreVisible();
     const seat = this.settings.map === 'track' ? activeCourseSummary() : null;
     const worldName = (seat && seat.name) || worldOf(this.settings).name;
     if (this.brandSub) {
@@ -189,11 +179,7 @@ export const resultsMethods = {
     }
     this.titleBest.textContent = '';
     if (freestyle) {
-      /* The two minute clock exists only on a scored run; free flight and
-       * scoring off have no clock and the line must not claim one. */
-      this.titleBest.textContent = str(this.settings.freestyleScoring === 'scored'
-        ? 'ui.no_gates_no_lap_two_minutes'
-        : 'ui.no_gates_no_lap_no_clock');
+      this.titleBest.textContent = str('ui.no_gates_no_lap_no_clock');
       this.osdBest.textContent = '';
       return;
     }
@@ -365,84 +351,6 @@ export const resultsMethods = {
       return;
     }
     replayEntrance(this.screens.results);
-    this.show('results');
-  },
-
-  /* The freestyle board's answer to a posted run, so the results row can
-   * report the outcome instead of repeating the verb. */
-  markRunPosted(posted) {
-    this.runPosted = posted || { ok: true };
-    /* The board's answer is the freestyle record line (docs/DEBRIEF.md). */
-    if (this.resultsDebrief && this.resultsDebrief.activity === 'free') {
-      this.resultsDebrief = withPosted(this.resultsDebrief, posted);
-      this.resultsFacts.textContent = '';
-      fillFacts(this.resultsFacts, this.resultsDebrief);
-    }
-    if (this.screen === 'results') {
-      this.renderMenu();
-    }
-  },
-
-  /*
-   * A freestyle run's end, on the race's screen: the score is the big
-   * number, and the rows are the tricks landed, biggest earner first, each
-   * barred against the top one.
-   */
-  showFreestyleResults(summary, debrief = null) {
-    this.roomResults = false;
-    this.freestyleRun = summary;
-    this.runPosted = null;
-    const clean = summary.crashes === 0 && summary.tricks > 0;
-    resetScreen(this, clean, !summary.tricks, true);
-    this.resultsDebrief = debrief;
-    fillFacts(this.resultsFacts, debrief);
-    const free = summary.timed === false;
-    this.resultsKicker.textContent = str(free ? 'ui.freestyle_results_free_flight' : 'ui.freestyle_results');
-    let head = 'ui.run_ended';
-    if (summary.tricks) {
-      head = clean ? 'ui.clean_run' : 'ui.run_complete';
-    }
-    this.resultsHead.textContent = str(head);
-    this.resultsHeroCap.textContent = str('ui.score');
-    this.resultsHeroTime.textContent = formatScore(summary.total);
-    const meta = this.resultsHeroMeta;
-    if (!summary.tricks) {
-      meta.textContent = '';
-      meta.className = 'results-hero-meta';
-      this.resultsBody.append(el('p', 'results-empty', str(free
-        ? 'ui.nothing_the_recogniser_could_name_a'
-        : 'ui.two_minutes_and_nothing_the_recogniser')));
-      this.show('results');
-      return;
-    }
-    const facts = [str('ui.tricks_of_them_different', { tricks: summary.tricks, unique: summary.unique })];
-    if (summary.bestCombo > 0) {
-      facts.push(str('ui.best_chain', { score: formatScore(summary.bestCombo) }));
-    }
-    if (summary.bonus > 0) {
-      facts.push(str('ui.variety_bonus', { score: formatScore(summary.bonus) }));
-    }
-    if (summary.crashes === 0) {
-      facts.push(str('ui.no_crashes'));
-    } else {
-      facts.push(plural('count.crashes', summary.crashes));
-    }
-    meta.textContent = facts.join('  ·  ');
-    meta.className = clean ? 'results-hero-meta gain' : 'results-hero-meta';
-
-    const [lead] = summary.rows;
-    const top = lead ? lead.points : 0;
-    for (const trick of summary.rows.slice(0, TRICK_ROWS)) {
-      const name = trick.count > 1 ? `${trick.name} x${trick.count}` : trick.name;
-      const bar = top > 0 ? Math.max(4, Math.round((trick.points / top) * 100)) : null;
-      this.resultsBody.append(resultRow([trick === lead && 'fastest'], [cell('label', name), cell('time', formatScore(trick.points))], bar));
-    }
-    const unlisted = summary.rows.length - TRICK_ROWS;
-    if (unlisted === 1) {
-      this.resultsNote.textContent = str('ui.and_one_more_kind_of_trick');
-    } else if (unlisted > 1) {
-      this.resultsNote.textContent = str('ui.and_more_kinds_of_trick_further', { hidden: unlisted });
-    }
     this.show('results');
   },
 };

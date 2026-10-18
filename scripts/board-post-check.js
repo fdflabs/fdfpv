@@ -312,12 +312,6 @@ async function main(track) {
     shown = await post(page, 'posttime', failLine);
     say(shown === flat(failLine) && (await posts(page)).length === 1, `a 500: "${shown}", one request`);
 
-    /* A run on the freestyle board: refused here before anything is sent. */
-    const summary = await page.evaluate('window.__score()');
-    const freeWant = summary && summary.timed === false ? 'main.free_flight_has_no_clock_so' : 'main.a_run_with_no_tricks_in';
-    shown = await post(page, 'postrun', text(freeWant));
-    say(shown === flat(text(freeWant)) && (await posts(page)).length === 0, `postrun from a race: "${shown}"`);
-
     /* A tune swap. */
     const t0 = await page.evaluate('({ tune: window.__tune(), key: window.__air().key })');
     const other = TUNES.find((t) => t.id !== t0.tune.id && t0.tune.offered.includes(t.id));
@@ -346,10 +340,6 @@ async function main(track) {
     const t3 = await page.evaluate('({ tune: window.__tune(), setting: window.__ui.settings.tune })');
     say(t3.tune.id === other.id && t3.setting === other.id && noDumpLine === flat(noDump), `custom with no saved edits: "${noDumpLine}", still ${t3.tune.id}`);
 
-    /* The horn: the run is put down for its results. */
-    await page.evaluate('window.__scoreFinish()');
-    const end = await page.evaluate('({ c: window.__craftState(), screen: window.__ui.screen })');
-    say(end.c.mode === 'results' && !end.c.turtle && !end.c.turtleWait, `the horn puts the run down: mode ${end.c.mode}, screen ${end.screen}`);
     const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource|board\.test|404/.test(e));
     say(errs.length === 0, `no page errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
   } finally {

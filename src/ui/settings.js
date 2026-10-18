@@ -108,11 +108,6 @@ export const HUD_STYLES = ['osd', 'game', 'avionics'];
 /* Expert flies the whole model; arcade turns its imperfections off in the
  * module (sim_set_flight_style). */
 export const FLIGHT_STYLES = ['expert', 'arcade'];
-/* What a freestyle flight shows: nothing ('off', the default, while the
- * trick recogniser is unfinished), named tricks with no clock ('free'),
- * or a two minute scored run posted to the board ('scored'). The scorer
- * runs underneath in every case; this only decides what is drawn. */
-export const FREESTYLE_SCORING = ['off', 'free', 'scored'];
 /* The Avionics HUD: inset sizes (src/render/sensorview.js INSET_SIZES),
  * how much it draws, and the thermal palettes (THERMAL_PALETTES there,
  * which scripts/avionics-layout.js checks this list against). */
@@ -239,13 +234,6 @@ export const DEFAULTS = {
   mouseExpo: 0,
   mouseInvert: false,
   mouseCentre: 'auto',
-  freestyleScoring: 'off',
-  /* The landed trick and figure callouts (docs/TRICKS-CATALOG.md), on
-   * whether or not the score is shown. */
-  trickCallouts: true,
-  /* Set once every profile's scoring has been put back to off, after
-   * scoring had defaulted on. */
-  scoringReset: false,
   flightStyle: 'expert',
   launchControl: false,
   missionGuidance: true,
@@ -663,7 +651,6 @@ const ONE_OF = {
   musicTrack: () => musicIds(),
   ghost: () => ['off', 'best', 'previous'],
   live: () => ['off', 'on'],
-  freestyleScoring: () => FREESTYLE_SCORING,
   weather: () => WEATHER_PRESETS,
   timeOfDay: () => DAYTIME_CHOICES,
   mouseSens: () => MOUSE_SENS,
@@ -795,10 +782,6 @@ export function loadSettings() {
   adoptSeatedStock(s);
   unsetCameraToStock(s);
   if (!pitchMatchesRoll(s.rates)) s.ratesSplitPitch = true;
-  if (!s.scoringReset) {
-    s.freestyleScoring = DEFAULTS.freestyleScoring;
-    s.scoringReset = true;
-  }
   s.graphics = firstLoadOfGraphics ? detectDefaultGraphics() : normalizeGraphics(s.graphics);
   if (!s.airframeAsked && s.airframe !== FIRST_AIRFRAME) seatAirframe(s, FIRST_AIRFRAME);
   return s;

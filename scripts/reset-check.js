@@ -202,7 +202,6 @@ const SNAP = `(() => {
   walk('craft', craft, 0);
   const c = window.__crash();
   walk('crash', { flags: c.flags, wrecked: c.wrecked, plantFaults: c.plantFaults, motorsHeld: c.motorsHeld, simT: c.simT, debris: c.debris, pieces: c.pieces }, 0);
-  walk('score', window.__score(), 0);
   walk('ghost', window.__ghost(), 0);
   walk('lap', window.__traffic().lap, 0);
   walk('mode', window.__mode, 0);

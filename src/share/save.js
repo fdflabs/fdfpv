@@ -26,7 +26,7 @@
  * src/maps/retired.js), because the same ids arrive from rooms, the
  * account and replays, where no local step can reach; a step here would
  * be a second copy of that rule. The settings blob's in place repairs
- * (wingDefaults, scoringReset, legacy rates) and the stick map's rename
+ * (wingDefaults, legacy rates) and the stick map's rename
  * and version 2 (src/input/stickstore.js) stay with their readers for the
  * same reason, and because a profile can come back from the account in
  * any of those shapes. The whoop's generations went with the whoop

@@ -21,7 +21,6 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { formatScore } from '../game/score.js';
 import { splitDuration } from '../share/flighttime.js';
 import { str } from '../strings/index.js';
 import { formatRunClock, formatTime, lengthText } from './format.js';
@@ -51,14 +50,11 @@ function recordText(r) {
     const value = r.kind === 'lap' || r.kind === 'run' ? formatTime : (n) => String(n);
     return r.before == null ? str('debrief.best_first', { now: value(r.now) }) : str('debrief.best_beat', { now: value(r.now), before: value(r.before) });
   }
-  if (r.what === 'debrief.run_best' && r.improved) {
-    return str('debrief.board_best_new', { now: formatScore(r.now) });
-  }
-  const unit = r.what === 'debrief.track_record' ? formatTime : formatScore;
+  /* What is left is a track's record (debrief.js fromRace). */
   if (r.before == null) {
-    return str('debrief.record_first', { now: unit(r.now) });
+    return str('debrief.record_first', { now: formatTime(r.now) });
   }
-  return r.improved ? str('debrief.record_beat', { now: unit(r.now), before: unit(r.before) }) : str('debrief.record_stands', { before: unit(r.before) });
+  return r.improved ? str('debrief.record_beat', { now: formatTime(r.now), before: formatTime(r.before) }) : str('debrief.record_stands', { before: formatTime(r.before) });
 }
 
 /* The debrief's facts (src/game/debrief.js): every line the record has,
