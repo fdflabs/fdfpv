@@ -1,6 +1,6 @@
 /*
  * rainair.js: how much rain thickens the air, for every map's look
- * (swiss2/post.js's aerial perspective, the alps' linear fog).
+ * (maps/look/post.js's aerial perspective, the alps' linear fog).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *

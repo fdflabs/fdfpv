@@ -31,7 +31,7 @@
  * material of their own: the lit colour divided by the paint's gives the
  * light the surface had, and that light falls on carbon's twill (a 2x2
  * weave of 3 mm tows on the face the part's normal is nearest to, the
- * same weave src/maps/swiss2/craftlook.js draws) or on aluminium brushed
+ * same weave src/maps/look/craftlook.js draws) or on aluminium brushed
  * along the span.
  *
  * WEAR (configs/paint.js) is the whole aircraft's, on every region's
@@ -51,7 +51,7 @@
  * uniforms the palette's materials' finishes fill (finishPalette), an
  * entry whose material wears none at the identity.
  *
- * swiss2 draws the craft physically based (src/maps/swiss2/craftlook.js)
+ * swiss2 draws the craft physically based (src/maps/look/craftlook.js)
  * and reads the finish from mat.userData.paintFinish for its twin.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.

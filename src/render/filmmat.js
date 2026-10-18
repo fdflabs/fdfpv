@@ -91,7 +91,7 @@ export function filmMaterial(opts) {
 /*
  * The film's light through the frame on any lit material of three's that
  * samples the film map as `map`: the cel one above, and the physically
- * based twin swiss2 dresses a craft in (src/maps/swiss2/craftlook.js),
+ * based twin swiss2 dresses a craft in (src/maps/look/craftlook.js),
  * which hands this the cel material's own glow so the two stay one.
  */
 export function withFilm(mat, glow) {

@@ -3,7 +3,7 @@
 What a world can hand the shared renderer to set its own sky, air and
 grade, without touching the chain. There are two chains: the cel one
 (src/render/post.js, the alps, the title and the `peers` and `alps-low`
-rows) and the photographic one (src/maps/swiss2/post.js
+rows) and the photographic one (src/maps/look/post.js
 buildPhotoComposer, which the Swiss valley, Itaipu and the Interior all
 draw through). Every parameter defaults to the chain as it was before it
 was a parameter: a world that hands nothing draws the same pixels.
@@ -50,7 +50,7 @@ no draw calls, GPU floor within run to run spread (2026-10-15).
 
 ## The photographic print grade: `air.grade`
 
-src/maps/swiss2/post.js. A map's air (the object it hands
+src/maps/look/post.js. A map's air (the object it hands
 buildPhotoComposer: swiss2's `AIR`, Itaipu's look/sky.js `AIR` and
 `AIR_NIGHT`, the Interior's) may carry `grade`, applied after the print's
 slope, before the vignette.
@@ -73,4 +73,4 @@ mission's ramp (look/index.js rampLight); its day and noon set none.
 
 The rest of a photo world's air (haze, beta, scaleHeight, mie, exposure,
 meterKey, contrast, slope, spread, slopeMax, pivot) is documented where
-it is defined, swiss2/post.js `AIR`.
+it is defined, maps/look/post.js `AIR`.

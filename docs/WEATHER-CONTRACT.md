@@ -245,7 +245,7 @@ front: MOR 2.0 km; 0.5 is 3.0 km; 0.1 is 7.6 km. The dry air is 40 to
 
 Where it goes:
 - Itaipu, the Interior, Swiss2 (the photo looks): `map.setWet` is the
-  post chain's (swiss2/post.js buildPhotoComposer): rain's extinction is
+  post chain's (maps/look/post.js buildPhotoComposer): rain's extinction is
   added to `uBeta` in the aerial pass, the meter's taps and the clouds'
   march, scaled by the camera's height against the air's scale height so
   a level look reads the rain's figure, and `uMie` (the sun's forward

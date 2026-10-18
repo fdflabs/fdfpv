@@ -88,7 +88,7 @@ const TOWN_WALLS = 'itaipu-town-render-c-b';
 const DAM_GLASS = 'itaipu-dam-glass';
 
 /* Radiance, not display colour: a point's colour over 1 is a brighter
- * light, which swiss2/post.js's bloom (threshold 6.0, tuned for the sun's
+ * light, which maps/look/post.js's bloom (threshold 6.0, tuned for the sun's
  * disc) catches after the night's dark meter key (light.js) has turned
  * everything else down. */
 const LAMP_RADIANCE = [9, 6.4, 3.1];

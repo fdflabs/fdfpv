@@ -1298,7 +1298,7 @@ const TURF_CEILING = 24;
 const TURF_BLADES = 9;
 /* The blades against the ground's average colour. Seen from the side
  * and lit through, a blade is paler than the turf seen from above, soil
- * and shade and all; and the post chain's occlusion (swiss2/post.js
+ * and shade and all; and the post chain's occlusion (maps/look/post.js
  * AoPass), which reads the blades as a crevice a hand deep, takes about
  * a fifth off the turf as a whole (measured: the band of turf in
  * rockfill-road was 0.82 of the same ground without it at 1.15). */

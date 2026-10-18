@@ -254,7 +254,7 @@ function paletteChunks(entries) {
  *
  * userData.celKey is the material's identity: equal options are
  * interchangeable, so the options as JSON (kit.js bakeAll reads a plain
- * colour's back into a palette entry, swiss2/craftlook.js a craft's); a
+ * colour's back into a palette entry, maps/look/craftlook.js a craft's); a
  * texture is not JSON, so a material with a map must name itself with
  * `key`, or two materials with different maps would read as one.
  */

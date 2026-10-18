@@ -54,12 +54,12 @@ export const SUN_ELEVATION_DEG = 65.8;
 
 export const SUN_COLOR = new THREE.Color(1.0, 0.93, 0.82);
 export const SUN_IRRADIANCE = 3.51;
-/* The post chain's base exposure (swiss2/post.js AIR.exposure), before
+/* The post chain's base exposure (maps/look/post.js AIR.exposure), before
  * the meter. The valley's 1.45 left the views light under the clear sky:
  * the ground's median lightness 0.51 over eight of the loop's views, the
  * photographs' 0.41 over all of them. At 1.15 it is 0.40 over all 22. */
 export const EXPOSURE = 1.15;
-/* The meter's target by day (swiss2/post.js air.meterKey; the valley's
+/* The meter's target by day (maps/look/post.js air.meterKey; the valley's
  * KEY is 0.09). With the sun counted once on High (THE CASCADES ARE ONE
  * SUN, below) the eight views matched to photographs in round 4 fell from
  * mean lightness 0.47 to 0.43 against the photographs' 0.50. Raising the
@@ -79,12 +79,12 @@ export const METER_KEY = 0.125;
 export const NIGHT_SUN_COLOR = new THREE.Color(0.63, 0.71, 0.88);
 export const NIGHT_SUN_IRRADIANCE = SUN_IRRADIANCE * 0.015;
 /* The meter still runs at night, but toward its own dark target
- * (NIGHT_METER_KEY, swiss2/post.js air.meterKey) rather than the day's
+ * (NIGHT_METER_KEY, maps/look/post.js air.meterKey) rather than the day's
  * KEY: a night sky metered up to a hazy day's average is not night. This
  * is the base it corrects from, close to the day's; the darkness is
  * NIGHT_METER_KEY's job, not this one's. */
 export const NIGHT_EXPOSURE = 1.3;
-/* A little under a fifth of the day's KEY (swiss2/post.js), about 2.3
+/* A little under a fifth of the day's KEY (maps/look/post.js), about 2.3
  * stops under: dark enough to read as night, bright enough that the
  * dam, the water and a drone are still there to see (the mission's own
  * requirement), the rest of the reading done by the lamps and the
