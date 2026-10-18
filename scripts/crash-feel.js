@@ -384,6 +384,54 @@ const SCENARIOS = [
       }
       return null;`,
   },
+  /*
+   * The aircraft PDCS seats, on Itaipu, where the war and its films fly:
+   * the cartwheel, the stall and the dive on each fixed wing, at its own
+   * speeds where the Cub's and the Skyhunter's are under its stall. The
+   * Bramor's 16 m/s VBE (tests/bramor-thresholds.json b1_cruise) and its
+   * 13 m/s stall (b2_stall); the Striker's 19 m/s rail release and its
+   * 13.53 m/s stall (configs/airframes.js); each stall thrown at 0.9 of
+   * its stall, slow and nose high, as the Skyhunter's is.
+   */
+  ...[['bramor', 'bramor2300', 16, 13], ['striker', 'striker2500', 19, 13.53]].flatMap(([tag, airframe, cruise, stall]) => [
+    {
+      id: `${tag}-cartwheel`,
+      item: 8,
+      what: `the ${tag} banked 75 degrees, low and sinking at ${cruise} m/s on Itaipu: the wingtip catches the ground`,
+      airframe,
+      map: 'itaipu',
+      chase: 'shell',
+      plan: `
+        const s = window.__craftState();
+        const x = s.worldX + 30, z = s.worldZ + 10, y = window.__heightAt(x, z) + ${(airframeById(airframe).dims.hullR + 0.8).toFixed(2)};
+        return { throw: { x, y, z, yaw: 90, pitch: -8, roll: 75, vx: -${cruise}, vy: -3, vz: 0 }, dir: [-1, 0], what: 'the ground by the spawn' };`,
+    },
+    {
+      id: `${tag}-stall`,
+      item: 8,
+      what: `the ${tag} at 8 m, slow and nose high with the throttle closed on Itaipu: it stalls and mushes in`,
+      airframe,
+      map: 'itaipu',
+      chase: 'shell',
+      plan: `
+        const s = window.__craftState();
+        const x = s.worldX + 30, z = s.worldZ + 10, y = window.__heightAt(x, z) + 8;
+        return { throw: { x, y, z, yaw: 90, pitch: 18, vx: -${(0.9 * stall).toFixed(1)}, vy: 0, vz: 0 }, dir: [-1, 0], what: '8 m over the ground at ${(0.9 * stall).toFixed(1)} m/s' };`,
+    },
+    {
+      id: `${tag}-ground`,
+      item: 8,
+      what: `the ${tag} diving into the ground at ${cruise} m/s, 30 degrees down, on Itaipu`,
+      airframe,
+      map: 'itaipu',
+      chase: 'shell',
+      plan: `
+        const s = window.__craftState();
+        const x = s.worldX + 30, z = s.worldZ + 10, y = window.__heightAt(x, z) + 3;
+        const a = 30 * Math.PI / 180;
+        return { throw: { x, y, z, yaw: 90, pitch: -30, vx: -${cruise} * Math.cos(a), vy: -${cruise} * Math.sin(a), vz: 0 }, dir: [-1, 0], what: 'the ground by the spawn' };`,
+    },
+  ]),
 ];
 
 function argValue(name, fallback) {
