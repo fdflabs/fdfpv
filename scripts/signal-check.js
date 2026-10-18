@@ -162,7 +162,7 @@ const base = { station: STATION, finestAt, waterAt, waterTop: RESERVOIR_Y };
 
 /* The determinism hash: a grid of calls over the gorge, every result's
  * bytes. Positions and relays vary so the hash covers every branch. */
-function determinismHash(waterTop = RESERVOIR_Y) {
+function determinismHash(waterTop = RESERVOIR_Y, relay = RELAY) {
   const h = createHash('sha256');
   const f = new Float64Array(1);
   const u = new Uint8Array(f.buffer);
@@ -175,7 +175,7 @@ function determinismHash(waterTop = RESERVOIR_Y) {
         ...base,
         waterTop,
         craft,
-        relays: (i + j) % 3 === 0 ? [RELAY] : [],
+        relays: (i + j) % 3 === 0 ? [relay] : [],
         jammers: (i * j) % 5 === 0 ? [{ x: x + 200, y: craft.y, z: z - 100 }] : [],
       });
       f[0] = r.q;
@@ -217,6 +217,11 @@ check('and q is the range rule at that distance', high.q === rangeHigh, `${dHigh
 const relayed = signalQuality({ ...base, craft: LOW, relays: [RELAY] });
 check('a relay 300 m over the gorge restores the low craft', relayed.q > 0.9 && relayed.via === 0 && relayed.blocked,
   `q ${relayed.q.toFixed(4)}, via ${relayed.via}, direct blocked ${relayed.blocked}`);
+/* The relay The Interior flies (src/share/ops, interior-3's relay role):
+ * the Bramor in the Skyhunter's place answers the same, to the bit. */
+const bramorRelay = signalQuality({ ...base, craft: LOW, relays: [{ ...RELAY, airframe: 'bramor2300' }] });
+check('a Bramor in the same place is the same relay', JSON.stringify(bramorRelay) === JSON.stringify(relayed),
+  `q ${bramorRelay.q.toFixed(4)}, via ${bramorRelay.via}`);
 const notRelay = signalQuality({ ...base, craft: LOW, relays: [{ ...RELAY, airframe: 'quad5' }] });
 check('a quad in the same place is no relay', notRelay.q === 0 && notRelay.via === -1, `q ${notRelay.q}`);
 const lowRelay = signalQuality({
@@ -239,6 +244,7 @@ const h3 = execFileSync(process.execPath, [fileURLToPath(import.meta.url), '--ha
 check('two runs in one process are bit identical', h1 === h2, h1.slice(0, 16));
 check('and a second process agrees', h1 === h3, h3.slice(0, 16));
 check('skipping the water over its highest surface changes no answer', determinismHash(Infinity) === h1);
+check('the Bramor as the relay gives the same hash', determinismHash(RESERVOIR_Y, { ...RELAY, airframe: 'bramor2300' }) === h1);
 
 console.log('\ncost');
 function perCall(label, args) {

@@ -556,3 +556,46 @@ R('readState final', () => sim.readState());
 }
 
 t.finish('simmod', PINNED);
+
+/* The fixed wings PDCS seats, through the same wing calls the Skyhunter's
+ * records above make, each on a module of its own: the Bramor on its own
+ * stock power block (configs/power.js powerBlock('bramor2300')), the
+ * Striker's prop and jet plants on their own engines, which no power
+ * block replaces (configs/power.js has no Striker row). Its own transcript and pin, so the one above
+ * stays the record it was; dump it with --dump-wings=<file>. Pinned on the
+ * module of bc2b0170f. */
+const PINNED_WINGS = 'c44067670bcd7aaaee345d87dd7c80af1db2d5b4374f83a693610e73f4476768';
+const POWER_BRAMOR = f64(0, 4.5, 0, 6, 0.01, 36000, 22.9, 30.036, 10434, 19.08, 0, 0, 0, 0, 0, 0, 0);
+const w = transcript();
+for (const [name, id, power] of [['bramor', 8, POWER_BRAMOR], ['striker prop', 27, null], ['striker jet', 28, null]]) {
+  const wing = await mod.loadSim(wasmBytes);
+  const W = (label, fn) => w.rec(`${name}: ${label}`, () => shown(fn()));
+  W('init', () => wing.init(baselineDiff));
+  W(`set airframe ${id}`, () => wing.e.sim_set_airframe(id));
+  W('airframe', () => wing.e.sim_airframe());
+  W('setMotors', () => wing.setMotors(MOTORS_7IN));
+  W('setPropPack', () => wing.setPropPack(PROP_PACK_7IN));
+  W('powerState stock', () => wing.powerState());
+  if (power) {
+    W('setPower', () => wing.setPower(power));
+    W('powerState', () => wing.powerState());
+  }
+  W('tune stock', () => wing.tune());
+  W('setTune', () => wing.setTune(TUNE_WING));
+  W('tune seated', () => wing.tune());
+  W('setAddons', () => wing.setAddons(ADDONS));
+  W('addonsState', () => wing.addonsState());
+  W('reset', () => wing.reset());
+  W('setCellVoltage 4.1', () => wing.setCellVoltage(4.1));
+  W('input full throttle', () => wing.input(0, 0, 0, 0, 1));
+  W('step 300', () => wing.step(300));
+  W('readState', () => wing.readState());
+  W('powerState drawn', () => wing.powerState());
+  W('clearTune', () => wing.clearTune());
+  W('clearAddons', () => wing.clearAddons());
+  if (power) {
+    W('clearPower', () => wing.clearPower());
+    W('powerState stock again', () => wing.powerState());
+  }
+}
+w.finish('simmod kept wings', PINNED_WINGS, 'dump-wings');

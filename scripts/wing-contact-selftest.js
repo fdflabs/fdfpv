@@ -13,8 +13,10 @@
  * falls back onto the wheels, the nose-in, and the throw. The Radian
  * lands on its belly as the first two do, and gets their four, thrown
  * with the stick that trims its climb. The Slow Stick stands on wheels
- * and gets the Cub's four at its own slow speeds. Run with npm run
- * wing:contact.
+ * and gets the Cub's four at its own slow speeds. The Bramor and both
+ * Strikers, the fixed wings PDCS seats, land on their bellies and get the
+ * first three, and leave the ground off their own launchers (KEPT). Run
+ * with npm run wing:contact.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -39,6 +41,9 @@ import { fileURLToPath } from 'node:url';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { zagiHold } from '../tests/lib/wingpilot.js';
+import { AIRFRAMES, BRAMOR_CATAPULT, STRIKER_RAIL } from '../configs/airframes.js';
+import { combatChoice } from '../configs/combat.js';
+import { flyStriker, seatStriker } from './lib/strikerpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -51,6 +56,45 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
  * The Zagi is thrown as the wing is,
  * its hull the half span wide with the belly 12 mm under the CG. */
 const zagiTrim = { i: 0 };
+/*
+ * The fixed wings PDCS seats. Each lands on its belly; the hull is the
+ * plant's (src/native/plant.c, each entry's hull_*). The landing is at
+ * 1.1 times its stall, the margin the Bramor's catapult gate holds it to
+ * (tests/bramor-thresholds.json b8_catapult: 13 m/s published, 14.3), on
+ * the stall each row states (configs/airframes.js: the Striker's 13.53
+ * m/s prop and 14.07 m/s jet, its trimmed stall with the standard
+ * warhead). The nose-in is at the speed each flies: the Bramor's 16 m/s
+ * VBE (b1_cruise), the Striker's rail release, 19 m/s. Neither is thrown
+ * by hand: each leaves the ground off its own launcher, the Bramor's
+ * catapult (BRAMOR_CATAPULT) and the Striker's rail (STRIKER_RAIL), at
+ * full throttle and flown as its launch gate flies it: the Bramor with
+ * the sticks centred (bramor-gates B8, wingpilot.js catapultTest's first
+ * second), the Striker on the gate's pitch hold, the rail's angle for a
+ * second and 0.25 rad after (combat-gates "flies off the rail",
+ * strikerpilot.js flyStriker): trimmed for its cruise, it sinks off a
+ * 19 m/s rail with the stick let go, as any aircraft let go under its
+ * trim speed does. The Striker is
+ * seated as the shell seats it, its standard warhead and the bay's trim
+ * lead on (scripts/lib/strikerpilot.js seatStriker).
+ */
+const strikerAf = AIRFRAMES.find((a) => a.id === 'striker2500');
+const strikerTune = await readFile(join(root, `configs/${strikerAf.defaultTune}.diff`), 'utf8');
+const strikerSeat = (propulsion) => () => seatStriker(loadSim, wasmBytes, strikerTune, strikerAf, combatChoice(strikerAf, { propulsion }));
+const strikerOff = (sim, r) => {
+  const h = (r.pitchDeg * Math.PI) / 360;
+  let end = null;
+  flyStriker(sim, {
+    thr: 1, z0: r.height, v0: r.speed, launch: true, quat: [Math.cos(h), 0, -Math.sin(h), 0], seconds: 2.5, meanS: 1, pitchMax: 1.2,
+    hold: { pitch: (ms) => (ms < 1000 ? (r.pitchDeg * Math.PI) / 180 : 0.25) },
+    onStep: ({ s }) => { end = s; },
+  });
+  return end;
+};
+const KEPT = [
+  { name: 'bramor', id: 8, hx: 0.45, hy: 1.15, down: 0.065, up: 0.25, land: 14.3, nose: 16, rail: BRAMOR_CATAPULT },
+  { name: 'striker prop', id: 27, hx: 1.214, hy: 1.251, down: 0.2514, up: 0.2496, land: 14.88, nose: STRIKER_RAIL.speed, rail: STRIKER_RAIL, seat: strikerSeat('prop'), off: strikerOff },
+  { name: 'striker jet', id: 28, hx: 1.214, hy: 1.251, down: 0.2611, up: 0.2399, land: 15.48, nose: STRIKER_RAIL.speed, rail: STRIKER_RAIL, seat: strikerSeat('jet'), off: strikerOff },
+];
 const zagiThrower = (st) => { const [roll, pitch] = zagiHold(st, { pitch: 0.35, trim: zagiTrim }); return [roll, pitch, 0, 0.6685]; };
 const PLANES = [
   { name: 'wing', id: 2, hx: 0.25, hy: 0.5, down: 0.035, up: 0.035, land: 8, nose: 10, toss: 10, tossSticks: [0, 0.15, 0, 0.7] },
@@ -88,6 +132,7 @@ const PLANES = [
   { name: 'uglystik', id: 19, hx: 0.45, hy: 0.7841, down: 0.053, up: 0.077, land: 11, rollMs: 25000, nose: 13, toss: 12, tossSticks: [0, 0.1, 0, 1], wheels: { restPitchDeg: -2.06, restZ: 0.2024 } },
   /* The F-16 lands fast and rolls long: a clean jet on small wheels. */
   { name: 'f16', id: 16, hx: 0.42, hy: 0.439, down: 0.06, up: 0.07, land: 14, rollMs: 30000, nose: 16, toss: 16, tossSticks: [0, 0.2, 0, 1], wheels: { restPitchDeg: 0, restZ: 0.140 } },
+  ...KEPT,
 ];
 
 let failed = 0;
@@ -104,9 +149,14 @@ function check(name, ok, detail = '') {
 const must = (c, w) => { if (c !== SIM_OK) throw new Error(`${w}: ${c}`); };
 
 async function wing(plane) {
-  const sim = await loadSim(wasmBytes);
-  must(sim.init(configText), 'init');
-  must(sim.e.sim_set_airframe(plane.id), 'airframe');
+  let sim;
+  if (plane.seat) {
+    sim = await plane.seat();
+  } else {
+    sim = await loadSim(wasmBytes);
+    must(sim.init(configText), 'init');
+    must(sim.e.sim_set_airframe(plane.id), 'airframe');
+  }
   must(sim.setCellVoltage(4.1), 'volts');
   must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, GROUND_MU, GROUND_E), 'ground');
   return sim;
@@ -192,6 +242,22 @@ for (const plane of PLANES) {
     must(sim.e.sim_wing_launch(plane.nose), 'launch');
     const s = run(sim, 3000);
     check('a nose-in stops rather than tunnels', finite(s) && speed(s) < 0.5 && lowestCorner(plane, s) > -0.05, `speed ${speed(s).toFixed(2)}, lowest ${lowestCorner(plane, s).toFixed(3)}`);
+  }
+  if (plane.rail) {
+    const sim = await wing(plane);
+    const r = plane.rail;
+    let s;
+    if (plane.off) {
+      s = plane.off(sim, r);
+    } else {
+      const h = (r.pitchDeg * Math.PI) / 360;
+      must(sim.e.sim_set_pose(0, 0, r.height, Math.cos(h), 0, -Math.sin(h), 0), 'pose');
+      must(sim.e.sim_wing_launch(r.speed), 'launch');
+      s = run(sim, 2500, [0, 0, 0, 1]);
+    }
+    check(`off its ${plane.name === 'bramor' ? 'catapult' : 'rail'} at ${r.speed} m/s it leaves the ground`, finite(s) && s[3] > r.height && speed(s) > plane.land,
+      `z ${s[3].toFixed(2)} m, ${speed(s).toFixed(1)} m/s`);
+    continue;
   }
   {
     const sim = await wing(plane);
