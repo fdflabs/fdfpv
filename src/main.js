@@ -553,7 +553,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * resource timing for them): a wrong count moves the bar at the wrong pace
  * and cannot break a load. A map with no entry weighs 4.
  *
- * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 46 in
+ * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 42 in
  * all. The Alps modules it builds through, and the asset library's
  * (src/render/library/, where its tree models went), are under their own
  * prefixes, so they are not in this number, and a pilot who flew the Alps
@@ -584,7 +584,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * terrain engine (src/maps/terrain/) and the swiss2 look it is built
  * with are under their own prefixes, as the Alps' modules are for
  * swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 46, itaipu: 34 };
+const MAP_MODULE_COUNT = { swiss2: 42, itaipu: 34 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */

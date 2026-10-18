@@ -315,8 +315,8 @@
     "map-isolation": {
       "num": 16,
       "swiss2_modules_min": {
-        "value": 45,
-        "source": "Choosing the Swiss valley with the Alps already built fetches swiss2.js and the files under src/maps/swiss2/ it imports, 49 by its static import closure on 2026-09-28 (the Alps modules it builds through are already there). A floor rather than an equality because the browser may serve some from cache within one page life; anything near this number means the graph really arrived. It replaced the city's floor of 55 when the city was retired, and it is the same property: a world's modules arrive when it is chosen and not before."
+        "value": 41,
+        "source": "Choosing the Swiss valley with the Alps already built fetches swiss2.js and the files under src/maps/swiss2/ it imports, 49 by its static import closure on 2026-09-28 (the Alps modules it builds through are already there). Measured 42 on 2026-10-18 by this check's own run (tests/verify.js worldScale, URLs containing /src/maps/swiss2 after choosing it), after look.js (d694476b3) and water/stream.js, surface.js and waves.js (4ad5de989) moved to src/render/library/ on 2026-10-11 without the count following; the floor stands one under the measured count, where 45 stood under 46. A floor rather than an equality because the browser may serve some from cache within one page life; anything near this number means the graph really arrived. It replaced the city's floor of 55 when the city was retired, and it is the same property: a world's modules arrive when it is chosen and not before."
       }
     }
   }
