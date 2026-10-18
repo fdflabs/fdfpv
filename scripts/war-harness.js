@@ -623,7 +623,9 @@ function cost(layout, parked = 52, hunters = 8, airframe = 'cub1400') {
       const k = Math.floor(n / seats);
       const ang = (k * 2 * Math.PI) / 7 + i;
       const up = k % 2 ? -1 : 1;
-      p = [at[i][0] + 0.3 * fit * Math.cos(ang), Y + up * (BLAST_M + fit * (0.45 + (0.14 * k) / Math.ceil(parked / seats))), at[i][2] + 0.3 * fit * Math.sin(ang)];
+      /* The Cub's heights as they were written, to the bit. */
+      const out = fit === 1 ? 6.45 + (0.14 * k) / Math.ceil(parked / seats) : BLAST_M + fit * (0.45 + (0.14 * k) / Math.ceil(parked / seats));
+      p = [at[i][0] + 0.3 * fit * Math.cos(ang), Y + up * out, at[i][2] + 0.3 * fit * Math.sin(ang)];
     }
     routes[`j${n}`] = [[p[0] - 0.5, p[1], p[2]], p];
     waves.push({ at: 0.5, kind: 'jammer', n: 1, route: `j${n}` });
