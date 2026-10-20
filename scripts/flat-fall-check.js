@@ -191,10 +191,9 @@ function swing(table, damp, iax, mass) {
 /* The drop flown: from rest at the case's attitude, 10 s. When the nose
  * first comes within noseDeg of the flight path, and the longest stretch
  * of the last five seconds sat flat. */
-function drop(sim, c, stab, heading) {
+function drop(sim, c, stab) {
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_wing_set_stab(stab), 'sim_wing_set_stab');
-  must(sim.setHeading([heading, heading, heading]), 'sim_wing_set_heading');
   must(sim.e.sim_set_pose(0, 0, 800, ...c.base), 'sim_set_pose');
   must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
   let into = null, flat = 0, worst = 0;
@@ -225,7 +224,6 @@ async function judge(id, sim, modes) {
   for (const c of CASES) {
     for (const [mode, stab] of modes) {
       must(sim.e.sim_wing_set_stab(stab), 'sim_wing_set_stab');
-      must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
       const table = [];
       for (let th = 90; th >= 40; th -= 10) {
         const h = held(sim, c, th, 0);
@@ -236,7 +234,7 @@ async function judge(id, sim, modes) {
       const limit = FLAT_FALL.multiple * t1;
       const m90 = table[0].c * V_REF * V_REF;
       const m95 = held(sim, c, 95, 0).m;
-      const flown = drop(sim, c, stab, 0);
+      const flown = drop(sim, c, stab);
       const tag = `${id} ${c.name}, ${mode}`;
       say(m90 > 0 && m95 > 0, `${tag}: at 90 and 95 deg the air turns the nose into the fall (${m90.toFixed(3)}, ${m95.toFixed(3)} N m at ${V_REF} m/s)`);
       say(flown.into != null && flown.into <= limit,

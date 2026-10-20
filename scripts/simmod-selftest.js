@@ -72,7 +72,10 @@ import { transcript } from './lib/transcript.js';
  * is the Skyhunter's was; the masses, the tune's stock throws and the
  * flown state are the Bramor's, the same digest on the module before the
  * cut (157f84d0) and after it (was 3db3cb6452f961ac). */
-const PINNED = '70180b9d0ee6abc8344be08e9dbf58c25e93adc9838b31183bcae9fff974e389';
+/* Re-pinned 2026-10-20: the wrapper's method list, its one line that
+ * differs, lost setHeading with the AS3X's sim_wing_set_heading; every
+ * record after it is the same (was 70180b9d0ee6abc8). */
+const PINNED = 'c2e2eb7d4492f48b742a3a2c3ed1a52523434e619acf6c1bc2b601d8df0f2932';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = readFileSync(join(root, 'dist/sim.wasm'));
