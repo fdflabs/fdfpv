@@ -67,7 +67,12 @@ import { transcript } from './lib/transcript.js';
  * blend, where the separated wing's plate force now stays in the plane of
  * symmetry (plant_wing.c THE PLATE'S FORCE IN A SIDESLIP); its trace first
  * differs at that step (was 8ae7a4a2914f63b0). */
-const PINNED = '3db3cb6452f961ace03a8dd7cc69bdba230dd1b4a89c45069ef94a4dfdc25e09';
+/* Re-pinned 2026-10-20 for the combat only cut: the fixed wing's records
+ * fly the Bramor, the Skyhunter having left the module. Every return code
+ * is the Skyhunter's was; the masses, the tune's stock throws and the
+ * flown state are the Bramor's, the same digest on the module before the
+ * cut (157f84d0) and after it (was 3db3cb6452f961ac). */
+const PINNED = '70180b9d0ee6abc8344be08e9dbf58c25e93adc9838b31183bcae9fff974e389';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = readFileSync(join(root, 'dist/sim.wasm'));
@@ -483,6 +488,7 @@ R('readState after rest', () => sim.readState());
 /* The blocks: a quad refuses the power option and the tune, a fixed wing
  * refuses a quad's motors. */
 const POWER_SKY = f64(0, 1.993, 0, 4, 0.01, 14400, 24.908891, 34.29643466666666, 13616, 45, 0, 0, 0, 0, 0, 0, 3);
+const POWER_BRAMOR = f64(0, 4.5, 0, 6, 0.01, 36000, 22.9, 30.036, 10434, 19.08, 0, 0, 0, 0, 0, 0, 0);
 const MOTORS_7IN = f64(1.0519999999999998, 0.004702501600115573, 0.0050437299401155725, 0.008584597339999998, 0.007002814,
   0.057120000000000004, 0.000027343999999999998);
 const PROP_PACK_7IN = f64(0.0000029498, 3.7348e-8, 0.014149, 0.55, 6, 0.016999999999999998, 1, 0.9617, 0.9164, 0.8633, 0.8018,
@@ -516,31 +522,31 @@ R('7in: readState', () => sim.readState());
 R('7in: clearPower', () => sim.clearPower());
 R('7in: powerState cleared', () => sim.powerState());
 R('7in: clearTune', () => sim.clearTune());
-R('set airframe sky1800', () => sim.e.sim_set_airframe(3));
-R('sky: setMotors', () => sim.setMotors(MOTORS_7IN));
-R('sky: setPropPack', () => sim.setPropPack(PROP_PACK_7IN));
-R('sky: setPower', () => sim.setPower(POWER_SKY));
-R('sky: powerState', () => sim.powerState());
-R('sky: setPower bad kind', () => sim.setPower(f64(7, 1.993, 0, 4, 0.01, 14400, 24.9, 34.3, 13616, 45, 0, 0, 0, 0, 0, 0, 3)));
-R('sky: tune stock', () => sim.tune());
-R('sky: setTune', () => sim.setTune(TUNE_WING));
-R('sky: tune seated', () => sim.tune());
-R('sky: setTune out of range', () => sim.setTune(f64(0, 9, 0, 0.4, 0.2, 0, 0.3, 0.3, 0.3, 0, 0)));
-R('sky: tune after refusal', () => sim.tune());
-R('sky: setAddons', () => sim.setAddons(ADDONS));
-R('sky: addonsState', () => sim.addonsState());
-R('sky: reset', () => sim.reset());
-R('sky: setCellVoltage 4.1', () => sim.setCellVoltage(4.1));
-R('sky: input full throttle', () => sim.input(0, 0, 0, 0, 1));
-R('sky: step 300', () => sim.step(300));
-R('sky: readState', () => sim.readState());
-R('sky: powerState drawn', () => sim.powerState());
-R('sky: clearTune', () => sim.clearTune());
-R('sky: tune cleared', () => sim.tune());
-R('sky: clearAddons', () => sim.clearAddons());
-R('sky: clearPower', () => sim.clearPower());
-R('sky: powerState stock', () => sim.powerState());
-R('sky: init baseline keeps the airframe', () => [sim.init(baselineDiff), sim.e.sim_airframe()]);
+R('set airframe bramor2300', () => sim.e.sim_set_airframe(8));
+R('bramor: setMotors', () => sim.setMotors(MOTORS_7IN));
+R('bramor: setPropPack', () => sim.setPropPack(PROP_PACK_7IN));
+R('bramor: setPower', () => sim.setPower(POWER_BRAMOR));
+R('bramor: powerState', () => sim.powerState());
+R('bramor: setPower bad kind', () => sim.setPower(f64(7, 1.993, 0, 4, 0.01, 14400, 24.9, 34.3, 13616, 45, 0, 0, 0, 0, 0, 0, 3)));
+R('bramor: tune stock', () => sim.tune());
+R('bramor: setTune', () => sim.setTune(TUNE_WING));
+R('bramor: tune seated', () => sim.tune());
+R('bramor: setTune out of range', () => sim.setTune(f64(0, 9, 0, 0.4, 0.2, 0, 0.3, 0.3, 0.3, 0, 0)));
+R('bramor: tune after refusal', () => sim.tune());
+R('bramor: setAddons', () => sim.setAddons(ADDONS));
+R('bramor: addonsState', () => sim.addonsState());
+R('bramor: reset', () => sim.reset());
+R('bramor: setCellVoltage 4.1', () => sim.setCellVoltage(4.1));
+R('bramor: input full throttle', () => sim.input(0, 0, 0, 0, 1));
+R('bramor: step 300', () => sim.step(300));
+R('bramor: readState', () => sim.readState());
+R('bramor: powerState drawn', () => sim.powerState());
+R('bramor: clearTune', () => sim.clearTune());
+R('bramor: tune cleared', () => sim.tune());
+R('bramor: clearAddons', () => sim.clearAddons());
+R('bramor: clearPower', () => sim.clearPower());
+R('bramor: powerState stock', () => sim.powerState());
+R('bramor: init baseline keeps the airframe', () => [sim.init(baselineDiff), sim.e.sim_airframe()]);
 R('readState final', () => sim.readState());
 
 /* A second module from the same bytes is a fresh instance: the same
@@ -557,7 +563,7 @@ R('readState final', () => sim.readState());
 
 t.finish('simmod', PINNED);
 
-/* The fixed wings PDCS seats, through the same wing calls the Skyhunter's
+/* The fixed wings PDCS seats, through the same wing calls the fixed wing's
  * records above make, each on a module of its own: the Bramor on its own
  * stock power block (configs/power.js powerBlock('bramor2300')), the
  * Striker's prop and jet plants on their own engines, which no power
@@ -565,7 +571,6 @@ t.finish('simmod', PINNED);
  * stays the record it was; dump it with --dump-wings=<file>. Pinned on the
  * module of bc2b0170f. */
 const PINNED_WINGS = 'c44067670bcd7aaaee345d87dd7c80af1db2d5b4374f83a693610e73f4476768';
-const POWER_BRAMOR = f64(0, 4.5, 0, 6, 0.01, 36000, 22.9, 30.036, 10434, 19.08, 0, 0, 0, 0, 0, 0, 0);
 const w = transcript();
 for (const [name, id, power] of [['bramor', 8, POWER_BRAMOR], ['striker prop', 27, null], ['striker jet', 28, null]]) {
   const wing = await mod.loadSim(wasmBytes);
