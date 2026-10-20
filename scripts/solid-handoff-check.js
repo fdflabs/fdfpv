@@ -26,9 +26,10 @@
  *   contact on it. Judged: the craft must never be past the wall's face by
  *   more than a part's own spring travel (0.1 m).
  *
- * At several offsets across the wall, for the Skyhunter, the Cub, the
- * Bramor and both Strikers, at 13.3 m/s (the station's) and 20 m/s. Exits
- * 1 on any failure.
+ * At several offsets across the wall, for the Bramor and both Strikers,
+ * at 13.3 m/s (the station's) and 20 m/s. The Skyhunter and the Cub flew
+ * it too until they left the module on 2026-10-20. Exits 1 on any
+ * failure.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -144,10 +145,9 @@ async function fly(id, speed, yOff, holdMet) {
 }
 
 let failed = 0;
-/* The Skyhunter and the Cub met the station; the Bramor and both Strikers
- * are the fixed wings the war and The Interior seat, into the same wall at
- * the same speeds. */
-for (const [name, id] of [['Skyhunter', 3], ['Cub', 4], ['Bramor', 8], ['Striker prop', 27], ['Striker jet', 28]]) {
+/* The Bramor and both Strikers, the fixed wings the war and The Interior
+ * seat, into the wall the Skyhunter and the Cub met, at the same speeds. */
+for (const [name, id] of [['Bramor', 8], ['Striker prop', 27], ['Striker jet', 28]]) {
   for (const speed of [13.3, 20]) {
     for (const holdMet of [false, true]) {
       let worst = -Infinity;

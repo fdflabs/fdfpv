@@ -26,10 +26,8 @@
  * sits flat: never a second with the nose more than flatDeg off the path
  * while turning slower than spinDps.
  *
- * Manual, and AS3X as it ships (Heading 0, a rate damper, measured with
- * the damper on). AS3X with full Heading is the hangar's choice; it
- * holds the attitude it was let go at and is judged on the last part
- * alone, never flat.
+ * Each in the modes its tunes ship (KEPT). The seven aircraft first held
+ * to this, and AS3X with them, left the module on 2026-10-20.
  *
  *   node scripts/flat-fall-check.js   (npm run flat-fall:check)
  *
@@ -60,7 +58,6 @@ import { AIRFRAMES } from '../configs/airframes.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
 import { seatStriker } from './lib/strikerpilot.js';
-import { precutRow } from './lib/precut.js';
 import { combatChoice } from '../configs/combat.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -70,24 +67,20 @@ const FLAT_FALL = JSON.parse(await readFile(join(root, 'tests/flatfall-threshold
 const DEG = 180 / Math.PI;
 const G = 9.80665;
 const MS = 4;
-const STAB_OFF = 0, STAB_AS3X = 3;
+const STAB_OFF = 0;
 /* The fall the moments are measured in, m/s; they go as its square. */
 const V_REF = 10;
 /* The rate the damping is measured at, rad/s. */
 const W_REF = 1;
-/* How long a held state is held before its moment is read: AS3X's frame
- * and its servos' slew have answered by then. */
+/* How long a held state is held before its moment is read: the
+ * stabiliser's servos have answered by then. */
 const HOLD_MS = 150;
 
-/* These left the shell before their plants leave the module (2026-10-21):
- * their rows are the pre-cut ones (scripts/lib/precut.js). */
-const PLANES = ['extra3d1308', 'cap1702', 'slick2680', 'cub1400', 'timber1500', 'nighttimber1200', 'p51d1450'];
 const STAB_ON = 1;
 /*
  * The fixed wings PDCS seats, each in the modes its tunes ship: Manual and
  * Stabilised (wingStab 1: aircraft/bramor2300/aircraft.js, the wing-stab
- * tune; aircraft/striker2500/aircraft.js, striker-stab). Neither has an
- * AS3X tune, so neither has the full Heading drop. The Bramor is the
+ * tune; aircraft/striker2500/aircraft.js, striker-stab). The Bramor is the
  * plant as the shell seats its stock build; the Striker is seated as the
  * shell seats it, on each propulsion with its standard warhead and the
  * bay's trim lead (scripts/lib/strikerpilot.js seatStriker): the bare
@@ -227,7 +220,7 @@ const say = (ok, what) => {
   console.log(`  ${ok ? 'pass' : 'FAIL'}  ${what}`);
   if (!ok) bad += 1;
 };
-async function judge(id, sim, modes, fullHeading) {
+async function judge(id, sim, modes) {
   const [mass, ...iner] = inertia(sim);
   for (const c of CASES) {
     for (const [mode, stab] of modes) {
@@ -250,21 +243,10 @@ async function judge(id, sim, modes, fullHeading) {
         `${tag}: nose within ${FLAT_FALL.noseDeg} deg of the path at ${flown.into == null ? 'never' : flown.into.toFixed(2) + ' s'}, within ${limit.toFixed(2)} s (${FLAT_FALL.multiple} x its own swing, ${t1.toFixed(2)} s; damping ${damp.toFixed(4)} N m s/m)`);
       say(flown.flat === 0, `${tag}: never flat over the last 5 s (${flown.flat.toFixed(2)} s more than ${FLAT_FALL.flatDeg} deg off the path turning under ${FLAT_FALL.spinDps} deg/s)`);
     }
-    if (!fullHeading) continue;
-    const held1 = drop(sim, c, STAB_AS3X, 1);
-    say(held1.flat === 0, `${id} ${c.name}, AS3X at full Heading: never flat over the last 5 s (${held1.flat.toFixed(2)} s; nose within ${FLAT_FALL.noseDeg} deg of the path at ${held1.into == null ? 'never' : held1.into.toFixed(2) + ' s'})`);
   }
 }
-for (const id of PLANES) {
-  const af = precutRow(id);
-  const sim = await loadSim(wasmBytes);
-  must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');
-  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
-  await judge(id, sim, [['Manual', STAB_OFF], ['AS3X', STAB_AS3X]], true);
-}
 for (const k of KEPT) {
-  await judge(k.id, await k.seat(), [['Manual', STAB_OFF], ['Stabilised', STAB_ON]], false);
+  await judge(k.id, await k.seat(), [['Manual', STAB_OFF], ['Stabilised', STAB_ON]]);
 }
 if (bad) {
   console.log(`${bad} FAILED`);

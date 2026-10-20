@@ -366,44 +366,10 @@ int sim_set_flight_style(int arcade);
 /*
  * Choose the airframe: 0 is the five inch this project was built around and
  * is the default (no pilot is seated on it since 2026-10-03; it is the stage
- * 1 verification reference), 1 was a 65 mm 1S brushless whoop, removed on
- * 2026-10-03 and reserved like the ids below, 2 the 1000 mm flying
- * wing, 3 the Skyhunter 1800, a twin boom pusher with ailerons, an
- * elevator and a rudder, 4 the Piper J-3 Cub 1400, a tractor
- * taildragger with the same surfaces that stands on its own wheels, 5
- * the GWS Slow Stick, a three channel slow flyer on wheels with no
- * ailerons, whose roll stick drives its rudder too, 6 the E-flite Radian
- * Pro, a 2 m powered glider with the Cub's surfaces, a folding prop, and
- * the thermals of sim_air_lift to climb in, 8 the C-Astral Bramor
- * C4EYE, a 2.3 m blended wing body flying wing that is catapult launched
- * and recovered under a parachute, 7 the E-flite Turbo Timber
- * Evolution, a 1.5 m STOL taildragger with flaps and slats that stands on
- * its own wheels, and 9 and 10 the Timber and the Cub on floats
- * (docs/FLOATS-STAGE1.md), which float on the water bodies below and slide
- * on their keels on land, and 11 BMJR's 1/2A Texaco Buzzard Bombshell
- * (docs/BOMBSHELL-STAGE1.md), a 44 in balsa and tissue old timer with a
- * glow engine that idles and never stops, rudder and elevator and no
- * ailerons like the Slow Stick, on wheels and a tail skid, and 12 SIG's
- * Kadet Senior (docs/KADET-STAGE1.md), a 78 in balsa trainer on an O.S.
- * FS-52 four stroke glow engine, rudder and elevator and no ailerons, on
- * a tricycle gear whose nose wheel steers with the rudder, 15 FMS's
- * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
- * flaps on retracting taildragger gear, 16 Freewing's F-16 V3
- * (docs/F16-STAGE1.md), a 70 mm electric ducted fan jet whose thrust lags
- * the stick, on a tricycle gear, 17 Zagi's 48 in Zagi HP
- * (docs/ZAGI-STAGE1.md), an EPP flying wing with elevons and winglets and
- * no rudder, thrown by hand and landed on its belly, 19 Phil
- * Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it
- * (docs/UGLYSTIK-STAGE1.md), a 62 in
- * balsa sport aerobat on a .61 two stroke glow engine, a shoulder wing on
- * a section near enough symmetric to fly on its back, on a tricycle gear,
- * and 21 OA Composites' NRJ (docs/DLG-STAGE1.md), a 1490 mm F3K discus
- * launch glider with no motor, thrown by its wingtip (sim_wing_discus) into
- * the thermals of sim_air_lift, and 23 Great Planes' Tiger Moth ARF
- * (docs/TIGERMOTH-STAGE1.md), a 71 in scale de Havilland DH.82A on a .61
- * two stroke glow engine, a biplane on the plant's second wing
- * (docs/PITTS-STAGE1.md) whose ailerons are on its bottom wing alone, on
- * a taildragger's gear, and 24 to 26 the combat quads
+ * 1 verification reference), 2 the retired 1000 mm flying wing, kept as the
+ * reference fixed wing its own gates fly, 8 the C-Astral Bramor C4EYE, a
+ * 2.3 m blended wing body flying wing that is catapult launched and
+ * recovered under a parachute, 24 to 26 the combat quads
  * (docs/COMBAT-DRONES.md), a 7 inch and a 10 inch long range X frame on
  * 6S Li-ion and a stretched X 7 inch interceptor on a 6S LiPo, flown by
  * Betaflight as the five inch is, built to carry a payload through
@@ -412,30 +378,22 @@ int sim_set_flight_style(int arcade);
  * fins, rail launched and landed on its belly skid, 27 on a 110 cc boxer
  * twin and a 30 in wooden prop, 28 on a 140 N class turbojet whose thrust
  * lags the stick, both carrying a warhead in the nose through
- * sim_set_addons, and 29 E-flite's Extra 300 3D 1.3m
- * (docs/EXTRA-STAGE1.md, docs/FLIGHTMODEL.md), a foam aerobatic taildragger
- * whose thrust is about two and a half times its weight, which hangs on its
- * prop with its surfaces in the slipstream: the aircraft removed as 14 on
- * 2026-09-29, back under a new id on 2026-10-08 so nothing recorded on 14
- * replays as it, and 30 E-flite's Night Timber X 1.2m
- * (docs/NIGHTTIMBER-STAGE1.md), the Timber X's STOL high wing with flaps
- * and oversized surfaces, flown on full span ailerons, which hangs on its
- * prop as the Extra does, and 31 AeroTetris's C-130 Hercules 3077
- * (docs/HERCULES-STAGE1.md), a 3 m balsa C-130H on four electric motors
- * whose props the plant takes as one thrust line, with a rear ramp and
- * cargo door that open in flight, 32 Extreme Flight's 67 in CAP 580
- * (docs/CAP580-STAGE1.md), a 3.6 kg balsa IMAC and 3D aerobat on a
- * T-Motor AM670 whose measured thrust is 2.6 times its weight, and 33
- * Extreme Flight's 105.5 in Slick 580 EXP (docs/SLICK-STAGE1.md), a
- * 12.5 kg IMAC and 3D aerobat on a DA-120 petrol twin. Returns
- * SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 23 and 27 to 33 are fixed wings: no Betaflight, the sticks go to the
+ * sim_set_addons. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 2, 8, 27 and 28 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
- * apply. 0, 1 and 24 to 26 are quads.
+ * apply. 0 and 24 to 26 are quads.
  *
  * RESERVED: 1 (the 65 mm whoop, removed 2026-10-03), 13 (the Edge 540T), 14 (the Extra 300 3D), 18 (the Pitts
  * S-1S), 20 (the Wot 4) and 22 (the Quickie 500) were removed on
- * 2026-09-29 at the owner's request. Their ids are never reused, so a
+ * 2026-09-29 at the owner's request. 3 (the Skyhunter 1800), 4 (the Piper
+ * Cub 1400), 5 (the Slow Stick), 6 (the Radian Pro), 7 (the Turbo Timber
+ * Evolution), 9 and 10 (the Timber and the Cub on floats), 11 (the Buzzard
+ * Bombshell), 12 (the Kadet Senior), 15 (the P-51D), 16 (the F-16), 17
+ * (the Zagi HP), 19 (the Ugly Stik), 21 (the NRJ DLG), 23 (the Tiger Moth),
+ * 29 (the Extra 300 3D 1.3m), 30 (the Night Timber X), 31 (the C-130
+ * Hercules), 32 (the CAP 580) and 33 (the Slick 580) were removed on
+ * 2026-10-20, when the owner made this a combat only game: the
+ * recreational aircraft fly on in Openflight. Their ids are never reused, so a
  * recording, a ghost, a clip or a room peer that names one still names
  * that aircraft and no other; sim_set_airframe refuses them with
  * SIM_ERR_BAD_ARG, as it refuses any id without an aircraft.
@@ -456,32 +414,12 @@ int sim_set_flight_style(int arcade);
  */
 #define SIM_AIRFRAME_5IN_ID 0
 #define SIM_AIRFRAME_WING1000_ID 2
-#define SIM_AIRFRAME_SKY1800_ID 3
-#define SIM_AIRFRAME_CUB1400_ID 4
-#define SIM_AIRFRAME_SLOWSTICK1180_ID 5
-#define SIM_AIRFRAME_RADIAN2000_ID 6
-#define SIM_AIRFRAME_TIMBER1500_ID 7
 #define SIM_AIRFRAME_BRAMOR2300_ID 8
-#define SIM_AIRFRAME_TIMBER1500F_ID 9
-#define SIM_AIRFRAME_CUB1400F_ID 10
-#define SIM_AIRFRAME_BOMBSHELL1118_ID 11
-#define SIM_AIRFRAME_KADET1981_ID 12
-#define SIM_AIRFRAME_P51D1450_ID 15
-#define SIM_AIRFRAME_F16878_ID 16
-#define SIM_AIRFRAME_ZAGI1219_ID 17
-#define SIM_AIRFRAME_UGLYSTIK1567_ID 19
-#define SIM_AIRFRAME_NRJ1490_ID 21
-#define SIM_AIRFRAME_TIGERMOTH1803_ID 23
 #define SIM_AIRFRAME_7IN_ID 24
 #define SIM_AIRFRAME_10IN_ID 25
 #define SIM_AIRFRAME_INTERCEPTOR_ID 26
 #define SIM_AIRFRAME_STRIKER_PROP_ID 27
 #define SIM_AIRFRAME_STRIKER_JET_ID 28
-#define SIM_AIRFRAME_EXTRA3D1308_ID 29
-#define SIM_AIRFRAME_NIGHTTIMBER1200_ID 30
-#define SIM_AIRFRAME_HERCULES3077_ID 31
-#define SIM_AIRFRAME_CAP1702_ID 32
-#define SIM_AIRFRAME_SLICK2680_ID 33
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */

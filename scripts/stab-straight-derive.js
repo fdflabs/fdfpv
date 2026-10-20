@@ -51,39 +51,14 @@ const AT = [0.5, 1, 2, 3, 5, 10, 12];
  * the figure it was held to before.
  */
 const THROWS = {
-  cub: { table: 'FW_CUB1400', file: 'tests/cub-thresholds.json', prelude: 'cubPrelude', z: 3, speed: 12, duty: 0.75, seconds: 10, note: 'ESTIMATED: the drift is the swirl\'s yaw with no right thrust against it. docs/CUB-STAGE1.md says the swirl "is what the kit\'s built in right thrust is for", but nothing gives its angle: FMS\'s manual for the 1400 mm J-3 V4 (Horizon Hobby, FMM106P Manual EN) names the 3536-850KV motor and no thrust offset, side or down, and the motor\'s mount is moulded into the foam. The table carries none (thrust_yaw 0), so this band holds the plant to its derivation, not to the real Cub, until the angle is measured off an airframe.', was: 'under 15 m off the line, a figure with no source, red at 15.7 m on the combined plant' },
-  'cub:acro': { table: 'FW_CUB1400', file: 'tests/cub-thresholds.json', prelude: 'cubPrelude', z: 3, speed: 12, duty: 0.75, seconds: 10, note: 'ESTIMATED: the drift is the swirl\'s yaw with no right thrust against it. docs/CUB-STAGE1.md says the swirl "is what the kit\'s built in right thrust is for", but nothing gives its angle: FMS\'s manual for the 1400 mm J-3 V4 (Horizon Hobby, FMM106P Manual EN) names the 3536-850KV motor and no thrust offset, side or down, and the motor\'s mount is moulded into the foam. The table carries none (thrust_yaw 0), so this band holds the plant to its derivation, not to the real Cub, until the angle is measured off an airframe.', was: 'under 15 m off the line, a figure with no source, red at 15.3 m on the combined plant' },
-  p51: { table: 'FW_P51D1450', file: 'tests/p51-thresholds.json', prelude: 'p51Prelude', z: 40, speed: 16, duty: 0.75, seconds: 10, was: 'under 15 m off the line, a figure with no source, red at 16.6 m on the combined plant' },
-  'p51:acro': { table: 'FW_P51D1450', file: 'tests/p51-thresholds.json', prelude: 'p51Prelude', z: 40, speed: 16, duty: 0.75, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  extra: { table: 'FW_EXTRA3D1308', file: 'tests/extra-thresholds.json', prelude: 'extraPrelude', z: 30, speed: 12, duty: 'trim', seconds: 10, note: 'E-flite gives no side or down thrust (docs/EXTRA-STAGE1.md).', was: 'under 15 m off the line, a figure with no source' },
-  slowstick: { table: 'FW_SLOWSTICK1180', file: 'tests/slowstick-thresholds.json', prelude: 'slowstickPrelude', z: 3, speed: 6, duty: 0.75, seconds: 10, was: 'under 10 m off the line, a figure with no source, red at 14.5 m since the swirl\'s force at speed (w36-wash-speed 24a09a0d1)' },
-  bombshell: { table: 'FW_BOMBSHELL1118', file: 'tests/bombshell-thresholds.json', prelude: 'bombshellPrelude', z: 30, speed: 8.5, duty: 'trim', seconds: 10, was: 'under 10 m off the line, a figure with no source, red at 15.8 m since the swirl\'s force at speed (w36-wash-speed 24a09a0d1)' },
-  skyhunter: { table: 'FW_SKY1800', file: 'tests/skyhunter-thresholds.json', prelude: 'skyPrelude', z: 3, speed: 12, duty: 0.65, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  'skyhunter:acro': { table: 'FW_SKY1800', file: 'tests/skyhunter-thresholds.json', prelude: 'skyPrelude', z: 3, speed: 12, duty: 0.65, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  zagi: { table: 'FW_ZAGI1219', file: 'tests/zagi-thresholds.json', prelude: 'zagiPrelude', z: null, duty: 0.6, seconds: 12, was: 'under 15 m off the line, a figure with no source' },
-  'zagi:acro': { table: 'FW_ZAGI1219', file: 'tests/zagi-thresholds.json', prelude: 'zagiPrelude', z: 150, speed: 15, duty: 0.6, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
   bramor: { table: 'FW_BRAMOR2300', file: 'tests/bramor-thresholds.json', prelude: 'bramorPrelude', z: null, duty: 0.7, seconds: 12, was: 'under 15 m off the line, a figure with no source' },
   'bramor:acro': { table: 'FW_BRAMOR2300', file: 'tests/bramor-thresholds.json', prelude: 'bramorPrelude', z: 150, speed: 17, duty: 0.7, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
   wing: { table: 'FW_WING1000', file: 'tests/wing-thresholds.json', prelude: 'wingPrelude', z: 3, speed: 10, duty: 0.65, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
   'wing:acro': { table: 'FW_WING1000', file: 'tests/wing-thresholds.json', prelude: 'wingPrelude', z: 3, speed: 10, duty: 0.65, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  glider: { table: 'FW_RADIAN2000', file: 'tests/glider-thresholds.json', prelude: 'airframe:GLIDER_AIRFRAME', z: 100, speed: 10, duty: 0.5, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  'glider:acro': { table: 'FW_RADIAN2000', file: 'tests/glider-thresholds.json', prelude: 'airframe:GLIDER_AIRFRAME', z: 100, speed: 12, duty: 0.5, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  timber: { table: 'FW_TIMBER1500', file: 'tests/timber-thresholds.json', prelude: 'timberPrelude', z: 3, speed: 12, duty: 'trim', seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  'timber:acro': { table: 'FW_TIMBER1500', file: 'tests/timber-thresholds.json', prelude: 'timberPrelude', z: 3, speed: 12, duty: 0.75, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  tigermoth: { table: 'FW_TIGERMOTH1803', file: 'tests/tigermoth-thresholds.json', prelude: 'airframe:TIGERMOTH_AIRFRAME', z: 30, speed: 14.4, duty: 0.75, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  'tigermoth:acro': { table: 'FW_TIGERMOTH1803', file: 'tests/tigermoth-thresholds.json', prelude: 'airframe:TIGERMOTH_AIRFRAME', z: 30, speed: 14.4, duty: 0.75, seconds: 10, was: 'under 15 m off the line, a figure with no source' },
-  uglystik: { table: 'FW_UGLYSTIK1567', file: 'tests/uglystik-thresholds.json', prelude: 'uglystikPrelude', z: 30, speed: 17.3, duty: 'trim', seconds: 10, note: 'Kraft: no thrust offsets (docs/UGLYSTIK-STAGE1.md).', was: 'under 15 m off the line, a figure with no source' },
-  'uglystik:acro': { table: 'FW_UGLYSTIK1567', file: 'tests/uglystik-thresholds.json', prelude: 'uglystikPrelude', z: 30, speed: 17.3, duty: 0.75, seconds: 10, note: 'Kraft: no thrust offsets (docs/UGLYSTIK-STAGE1.md).', was: 'under 15 m off the line, a figure with no source' },
-  f16: { table: 'FW_F16878', file: 'tests/f16-thresholds.json', prelude: 'f16Prelude', z: 30, speed: 20, duty: 0.5, seconds: 10, was: 'under 25 m off the line, a figure with no source' },
-  'f16:acro': { table: 'FW_F16878', file: 'tests/f16-thresholds.json', prelude: 'f16Prelude', z: 30, speed: 20, duty: 0.5, seconds: 10, was: 'under 25 m off the line, a figure with no source' },
-  kadet: { table: 'FW_KADET1981', file: 'tests/kadet-thresholds.json', prelude: 'kadetPrelude', z: 30, speed: 14.5, duty: 'trim', seconds: 10, note: 'SIG: 0 right thrust (docs/KADET-STAGE1.md).', was: 'under 18 m off the line, a figure with no source' },
-  dlg: { table: 'FW_NRJ1490', file: 'tests/dlg-thresholds.json', prelude: 'airframe:DLG_AIRFRAME', z: 100, speed: 6, duty: 0, seconds: 12, was: 'under 15 m off the line, a figure with no source' },
 };
 
 /* The prelude's own launch, as the plant's state has it after it. */
 const LAUNCH = {
-  'zagi:acro': () => ({ z: 150, speed: 15, pitchDeg: 0, how: 'thrown level at 15 m/s, 150 m up' }),
-  zagi: () => ({ z: 0.012 + 1.2, speed: 10, pitchDeg: 0, how: 'off the hand at 10 m/s, 1.21 m up (ZAGI_THROW)' }),
   bramor: () => ({ z: BRAMOR_CATAPULT.height, speed: BRAMOR_CATAPULT.speed, pitchDeg: BRAMOR_CATAPULT.pitchDeg, how: `off its catapult at ${BRAMOR_CATAPULT.speed} m/s, ${BRAMOR_CATAPULT.pitchDeg} deg up, ${BRAMOR_CATAPULT.height} m up (BRAMOR_CATAPULT)` }),
 };
 

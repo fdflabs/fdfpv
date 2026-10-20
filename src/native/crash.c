@@ -366,59 +366,6 @@ static void table_finish(Table *t, int airframe) {
   }
 }
 
-/* A float variant: the wheeled table without its gear, raised by dz, and
- * two floats on struts from the plant's float geometry. */
-static void table_floats(Table *t, const PartDef *base, int nbase, int airframe, double dz,
-                         double strut_x0, double strut_x1, double body_bottom, double float_mass) {
-  const PlantParams *P = &PLANT_TABLE[airframe];
-  const FloatParams *fp = &P->floats;
-  int remap[SIM_PARTS_MAX];
-  t->n = 0;
-  for (int i = 0; i < nbase; i += 1) {
-    remap[i] = -1;
-    if (base[i].kind == SIM_PART_GEAR) {
-      continue;
-    }
-    PartDef d = base[i];
-    d.parent = d.parent >= 0 ? remap[d.parent] : -1;
-    if (d.wheel >= P->wheel_count) {
-      d.wheel = -1;
-    }
-    part_expand(&d, airframe);
-    d.joint[2] += dz;
-    for (int k = 0; k < d.npts; k += 1) {
-      d.pts[k][2] += dz;
-    }
-    remap[i] = t->n;
-    table_add(t, &d, airframe);
-  }
-  for (int f = 0; f < 2; f += 1) {
-    const double yf = f == 0 ? fp->y : -fp->y;
-    PartDef d = {
-      .kind = SIM_PART_FLOAT, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-      .mass = float_mass, .m_max = FLOAT_STRUT_M, .f_max = FLOAT_STRUT_F, .k = 1.0e4,
-      .crush_s = EPO_CRUSH, .crush_a = 0.5 * fp->beam * fp->depth, .crush_d = 0.05,
-    };
-    d.joint[0] = 0.5 * (strut_x0 + strut_x1);
-    d.joint[1] = 0.5 * yf;
-    d.joint[2] = body_bottom + dz;
-    const double x0 = fp->x_stern, x1 = fp->x_bow;
-    const double y0 = yf - 0.5 * fp->beam, y1 = yf + 0.5 * fp->beam;
-    const double z0 = fp->z_keel, z1 = fp->z_keel + fp->depth;
-    const double pts[8][3] = {
-      { x0, y0, z0 }, { x1, y0, z0 }, { x0, y1, z0 }, { x1, y1, z0 },
-      { x0, y0, z1 }, { x1, y0, z1 }, { x0, y1, z1 }, { x1, y1, z1 },
-    };
-    d.npts = 8;
-    for (int k = 0; k < 8; k += 1) {
-      for (int a = 0; a < 3; a += 1) {
-        d.pts[k][a] = pts[k][a];
-      }
-    }
-    table_add(t, &d, airframe);
-  }
-}
-
 #define COUNT(a) ((int)(sizeof(a) / sizeof((a)[0])))
 
 /*
@@ -526,27 +473,9 @@ static void tables_build(void) {
   struct { int id; const PartDef *p; int n; } src[] = {
     { SIM_AIRFRAME_5IN, PARTS_5IN, COUNT(PARTS_5IN) },
     { SIM_AIRFRAME_WING1000, PARTS_WING1000, COUNT(PARTS_WING1000) },
-    { SIM_AIRFRAME_SKY1800, PARTS_SKY1800, COUNT(PARTS_SKY1800) },
-    { SIM_AIRFRAME_CUB1400, PARTS_CUB1400, COUNT(PARTS_CUB1400) },
-    { SIM_AIRFRAME_SLOWSTICK1180, PARTS_SLOWSTICK1180, COUNT(PARTS_SLOWSTICK1180) },
-    { SIM_AIRFRAME_RADIAN2000, PARTS_RADIAN2000, COUNT(PARTS_RADIAN2000) },
-    { SIM_AIRFRAME_TIMBER1500, PARTS_TIMBER1500, COUNT(PARTS_TIMBER1500) },
     { SIM_AIRFRAME_BRAMOR2300, PARTS_BRAMOR2300, COUNT(PARTS_BRAMOR2300) },
-    { SIM_AIRFRAME_BOMBSHELL1118, PARTS_BOMBSHELL1118, COUNT(PARTS_BOMBSHELL1118) },
-    { SIM_AIRFRAME_KADET1981, PARTS_KADET1981, COUNT(PARTS_KADET1981) },
-    { SIM_AIRFRAME_F16878, PARTS_F16878, COUNT(PARTS_F16878) },
-    { SIM_AIRFRAME_NRJ1490, PARTS_NRJ1490, COUNT(PARTS_NRJ1490) },
-    { SIM_AIRFRAME_P51D1450, PARTS_P51D1450, COUNT(PARTS_P51D1450) },
-    { SIM_AIRFRAME_ZAGI1219, PARTS_ZAGI1219, COUNT(PARTS_ZAGI1219) },
-    { SIM_AIRFRAME_UGLYSTIK1567, PARTS_UGLYSTIK1567, COUNT(PARTS_UGLYSTIK1567) },
-    { SIM_AIRFRAME_TIGERMOTH1803, PARTS_TIGERMOTH1803, COUNT(PARTS_TIGERMOTH1803) },
     { SIM_AIRFRAME_STRIKER_PROP, PARTS_STRIKER_PROP, COUNT(PARTS_STRIKER_PROP) },
     { SIM_AIRFRAME_STRIKER_JET, PARTS_STRIKER_JET, COUNT(PARTS_STRIKER_JET) },
-    { SIM_AIRFRAME_EXTRA3D1308, PARTS_EXTRA3D1308, COUNT(PARTS_EXTRA3D1308) },
-    { SIM_AIRFRAME_NIGHTTIMBER1200, PARTS_NIGHTTIMBER1200, COUNT(PARTS_NIGHTTIMBER1200) },
-    { SIM_AIRFRAME_HERCULES3077, PARTS_HERCULES3077, COUNT(PARTS_HERCULES3077) },
-    { SIM_AIRFRAME_CAP1702, PARTS_CAP1702, COUNT(PARTS_CAP1702) },
-    { SIM_AIRFRAME_SLICK2680, PARTS_SLICK2680, COUNT(PARTS_SLICK2680) },
   };
   for (int s = 0; s < COUNT(src); s += 1) {
     Table *t = &T[src[s].id];
@@ -556,16 +485,6 @@ static void tables_build(void) {
     }
     table_finish(t, src[s].id);
   }
-  /* The CG drops 26.6 and 26.4 mm on floats (plant.c), which raises every
-   * part of the airframe by as much over the new origin. The struts meet
-   * the fuselage's belly, 0.070 and 0.056 under the old CG. Each float with
-   * its struts is half the set's mass, FLOATS-STAGE1's 0.234 and 0.212 kg. */
-  table_floats(&T[SIM_AIRFRAME_TIMBER1500F], PARTS_TIMBER1500, COUNT(PARTS_TIMBER1500),
-               SIM_AIRFRAME_TIMBER1500F, 0.0266, 0.12, -0.02, -0.070, 0.117);
-  table_finish(&T[SIM_AIRFRAME_TIMBER1500F], SIM_AIRFRAME_TIMBER1500F);
-  table_floats(&T[SIM_AIRFRAME_CUB1400F], PARTS_CUB1400, COUNT(PARTS_CUB1400),
-               SIM_AIRFRAME_CUB1400F, 0.0264, 0.07, -0.02, -0.056, 0.106);
-  table_finish(&T[SIM_AIRFRAME_CUB1400F], SIM_AIRFRAME_CUB1400F);
   /* The packs' boxes are scripts/combat-derive.js's about the CG: the 7
    * inch's one 6S1P brick, the 10 inch's two side by side, the
    * interceptor's one 6S LiPo. The five inch's motors are 0.0778 out on

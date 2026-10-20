@@ -60,12 +60,12 @@ export const FILES = [
   'src/native/crash.c',
   'src/native/crash_parts.h',
 ];
-export const PINNED_COUNT = 2729;
+export const PINNED_COUNT = 742;
 /* The array and table elements (scanElements) are pinned on their own, so
  * neither count can grow by the other shrinking. water.c holds the sea's
  * spectrum tables; its #defines are not scanned. */
 export const ELEMENT_FILES = [...FILES, 'src/native/water.c'];
-export const PINNED_ELEMENT_COUNT = 2654;
+export const PINNED_ELEMENT_COUNT = 542;
 /* The JavaScript the plant's numbers come from: the hand written configs
  * that hand the plant physics (each derive script's inputs, every
  * scripts/*-derive.js, read at run time so a new one is covered). Not the
@@ -81,7 +81,7 @@ export const JS_FILES = [
   'configs/combat.js',
   'configs/hangar-parts.js',
 ];
-export const PINNED_JS_COUNT = 4501;
+export const PINNED_JS_COUNT = 1041;
 /* Every aircraft/<id>/aircraft.js, read at run time: the sections that
  * state the aircraft's physics, its airframe row (mass, size, stall, the
  * camera), its tuning (CG, throws) and its power and props. Not the kit,

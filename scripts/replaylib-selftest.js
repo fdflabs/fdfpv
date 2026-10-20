@@ -48,7 +48,7 @@ import { fileURLToPath } from 'node:url';
 import { decodeRec } from '../tests/lib/recfile.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { SimError, must, sha256Hex, replayTrace, runScript, ST } from '../tests/lib/replay.js';
-import { wingPrelude, skyPrelude } from '../tests/lib/wingpilot.js';
+import { wingPrelude } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const printAll = process.argv.includes('--print');
@@ -69,22 +69,9 @@ const PINNED = {
   /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
   'trace.wing.60.10': '7549544742a45d36c2f9fc23a72586d5e03304f21979024546d77661499c702d',
   'trace.wing.50.10.v3.9': '7549544742a45d36c2f9fc23a72586d5e03304f21979024546d77661499c702d',
-  /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
-  /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
-  /* Re-pinned: the Skyhunter's wash (docs/FLIGHTMODEL.md). */
-  /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
-  /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
-  /* Re-pinned: no built in stall side on any aircraft (docs/FLIGHTMODEL.md). */
-  /* Re-pinned: the seated pack and the tail wash on one plant, w36-physics (docs/FLIGHTMODEL.md). */
-  /* Re-pinned: the Skyhunter's pod crossflow on its drawn sections and its
-   * fuselage weathercock on Munk's sin 2 beta, w38-fuselage-side; the
-   * old hash returns with those two values alone put back. */
-  /* Re-pinned: the pod's crossflow at its own centre of pressure,
-   * w38-crossflow-moment; with side_x out it is f5159db55bb62b9d again. */
-  /* Re-pinned: the stalled wing's plate force in the plane of symmetry,
-   * w38-physics-2 (was f838061b1b131c26). */
-  'trace.sky.60.10': 'd68adda079f0230215646ac4aebdd53ca39dc00cb1ed85ae8693df226cb970d6',
-  /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
+  /* p51-air.rec's sticks flown on the default plant, the five inch (no
+   * prelude): the P-51 left the module on 2026-10-20, its recording stays
+   * as this case's input. Re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */
   /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
@@ -201,7 +188,6 @@ async function traceCases(wasm, configText, recs) {
     ['baseline', 30, 7, { cellVoltage: null }],
     ['wing', 60, 10, { prelude: wingPrelude }],
     ['wing', 50, 10, { prelude: wingPrelude, cellVoltage: 3.9 }],
-    ['sky', 60, 10, { prelude: skyPrelude }],
     ['p51', 72, 25, {}],
   ];
   for (const [recName, renderHz, traceStrideMs, extra] of mixes) {
@@ -377,7 +363,6 @@ async function main() {
   const recs = {
     baseline: await loadRec('baseline.rec'),
     wing: await loadRec('wing-baseline.rec'),
-    sky: await loadRec('sky-baseline.rec'),
     p51: await loadRec('p51-air.rec'),
   };
 

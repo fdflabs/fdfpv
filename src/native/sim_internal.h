@@ -269,32 +269,12 @@ typedef struct {
  */
 #define SIM_AIRFRAME_5IN 0
 #define SIM_AIRFRAME_WING1000 2
-#define SIM_AIRFRAME_SKY1800 3
-#define SIM_AIRFRAME_CUB1400 4
-#define SIM_AIRFRAME_SLOWSTICK1180 5
-#define SIM_AIRFRAME_RADIAN2000 6
-#define SIM_AIRFRAME_TIMBER1500 7
 #define SIM_AIRFRAME_BRAMOR2300 8
-#define SIM_AIRFRAME_TIMBER1500F 9
-#define SIM_AIRFRAME_CUB1400F 10
-#define SIM_AIRFRAME_BOMBSHELL1118 11
-#define SIM_AIRFRAME_KADET1981 12
-#define SIM_AIRFRAME_P51D1450 15
-#define SIM_AIRFRAME_F16878 16
-#define SIM_AIRFRAME_ZAGI1219 17
-#define SIM_AIRFRAME_UGLYSTIK1567 19
-#define SIM_AIRFRAME_NRJ1490 21
-#define SIM_AIRFRAME_TIGERMOTH1803 23
 #define SIM_AIRFRAME_7IN 24
 #define SIM_AIRFRAME_10IN 25
 #define SIM_AIRFRAME_INTERCEPTOR 26
 #define SIM_AIRFRAME_STRIKER_PROP 27
 #define SIM_AIRFRAME_STRIKER_JET 28
-#define SIM_AIRFRAME_EXTRA3D1308 29
-#define SIM_AIRFRAME_NIGHTTIMBER1200 30
-#define SIM_AIRFRAME_HERCULES3077 31
-#define SIM_AIRFRAME_CAP1702 32
-#define SIM_AIRFRAME_SLICK2680 33
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -1188,29 +1168,9 @@ typedef struct FixedWingParams {
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
-extern const FixedWingParams FW_SKY1800;
-extern const FixedWingParams FW_CUB1400;
-extern const FixedWingParams FW_RADIAN2000;
 extern const FixedWingParams FW_BRAMOR2300;
-extern const FixedWingParams FW_SLOWSTICK1180;
-extern const FixedWingParams FW_TIMBER1500;
-extern const FixedWingParams FW_TIMBER1500F;
-extern const FixedWingParams FW_CUB1400F;
-extern const FixedWingParams FW_BOMBSHELL1118;
-extern const FixedWingParams FW_KADET1981;
-extern const FixedWingParams FW_P51D1450;
-extern const FixedWingParams FW_F16878;
-extern const FixedWingParams FW_ZAGI1219;
 extern const FixedWingParams FW_STRIKER_PROP;
 extern const FixedWingParams FW_STRIKER_JET;
-extern const FixedWingParams FW_EXTRA3D1308;
-extern const FixedWingParams FW_NIGHTTIMBER1200;
-extern const FixedWingParams FW_HERCULES3077;
-extern const FixedWingParams FW_CAP1702;
-extern const FixedWingParams FW_SLICK2680;
-extern const FixedWingParams FW_UGLYSTIK1567;
-extern const FixedWingParams FW_NRJ1490;
-extern const FixedWingParams FW_TIGERMOTH1803;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);

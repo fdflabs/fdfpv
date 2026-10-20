@@ -1,14 +1,14 @@
 /*
  * precut.js: the 20 recreational aircraft's airframe rows and tuning as
- * they stood before they left the shell (2026-10-21), for the checks that
- * still need them, with their power rows.
+ * they stood before they left the shell (2026-10-21), with their power
+ * rows, for the checks that still use them as inputs to shared code.
  *
- * Their plants are still in the module until the plant cut deletes them,
- * and the checks that fly those plants, or that use their sizes as inputs
- * to shared code (the contact pass, the collide state), keep their cases
- * byte identical by reading the rows from here instead of configs/. The
- * rows are tests/fixtures/precut-aircraft.json, copied from 988b8dfc6 and
- * never edited.
+ * Their plants left the module too, so nothing flies them. What is left
+ * reads their numbers only: their sizes put collide.js through twenty
+ * real shapes (collide:golden, collide-state:selftest), and the Kadet's
+ * glow engine row walks configs/wear.js's fuel branch (wear:selftest).
+ * The rows are tests/fixtures/precut-aircraft.json, copied from 988b8dfc6
+ * and never edited.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -34,9 +34,6 @@ import { TUNING } from '../../configs/tuning.js';
 
 const FIXTURE = JSON.parse(readFileSync(new URL('../../tests/fixtures/precut-aircraft.json', import.meta.url), 'utf8'));
 
-/* The ids that left, in the pre-cut AIRFRAMES order. */
-export const CUT_IDS = FIXTURE.order.filter((id) => Object.hasOwn(FIXTURE.airframes, id));
-
 /* An airframe row by id: a kept one from configs/airframes.js, a cut one
  * from the fixture. An id that is neither throws, where airframeById
  * would hand back the interceptor. */
@@ -58,7 +55,7 @@ export const PRECUT_AIRFRAMES = FIXTURE.order.map(precutRow);
  * and tuning (configs/tuning.js TUNING) back, so the helpers over them
  * (powerBlock, setupFor, stockEntry, tuneBlock) answer for those aircraft
  * as they did. These are the modules' own objects: call this only from a
- * check that flies the cut plants, never from anything the shell loads. */
+ * check, never from anything the shell loads. */
 export function seatPrecutAircraft() {
   Object.assign(TABLE, FIXTURE.table);
   Object.assign(POWER, FIXTURE.power);

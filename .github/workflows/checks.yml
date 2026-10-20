@@ -58,22 +58,11 @@ jobs:
       - run: npm run paint:workshop:paint
       # The admin page's livery gallery moderation (docs/LIVERY-GALLERY.md).
       - run: npm run gallery:admin
-      # Every tractor's slipstream terms against their geometry
-      # (scripts/wash-derive.js, docs/FLIGHTMODEL.md).
-      - run: npm run wash:derive -- --check
-      - run: npm run stab:hold
       # Each stab selftest's straight throw, derived (scripts/lib/throwflight.js).
       - run: npm run stab:straight
-      - run: npm run knife:throttle
-      - run: npm run knife:budget
-      - run: npm run as3x:derive
       # Each table's servo hold against its surfaces' hinge moment and its
       # servos' published torque (scripts/servo-derive.js, servo blow back).
       - run: npm run servo:derive
-      - run: npm run as3x:margins
-      - run: npm run acro:derive
-      - run: npm run as3x:feel
-      - run: npm run as3x:tenths
       # The wings' ground effect against its sources and its surfaces
       # against the drawn model (scripts/ge-derive.js).
       - run: npm run ge:derive
@@ -173,17 +162,8 @@ jobs:
       # was missing once and would have crashed the rooms server on the VM
       # (scripts/deploy-files-check.js). Pure Node, under a second.
       - run: npm run deploy:files
-      - run: npm run bombshell:gates
-      - run: npm run bombshell:stab
       - run: npm run bramor:gates
       - run: npm run bramor:stab
-      - run: npm run floats:gates
-      - run: npm run kadet:gates
-      - run: npm run kadet:stab
-      - run: npm run slowstick:gates
-      - run: npm run slowstick:stab
-      - run: npm run timber:gates
-      - run: npm run timber:stab
       # Phase 29's pure Node halves, under a second each: the one world
       # edge rule on every world's square (src/game/edges.js) and the
       # chase camera's arm against real colliders (src/render/chasearm.js).
@@ -212,17 +192,6 @@ jobs:
       # minute: the plan's rooms:load at 32 a room. Its checks are about function; the speed numbers it prints
       # are for a person (docs/MULTIPLAYER-PLAN.md section 12, Phase 6).
       - run: npm run rooms:load -- --quick
-      - run: npm run tigermoth:gates
-      - run: npm run tigermoth:stab
-      - run: npm run extra:gates
-      - run: npm run extra:stab
-      - run: npm run nighttimber:gates
-      - run: npm run figures:plant
-      - run: npm run figures:sweep
-      # The manoeuvre table flies every figure program: a physics change that
-      # moves a grade regenerates it (npm run figures:table) in the same PR.
-      - run: npm run figures:table:check
-      - run: npm run figures:knife
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run padprofiles:selftest
@@ -333,22 +302,9 @@ jobs:
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
-      - run: npm run hercules:gates
-      - run: npm run cap580:derive
-      - run: npm run cap580:gates
-      - run: npm run cap580:figures
-      - run: npm run cap580:stab
-      # The control surface tiers: derived numbers, then the plant flies each tier (docs/SURFACES-STAGE1.md).
+      # The control surface tiers: derived numbers (docs/SURFACES-STAGE1.md).
       - run: npm run surfaces:derive
-      - run: npm run surfaces:gates
       - run: npm run paradrop:selftest
-      # Extreme Flight's 105.5 in Slick 580 (docs/SLICK-STAGE1.md): its
-      # table, plant row and bands against the derivation, its gates and
-      # its stabiliser.
-      - run: npm run slick:derive -- --check
-      - run: npm run slick:gates
-      - run: npm run slick:stab
-      - run: npm run slick:figures
 
   shard-3:
     runs-on: ubuntu-latest
@@ -412,23 +368,6 @@ jobs:
       - run: npm run wing:contact
       - run: npm run wing:ge
       - run: npm run wing:stab
-      - run: npm run skyhunter:gates
-      - run: npm run skyhunter:stab
-      - run: npm run cub:gates
-      - run: npm run cub:stab
-      - run: npm run glider:gates
-      - run: npm run glider:stab
-      - run: npm run f16:gates
-      - run: npm run f16:stab
-      - run: npm run p51:gates
-      - run: npm run flapstrip:check
-      - run: npm run p51:stab
-      - run: npm run zagi:gates
-      - run: npm run zagi:stab
-      - run: npm run uglystik:gates
-      - run: npm run uglystik:stab
-      - run: npm run dlg:gates
-      - run: npm run dlg:stab
       # The turtle in the real page: the wait, the poke, the flip and the
       # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
       - run: npm run turtle:check

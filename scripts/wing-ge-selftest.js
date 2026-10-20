@@ -56,15 +56,10 @@ const wingC = readFileSync(join(root, 'src/native/plant_wing.c'), 'utf8');
 const plantC = readFileSync(join(root, 'src/native/plant.c'), 'utf8');
 
 /* Every fixed wing: [name, airframe id, the suffix of its FW_ table and
- * its SIM_AIRFRAME_ entry]. */
+ * its SIM_AIRFRAME_ entry]. The twenty that left the module on 2026-10-20
+ * took their rows and pins with them. */
 const PLANES = [
-  ['wing', 2, 'WING1000'], ['sky', 3, 'SKY1800'], ['cub', 4, 'CUB1400'], ['slowstick', 5, 'SLOWSTICK1180'],
-  ['radian', 6, 'RADIAN2000'], ['timber', 7, 'TIMBER1500'], ['bramor', 8, 'BRAMOR2300'], ['timberf', 9, 'TIMBER1500F'],
-  ['cubf', 10, 'CUB1400F'], ['bombshell', 11, 'BOMBSHELL1118'], ['kadet', 12, 'KADET1981'], ['p51', 15, 'P51D1450'],
-  ['f16', 16, 'F16878'], ['zagi', 17, 'ZAGI1219'], ['uglystik', 19, 'UGLYSTIK1567'], ['nrj', 21, 'NRJ1490'],
-  ['tigermoth', 23, 'TIGERMOTH1803'], ['strikerprop', 27, 'STRIKER_PROP'], ['strikerjet', 28, 'STRIKER_JET'],
-  ['extra', 29, 'EXTRA3D1308'], ['nighttimber', 30, 'NIGHTTIMBER1200'], ['hercules', 31, 'HERCULES3077'],
-  ['cap580', 32, 'CAP1702'], ['slick', 33, 'SLICK2680'],
+  ['wing', 2, 'WING1000'], ['bramor', 8, 'BRAMOR2300'], ['strikerprop', 27, 'STRIKER_PROP'], ['strikerjet', 28, 'STRIKER_JET'],
 ].map(([name, id, suffix]) => ({ name, id, table: `FW_${suffix}`, frame: `SIM_AIRFRAME_${suffix}` }));
 /* The traces of part 1 on the build before the term. A table's start
  * height is its wing's (ge_wing), so a table that takes the term later is
@@ -123,29 +118,9 @@ const PLANES = [
  * f77ccae2a596aa22). */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
-  sky: '6ec975f7afcb036b',
-  cub: '7f26c298362cc8e0',
-  slowstick: '731483e6eb017e98',
-  radian: '80300ab2345b8d8f',
-  timber: '4b2f4b3fb5f79720',
   bramor: '997e5371cc805783',
-  timberf: '8d8de74bcbab6724',
-  cubf: '7d63c9e2c78386ee',
-  bombshell: '65e981219dac8893',
-  kadet: '0a09240a3d188fec',
-  p51: '960d687d68dd1fc2',
-  f16: 'd5f224c3b1ec6518',
-  zagi: 'abccd77d1b7b9034',
-  uglystik: '0e6442ae5529b6b8',
-  nrj: '31151485dea980a5',
-  tigermoth: 'ab1925996216026f',
   strikerprop: 'cc5c73165bbbee13',
   strikerjet: '3a313d5090f2f3fb',
-  extra: 'e2126e2b566fa933',
-  nighttimber: 'c6d1310b299055bc',
-  hercules: 'eb28e3fc65379972',
-  cap580: '344350ea67641586',
-  slick: '1172512292cfbb69',
 };
 
 /* A table's field: a number or a sum of products of numbers and WING_PI. */
