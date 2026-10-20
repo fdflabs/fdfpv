@@ -870,1222 +870,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-hangar": {
-    "calls": [
-     [
-      "onAction",
-      "hub-hangar",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "nosuchaction": {
-    "calls": [
-     [
-      "onAction",
-      "nosuchaction",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "controller": {
-    "calls": [
-     [
-      "show",
-      "controller"
-     ]
-    ],
-    "changed": {
-     "screen": "controller"
-    }
-   },
-   "controller-builtin": {
-    "calls": [],
-    "changed": {}
-   },
-   "controls": {
-    "calls": [
-     [
-      "show",
-      "controls"
-     ]
-    ],
-    "changed": {
-     "screen": "controls"
-    }
-   },
-   "flywith:radio": {
-    "calls": [
-     [
-      "show",
-      "title"
-     ],
-     [
-      "show",
-      "howto"
-     ]
-    ],
-    "changed": {
-     "screen": "howto",
-     "store.fdfpv.flywith.v1": "radio"
-    }
-   },
-   "flywith:skip": {
-    "calls": [
-     [
-      "show",
-      "title"
-     ]
-    ],
-    "changed": {
-     "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-war picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "show",
-      "friends"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ],
-    "changed": {
-     "screen": "friends",
-     "mode": "freestyle",
-     "craftGate": false,
-     "roomGame": "war",
-     "settings.airframeAsked": true,
-     "settings.map": "itaipu",
-     "settings.freestyleMap": "itaipu",
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.map": "\"itaipu\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-war keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ],
-     [
-      "show",
-      "friends"
-     ]
-    ],
-    "changed": {
-     "screen": "friends",
-     "mode": "freestyle",
-     "craftGate": false,
-     "roomGame": "war",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true"
-    }
-   },
-   "way-campaign picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "show",
-      "friends"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ],
-    "changed": {
-     "screen": "friends",
-     "mode": "freestyle",
-     "craftGate": false,
-     "roomGame": "war",
-     "settings.airframeAsked": true,
-     "settings.map": "itaipu",
-     "settings.freestyleMap": "itaipu",
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.map": "\"itaipu\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"war\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-campaign keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ],
-     [
-      "show",
-      "friends"
-     ]
-    ],
-    "changed": {
-     "screen": "friends",
-     "mode": "freestyle",
-     "craftGate": false,
-     "roomGame": "war",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"war\""
-    }
-   },
-   "way-interior picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {
-     "mode": "freestyle",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-interior keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {
-     "mode": "freestyle",
-     "craftGate": false,
-     "settings.airframe": "bramor2300",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "wing-stab",
-     "store.webfpv.settings.v3.tune": "\"wing-stab\"",
-     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100"
-    }
-   },
-   "way-training picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {
-     "mode": "freestyle",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-training keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {
-     "mode": "freestyle",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true"
-    }
-   }
-  },
-  "gate-hub-club": {
-   "update-reload": {
-    "calls": [],
-    "changed": {},
-    "page": [
-     [
-      "reload"
-     ]
-    ]
-   },
-   "room-bar": {
-    "calls": [
-     [
-      "roomBarView.act"
-     ]
-    ],
-    "changed": {}
-   },
-   "hotswap": {
-    "calls": [
-     [
-      "openSwap",
-      "paused"
-     ]
-    ],
-    "changed": {}
-   },
-   "hangar-aircraft": {
-    "calls": [
-     [
-      "openCraftRow",
-      false
-     ]
-    ],
-    "changed": {}
-   },
-   "customise": {
-    "calls": [
-     [
-      "wornBuild",
-      "interceptor"
-     ],
-     [
-      "openHangar",
-      "interceptor",
-      "fn",
-      null
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {}
-   },
-   "leaderboard": {
-    "calls": [
-     [
-      "onAction",
-      "leaderboard",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "reportbug": {
-    "calls": [
-     [
-      "onAction",
-      "reportbug",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "feel": {
-    "calls": [
-     [
-      "openFeelReport"
-     ]
-    ],
-    "changed": {}
-   },
-   "way-war": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "show",
-      "friends"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ],
-    "changed": {
-     "screen": "friends",
-     "mode": "freestyle",
-     "craftGate": false,
-     "roomGame": "war",
-     "settings.airframeAsked": true,
-     "settings.map": "itaipu",
-     "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3.map": "\"itaipu\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
-     "store.webfpv.settings.v3.airframeAsked": "true"
-    }
-   },
-   "way-campaign": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "show",
-      "friends"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ],
-    "changed": {
-     "screen": "friends",
-     "mode": "freestyle",
-     "craftGate": false,
-     "roomGame": "war",
-     "settings.airframeAsked": true,
-     "settings.map": "itaipu",
-     "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3.map": "\"itaipu\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"war\""
-    }
-   },
-   "way-interior": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {
-     "mode": "freestyle",
-     "craftGate": false,
-     "settings.airframe": "bramor2300",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "wing-stab",
-     "store.webfpv.settings.v3.tune": "\"wing-stab\"",
-     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100"
-    }
-   },
-   "way-training": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {
-     "mode": "freestyle",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true"
-    }
-   },
-   "friends-leave": {
-    "calls": [
-     [
-      "onFriends",
-      "friends-leave"
-     ]
-    ],
-    "changed": {}
-   },
-   "friends-join": {
-    "calls": [
-     [
-      "onFriends",
-      "friends-join"
-     ]
-    ],
-    "changed": {}
-   },
-   "lobby:rooms": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ],
-     [
-      "show",
-      "friends"
-     ],
-     [
-      "show",
-      "rooms"
-     ]
-    ],
-    "changed": {
-     "screen": "rooms",
-     "mode": "freestyle",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true"
-    }
-   },
-   "lobby:roomnew": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ],
-     [
-      "show",
-      "friends"
-     ],
-     [
-      "show",
-      "roomnew"
-     ]
-    ],
-    "changed": {
-     "screen": "roomnew",
-     "mode": "freestyle",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true"
-    }
-   },
-   "rooms": {
-    "calls": [
-     [
-      "show",
-      "rooms"
-     ]
-    ],
-    "changed": {
-     "screen": "rooms"
-    }
-   },
-   "roomnew": {
-    "calls": [
-     [
-      "show",
-      "roomnew"
-     ]
-    ],
-    "changed": {
-     "screen": "roomnew"
-    }
-   },
-   "howto": {
-    "calls": [
-     [
-      "show",
-      "howto"
-     ]
-    ],
-    "changed": {
-     "screen": "howto"
-    }
-   },
-   "pilot": {
-    "calls": [
-     [
-      "show",
-      "pilot"
-     ]
-    ],
-    "changed": {
-     "screen": "pilot"
-    }
-   },
-   "quad": {
-    "calls": [
-     [
-      "show",
-      "quad"
-     ]
-    ],
-    "changed": {
-     "screen": "quad"
-    }
-   },
-   "freestyle": {
-    "calls": [
-     [
-      "show",
-      "freestyle"
-     ]
-    ],
-    "changed": {
-     "screen": "freestyle"
-    }
-   },
-   "credits": {
-    "calls": [
-     [
-      "show",
-      "credits"
-     ]
-    ],
-    "changed": {
-     "screen": "credits"
-    }
-   },
-   "tricks": {
-    "calls": [
-     [
-      "onAction",
-      "tricks",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "friends": {
-    "calls": [
-     [
-      "show",
-      "friends"
-     ]
-    ],
-    "changed": {
-     "screen": "friends"
-    }
-   },
-   "fly": {
-    "calls": [
-     [
-      "onAction",
-      "fly",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "rates": {
-    "calls": [
-     [
-      "show",
-      "rates"
-     ]
-    ],
-    "changed": {
-     "screen": "rates"
-    }
-   },
-   "pids": {
-    "calls": [
-     [
-      "show",
-      "pids"
-     ]
-    ],
-    "changed": {
-     "screen": "pids"
-    }
-   },
-   "fc": {
-    "calls": [
-     [
-      "onFcOpen",
-      "pid"
-     ],
-     [
-      "show",
-      "fc"
-     ]
-    ],
-    "changed": {
-     "screen": "fc",
-     "fcFrom": "title"
-    }
-   },
-   "fc-save": {
-    "calls": [
-     [
-      "fc.dirty"
-     ]
-    ],
-    "changed": {}
-   },
-   "fc-save-exit": {
-    "calls": [
-     [
-      "fc.dirty"
-     ],
-     [
-      "leaveFc"
-     ]
-    ],
-    "changed": {}
-   },
-   "fc-save-restart": {
-    "calls": [
-     [
-      "fc.stopMotors"
-     ],
-     [
-      "onFcSave",
-      "draft",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "fc-wait": {
-    "calls": [
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {}
-   },
-   "fc-motors-stop": {
-    "calls": [
-     [
-      "fc.stopMotors"
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {}
-   },
-   "fc-preset:bf": {
-    "calls": [
-     [
-      "fc.applyPreset",
-      "bf"
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {}
-   },
-   "fc-keep-editing": {
-    "calls": [
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {}
-   },
-   "fc-discard-leave": {
-    "calls": [
-     [
-      "fc.discard"
-     ],
-     [
-      "leaveFc"
-     ]
-    ],
-    "changed": {}
-   },
-   "fc-discard": {
-    "calls": [
-     [
-      "fc.discard"
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {}
-   },
-   "fc-export": {
-    "calls": [
-     [
-      "fc.exportText"
-     ]
-    ],
-    "changed": {},
-    "page": [
-     [
-      "blob",
-      "text/plain;charset=utf-8",
-      10
-     ],
-     [
-      "click",
-      "a",
-      "flight-controller.diff"
-     ]
-    ]
-   },
-   "fc-back": {
-    "calls": [
-     [
-      "fc.discard"
-     ],
-     [
-      "leaveFc"
-     ]
-    ],
-    "changed": {}
-   },
-   "pids-default": {
-    "calls": [
-     [
-      "renderMenu"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "rates-default": {
-    "calls": [
-     [
-      "renderMenu"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ],
-    "changed": {
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d"
-    }
-   },
-   "rates-save": {
-    "calls": [
-     [
-      "askRatePresetName",
-      ""
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {
-     "store.fdfpv.rates.library.v1.rp-7fffffff": "268 chars, hash a9aafd69"
-    }
-   },
-   "rates-delete": {
-    "calls": [],
-    "changed": {}
-   },
-   "map:alps": {
-    "calls": [
-     [
-      "show",
-      "title"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ],
-    "changed": {
-     "settings.map": "alps",
-     "settings.freestyleMap": "alps",
-     "store.webfpv.settings.v3.map": "\"alps\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"alps\""
-    }
-   },
-   "back": {
-    "calls": [
-     [
-      "onUiSound",
-      "back"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {
-     "hub": null
-    }
-   },
-   "mode-gate": {
-    "calls": [
-     [
-      "show",
-      "title"
-     ],
-     [
-      "setCursor",
-      0
-     ],
-     [
-      "renderMenu"
-     ]
-    ],
-    "changed": {}
-   },
-   "title": {
-    "calls": [
-     [
-      "show",
-      "title"
-     ],
-     [
-      "onAction",
-      "title",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "paused": {
-    "calls": [
-     [
-      "show",
-      "paused"
-     ],
-     [
-      "onAction",
-      "paused",
-      "object"
-     ]
-    ],
-    "changed": {
-     "screen": "paused"
-    }
-   },
-   "quick": {
-    "calls": [
-     [
-      "show",
-      "quick"
-     ]
-    ],
-    "changed": {
-     "screen": "quick"
-    }
-   },
-   "pause": {
-    "calls": [
-     [
-      "onAction",
-      "pause",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "restart": {
-    "calls": [
-     [
-      "onAction",
-      "restart",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "resume": {
-    "calls": [
-     [
-      "onAction",
-      "resume",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "postrun": {
-    "calls": [
-     [
-      "onAction",
-      "postrun",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "posttime": {
-    "calls": [
-     [
-      "onAction",
-      "posttime",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "noop": {
-    "calls": [
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "setname": {
-    "calls": [
-     [
-      "onAction",
-      "setname",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "choosepad": {
-    "calls": [
-     [
-      "onAction",
-      "choosepad",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "downloadflightlog": {
-    "calls": [
-     [
-      "onAction",
-      "downloadflightlog",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "exportkey": {
-    "calls": [
-     [
-      "onAction",
-      "exportkey",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "importkey": {
-    "calls": [
-     [
-      "onAction",
-      "importkey",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "calibrate": {
-    "calls": [
-     [
-      "onAction",
-      "calibrate",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "calibrate-cancel": {
-    "calls": [
-     [
-      "onAction",
-      "calibrate-cancel",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "calibrate-save": {
-    "calls": [
-     [
-      "onAction",
-      "calibrate-save",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "padpick-yes": {
-    "calls": [
-     [
-      "onAction",
-      "padpick-yes",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "padpick-no": {
-    "calls": [
-     [
-      "onAction",
-      "padpick-no",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "padpick-cancel": {
-    "calls": [
-     [
-      "onAction",
-      "padpick-cancel",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "padpick-skip": {
-    "calls": [
-     [
-      "onAction",
-      "padpick-skip",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "accountsignin": {
-    "calls": [
-     [
-      "onAction",
-      "accountsignin",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "accountsignout": {
-    "calls": [
-     [
-      "onAction",
-      "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -3277,16 +2061,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -4729,21 +3503,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [],
-    "changed": {},
-    "parked": true,
-    "resumed": {
-     "calls": [
-      [
-       "onAction",
-       "hub-club",
-       "object"
-      ]
-     ],
-     "changed": {}
-    }
-   },
    "hub-hangar": {
     "calls": [],
     "changed": {},
@@ -6041,16 +4800,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -7303,16 +6052,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -8546,16 +7285,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -9734,16 +8463,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -10957,16 +9676,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -12216,16 +10925,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -13498,16 +12197,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -14757,16 +13446,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -15995,16 +14674,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -17293,16 +15962,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -18565,16 +17224,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -19789,16 +18438,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -20994,16 +19633,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -22181,16 +20810,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -23347,16 +21966,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -24521,16 +23130,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -25722,16 +24321,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -26909,16 +25498,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -28084,16 +26663,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -29275,16 +27844,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -30491,16 +29050,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -31692,16 +30241,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -32904,16 +31443,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -34125,16 +32654,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -35327,16 +33846,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -36548,16 +35057,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -37754,16 +36253,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -38944,16 +37433,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -40157,16 +38636,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -41357,16 +39826,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -42550,16 +41009,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -43755,16 +42204,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -44950,16 +43389,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -46163,16 +44592,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -47366,16 +45785,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -48580,16 +46989,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -49820,16 +48219,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -51056,16 +49445,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -52247,16 +50626,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -53452,16 +51821,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -54647,16 +53006,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -55832,16 +54181,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -57036,16 +55375,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -58236,16 +56565,6 @@
      [
       "onAction",
       "accountsignout",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
       "object"
      ]
     ],
@@ -59444,16 +57763,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -60644,16 +58953,6 @@
     ],
     "changed": {}
    },
-   "hub-club": {
-    "calls": [
-     [
-      "onAction",
-      "hub-club",
-      "object"
-     ]
-    ],
-    "changed": {}
-   },
    "hub-hangar": {
     "calls": [
      [
@@ -60972,24 +59271,6 @@
   "gate-home": {
    "calls": [],
    "changed": {}
-  },
-  "gate-hub-club": {
-   "calls": [
-    [
-     "onUiSound",
-     "back"
-    ],
-    [
-     "setCursor",
-     0
-    ],
-    [
-     "renderMenu"
-    ]
-   ],
-   "changed": {
-    "hub": null
-   }
   },
   "gate-hub-hangar": {
    "calls": [
@@ -61901,7 +60182,7 @@
      ]
     ],
     "changed": {
-     "hub": "club",
+     "hub": "hangar",
      "cursor": 1
     }
    },
@@ -61967,7 +60248,7 @@
     "changed": {}
    }
   },
-  "gate-hub-club": {
+  "gate-hub-hangar": {
    "Heading": {
     "calls": [],
     "changed": {}
@@ -62225,7 +60506,7 @@
      ],
      [
       "onAction",
-      "hub-club",
+      "hub-hangar",
       "object"
      ]
     ],
@@ -62386,7 +60667,7 @@
      ],
      [
       "onAction",
-      "hub-club",
+      "hub-hangar",
       "object"
      ]
     ],
@@ -62458,38 +60739,52 @@
  },
  "cards": {
   "interceptor5 rooms:true": {
-   "hub": [
+   "home": [
     {
-     "label": "Operations",
-     "card": "hub-ops",
-     "hub": "ops",
+     "label": "Defend the Paraná",
+     "card": "campaign",
      "art": "assets/posters/itaipu.jpg",
      "svg": "svg:933",
-     "blurb": "Defend the Paraná: missions at Itaipu, alone or as a squad.",
-     "facts": [],
-     "links": [
-      {
-       "label": "Defend the Paraná",
-       "action": "way-campaign",
-       "key": "campaign"
-      },
-      {
-       "label": "The Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Defence training",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Field hangar",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "blurb": "Seven missions at Itaipu, three stars each, opened one at a time. Credits buy warheads and more.",
+     "facts": [
+      "Act 1",
+      "7 missions",
+      "Upgrade shop"
      ],
-     "action": "hub-ops"
+     "action": "way-campaign"
+    },
+    {
+     "label": "The Interior",
+     "card": "interior",
+     "svg": "svg:559",
+     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+     "facts": [
+      "Five missions",
+      "Co-op roles, any squad",
+      "Camera ball, quiet HUD"
+     ],
+     "action": "way-interior"
+    },
+    {
+     "label": "Defence training",
+     "card": "training",
+     "art": "assets/posters/itaipu.jpg",
+     "svg": "svg:933",
+     "blurb": "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others.",
+     "facts": [
+      "Interception, tracking, a mission",
+      "Flown in war rooms",
+      "Nothing waits on them"
+     ],
+     "action": "way-training"
+    },
+    {
+     "label": "Field hangar",
+     "card": "ops-field",
+     "svg": null,
+     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+     "facts": [],
+     "action": "field-walk"
     },
     {
      "label": "Hangar",
@@ -62574,33 +60869,39 @@
    "calls": []
   },
   "interceptor5 rooms:false": {
-   "hub": [
+   "home": [
     {
-     "label": "Operations",
-     "card": "hub-ops",
-     "hub": "ops",
+     "label": "The Interior",
+     "card": "interior",
+     "svg": "svg:559",
+     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+     "facts": [
+      "Five missions",
+      "Co-op roles, any squad",
+      "Camera ball, quiet HUD"
+     ],
+     "action": "way-interior"
+    },
+    {
+     "label": "Defence training",
+     "card": "training",
      "art": "assets/posters/itaipu.jpg",
      "svg": "svg:933",
-     "blurb": "Defend the Paraná: missions at Itaipu, alone or as a squad.",
-     "facts": [],
-     "links": [
-      {
-       "label": "The Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Defence training",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Field hangar",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "blurb": "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others.",
+     "facts": [
+      "Interception, tracking, a mission",
+      "Flown in war rooms",
+      "Nothing waits on them"
      ],
-     "action": "hub-ops"
+     "action": "way-training"
+    },
+    {
+     "label": "Field hangar",
+     "card": "ops-field",
+     "svg": null,
+     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+     "facts": [],
+     "action": "field-walk"
     },
     {
      "label": "Hangar",
@@ -62685,38 +60986,52 @@
    "calls": []
   },
   "bramor2300 rooms:true": {
-   "hub": [
+   "home": [
     {
-     "label": "Operations",
-     "card": "hub-ops",
-     "hub": "ops",
+     "label": "Defend the Paraná",
+     "card": "campaign",
      "art": "assets/posters/itaipu.jpg",
      "svg": "svg:933",
-     "blurb": "Defend the Paraná: missions at Itaipu, alone or as a squad.",
-     "facts": [],
-     "links": [
-      {
-       "label": "Defend the Paraná",
-       "action": "way-campaign",
-       "key": "campaign"
-      },
-      {
-       "label": "The Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Defence training",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Field hangar",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "blurb": "Seven missions at Itaipu, three stars each, opened one at a time. Credits buy warheads and more.",
+     "facts": [
+      "Act 1",
+      "7 missions",
+      "Upgrade shop"
      ],
-     "action": "hub-ops"
+     "action": "way-campaign"
+    },
+    {
+     "label": "The Interior",
+     "card": "interior",
+     "svg": "svg:559",
+     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+     "facts": [
+      "Five missions",
+      "Co-op roles, any squad",
+      "Camera ball, quiet HUD"
+     ],
+     "action": "way-interior"
+    },
+    {
+     "label": "Defence training",
+     "card": "training",
+     "art": "assets/posters/itaipu.jpg",
+     "svg": "svg:933",
+     "blurb": "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others.",
+     "facts": [
+      "Interception, tracking, a mission",
+      "Flown in war rooms",
+      "Nothing waits on them"
+     ],
+     "action": "way-training"
+    },
+    {
+     "label": "Field hangar",
+     "card": "ops-field",
+     "svg": null,
+     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+     "facts": [],
+     "action": "field-walk"
     },
     {
      "label": "Hangar",
@@ -62814,33 +61129,39 @@
    "calls": []
   },
   "cub rooms:false": {
-   "hub": [
+   "home": [
     {
-     "label": "Operations",
-     "card": "hub-ops",
-     "hub": "ops",
+     "label": "The Interior",
+     "card": "interior",
+     "svg": "svg:559",
+     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+     "facts": [
+      "Five missions",
+      "Co-op roles, any squad",
+      "Camera ball, quiet HUD"
+     ],
+     "action": "way-interior"
+    },
+    {
+     "label": "Defence training",
+     "card": "training",
      "art": "assets/posters/itaipu.jpg",
      "svg": "svg:933",
-     "blurb": "Defend the Paraná: missions at Itaipu, alone or as a squad.",
-     "facts": [],
-     "links": [
-      {
-       "label": "The Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Defence training",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Field hangar",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "blurb": "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others.",
+     "facts": [
+      "Interception, tracking, a mission",
+      "Flown in war rooms",
+      "Nothing waits on them"
      ],
-     "action": "hub-ops"
+     "action": "way-training"
+    },
+    {
+     "label": "Field hangar",
+     "card": "ops-field",
+     "svg": null,
+     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+     "facts": [],
+     "action": "field-walk"
     },
     {
      "label": "Hangar",
@@ -62925,12 +61246,10 @@
    "calls": []
   },
   "continue combat rooms:true": [
-   [
-    "campaign:way-campaign",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
-   ],
+   [],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -62941,11 +61260,9 @@
    ]
   ],
   "continue combat rooms:false": [
-   [
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
-   ],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -62956,12 +61273,10 @@
    ]
   ],
   "continue race rooms:true": [
-   [
-    "campaign:way-campaign",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
-   ],
+   [],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -62972,11 +61287,9 @@
    ]
   ],
   "continue free rooms:false": [
-   [
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
-   ],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -62988,11 +61301,11 @@
   ],
   "continue war rooms:true": [
    [
-    "campaign:way-campaign",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
+    "campaign:way-campaign"
    ],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -63003,12 +61316,10 @@
    ]
   ],
   "continue nosuch rooms:true": [
-   [
-    "campaign:way-campaign",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
-   ],
+   [],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -63020,11 +61331,11 @@
   ],
   "continue war campaign:1 next:m1": [
    [
-    "campaign:continue-mission:First",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
+    "campaign:continue-mission:First"
    ],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -63042,11 +61353,11 @@
   ],
   "continue war campaign:1 next:none": [
    [
-    "campaign:way-campaign",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
+    "campaign:way-campaign"
    ],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -63063,12 +61374,10 @@
    ]
   ],
   "continue war campaign:0 next:none": [
-   [
-    "campaign:way-campaign",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
-   ],
+   [],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -63080,12 +61389,12 @@
   ],
   "continue war campaign:0 next:none press": [],
   "continue interior campaign:1 next:o1": [
+   [],
    [
-    "campaign:way-campaign",
-    "interior:continue-mission:Old",
-    "training:way-training",
-    "ops-field:field-walk"
+    "interior:continue-mission:Old"
    ],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -63102,12 +61411,12 @@
    ]
   ],
   "continue interior campaign:1 next:none": [
+   [],
    [
-    "campaign:way-campaign",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
+    "interior:way-interior"
    ],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -63124,12 +61433,10 @@
    ]
   ],
   "continue interior campaign:0 next:none": [
-   [
-    "campaign:way-campaign",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
-   ],
+   [],
+   [],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -63141,12 +61448,12 @@
   ],
   "continue interior campaign:0 next:none press": [],
   "continue interior campaign:none next:none": [
+   [],
    [
-    "campaign:way-campaign",
-    "interior:way-interior",
-    "training:way-training",
-    "ops-field:field-walk"
+    "interior:way-interior"
    ],
+   [],
+   [],
    [
     "hangar-walk:hangar-walk",
     "hangar-aircraft:hangar-aircraft",
@@ -63234,7 +61541,7 @@
     ]
    ],
    "changed": {
-    "hub": "club"
+    "hub": "hangar"
    }
   },
   "title-race-noseat seatMatchesMode": {
@@ -63307,7 +61614,7 @@
     ]
    ],
    "changed": {
-    "hub": "club"
+    "hub": "hangar"
    }
   },
   "title-freestyle seatMatchesMode": {
@@ -63384,7 +61691,7 @@
     ]
    ],
    "changed": {
-    "hub": "club"
+    "hub": "hangar"
    }
   },
   "title-freestyle-noseat seatMatchesMode": {
@@ -63454,7 +61761,7 @@
     ]
    ],
    "changed": {
-    "hub": "club"
+    "hub": "hangar"
    }
   },
   "gate-home seatMatchesMode": {
@@ -63524,7 +61831,7 @@
     ]
    ],
    "changed": {
-    "hub": "club"
+    "hub": "hangar"
    }
   },
   "title-firstrun seatMatchesMode": {
@@ -63601,7 +61908,7 @@
     ]
    ],
    "changed": {
-    "hub": "club"
+    "hub": "hangar"
    }
   },
   "paused seatMatchesMode": {
@@ -63671,7 +61978,7 @@
     ]
    ],
    "changed": {
-    "hub": "club"
+    "hub": "hangar"
    }
   }
  }

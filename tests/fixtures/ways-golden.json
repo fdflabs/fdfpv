@@ -31,43 +31,10 @@
   "interior",
   "training"
  ],
- "hubOfAction": {
-  "fly": null,
-  "way-campaign": "ops",
-  "way-interior": "ops",
-  "way-nope": null,
-  "way-training": "ops",
-  "way-war": null
- },
- "hubWays": {
-  "club": [],
-  "hangar": [],
-  "nope": [],
-  "ops": [
-   "campaign",
-   "interior",
-   "training"
-  ]
- },
  "hubs": [
-  {
-   "art": "assets/posters/swiss2.jpg",
-   "blurb": "hub.club_blurb",
-   "category": "flightclub",
-   "id": "club",
-   "label": "hub.club"
-  },
-  {
-   "art": "assets/posters/itaipu.jpg",
-   "blurb": "hub.ops_blurb",
-   "category": "operations",
-   "id": "ops",
-   "label": "hub.ops"
-  },
   {
    "art": "assets/gate/hangar.jpg",
    "blurb": "hub.hangar_blurb",
-   "category": null,
    "id": "hangar",
    "label": "hub.hangar"
   }

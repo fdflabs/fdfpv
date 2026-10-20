@@ -4,32 +4,42 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-ops",
-     "label": "Operations",
-     "action": "hub-ops",
-     "card": "hub-ops",
-     "hub": "ops",
-     "art": "assets/posters/itaipu.jpg",
-     "blurb": "Defend the Paraná: missions at Itaipu, alone or as a squad.",
-     "facts": [],
-     "svg": "<svg 933 chars>",
-     "links": [
-      {
-       "label": "The Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Defence training",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Field hangar",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "id": "title:a-way-interior",
+     "label": "The Interior",
+     "action": "way-interior",
+     "card": "interior",
+     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+     "facts": [
+      "Five missions",
+      "Co-op roles, any squad",
+      "Camera ball, quiet HUD"
      ],
+     "svg": "<svg 559 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-training",
+     "label": "Defence training",
+     "action": "way-training",
+     "card": "training",
+     "art": "assets/posters/itaipu.jpg",
+     "blurb": "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others.",
+     "facts": [
+      "Interception, tracking, a mission",
+      "Flown in war rooms",
+      "Nothing waits on them"
+     ],
+     "svg": "<svg 933 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-field-walk",
+     "label": "Field hangar",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+     "facts": [],
+     "svg": null,
      "drives": {}
     },
     {
@@ -75,6 +85,13 @@
       }
      ],
      "drives": {}
+    },
+    {
+     "id": "title:no-rooms-server-on-this-page",
+     "label": "No rooms server on this page",
+     "note": "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms.",
+     "info": true,
+     "drives": {}
     }
    ]
   },
@@ -82,37 +99,57 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-ops",
-     "label": "Operations",
-     "action": "hub-ops",
-     "card": "hub-ops",
-     "hub": "ops",
+     "id": "title:a-way-campaign",
+     "label": "Defend the Paraná",
+     "action": "way-campaign",
+     "card": "campaign",
      "art": "assets/posters/itaipu.jpg",
-     "blurb": "Defend the Paraná: missions at Itaipu, alone or as a squad.",
-     "facts": [],
-     "svg": "<svg 933 chars>",
-     "links": [
-      {
-       "label": "Defend the Paraná",
-       "action": "way-campaign",
-       "key": "campaign"
-      },
-      {
-       "label": "The Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Defence training",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Field hangar",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "blurb": "Seven missions at Itaipu, three stars each, opened one at a time. Credits buy warheads and more.",
+     "facts": [
+      "Act 1",
+      "7 missions",
+      "Upgrade shop"
      ],
+     "svg": "<svg 933 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-interior",
+     "label": "The Interior",
+     "action": "way-interior",
+     "card": "interior",
+     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+     "facts": [
+      "Five missions",
+      "Co-op roles, any squad",
+      "Camera ball, quiet HUD"
+     ],
+     "svg": "<svg 559 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-training",
+     "label": "Defence training",
+     "action": "way-training",
+     "card": "training",
+     "art": "assets/posters/itaipu.jpg",
+     "blurb": "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others.",
+     "facts": [
+      "Interception, tracking, a mission",
+      "Flown in war rooms",
+      "Nothing waits on them"
+     ],
+     "svg": "<svg 933 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-field-walk",
+     "label": "Field hangar",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+     "facts": [],
+     "svg": null,
      "drives": {}
     },
     {
@@ -168,27 +205,7 @@
     }
    ]
   },
-  "title-gate-club": {
-   "screen": "title",
-   "items": [
-    {
-     "id": "title:a-lobby:owls",
-     "label": "Rooms panel home=false",
-     "action": "lobby:owls",
-     "lobby": "room",
-     "drives": {}
-    },
-    {
-     "id": "title:a-calibrate",
-     "label": "This browser is guessing your stick order",
-     "note": "The axis it thinks is your throttle is sitting at the middle, and a real throttle rests at one end because it has no centring spring. So the guess is probably wrong, and a wrong guess means taking off at half power on a stick that springs back. Calibrating takes about a minute and fixes it for good.",
-     "action": "calibrate",
-     "rowClass": "row-warn",
-     "drives": {}
-    }
-   ]
-  },
-  "title-gate-ops": {
+  "title-gate-home-pad": {
    "screen": "title",
    "items": [
     {
@@ -228,6 +245,57 @@
      "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
      "facts": [],
      "svg": null,
+     "drives": {}
+    },
+    {
+     "id": "title:a-hub-hangar",
+     "label": "Hangar",
+     "action": "hub-hangar",
+     "card": "hub-hangar",
+     "hub": "hangar",
+     "art": "assets/gate/hangar.jpg",
+     "blurb": "Your aircraft, its power, paint and parts, and your radio.",
+     "facts": [],
+     "svg": "<svg 1448 chars>",
+     "links": [
+      {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
+      {
+       "label": "Aircraft",
+       "action": "hangar-aircraft",
+       "key": "hangar-aircraft"
+      },
+      {
+       "label": "Customise",
+       "action": "customise",
+       "key": "hangar-customise"
+      },
+      {
+       "label": "Upgrades",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Controller",
+       "action": "controller",
+       "key": "hangar-controller"
+      },
+      {
+       "label": "How to fly",
+       "action": "howto",
+       "key": "hangar-howto"
+      }
+     ],
+     "drives": {}
+    },
+    {
+     "id": "title:no-rooms-server-on-this-page",
+     "label": "No rooms server on this page",
+     "note": "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms.",
+     "info": true,
      "drives": {}
     },
     {
@@ -236,65 +304,6 @@
      "note": "Every switch on it is arriving as an axis, so nothing on it can press Enter yet. Hold any stick away from centre for about a second and that counts as one press, which is enough to get in here and fix it properly. Calibrating ends by asking you to throw the switch you want as Enter, and after that it works like a button.",
      "action": "calibrate",
      "rowClass": "row-warn",
-     "drives": {}
-    }
-   ]
-  },
-  "title-gate-ops-rooms": {
-   "screen": "title",
-   "items": [
-    {
-     "id": "title:a-way-campaign",
-     "label": "Defend the Paraná",
-     "action": "way-campaign",
-     "card": "campaign",
-     "art": "assets/posters/itaipu.jpg",
-     "blurb": "Seven missions at Itaipu, three stars each, opened one at a time. Credits buy warheads and more.",
-     "facts": [
-      "Act 1",
-      "7 missions",
-      "Upgrade shop"
-     ],
-     "svg": "<svg 933 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-interior",
-     "label": "The Interior",
-     "action": "way-interior",
-     "card": "interior",
-     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
-     "facts": [
-      "Five missions",
-      "Co-op roles, any squad",
-      "Camera ball, quiet HUD"
-     ],
-     "svg": "<svg 559 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-training",
-     "label": "Defence training",
-     "action": "way-training",
-     "card": "training",
-     "art": "assets/posters/itaipu.jpg",
-     "blurb": "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others.",
-     "facts": [
-      "Interception, tracking, a mission",
-      "Flown in war rooms",
-      "Nothing waits on them"
-     ],
-     "svg": "<svg 933 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-field-walk",
-     "label": "Field hangar",
-     "action": "field-walk",
-     "card": "ops-field",
-     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
-     "facts": [],
-     "svg": null,
      "drives": {}
     }
    ]
@@ -376,32 +385,42 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-ops",
-     "label": "Operations",
-     "action": "hub-ops",
-     "card": "hub-ops",
-     "hub": "ops",
-     "art": "assets/posters/itaipu.jpg",
-     "blurb": "Defend the Paraná: missions at Itaipu, alone or as a squad.",
-     "facts": [],
-     "svg": "<svg 933 chars>",
-     "links": [
-      {
-       "label": "The Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Defence training",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Field hangar",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "id": "title:a-way-interior",
+     "label": "The Interior",
+     "action": "way-interior",
+     "card": "interior",
+     "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+     "facts": [
+      "Five missions",
+      "Co-op roles, any squad",
+      "Camera ball, quiet HUD"
      ],
+     "svg": "<svg 559 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-training",
+     "label": "Defence training",
+     "action": "way-training",
+     "card": "training",
+     "art": "assets/posters/itaipu.jpg",
+     "blurb": "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others.",
+     "facts": [
+      "Interception, tracking, a mission",
+      "Flown in war rooms",
+      "Nothing waits on them"
+     ],
+     "svg": "<svg 933 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-field-walk",
+     "label": "Field hangar",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+     "facts": [],
+     "svg": null,
      "drives": {}
     },
     {
@@ -446,6 +465,13 @@
        "key": "hangar-howto"
       }
      ],
+     "drives": {}
+    },
+    {
+     "id": "title:no-rooms-server-on-this-page",
+     "label": "No rooms server on this page",
+     "note": "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms.",
+     "info": true,
      "drives": {}
     }
    ]
@@ -10375,7 +10401,7 @@
      "id": "pilot:flight-time",
      "label": "Flight time",
      "value": "2 h 2 min",
-     "note": "Since Aug 15, 2026. Track Day 1 h 1 min, Free Flight 30 min, Operations 6 min",
+     "note": "Since Aug 15, 2026. Track Day 1 h 1 min, Free Flight 30 min, Defend the Paraná 6 min",
      "info": true,
      "drives": {}
     },
@@ -24105,32 +24131,42 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-ops",
-     "label": "Operaciones",
-     "action": "hub-ops",
-     "card": "hub-ops",
-     "hub": "ops",
-     "art": "assets/posters/itaipu.jpg",
-     "blurb": "Defender el Paraná: misiones en Itaipú, solo o en escuadrón.",
-     "facts": [],
-     "svg": "<svg 933 chars>",
-     "links": [
-      {
-       "label": "El Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Entrenamiento de defensa",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Hangar de campaña",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "id": "title:a-way-interior",
+     "label": "El Interior",
+     "action": "way-interior",
+     "card": "interior",
+     "blurb": "Relevan una región tranquila desde el aire. Noten, sigan, registren. Desconocido significa desconocido.",
+     "facts": [
+      "Cinco misiones",
+      "Roles en cooperativo, cualquier escuadrón",
+      "Torreta, HUD silencioso"
      ],
+     "svg": "<svg 559 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-training",
+     "label": "Entrenamiento de defensa",
+     "action": "way-training",
+     "card": "training",
+     "art": "assets/posters/itaipu.jpg",
+     "blurb": "Tres lecciones en las salas de la guerra: una intercepción, un blanco seguido y una misión volada con otros.",
+     "facts": [
+      "Intercepción, seguimiento, una misión",
+      "Se vuelan en salas de guerra",
+      "Nada depende de ellas"
+     ],
+     "svg": "<svg 933 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-field-walk",
+     "label": "Hangar de campaña",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "El hangar de la guerra: una carpa sobre tierra, la aeronave en su soporte, la salida al frente.",
+     "facts": [],
+     "svg": null,
      "drives": {}
     },
     {
@@ -24176,6 +24212,13 @@
       }
      ],
      "drives": {}
+    },
+    {
+     "id": "title:esta-p-gina-no-tiene-servidor-de-salas",
+     "label": "Esta página no tiene servidor de salas",
+     "note": "Sin el servidor de salas no se puede jugar nada de esto: Defender el Paraná, El Interior y las lecciones de Defensa vuelan todas en salas.",
+     "info": true,
+     "drives": {}
     }
    ]
   },
@@ -24183,37 +24226,57 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-ops",
-     "label": "Operaciones",
-     "action": "hub-ops",
-     "card": "hub-ops",
-     "hub": "ops",
+     "id": "title:a-way-campaign",
+     "label": "Defender el Paraná",
+     "action": "way-campaign",
+     "card": "campaign",
      "art": "assets/posters/itaipu.jpg",
-     "blurb": "Defender el Paraná: misiones en Itaipú, solo o en escuadrón.",
-     "facts": [],
-     "svg": "<svg 933 chars>",
-     "links": [
-      {
-       "label": "Defender el Paraná",
-       "action": "way-campaign",
-       "key": "campaign"
-      },
-      {
-       "label": "El Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Entrenamiento de defensa",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Hangar de campaña",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "blurb": "Siete misiones en Itaipú, tres estrellas cada una, que se abren de a una. Los créditos compran ojivas y más.",
+     "facts": [
+      "Acto 1",
+      "7 misiones",
+      "Tienda de mejoras"
      ],
+     "svg": "<svg 933 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-interior",
+     "label": "El Interior",
+     "action": "way-interior",
+     "card": "interior",
+     "blurb": "Relevan una región tranquila desde el aire. Noten, sigan, registren. Desconocido significa desconocido.",
+     "facts": [
+      "Cinco misiones",
+      "Roles en cooperativo, cualquier escuadrón",
+      "Torreta, HUD silencioso"
+     ],
+     "svg": "<svg 559 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-training",
+     "label": "Entrenamiento de defensa",
+     "action": "way-training",
+     "card": "training",
+     "art": "assets/posters/itaipu.jpg",
+     "blurb": "Tres lecciones en las salas de la guerra: una intercepción, un blanco seguido y una misión volada con otros.",
+     "facts": [
+      "Intercepción, seguimiento, una misión",
+      "Se vuelan en salas de guerra",
+      "Nada depende de ellas"
+     ],
+     "svg": "<svg 933 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-field-walk",
+     "label": "Hangar de campaña",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "El hangar de la guerra: una carpa sobre tierra, la aeronave en su soporte, la salida al frente.",
+     "facts": [],
+     "svg": null,
      "drives": {}
     },
     {
@@ -24269,27 +24332,7 @@
     }
    ]
   },
-  "title-gate-club": {
-   "screen": "title",
-   "items": [
-    {
-     "id": "title:a-lobby:owls",
-     "label": "Rooms panel home=false",
-     "action": "lobby:owls",
-     "lobby": "room",
-     "drives": {}
-    },
-    {
-     "id": "title:a-calibrate",
-     "label": "Este navegador está adivinando el orden de tus sticks",
-     "note": "El eje que cree que es tu throttle está quieto en el medio, y un throttle de verdad descansa en un extremo porque no tiene resorte de centrado. Así que la suposición es probablemente equivocado, y una suposición errada significa despegar a media potencia en un stick que vuelve al centro por resorte. Calibrar toma más o menos un minuto y lo arregla para siempre.",
-     "action": "calibrate",
-     "rowClass": "row-warn",
-     "drives": {}
-    }
-   ]
-  },
-  "title-gate-ops": {
+  "title-gate-home-pad": {
    "screen": "title",
    "items": [
     {
@@ -24329,6 +24372,57 @@
      "blurb": "El hangar de la guerra: una carpa sobre tierra, la aeronave en su soporte, la salida al frente.",
      "facts": [],
      "svg": null,
+     "drives": {}
+    },
+    {
+     "id": "title:a-hub-hangar",
+     "label": "Hangar",
+     "action": "hub-hangar",
+     "card": "hub-hangar",
+     "hub": "hangar",
+     "art": "assets/gate/hangar.jpg",
+     "blurb": "Tu aeronave, su motor, pintura y piezas, y tu radio.",
+     "facts": [],
+     "svg": "<svg 1448 chars>",
+     "links": [
+      {
+       "label": "Entrar",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
+      {
+       "label": "Aeronave",
+       "action": "hangar-aircraft",
+       "key": "hangar-aircraft"
+      },
+      {
+       "label": "Personalizar",
+       "action": "customise",
+       "key": "hangar-customise"
+      },
+      {
+       "label": "Mejoras",
+       "action": "campaign-shop",
+       "key": "hangar-upgrades"
+      },
+      {
+       "label": "Controlador",
+       "action": "controller",
+       "key": "hangar-controller"
+      },
+      {
+       "label": "Cómo volar",
+       "action": "howto",
+       "key": "hangar-howto"
+      }
+     ],
+     "drives": {}
+    },
+    {
+     "id": "title:esta-p-gina-no-tiene-servidor-de-salas",
+     "label": "Esta página no tiene servidor de salas",
+     "note": "Sin el servidor de salas no se puede jugar nada de esto: Defender el Paraná, El Interior y las lecciones de Defensa vuelan todas en salas.",
+     "info": true,
      "drives": {}
     },
     {
@@ -24337,65 +24431,6 @@
      "note": "Cada interruptor suyo está llegando como un eje, así que nada en él puede pulsar Enter todavía. Mantén cualquier stick fuera del centro por un segundo más o menos y eso cuenta como una pulsación, que es suficiente para entrar aquí y arreglarlo bien. Calibrar termina pidiéndote que muevas el switch que quieras como Enter, y después funciona como un botón.",
      "action": "calibrate",
      "rowClass": "row-warn",
-     "drives": {}
-    }
-   ]
-  },
-  "title-gate-ops-rooms": {
-   "screen": "title",
-   "items": [
-    {
-     "id": "title:a-way-campaign",
-     "label": "Defender el Paraná",
-     "action": "way-campaign",
-     "card": "campaign",
-     "art": "assets/posters/itaipu.jpg",
-     "blurb": "Siete misiones en Itaipú, tres estrellas cada una, que se abren de a una. Los créditos compran ojivas y más.",
-     "facts": [
-      "Acto 1",
-      "7 misiones",
-      "Tienda de mejoras"
-     ],
-     "svg": "<svg 933 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-interior",
-     "label": "El Interior",
-     "action": "way-interior",
-     "card": "interior",
-     "blurb": "Relevan una región tranquila desde el aire. Noten, sigan, registren. Desconocido significa desconocido.",
-     "facts": [
-      "Cinco misiones",
-      "Roles en cooperativo, cualquier escuadrón",
-      "Torreta, HUD silencioso"
-     ],
-     "svg": "<svg 559 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-training",
-     "label": "Entrenamiento de defensa",
-     "action": "way-training",
-     "card": "training",
-     "art": "assets/posters/itaipu.jpg",
-     "blurb": "Tres lecciones en las salas de la guerra: una intercepción, un blanco seguido y una misión volada con otros.",
-     "facts": [
-      "Intercepción, seguimiento, una misión",
-      "Se vuelan en salas de guerra",
-      "Nada depende de ellas"
-     ],
-     "svg": "<svg 933 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-field-walk",
-     "label": "Hangar de campaña",
-     "action": "field-walk",
-     "card": "ops-field",
-     "blurb": "El hangar de la guerra: una carpa sobre tierra, la aeronave en su soporte, la salida al frente.",
-     "facts": [],
-     "svg": null,
      "drives": {}
     }
    ]
@@ -24477,32 +24512,42 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-ops",
-     "label": "Operaciones",
-     "action": "hub-ops",
-     "card": "hub-ops",
-     "hub": "ops",
-     "art": "assets/posters/itaipu.jpg",
-     "blurb": "Defender el Paraná: misiones en Itaipú, solo o en escuadrón.",
-     "facts": [],
-     "svg": "<svg 933 chars>",
-     "links": [
-      {
-       "label": "El Interior",
-       "action": "way-interior",
-       "key": "interior"
-      },
-      {
-       "label": "Entrenamiento de defensa",
-       "action": "way-training",
-       "key": "training"
-      },
-      {
-       "label": "Hangar de campaña",
-       "action": "field-walk",
-       "key": "ops-field"
-      }
+     "id": "title:a-way-interior",
+     "label": "El Interior",
+     "action": "way-interior",
+     "card": "interior",
+     "blurb": "Relevan una región tranquila desde el aire. Noten, sigan, registren. Desconocido significa desconocido.",
+     "facts": [
+      "Cinco misiones",
+      "Roles en cooperativo, cualquier escuadrón",
+      "Torreta, HUD silencioso"
      ],
+     "svg": "<svg 559 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-training",
+     "label": "Entrenamiento de defensa",
+     "action": "way-training",
+     "card": "training",
+     "art": "assets/posters/itaipu.jpg",
+     "blurb": "Tres lecciones en las salas de la guerra: una intercepción, un blanco seguido y una misión volada con otros.",
+     "facts": [
+      "Intercepción, seguimiento, una misión",
+      "Se vuelan en salas de guerra",
+      "Nada depende de ellas"
+     ],
+     "svg": "<svg 933 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-field-walk",
+     "label": "Hangar de campaña",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "El hangar de la guerra: una carpa sobre tierra, la aeronave en su soporte, la salida al frente.",
+     "facts": [],
+     "svg": null,
      "drives": {}
     },
     {
@@ -24547,6 +24592,13 @@
        "key": "hangar-howto"
       }
      ],
+     "drives": {}
+    },
+    {
+     "id": "title:esta-p-gina-no-tiene-servidor-de-salas",
+     "label": "Esta página no tiene servidor de salas",
+     "note": "Sin el servidor de salas no se puede jugar nada de esto: Defender el Paraná, El Interior y las lecciones de Defensa vuelan todas en salas.",
+     "info": true,
      "drives": {}
     }
    ]
@@ -34476,7 +34528,7 @@
      "id": "pilot:flight-time",
      "label": "Tiempo de vuelo",
      "value": "2 h 2 min",
-     "note": "Desde el 15 ago 2026. Día de pista 1 h 1 min, Vuelo Libre 30 min, Operaciones 6 min",
+     "note": "Desde el 15 ago 2026. Día de pista 1 h 1 min, Vuelo Libre 30 min, Defender el Paraná 6 min",
      "info": true,
      "drives": {}
     },
