@@ -27,7 +27,7 @@ import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { LobbyBook, reportRoom } from '../edge/rooms/lobby.js';
 import { withHeld } from './lib/held.js';
 
-const profile = { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 
 export function visibilitySection(check) {
   console.log('who joins, changed in place');

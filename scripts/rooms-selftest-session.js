@@ -38,7 +38,7 @@
 import { CLOSE, PROTO, ROOM_LEVEL, ROOM_STATUSES, checkProfile } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 
 export function sessionSection(check) {
   console.log('one session');
@@ -66,16 +66,16 @@ export function sessionSection(check) {
   const got = (s, type) => s.got.filter((m) => m.type === type);
 
   /* The world. */
-  const meta = { code: 'SESS22', cap: PRIVATE_CAP, friendly: false, map: 'alps', epoch: now - 1000 };
+  const meta = { code: 'SESS22', cap: PRIVATE_CAP, friendly: false, map: 'interior', epoch: now - 1000 };
   const room = new RoomCore(meta);
   const host = sock('host');
   const b = sock('bb');
   hello(room, host, { level: ROOM_LEVEL });
   hello(room, b, { level: ROOM_LEVEL });
-  check('the room\'s world is in the welcome', got(b, 'welcome')[0].map === 'alps');
+  check('the room\'s world is in the welcome', got(b, 'welcome')[0].map === 'interior');
   say(room, b, { type: 'world', map: 'itaipu' });
   check('a pilot who is not the host cannot move the room',
-    meta.map === 'alps' && got(b, 'refused').some((m) => m.why === 'host') && got(host, 'world').length === 0);
+    meta.map === 'interior' && got(b, 'refused').some((m) => m.why === 'host') && got(host, 'world').length === 0);
   const stored = say(room, host, { type: 'world', map: 'itaipu' });
   check('the host moves it, and the room keeps it with its meta',
     meta.map === 'itaipu' && stored.some((a) => a.store === 'meta' && a.value.map === 'itaipu'));
@@ -89,15 +89,15 @@ export function sessionSection(check) {
   hello(room, c, { level: ROOM_LEVEL });
   check('a joiner is welcomed into the world the host moved it to', got(c, 'welcome')[0].map === 'itaipu');
   run(room.message(host, JSON.stringify({ type: 'war', op: 'start', mission: 'itaipu-drill' }), now));
-  const busy = say(room, host, { type: 'world', map: 'alps' });
+  const busy = say(room, host, { type: 'world', map: 'interior' });
   check('not while a game is on, and it says which',
     meta.map === 'itaipu' && busy.some((a) => a.send === host && JSON.parse(a.data).why === 'war'));
-  const pub = new RoomCore({ ...meta, code: 'PUBL22', map: 'alps', public: true });
+  const pub = new RoomCore({ ...meta, code: 'PUBL22', map: 'interior', public: true });
   const ph = sock('pubhost');
   hello(pub, ph, { level: ROOM_LEVEL });
-  say(pub, ph, { type: 'world', map: 'swiss2' });
+  say(pub, ph, { type: 'world', map: 'itaipu' });
   check('a public room stays in the world it is listed under',
-    pub.meta.map === 'alps' && got(ph, 'refused').some((m) => m.why === 'world_public'));
+    pub.meta.map === 'interior' && got(ph, 'refused').some((m) => m.why === 'world_public'));
 
   /* The status. */
   for (const status of ROOM_STATUSES) {
@@ -115,7 +115,7 @@ export function sessionSection(check) {
 
   /* The level. */
   now += 10;
-  const lvl = new RoomCore({ ...meta, code: 'LEVL22', map: 'swiss2' });
+  const lvl = new RoomCore({ ...meta, code: 'LEVL22', map: 'itaipu' });
   const old1 = sock('old1');
   const old2 = sock('old22');
   hello(lvl, old1);
@@ -133,7 +133,7 @@ export function sessionSection(check) {
     late.closed?.code === CLOSE.update && !lateOut.some((a) => a.attach));
 
   /* The drop. */
-  const d = new RoomCore({ ...meta, code: 'DROP22', map: 'swiss2' });
+  const d = new RoomCore({ ...meta, code: 'DROP22', map: 'itaipu' });
   const d1 = sock('d1');
   const d2 = sock('d22');
   const d3 = sock('d333');

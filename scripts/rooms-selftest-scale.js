@@ -37,7 +37,7 @@ import {
 } from '../src/game/peer.js';
 import { server } from './rooms-selftest-browser.js';
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 
 function sock(name) {
   return { name, got: [], closed: null, attachment: null };
@@ -51,7 +51,7 @@ function sock(name) {
  */
 function flyRoom(where, seconds, { silent = () => false } = {}) {
   let now = 5_000_000;
-  const meta = { code: 'SCALE2', cap: 16, friendly: true, map: 'swiss2', epoch: now - 1000 };
+  const meta = { code: 'SCALE2', cap: 16, friendly: true, map: 'itaipu', epoch: now - 1000 };
   const room = new RoomCore(meta);
   const pilots = where.map((x, i) => ({ ...sock(`p${i}`), x0: x, got: [], bytes: 0, sent: 0 }));
   let tokens = 0;
@@ -246,27 +246,27 @@ export async function scaleSection(check) {
   s.env.ADMIN_SECRET = '';
   res = await admin('');
   check('and with no secret set on the server, nobody does', res.status === 401);
-  const open = await s.create({ map: 'swiss2', public: true, name: 'Open Sky' });
+  const open = await s.create({ map: 'itaipu', public: true, name: 'Open Sky' });
   check('an open valve makes public rooms as ever', open.status === 200);
   /* A pilot in it: an empty room is never listed nor quick joined. */
   const flying = await s.join({ code: open.code });
   check('and its first pilot is in', Boolean(flying.welcome));
   busyNow = true;
-  const shut = await s.create({ map: 'swiss2', public: true, name: 'Too Late' });
+  const shut = await s.create({ map: 'itaipu', public: true, name: 'Too Late' });
   check('a closed one refuses a new public room, busy, and counts it', shut.status === 503 && shut.error === 'busy' && refused === 1);
-  const friends = await s.create({ map: 'swiss2', name: 'Friends' });
+  const friends = await s.create({ map: 'itaipu', name: 'Friends' });
   check('but not a private room', friends.status === 200);
   const listed = await s.list();
   check('the list says busy, and still lists the rooms', listed.busy === true && listed.rooms.some((r) => r.code === open.code));
   res = await fetchFront(s, '/v2/public', {});
   check('and so does /v2/public', (await res.json()).busy === true);
-  const into = await s.join({ map: 'swiss2' });
+  const into = await s.join({ map: 'itaipu' });
   check('a quick join still lands in a room with a seat', into.welcome && into.welcome.code === open.code);
-  const nowhere = await s.join({ map: 'alps' });
+  const nowhere = await s.join({ map: 'interior' });
   check('but one with no room to land in is refused, and no room is made for it', nowhere.refused === 503 && refused === 2
-    && !(await s.list()).rooms.some((r) => r.map === 'alps'));
+    && !(await s.list()).rooms.some((r) => r.map === 'interior'));
   busyNow = false;
-  const again = await s.join({ map: 'alps' });
+  const again = await s.join({ map: 'interior' });
   check('once the valve opens, the same quick join makes its room', again.welcome && again.welcome.public === true);
 }
 

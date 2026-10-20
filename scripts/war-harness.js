@@ -921,7 +921,7 @@ function wires() {
   const waves = Array.from({ length: 40 }, (_, i) => ({ at: 1 + i * 0.5, kind: 'strike', n: 1, route: 'across' }));
   const m = mission('wires', waves, { across: route });
   const sc = {
-    name: 'wires', kind: 'wires', air: ['cub1400'], mission: m, paths: [hover([mid[0], mid[1] + 400, mid[2] + 3000])], end: GO + 1000 + 40 * 500 + ((2 * L) / KIND.strike.speed) * 1000,
+    name: 'wires', kind: 'wires', air: ['striker2500'], mission: m, paths: [hover([mid[0], mid[1] + 400, mid[2] + 3000])], end: GO + 1000 + 40 * 500 + ((2 * L) / KIND.strike.speed) * 1000,
   };
   const run = (seed) => {
     const res = runOne({
@@ -1023,7 +1023,7 @@ function latejoin() {
     /* Long enough after a change for every view it caused to be heard. */
     const settled = (t) => t + 2 * (links[0].base + links[0].jitter + links[1].base + links[1].jitter) + 200;
     const sc = {
-      name: 'latejoin', kind: 'latejoin', air: ['cub1400', 'interceptor'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
+      name: 'latejoin', kind: 'latejoin', air: ['striker2500', 'interceptor'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
     };
     const res = runOne({
       sc, seed: 1, clock: 0, links,
@@ -1064,7 +1064,7 @@ function latejoin() {
     /* C, new to the match, takes B's seat while B is away. */
     const sc2 = {
       ...sc,
-      air: ['cub1400', 'interceptor', 'cub1400'],
+      air: ['striker2500', 'interceptor', 'striker2500'],
       paths: [away, hold, away],
       at: [{}, { join: JOIN, leave: LEAVE, back: BACK }, { join: GO + 13000, token: 'c'.repeat(32), seat: bWelcome.seat }],
     };

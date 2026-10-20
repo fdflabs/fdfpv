@@ -29,7 +29,7 @@ import {
   FOOT_SPOT_MS, FOOT_STALE_MS, createFootSender, createFootTrack,
 } from '../src/share/roomfoot.js';
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 3, livery: null, parts: null };
 
 export function footSection(check) {
   console.log('the pilot on foot');
@@ -68,7 +68,7 @@ export function footSection(check) {
   }, now, `10.0.4.${s.name.length}`, newToken));
   const feet = (s) => s.got.filter((m) => m instanceof Uint8Array && m[0] === TYPE_FOOT_RELAY);
 
-  const room = new RoomCore({ code: 'FOOT22', cap: PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: now - 1000 });
+  const room = new RoomCore({ code: 'FOOT22', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: now - 1000 });
   const a = sock('a');
   const b = sock('bb');
   const w = sock('www');

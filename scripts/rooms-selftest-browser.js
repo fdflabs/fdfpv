@@ -42,7 +42,7 @@ import {
 } from '../edge/rooms/lobby.js';
 
 const ORIGIN = 'https://fdflabs.github.io';
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /* A room's storage; `alarm` is the wall ms the room asked to be purged
@@ -224,21 +224,21 @@ export async function browserSection(check) {
 
   console.log('room browser: making rooms');
   let s = server();
-  const made = await s.create({ map: 'swiss2', public: true, name: '  Sky   Club ' });
+  const made = await s.create({ map: 'itaipu', public: true, name: '  Sky   Club ' });
   check('a public room is made with a code the browser joins it by', made.status === 200 && /^[A-Z0-9]{6}$/.test(made.code), JSON.stringify(made));
   const meta = s.stores.get(`prv:${made.code}`).kept.get('meta');
   check('it keeps the name as the server normalised it, a picker name, and the public cap', meta.name === 'Sky Club' && meta.public === true
     && meta.cap === PUBLIC_CAP && validNamePick(meta.pick) && meta.hidden === false, JSON.stringify(meta));
-  const bad = await s.create({ map: 'swiss2', public: true, name: 'Fuck Club' });
+  const bad = await s.create({ map: 'itaipu', public: true, name: 'Fuck Club' });
   check('a name the word filter refuses is refused by the server, whatever the client said', bad.status === 400 && bad.error === 'name');
-  const glued = await s.create({ map: 'swiss2', public: true, name: 'the sh1t pilots' });
+  const glued = await s.create({ map: 'itaipu', public: true, name: 'the sh1t pilots' });
   check('and spelled with a digit for a letter, too', glued.status === 400 && glued.error === 'name');
-  const shape = await s.create({ map: 'swiss2', public: true, name: 'ab' });
+  const shape = await s.create({ map: 'itaipu', public: true, name: 'ab' });
   check('a name of the wrong shape is refused the same way', shape.status === 400 && shape.error === 'name');
-  const blank = await s.create({ map: 'alps', public: true, name: '   ' });
+  const blank = await s.create({ map: 'interior', public: true, name: '   ' });
   const blankMeta = s.stores.get(`prv:${blank.code}`).kept.get('meta');
   check('a blank name makes a room with its picker name', blank.status === 200 && blankMeta.name === null && validNamePick(blankMeta.pick));
-  const priv = await s.create({ map: 'swiss2', name: 'Secret Base' });
+  const priv = await s.create({ map: 'itaipu', name: 'Secret Base' });
   const privMeta = s.stores.get(`prv:${priv.code}`).kept.get('meta');
   check(`a private room is made as before, ${PRIVATE_CAP} seats, and may be named too`, priv.status === 200 && privMeta.public === false
     && privMeta.cap === PRIVATE_CAP && privMeta.name === 'Secret Base');
@@ -246,10 +246,10 @@ export async function browserSection(check) {
   check('a room can be set up for a game', moded.status === 200 && s.stores.get(`prv:${moded.code}`).kept.get('meta').mode === 'war');
   const goneGame = await s.create({ map: 'itaipu', public: true, mode: 'combat' });
   check('but not for a game this build no longer has (Streamer Combat, an older page\'s)', goneGame.status === 400 && goneGame.error === 'bad');
-  const badMode = await s.create({ map: 'swiss2', public: true, mode: 'poker' });
+  const badMode = await s.create({ map: 'itaipu', public: true, mode: 'poker' });
   check('but not for a game there is not', badMode.status === 400 && badMode.error === 'bad');
   const closed = server(new Map(), 'off');
-  const refusedPublic = await closed.create({ map: 'swiss2', public: true });
+  const refusedPublic = await closed.create({ map: 'itaipu', public: true });
   check('no public room while public rooms are closed', refusedPublic.status === 403);
   check('and the list says so, empty', JSON.stringify(await closed.list()) === '{"open":false,"rooms":[]}');
 
@@ -268,7 +268,7 @@ export async function browserSection(check) {
   check('a world the simulator has is made as before', unretired.status === 200);
   /* A room stored on Yellowstone before the deploy, as the VM's SQLite
    * keeps it across the restart that brings this build. */
-  const keptOld = await old.create({ map: 'alps' });
+  const keptOld = await old.create({ map: 'interior' });
   const oldStore = old.stores.get(`prv:${keptOld.code}`);
   oldStore.kept.set('meta', { ...oldStore.kept.get('meta'), map: 'yellowstone' });
   const after = server(old.stores);
@@ -286,7 +286,7 @@ export async function browserSection(check) {
   console.log('room browser: a game since removed');
   const tagMade = await old.create({ map: 'itaipu' });
   const tagStore = old.stores.get(`prv:${tagMade.code}`);
-  tagStore.kept.set('meta', { ...tagStore.kept.get('meta'), map: 'swiss2', mode: 'tag' });
+  tagStore.kept.set('meta', { ...tagStore.kept.get('meta'), map: 'itaipu', mode: 'tag' });
   tagStore.kept.set('tag', { match: null, nextId: 2 });
   tagStore.kept.set('hosting', { token: 'a'.repeat(32) });
   const cut = server(old.stores);
@@ -328,7 +328,7 @@ export async function browserSection(check) {
   check('and is, with its first pilot in', codes.includes(made.code) && codes.includes(moded.code) && !codes.includes(blank.code), codes.join());
   check('a private room never is', !codes.includes(priv.code));
   const sky = list.rooms.find((r) => r.code === made.code);
-  check('a line says the name, world, pilots, cap and game', sky && sky.name === 'Sky Club' && sky.map === 'swiss2' && sky.n === 1
+  check('a line says the name, world, pilots, cap and game', sky && sky.name === 'Sky Club' && sky.map === 'itaipu' && sky.n === 1
     && sky.cap === PUBLIC_CAP && sky.game === null && sky.state === 'waiting' && validNamePick(sky.pick), JSON.stringify(sky));
   check('and a room set up for a game shows it, waiting', list.rooms.find((r) => r.code === moded.code).game === 'war', JSON.stringify(list.rooms.find((r) => r.code === moded.code)));
   check('a line carries nothing about a pilot', sky && Object.keys(sky).sort().join() === 'cap,code,emptySince,game,map,mission,mode,n,name,pick,ready,state,watchers,wave,waves');
@@ -390,7 +390,7 @@ export async function browserSection(check) {
 
   console.log('room browser: a household behind one address');
   s = server();
-  const home = await s.create({ map: 'swiss2', public: true, name: 'Family Room' });
+  const home = await s.create({ map: 'itaipu', public: true, name: 'Family Room' });
   const family = [];
   for (let i = 0; i < PUBLIC_CAP; i += 1) {
     family.push(await s.join({ code: home.code }, [i % 24, (i * 5) % 24, 20 + i], '10.50.0.1'));
@@ -410,19 +410,19 @@ export async function browserSection(check) {
 
   console.log('room browser: quick join');
   s = server();
-  const q1 = await s.join({ map: 'swiss2' });
+  const q1 = await s.join({ map: 'itaipu' });
   check('a quick join with no room makes one, public, with its picker name', q1.welcome && q1.welcome.public === true && q1.welcome.name === null
     && validNamePick(q1.welcome.pick) && /^[A-Z0-9]{6}$/.test(q1.welcome.code));
-  const q2 = await s.join({ map: 'swiss2' });
+  const q2 = await s.join({ map: 'itaipu' });
   check('the next quick join lands in it', q2.welcome && q2.welcome.code === q1.welcome.code);
-  const named = await s.create({ map: 'swiss2', public: true, name: 'Big One' });
+  const named = await s.create({ map: 'itaipu', public: true, name: 'Big One' });
   const inBig = [];
   for (let i = 0; i < 3; i += 1) {
     inBig.push(await s.join({ code: named.code }, [i, i, 20 + i]));
   }
-  const q3 = await s.join({ map: 'swiss2' });
+  const q3 = await s.join({ map: 'itaipu' });
   check('a quick join goes to the busiest room of its map with a seat', q3.welcome && q3.welcome.code === named.code);
-  const q4 = await s.join({ map: 'alps' });
+  const q4 = await s.join({ map: 'interior' });
   check('and never to another map\'s', q4.welcome && q4.welcome.code !== named.code && q4.welcome.code !== q1.welcome.code);
   await q4.leave();
   const q4Alarm = s.stores.get(`prv:${q4.welcome.code}`).alarm;
@@ -432,7 +432,7 @@ export async function browserSection(check) {
   let t = 1000;
   const book = new LobbyBook();
   const line1 = (code, n, created, extra = {}) => ({
-    ...listingOf({ code, name: null, pick: [1, 1, 11], map: 'swiss2', cap: PUBLIC_CAP, epoch: created, ...extra }, n, { game: null, state: 'waiting' }),
+    ...listingOf({ code, name: null, pick: [1, 1, 11], map: 'itaipu', cap: PUBLIC_CAP, epoch: created, ...extra }, n, { game: null, state: 'waiting' }),
   });
   book.report(line1('AAAAAA', 1, 1), t);
   book.report(line1('BBBBBB', 3, 2), t);
@@ -446,21 +446,21 @@ export async function browserSection(check) {
   check('the same for a room its pilots left', !book.list(t).some((r) => r.code === 'BBBBBB'));
   book.report(line1('BBBBBB', 1, 2), t);
   check('and a pilot back by its code lists it again', book.list(t).some((r) => r.code === 'BBBBBB'));
-  book.report(line1('EMPTYA', 0, 9, { map: 'alps' }), t);
-  check('a quick join never lands in an empty room, made a moment ago or left', book.quick('alps', t, 'NEWALP').code === 'NEWALP');
+  book.report(line1('EMPTYA', 0, 9, { map: 'interior' }), t);
+  check('a quick join never lands in an empty room, made a moment ago or left', book.quick('interior', t, 'NEWALP').code === 'NEWALP');
   book.report(line1('HHHHHH', 5, 4, { hidden: true }), t);
   check('a hidden room is never listed', !book.list(t).some((r) => r.code === 'HHHHHH'));
-  check('nor handed to a quick join, though busiest', book.quick('swiss2', t, 'NEWONE').code === 'CCCCCC');
+  check('nor handed to a quick join, though busiest', book.quick('itaipu', t, 'NEWONE').code === 'CCCCCC');
   const burst = new LobbyBook();
   const where = [];
   for (let i = 0; i < PUBLIC_CAP + 2; i += 1) {
-    where.push(burst.quick('alps', t, `NEW${String(i).padStart(3, '0')}`));
+    where.push(burst.quick('interior', t, `NEW${String(i).padStart(3, '0')}`));
   }
   check(`a burst of quick joins before any room reports fills one room to ${PUBLIC_CAP}, then makes a second`,
     where.filter((w) => w.code === 'NEW000').length === PUBLIC_CAP && where[0].fresh && where[PUBLIC_CAP].fresh && where[PUBLIC_CAP + 1].code === where[PUBLIC_CAP].code);
   check('a room booked by a quick join is not listed until it reports', !burst.list(t).length);
   t += PENDING_MS;
-  check('a booking whose room never reported lapses, and the next quick join makes a room again', burst.quick('alps', t, 'LATE01').code === 'LATE01' && !('NEW000' in burst.rooms));
+  check('a booking whose room never reported lapses, and the next quick join makes a room again', burst.quick('interior', t, 'LATE01').code === 'LATE01' && !('NEW000' in burst.rooms));
   const flood = new LobbyBook();
   for (let i = 0; i < MAX_ROOMS; i += 1) {
     flood.report(line1(`F${i}`, 1, i), t);
@@ -495,7 +495,7 @@ async function closingSection(check) {
   check('five minutes, one number for the purge, the list and the browser',
     EMPTY_CLOSE_MS === 5 * 60 * 1000 && PURGE_MS === EMPTY_CLOSE_MS && LIST_GRACE_MS === EMPTY_CLOSE_MS);
   const s = server();
-  const made = await s.create({ map: 'swiss2', public: true, name: 'Closing Club' });
+  const made = await s.create({ map: 'itaipu', public: true, name: 'Closing Club' });
   const store = s.stores.get(`prv:${made.code}`);
   const room = s.rooms.get(`prv:${made.code}`);
   const a = await s.join({ code: made.code });
@@ -526,7 +526,7 @@ async function closingSection(check) {
   const late = await s.join({ code: made.code }, [6, 7, 60]);
   check('and its code finds no room', !late.welcome && late.closed && late.closed.code === CLOSE.nosuch, JSON.stringify(late.closed));
 
-  const priv = await s.create({ map: 'swiss2', name: 'Secret Close' });
+  const priv = await s.create({ map: 'itaipu', name: 'Secret Close' });
   const pstore = s.stores.get(`prv:${priv.code}`);
   const p = await s.join({ code: priv.code });
   const pLeft = Date.now();
@@ -536,7 +536,7 @@ async function closingSection(check) {
   await s.rooms.get(`prv:${priv.code}`).host.alarm();
   check('then it is gone', pstore.kept.size === 0);
 
-  const never = await s.create({ map: 'alps', public: true, name: 'Nobody Came' });
+  const never = await s.create({ map: 'interior', public: true, name: 'Nobody Came' });
   const nstore = s.stores.get(`prv:${never.code}`);
   check('a room made and never joined is not listed, and closes five minutes on', !(await s.list()).rooms.some((r) => r.code === never.code)
     && nstore.alarm >= nstore.kept.get('meta').epoch + PURGE_MS - 50);

@@ -22,7 +22,7 @@
 import { PROTO, ROOM_LEVEL, checkProfile } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 
-const profile = { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: { prop: 'stock', addons: [], surfaces: { a: 'extreme', e: '3d', r: 'stock' } } };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: { prop: 'stock', addons: [], surfaces: { a: 'extreme', e: '3d', r: 'stock' } } };
 
 export function stockSurfacesSection(check) {
   console.log('the room\'s stock surfaces');
