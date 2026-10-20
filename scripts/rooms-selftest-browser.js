@@ -29,7 +29,7 @@
  */
 
 import {
-  CLOSE, EMPTY_CLOSE_MS, LIST_EVERY_MS, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PROTO, PUBLIC_CAP,
+  CLOSE, EMPTY_CLOSE_MS, LIST_EVERY_MS, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PROTO, ROOM_LEVEL, PUBLIC_CAP,
   ROOM_NAME_MAX, ROOM_NAME_REPORT, WAR_JOIN, normaliseRoomName, pilotRoomName, validNamePick,
 } from '../src/share/roomwire.js';
 import en from '../src/strings/en.js';
@@ -158,7 +158,7 @@ export function server(stores = new Map(), publicRooms = 'on') {
       await room.host.accept(c, new Request('http://room/', { headers: { 'x-room-address': ip } }));
       /* As every build since the war's consent asks it (WAR_JOIN), so a
        * room made for the war seats it. */
-      await room.host.message(c, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', war: WAR_JOIN, name, profile }));
+      await room.host.message(c, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: WAR_JOIN, name, profile }));
       await settle();
       c.room = room;
       c.welcome = texts(c, 'welcome')[0];

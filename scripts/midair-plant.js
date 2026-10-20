@@ -58,7 +58,7 @@ import { airframeById } from '../configs/airframes.js';
 import { combatAddon, combatChoice } from '../configs/combat.js';
 import { PART_STATE_DOUBLES, STATE } from '../configs/parts.js';
 import { readPartTable, readDamageEvents } from './lib/crash.js';
-import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, PROTO, encodePose } from '../src/share/roomwire.js';
+import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, PROTO, ROOM_LEVEL, encodePose } from '../src/share/roomwire.js';
 import { RoomCore, PRIVATE_CAP } from '../edge/rooms/core.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { BREAK_MPS, applyHit, sideFor } from '../src/game/midair.js';
@@ -207,7 +207,7 @@ function pass(A, B, latency, friendly = false, map = 'swiss2') {
   for (const c of conns) {
     route(room.open(c, 0), 0);
     route(room.message(c, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'plant', name: [1, 2, 42],
+      type: 'hello', proto: PROTO, build: 'plant', level: ROOM_LEVEL, name: [1, 2, 42],
       profile: { airframe: craft[c.i].id, map, figure: 0, livery: null, parts: null },
     }), 0, `10.0.0.${c.i + 1}`, newToken), 0);
   }

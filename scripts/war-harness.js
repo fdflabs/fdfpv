@@ -90,7 +90,7 @@
  */
 
 import {
-  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, decodePose, encodePose,
+  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, ROOM_LEVEL, decodePose, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
@@ -434,7 +434,7 @@ function runOne(cfg) {
   const hello = (c, t, extra = {}) => {
     deliver(room.open(c.conn, t), t);
     deliver(room.message(c.conn, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null }, ...extra,
+      type: 'hello', proto: PROTO, build: 'harness', level: ROOM_LEVEL, name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null }, ...extra,
     }), t, `10.9.0.${c.i + 1}`, newToken), t);
     const warhead = sc.warheads && sc.warheads[c.i];
     if (warhead) {
@@ -642,7 +642,7 @@ function cost(layout, parked = 52, hunters = 8, airframe = 'cub1400') {
   for (const c of conns) {
     room.open(c, 0);
     room.message(c, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 'harness', level: ROOM_LEVEL, name: [c.i, 2, 40 + c.i], profile: { airframe: air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null },
     }), 0, `10.9.1.${c.i + 1}`, () => (tokens += 1).toString(16).padStart(32, '0'));
   }
   room.message(conns[0], JSON.stringify({ type: 'war', op: 'start', mission: 'cost' }), 0, '10.9.1.1');

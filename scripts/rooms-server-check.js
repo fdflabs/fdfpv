@@ -190,7 +190,7 @@ const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3, livery: { schem
 async function seat(path, extra = {}, options = {}) {
   const p = pilot(path, {}, options);
   await p.open;
-  p.say({ type: 'hello', proto: PROTO, build: 'check', name: [1, 2, 42], profile, ...extra });
+  p.say({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 2, 42], profile, ...extra });
   p.welcome = await p.until((x) => x.text('welcome')[0] || x.closed);
   p.clockAt = Date.now();
   return p;
@@ -387,7 +387,7 @@ await c.open;
 await sleep(100);
 const gotBefore = a.got.length + b.got.length;
 serverFlushes = 0;
-c.say({ type: 'hello', proto: PROTO, build: 'check', name: [5, 6, 12], profile });
+c.say({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [5, 6, 12], profile });
 c.welcome = await c.until((x) => x.text('welcome')[0] || x.closed);
 c.clockAt = Date.now();
 check('a pilot who joins after sees the wreck where it lies', Boolean(await c.until((x) => x.text('event').find((m) => m.kind === 'crash' && m.seat === 1)))
@@ -408,7 +408,7 @@ await sleep(200);
 console.log('refusals');
 const nobody = pilot('room/BCDFGH');
 await nobody.open;
-nobody.say({ type: 'hello', proto: PROTO, build: 'check', name: [1, 2, 3], profile });
+nobody.say({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 2, 3], profile });
 await nobody.until((x) => x.closed);
 check('a code nobody made is answered nosuch', nobody.closed && nobody.closed.code === CLOSE.nosuch, JSON.stringify(nobody.closed));
 const flood = pilot(`room/${code}`);

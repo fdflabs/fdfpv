@@ -35,7 +35,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { CLOSE, PROTO, ROOM_LEVEL, ROOM_STATUSES, checkProfile } from '../src/share/roomwire.js';
+import { CLOSE, PROTO, ROOM_FLOOR, ROOM_LEVEL, ROOM_STATUSES, checkProfile } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 
 const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
@@ -60,7 +60,7 @@ export function sessionSection(check) {
     return actions;
   };
   const hello = (room, s, extra = {}) => run(room.hello(s, {
-    type: 'hello', proto: PROTO, build: 'fdfpv', name: [1, 2, 30], profile, ...extra,
+    type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, name: [1, 2, 30], profile, ...extra,
   }, now, `10.0.1.${s.name.length}`, newToken));
   const say = (room, s, msg) => run(room.message(s, JSON.stringify(msg), now));
   const got = (s, type) => s.got.filter((m) => m.type === type);
@@ -116,19 +116,26 @@ export function sessionSection(check) {
   /* The level. */
   now += 10;
   const lvl = new RoomCore({ ...meta, code: 'LEVL22', map: 'itaipu' });
+  const none = sock('none1');
+  const noneOut = hello(lvl, none, { level: undefined });
+  const below = sock('below1');
+  const belowOut = hello(lvl, below, { level: ROOM_FLOOR - 1 });
+  check(`a tab below the floor (${ROOM_FLOOR}), or from before levels, is told to reload on an empty room, never seated`,
+    none.closed?.code === CLOSE.update && below.closed?.code === CLOSE.update && !noneOut.some((a) => a.attach) && !belowOut.some((a) => a.attach)
+    && lvl.seats.size === 0);
   const old1 = sock('old1');
   const old2 = sock('old22');
-  hello(lvl, old1);
-  hello(lvl, old2);
-  check('tabs of one level fly together as they did', !old1.closed && !old2.closed && got(old2, 'welcome').length === 1);
+  hello(lvl, old1, { level: ROOM_FLOOR });
+  hello(lvl, old2, { level: ROOM_FLOOR });
+  check('tabs of one level at the floor fly together as they did', !old1.closed && !old2.closed && got(old2, 'welcome').length === 1);
   const fresh = sock('fresh1');
-  hello(lvl, fresh, { level: ROOM_LEVEL });
+  hello(lvl, fresh, { level: ROOM_LEVEL + 1 });
   check('a newer tab has the older ones told to reload',
     old1.closed?.code === CLOSE.update && old2.closed?.code === CLOSE.update && !fresh.closed);
   run(lvl.close(old1, now, CLOSE.update));
   run(lvl.close(old2, now, CLOSE.update));
   const late = sock('late22');
-  const lateOut = hello(lvl, late);
+  const lateOut = hello(lvl, late, { level: ROOM_FLOOR });
   check('and an older tab coming in after is told the same, never seated',
     late.closed?.code === CLOSE.update && !lateOut.some((a) => a.attach));
 

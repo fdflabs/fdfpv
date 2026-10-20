@@ -87,7 +87,7 @@ import { fileURLToPath } from 'node:url';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import WebSocket from 'ws';
 import {
-  CHAT_PRESETS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, PROTO, TYPE_BATCH, TYPE_PARTS_RELAY,
+  CHAT_PRESETS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, PROTO, ROOM_LEVEL, TYPE_BATCH, TYPE_PARTS_RELAY,
   BATCH_ENTRY, BATCH_HEAD, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
 import { INTEREST, TICK_MS } from '../edge/rooms/core.js';
@@ -328,7 +328,7 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
       const ws = new WebSocket(`${wsOrigin}/v2/room/${c.room.code}`, { headers });
       c.ws = ws;
       ws.on('open', () => {
-        c.sendText({ type: 'hello', proto: PROTO, build: 'load', name: [c.i % 24, (c.i * 7) % 24, 10 + (c.i % 90)], profile: {
+        c.sendText({ type: 'hello', proto: PROTO, build: 'load', level: ROOM_LEVEL, name: [c.i % 24, (c.i * 7) % 24, 10 + (c.i % 90)], profile: {
           airframe: c.quad ? 'interceptor' : 'cub1400', map: c.room.map, figure: c.i % 12, livery: null, parts: null,
         } });
       });

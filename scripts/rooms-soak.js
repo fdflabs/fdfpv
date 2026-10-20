@@ -30,7 +30,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { CLOSE, PROTO, decodeBatch, encodePose } from '../src/share/roomwire.js';
+import { CLOSE, PROTO, ROOM_LEVEL, decodeBatch, encodePose } from '../src/share/roomwire.js';
 
 const origin = (process.argv[2] || 'http://127.0.0.1:8787').replace(/\/+$/, '');
 const seconds = Number(process.argv[3] || 30);
@@ -59,7 +59,7 @@ function connect(code, i, extra = {}) {
     ws.binaryType = 'arraybuffer';
     const c = { i, ws, welcome: null, closed: null, texts: [], batches: 0, bytes: 0, frames: new Map(), pongs: 0, offset: null, bestRtt: Infinity };
     ws.addEventListener('open', () => {
-      ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'soak', name: [i % 24, (i * 7) % 24, 10 + i], profile: profile(i), ...extra }));
+      ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'soak', level: ROOM_LEVEL, name: [i % 24, (i * 7) % 24, 10 + i], profile: profile(i), ...extra }));
       resolve(c);
     });
     ws.addEventListener('message', (ev) => {

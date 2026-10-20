@@ -28,7 +28,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { PROTO, PUBLIC_CAP } from '../src/share/roomwire.js';
+import { PROTO, ROOM_LEVEL, PUBLIC_CAP } from '../src/share/roomwire.js';
 import { LIST_MAX, LobbyBook, listingOf } from '../edge/rooms/lobby.js';
 import { conn, server } from './rooms-selftest-browser.js';
 
@@ -83,7 +83,7 @@ export async function blocksSection(check) {
       const said = (obj) => room.host.message(c, JSON.stringify(obj), who ? who.callsign : null, who ? who.id : null, who ? who.blocks : []);
       room.sockets.add(c);
       await room.host.accept(c, new Request('http://room/', { headers: { 'x-room-address': c.address } }));
-      await said({ type: 'hello', proto: PROTO, build: 't', name: [1, 2, 30 + n], profile });
+      await said({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [1, 2, 30 + n], profile });
       await settle();
       c.say = async (obj) => {
         await said(obj);

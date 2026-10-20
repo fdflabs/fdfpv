@@ -26,7 +26,7 @@
  */
 
 import {
-  CLOSE, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, FLAG_SMOKE, POSE_BYTES, PROTO, PROFILE_MAX_BYTES, NAME_ADJECTIVES, NAME_ANIMALS,
+  CLOSE, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, FLAG_SMOKE, POSE_BYTES, PROTO, ROOM_LEVEL, PROFILE_MAX_BYTES, NAME_ADJECTIVES, NAME_ANIMALS,
   checkProfile, codeFromBytes, decodeBatch, decodePose, encodeBatch, encodePose, normaliseCode, validNamePick,
 } from '../src/share/roomwire.js';
 import { PeerTrack, DELAY_MS, EXTRAP_MAX_MS, STALE_MS, nearWeight, ACCEL_MAX, ACCEL_MS } from '../src/game/peer.js';
@@ -154,7 +154,7 @@ function run(actions) {
 }
 function hello(s, extra = {}) {
   run(room.open(s, now));
-  return run(room.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 42], profile, ...extra }), now, s.address, newToken));
+  return run(room.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', level: ROOM_LEVEL, name: [1, 2, 42], profile, ...extra }), now, s.address, newToken));
 }
 const texts = (s, type) => s.got.filter((m) => m && m.type === type);
 
@@ -493,7 +493,7 @@ function slowRoom({ frame, seconds, stopAt = Infinity, status = null }) {
   };
   for (const [i, s] of [slow, watcher].entries()) {
     deliver(r.open(s, clock));
-    deliver(r.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 60 + i], profile }), clock, s.address, newToken));
+    deliver(r.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', level: ROOM_LEVEL, name: [1, 2, 60 + i], profile }), clock, s.address, newToken));
   }
   const seat = r.seats.get(slow).seat;
   const wtrack = new PeerTrack();
@@ -608,9 +608,9 @@ console.log('mid air referee');
       }
     };
     mine(sa)(r.open(sa, 0));
-    mine(sa)(r.message(sa, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [1, 2, 11], profile: cub }), 0, sa.address, newToken));
+    mine(sa)(r.message(sa, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [1, 2, 11], profile: cub }), 0, sa.address, newToken));
     mine(sb)(r.open(sb, 0));
-    mine(sb)(r.message(sb, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [3, 4, 12], profile: profileB }), 0, sb.address, newToken));
+    mine(sb)(r.message(sb, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [3, 4, 12], profile: profileB }), 0, sb.address, newToken));
     const pose = (x, dir, flags, t) => encodePose({
       flags: FLAG_AIRBORNE | flags, seq: 1, t: stamp(t), px: x, py: 80, pz: 0,
       qx: 0, qy: dir > 0 ? -Math.SQRT1_2 : Math.SQRT1_2, qz: 0, qw: Math.SQRT1_2,
@@ -1219,7 +1219,7 @@ console.log('stale games and the host');
   };
   const join = (r, so, kept, extra = {}) => {
     apply(kept)(r.open(so, clock));
-    return apply(kept)(r.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [2, 3, 30], profile: quad, ...extra }), clock, so.address, newToken));
+    return apply(kept)(r.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [2, 3, 30], profile: quad, ...extra }), clock, so.address, newToken));
   };
   const say = (r, so, obj, kept) => apply(kept)(r.message(so, JSON.stringify(obj), clock, so.address));
   const refusals = (so) => texts(so, 'refused').map((m) => m.why);
@@ -1369,7 +1369,7 @@ console.log('the room tick keeps the clock');
   const near = sock('jnear', '10.9.1.2');
   for (const [i, so] of [sender, near].entries()) {
     run(jr.open(so, jstart));
-    run(jr.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 70 + i], profile }), jstart, so.address, newToken));
+    run(jr.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', level: ROOM_LEVEL, name: [1, 2, 70 + i], profile }), jstart, so.address, newToken));
   }
   let seed = 7;
   const rand = () => {

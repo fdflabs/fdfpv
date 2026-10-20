@@ -64,7 +64,7 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 import { availableParallelism } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import { FLAG_AIRBORNE, PROTO, decodeBatch, encodePose } from '../src/share/roomwire.js';
+import { FLAG_AIRBORNE, PROTO, ROOM_LEVEL, decodeBatch, encodePose } from '../src/share/roomwire.js';
 import { RoomCore, PRIVATE_CAP } from '../edge/rooms/core.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { PeerTrack } from '../src/game/peer.js';
@@ -385,7 +385,7 @@ function runOne(cfg) {
     }
   };
   const helloMsg = (c, airframe) => JSON.stringify({
-    type: 'hello', proto: PROTO, build: 'harness', name: [1, 2, 42], profile: PROFILE(airframe, sc.map ?? 'swiss2'), ...(c.token ? { token: c.token } : {}),
+    type: 'hello', proto: PROTO, build: 'harness', level: ROOM_LEVEL, name: [1, 2, 42], profile: PROFILE(airframe, sc.map ?? 'swiss2'), ...(c.token ? { token: c.token } : {}),
   });
   const air = [sc.a, sc.b];
   for (const c of clients) {

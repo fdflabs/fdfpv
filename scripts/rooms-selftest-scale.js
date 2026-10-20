@@ -24,7 +24,7 @@
  */
 
 import {
-  FLAG_AIRBORNE, PROTO, decodeBatch, encodePose,
+  FLAG_AIRBORNE, PROTO, ROOM_LEVEL, decodeBatch, encodePose,
 } from '../src/share/roomwire.js';
 import {
   HERE_MS, INTEREST, RoomCore, TICK_MS, interestEvery,
@@ -68,7 +68,7 @@ function flyRoom(where, seconds, { silent = () => false } = {}) {
   };
   for (const [i, p] of pilots.entries()) {
     run(room.open(p, now));
-    run(room.message(p, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [1, 2, 10 + i], profile }), now, `10.1.1.${i}`, () => {
+    run(room.message(p, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [1, 2, 10 + i], profile }), now, `10.1.1.${i}`, () => {
       tokens += 1;
       return tokens.toString(16).padStart(32, '0');
     }));

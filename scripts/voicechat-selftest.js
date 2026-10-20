@@ -40,7 +40,7 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
 import {
-  PROTO, RELAY_NONE, RELAY_UDP, VOICE_PER_S, VOICE_SDP_MAX,
+  PROTO, ROOM_LEVEL, RELAY_NONE, RELAY_UDP, VOICE_PER_S, VOICE_SDP_MAX,
 } from '../src/share/roomwire.js';
 import {
   CLOCK_PER_S, PRIVATE_CAP, RoomCore, TEXT_CLOSE_PER_S, TEXT_PER_S,
@@ -93,7 +93,7 @@ function makeRoom(turn = null) {
 }
 function seat(room, s) {
   run(room.open(s, now));
-  run(room.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 42], profile }), now, s.address, newToken));
+  run(room.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', level: ROOM_LEVEL, name: [1, 2, 42], profile }), now, s.address, newToken));
 }
 function say(room, s, msg) {
   return run(room.message(s, JSON.stringify(msg), now, s.address, newToken));
@@ -300,7 +300,7 @@ for (const withTurn of [true, false]) {
     const two = pilot(srv.origin, code);
     await Promise.all([one.opened, two.opened]);
     for (const x of [one, two]) {
-      x.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 42], profile }));
+      x.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', level: ROOM_LEVEL, name: [1, 2, 42], profile }));
     }
     await waitFor(() => [one, two].every((x) => x.got.some((m) => m.type === 'welcome')));
     const seatOf = (x) => x.got.find((m) => m.type === 'welcome').seat;

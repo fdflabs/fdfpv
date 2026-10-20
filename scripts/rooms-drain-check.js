@@ -63,7 +63,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
-import { PROTO, decodeBatch, encodePose } from '../src/share/roomwire.js';
+import { PROTO, ROOM_LEVEL, decodeBatch, encodePose } from '../src/share/roomwire.js';
 import { TICK_MS } from '../edge/rooms/core.js';
 
 let failed = 0;
@@ -173,7 +173,7 @@ async function seat(origin, path, extra = {}) {
   if (p.closed) {
     return p;
   }
-  p.say({ type: 'hello', proto: PROTO, build: 'check', name: [1, 2, 42], profile, ...extra });
+  p.say({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 2, 42], profile, ...extra });
   p.welcome = await p.until((x) => x.text('welcome')[0] || x.closed);
   p.clockAt = Date.now();
   return p;

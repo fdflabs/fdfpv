@@ -34,7 +34,7 @@
 
 import { ABANDON_MS, PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { LOBBY_COUNTDOWN_MS, LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
-import { FLAG_AIRBORNE, PROTO, encodePose } from '../src/share/roomwire.js';
+import { FLAG_AIRBORNE, PROTO, ROOM_LEVEL, encodePose } from '../src/share/roomwire.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { withHeld } from './lib/held.js';
@@ -72,7 +72,7 @@ function lobbyRoom({
     env.socks[i] = so;
     env.apply(r.open(so, env.clock));
     env.apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', war: 1, name: [i, i, 30 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: 1, name: [i, i, 30 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), env.clock, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };
@@ -105,7 +105,7 @@ function lobbyRoom({
     env.socks[i] = so;
     env.apply(r.open(so, env.clock));
     env.apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', war: 1, token: was.token, name: [i, i, 30 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: 1, token: was.token, name: [i, i, 30 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), env.clock, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };

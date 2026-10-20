@@ -21,7 +21,7 @@
  */
 
 import {
-  AGENTS_ENTRY, AGENTS_HEAD, HUNTS_ENTRY, HUNTS_HEAD, TYPE_HUNTS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
+  AGENTS_ENTRY, AGENTS_HEAD, HUNTS_ENTRY, HUNTS_HEAD, TYPE_HUNTS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, ROOM_LEVEL, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
   checkProfile, decodeAgents, decodeHunts, encodeAgents, encodeHunts, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
@@ -129,7 +129,7 @@ function warRoom({
     env.socks[i] = so;
     env.apply(r.open(so, at));
     env.apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], profile: { airframe: Array.isArray(air) ? air[i] : air, map, figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [i, i, 20 + i], profile: { airframe: Array.isArray(air) ? air[i] : air, map, figure: 1, livery: null, parts: null },
     }), at, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };
@@ -1143,7 +1143,7 @@ export function warSection(check) {
     const w = { name: 'watcher', address: '10.9.9.200', got: [] };
     e.apply(e.r.open(w, e.clock));
     e.apply(e.r.message(w, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [9, 9, 29], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [9, 9, 29], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
     }), e.clock, w.address, () => 'f'.repeat(32)));
     e.fly(COUNTDOWN_MS + 1000 + (1200 / KIND.decoy.speed) * 1000 + 20000);
     const late = e.view(2);
@@ -1166,7 +1166,7 @@ export function warSection(check) {
     const back = { name: 'back', address: '10.9.9.2', got: [] };
     e.apply(e.r.open(back, e.clock));
     e.apply(e.r.message(back, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', token, name: [1, 1, 21], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, token, name: [1, 1, 21], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), e.clock, back.address, () => 'e'.repeat(32)));
     const again = back.got.find((x) => x && x.type === 'welcome');
     check('a pilot who flew it, back on its token after the end (a reload at the result card): the welcome carries the result and the uid',
@@ -1190,7 +1190,7 @@ export function warSection(check) {
     const w = { name: 'watcher', address: '10.9.9.200', got: [] };
     e.apply(e.r.open(w, e.clock));
     e.apply(e.r.message(w, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [9, 9, 29], profile: { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [9, 9, 29], profile: { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
     }), e.clock, w.address, () => 'f'.repeat(32)));
     e.fly(COUNTDOWN_MS + 3000);
     const watched = w.got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).map(decodeAgents).filter((b) => b.agents.length);
@@ -1235,7 +1235,7 @@ export function warSection(check) {
       const so = { name: `back${i}`, address: `10.9.8.${i + 1}`, got: [] };
       again.open(so, e.clock);
       again.message(so, JSON.stringify({
-        type: 'hello', proto: PROTO, build: 't', token: e.socks[i].got.find((x) => x.type === 'welcome').token, seat: i + 1, name: [i, i, 20 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
+        type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, token: e.socks[i].got.find((x) => x.type === 'welcome').token, seat: i + 1, name: [i, i, 20 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
       }), e.clock, so.address, () => 'f'.repeat(32));
     }
     const v = again.war.view(again);

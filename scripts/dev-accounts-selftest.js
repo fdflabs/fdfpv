@@ -52,7 +52,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { ACCOUNT_JOIN, PROTO } from '../src/share/roomwire.js';
+import { ACCOUNT_JOIN, PROTO, ROOM_LEVEL } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore, devAccountsOf } from '../edge/rooms/core.js';
 import { helloAccount } from '../edge/rooms/node.js';
 import front from '../edge/rooms/front.js';
@@ -84,7 +84,7 @@ function room(map, list, accounts) {
     const so = { name: `p${i}`, address: `10.6.0.${i + 1}`, got: [] };
     r.open(so, 0);
     for (const x of r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], profile: {
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [i, i, 20 + i], profile: {
         airframe: map === 'itaipu' ? 'interceptor' : 'bramor2300', map, figure: 1, livery: null, parts: null,
       },
     }), 0, so.address, () => (tokens += 1).toString(16).padStart(32, '0'), `PILOT${i}`, account)) {
