@@ -57,17 +57,25 @@ export const CHALLENGE_TOKENS = 50;
  * has more than the shop costs: the shop is the reason to try something
  * new, not a wall. Every id is `<kind>:<paint id>`: a finish of
  * configs/paint.js FINISHES or a decal kind of DECAL_KINDS.
+ *
+ * The finishes cost 300, 500, 600, 500 and 400 until the combat-only cut
+ * (2026-10-20) took the recreational lessons' and the challenges' 650
+ * tokens out of what flying everything once pays (4600 to 3930, against a
+ * shop of 4470). Each came down by about 30 percent, rounded to 50, in
+ * the same order of dearness: 1650 for the five, so the shop is 3820.
+ * With the cut planes' milestones and kits gone as well (#12) it is 2140
+ * against 2310.
  */
 /* A kit item's price (see kitItems below). */
 export const KIT_PRICE = 70;
 
 export const ITEMS = [
-  { id: 'finish:satin', kind: 'finish', paint: 'satin', price: 300 },
-  { id: 'finish:pearl', kind: 'finish', paint: 'pearl', price: 500 },
-  { id: 'finish:candy', kind: 'finish', paint: 'candy', price: 600 },
+  { id: 'finish:satin', kind: 'finish', paint: 'satin', price: 200 },
+  { id: 'finish:pearl', kind: 'finish', paint: 'pearl', price: 350 },
+  { id: 'finish:candy', kind: 'finish', paint: 'candy', price: 450 },
   { id: 'finish:gold', kind: 'finish', paint: 'gold', earn: 'campaigns' },
-  { id: 'finish:flake', kind: 'finish', paint: 'flake', price: 500 },
-  { id: 'finish:brushed', kind: 'finish', paint: 'brushed', price: 400 },
+  { id: 'finish:flake', kind: 'finish', paint: 'flake', price: 350 },
+  { id: 'finish:brushed', kind: 'finish', paint: 'brushed', price: 300 },
   { id: 'decal:ribbon', kind: 'decal', paint: 'ribbon', earn: 'three_stars' },
   ...kitItems(),
 ];
