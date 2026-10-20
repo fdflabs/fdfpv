@@ -6,28 +6,20 @@
    "cards": {
     "tag": "div",
     "cls": "gate-cards",
-    "data-count": "3",
+    "data-count": "4",
     "kids": [
      {
       "tag": "div",
-      "cls": "gate-card gate-card-hub-club on",
+      "cls": "gate-card gate-card-interior on",
       "role": "button",
-      "aria-label": "Flight Club",
+      "aria-label": "The Interior",
       "aria-current": "true",
       "tabindex": "0",
-      "data-hub": "club",
       "kids": [
        {
         "tag": "div",
         "cls": "gate-card-art",
         "kids": [
-         {
-          "tag": "img",
-          "cls": "gate-card-shot",
-          "alt": "",
-          "decoding": "async",
-          "src": "assets/posters/swiss2.jpg"
-         },
          {
           "tag": "div",
           "cls": "gate-card-mark",
@@ -43,46 +35,39 @@
           "tag": "div",
           "cls": "gate-card-name",
           "kids": [
-           "Flight Club"
+           "The Interior"
           ]
          },
          {
           "tag": "p",
           "cls": "gate-card-blurb",
           "kids": [
-           "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly."
+           "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown."
           ]
          },
          {
           "tag": "div",
-          "cls": "gate-card-facts"
-         },
-         {
-          "tag": "div",
-          "cls": "gate-links",
+          "cls": "gate-card-facts",
           "kids": [
            {
-            "tag": "button",
-            "cls": "gate-link gate-card-race-5inch",
-            "tabindex": "-1",
+            "tag": "span",
+            "cls": "gate-card-fact",
             "kids": [
-             "Track Day"
+             "Five missions"
             ]
            },
            {
-            "tag": "button",
-            "cls": "gate-link gate-card-freestyle-wing1000",
-            "tabindex": "-1",
+            "tag": "span",
+            "cls": "gate-card-fact",
             "kids": [
-             "Free Flight"
+             "Co-op roles, any squad"
             ]
            },
            {
-            "tag": "button",
-            "cls": "gate-link gate-card-training",
-            "tabindex": "-1",
+            "tag": "span",
+            "cls": "gate-card-fact",
             "kids": [
-             "Learn to fly"
+             "Camera ball, quiet HUD"
             ]
            }
           ]
@@ -93,12 +78,11 @@
      },
      {
       "tag": "div",
-      "cls": "gate-card gate-card-hub-ops",
+      "cls": "gate-card gate-card-training",
       "role": "button",
-      "aria-label": "Operations",
+      "aria-label": "Defence training",
       "aria-current": "false",
       "tabindex": "-1",
-      "data-hub": "ops",
       "kids": [
        {
         "tag": "div",
@@ -126,41 +110,80 @@
           "tag": "div",
           "cls": "gate-card-name",
           "kids": [
-           "Operations"
+           "Defence training"
           ]
          },
          {
           "tag": "p",
           "cls": "gate-card-blurb",
           "kids": [
-           "Defend the Paraná: missions at Itaipu, alone or as a squad."
+           "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others."
+          ]
+         },
+         {
+          "tag": "div",
+          "cls": "gate-card-facts",
+          "kids": [
+           {
+            "tag": "span",
+            "cls": "gate-card-fact",
+            "kids": [
+             "Interception, tracking, a mission"
+            ]
+           },
+           {
+            "tag": "span",
+            "cls": "gate-card-fact",
+            "kids": [
+             "Flown in war rooms"
+            ]
+           },
+           {
+            "tag": "span",
+            "cls": "gate-card-fact",
+            "kids": [
+             "Nothing waits on them"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "gate-card gate-card-ops-field",
+      "role": "button",
+      "aria-label": "Field hangar",
+      "aria-current": "false",
+      "tabindex": "-1",
+      "kids": [
+       {
+        "tag": "div",
+        "cls": "gate-card-art"
+       },
+       {
+        "tag": "div",
+        "cls": "gate-card-body",
+        "kids": [
+         {
+          "tag": "div",
+          "cls": "gate-card-name",
+          "kids": [
+           "Field hangar"
+          ]
+         },
+         {
+          "tag": "p",
+          "cls": "gate-card-blurb",
+          "kids": [
+           "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front."
           ]
          },
          {
           "tag": "div",
           "cls": "gate-card-facts"
-         },
-         {
-          "tag": "div",
-          "cls": "gate-links",
-          "kids": [
-           {
-            "tag": "button",
-            "cls": "gate-link gate-card-interior",
-            "tabindex": "-1",
-            "kids": [
-             "The Interior"
-            ]
-           },
-           {
-            "tag": "button",
-            "cls": "gate-link gate-card-ops-field",
-            "tabindex": "-1",
-            "kids": [
-             "Field hangar"
-            ]
-           }
-          ]
          }
         ]
        }
@@ -278,8 +301,27 @@
    "rooms": {
     "tag": "div",
     "cls": "gate-rooms",
-    "hidden": "",
     "kids": [
+     {
+      "tag": "div",
+      "cls": "gate-rooms-head",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "gate-rooms-title",
+        "kids": [
+         "No rooms server"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "gate-rooms-count",
+        "kids": [
+         "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms."
+        ]
+       }
+      ]
+     },
      {
       "tag": "div",
       "cls": "gate-rooms-buttons"
@@ -296,6 +338,12 @@
       true,
       0,
       "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
       false
      ],
      [
@@ -333,6 +381,12 @@
       -1,
       "false",
       false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
      ]
     ],
     "rooms": []
@@ -357,6 +411,72 @@
       0,
       "true",
       false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ],
+    "rooms": []
+   },
+   {
+    "i": 3,
+    "cards": [
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      true,
+      0,
+      "true",
+      false
+     ]
+    ],
+    "rooms": []
+   },
+   {
+    "i": 4,
+    "cards": [
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
      ]
     ],
     "rooms": []
@@ -369,256 +489,7 @@
     "cards": {
      "tag": "div",
      "cls": "gate-cards",
-     "data-count": "3",
-     "kids": [
-      {
-       "tag": "div",
-       "cls": "gate-card gate-card-race-5inch on",
-       "role": "button",
-       "aria-label": "Track Day",
-       "aria-current": "true",
-       "tabindex": "0",
-       "kids": [
-        {
-         "tag": "div",
-         "cls": "gate-card-art",
-         "kids": [
-          {
-           "tag": "img",
-           "cls": "gate-card-shot",
-           "alt": "",
-           "decoding": "async",
-           "src": "assets/gate/race.jpg"
-          },
-          {
-           "tag": "div",
-           "cls": "gate-card-mark",
-           "svg": true
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "cls": "gate-card-body",
-         "kids": [
-          {
-           "tag": "div",
-           "cls": "gate-card-name",
-           "kids": [
-            "Track Day"
-           ]
-          },
-          {
-           "tag": "p",
-           "cls": "gate-card-blurb",
-           "kids": [
-            "Gates against the clock, on your own track or one from the board."
-           ]
-          },
-          {
-           "tag": "div",
-           "cls": "gate-card-facts",
-           "kids": [
-            {
-             "tag": "span",
-             "cls": "gate-card-fact",
-             "kids": [
-              "Gates"
-             ]
-            },
-            {
-             "tag": "span",
-             "cls": "gate-card-fact",
-             "kids": [
-              "The clock"
-             ]
-            },
-            {
-             "tag": "span",
-             "cls": "gate-card-fact",
-             "kids": [
-              "The board"
-             ]
-            }
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "cls": "gate-card gate-card-freestyle-wing1000",
-       "role": "button",
-       "aria-label": "Free Flight",
-       "aria-current": "false",
-       "tabindex": "-1",
-       "kids": [
-        {
-         "tag": "div",
-         "cls": "gate-card-art",
-         "kids": [
-          {
-           "tag": "img",
-           "cls": "gate-card-shot",
-           "alt": "",
-           "decoding": "async",
-           "src": "assets/gate/flight.jpg"
-          },
-          {
-           "tag": "div",
-           "cls": "gate-card-mark",
-           "svg": true
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "cls": "gate-card-body",
-         "kids": [
-          {
-           "tag": "div",
-           "cls": "gate-card-name",
-           "kids": [
-            "Free Flight"
-           ]
-          },
-          {
-           "tag": "p",
-           "cls": "gate-card-blurb",
-           "kids": [
-            "Every fixed wing, picked under Plane, free in the Swiss valley."
-           ]
-          },
-          {
-           "tag": "div",
-           "cls": "gate-card-facts",
-           "kids": [
-            {
-             "tag": "span",
-             "cls": "gate-card-fact",
-             "kids": [
-              "Every plane"
-             ]
-            },
-            {
-             "tag": "span",
-             "cls": "gate-card-fact",
-             "kids": [
-              "The Swiss valley"
-             ]
-            }
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "cls": "gate-card gate-card-training",
-       "role": "button",
-       "aria-label": "Learn to fly",
-       "aria-current": "false",
-       "tabindex": "-1",
-       "kids": [
-        {
-         "tag": "div",
-         "cls": "gate-card-art",
-         "kids": [
-          {
-           "tag": "img",
-           "cls": "gate-card-shot",
-           "alt": "",
-           "decoding": "async",
-           "src": "assets/posters/swiss2.jpg"
-          },
-          {
-           "tag": "div",
-           "cls": "gate-card-mark",
-           "svg": true
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "cls": "gate-card-body",
-         "kids": [
-          {
-           "tag": "div",
-           "cls": "gate-card-name",
-           "kids": [
-            "Learn to fly"
-           ]
-          },
-          {
-           "tag": "p",
-           "cls": "gate-card-blurb",
-           "kids": [
-            "Lessons from the first takeoff to racing your ghost, one step at a time."
-           ]
-          },
-          {
-           "tag": "div",
-           "cls": "gate-card-facts",
-           "kids": [
-            {
-             "tag": "span",
-             "cls": "gate-card-fact",
-             "kids": [
-              "Short lessons, in order"
-             ]
-            },
-            {
-             "tag": "span",
-             "cls": "gate-card-fact",
-             "kids": [
-              "SAFE Select first, then AS3X"
-             ]
-            },
-            {
-             "tag": "span",
-             "cls": "gate-card-fact",
-             "kids": [
-              "Nothing waits on them"
-             ]
-            }
-           ]
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    },
-    "lit": [
-     [
-      true,
-      0,
-      "true",
-      false
-     ],
-     [
-      false,
-      -1,
-      "false",
-      false
-     ],
-     [
-      false,
-      -1,
-      "false",
-      false
-     ]
-    ]
-   },
-   "ops": {
-    "hub": "ops",
-    "cursor": 0,
-    "cards": {
-     "tag": "div",
-     "cls": "gate-cards",
-     "data-count": "2",
+     "data-count": "4",
      "kids": [
       {
        "tag": "div",
@@ -690,6 +561,81 @@
       },
       {
        "tag": "div",
+       "cls": "gate-card gate-card-training",
+       "role": "button",
+       "aria-label": "Defence training",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "img",
+           "cls": "gate-card-shot",
+           "alt": "",
+           "decoding": "async",
+           "src": "assets/posters/itaipu.jpg"
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Defence training"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts",
+           "kids": [
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Interception, tracking, a mission"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Flown in war rooms"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Nothing waits on them"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
        "cls": "gate-card gate-card-ops-field",
        "role": "button",
        "aria-label": "Field hangar",
@@ -725,6 +671,113 @@
          ]
         }
        ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-hub-hangar",
+       "role": "button",
+       "aria-label": "Hangar",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "data-hub": "hangar",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "img",
+           "cls": "gate-card-shot",
+           "alt": "",
+           "decoding": "async",
+           "src": "assets/gate/hangar.jpg"
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Hangar"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Your aircraft, its power, paint and parts, and your radio."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          },
+          {
+           "tag": "div",
+           "cls": "gate-links",
+           "kids": [
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-walk",
+             "tabindex": "-1",
+             "kids": [
+              "Walk in"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-aircraft",
+             "tabindex": "-1",
+             "kids": [
+              "Aircraft"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-customise",
+             "tabindex": "-1",
+             "kids": [
+              "Customise"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-upgrades",
+             "tabindex": "-1",
+             "kids": [
+              "Upgrades"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-controller",
+             "tabindex": "-1",
+             "kids": [
+              "Controller"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-howto",
+             "tabindex": "-1",
+             "kids": [
+              "How to fly"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
       }
      ]
     },
@@ -733,6 +786,343 @@
       true,
       0,
       "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ]
+   },
+   "ops": {
+    "hub": "ops",
+    "cursor": 0,
+    "cards": {
+     "tag": "div",
+     "cls": "gate-cards",
+     "data-count": "4",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-interior on",
+       "role": "button",
+       "aria-label": "The Interior",
+       "aria-current": "true",
+       "tabindex": "0",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "The Interior"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts",
+           "kids": [
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Five missions"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Co-op roles, any squad"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Camera ball, quiet HUD"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-training",
+       "role": "button",
+       "aria-label": "Defence training",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "img",
+           "cls": "gate-card-shot",
+           "alt": "",
+           "decoding": "async",
+           "src": "assets/posters/itaipu.jpg"
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Defence training"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts",
+           "kids": [
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Interception, tracking, a mission"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Flown in war rooms"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Nothing waits on them"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-ops-field",
+       "role": "button",
+       "aria-label": "Field hangar",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art"
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Field hangar"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-hub-hangar",
+       "role": "button",
+       "aria-label": "Hangar",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "data-hub": "hangar",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "img",
+           "cls": "gate-card-shot",
+           "alt": "",
+           "decoding": "async",
+           "src": "assets/gate/hangar.jpg"
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Hangar"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Your aircraft, its power, paint and parts, and your radio."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          },
+          {
+           "tag": "div",
+           "cls": "gate-links",
+           "kids": [
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-walk",
+             "tabindex": "-1",
+             "kids": [
+              "Walk in"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-aircraft",
+             "tabindex": "-1",
+             "kids": [
+              "Aircraft"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-customise",
+             "tabindex": "-1",
+             "kids": [
+              "Customise"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-upgrades",
+             "tabindex": "-1",
+             "kids": [
+              "Upgrades"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-controller",
+             "tabindex": "-1",
+             "kids": [
+              "Controller"
+             ]
+            },
+            {
+             "tag": "button",
+             "cls": "gate-link gate-card-hangar-howto",
+             "tabindex": "-1",
+             "kids": [
+              "How to fly"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "lit": [
+     [
+      true,
+      0,
+      "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
       false
      ],
      [
@@ -1036,13 +1426,17 @@
    }
   },
   "linkClick": {
-   "link": "gate-link gate-card-race-5inch",
-   "screen": "title",
+   "link": "gate-link gate-card-hangar-walk",
+   "screen": "walk",
    "hub": null,
    "calls": [
     [
      "onUiSound",
      "select"
+    ],
+    [
+     "onScreenChange",
+     "walk"
     ]
    ]
   },
@@ -1051,7 +1445,7 @@
   },
   "cardClick": {
    "screen": "title",
-   "hub": "ops",
+   "hub": null,
    "calls": [
     [
      "onUiSound",
@@ -1062,8 +1456,7 @@
      "select"
     ],
     [
-     "onUiSound",
-     "move"
+     "onTrainingCard"
     ]
    ]
   },
@@ -1071,6 +1464,26 @@
    "tag": "div",
    "cls": "gate-rooms",
    "kids": [
+    {
+     "tag": "div",
+     "cls": "gate-rooms-head",
+     "kids": [
+      {
+       "tag": "span",
+       "cls": "gate-rooms-title",
+       "kids": [
+        "No rooms server"
+       ]
+      },
+      {
+       "tag": "span",
+       "cls": "gate-rooms-count",
+       "kids": [
+        "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms."
+       ]
+      }
+     ]
+    },
     {
      "tag": "div",
      "cls": "gate-rooms-head",
@@ -1199,12 +1612,18 @@
   },
   "roomWalk": [
    {
-    "i": -3,
+    "i": -5,
     "cards": [
      [
       true,
       0,
       "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
       false
      ],
      [
@@ -1242,6 +1661,12 @@
    {
     "i": 1,
     "cards": [
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
      [
       false,
       -1,
@@ -1300,6 +1725,12 @@
       -1,
       "false",
       false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
      ]
     ],
     "rooms": [
@@ -1324,6 +1755,12 @@
    {
     "i": 4,
     "cards": [
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
      [
       false,
       -1,
@@ -1372,6 +1809,26 @@
    "tag": "div",
    "cls": "gate-rooms",
    "kids": [
+    {
+     "tag": "div",
+     "cls": "gate-rooms-head",
+     "kids": [
+      {
+       "tag": "span",
+       "cls": "gate-rooms-title",
+       "kids": [
+        "No rooms server"
+       ]
+      },
+      {
+       "tag": "span",
+       "cls": "gate-rooms-count",
+       "kids": [
+        "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms."
+       ]
+      }
+     ]
+    },
     {
      "tag": "div",
      "cls": "gate-rooms-head",
@@ -1501,8 +1958,27 @@
   "roomsEmpty": {
    "tag": "div",
    "cls": "gate-rooms",
-   "hidden": "",
    "kids": [
+    {
+     "tag": "div",
+     "cls": "gate-rooms-head",
+     "kids": [
+      {
+       "tag": "span",
+       "cls": "gate-rooms-title",
+       "kids": [
+        "No rooms server"
+       ]
+      },
+      {
+       "tag": "span",
+       "cls": "gate-rooms-count",
+       "kids": [
+        "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms."
+       ]
+      }
+     ]
+    },
     {
      "tag": "div",
      "cls": "gate-rooms-buttons"
