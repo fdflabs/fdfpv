@@ -136,16 +136,21 @@ const ceiling = everything.reduce((n, f) => n + f.xp, 0);
 check('every fact at once has a ceiling: stars clamp to three', everything.filter((f) => f.key.includes(':star')).length === 12 * 3 && ceiling < 1e5, `${everything.length} firsts, ${ceiling} XP`);
 const learner = normaliseProgress({ v: 2, xp: 0, lessons: { first_takeoff: 1759800000000, not_yet_written: 1759800000001, bad: 'x' } });
 check('lesson passes are kept as times, unknown ids too, junk dropped', learner.lessons.first_takeoff === 1759800000000 && learner.lessons.not_yet_written && !('bad' in learner.lessons));
-/* "I fly already": first_unaided flown, the three before it covered. */
-const skipper = normaliseProgress({ v: 2, xp: 0, lessons: { first_takeoff: 5, first_turns: 5, first_land: 5, first_unaided: 5 }, lessonsFlown: { first_unaided: true } });
+/* A lesson passed but not flown (what "I fly already" wrote for the
+ * lessons it covered, before it left with Flight Club's lessons) pays
+ * nothing; flown later, it pays then, once. */
+const skipper = normaliseProgress({ v: 2, xp: 0, lessons: { defence_intercept: 5, defence_track: 5 }, lessonsFlown: { defence_intercept: true } });
 const skipEv = awardFirsts(skipper, { lessons: skipper.lessons, flown: skipper.lessonsFlown });
-check('a skip pays only the lesson flown: the covered ones are passed and pay nothing', same(skipEv.filter((e) => e.type === 'first').map((e) => e.key), ['lesson:first_unaided'])
-  && skipper.xp === FIRST_XP.lesson && Object.keys(skipper.lessons).length === 4);
-skipper.lessonsFlown.first_turns = true;
-check('a covered lesson flown later pays then, once', same(awardFirsts(skipper, { lessons: skipper.lessons, flown: skipper.lessonsFlown }).filter((e) => e.type === 'first').map((e) => e.key), ['lesson:first_turns']));
-learner.lessonsFlown = { first_takeoff: true, not_yet_written: true };
+check('only the lesson flown pays: one passed and not flown pays nothing', same(skipEv.filter((e) => e.type === 'first').map((e) => e.key), ['lesson:defence_intercept'])
+  && skipper.xp === FIRST_XP.lesson && Object.keys(skipper.lessons).length === 2);
+skipper.lessonsFlown.defence_track = true;
+check('a passed lesson flown later pays then, once', same(awardFirsts(skipper, { lessons: skipper.lessons, flown: skipper.lessonsFlown }).filter((e) => e.type === 'first').map((e) => e.key), ['lesson:defence_track']));
+/* first_takeoff left with Flight Club's lessons (the combat-only cut,
+ * 2026-10-20): its pass is kept, unread, and pays nothing new. */
+learner.lessons.defence_mission = 1759800000002;
+learner.lessonsFlown = { first_takeoff: true, not_yet_written: true, defence_mission: true };
 const lessonEv = awardFirsts(learner, { lessons: learner.lessons, flown: learner.lessonsFlown });
-check('a known lesson flown is a first, paid once; an unknown one pays nothing', same(lessonEv.filter((e) => e.type === 'first').map((e) => e.key), ['lesson:first_takeoff'])
+check('a known lesson flown is a first, paid once; an unknown one, or one that left, pays nothing', same(lessonEv.filter((e) => e.type === 'first').map((e) => e.key), ['lesson:defence_mission'])
   && learner.xp === FIRST_XP.lesson && awardFirsts(learner, { lessons: learner.lessons, flown: learner.lessonsFlown }).length === 0);
 check('milestones by name', same(milestonesOf({ cub1400: MILESTONE_S.ten }, 'cub1400f'), { flight: true, ten: true, hour: false }));
 
@@ -747,11 +752,10 @@ console.log('discovery (src/game/discovery.js, PROGRESSION.md section 6)');
 
 console.log('the aircraft challenges (PROGRESSION.md section 5)');
 {
-  const { LESSONS } = await import('../src/game/training.js');
   const families = AIRFRAMES.filter((a) => a.id === liveryKey(a.id));
   check('every aircraft has its three, from its class', families.every((a) => challengeAmounts(a.id) !== null), families.filter((a) => !challengeAmounts(a.id)).map((a) => a.id).join());
   check('a float plane\'s are its land plane\'s; an unknown id has none', same(challengeAmounts('cub1400f'), challengeAmounts('cub1400')) && challengeAmounts('notaplane') === null);
-  check('the landing streak is the approaches lesson\'s', LANDING_STREAK === LESSONS.find((l) => l.id === 'wing_approaches').steps.length && LANDING_STREAK === 3);
+  check('the landing streak is the approaches lesson\'s three', LANDING_STREAK === 3);
   check('every glider has its best glide; a multirotor\'s lap is 360 m at 13 m/s, 28 s',
     AIRFRAMES.filter((a) => a.class === 'glider').every((a) => Number.isFinite(BEST_GLIDE[a.id])) && challengeAmounts('interceptor').lapMs === 28000);
   check('a plane\'s lap is 3 200 m at the middle of its stall and top speed, rounded up to the second',

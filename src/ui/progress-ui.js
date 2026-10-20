@@ -39,7 +39,7 @@ import { placeKey, placesAt, placesOf } from '../game/discovery.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog } from '../game/events.js';
 import { itemById } from '../game/economy.js';
-import { LessonWatch, certsEarned, lessonById, lessonFliesIn, passesOf } from '../game/training.js';
+import { LessonWatch, certsEarned, lessonById, lessonFliesIn } from '../game/training.js';
 import { readWallet } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
@@ -450,8 +450,8 @@ export class Progress {
   }
 
   /*
-   * THE LESSON being flown (src/game/training.js), or none: judged beside
-   * the challenges from the same calls, and said in toasts. It lasts until
+   * THE LESSON being flown (src/game/training.js), or none: judged from
+   * the war room's calls and the frame's crash flag, and said in toasts. It lasts until
    * another lesson or endLesson (any other card).
    */
   startLesson(lesson) {
@@ -471,14 +471,6 @@ export class Progress {
   endLesson() {
     this.lesson = null;
     keepLessonInFlight(null);
-    if (this.onLessonEnd) {
-      this.onLessonEnd();
-    }
-  }
-
-  /* The visual aid the lesson in flight draws, or null. */
-  lessonAid() {
-    return this.lesson ? this.lesson.lesson.aid ?? null : null;
   }
 
   /*
@@ -537,12 +529,11 @@ export class Progress {
     const total = w.lesson.steps.length;
     if (w.passed) {
       const now = Date.now();
-      for (const id of passesOf(w.lesson.id)) {
-        this.state.lessons[id] ??= now;
-      }
-      /* Only the lesson actually flown pays its first (progress.js
-       * lessonsFlown); what it covers is passed, not flown. The map is
-       * made here when a profile from before it has none. */
+      this.state.lessons[w.lesson.id] ??= now;
+      /* Only a lesson actually flown pays its first (progress.js
+       * lessonsFlown): "I fly already" passed lessons without flying them
+       * until it left with Flight Club's lessons. The map is made here
+       * when a profile from before it has none. */
       this.state.lessonsFlown ??= {};
       this.state.lessonsFlown[w.lesson.id] = true;
       this.state.certs ??= {};

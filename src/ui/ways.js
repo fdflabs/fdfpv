@@ -163,20 +163,21 @@ export const WAYS = [
     blurb: str('ops.campaign.interior.card_blurb'),
     facts: [str('ops.campaign.interior.card_missions'), str('ops.campaign.interior.card_roles'), str('ops.campaign.interior.card_quiet')],
   },
-  /* Learn to fly, the lessons (src/game/training.js): a solo card, not a
-   * room game, so it is not in the mode registry, as the Interior's is
-   * not. Its own page lists the lessons; a lesson seats its aircraft. */
+  /* Defence training, the lessons (src/game/training.js): not a room game
+   * of its own, so it is not in the mode registry, as the Interior's is
+   * not. Its own page lists the lessons; each flies in a war room, which
+   * seats the war's aircraft. */
   {
     id: 'training',
     training: true,
-    category: 'flightclub',
-    airframes: ['timber1500'],
+    category: 'operations',
+    airframes: AIRFRAME_IDS,
     mode: 'freestyle',
     label: str('training.card'),
-    art: 'assets/posters/swiss2.jpg',
-    svg: planeSvg(),
+    art: 'assets/posters/itaipu.jpg',
+    svg: reticleSvg(),
     blurb: str('training.card_blurb'),
-    facts: [str('training.card_steps'), str('training.card_assists'), str('training.card_gates')],
+    facts: [str('training.card_steps'), str('training.card_rooms'), str('training.card_gates')],
   },
 ].map((way) => ({ ...way, action: `way-${way.id}` }));
 

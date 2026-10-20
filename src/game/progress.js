@@ -787,11 +787,11 @@ const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) =
 /* Every first the facts show, paid or not: [{ key, xp }], in a fixed order. */
 /*
  * A LESSON PAYS ONLY IF IT WAS FLOWN (lead decision 2026-10-07): "I fly
- * already" (src/game/training.js SKIPS) marks the lessons it covers passed
- * in `lessons` without their being flown; the lesson actually flown is
- * also flagged in `lessonsFlown`, and only a flagged one is a first, so a
- * skip is no shortcut to XP or tokens. A covered lesson flown later is
- * flagged then and pays then.
+ * already" marked the lessons it covered passed in `lessons` without
+ * their being flown, until it left with Flight Club's lessons (the
+ * combat-only cut, 2026-10-20); the lesson actually flown is also
+ * flagged in `lessonsFlown`, and only a flagged one is a first, so a skip
+ * was no shortcut to XP or tokens.
  */
 export function firstsOf({ campaign = null, seconds = {}, lessons = {}, flown = {} } = {}) {
   const out = [];
@@ -902,8 +902,8 @@ export function awardPlace(progress, world, id) {
  *
  *   landings   LANDING_STREAK landings in one flight with no crash
  *              between, on the one aircraft. 3, the approaches lesson's
- *              three (src/game/training.js wing_approaches), read from
- *              the lesson so the two never disagree.
+ *              three (wing_approaches, in git history since the
+ *              combat-only cut).
  *   lap        a lap of a casual sky track (the lap event's kind
  *              'casual', a track whose size is fixed: src/builder/
  *              course.js CASUAL, 8 gates 45 m apart for a quad, 400 m
@@ -937,7 +937,9 @@ export function awardPlace(progress, world, id) {
  */
 export const AIRCRAFT_CHALLENGE_IDS = ['landings', 'lap', 'endurance'];
 export const AIRCRAFT_CHALLENGE_XP = FIRST_XP.lesson;
-export const LANDING_STREAK = LESSONS.find((l) => l.id === 'wing_approaches').steps.length;
+/* The approaches lesson's three landings, held as a number since that
+ * lesson left with Flight Club's lessons (the combat-only cut, 2026-10-20). */
+export const LANDING_STREAK = 3;
 /* src/builder/course.js CASUAL: gates times spacing; the selftest holds
  * them equal (that module draws on the builder, which Node's server side
  * readers of this file do not load). */

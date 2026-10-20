@@ -64,9 +64,8 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { lockOf } from './game/progress.js';
-import { STRIPS, applyLesson, bankOf, glidePoints, headingOf, heldSettings, heldTrack, lateralG, restoreSettings } from './game/training.js';
+import { heldTrack, restoreSettings } from './game/training.js';
 import { PRACTICE_ID } from './share/war/missions/itaipu-practice.js';
-import { createGlidePath } from './render/glidepath.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
@@ -680,12 +679,11 @@ export async function boot({
   loading.system('input', 'ready');
   const ui = new Ui(uiRoot);
   /*
-   * A LESSON'S SETTINGS (src/game/training.js): what the pilot's aircraft,
-   * tune, flight mode and weather were before the first lesson, held in
-   * memory and in storage, so a reload mid lesson puts them back too;
-   * restored when the lesson is left (Progress.endLesson, any other card)
-   * and here, on the load after one. Without storage the memory still
-   * restores them within the page.
+   * A LESSON'S SETTINGS (src/game/training.js): the lessons that left with
+   * Flight Club (the combat-only cut, 2026-10-20) held the pilot's
+   * aircraft, tune, flight mode and weather in storage while they flew,
+   * so a page closed mid lesson before the cut left them held. Put back
+   * once, here, and the key dropped; nothing writes it any more.
    */
   const LESSON_RESTORE_KEY = 'fdfpv.lessonRestore';
   let lessonHeld = null;
@@ -706,29 +704,14 @@ export async function boot({
     }
     return WEATHER_PRESETS.includes(value);
   }
-  function holdLessonSettings() {
-    if (lessonHeld) {
-      return;
-    }
-    lessonHeld = heldSettings(ui.settings);
-    try {
-      localStorage.setItem(LESSON_RESTORE_KEY, JSON.stringify(lessonHeld));
-    } catch (e) {
-      /* No storage: held in memory for this page. */
-    }
+  if (restoreSettings(ui.settings, lessonHeld, seatAirframe, lessonSettingValid)) {
+    ui.persistSettings();
   }
-  function restoreLessonSettings() {
-    if (restoreSettings(ui.settings, lessonHeld, seatAirframe, lessonSettingValid)) {
-      ui.persistSettings();
-    }
-    lessonHeld = null;
-    try {
-      localStorage.removeItem(LESSON_RESTORE_KEY);
-    } catch (e) {
-      /* No storage: nothing was kept there. */
-    }
+  try {
+    localStorage.removeItem(LESSON_RESTORE_KEY);
+  } catch (e) {
+    /* No storage: nothing was kept there. */
   }
-  restoreLessonSettings();
   /* And the lesson that load's page was flying, said (TRAINING.md 10). */
   ui.progress.lessonReloaded();
   /* Every model of a plane is built in the pilot's paint for it
@@ -7838,49 +7821,37 @@ export async function boot({
   /* Home's Continue asks each campaign for its next mission (src/ui/actions.js continueWay). */
   ui.campaigns = { war: campaign, [INTERIOR_CAMPAIGN.id]: interiorScreen };
   /*
-   * LEARN TO FLY: a lesson seats its aircraft and its assist (the tune,
-   * Stabilised or Acro) and goes in by the card it is flown from, Free
-   * Flight on its world or Track mode's tracks; its judge rides on the
-   * progress calls (src/ui/progress-ui.js) until another card is pressed.
+   * DEFENCE TRAINING: a lesson flies in a war room, its consent asked
+   * first: the practice in a solo room made for it (roomMade, not
+   * remembered, so the war's own Who joins stays as the pilot left it), a
+   * campaign mission the campaign's way. The stage engine runs only in a
+   * room. Its judge rides on the progress calls (src/ui/progress-ui.js)
+   * until another card is pressed.
    */
   const trainingScreen = createTrainingScreen({
     ui,
     passed: (id) => Boolean(ui.settings.progress.lessons[id]),
     fly: (lesson) => {
-      const s = ui.settings;
-      holdLessonSettings();
-      applyLesson(s, lesson, seatAirframe);
-      const craft = s.airframe;
       ui.progress.startLesson(lesson);
-      /* A Defence lesson flies in a war room, its consent asked first: the
-       * practice in a solo room made for it (roomMade, not remembered, so
-       * the war's own Who joins stays as the pilot left it), a campaign mission the
-       * campaign's way. The stage engine runs only in a room. */
-      if (lesson.mission) {
-        /* No rooms server, or a campaign mission this pilot may not fly
-         * yet (First Light held in development): said, and the lesson
-         * left, rather than a room whose start the server refuses. */
-        const closed = !(ui.friendsRow && ui.friendsRow()) ? str('training.needs_rooms')
-          : lesson.mission !== PRACTICE_ID && !(campaignRef ? campaignRef.playable() : []).includes(lesson.mission) ? str('training.mission_closed', { mission: str(`campaign.m.${missionKey(lesson.mission)}`) })
-            : null;
-        if (closed) {
-          ui.progress.toast({ cls: 'lap', icon: '!', kicker: str('training.toast_lesson'), title: str(`training.lesson.${lesson.id}`), sub: closed });
-          ui.progress.endLesson();
-          return;
-        }
-        const enter = lesson.mission === PRACTICE_ID ? roomMade({ map: WAR_MAP, mode: 'war', who: 'solo', mission: PRACTICE_ID, remember: false }) : ui.onWarCard('way-war', lesson.mission);
-        enter.catch(() => {
-          roomRefusal = { text: str('roombrowser.make_failed'), untilMs: performance.now() + 8000 };
-          ui.refreshFriends();
-        });
+      /* No rooms server, or a campaign mission this pilot may not fly
+       * yet (First Light held in development): said, and the lesson
+       * left, rather than a room whose start the server refuses. */
+      const closed = !(ui.friendsRow && ui.friendsRow()) ? str('training.needs_rooms')
+        : lesson.mission !== PRACTICE_ID && !(campaignRef ? campaignRef.playable() : []).includes(lesson.mission) ? str('training.mission_closed', { mission: str(`campaign.m.${missionKey(lesson.mission)}`) })
+          : null;
+      if (closed) {
+        ui.progress.toast({ cls: 'lap', icon: '!', kicker: str('training.toast_lesson'), title: str(`training.lesson.${lesson.id}`), sub: closed });
+        ui.progress.endLesson();
         return;
       }
-      /* Every other lesson is a place's: flown from free flight's card. */
-      ui.act('way-freestyle-wing1000', craft);
+      const enter = lesson.mission === PRACTICE_ID ? roomMade({ map: WAR_MAP, mode: 'war', who: 'solo', mission: PRACTICE_ID, remember: false }) : ui.onWarCard('way-war', lesson.mission);
+      enter.catch(() => {
+        roomRefusal = { text: str('roombrowser.make_failed'), untilMs: performance.now() + 8000 };
+        ui.refreshFriends();
+      });
     },
   });
   ui.onTrainingCard = () => trainingScreen.open();
-  ui.progress.onLessonEnd = restoreLessonSettings;
   devHooks.__training = trainingScreen;
   /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
@@ -9939,29 +9910,6 @@ export async function boot({
   const debris = createDebris();
   shell.keepAcrossMaps(wreckRig.group);
   shell.keepAcrossMaps(debris.group);
-  /*
-   * A LESSON'S AID (src/game/training.js): the glide path to the strip,
-   * drawn only while a lesson that names it is in flight. Nothing here
-   * reaches the plant.
-   */
-  const glidePath = createGlidePath();
-  shell.keepAcrossMaps(glidePath.group);
-  let glideKey = null;
-  let glideAt = null;
-  function aidsFrame() {
-    const aid = mode === 'flight' && ui.screen === 'flight' ? ui.progress.lessonAid() : null;
-    const strip = aid === 'glide' && view ? STRIPS[ui.settings.map] ?? null : null;
-    const scene = shell.quad.parent;
-    if (scene && glidePath.group.parent !== scene) {
-      scene.add(glidePath.group);
-    }
-    if (strip && glideKey !== ui.settings.map) {
-      glideKey = ui.settings.map;
-      glideAt = glidePoints(strip, view.height(strip.x, strip.z, Infinity));
-    }
-    glidePath.show(strip ? glideAt : null, strip);
-  }
-  window.__aids = () => ({ glide: glidePath.group.visible ? glidePath.group.children.map((r) => [r.position.x, r.position.y, r.position.z]) : null });
   /* Defend Itaipu's attackers (src/render/attackers.js), bursting through
    * the crash debris; into the map's scene from roomWarFrame. */
   const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
@@ -11795,19 +11743,10 @@ export async function boot({
       progressKey = ctx.key;
       ui.progress.startRun({ ...ctx, crashed });
     }
-    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
-      agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
-      sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null, airUp: weather ? airOut.up : 0,
-      bank: bankOf(stateCurr), slipG: lateralG(statePrev, stateCurr), world: worldId(),
+    ui.progress.tick({
+      simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt,
+      agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position, world: worldId(),
     });
-  }
-  /* The craft's speed through the air, m/s: the plant's world velocity
-   * (sim_abi.h state [4..6]) less the air it last stepped in, the mean
-   * wind and the rising air (pushWeather), gusts left out; still air
-   * without weather. */
-  function airspeedNow() {
-    const air = weather ? airSim : { x: 0, y: 0 };
-    return Math.hypot(stateCurr[4] - air.x, stateCurr[5] - air.y, stateCurr[6] - (weather ? airOut.up : 0));
   }
   /*
    * AN AIR START, for a spawn that names a height (Itaipu's air spawn,
@@ -16202,7 +16141,6 @@ export async function boot({
       }
     }
     crashFrameLate(nowWall);
-    aidsFrame();
   }
 
   /* The projection is rebuilt only when the fov moves: exactly, when the

@@ -78,7 +78,7 @@ check('more flying on the same aircraft pays nothing more: repetition never pays
 check('an empty record pays nothing', grantsFrom(null).length === 0 && grantsFrom({}).length === 0);
 check('the amounts are whole and positive', all.every((g) => Number.isInteger(g.amount) && g.amount > 0));
 
-check('a lesson covered by a skip, passed but not flown, pays no tokens', grantsFrom({ data: { progress: { lessons: { first_takeoff: 5, first_unaided: 5 }, lessonsFlown: { first_unaided: true } } } }).map((g) => g.key).join() === 'first:lesson:first_unaided');
+check('a lesson passed but not flown pays no tokens, nor one that left with Flight Club', grantsFrom({ data: { progress: { lessons: { defence_track: 5, defence_intercept: 5, first_unaided: 5 }, lessonsFlown: { defence_intercept: true, first_unaided: true } } } }).map((g) => g.key).join() === 'first:lesson:defence_intercept');
 
 console.log('three currencies, never exchanged');
 check('no grant reads or pays war credits', !all.some((g) => /credit/.test(g.key)));
