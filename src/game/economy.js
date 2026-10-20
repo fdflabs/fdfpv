@@ -4,7 +4,7 @@
  * and sells from it (tracks-api/wallet.js), the page draws the shop from
  * it, so the two can never disagree about a price or a grant.
  *
- * TOKENS ARE PAID FOR FIRSTS, ONCE, AND FOR FLIGHT CLUB EVENTS. A grant has
+ * TOKENS ARE PAID FOR FIRSTS, ONCE. A grant has
  * a key, and the server pays a key at most once per account. The keys
  * come from a FINITE list read off the synced record: the firsts that pay
  * XP (src/game/progress.js firstsOf: a known mission's win and stars, a
@@ -51,16 +51,6 @@ import { KITS } from '../../configs/kits.js';
  * the lower. Reversible until a grant is paid; paid grants stay. */
 export const FIRST_TOKENS = { win: 60, star: 30, flight: 10, ten: 20, hour: 60, lesson: 20, game: 10 };
 export const CHALLENGE_TOKENS = 50;
-
-/*
- * A Flight Club weekly event's payout (agreed with the flightclub lane,
- * IMPLEMENTATION-PLAN.md 2026-10-07): a placing pays its tier and every
- * tier under it, each once per event, so flying an event again pays
- * nothing new and a gold after a bronze pays only the difference.
- */
-export const EVENT_TIERS = { finish: 20, bronze: 40, silver: 60, gold: 100 };
-const TIER_ORDER = Object.keys(EVENT_TIERS);
-export const EVENT_ID = /^[a-z0-9-]{1,40}$/;
 
 /*
  * THE SHOP. Bought items carry a price; earned ones carry `earn`, the feat,
@@ -173,15 +163,7 @@ export function earnedFrom(blob) {
   return ITEMS.filter((it) => it.earn && feats[it.earn]).map((it) => it.id);
 }
 
-/* The grants an event placing pays: its tier and those under it. */
-export function eventGrants(eventId, tier) {
-  if (!EVENT_ID.test(String(eventId)) || !Object.hasOwn(EVENT_TIERS, tier)) {
-    return [];
-  }
-  return TIER_ORDER.slice(0, TIER_ORDER.indexOf(tier) + 1).map((t) => ({ key: `event:${eventId}:${t}`, amount: EVENT_TIERS[t] }));
-}
-
-/* The most any record can be paid, events aside: every first and every
+/* The most any record can be paid: every first and every
  * challenge, once. */
 export function grantCeiling() {
   return everyFirst().reduce((n, x) => n + tokensForFirst(x.key), 0) + CHALLENGES.length * CHALLENGE_TOKENS;

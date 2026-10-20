@@ -146,7 +146,7 @@ export class RoomHost {
       publicRooms: this.env.PUBLIC_ROOMS === 'on', modeById: this.modeById,
     });
     /* Every key a { store } action wrote is the name of the core's part
-     * that keeps it (core.race for 'race'), restored before the seats. A
+     * that keeps it (core.tag for 'tag'), restored before the seats. A
      * key with no such part is one stored by a build that had it, a part
      * since removed (the Hercules' drops in a free flight room, after the
      * combat-only cut): it is left unread, and the room's purge takes it.

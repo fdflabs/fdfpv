@@ -4,7 +4,6 @@
  *
  * The routes, relative to the board's base address ({board}):
  *
- *   GET  {board}/                      the board's own page
  *   GET  {board}/api/tracks            the published courses
  *   GET  {board}/api/tracks/{id}/document
  *                                      one course's track document
@@ -13,17 +12,11 @@
  *                                      the edit key it returned, it updates
  *                                      the listing (a rename keeps the
  *                                      times, a layout change clears them)
- *   GET  {board}/api/tracks/{id}       a course's times, each with an id
- *                                      and whether a ghost is stored
- *   POST {board}/api/tracks/{id}/times post a lap { name, lapMs, ghost?,
- *                                      key?, sig?, craft? }, the ghost
- *                                      being src/share/ghostdata.js base64
- *   GET  {board}/api/tracks/{id}/times/{timeId}/ghost
- *                                      { id, name, lapMs, ghost }
- *   POST {board}/api/runs, GET {board}/api/runs?map=
- *                                      the freestyle board
- *   GET  {board}/api/events/current    Flight Club's weekly event and its
- *                                      standings
+ *
+ * The times, ghosts, freestyle runs and weekly events the board also
+ * serves are Flight Club's, and this page asks for none of them since the
+ * combat-only cut. The board itself stays: it takes the F8 reports
+ * (src/share/bugs.js) and the stats (src/share/stats.js) at this origin.
  *
  * The simulator links to a course as {sim}/?map=custom&share={id}&board=
  * {board}; src/trackbuilder/schema.md is the document contract, and a
@@ -56,7 +49,7 @@ import { isMapTrack } from '../trackbuilder/model.js';
 import { API_ORIGIN, SITE_HOSTS } from './api.js';
 import { carryRenamedKeys } from './oldkeys.js';
 import { writeShareImport } from './trackseat.js';
-import { str, currentLocale } from '../strings/index.js';
+import { str } from '../strings/index.js';
 
 /* The development board, next to a shell served from loopback. */
 export const DEFAULT_BOARD_ORIGIN = 'http://127.0.0.1:3180';
@@ -114,39 +107,6 @@ export function boardOrigin() {
   }
   const kept = guarded(() => baseOf(localStorage.getItem(OVERRIDE_KEY)), '');
   return kept || defaultBoardOrigin();
-}
-
-/* A base worth linking to: not empty, and not this page's own origin
- * (linking the board to the simulator once reopened the simulator in a
- * second tab). */
-function linkableBase(origin) {
-  const base = baseOf(origin);
-  if (!base) {
-    return '';
-  }
-  const here = guarded(() => baseOf(window.location.origin), '');
-  return here && base === here ? '' : base;
-}
-
-/*
- * The board's page. `craft` (a track class or an airframe id) opens the
- * board on that aircraft's tables, since there it is the main choice and
- * a pilot should land where their aircraft races; without one the board
- * keeps whatever the visitor picked last. `origin` may be null or empty
- * (a seat with no board) and then falls back like everything else. The
- * pilot's language rides along as ?lang= unless it is English.
- */
-export function boardPageUrl(origin, craft) {
-  const base = linkableBase(origin) || linkableBase(boardOrigin()) || defaultBoardOrigin();
-  const query = [];
-  if (craft) {
-    query.push(`craft=${encodeURIComponent(craft)}`);
-  }
-  const lang = currentLocale();
-  if (lang !== 'en') {
-    query.push(`lang=${encodeURIComponent(lang)}`);
-  }
-  return `${base}/${query.length ? `?${query.join('&')}` : ''}`;
 }
 
 /* The body of an answer, or a thrown Error carrying `status` and
@@ -297,14 +257,6 @@ export function pickFeaturedTracks(tracks, limit = FEATURED_LIMIT) {
 
 const trackPath = (board, id) => `${baseOf(board)}/api/tracks/${encodeURIComponent(id)}`;
 
-/* Flight Club's weekly event: { id, week, trackId, name, map, goldMs,
- * wing, startsUtc, endsUtc, standings: [{ name, lapMs, medal }] }, or
- * null in a week with no course carrying medals. */
-export async function fetchCurrentEvent(origin = boardOrigin()) {
-  const body = await readBody(`${baseOf(origin)}/api/events/current`);
-  return body && body.event ? body.event : null;
-}
-
 export async function fetchTrackDocument(id, origin = boardOrigin()) {
   return readBody(`${trackPath(origin, id)}/document`);
 }
@@ -323,82 +275,6 @@ export async function publishTrack({
     editKey: editKey || undefined,
     tags: tags && tags.length ? tags : undefined,
   });
-}
-
-/*
- * A finished freestyle run. The board keeps one row per pilot per map, the
- * best: a worse run answers 200 with `improved: false`, a better one 201.
- * The board does not recompute the score (it would need the recogniser
- * and the catalogue); it bounds the claim (inspectRun in its validate.js).
- */
-export async function postFreestyleRun({
-  name, map, style, summary, origin,
-}) {
-  const {
-    total, durationMs, tricks, unique, bestCombo, bestTrick, crashes, signature,
-  } = summary;
-  return send(`${baseOf(origin || boardOrigin())}/api/runs`, {
-    name, map, style, score: total, durationMs, tricks, unique, bestCombo, bestTrick, crashes, signature,
-  });
-}
-
-/* The freestyle board, best first; a board that is down rejects, and
- * callers show an empty list. */
-export async function fetchFreestyleRuns(map, origin = boardOrigin()) {
-  const query = map ? `?map=${encodeURIComponent(map)}` : '';
-  const body = await readBody(`${baseOf(origin)}/api/runs${query}`);
-  return listOf(body && body.runs)
-    .map((r) => ({
-      name: text(r.name), score: count(r.score), style: text(r.style), tricks: count(r.tricks), signature: text(r.signature),
-    }))
-    .filter((r) => r.name && r.score > 0);
-}
-
-/*
- * Post a lap. Optional fields are left out rather than sent empty, which
- * is the shape older boards expect: the ghost when there is one, the
- * pilot's key with its signature over this post (src/share/identity.js)
- * when both exist, and the fixed wing a plane's lap was flown on, which
- * files it on the plane board (src/game/verify.js planesFor).
- */
-export async function postTime({
-  trackId, name, lapMs, ghost, key, sig, craft, origin,
-}) {
-  const lap = { name, lapMs };
-  if (ghost) {
-    lap.ghost = ghost;
-  }
-  if (key && sig) {
-    Object.assign(lap, { key, sig });
-  }
-  if (craft) {
-    lap.craft = craft;
-  }
-  return send(`${trackPath(origin || boardOrigin(), trackId)}/times`, lap);
-}
-
-/*
- * A course's posted times for the ghost picker, in the board's order (best
- * first): id, name, lapMs, whether a ghost is stored, and the plane it was
- * flown on ('' for anything else). Rejects when the board is down; callers
- * read that as no times.
- */
-export async function fetchTrackTimes(trackId, origin = boardOrigin()) {
-  const body = await readBody(trackPath(origin, trackId));
-  return listOf(body && body.times)
-    .map((t) => ({
-      id: t.id ? String(t.id) : '',
-      name: text(t.name),
-      lapMs: lapOrNull(t.lapMs),
-      hasGhost: Boolean(t.hasGhost),
-      craft: typeof t.craft === 'string' ? t.craft : '',
-    }))
-    .filter((t) => t.lapMs != null);
-}
-
-/* One stored lap as { id, name, lapMs, ghost }, the ghost still base64. */
-export async function fetchGhost(trackId, timeId, origin = boardOrigin()) {
-  return readBody(`${trackPath(origin || boardOrigin(), trackId)}/times/${encodeURIComponent(timeId)}/ghost`);
 }
 
 /*

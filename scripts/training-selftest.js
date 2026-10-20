@@ -22,15 +22,13 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CERTS, GLIDE, LESSONS, LessonWatch, lessonFliesIn, SKIPS, EIGHT_BANK, LESSON_SETTINGS, SLIP_G, applyLesson, heldSettings, restoreSettings, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf, heldTrack } from '../src/game/training.js';
+import { CERTS, GLIDE, LESSONS, LessonWatch, lessonFliesIn, SKIPS, EIGHT_BANK, LESSON_SETTINGS, SLIP_G, applyLesson, heldSettings, restoreSettings, STALL_FLOOR_M, STALL_RECOVERED, bankOf, lateralG, STICK_END, STICK_HOLD_MS, THERMAL_CLIMB_M, certsEarned, onStrip, STRIPS, TRACKS, glidePoints, headingOf, lessonById, passesOf, heldTrack } from '../src/game/training.js';
 import { EventLog } from '../src/game/events.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
-import { MEDAL_STEPS, medalFor } from '../src/game/medals.js';
 import { ACT1 } from '../src/game/campaign.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
-import { modeById } from '../src/share/modes.js';
 import { MAPS as WEATHER_MAPS, PRESETS as WEATHER } from '../src/game/weather.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
@@ -59,15 +57,13 @@ for (const l of LESSONS) {
     expect(`${k} en and es`, typeof en[k] === 'string' && typeof es[k] === 'string', true);
   }
 }
-expect('a lesson\'s room is an activity of the registry', LESSONS.every((l) => l.room === undefined || Boolean(modeById(l.room))), true);
 expect('ids are unique', new Set(LESSONS.map((l) => l.id)).size, LESSONS.length);
 
 /* A flight as frames: each segment is { ms, grounded, yawRate, crashed,
- * agl, x, z, battery }; `gates` after the frames is passes and rims in
- * order, 'g' and 'r'. */
+ * agl, x, z, battery }. */
 const FRAME_MS = 16;
 const TIMBER_STALL = airframeById('timber1500').stall;
-function fly(id, segments, { laps = [], gates = '' } = {}) {
+function fly(id, segments) {
   const w = new LessonWatch(lessonById(id));
   let t = 0;
   let heading = 0.3;
@@ -80,19 +76,6 @@ function fly(id, segments, { laps = [], gates = '' } = {}) {
         sticks: { roll: 0, pitch: 0, yaw: 0, throttle: 0.5, ...s.sticks }, airspeed: s.v ?? null, stall: s.stall === undefined ? TIMBER_STALL : s.stall,
       });
     }
-  }
-  for (const g of gates) {
-    if (g === 'g') {
-      w.gatePass();
-    } else {
-      w.rim();
-    }
-  }
-  for (const lap of laps) {
-    if (lap.rim) {
-      w.rim();
-    }
-    w.lap(lap, lap.ghostMs ?? null);
   }
   return w.passed;
 }
@@ -113,8 +96,6 @@ expect('hover: drifts 5 m away', fly('quad_hover', [at(8000, 2), at(8000, 2, 5, 
 expect('hover: too high', fly('quad_hover', [at(16000, 6)]), false);
 expect('throttle: 6 s at 10 m', fly('quad_throttle', [at(3000, 4), at(6000, 10.4)]), true);
 expect('throttle: 6 s at 12 m', fly('quad_throttle', [at(6000, 12)]), false);
-expect('precision: ten in a row', fly('quad_precision', [], { gates: 'gggrgggggggggg' }), true);
-expect('precision: a touch at nine', fly('quad_precision', [], { gates: 'gggggggggrggg' }), false);
 const CIRCLE = 2 * Math.PI / 8; /* rad/s: a circle in 8 s */
 
 expect('takeoff: 21 s up', fly('first_takeoff', [ground(500), air(21000)]), true);
@@ -131,12 +112,6 @@ expect('land: hop of 1 s', fly('first_land', [ground(300), air(1000), ground(120
 expect('land: crash on touchdown', fly('first_land', [air(5000), crash, ground(1200)]), false);
 expect('unaided: all four', fly('first_unaided', [ground(300), air(21000), air(8200, CIRCLE), air(8200, -CIRCLE), ground(1200)]), true);
 expect('unaided: no landing', fly('first_unaided', [air(21000), air(8200, CIRCLE), air(8200, -CIRCLE)]), false);
-expect('race lap: one lap', fly('race_lap', [], { laps: [{ ms: 30000, rim: true }] }), true);
-expect('race clean: rim, then clean', fly('race_clean', [], { laps: [{ rim: true }, {}] }), true);
-expect('race clean: rim only', fly('race_clean', [], { laps: [{ rim: true }] }), false);
-expect('ghost: faster', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: 30000 }] }), true);
-expect('ghost: slower', fly('race_ghost', [], { laps: [{ ms: 31000, ghostMs: 30000 }] }), false);
-expect('ghost: no ghost', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: null }] }), false);
 /* Sticks: each end of each stick held a second, recorded channels. */
 const stick = (ms, sticks) => ({ ms, grounded: true, sticks });
 const ENDS = [{ roll: 1 }, { roll: -0.96 }, { pitch: 1 }, { pitch: -1 }, { yaw: 0.97 }, { yaw: -1 }, { throttle: 1 }, { throttle: 0.02 }];
@@ -219,17 +194,6 @@ expect('a strip landing flies where there is a strip', LESSONS.filter((l) => l.s
 expect('a lesson\'s weather is a preset with thermals where it asks for one', LESSONS.filter((l) => l.weather).every((l) => WEATHER[l.weather] && WEATHER[l.weather].thermal > 0
   && (!l.steps.some((st) => st.thermal) || Boolean(WEATHER_MAPS[l.place]))), true);
 
-/* Racing a pilot: the round event a finished room race logs. */
-const raced = (rounds) => {
-  const w = new LessonWatch(lessonById('race_pilot'));
-  rounds.forEach((r) => w.round(r));
-  return w.passed;
-};
-expect('pilot: a race finished with two on the grid', raced([{ game: 'race', world: 'swiss2', pilots: 2 }]), true);
-expect('pilot: alone on the grid, then with three', raced([{ game: 'race', pilots: 1 }, { game: 'race', pilots: 3 }]), true);
-expect('pilot: a race finished alone', raced([{ game: 'race', world: 'swiss2', pilots: 1 }]), false);
-expect('pilot: a combat round with four', raced([{ game: 'combat', world: 'swiss2' }, { game: 'tag', pilots: 4 }]), false);
-expect('pilot: a laps-only flight', fly('race_pilot', [], { laps: [{ ms: 30000 }] }), false);
 /* Defence (TRAINING.md track 5): judged from the flight's event log
  * (src/game/events.js), the events made as the shell makes them. */
 {
@@ -285,33 +249,6 @@ expect('pilot: a laps-only flight', fly('race_pilot', [], { laps: [{ ms: 30000 }
   expect('working together: mission 2 won', ended([{ mission: ACT1[1].id, won: true }]), false);
   expect('working together: its mission is Act 1\'s first', lessonById('defence_mission').mission, ACT1[0].id);
 }
-/* A lap under a time: the medal is medals.js's own, from a course's gold. */
-const GOLD = { goldMs: 30000 };
-const lapOn = (ms, medals = GOLD) => ({ ms, medal: medalFor(medals, ms) });
-expect('bronze: a lap at 1.3 times gold', fly('race_bronze', [], { laps: [lapOn(39000)] }), true);
-expect('bronze: a gold lap passes too', fly('race_bronze', [], { laps: [lapOn(29000)] }), true);
-expect('bronze: slower than bronze, then bronze', fly('race_bronze', [], { laps: [lapOn(41000), lapOn(40000)] }), true);
-expect('bronze: a lap at 1.4 times gold', fly('race_bronze', [], { laps: [lapOn(42000)] }), false);
-expect('bronze: a fast lap on a course with no medals', fly('race_bronze', [], { laps: [lapOn(10000, null)] }), false);
-expect('every medal step is a medal', LESSONS.flatMap((l) => l.steps).filter((st) => st.medal !== undefined).every((st) => MEDAL_STEPS.includes(st.medal)), true);
-/* Gates: a clean lap, and only on a casual sky track. */
-expect('gates: a clean casual lap', fly('quad_gates', [], { laps: [{ kind: 'casual' }] }), true);
-expect('gates: a rim, then a clean casual lap', fly('quad_gates', [], { laps: [{ kind: 'casual', rim: true }, { kind: 'casual' }] }), true);
-expect('gates: a casual lap with a rim', fly('quad_gates', [], { laps: [{ kind: 'casual', rim: true }] }), false);
-expect('gates: a clean lap of a built track', fly('quad_gates', [], { laps: [{ kind: 'built' }] }), false);
-expect('gates: a clean lap of the world\'s own track', fly('quad_gates', [], { laps: [{ kind: 'map' }] }), false);
-/* The same from the flight's log, as Progress hands it on: the lap event
- * carries its course's kind (src/ui/progress-ui.js lap). */
-{
-  const logged = (kind) => {
-    const w = new LessonWatch(lessonById('quad_gates'));
-    w.lap(new EventLog().append('lap', 1000, { ms: 30000, airframe: 'interceptor', medal: null, kind }), null);
-    return w.passed;
-  };
-  expect('gates: a casual lap event from the log', logged('casual'), true);
-  expect('gates: a built lap event from the log', logged('built'), false);
-}
-
 /* The turn sign against the plant's frame (src/render/frame.js: z up, x
  * forward, y left): rotate the nose by the state's quaternion and see
  * which side it points to. A heading that rises must be a nose that went
@@ -373,20 +310,13 @@ const stripL = Number(/export const STRIP_L = (\d+)/.exec(readFileSync(new URL('
 expect('the strip\'s threshold is the Alps terrain\'s strip end', STRIPS.swiss2.z, stripL / 2);
 expect('the strip\'s length and width are the Alps terrain\'s', [STRIPS.swiss2.length, STRIPS.swiss2.width].join(), [stripL, Number(/export const STRIP_W = (\d+)/.exec(readFileSync(new URL('../src/maps/alps/heights.js', import.meta.url), 'utf8'))[1])].join());
 expect('every quad mode is angle or acro', LESSONS.every((l) => l.mode == null || ['angle', 'acro'].includes(l.mode)), true);
-expect('every lesson\'s aid is a known one', LESSONS.every((l) => l.aid === undefined || ['glide', 'gate'].includes(l.aid)), true);
+expect('every lesson\'s aid is a known one', LESSONS.every((l) => l.aid === undefined || l.aid === 'glide'), true);
 expect('a glide lesson flies where there is a strip', LESSONS.filter((l) => l.aid === 'glide').every((l) => Boolean(STRIPS[l.place])), true);
 const pts = glidePoints(STRIPS.swiss2, 3);
 expect('the glide path has its gates', pts.length, GLIDE.count);
 expect('all short of the threshold, on the approach side', pts.every((p) => p.z > STRIPS.swiss2.z && p.x === STRIPS.swiss2.x), true);
 expect('each higher than the one nearer the strip, at the slope', pts.every((p, i) => i === 0 || Math.abs((p.y - pts[i - 1].y) / (p.z - pts[i - 1].z) - Math.tan(GLIDE.slope)) < 1e-12), true);
 expect('the nearest one a metre or so over the ground', pts[0].y - 3 > 0.5 && pts[0].y - 3 < 3, true);
-const eye = { x: 0, y: 0, z: 0, forward: { x: 0, y: 0, z: -1 }, up: { x: 0, y: 1, z: 0 } };
-const near = (a, b) => Math.abs(a - b) < 1e-9;
-expect('a gate dead ahead needs no arrow', gateCue(eye, { x: 0, y: 1, z: -40 }).ahead, true);
-expect('a gate to the right: the arrow points right', near(gateCue(eye, { x: 10, y: 0, z: 0 }).angle, Math.PI / 2), true);
-expect('to the left: left', near(gateCue(eye, { x: -10, y: 0, z: 0 }).angle, -Math.PI / 2), true);
-expect('above: up', near(gateCue(eye, { x: 0, y: 10, z: 0 }).angle, 0), true);
-expect('behind and a little right: right, not ahead', gateCue(eye, { x: 1, y: 0, z: 20 }).angle > 0 && !gateCue(eye, { x: 1, y: 0, z: 20 }).ahead, true);
 
 /* I fly already: each track's skip is its own lesson, and what a lesson
  * covers is earlier lessons of its own track. */
@@ -416,11 +346,11 @@ for (const t of CERTS) {
   expect(`${t}: its last lesson missing earns nothing`, certsEarned(short).length, 0);
 }
 expect('First flight has no certification (PROGRESSION.md 7)', CERTS.includes('first'), false);
-expect('racing: the clean lap\'s skip passes count, as passesOf writes them', certsEarned({
-  ...Object.fromEntries(passesOf('race_clean').map((id) => [id, 5])), race_bronze: 6, race_ghost: 7, race_pilot: 8,
-}).join(), 'racing');
-expect('a time that is not a pass earns nothing', certsEarned({ ...allOf('racing'), race_pilot: 0 }).length, 0);
-expect('two tracks at once', certsEarned({ ...allOf('racing'), ...allOf('multirotor') }).join(), 'multirotor,racing');
+expect('multirotor: the acro hover\'s skip passes count, as passesOf writes them', certsEarned({
+  ...Object.fromEntries(passesOf('quad_acro').map((id) => [id, 5])), quad_throttle: 6,
+}).join(), 'multirotor');
+expect('a time that is not a pass earns nothing', certsEarned({ ...allOf('multirotor'), quad_acro: 0 }).length, 0);
+expect('two tracks at once', certsEarned({ ...allOf('wing'), ...allOf('multirotor') }).join(), 'wing,multirotor');
 
 /* A lesson's settings go back when it is left. `seat` stands in for
  * settings.js seatAirframe, which also resets the tune. */
@@ -483,9 +413,8 @@ expect('two tracks at once', certsEarned({ ...allOf('racing'), ...allOf('multiro
     }
   }
   expect('crash: each crash restarts the steps and is counted once, however many frames report it', [crashes.crashes, crashes.step].join(), '2,0');
-  expect('rooms: Racing a pilot keeps Track Day\'s, not Streamer Combat\'s', [lessonFliesIn(lessonById('race_pilot'), 'race'), lessonFliesIn(lessonById('race_pilot'), 'combat')].join(), 'true,false');
   expect('rooms: a Defence lesson keeps the war\'s', LESSONS.filter((l) => l.track === 'defence').every((l) => lessonFliesIn(l, 'war')), true);
-  expect('rooms: a solo lesson keeps none', ['race', 'war', 'combat', 'tag', 'free'].some((m) => lessonFliesIn(lessonById('first_turns'), m)), false);
+  expect('rooms: a solo lesson keeps none', ['war', 'combat', 'tag', 'free'].some((m) => lessonFliesIn(lessonById('first_turns'), m)), false);
   for (const k of ['training.interrupted', 'training.interrupt_held', 'training.interrupt_crash', 'training.interrupt_room', 'training.interrupt_reload']) {
     expect(`${k} en and es`, typeof en[k] === 'string' && typeof es[k] === 'string' && en[k] !== es[k], true);
   }

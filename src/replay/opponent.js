@@ -1,7 +1,9 @@
 /*
- * opponent.js: a solo race's AI opponent (src/game/aiopponent.js) in the
- * crash cam's recording, so a replay draws it as the race drew it and
- * replay:refly flies it again.
+ * opponent.js: a solo race's AI opponent (src/game/aiopponent.js, which
+ * left with the combat-only cut, 2026-10-19) in the crash cam's recording,
+ * so a replay draws it as the race drew it and replay:refly flies it again.
+ * Nothing races an opponent any more; this stays so a stored version 19
+ * clip that holds one still reads and plays.
  *
  * PER ROW, while it races: the translucent ghost's pose as the frame drew
  * it (src/main.js aiRig, read off the drawing and never worked out again),
@@ -22,8 +24,8 @@
  * is its journal's sim_input calls.
  *
  * ITS JOURNAL. The opponent's plant is its own dist/sim.wasm with its own
- * journal (aiopponent.js seatOpponent), which copies its region once a
- * second of its own clock. A clip cut from the live recording keeps that
+ * journal (seatOpponent in aiopponent.js, in git history), which copied
+ * its region once a second of its own clock. A clip cut from the live recording keeps that
  * journal's stretches from the first row it names (src/replay/refly.js,
  * the very shape the pilot's refly has), so a saved clip flies the
  * opponent again bit for bit on the build that flew it. Rows of a run
@@ -31,7 +33,7 @@
  * a journal that is gone: they keep their pose and sticks and cannot be
  * flown back to.
  *
- * Its laps are its own Race's (aiopponent.js), kept per run as the last
+ * Its laps are its own Race's, kept per run as the last
  * row of that run saw them, and never reach the pilot's record.
  *
  * A clip's `opponent`: { rows: i32[n x ROW_N], pose: f32[n x POSE_N],

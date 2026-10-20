@@ -252,9 +252,6 @@ function makeUi(extra = {}) {
     craftGate: true,
     mode: null,
     share: null,
-    timePosted: null,
-    ghostRow: null,
-    liveRow: null,
     onHotSwap: null,
     onMusicSkip: null,
     onSettings: null,
@@ -319,32 +316,9 @@ const scenarios = {
     const out = {};
     for (const screen of SCREENS) {
       for (const share of [{ id: 's1', name: 'Loop', author: 'Ace', board: 'b' }, null, undefined]) {
-        const ui = makeUi({ screen, timePosted: { ok: true } });
-        ui.setShare(share);
-        out[`${screen}:${share === undefined ? 'undefined' : JSON.stringify(share)}`] = { share: ui.share, timePosted: ui.timePosted, calls: ui.calls.splice(0) };
-      }
-    }
-    return out;
-  },
-
-  ghostAndLive() {
-    const out = {};
-    for (const which of ['Ghost', 'Live']) {
-      for (const screen of SCREENS) {
-        const cycled = [];
-        const row = { value: `${which} value`, note: `${which} note`, cycle: (d) => cycled.push(d) };
         const ui = makeUi({ screen });
-        ui[`set${which}Row`](row);
-        const items = ui[`${which.toLowerCase()}Items`]();
-        for (const it of items) {
-          it.adjust(1);
-          it.adjust(-1);
-        }
-        const withRow = { field: ui[`${which.toLowerCase()}Row`], items: items.map(item), cycled: [...cycled], calls: ui.calls.splice(0) };
-        ui[`set${which}Row`](undefined);
-        for (const it of items) it.adjust(1);
-        const without = { field: ui[`${which.toLowerCase()}Row`], items: ui[`${which.toLowerCase()}Items`](), cycledAfter: [...cycled], calls: ui.calls.splice(0) };
-        out[`${which}:${screen}`] = { withRow, without };
+        ui.setShare(share);
+        out[`${screen}:${share === undefined ? 'undefined' : JSON.stringify(share)}`] = { share: ui.share, calls: ui.calls.splice(0) };
       }
     }
     return out;
@@ -491,18 +465,6 @@ const scenarios = {
       const ui = makeUi({ screen: 'friends', friendsRow: () => ({ inRoom: true }), screens: undefined });
       ui.refreshFriends();
       out.noScreens = { inRoom: ui.friendsInRoom, calls: ui.calls.splice(0) };
-    }
-    return out;
-  },
-
-  markTimePosted() {
-    const out = {};
-    for (const screen of SCREENS) {
-      for (const posted of [undefined, null, { ok: false, error: 'late' }, { ok: true, rank: 3 }]) {
-        const ui = makeUi({ screen });
-        ui.markTimePosted(posted);
-        out[`${screen}:${JSON.stringify(posted) ?? 'undefined'}`] = { timePosted: ui.timePosted, calls: ui.calls.splice(0) };
-      }
     }
     return out;
   },

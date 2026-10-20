@@ -40,9 +40,6 @@ import { btn, el } from './widgets.js';
  * this module's top level, where the bindings are not yet initialised. */
 import { SCREEN_ACTIONS, SCREEN_TITLES, byLine, courseCardKey } from './ui.js';
 
-/* Rows that leave for another tab rather than another screen. */
-const LINK_ACTIONS = new Set(['leaderboard']);
-
 /* The breadcrumb per screen, root first. A room inside a room shows the
  * trail, so Escape has one obvious destination. Resolved once, at load,
  * in the locale the page booted with, the same as the screen titles. */
@@ -57,7 +54,6 @@ const CRUMBS = {
   pilot: ['ui.settings'],
   quad: ['ui.quad'],
   launch: ['ui.before_you_fly'],
-  standings: ['ui.race', 'ui.standings'],
   rates: ['hub.hangar', 'controller.title', 'ui.rates'],
   pids: ['ui.quad', 'PIDs'],
   fc: ['ui.quad', 'ui.firmware_bench'],
@@ -88,7 +84,6 @@ const MENU_FIELD = {
   friends: 'friendsMenu',
   quad: 'quadMenu',
   launch: 'launchMenu',
-  standings: 'standingsMenu',
   rates: 'ratesMenu',
   planerates: 'planeratesMenu',
   pids: 'pidsMenu',
@@ -147,9 +142,6 @@ function paintRow(ui, it, i) {
   const cls = ['row'];
   if (kind === 'navigation') {
     cls.push('row-nav');
-  }
-  if (kind === 'link') {
-    cls.push('row-link');
   }
   if (it.info) {
     cls.push('row-info');
@@ -347,9 +339,6 @@ export const navMethods = {
   renderMenu() {
     /* The sign in chip's label can change without the screen changing. */
     this.syncChips();
-    if (this.screen === 'standings') {
-      this.paintStandings();
-    }
     if (this.screen === 'launch' && this.launchLede) {
       const seat = activeCourseSummary();
       const map = MAPS.find((m) => m.id === this.settings.map) ?? MAPS[0];
@@ -611,17 +600,13 @@ export const navMethods = {
 
   /* The row grammar, which decides what Enter does and what the row looks
    * like: a value row is changed in place by Left and Right, a navigation
-   * row opens a screen (a chevron), a link row leaves for a tab (an
-   * arrow), and everything else does a thing. */
+   * row opens a screen (a chevron), and everything else does a thing. */
   rowKind(it) {
     if (!it) {
       return 'action';
     }
     if (it.adjust || it.options || it.spec || it.num) {
       return 'value';
-    }
-    if (it.action && LINK_ACTIONS.has(it.action)) {
-      return 'link';
     }
     if (it.action && SCREEN_ACTIONS.has(it.action)) {
       return 'navigation';

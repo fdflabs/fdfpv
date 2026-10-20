@@ -3,7 +3,7 @@
  * between rounds (edge/rooms/core.js setup, COMPLETENESS 77), driven on a
  * RoomCore in Node. Part of npm run rooms:selftest.
  *
- * Catch the Ace to a race and the race to the war, each pilot told the new
+ * Catch the Ace to combat and combat to the war, each pilot told the new
  * game's lobby; into the war, the second pilot's consent given (both
  * fight) and declined (the host fights alone, the decliner sits it out in
  * the lobby, not waited for, its ready passed over, and still out after a
@@ -30,6 +30,7 @@
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { LOBBY_COUNTDOWN_MS } from '../edge/rooms/gamelobby.js';
 import { GOALS } from '../src/share/roomtag.js';
+import { ROUND_MINUTES } from '../src/share/modes.js';
 import { PROTO, PUBLIC_CAP, ROOM_LEVEL, WAR_JOIN } from '../src/share/roomwire.js';
 
 /* A room at room ms 0 with `n` pilots, made for `mode` on `map`. */
@@ -91,25 +92,25 @@ export function setupSection(check) {
   {
     const e = setupRoom();
     check('the welcome says the room takes a change of activity', e.socks[0].welcome.setupInPlace === true);
-    e.say(1, { type: 'setup', mode: 'race' });
+    e.say(1, { type: 'setup', mode: 'combat' });
     check('only its host changes it', e.refused(1).includes('host') && e.r.meta.mode === 'tag');
     e.say(0, { type: 'setup', mode: 'nowhere' });
     check('an activity there is not is passed over', e.r.meta.mode === 'tag' && !e.told(0, 'setup').length);
-    e.say(0, { type: 'setup', mode: 'race' });
+    e.say(0, { type: 'setup', mode: 'combat' });
     const told = e.told(1, 'setup').at(-1);
-    check('tag to race: everybody told the race and its lobby, no track yet, nobody ready',
-      Boolean(told) && told.mode === 'race' && told.mission === null && told.lobby.track === null && JSON.stringify(told.lobby.ready) === '{}'
-      && e.r.meta.mode === 'race' && e.stored.mode === 'race', JSON.stringify(told));
+    check('tag to combat: everybody told combat and its lobby, its first round length, nobody ready',
+      Boolean(told) && told.mode === 'combat' && told.mission === null && told.lobby.minutes === ROUND_MINUTES[0] && JSON.stringify(told.lobby.ready) === '{}'
+      && e.r.meta.mode === 'combat' && e.stored.mode === 'combat', JSON.stringify(told));
     const late = e.join(2);
-    check('a pilot who joins after is welcomed into the race', late.welcome.mode === 'race' && late.welcome.lobby.track === null, JSON.stringify(late.welcome.lobby));
+    check('a pilot who joins after is welcomed into combat', late.welcome.mode === 'combat' && late.welcome.lobby.minutes === ROUND_MINUTES[0], JSON.stringify(late.welcome.lobby));
   }
   {
-    const e = setupRoom({ mode: 'race' });
+    const e = setupRoom({ mode: 'combat' });
     e.at(100);
     e.say(0, { type: 'setup', mode: 'war' });
     const told = e.told(1, 'setup').at(-1);
     const bToken = e.socks[1].welcome.token;
-    check('race to the war: everybody told the war, its mission and its lobby, the second pilot sitting out until they consent',
+    check('combat to the war: everybody told the war, its mission and its lobby, the second pilot sitting out until they consent',
       Boolean(told) && told.mode === 'war' && told.mission === 'itaipu-1' && told.lobby.mission === 'itaipu-1' && JSON.stringify(told.lobby.out) === '{"2":true}'
       && JSON.stringify(e.r.meta.unconsented) === JSON.stringify([bToken]), JSON.stringify(told));
     check('kept with the room, so a restart keeps it', JSON.stringify(e.stored.unconsented) === JSON.stringify([bToken]));
@@ -129,7 +130,7 @@ export function setupSection(check) {
     check('and every page is told the war is back to no match', e.told(1, 'war').at(-1)?.war?.state === 'lobby', JSON.stringify(e.told(1, 'war').at(-1)));
   }
   {
-    const e = setupRoom({ mode: 'race' });
+    const e = setupRoom({ mode: 'combat' });
     e.at(100);
     e.say(0, { type: 'setup', mode: 'war' });
     e.say(1, { type: 'lobby', op: 'ready', ready: true });

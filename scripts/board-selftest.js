@@ -31,7 +31,7 @@
 
 import { seeded, transcript } from './lib/transcript.js';
 
-const PINNED = 'fa5ad57798cbaca602b10480d867440ae67817ef1c735a414c510c3b8e24a431';
+const PINNED = 'f6a475897db033ed2849d3302128d3cc724d381e92e5e42252334f8b558fd538';
 
 class Storage {
   constructor() {
@@ -105,7 +105,6 @@ globalThis.fetch = async (url, init = {}) => {
 store.map.set('webfpv.board.origin', 'https://kept.example/board');
 const board = await import('../src/share/board.js');
 const OVERRIDE = 'fdfpv.board.origin';
-const { setLocale } = await import('../src/strings/index.js');
 const t = transcript();
 t.note('the old override, moved at load', store.dump());
 store.clear();
@@ -159,24 +158,12 @@ for (const place of PLACES) {
     t.rec(`defaultBoardOrigin ${label}`, () => board.defaultBoardOrigin());
     t.rec(`boardOrigin ${label}`, () => board.boardOrigin());
     t.rec(`boardConfigured ${label}`, () => board.boardConfigured());
-    for (const [o, craft] of [[undefined, undefined], [null, 'wing'], ['https://other.example/b/', '5inch'], ['  ', ''],
-      ['http://127.0.0.1:8000', 'whoop 65'], ['https://paraguayandronecombatsimulator.com/', undefined]]) {
-      t.rec(`boardPageUrl ${label} ${o} ${craft}`, () => board.boardPageUrl(o, craft));
-    }
   }
 }
 store.clear();
 store.refuse = true;
 placeAt('https://paraguayandronecombatsimulator.com/');
 t.rec('boardOrigin with storage refused', () => board.boardOrigin());
-store.clear();
-placeAt('https://paraguayandronecombatsimulator.com/');
-setLocale('es');
-t.rec('boardPageUrl in Spanish', () => board.boardPageUrl());
-t.rec('boardPageUrl in Spanish with a craft', () => board.boardPageUrl('https://b.example', 'wing'));
-setLocale('zz');
-t.rec('boardPageUrl in an unknown locale', () => board.boardPageUrl('https://b.example'));
-setLocale('en');
 
 /* Reads. */
 const B = 'https://board.example/b';
@@ -270,31 +257,6 @@ await call('fetchTrackDocument with an id needing escapes', () => board.fetchTra
 routes = { '*': [404, json({ error: 'That track is not on the board.' })] };
 await call('fetchTrackDocument missing', () => board.fetchTrackDocument('trk-9'));
 
-routes = {
-  [`GET ${B}/api/runs?map=alps%20two`]: [200, json({
-    runs: [{ name: 'Ada', score: '12.5', style: 'flow', tricks: 3, signature: 'sig' }, { name: '', score: 9 }, { name: 'Zero', score: 0 },
-      { name: 'Neg', score: -1 }, { name: 7, score: 'x' }, { name: 'Bo', score: 3 }],
-  })],
-  [`GET ${B}/api/runs`]: [200, json({ runs: null })],
-};
-await call('fetchFreestyleRuns on a map', () => board.fetchFreestyleRuns('alps two', B));
-await call('fetchFreestyleRuns no map', () => board.fetchFreestyleRuns('', B));
-
-routes = {
-  [`GET ${B}/api/tracks/trk-1`]: [200, json({
-    times: [{ id: 'tm-1', name: 'Ada', lapMs: '61000', hasGhost: 1, craft: 'cub1400' }, { name: 'NoId', lapMs: 70000, craft: 5 },
-      { id: 'tm-3', name: 'Bad', lapMs: 'fast' }, { id: 4, lapMs: null }, { id: 'tm-5', lapMs: 0, hasGhost: 0 }],
-  })],
-};
-await call('fetchTrackTimes', () => board.fetchTrackTimes('trk-1', B));
-routes = { '*': [200, json({})] };
-await call('fetchTrackTimes with no times', () => board.fetchTrackTimes('trk-1', B));
-
-routes = { [`GET ${B}/api/tracks/trk%201/times/tm%2F2/ghost`]: [200, json({ id: 'tm/2', name: 'Ada', lapMs: 1, ghost: 'RlBW' })] };
-await call('fetchGhost', () => board.fetchGhost('trk 1', 'tm/2', B));
-routes = { '*': [200, json({ ghost: 'x' })] };
-await call('fetchGhost with a null origin', () => board.fetchGhost('t', 'm', null));
-
 /* Writes. */
 routes = { [`POST ${B}/api/tracks`]: [201, json({ id: 'trk-1', editKey: 'ek' })] };
 await call('publishTrack bare', () => board.publishTrack({ author: 'Ada', document: { id: 'trk-1' }, origin: `${B}/` }));
@@ -306,25 +268,6 @@ routes = { '*': [409, json({ error: 'Not yours.' })] };
 await call('publishTrack conflict', () => board.publishTrack({ author: 'Ada', document: {}, origin: B }));
 routes = { '*': [201, ''] };
 await call('publishTrack to the default board', () => board.publishTrack({ author: 'Ada', document: {} }));
-
-const SUMMARY = {
-  total: 812, durationMs: 60000, tricks: 14, unique: 6, bestCombo: 3, bestTrick: 'flip', crashes: 1, signature: 'abc', extra: 'not sent',
-};
-routes = { [`POST ${B}/api/runs`]: [201, json({ improved: true })] };
-await call('postFreestyleRun', () => board.postFreestyleRun({ name: 'Ada', map: 'alps', style: 'flow', summary: SUMMARY, origin: `${B}/` }));
-routes = { '*': [200, json({ improved: false })] };
-await call('postFreestyleRun to the default board', () => board.postFreestyleRun({ name: 'Ada', map: 'alps', style: 'flow', summary: {} }));
-await call('postFreestyleRun with no summary', () => board.postFreestyleRun({ name: 'Ada', map: 'alps', style: 'flow' }));
-
-routes = { [`POST ${B}/api/tracks/trk%2F1/times`]: [201, json({ id: 'tm-1' })] };
-await call('postTime bare', () => board.postTime({ trackId: 'trk/1', name: 'Ada', lapMs: 61000, origin: B }));
-await call('postTime with everything', () => board.postTime({
-  trackId: 'trk/1', name: 'Ada', lapMs: 61000, ghost: 'RlBW', key: 'k', sig: 's', craft: 'cub1400', origin: B,
-}));
-await call('postTime with a key but no signature', () => board.postTime({ trackId: 'trk/1', name: 'Ada', lapMs: 1, key: 'k', ghost: '', craft: '', origin: B }));
-await call('postTime with a signature but no key', () => board.postTime({ trackId: 'trk/1', name: 'Ada', lapMs: 1, sig: 's', origin: B }));
-routes = { '*': [400, json({ error: 'Too fast.' })] };
-await call('postTime refused', () => board.postTime({ trackId: 'trk/1', name: 'Ada', lapMs: 1 }));
 
 /* A Fly link. */
 const MAP_DOC = { schemaVersion: 4, id: 'trk-m', name: 'On alps', map: 'alps', elements: [], sequence: [] };

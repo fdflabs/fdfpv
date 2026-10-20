@@ -106,7 +106,7 @@ const STAGE1_SPAWNED_MS = 3000 + Math.max(...MISSION1.stages[0].spawns.map((w) =
 const HUBS = 'Flight Club,Operations,Hangar';
 /* Flight Club's cards in the registry's order (src/share/modes.js), and
  * the lesson. */
-const CLUB = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
+const CLUB = 'Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
 /* Operations' links: the two campaigns and the war's field hangar
  * (2bc31815e). */
 const OPS = 'Defend the Paraná,The Interior,Field hangar';

@@ -1,16 +1,15 @@
 /*
- * trackseat-selftest.js: the share seat, edit keys, binds and lap
- * bookkeeping kept in this browser (src/share/trackseat.js), pinned as a
- * transcript.
+ * trackseat-selftest.js: the share seat, edit keys and binds kept in this
+ * browser (src/share/trackseat.js), pinned as a transcript.
  *
  *     node scripts/trackseat-selftest.js [--dump=<file>]   (npm run trackseat:selftest)
  *
  * Every export runs against a stand in localStorage that can hold junk or
  * refuse writes. Recorded: each answer and the exact storage left behind,
  * including which seat (quads' or planes') each aircraft reads and writes,
- * what a seat refuses, and how binds, pending times and posted bests are
- * normalised. Pinned by digest (scripts/lib/transcript.js) on the module
- * before its rewrite; the clock in a seat's importedUtc is taken out.
+ * what a seat refuses, and how binds are normalised. Pinned by digest
+ * (scripts/lib/transcript.js) on the module before its rewrite; the clock
+ * in a seat's importedUtc is taken out.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -30,7 +29,7 @@
 
 import { transcript } from './lib/transcript.js';
 
-const PINNED = '563a8de226eedf4267856682a261550eed96e9cf1a8fe2fac4d7524711545a68';
+const PINNED = '948ce9fd3b4020687959a2fb256021ae304d12c10b6d23d305b447f5a12a9d6a';
 
 class Storage {
   constructor() {
@@ -217,48 +216,5 @@ store.map.set('webfpv.share.bind.v1', '[1]');
 t.rec('readBind over an array', () => s.readBind('0'));
 t.rec('writeBind over an array', () => s.writeBind('0', { board: 'b' }));
 look('binds over an array');
-
-/* Laps. */
-t.rec('lapSlot', () => [s.lapSlot('trk', ''), s.lapSlot('trk', 'cub1400'), s.lapSlot('trk'), s.lapSlot('', 'x'), s.lapSlot(undefined, null)]);
-reset();
-t.rec('readPendingTime none', () => s.readPendingTime());
-for (const [label, p] of [
-  ['nothing', null], ['no track', { lapMs: 1 }], ['no lap', { trackId: 'a' }], ['a string lap', { trackId: 'a', lapMs: '61000' }],
-  ['NaN', { trackId: 'a', lapMs: NaN }], ['a plane lap', { trackId: 7, lapMs: 61234.5, craft: 'cub1400', name: 'dropped' }], ['a quad lap', { trackId: 'b', lapMs: 59999.4 }],
-]) {
-  t.rec(`writePendingTime ${label}`, () => s.writePendingTime(p));
-  look(`pending after ${label}`);
-}
-t.rec('readPendingTime', () => s.readPendingTime());
-for (const raw of ['{"trackId":"a"}', '{"trackId":"","lapMs":1}', '{"trackId":"a","lapMs":"1"}', '{"trackId":"a","lapMs":1,"x":2}', '[]']) {
-  store.map.set('webfpv.share.pending.v1', raw);
-  t.rec(`readPendingTime of ${raw}`, () => s.readPendingTime());
-}
-store.map.set('webfpv.share.pending.v1', '{"trackId":"a","lapMs":1}');
-s.clearPendingTime('b');
-look('clearPendingTime another track');
-s.clearPendingTime('a');
-look('clearPendingTime its track');
-store.map.set('webfpv.share.pending.v1', '{"trackId":"a","lapMs":1}');
-s.clearPendingTime();
-look('clearPendingTime any');
-store.map.set('webfpv.share.pending.v1', 'junk');
-s.clearPendingTime('b');
-look('clearPendingTime of junk');
-store.mode = 'locked';
-t.rec('clearPendingTime locked', engineSafe(() => s.clearPendingTime()));
-reset();
-t.rec('readPostedBest none', () => s.readPostedBest('a'));
-for (const [id, ms] of [['a', 61000.4], ['a', 62000], ['a', 61000], ['a', 60000.6], ['b', 'x'], ['b', '59000'], ['', 1], ['c', Infinity], ['c', null]]) {
-  t.rec(`writePostedBest ${id} ${ms}`, () => s.writePostedBest(id, ms));
-}
-look('posted bests');
-for (const id of ['a', 'b', 'c', '']) {
-  t.rec(`readPostedBest ${id}`, () => s.readPostedBest(id));
-}
-store.map.set('webfpv.share.posted.v1', '{"a":{"lapMs":"oops"},"b":{"lapMs":"12"},"c":5}');
-t.rec('readPostedBest junk', () => [s.readPostedBest('a'), s.readPostedBest('b'), s.readPostedBest('c')]);
-t.rec('writePostedBest over junk', () => s.writePostedBest('a', 9));
-look('posted over junk');
 
 t.finish('trackseat.js', PINNED);

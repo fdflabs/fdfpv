@@ -957,9 +957,10 @@ export function chainPose(from, forward, distance, turn, centreY, grid = false) 
  * oval's tightest turn: on semi axes a and ASPECT a that is ASPECT^2 a,
  * at the ends of the long axis, and it must be no tighter than a turn a
  * quad is proven to fly. The AI pilot's harness (scripts/aipilot-
- * harness.js) follows the plant through every gate of tests/fixtures/
- * map-track-v4.json at 13 m/s and no faster (14 m/s is its ceiling, the
- * first pace it does not follow); the reference line it follows there
+ * harness.js, in git history since the combat-only cut, 2026-10-19)
+ * followed the plant through every gate of tests/fixtures/
+ * map-track-v4.json at 13 m/s and no faster (14 m/s was its ceiling, the
+ * first pace it did not follow); the reference line it followed there
  * (tests/lib/aireference.js) turns at 23.5 m at its tightest where it is
  * level, measured on the line 2026-10-13. 8 gates s apart on an oval of
  * perimeter 5.105 a (ASPECT 0.6) give a = 8 s / 5.105, so 0.36 a >= 23.5

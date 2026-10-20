@@ -432,11 +432,11 @@ const scenarios = {
   helpNode() {
     const ui = makeUi();
     const names = ['titleHelp', 'howtoHelp', 'creditsHelp', 'coursesHelp', 'freestyleHelp', 'pilotHelp', 'friendsHelp',
-      'quadHelp', 'launchHelp', 'standingsHelp', 'ratesHelp', 'pidsHelp', 'fcHelp', 'pausedHelp', 'resultsHelp'];
+      'quadHelp', 'launchHelp', 'ratesHelp', 'pidsHelp', 'fcHelp', 'pausedHelp', 'resultsHelp'];
     for (const n of names) ui[n] = named('div', n);
     const out = {};
     const screens = ['title', 'howto', 'credits', 'courses', 'freestyle', 'pilot', 'friends', 'rooms', 'roomnew',
-      'quad', 'launch', 'standings', 'rates', 'pids', 'fc', 'paused', 'results', 'hangar', 'bogus'];
+      'quad', 'launch', 'rates', 'pids', 'fc', 'paused', 'results', 'hangar', 'bogus'];
     for (const s of screens) {
       ui.screen = s;
       out[s] = show(ui.helpNode() ?? null);

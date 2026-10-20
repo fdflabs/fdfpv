@@ -909,16 +909,6 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     ui.craftGate = true;
     ui.mode = null;
     ui.show('title');
-    ui.settings.airframe = '7inch';
-    ui.act('way-race-5inch');
-    const whoop = {
-      craft: ui.settings.airframe,
-      mode: ui.mode,
-      screen: ui.screen,
-      gate: ui.onGate(),
-      menu: labels(stopItems()),
-      cards: items().filter((r) => r.card).length,
-    };
 
     ui.show('courses');
     const isLocal = (r) => r.course && r.course.kind === 'local';
@@ -941,14 +931,8 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
       listedAfter: items().filter(isLocal).length,
     };
 
-    ui.show('title');
-    ui.back();
-    const backFromWhoop = labels(stopItems());
-
-    ui.settings.airframe = 'bramor2300';
-    ui.act('way-race-5inch');
-    const landed = ui.screen;
-    const planeCraft = ui.settings.airframe;
+    ui.craftGate = false;
+    ui.mode = 'race';
     ui.show('title');
     const race = labels(items());
     ui.mode = 'freestyle';
@@ -961,24 +945,16 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     const modeGate = {
       gate: gateLabels,
       cards: clubCards,
-      backFromWhoop,
-      whoop,
       home,
       homeCards,
       asksHubs: home.join(',') === 'Flight Club,Operations,Hangar' && homeItems.every((it) => it.card)
         && homeCards.length === 3 && pictured(homeCards),
-      asksWays: gateLabels.length === 3 && gateLabels.join(',') === 'Track Day,Free Flight,Learn to fly'
+      asksWays: gateLabels.length === 2 && gateLabels.join(',') === 'Free Flight,Learn to fly'
         && !gateItems.some((it) => !it.card),
-      asCards: clubCards.length === 3 && pictured(clubCards),
+      asCards: clubCards.length === 2 && pictured(clubCards),
       modeSetGate,
-      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 3
+      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 2
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
-      onePress: whoop.craft === '7inch' && whoop.mode === 'race' && whoop.screen === 'courses'
-        && !whoop.gate && whoop.cards === 0 && !whoop.menu.includes('Freestyle'),
-      escapeToGate: backFromWhoop.join(',') === gateLabels.join(','),
-      answered: landed === 'courses',
-      landed,
-      planeCraft,
       race,
       free,
       raceNamesTrack: race.includes('Track') && !race.includes('Race') && !race.includes('Freestyle'),
@@ -1174,16 +1150,11 @@ const BEHAVIOUR = [
   }],
   ['modeGate', 'the gate', (r, fail) => {
     const m = r.modeSetGate;
-    const w = r.whoop;
     const checks = [
       [r.asksHubs, `home opens on ${or(r.home, 'nothing')} drawn as ${JSON.stringify(r.homeCards)}, not on Flight Club, Operations and the Hangar, each with a picture and a plan`],
-      [r.asksWays, `Flight Club opens on ${or(r.gate, 'nothing')}, not on the three ways in`],
+      [r.asksWays, `Flight Club opens on ${or(r.gate, 'nothing')}, not on the two ways in`],
       [r.asCards, `the gate: ${r.cards.length} card(s) drawn as ${JSON.stringify(r.cards)}, so a card is a row again or has lost its picture or its plan`],
       [r.gateWithMode, `the gate: with the mode already answered it drew ${m.cards.length} card(s), ${m.cards.filter((c) => c.wide).length} of them visible, is-gate ${m.isGate}, ${m.keepNote} menu note(s) still showing`],
-      [r.onePress, `the gate: Track mode with the whoop seated left ${w.craft} in ${w.mode} on ${w.screen}, gate ${w.gate}, and landed on ${or(w.menu, 'nothing')}`],
-      [r.escapeToGate, `the gate: Escape from the menu reached ${or(r.backFromWhoop, 'nothing')}, not the three cards`],
-      [r.answered, `the gate: answering Track mode with a plane seated stayed on ${r.landed}, not My tracks`],
-      [r.planeCraft === 'bramor2300', `the gate: Track mode with a plane seated seated ${r.planeCraft}, and a plane that fits a track races it`],
       [r.raceNamesTrack, `the title in Race names ${r.race.join(', ')}, which is not a Track row without a mode beside it`],
       [r.freeNamesMap, `the title in Freestyle names ${r.free.join(', ')}, which is not a The world row without a mode beside it`],
     ];

@@ -158,7 +158,6 @@ export const COMPONENTS = [
       ['rest', row(str('ui.settings'))],
       ['cursor', row(str('ui.settings'), 'on')],
       ['navigation', row(str('ui.rates'), 'row-nav')],
-      ['link', row(str('roombrowser.all'), 'row-link')],
       ['primary', row(str('roombrowser.new'), 'row-primary')],
       ['primary, cursor', row(str('roombrowser.new'), 'row-primary on')],
       ['info', row(str('ui.the_world'), 'row-info', h('span', 'row-value', str('registry.swiss2')))],

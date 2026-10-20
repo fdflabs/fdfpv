@@ -27,7 +27,6 @@
  */
 
 import { AIR_START_STALL_MARGIN } from '../../configs/airframes.js';
-import { MEDAL_STEPS } from './medals.js';
 import { ACT1 } from './campaign.js';
 import { PRACTICE_ID } from '../share/war/missions/itaipu-practice.js';
 
@@ -87,27 +86,18 @@ const STICK_ENDS = {
  * coordinated figure eight; { thermal: true }
  * THERMAL_CLIMB_M climbed, throttle closed, in rising air; { airborne: ms } in the air that long without touching down;
  * { turn: 'left' | 'right' } a full circle that way; { land: true } down
- * and whole after a real flight; { laps: n, clean } n laps on the course,
- * clean meaning no rim touched, casual meaning only laps of a casual sky
- * track count (the lap event's `kind`, progress.js courseKind); { ghost:
- * true } a lap faster than the ghost; { medal: 'bronze' } a lap that
- * reaches that medal or a better one on a course with medals
- * (src/game/medals.js); { race: n } a room
- * race finished with at least n pilots on its grid, this one among them;
+ * and whole after a real flight;
  * { hold: ms, low, high, radius } held in a height band (and a circle);
  * { land: true, deadstick: true } a landing after the pack ran low;
  * { land: true, onStrip: true } a landing at rest on its place's strip;
- * { gates: n } n gates or hoops in a row without a touch;
  * { kill: kind, mission } an attacker of that kind the war's room credited
  * to this pilot in that mission; { track: ms } one track held as the
  * avionics camera's primary, unbroken, that long; { won: mission } that
  * war mission won, with any number of pilots. `mode` is a
  * quad's flight mode, 'angle' (self levelling) or 'acro'.
  * A crash starts the lesson's steps again. `aid` is the visual aid the
- * lesson draws: 'glide', the glide path to its place's strip, or 'gate',
- * the next gate's direction on the HUD. `room` is the activity
- * (src/share/modes.js) whose lobby a lesson flown with others opens;
- * `mission` the war mission a Defence lesson's room is made for.
+ * lesson draws: 'glide', the glide path to its place's strip. `mission`
+ * is the war mission a Defence lesson's room is made for.
  * `covers` lists the lessons a pass of this one passes too, because it
  * asks all they ask. The words are training.lesson.<id> and
  * training.lesson.<id>_note.
@@ -139,13 +129,6 @@ export const LESSONS = [
     id: 'quad_acro', track: 'multirotor', airframe: 'interceptor', mode: 'acro', place: 'swiss2', covers: ['quad_hover'],
     steps: [{ hold: 15000, low: 1, high: 4, radius: 3 }],
   },
-  { id: 'quad_gates', track: 'multirotor', airframe: null, mode: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: true, casual: true }] },
-  { id: 'quad_precision', track: 'multirotor', airframe: null, mode: null, place: null, aid: 'gate', steps: [{ gates: 10 }] },
-  { id: 'race_lap', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: false }] },
-  { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', covers: ['race_lap'], steps: [{ laps: 1, clean: true }] },
-  { id: 'race_bronze', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ medal: 'bronze' }] },
-  { id: 'race_ghost', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ ghost: true }] },
-  { id: 'race_pilot', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', room: 'race', steps: [{ race: 2 }] },
   /* Defence (TRAINING.md track 5, 9): in the war's aircraft, which the
    * room seats, behind the war's consent. */
   {
@@ -198,27 +181,6 @@ export function glidePoints(strip, groundY) {
 }
 
 /*
- * The next gate's direction for the HUD: `cam` the camera's position and
- * its forward and up unit vectors, `to` the gate's centre, all in one frame.
- * Returns the angle round the crosshair (radians, 0 up the screen, positive
- * clockwise) and whether the gate is ahead within `cone` (radians), where
- * the gate itself is the cue and no arrow is drawn.
- */
-export function gateCue(cam, to, cone = 0.35) {
-  const dx = to.x - cam.x;
-  const dy = to.y - cam.y;
-  const dz = to.z - cam.z;
-  const len = Math.hypot(dx, dy, dz) || 1;
-  const f = cam.forward;
-  const u = cam.up;
-  const r = { x: f.y * u.z - f.z * u.y, y: f.z * u.x - f.x * u.z, z: f.x * u.y - f.y * u.x };
-  const ahead = (dx * f.x + dy * f.y + dz * f.z) / len;
-  const right = (dx * r.x + dy * r.y + dz * r.z) / len;
-  const upward = (dx * u.x + dy * u.y + dz * u.z) / len;
-  return { angle: Math.atan2(right, upward), ahead: ahead > Math.cos(cone) };
-}
-
-/*
  * A LESSON'S SETTINGS (docs/redesign/TRAINING.md 9, the lead 2026-10-13):
  * flying one seats its aircraft, tune, flight mode and weather in the
  * pilot's stored settings, and what they were goes back when the lesson
@@ -267,7 +229,7 @@ export function restoreSettings(s, held, seat, valid) {
 }
 
 /* The tracks in the order the page lists them. */
-export const TRACKS = ['first', 'wing', 'glider', 'multirotor', 'racing', 'defence'];
+export const TRACKS = ['first', 'wing', 'glider', 'multirotor', 'defence'];
 
 /*
  * CERTIFICATIONS (PROGRESSION.md 7, the lead 2026-10-13): a track's, earned
@@ -277,7 +239,7 @@ export const TRACKS = ['first', 'wing', 'glider', 'multirotor', 'racing', 'defen
  * every lesson TRAINING.md gives it exists here; First flight has none.
  * The words are training.cert.<track>.
  */
-export const CERTS = ['wing', 'glider', 'multirotor', 'racing', 'defence'];
+export const CERTS = ['wing', 'glider', 'multirotor', 'defence'];
 
 /* The certifications `passed` (lesson id to its pass time) has earned. */
 export function certsEarned(passed) {
@@ -287,7 +249,7 @@ export function certsEarned(passed) {
 /* "I fly already": per track, the one lesson an experienced pilot flies
  * to pass the track's basics at once (TRAINING.md 4), the lesson that
  * covers the rest. */
-export const SKIPS = { first: 'first_unaided', multirotor: 'quad_acro', racing: 'race_clean' };
+export const SKIPS = { first: 'first_unaided', multirotor: 'quad_acro' };
 
 /* What a pass of lesson `id` passes: itself and what it covers. */
 export function passesOf(id) {
@@ -352,11 +314,10 @@ export function heldTrack(snapshot) {
 /*
  * Whether lesson `lesson` flies in a room of activity `mode` (a registry
  * id, src/share/modes.js): its own room keeps it (TRAINING.md 10), any
- * other ends it. Racing a pilot flies in Track Day's, the Defence lessons
- * in the war's.
+ * other ends it. The Defence lessons fly in the war's.
  */
 export function lessonFliesIn(lesson, mode) {
-  return (lesson.room != null && lesson.room === mode) || (lesson.mission != null && mode === 'war');
+  return lesson.mission != null && mode === 'war';
 }
 
 export function lessonById(id) {
@@ -403,11 +364,8 @@ export class LessonWatch {
   enterStep() {
     this.heading = null;
     this.turned = 0;
-    this.laps = 0;
-    this.clean = true;
     this.holdSince = null;
     this.holdAt = null;
-    this.streak = 0;
     this.endSince = {};
     this.endsHeld = new Set();
     this.stalled = false;
@@ -612,19 +570,6 @@ export class LessonWatch {
     }
   }
 
-  /* A gate or hoop flown through: { gates: n } counts n in a row. */
-  gatePass() {
-    const s = this.current;
-    if (!s || !s.gates) {
-      return this.passed;
-    }
-    this.streak += 1;
-    if (this.streak >= s.gates) {
-      this.advance();
-    }
-    return this.passed;
-  }
-
   judgeTurn(dir, heading, grounded) {
     if (grounded) {
       this.heading = null;
@@ -638,22 +583,6 @@ export class LessonWatch {
     if ((dir === 'left' ? this.turned : -this.turned) >= TURN_RAD) {
       this.advance();
     }
-  }
-
-  /* The craft touched a rim (progress.js RIM_KINDS decides what is one). */
-  rim() {
-    this.clean = false;
-    this.streak = 0;
-  }
-
-  /* A round ended (its event in the flight's log, src/game/events.js): a
-   * room race this pilot finished carries game 'race' and its grid's size. */
-  round({ game = null, pilots = null } = {}) {
-    const s = this.current;
-    if (s && s.race && game === 'race' && Number.isInteger(pilots) && pilots >= s.race) {
-      this.advance();
-    }
-    return this.passed;
   }
 
   /* An attacker the room credited to this pilot: its `kill` event
@@ -690,29 +619,6 @@ export class LessonWatch {
     if (s && s.won && mission === s.won && won === true) {
       this.advance();
     }
-    return this.passed;
-  }
-
-  /* A lap closed: `lap` its event in the flight's log (src/game/events.js:
-   * its `ms`, the `medal` it reached or null and its course's `kind`,
-   * progress.js courseKind), `ghostMs` the ghost's lap or null, which the
-   * log does not carry. */
-  lap({ ms = null, medal = null, kind = null } = {}, ghostMs = null) {
-    const s = this.current;
-    if (!s) {
-      return this.passed;
-    }
-    if (s.ghost && ms != null && ghostMs != null && ms < ghostMs) {
-      this.advance();
-    } else if (s.medal && MEDAL_STEPS.indexOf(medal) >= MEDAL_STEPS.indexOf(s.medal)) {
-      this.advance();
-    } else if (s.laps && (this.clean || !s.clean) && (!s.casual || kind === 'casual')) {
-      this.laps += 1;
-      if (this.laps >= s.laps) {
-        this.advance();
-      }
-    }
-    this.clean = true;
     return this.passed;
   }
 }

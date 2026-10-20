@@ -110,7 +110,7 @@ import {
   setPidsExpert,
 } from '../../configs/pids.js';
 import {
-  boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
+  boardConfigured, fetchTrackDocument, fetchTrackList, pickFeaturedTracks,
 } from '../share/board.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
@@ -124,10 +124,6 @@ import { accountsAvailable, mayPlay, needSignIn } from '../share/account.js';
 import { hasFlyableTrack, inspectCourse } from '../share/listing.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
-  lapSlot,
-  readPendingTime,
-  readPostedBest,
-  writePendingTime,
   /* My tracks seats the pilot's own tracks (seatLocal) and clears a deleted
    * one out of the seat. A board track's seat is written by main.js, which
    * owns the fetch. */
@@ -192,7 +188,7 @@ import {
   choice, cycle, fitsAsSegments, number, stampIds, stepper, toggle,
 } from './rows.js';
 import {
-  WAYS, GATE_WAYS, HUBS, OPEN_ACTIONS, hubWays, hubOfAction, seatedWay, wayFilter, boardCraft, craftSvg, reticleSvg,
+  WAYS, GATE_WAYS, HUBS, OPEN_ACTIONS, hubWays, hubOfAction, seatedWay, wayFilter, craftSvg, reticleSvg,
 } from './ways.js';
 import { formatDay, formatDelta, formatRunClock, formatTime } from './format.js';
 import {
@@ -208,7 +204,7 @@ export { WAYS, formatRunClock, formatTime };
  * draws as a plain action, which promises less, so forgetting one is safe.
  */
 export const SCREEN_ACTIONS = new Set([
-  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'planerates', 'pids', 'fc',
+  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'rates', 'planerates', 'pids', 'fc',
   'howto', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
   'calibrate', 'friends', 'rooms', 'roomnew', 'controls', 'controller',
 ]);
@@ -227,7 +223,6 @@ export const SCREEN_TITLES = {
   pilot: str('ui.settings'),
   quad: str('ui.quad'),
   launch: str('ui.before_you_fly'),
-  standings: str('ui.standings'),
   rates: str('ui.rates'),
   planerates: str('ui.rates'),
   pids: 'PIDs',
@@ -430,7 +425,7 @@ function cloudCardRows(subject) {
  * The list under a chosen track card. Choosing a card does not fly it: it
  * opens this list, Play first, so Enter twice still flies. The pilot's own
  * tracks can be edited, renamed, copied and deleted; a board track can be
- * copied into My tracks, its standings read, or its page opened. Each entry
+ * copied into My tracks. Each entry
  * is [label key, action, note key]; every note may name the track and its
  * world.
  */
@@ -442,8 +437,6 @@ const OWN_CARD_ENTRIES = [
 ];
 const BOARD_CARD_ENTRIES = [
   ['ui.duplicate', 'card-duplicate', 'ui.copy_it_into_my_tracks_board'],
-  ['ui.standings', 'card-standings', 'ui.every_time_posted_on_fastest_first'],
-  ['ui.open_on_the_web', 'card-board', 'ui.the_public_page_for_a_link'],
 ];
 
 export function courseCardRows(subject) {
@@ -502,14 +495,14 @@ function linkParams() {
 
 /*
  * The session's purpose when the link already gives it, so the gate does
- * not ask again: a board link (?share=) or a chase link (?ghost=) means a
- * race, and ?map= a known world's own mode. null when the link says nothing
+ * not ask again: a board link (?share=) means a race, and ?map= a known
+ * world's own mode. null when the link says nothing
  * usable. Only links answer this, never stored settings: see the
  * constructor.
  */
 function linkedMode() {
   const q = linkParams();
-  if (q.get('share') || q.get('ghost')) {
+  if (q.get('share')) {
     return 'race';
   }
   const named = q.get('map');
@@ -621,16 +614,6 @@ export class Ui {
     this.localCourses = [];
     this.cloudCourses = [];
     this.cloudNext = '';
-    /* The standings screen's subject and times: null is not asked yet
-     * (drawn as Reading the board), an empty array is a board that
-     * answered with none. */
-    this.standingsFor = null;
-    this.standingsTimes = null;
-    this.standingsError = '';
-    /* The Ghost and Live rows the shell pushes (setGhostRow, setLiveRow),
-     * because the shell knows what can be chased; null hides the row. */
-    this.ghostRow = null;
-    this.liveRow = null;
     this.boardLoading = false;
     this.openingBoardCourse = false;
     this.onBoardCourse = null; /* (track) => Promise<boolean> */
@@ -723,7 +706,6 @@ export class Ui {
     wireFcSession(this);
     this.onUiSound = null;   /* (kind) => void: 'move', 'adjust', 'select', 'back' */
     this.share = null;       /* published course this run is flying, or null */
-    this.timePosted = null;  /* last successful post on the results screen */
     this.resultsFastest = null;
     /* The flight's debrief record (src/game/debrief.js), or null. */
     this.resultsDebrief = null;

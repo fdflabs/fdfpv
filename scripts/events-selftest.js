@@ -526,7 +526,7 @@ console.log('the shell\'s producers');
   check('Progress logs a gate, a touch and a lap and pays only through the fold',
     ui.includes("this.event('gate');\n    this.foldFlight();")
     && ui.includes("touch(kind) {\n    this.event('touch', { kind });")
-    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });\n    this.foldFlight();"));
+    && ui.includes("this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });\n    this.foldFlight();"));
   check('and nothing in it pays an achievement but awardFlight',
     !/award(Lap|Medal|Challenge|Place|Firsts|Bests|Best|AircraftChallenges?)\(/.test(ui) && (ui.match(/awardFlight\(/g) || []).length === 1);
   check('a new seat is logged, with the crash flag the shell seats it with',
@@ -535,21 +535,16 @@ console.log('the shell\'s producers');
     ui.includes('for (const edge of this.watch.tick(state)) {\n      this.event(edge);'));
   check('a place found is logged and paid by the fold', ui.includes("this.event('found', { world, id });"));
   check('a new flight folds the last one to its end first', /startFlight\(simMs, roomNow = null\) \{\n    this\.foldFlight\(\);/.test(ui));
-  check('and a lesson judges the lap from that same event', ui.includes('this.lesson.lap(lapped, ghostMs);'));
   check('and logs a crash and a landing, with its time in the air, from its tick',
     ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe, airMs: this.watch.lastAirMs })"));
   check('a spawn starts a flight', /function resetCraft[\s\S]*?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
   check('so does a developer hook putting the craft somewhere, so no lap across it is a best',
     /devHooks\.__placeCraft = [\s\S]{0,1600}?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
   check('a lap carries its course and its place in a solo run',
-    src('src/main.js').includes("n: race.lap,\n          of: roomRun() ? null : runLaps,"));
+    src('src/main.js').includes("n: race.lap,\n          of: runLaps,"));
   check('a room game\'s end is logged as a round, Streamer Combat and Catch the Ace!, with this pilot\'s points',
     src('src/main.js').includes("ui.progress.roundFinished('combat', worldId(), { points: roomCombat.mine().points })") && src('src/main.js').includes("ui.progress.roundFinished('tag', worldId(), { points: mine.points })")
     && ui.includes("this.event('round', { game, world, ...more })"));
-  check('a room race this pilot finished is a round with the people on its grid, its AI pilots not counted, once per race',
-    src('src/main.js').includes("const over = roomRace.takeResults();")
-    && src('src/main.js').includes("const people = (over.racers || []).filter((seat) => seat === roomRace.seat() || !roomBot(roomPeers.get(seat) || {}));")
-    && src('src/main.js').includes("ui.progress.roundFinished('race', worldId(), { pilots: people.length })"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
   const missionLogged = (file, type) => new RegExp(`ui\\.progress\\.event\\('${type}', \\{[^}]*airframe: ui\\.progress\\.airframe,?\\s*\\}\\);\\n\\s*ui\\.progress\\.foldFlight\\(\\);`).test(src(file));

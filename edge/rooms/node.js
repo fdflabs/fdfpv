@@ -104,11 +104,10 @@ function roomNameOf(pathname) {
   return code ? `prv:${code}` : null;
 }
 
-/* The largest message the simulator sends is a host's race track, logos
- * stripped (src/share/roomrace.js), which the room caps at 64 kB (race.js
- * TRACK_MAX_BYTES). A MiB is that many times over, and even an unstripped
- * track fits (the tracks server's documents are at most 512 kB).
- * Cloudflare takes up to 32 MiB, which a process capped at 256 MB must not. */
+/* Sized when the largest message the simulator sent was a race room
+ * host's track, which the room capped at 64 kB: a MiB is that many times
+ * over. Cloudflare takes up to 32 MiB, which a process capped at 256 MB
+ * must not. */
 const MAX_MESSAGE_BYTES = 1024 * 1024;
 const CLOSE_RESTART = 1012;
 
@@ -672,7 +671,7 @@ export async function startRooms({
   env.HEALTH = new Health(() => [...env.ROOMS.objects.values()].map((room) => {
     const core = room.host.core;
     return {
-      counters: room.counters, pilots: core ? core.people().length : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null, witness: core ? core.race.witness : null,
+      counters: room.counters, pilots: core ? core.people().length : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null,
     };
   }));
 

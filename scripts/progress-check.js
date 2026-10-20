@@ -273,9 +273,8 @@ function highestUnder(page, cx, cz, R) {
 /* The builder: plane gates hung round a ring, flown along it, saved. */
 async function buildRing(page, R, offset) {
   await page.until('window.__ui.onGate()', 60000);
-  await choose(page, 'way-race-5inch');
-  await page.until('window.__ui.carousel.isOpen', 10000);
-  await page.tap('Enter');
+  /* My tracks, the race card's list, since the race card left. */
+  await page.evaluate("(() => { window.__ui.act('mytracks'); return true; })()");
   await page.until("window.__ui.screen === 'courses'", 20000);
   await choose(page, 'newtrack');
   await choose(page, 'newtrack:alps');

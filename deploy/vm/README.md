@@ -533,13 +533,6 @@ seconds; rooms already flying go on. `closings` and `refused` count how
 often. The numbers behind the thresholds are in docs/MULTIPLAYER-PLAN.md
 section 12, Phase 6 as built.
 
-`race` is the race witness's verdicts since the process started
-(edge/rooms/anticheat.js): `claims` judged and `refused`, the passes and
-finishes the room did not take because the racer's own poses did not
-show them flown. `day.raceClaims` and `day.raceRefused` are the UTC
-day's, and each `perRoom` row has its room's since it last woke. A
-refusal is rare in honest racing; a run of them is worth reading.
-
 ## The admin page's Server section
 
 admin.html shows the VM: CPU (user, sys, iowait and steal), load, RAM,

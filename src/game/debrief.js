@@ -131,7 +131,6 @@ const NEXT = {
   race: ['again', 'replay', 'aircraft', 'title'],
   /* A room's own rows (the host's Again, Fly on, the room's) lead; the
    * replay and another aircraft for the next round follow them. */
-  roomrace: ['room', 'replay', 'aircraft', 'title'],
   tag: ['room', 'replay', 'aircraft', 'title'],
   combat: ['room', 'replay', 'aircraft', 'title'],
   /* The ops debrief's own buttons: Again from the checkpoint (the host,
@@ -249,16 +248,16 @@ export function fromRace({ aircraft, fixedWing = false, events, recordAtStart, f
 }
 
 /*
- * A Flight Club room's match: a room race, Catch the Ace or Streamer
- * Combat. place and of are this pilot's standing in the room's order
- * (place null when the room has none for this pilot yet); final whether
- * the room has called the result, so a race still being finished by the
- * others says neither won nor lost. events: this pilot's flight's log;
- * the points are its last `round` of this game's (Progress.roundFinished,
- * logged as the room ends it), none where the game counts none (a room
- * race's round carries its grid, not points).
+ * A Flight Club room's match: Catch the Ace or Streamer Combat. place and
+ * of are this pilot's standing in the room's order (place null when the
+ * room has none for this pilot yet); final whether the room has called
+ * the result, so a round the others are still flying says neither won nor
+ * lost. events: this pilot's flight's log; the points are its last
+ * `round` of this game's (Progress.roundFinished, logged as the room ends
+ * it), none where the log holds no round of it. A room race's round in an
+ * older log (game 'race', its grid and no points) is no game's here.
  */
-const ROUND_GAME = { roomrace: 'race', tag: 'tag', combat: 'combat' };
+const ROUND_GAME = { tag: 'tag', combat: 'combat' };
 
 export function fromRoom({ activity, aircraft, fixedWing = false, place, of, final, events = [], flightMs, totalS, route = null, replay, condition = null }) {
   const round = events.filter((e) => e.type === 'round' && e.game === ROUND_GAME[activity]).pop();
@@ -339,7 +338,7 @@ export function fromOps({ events, match, items, starsOf, flight }) {
  * airframe, id, improved: true }, after the bests. Pure: a new record.
  */
 const BEST_LINES = { lap: 'debrief.best_lap', run: 'debrief.best_run', combat: 'debrief.best_score', tag: 'debrief.best_score' };
-const BESTS_FOR = { race: ['lap', 'run'], roomrace: ['lap'], combat: ['combat'], tag: ['tag'] };
+const BESTS_FOR = { race: ['lap', 'run'], combat: ['combat'], tag: ['tag'] };
 
 export function withBests(d, bests) {
   const kinds = BESTS_FOR[d.activity] ?? [];

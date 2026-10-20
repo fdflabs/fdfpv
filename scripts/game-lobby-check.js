@@ -7,7 +7,7 @@
  * multi"):
  *
  *   SIM_GPU=1 node scripts/game-lobby-check.js --game=combat [outdir]
- *   (--game= combat, tag, war, free or race; npm run game:lobby -- --game=tag)
+ *   (--game= combat, tag, war or free; npm run game:lobby -- --game=tag)
  *
  *   A clicks the card, one click, and is in the lobby of a public room
  *   made for the game, named for A. Escape from it is the title's cards,
@@ -37,18 +37,11 @@
  *   and is in the round, flying; the panel said it was flying, not in a
  *   lobby, before C clicked.
  *
- *   D (not the race or the war) opens Flight Club and presses Watch beside
+ *   D (not the war) opens Flight Club and presses Watch beside
  *   that room: on its watch seat, no seat of its own and unseen by the
  *   pilots, the camera on a pilot; J follows the next, kept through a
  *   stall of D's page; Escape is the pause
  *   menu (Resume, Room, Settings, Leave the room) and its Leave row leaves.
- *
- * The race (--game=race): A's lobby has no track yet, and its Track row
- * opens My tracks; A plays its own track there and is back in the lobby,
- * the room's track that one. R: the race goes, A on the grid. B's one
- * click lands in A's lobby with the track; both ready, both race. A race
- * on is the one round a newcomer cannot join (it went off a grid): C's
- * click on the panel lands C in the lobby, not racing.
  *
  * The war (--game=war) has a page between its link and its lobby (the
  * owner, 2026-10-03): the link opens the campaign's page, its seven
@@ -86,10 +79,7 @@ import { mkdtempSync } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { ACT1 } from '../src/game/campaign.js';
-import { modeById } from '../src/share/modes.js';
-import { FILL_TO } from '../edge/rooms/roombots.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const GAME = (process.argv.find((a) => a.startsWith('--game=')) || '--game=combat').slice('--game='.length);
@@ -133,18 +123,6 @@ const GAMES = {
     on: 'Boolean(window.__rooms().lobby && window.__rooms().lobby.live)',
     end: null,
   },
-  race: {
-    card: 'race-5inch', world: 'swiss2', chip: 'Race', upMs: 120000,
-    on: "window.__roomRace().race.state === 'on'",
-    end: (core) => core.race.end(core),
-  },
-};
-/* A's own track for the race: three gates on a ring hung over the Swiss
- * valley's field, in A's My tracks (src/trackbuilder/storage.js). */
-const TRACK_ID = 'trk-lobby0001';
-const trackSeed = () => {
-  const doc = mapTrackDocument({ id: TRACK_ID, name: 'Lobby ring', map: 'swiss2', types: ['gate', 'hoop30', 'gate'], radius: 50 });
-  return `(() => { localStorage.setItem('webfpv.trackbuilder.library.v1', JSON.stringify({ ${JSON.stringify(TRACK_ID)}: ${JSON.stringify(doc)} })); })();`;
 };
 const G = GAMES[GAME];
 if (!G) {
@@ -202,12 +180,9 @@ const LOBBY = `(() => {
     phase: r.phase, code: r.code, public: r.public, name: r.name, mode: r.mode,
   };
 })()`;
-/* The people in a lobby, and in A's peers: a public room of a game that
- * allows AI pilots (Catch the Ace, src/share/modes.js allowAI) is filled
- * with them to FILL_TO (edge/rooms/roombots.js), so a row about who came
- * and went counts people, and the fill has a row of its own. */
-const people = (pilots) => pilots.filter((p) => !p.ai);
-const PEERS = 'window.__rooms().peers.filter((p) => !p.bot).length';
+/* The people in a lobby, and in A's peers. */
+const people = (pilots) => pilots;
+const PEERS = 'window.__rooms().peers.length';
 const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
 const FLYING = "window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'";
 /* Into a private room the way a friend gets in, from Flight Club: All
@@ -282,11 +257,11 @@ function restoreMission(code, mission) {
 /* The codes on the browser's list, as the title's panel reads it. */
 const listedCodes = async () => ((await (await fetch(`${rooms}/v2/rooms`)).json()).rooms || []).map((r) => r.code);
 
-const a = await openPage({ root, url, width: 1280, height: 720, seed: GAME === 'race' ? [SEED, trackSeed()] : [SEED] });
+const a = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
 let b = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
 let c = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
 /* The watcher, opened once the round is on (WATCHED games only). */
-const WATCHED = GAME !== 'race' && GAME !== 'war';
+const WATCHED = GAME !== 'war';
 let d = null;
 let bErrors = [];
 try {
@@ -335,22 +310,14 @@ try {
     && /, /.test(la.name || '') && la.here === 'friends-lobby-ready' && la.flying !== 'flight', JSON.stringify(la));
   await shot(a, '1-a-lobby');
   /* The room's Weather row, the host's choice, in every lobby flown in a
-   * free flight world; none in a war's (still air) or a race's (a track's
-   * records are flown in still air, main.js seatWeather). */
-  const stillAir = GAME === 'war' || GAME === 'race';
+   * free flight world; none in a war's (still air). */
+  const stillAir = GAME === 'war';
   const wxA = await a.evaluate("(() => { const it = window.__ui.items().find((x) => x.label === 'Weather'); return it ? { value: it.value, choice: Boolean(it.options) } : null; })()");
   check(stillAir ? 'and its lobby has no Weather row: still air' : 'and its lobby has the room\'s Weather, a choice for its host: Calm',
     stillAir ? wxA === null : Boolean(wxA && wxA.choice && wxA.value === 'Calm'), JSON.stringify(wxA));
-  /* A public room of a game that allows AI pilots fills with them, A one
-   * of FILL_TO (edge/rooms/roombots.js); every other game's is A alone.
-   * A race's AI pilots wait for the room's track, which a lobby just made
-   * has none of yet (roombots.js wanted, edge/rooms/airace.js status). */
-  const fill = modeById(GAME).allowAI && GAME !== 'race' ? FILL_TO - 1 : 0;
-  await a.until(`document.querySelectorAll('.war-lobby-pilot.ai').length === ${fill}`, 20000).catch(() => {});
+  /* No game seats AI pilots: A is the lobby's one pilot. */
   const filled = await a.evaluate(LOBBY);
-  const alone = GAME === 'race' ? 'and A is the lobby\'s one pilot: a race\'s AI pilots wait for its track' : 'and A is the lobby\'s one pilot, no AI pilots (the game allows none)';
-  check(fill ? `the public room fills with AI pilots: A and ${fill} more, ${FILL_TO} in all` : alone,
-    people(filled.pilots).length === 1 && filled.pilots.filter((p) => p.ai).length === fill, JSON.stringify(filled.pilots));
+  check('and A is the lobby\'s one pilot, no AI pilots', filled.pilots.length === 1, JSON.stringify(filled.pilots));
 
   /* THE WAR'S LOBBY IS OPERATIONS' BRIEFING (src/ui/briefing.js): the
    * mission's line, what to do first where the mission has stages, the
@@ -525,40 +492,6 @@ try {
     await a.evaluate("JSON.stringify({ screen: window.__ui.screen, phase: window.__rooms().phase, dialog: !document.querySelector('.name-dialog').hidden })"));
   }
 
-  /* THE RACE'S TRACK: the host's Track row, My tracks, Play: back in the
-   * lobby, the room's track A's. */
-  if (GAME === 'race') {
-    check('the race lobby has no track yet, and the host a Track row', /no track yet/.test(la.line) && la.rows.includes('friends-lobby-track'), JSON.stringify(la));
-    await a.evaluate("(() => { window.__ui.act('friends-lobby-track'); return true; })()");
-    const cardOf = `window.__ui.items().find((it) => it.course && it.course.track.id === ${JSON.stringify(TRACK_ID)})`;
-    await a.until(`window.__ui.screen === 'courses' && Boolean(${cardOf})`, 30000).catch(() => {});
-    check('Track opens My tracks, A\'s own track on it', await a.evaluate(`window.__ui.screen === 'courses' && Boolean(${cardOf})`), await a.evaluate('window.__ui.screen'));
-    /* Escape from My tracks is one level back: the lobby, still in the room. */
-    await a.tap('Escape');
-    await a.until(IN_LOBBY, 10000).catch(() => {});
-    check('Escape from My tracks is the lobby again, still in the room', await a.evaluate(`${IN_LOBBY} && window.__rooms().phase === 'open'`),
-      await a.evaluate("JSON.stringify({ screen: window.__ui.screen, phase: window.__rooms().phase })"));
-    await a.evaluate("(() => { window.__ui.act('friends-lobby-track'); return true; })()");
-    await a.until(`window.__ui.screen === 'courses' && Boolean(${cardOf})`, 30000).catch(() => {});
-    await a.evaluate(`(() => { window.__ui.actOnCard('card-fly', ${cardOf}); return true; })()`);
-    await a.until(`${IN_LOBBY} && window.__roomRace().track && window.__roomRace().track.id === ${JSON.stringify(TRACK_ID)}`, 120000).catch(() => {});
-    /* The panel is redrawn a frame or more after the room's word. */
-    await a.until("/Lobby ring/.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 10000).catch(() => {});
-    const lt = await a.evaluate(LOBBY);
-    check('Play on it: back in the lobby, the room\'s track A\'s', lt.shown && /Lobby ring/.test(lt.line)
-      && (await a.evaluate('(window.__roomRace().track || {}).id')) === TRACK_ID, JSON.stringify({ line: lt.line, screen: lt.screen }));
-    /* With a track the public room's grid fills with AI pilots
-     * (edge/rooms/airace.js), and the host's AI pilots row says what they
-     * race against. */
-    await a.until(`document.querySelectorAll('.war-lobby-pilot.ai').length === ${FILL_TO - 1}`, 60000).catch(() => {});
-    const grid = await a.evaluate(LOBBY);
-    const aiRow = await a.evaluate("(() => { const all = window.__ui.items().filter((x) => x.label === 'AI pilots'); const it = all[0]; return it ? { n: all.length, note: it.note, choice: Boolean(it.options) } : null; })()");
-    check(`and its grid fills with AI pilots, ${FILL_TO} in all, the host's AI pilots row (one) a choice that says they race a lap`,
-      grid.pilots.filter((p) => p.ai).length === FILL_TO - 1 && people(grid.pilots).length === 1 && aiRow && aiRow.n === 1 && aiRow.choice && /lap/.test(aiRow.note),
-      JSON.stringify({ pilots: grid.pilots, aiRow }));
-    await a.until('window.__roomRace().ready', 120000).catch(() => {});
-  }
-
   /* A ALONE: ready, the five seconds, the round. */
   await a.tap('KeyR');
   await a.until("/Starting in [1-5]/.test(document.querySelector('.war-lobby-status').textContent)", 10000).catch(() => {});
@@ -635,7 +568,7 @@ try {
     /* THE ROOM'S WEATHER in the lobby, after the aircraft: the host's a
      * choice, which is the room's air at once (main.js offerRoomWeather),
      * and B's a fact that follows it on the room's word (rooms.js
-     * onWeather). A war's or a race's has none: still air. */
+     * onWeather). A war's has none: still air. */
     const WX_ROW = "window.__ui.items().some((x) => x.label === 'Weather')";
     if (stillAir) {
       check('neither lobby has a Weather row: still air', !(await a.evaluate(WX_ROW)) && !(await b.evaluate(WX_ROW)));
@@ -689,7 +622,7 @@ try {
        * war's world; A moves the room to another game and back, and B's
        * lobby follows each time without a click. */
       const ACT = "(() => { const it = window.__ui.items().find((x) => x.label === 'Activity'); return it ? { value: it.current, options: it.options.map((o) => o.value) } : null; })()";
-      const other = GAME === 'race' ? 'combat' : 'race';
+      const other = GAME === 'combat' ? 'tag' : 'combat';
       const actA = await a.evaluate(ACT);
       const actB = await b.evaluate(ACT);
       const pickAct = (v) => a.evaluate(`(() => { window.__ui.items().find((x) => x.label === 'Activity').pick(${JSON.stringify(v)}); return true; })()`);
@@ -775,8 +708,7 @@ try {
   }
   check('the round is on', await a.evaluate(G.on));
 
-  /* C: ONE CLICK FROM THE ROOMS PANEL, INTO THE ROUND (a race: into the
-   * lobby, its race being one off a grid). The panel is Flight Club's
+  /* C: ONE CLICK FROM THE ROOMS PANEL, INTO THE ROUND. The panel is Flight Club's
    * (src/ui/ui.js HUBS): C opens it from home first. */
   const chip = `lobby:friends-room-${code}`;
   await c.until("window.__ui.onGate() && window.__ui.hub === null", 10000).catch(() => {});
@@ -788,7 +720,7 @@ try {
   if (WAR_HELD) {
     check('C\'s title panel does not list the room, private while mission 1 is in development', !listed, JSON.stringify(listed && { value: listed.value, join: listed.join }));
   } else {
-    check(`C's title panel lists the room as ${G.chip}, its pilots flying (racing), not in a lobby`, listed && listed.value.startsWith(G.chip) && /\d+ flying/.test(listed.value)
+    check(`C's title panel lists the room as ${G.chip}, its pilots flying, not in a lobby`, listed && listed.value.startsWith(G.chip) && /\d+ flying/.test(listed.value)
       && !/lobby/.test(listed.value), JSON.stringify(listed && { value: listed.value, join: listed.join }));
   }
   /* While WAR_HELD C comes in by the code. */
@@ -806,23 +738,14 @@ try {
   } else {
     await joinByCode(c, code);
   }
-  if (GAME === 'race') {
-    await c.until(`window.__rooms().code === ${JSON.stringify(code)} && window.__ui.screen === 'friends'`, 60000).catch(() => {});
-    await c.sleep(2000);
-    const cr = await c.evaluate("({ code: window.__rooms().code, screen: window.__ui.screen, role: window.__roomRace().role })");
-    check(`C: Flight Club, then the room on its panel (${c.clicks - cBefore} clicks), and C is in the room, waiting out the race on its screen, no racer`, c.clicks - cBefore === C_CLICKS
-      && cr.code === code && cr.screen === 'friends' && cr.role !== 'racing', JSON.stringify(cr));
-  } else {
-    await c.until(FLYING, 400000).catch(() => {});
-    check(`C: Flight Club, then ${cListed ? 'the room on its panel' : 'All rooms and its code'} (${c.clicks - cBefore} clicks), and C is in the room's round, flying`, c.clicks - cBefore === C_CLICKS
-      && (await c.evaluate('window.__rooms().code')) === code && await c.evaluate(FLYING) && await c.evaluate(G.on),
-    JSON.stringify({ code: await c.evaluate('window.__rooms().code'), screen: await c.evaluate('window.__ui.screen'), on: await c.evaluate(G.on) }));
-  }
+  await c.until(FLYING, 400000).catch(() => {});
+  check(`C: Flight Club, then ${cListed ? 'the room on its panel' : 'All rooms and its code'} (${c.clicks - cBefore} clicks), and C is in the room's round, flying`, c.clicks - cBefore === C_CLICKS
+    && (await c.evaluate('window.__rooms().code')) === code && await c.evaluate(FLYING) && await c.evaluate(G.on),
+  JSON.stringify({ code: await c.evaluate('window.__rooms().code'), screen: await c.evaluate('window.__ui.screen'), on: await c.evaluate(G.on) }));
   await shot(c, '3-c-hot-join');
 
   /* D: THE WATCH SEAT (docs/FLIGHTCLUB-PROGRESSION.md section 3), where
-   * pilots are flying in a listed room (not the race's, waiting on its
-   * grid, nor the war's, private): Flight Club, then Watch beside the
+   * pilots are flying in a listed room (not the war's, private): Flight Club, then Watch beside the
    * room, each a real pointer's click. D has no seat and no aircraft, the
    * camera follows a pilot, J steps to the next, Escape and Leave leave. */
   if (WATCHED) {

@@ -104,20 +104,6 @@ function paintClock(ui, freestyle, lapMs) {
   Ui.klass(ui.osdTimer, timing ? 'osd-timer' : 'osd-timer waiting');
 }
 
-/* The gap to the ghost, signed so it can never be read as a lap time:
- * minus is you ahead. */
-function paintGhost(node, gapMs, final) {
-  if (gapMs == null) {
-    Ui.klass(node, 'osd-ghost is-off');
-    Ui.text(node, '');
-    return;
-  }
-  const ahead = gapMs <= 0;
-  const seconds = (Math.abs(gapMs) / 1000).toFixed(2);
-  Ui.text(node, `${str(final ? 'ui.ghost_lap' : 'ui.ghost')} ${ahead ? '-' : '+'}${seconds}`);
-  Ui.klass(node, ahead ? 'osd-ghost ahead' : 'osd-ghost behind');
-}
-
 function flightModeText(flightMode, launchState) {
   if (flightMode === 'turtle') {
     return str('ui.turtle');
@@ -314,12 +300,12 @@ export const overlayMethods = {
 
   /*
    * The flight readouts, every frame. Units a pilot reads (seconds, volts,
-   * metres, km/h), never raw state. A freestyle world has no gates, laps,
-   * last lap or ghost, so those slots go empty rather than lie; altitude is
+   * metres, km/h), never raw state. A freestyle world has no gates, laps
+   * or last lap, so those slots go empty rather than lie; altitude is
    * above the surface under the craft (the collision query's own), which
    * is the number that means something over a roof.
    */
-  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, gear = null, hold = null, bounces, launchState, launchPitch, ghostGapMs, ghostFinal }) {
+  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, gear = null, hold = null, bounces, launchState, launchPitch }) {
     const freestyle = mode === 'freestyle';
     paintClock(this, freestyle, lapMs);
     let gateLine = '';
@@ -330,9 +316,6 @@ export const overlayMethods = {
     }
     Ui.text(this.osdGate, gateLine);
     Ui.text(this.osdLast, !freestyle && lastLapMs != null ? str('ui.last_lap', { formatTime: formatTime(lastLapMs) }) : '');
-    if (this.osdGhost) {
-      paintGhost(this.osdGhost, freestyle ? null : ghostGapMs, ghostFinal);
-    }
     Ui.text(this.osdPack, `${volts.toFixed(1)} volts`);
     Ui.bar(this.osdPackBar, packFrac);
     Ui.text(this.osdSpeed, str('ui.km_h', { speedKph: speedKph.toFixed(0) }));

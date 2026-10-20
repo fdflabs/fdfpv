@@ -215,7 +215,7 @@ async function toClub(page) {
   await page.loaded();
   await drawOff(page, true);
   await page.click('.gate-card-hub-club .gate-card-name');
-  await page.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length >= 5", 30000).catch(async (e) => {
+  await page.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length >= 4", 30000).catch(async (e) => {
     await shot(page, 'no-club');
     console.log(await page.evaluate("JSON.stringify({ screen: window.__ui.screen, hub: window.__ui.hub, cards: document.querySelectorAll('.screen-title .gate-card').length, dialog: [...document.querySelectorAll('[role=dialog]:not([hidden]), .name-dialog:not([hidden])')].map((d) => d.textContent.slice(0, 120)) })"));
     throw e;
@@ -233,7 +233,7 @@ async function phones(page, tag) {
     const inside = l.panel[0] >= 0 && l.panel[1] >= 0 && l.panel[2] <= l.w && l.panel[3] <= l.bar;
     const clear = l.cards.every((c) => !overlaps(c.box, l.panel) && c.box[0] >= 0 && c.box[2] <= l.w && c.facts <= l.bar);
     check(`${tag} ${w} by ${h}: the panel inside the window and on no card, every card's tags clear of the bar, no sideways scroll`,
-      l.cards.length >= 5 && inside && clear && l.sw <= l.w && l.time.length > 0,
+      l.cards.length >= 4 && inside && clear && l.sw <= l.w && l.time.length > 0,
       `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar} scroll ${l.sw}`);
     await shot(page, `${tag}-${w}x${h}`);
   }
@@ -353,7 +353,7 @@ try {
   check('es: signed out, no tokens line', got.tokens === null, got.tokens);
   const l = await es.evaluate(LAYOUT);
   check('es 1280 by 720: the panel on no card, every card\'s tags clear of the bar, no sideways scroll',
-    l.cards.length >= 5 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
+    l.cards.length >= 4 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
     `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar}`);
   await shot(es, 'es-1280x720');
   await resize(es, 1920, 1080);
@@ -381,7 +381,7 @@ for (const lang of ['en', 'es']) {
     }, `empty ${lang}:`);
     const l = await fresh.evaluate(LAYOUT);
     check(`empty ${lang} 1280 by 720: the panel on no card, every card's tags clear of the bar`,
-      l.cards.length >= 5 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
+      l.cards.length >= 4 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
       `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar}`);
     await shot(fresh, `empty-${lang}-1280x720`);
     await phones(fresh, `empty-${lang}`);

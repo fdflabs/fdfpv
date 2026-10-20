@@ -182,7 +182,7 @@ const localDoc = mapTrackDocument({ id: 'trk-local0001', name: 'My ring', gates:
 const STATE_KEYS = [
   'screen', 'mode', 'craftGate', 'hub', 'returnTo', 'roomFrom', 'ratesFrom', 'pidsFrom', 'fcFrom', 'roomGame',
   'cardSubject', 'lastCardKey', 'newTrackOpen', 'guided', 'firstRun', 'openingBoardCourse', 'ratesNotice', 'cursor',
-  'standingsFor', 'lobbyCard', 'dropEl',
+  'lobbyCard', 'dropEl',
 ];
 const SETTINGS_KEYS = ['airframe', 'airframeAsked', 'map', 'freestyleMap', 'cameraFov', 'cameraAngle', 'tune', 'ratesSplitPitch'];
 const FC_KEYS = ['confirm', 'exitAfterSave', 'search', 'presetId'];
@@ -229,8 +229,6 @@ function makeUi(state) {
     ratesNotice: null,
     cursor: 0,
     rowOffset: 0,
-    standingsFor: null,
-    standingsTimes: [],
     lobbyCard: null,
     dropEl: null,
     share: null,
@@ -250,7 +248,6 @@ function makeUi(state) {
     subjectCard: recorder('subjectCard', function subjectCard() { return this.card || null; }),
     cardCursor: recorder('cardCursor', 3),
     leaveFc: recorder('leaveFc'),
-    showStandings: recorder('showStandings'),
     seatLocal: recorder('seatLocal', (id) => id === 'trk-local0001'),
     seatCloud: recorder('seatCloud', (t, then) => then()),
     seatCraftForCourse: recorder('seatCraftForCourse'),
@@ -280,7 +277,6 @@ function makeUi(state) {
     onBuild: recorder('onBuild', () => (state.buildFails ? Promise.reject(new Error('gone')) : Promise.resolve())),
     onBoardCourse: recorder('onBoardCourse', () => (state.board === 'throws' ? Promise.reject(new Error('timeout')) : Promise.resolve(state.board !== 'refuses'))),
     onTrackChosen: recorder('onTrackChosen', Boolean(state.trackChosen)),
-    onStandingsGhost: recorder('onStandingsGhost'),
     onLobbyBack: recorder('onLobbyBack'),
     onFriends: recorder('onFriends'),
     onFcOpen: recorder('onFcOpen'),
@@ -429,9 +425,6 @@ const STATES = {
   'rates-preset-no': { screen: 'rates', mode: 'race', craftGate: false, preset: true, answer: 'no' },
   'pids-from-quad': { screen: 'pids', mode: 'race', craftGate: false, pidsFrom: 'quad' },
   'pids-plain': { screen: 'pids', mode: 'race', craftGate: false },
-  standings: { screen: 'standings', mode: 'race', craftGate: false, standingsFor: boardCard.course.track, standingsTimes: [{ id: 'lap-1', hasGhost: false }, { id: 'lap-2', hasGhost: true }], boardCourses: [boardCard.course.track] },
-  'standings-noghost': { screen: 'standings', mode: 'race', craftGate: false, standingsFor: boardCard.course.track, standingsTimes: [{ id: 'lap-1' }] },
-  'standings-empty': { screen: 'standings', mode: 'race', craftGate: false },
   'padpick-confirm': { screen: 'padpick', padPickPhase: 'confirm', padPickReason: 'menu' },
   'padpick-menu': { screen: 'padpick', padPickPhase: 'ask', padPickReason: 'menu' },
   'padpick-boot': { screen: 'padpick', padPickPhase: 'ask', padPickReason: 'boot' },
@@ -455,7 +448,7 @@ function setUp(name) {
   boardDown = Boolean(state.boardDown);
   const ui = makeUi(state);
   for (const k of ['screen', 'craftGate', 'mode', 'hub', 'returnTo', 'roomFrom', 'ratesFrom', 'pidsFrom', 'fcFrom', 'controllerFrom', 'cardSubject', 'card',
-    'firstRun', 'standingsFor', 'standingsTimes', 'boardCourses', 'padPickPhase', 'padPickReason', 'lobbyCard', 'dropEl']) {
+    'firstRun', 'boardCourses', 'padPickPhase', 'padPickReason', 'lobbyCard', 'dropEl']) {
     if (k in state) ui[k] = state[k];
   }
   Object.assign(ui.settings, state.settings || {});
@@ -558,7 +551,7 @@ const ROWS = [
   { label: 'Adjustable', adjust: true, action: 'noop' },
   { label: 'Track card', course: localCard.course, card: 'local:trk-local0001', action: 'card-fly' },
   { label: 'Hub card', card: 'hub-club', hub: 'club', action: 'hub-club' },
-  { label: 'Way card', card: 'way-race-5inch', action: 'way-race-5inch' },
+  { label: 'Way card', card: 'way-freestyle-wing1000', action: 'way-freestyle-wing1000' },
   { label: 'Hangar card', card: 'hangar-sticks', action: 'calibrate' },
   { label: 'Plain row', action: 'quad' },
   { label: 'Fly row', action: 'fly', primary: true },

@@ -808,7 +808,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       sendText({ type: 'kick', seat });
     },
     /* The messages the room's modules own: the safety messages
-     * (src/share/roomsafety.js) and the race's (src/share/roomrace.js). */
+     * (src/share/roomsafety.js) and the games'. */
     send(obj) {
       sendText(obj);
     },

@@ -15,11 +15,6 @@
      "svg": "<svg 1448 chars>",
      "links": [
       {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
-      {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
@@ -116,11 +111,6 @@
      "facts": [],
      "svg": "<svg 1448 chars>",
      "links": [
-      {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
       {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
@@ -230,21 +220,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-way-race-5inch",
-     "label": "Track Day",
-     "action": "way-race-5inch",
-     "card": "race-5inch",
-     "art": "assets/gate/race.jpg",
-     "blurb": "Gates against the clock, on your own track or one from the board.",
-     "facts": [
-      "Gates",
-      "The clock",
-      "The board"
-     ],
-     "svg": "<svg 1448 chars>",
-     "drives": {}
-    },
-    {
      "id": "title:a-way-freestyle-wing1000",
      "label": "Free Flight",
      "action": "way-freestyle-wing1000",
@@ -294,7 +269,7 @@
      "action": "way-training",
      "card": "training",
      "art": "assets/posters/swiss2.jpg",
-     "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
+     "blurb": "Lessons from the first takeoff to defending the dam, one step at a time.",
      "facts": [
       "Short lessons, in order",
       "Stabilised first, then Acro",
@@ -489,11 +464,6 @@
      "svg": "<svg 623 chars>",
      "links": [
       {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
-      {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
@@ -618,13 +588,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Credits",
      "note": "Who made this, who flew it, and whose work it stands on.",
@@ -662,7 +625,7 @@
      "id": "title:a-courses",
      "label": "Track",
      "value": "Saved before creative mode",
-     "note": "Saved before creative mode, and every other track. Gated, against the clock, and every time flown here goes to the leaderboard.",
+     "note": "Saved before creative mode, and every other track. Gated, against the clock.",
      "action": "courses",
      "drives": {}
     },
@@ -687,13 +650,6 @@
      "label": "How to fly",
      "note": "The sticks, live, and what the keys do.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -727,7 +683,7 @@
      "id": "title:a-courses",
      "label": "Track",
      "value": "Saved before creative mode",
-     "note": "Saved before creative mode, and every other track. Gated, against the clock, and every time flown here goes to the leaderboard.",
+     "note": "Saved before creative mode, and every other track. Gated, against the clock.",
      "action": "courses",
      "drives": {}
     },
@@ -752,13 +708,6 @@
      "label": "How to fly",
      "note": "The sticks, live, and what the keys do.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -819,13 +768,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Credits",
      "note": "Who made this, who flew it, and whose work it stands on.",
@@ -855,7 +797,7 @@
      "id": "title:a-courses",
      "label": "Track",
      "value": "Saved before creative mode",
-     "note": "Saved before creative mode, and every other track. Gated, against the clock, and every time flown here goes to the leaderboard.",
+     "note": "Saved before creative mode, and every other track. Gated, against the clock.",
      "action": "courses",
      "drives": {}
     },
@@ -888,13 +830,6 @@
      "label": "How to fly",
      "note": "The sticks, live, and what the keys do.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -955,13 +890,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Credits",
      "note": "Who made this, who flew it, and whose work it stands on.",
@@ -1016,13 +944,6 @@
      "label": "How to fly",
      "note": "The sticks, live, and what the keys do.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -1083,13 +1004,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Credits",
      "note": "Who made this, who flew it, and whose work it stands on.",
@@ -1147,13 +1061,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Credits",
      "note": "Who made this, who flew it, and whose work it stands on.",
@@ -1185,7 +1092,6 @@
     }
    ],
    "lit": [
-    "|",
     "|",
     "|",
     "|",
@@ -1236,13 +1142,6 @@
      "label": "How to fly",
      "note": "The sticks, live, and what the keys do.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -1298,7 +1197,6 @@
     "|",
     "|",
     "|",
-    "|",
     "on|",
     "|on"
    ],
@@ -1343,13 +1241,6 @@
      "label": "How to fly",
      "note": "The sticks, live, and what the keys do.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Tracks and Statistics",
-     "note": "The public page: every published track with its times, and how the site is doing. Opens in a new tab.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -2229,13 +2120,6 @@
      "drives": {}
     },
     {
-     "id": "courses:a-leaderboard",
-     "label": "Tracks and Statistics on the web",
-     "note": "The public page, for sending somebody a link. Everything on it is in here too. Opens in a new tab.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "courses:a-back",
      "label": "Back",
      "action": "back",
@@ -2350,13 +2234,6 @@
      "drives": {}
     },
     {
-     "id": "courses:a-leaderboard",
-     "label": "Tracks and Statistics on the web",
-     "note": "The public page, for sending somebody a link. Everything on it is in here too. Opens in a new tab.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "courses:a-back",
      "label": "Back",
      "action": "back",
@@ -2464,13 +2341,6 @@
      "drives": {}
     },
     {
-     "id": "courses:a-leaderboard",
-     "label": "Tracks and Statistics on the web",
-     "note": "The public page, for sending somebody a link. Everything on it is in here too. Opens in a new tab.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "courses:a-back",
      "label": "Back",
      "action": "back",
@@ -2524,7 +2394,7 @@
     {
      "id": "courses:a-card-fly",
      "label": "Play",
-     "note": "Race Barn loop in The Alps: the gates, the lap clock and your ghost.",
+     "note": "Race Barn loop in The Alps: the gates and the lap clock.",
      "action": "card-fly",
      "drives": {}
     },
@@ -2610,7 +2480,7 @@
     {
      "id": "courses:a-card-fly",
      "label": "Play",
-     "note": "Race Valley run in Swiss valley, photoreal: the gates, the lap clock and your ghost.",
+     "note": "Race Valley run in Swiss valley, photoreal: the gates and the lap clock.",
      "action": "card-fly",
      "drives": {}
     },
@@ -2733,20 +2603,6 @@
      "drives": {}
     },
     {
-     "id": "courses:a-card-standings",
-     "label": "Standings",
-     "note": "Every time posted on No author, fastest first, and who flew them. Opens here, not on another site.",
-     "action": "card-standings",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-board",
-     "label": "Open on the web",
-     "note": "The public page for No author. A link to send somebody. Opens in a new tab.",
-     "action": "card-board",
-     "drives": {}
-    },
-    {
      "id": "courses:a-card-back",
      "label": "Back to the list",
      "action": "card-back",
@@ -2796,13 +2652,6 @@
      "label": "New track",
      "note": "Build one: choose the world, then place the gates where you want them.",
      "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-leaderboard",
-     "label": "Tracks and Statistics on the web",
-     "note": "The public page, for sending somebody a link. Everything on it is in here too. Opens in a new tab.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -18282,117 +18131,6 @@
     }
    ]
   },
-  "standings-none": {
-   "screen": "standings",
-   "items": [
-    {
-     "id": "standings:no-track-chosen",
-     "label": "No track chosen",
-     "note": "Pick a track in the Race room and open its standings from there.",
-     "info": true,
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "standings:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "standings-empty": {
-   "screen": "standings",
-   "items": [
-    {
-     "id": "standings:a-standings-fly",
-     "label": "Fly this track",
-     "note": "Loads Hung track and takes you to the launch card. Nobody has posted a time yet, so the first one is yours.",
-     "action": "standings-fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "standings:a-card-board",
-     "label": "Open on the web",
-     "note": "The public page for Hung track. A link to send somebody. Opens in a new tab.",
-     "action": "card-board",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "standings-times": {
-   "screen": "standings",
-   "items": [
-    {
-     "id": "standings:a-standings-fly",
-     "label": "Fly this track",
-     "note": "Loads Hung track and takes you to the launch card. The time to beat is 1:01.23 by Ace.",
-     "action": "standings-fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "standings:a-standings-ghost",
-     "label": "Race the record",
-     "note": "An unnamed pilot's 1:02.34 flown as a ghost beside you. Arms it for the next run on this track.",
-     "action": "standings-ghost",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-card-board",
-     "label": "Open on the web",
-     "note": "The public page for Hung track. A link to send somebody. Opens in a new tab.",
-     "action": "card-board",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "standings-ghost-first": {
-   "screen": "standings",
-   "items": [
-    {
-     "id": "standings:a-standings-fly",
-     "label": "Fly this track",
-     "note": "Loads Hung track and takes you to the launch card. The time to beat is 1:03.46 by Cy.",
-     "action": "standings-fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "standings:a-standings-ghost",
-     "label": "Race the record",
-     "note": "Cy's 1:03.46 flown as a ghost beside you. Arms it for the next run on this track.",
-     "action": "standings-ghost",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-card-board",
-     "label": "Open on the web",
-     "note": "The public page for Hung track. A link to send somebody. Opens in a new tab.",
-     "action": "card-board",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
   "launch-no-seat": {
    "screen": "launch",
    "items": [
@@ -18856,48 +18594,6 @@
      }
     },
     {
-     "id": "launch:ghost",
-     "label": "Ghost",
-     "value": "Best lap",
-     "note": "Your best, beside you.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "ghost.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "ghost.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
-     "id": "launch:live",
-     "label": "Live",
-     "value": "Off",
-     "note": "Nobody is watching.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "live.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "live.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
      "id": "launch:a-launch-go",
      "label": "Fly",
      "note": "Your best on Saved before creative mode is filed under exactly this: Expert physics, 4.20 V per cell, 3 laps, the Factory default tune. Change any part of it and you are on a different board. This run is on a perfect link.",
@@ -18911,9 +18607,6 @@
      "action": "back",
      "drives": {}
     }
-   ],
-   "buildCalls": [
-    "live.cycle:-1"
    ]
   },
   "launch-arcade-weight": {
@@ -20201,62 +19894,11 @@
      }
     },
     {
-     "id": "quick:s-this-run",
-     "label": "This run",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "quick:ghost",
-     "label": "Ghost",
-     "value": "Best lap",
-     "note": "Your best, beside you.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "ghost.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "ghost.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
-     "id": "quick:live",
-     "label": "Live",
-     "value": "Off",
-     "note": "Nobody is watching.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "live.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "live.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
      "id": "quick:a-back",
      "label": "Back",
      "action": "back",
      "drives": {}
     }
-   ],
-   "buildCalls": [
-    "live.cycle:-1"
    ]
   },
   "quick-plane": {
@@ -20607,13 +20249,6 @@
      "drives": {}
     },
     {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "Every published track, and the times flown on it.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "results:a-feel",
      "label": "Flight feel",
      "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
@@ -20689,22 +20324,6 @@
      "drives": {}
     },
     {
-     "id": "results:a-posttime",
-     "label": "Upload a time",
-     "note": "Only a track on the board can hold a time. Publish this one first.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": true,
-     "drives": {}
-    },
-    {
      "id": "results:a-feel",
      "label": "Flight feel",
      "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
@@ -20734,22 +20353,6 @@
      "label": "Fly again",
      "action": "restart",
      "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Upload a time",
-     "note": "Fly a clean lap on this track and the lap appears here.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
      "drives": {}
     },
     {
@@ -20785,210 +20388,6 @@
      "drives": {}
     },
     {
-     "id": "results:a-posttime",
-     "label": "Upload 1:01.23",
-     "note": "Send this lap to the public board under your name.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-new-best": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Upload new best, 1:01.23",
-     "note": "Faster than the last time you uploaded from this browser. Sends this lap to the public board.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-not-best": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Upload 1:01.23",
-     "note": "Send this lap to the public board under your name.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-pending": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Upload 60.00",
-     "note": "Send this lap to the public board under your name.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-pending-other": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Upload a time",
-     "note": "Fly a clean lap on this track and the lap appears here.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
      "id": "results:a-feel",
      "label": "Flight feel",
      "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
@@ -21018,165 +20417,6 @@
      "label": "Fly again",
      "action": "restart",
      "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Upload a time",
-     "note": "The layout has changed since it was published. Update the track on the board first.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-posted": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Time uploaded",
-     "note": "That lap is on the public board. Rank 2.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-posted-norank": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Time uploaded",
-     "note": "That lap is on the public board.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-plane": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Upload 60.00",
-     "note": "Send this lap to the public board under your name.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Open Tracks and Statistics",
-     "note": "The public page for Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
      "drives": {}
     },
     {
@@ -26722,11 +25962,6 @@
      "svg": "<svg 1448 chars>",
      "links": [
       {
-       "label": "Día de pista",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
-      {
        "label": "Vuelo Libre",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
@@ -26823,11 +26058,6 @@
      "facts": [],
      "svg": "<svg 1448 chars>",
      "links": [
-      {
-       "label": "Día de pista",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
       {
        "label": "Vuelo Libre",
        "action": "way-freestyle-wing1000",
@@ -26937,21 +26167,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-way-race-5inch",
-     "label": "Día de pista",
-     "action": "way-race-5inch",
-     "card": "race-5inch",
-     "art": "assets/gate/race.jpg",
-     "blurb": "Puertas contra el reloj, en tu propia pista o en una del tablero.",
-     "facts": [
-      "Puertas",
-      "El reloj",
-      "El tablero"
-     ],
-     "svg": "<svg 1448 chars>",
-     "drives": {}
-    },
-    {
      "id": "title:a-way-freestyle-wing1000",
      "label": "Vuelo Libre",
      "action": "way-freestyle-wing1000",
@@ -27001,7 +26216,7 @@
      "action": "way-training",
      "card": "training",
      "art": "assets/posters/swiss2.jpg",
-     "blurb": "Lecciones desde el primer despegue hasta ganarle a tu fantasma, paso a paso.",
+     "blurb": "Lecciones desde el primer despegue hasta defender la represa, paso a paso.",
      "facts": [
       "Lecciones cortas, en orden",
       "Primero Stabilised, después Acro",
@@ -27196,11 +26411,6 @@
      "svg": "<svg 623 chars>",
      "links": [
       {
-       "label": "Día de pista",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
-      {
        "label": "Vuelo Libre",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
@@ -27325,13 +26535,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Créditos",
      "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
@@ -27369,7 +26572,7 @@
      "id": "title:a-courses",
      "label": "Pista",
      "value": "Saved before creative mode",
-     "note": "Saved before creative mode, y todas las demás pistas. Con puertas, contra el reloj, y cada tiempo volado aquí va al tablero.",
+     "note": "Saved before creative mode, y todas las demás pistas. Con puertas, contra el reloj.",
      "action": "courses",
      "drives": {}
     },
@@ -27394,13 +26597,6 @@
      "label": "Cómo volar",
      "note": "Los sticks, en vivo, y qué hacen las teclas.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -27434,7 +26630,7 @@
      "id": "title:a-courses",
      "label": "Pista",
      "value": "Saved before creative mode",
-     "note": "Saved before creative mode, y todas las demás pistas. Con puertas, contra el reloj, y cada tiempo volado aquí va al tablero.",
+     "note": "Saved before creative mode, y todas las demás pistas. Con puertas, contra el reloj.",
      "action": "courses",
      "drives": {}
     },
@@ -27459,13 +26655,6 @@
      "label": "Cómo volar",
      "note": "Los sticks, en vivo, y qué hacen las teclas.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -27526,13 +26715,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Créditos",
      "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
@@ -27562,7 +26744,7 @@
      "id": "title:a-courses",
      "label": "Pista",
      "value": "Saved before creative mode",
-     "note": "Saved before creative mode, y todas las demás pistas. Con puertas, contra el reloj, y cada tiempo volado aquí va al tablero.",
+     "note": "Saved before creative mode, y todas las demás pistas. Con puertas, contra el reloj.",
      "action": "courses",
      "drives": {}
     },
@@ -27595,13 +26777,6 @@
      "label": "Cómo volar",
      "note": "Los sticks, en vivo, y qué hacen las teclas.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -27662,13 +26837,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Créditos",
      "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
@@ -27723,13 +26891,6 @@
      "label": "Cómo volar",
      "note": "Los sticks, en vivo, y qué hacen las teclas.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -27790,13 +26951,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Créditos",
      "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
@@ -27854,13 +27008,6 @@
      "drives": {}
     },
     {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "title:a-credits",
      "label": "Créditos",
      "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
@@ -27892,7 +27039,6 @@
     }
    ],
    "lit": [
-    "|",
     "|",
     "|",
     "|",
@@ -27943,13 +27089,6 @@
      "label": "Cómo volar",
      "note": "Los sticks, en vivo, y qué hacen las teclas.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -28005,7 +27144,6 @@
     "|",
     "|",
     "|",
-    "|",
     "on|",
     "|on"
    ],
@@ -28050,13 +27188,6 @@
      "label": "Cómo volar",
      "note": "Los sticks, en vivo, y qué hacen las teclas.",
      "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-leaderboard",
-     "label": "Pistas y Estadísticas",
-     "note": "La página pública: cada pista publicada con sus tiempos, y cómo va el sitio. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -28936,13 +28067,6 @@
      "drives": {}
     },
     {
-     "id": "courses:a-leaderboard",
-     "label": "Pistas y Estadísticas en la web",
-     "note": "La página pública, para mandarle un enlace a alguien. Todo lo que hay ahí también está aquí. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "courses:a-back",
      "label": "Volver",
      "action": "back",
@@ -29057,13 +28181,6 @@
      "drives": {}
     },
     {
-     "id": "courses:a-leaderboard",
-     "label": "Pistas y Estadísticas en la web",
-     "note": "La página pública, para mandarle un enlace a alguien. Todo lo que hay ahí también está aquí. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "courses:a-back",
      "label": "Volver",
      "action": "back",
@@ -29171,13 +28288,6 @@
      "drives": {}
     },
     {
-     "id": "courses:a-leaderboard",
-     "label": "Pistas y Estadísticas en la web",
-     "note": "La página pública, para mandarle un enlace a alguien. Todo lo que hay ahí también está aquí. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "courses:a-back",
      "label": "Volver",
      "action": "back",
@@ -29231,7 +28341,7 @@
     {
      "id": "courses:a-card-fly",
      "label": "Jugar",
-     "note": "Corre Barn loop en Los Alpes: las puertas, el reloj de vuelta y tu fantasma.",
+     "note": "Corre Barn loop en Los Alpes: las puertas y el reloj de vuelta.",
      "action": "card-fly",
      "drives": {}
     },
@@ -29317,7 +28427,7 @@
     {
      "id": "courses:a-card-fly",
      "label": "Jugar",
-     "note": "Corre Valley run en Valle suizo, fotorrealista: las puertas, el reloj de vuelta y tu fantasma.",
+     "note": "Corre Valley run en Valle suizo, fotorrealista: las puertas y el reloj de vuelta.",
      "action": "card-fly",
      "drives": {}
     },
@@ -29440,20 +28550,6 @@
      "drives": {}
     },
     {
-     "id": "courses:a-card-standings",
-     "label": "Clasificación",
-     "note": "Cada tiempo publicado en No author, del más rápido al más lento, y quién lo voló. Se abre aquí, no en otro sitio.",
-     "action": "card-standings",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-board",
-     "label": "Abrir en la web",
-     "note": "La página pública de No author. Un enlace para mandarle a alguien. Se abre en una pestaña nueva.",
-     "action": "card-board",
-     "drives": {}
-    },
-    {
      "id": "courses:a-card-back",
      "label": "Volver a la lista",
      "action": "card-back",
@@ -29503,13 +28599,6 @@
      "label": "Pista nueva",
      "note": "Construye una: elige el mundo y luego coloca las puertas donde quieras.",
      "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-leaderboard",
-     "label": "Pistas y Estadísticas en la web",
-     "note": "La página pública, para mandarle un enlace a alguien. Todo lo que hay ahí también está aquí. Se abre en una pestaña nueva.",
-     "action": "leaderboard",
      "drives": {}
     },
     {
@@ -44989,117 +44078,6 @@
     }
    ]
   },
-  "standings-none": {
-   "screen": "standings",
-   "items": [
-    {
-     "id": "standings:ninguna-pista-elegida",
-     "label": "Ninguna pista elegida",
-     "note": "Elige una pista en la sala de Carrera y abre su clasificación desde ahí.",
-     "info": true,
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "standings:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "standings-empty": {
-   "screen": "standings",
-   "items": [
-    {
-     "id": "standings:a-standings-fly",
-     "label": "Volar esta pista",
-     "note": "Carga Hung track y te lleva a la tarjeta de lanzamiento. Nadie ha publicado un tiempo todavía, así que el primero es tuyo.",
-     "action": "standings-fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "standings:a-card-board",
-     "label": "Abrir en la web",
-     "note": "La página pública de Hung track. Un enlace para mandarle a alguien. Se abre en una pestaña nueva.",
-     "action": "card-board",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "standings-times": {
-   "screen": "standings",
-   "items": [
-    {
-     "id": "standings:a-standings-fly",
-     "label": "Volar esta pista",
-     "note": "Carga Hung track y te lleva a la tarjeta de lanzamiento. El tiempo a batir es 1:01.23 de Ace.",
-     "action": "standings-fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "standings:a-standings-ghost",
-     "label": "Correr contra el récord",
-     "note": "El 1:02.34 de Un piloto sin nombre volado como fantasma a tu lado. Lo arma para la siguiente sesión en esta pista.",
-     "action": "standings-ghost",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-card-board",
-     "label": "Abrir en la web",
-     "note": "La página pública de Hung track. Un enlace para mandarle a alguien. Se abre en una pestaña nueva.",
-     "action": "card-board",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "standings-ghost-first": {
-   "screen": "standings",
-   "items": [
-    {
-     "id": "standings:a-standings-fly",
-     "label": "Volar esta pista",
-     "note": "Carga Hung track y te lleva a la tarjeta de lanzamiento. El tiempo a batir es 1:03.46 de Cy.",
-     "action": "standings-fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "standings:a-standings-ghost",
-     "label": "Correr contra el récord",
-     "note": "El 1:03.46 de Cy volado como fantasma a tu lado. Lo arma para la siguiente sesión en esta pista.",
-     "action": "standings-ghost",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-card-board",
-     "label": "Abrir en la web",
-     "note": "La página pública de Hung track. Un enlace para mandarle a alguien. Se abre en una pestaña nueva.",
-     "action": "card-board",
-     "drives": {}
-    },
-    {
-     "id": "standings:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
   "launch-no-seat": {
    "screen": "launch",
    "items": [
@@ -45563,48 +44541,6 @@
      }
     },
     {
-     "id": "launch:fantasma",
-     "label": "Fantasma",
-     "value": "Best lap",
-     "note": "Your best, beside you.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "ghost.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "ghost.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
-     "id": "launch:en-vivo",
-     "label": "En vivo",
-     "value": "Off",
-     "note": "Nobody is watching.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "live.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "live.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
      "id": "launch:a-launch-go",
      "label": "Volar",
      "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
@@ -45618,9 +44554,6 @@
      "action": "back",
      "drives": {}
     }
-   ],
-   "buildCalls": [
-    "live.cycle:-1"
    ]
   },
   "launch-arcade-weight": {
@@ -46908,62 +45841,11 @@
      }
     },
     {
-     "id": "quick:s-este-vuelo",
-     "label": "Este vuelo",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "quick:fantasma",
-     "label": "Fantasma",
-     "value": "Best lap",
-     "note": "Your best, beside you.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "ghost.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "ghost.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
-     "id": "quick:en-vivo",
-     "label": "En vivo",
-     "value": "Off",
-     "note": "Nobody is watching.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "live.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "live.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
      "id": "quick:a-back",
      "label": "Volver",
      "action": "back",
      "drives": {}
     }
-   ],
-   "buildCalls": [
-    "live.cycle:-1"
    ]
   },
   "quick-plane": {
@@ -47314,13 +46196,6 @@
      "drives": {}
     },
     {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "Cada pista publicada, y los tiempos volados en ella.",
-     "action": "leaderboard",
-     "drives": {}
-    },
-    {
      "id": "results:a-feel",
      "label": "Sensación de vuelo",
      "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
@@ -47396,22 +46271,6 @@
      "drives": {}
     },
     {
-     "id": "results:a-posttime",
-     "label": "Subir un tiempo",
-     "note": "Solo una pista en el tablero puede guardar un tiempo. Publica esta primero.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": true,
-     "drives": {}
-    },
-    {
      "id": "results:a-feel",
      "label": "Sensación de vuelo",
      "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
@@ -47441,22 +46300,6 @@
      "label": "Volar de nuevo",
      "action": "restart",
      "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Subir un tiempo",
-     "note": "Vuela una vuelta limpia en esta pista y la vuelta aparece aquí.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
      "drives": {}
     },
     {
@@ -47492,210 +46335,6 @@
      "drives": {}
     },
     {
-     "id": "results:a-posttime",
-     "label": "Subir 1:01.23",
-     "note": "Envía esta vuelta al tablero público bajo tu nombre.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-new-best": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Subir nuevo mejor, 1:01.23",
-     "note": "Más rápido que la última vez que subiste desde este navegador. Envía esta vuelta al tablero público.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-not-best": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Subir 1:01.23",
-     "note": "Envía esta vuelta al tablero público bajo tu nombre.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-pending": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Subir 60.00",
-     "note": "Envía esta vuelta al tablero público bajo tu nombre.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-pending-other": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Subir un tiempo",
-     "note": "Vuela una vuelta limpia en esta pista y la vuelta aparece aquí.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
      "id": "results:a-feel",
      "label": "Sensación de vuelo",
      "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
@@ -47725,165 +46364,6 @@
      "label": "Volar de nuevo",
      "action": "restart",
      "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Subir un tiempo",
-     "note": "El trazado cambió desde que se publicó. Primero actualiza la pista en el tablero.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-posted": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Tiempo subido",
-     "note": "Esa vuelta está en el tablero público. Puesto 2.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-posted-norank": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Tiempo subido",
-     "note": "Esa vuelta está en el tablero público.",
-     "action": "posttime",
-     "disabled": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-plane": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-posttime",
-     "label": "Subir 60.00",
-     "note": "Envía esta vuelta al tablero público bajo tu nombre.",
-     "action": "posttime",
-     "drives": {}
-    },
-    {
-     "id": "results:a-leaderboard",
-     "label": "Abrir Pistas y estadísticas",
-     "note": "La página pública de Saved before creative mode.",
-     "action": "leaderboard",
-     "disabled": false,
      "drives": {}
     },
     {

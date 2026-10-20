@@ -57,13 +57,11 @@ export const ROUND_MINUTES = [3, 5];
  *   minElsewhere  the same in a room made for something else, where the
  *                 game is a host's start in passing
  *   allowSolo     Ready alone starts a round
- *   allowAI       AI pilots fill seats (edge/rooms/roombots.js, docs/
- *                 AI-PILOTS-CONTRACT.md): Catch the Ace's, and a race's
- *                 on the real plant (edge/rooms/airace.js, docs/
- *                 AI-PILOTS-RACES-CONTRACT.md); combat when the room can
- *                 fly them there
- *   allowDropIn   a pilot arriving mid round flies in; a race went off a
- *                 grid, so its newcomer waits in the lobby
+ *   allowAI       AI pilots fill seats: false for every game since the
+ *                 rooms' AI pilots left with the race (the combat-only
+ *                 cut, 2026-10-19)
+ *   allowDropIn   a pilot arriving mid round flies in, else it waits in
+ *                 the lobby
  *   openEnded     the round has no end: on until the room is empty
  *   setting       the host's one choice between rounds, { key, choices }:
  *                 its key on the wire and on the room's meta, its values
@@ -86,27 +84,6 @@ export const ROUND_MINUTES = [3, 5];
  */
 export const MODES = [
   {
-    id: 'race',
-    category: 'flightclub',
-    card: {
-      way: 'race-5inch', label: 'ui.track_mode', blurb: 'ui.card_line_race', facts: ['ui.gates', 'ui.the_clock', 'ui.the_board'],
-      art: 'assets/gate/race.jpg', home: null,
-    },
-    minPlayers: 1,
-    minElsewhere: 1,
-    allowSolo: true,
-    allowAI: true,
-    allowDropIn: false,
-    openEnded: false,
-    setting: null,
-    consent: false,
-    publicOnlyWhenMadeFor: false,
-    straightToLobby: false,
-    makeable: true,
-    onFoot: false,
-    hidden: false,
-  },
-  {
     id: 'tag',
     category: 'flightclub',
     card: {
@@ -116,7 +93,7 @@ export const MODES = [
     minPlayers: 1,
     minElsewhere: 2,
     allowSolo: true,
-    allowAI: true,
+    allowAI: false,
     allowDropIn: true,
     openEnded: false,
     setting: { key: 'goal', choices: GOALS.map((g) => g.goal) },
@@ -271,10 +248,9 @@ export function minPlayersFor(id, roomMode) {
  *
  * Each game keeps its own states (GAME_STATES, as its view says them,
  * edge/rooms/<game>.js view(); free flight's is its lobby's `live`) and
- * sessionOf maps them. A countdown ends at the view's goAt (combat's
- * startsAt) on the room clock, so the mapping takes the room's time: a
- * race has no state of its own for its countdown, and the room says
- * nothing at its go. The room stamps each game's view with `session`, as
+ * sessionOf maps them, at the room's time. A countdown ends at the view's
+ * goAt (combat's startsAt) on the room clock. The room stamps each game's
+ * view with `session`, as
  * it stands when sent; a reader with the room clock maps the view itself.
  * Combat's abandoned round is idle at once (combat.js stop), so its
  * abandoned stands until its next round as the others' results do.
@@ -285,7 +261,6 @@ export const SESSION_ON = ['countdown', 'live', 'between'];
 export const SESSION_ENDED = ['over', 'abandoned'];
 
 export const GAME_STATES = {
-  race: ['lobby', 'on', 'results'],
   tag: ['lobby', 'countdown', 'live', 'results'],
   combat: ['idle', 'countdown', 'on', 'over'],
   war: ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'],
@@ -294,9 +269,6 @@ export const GAME_STATES = {
 
 const ended = (v) => (v.abandoned ? 'abandoned' : 'over');
 const GAME_SESSION = {
-  race: {
-    lobby: () => 'lobby', on: (v, t) => (t < v.goAt ? 'countdown' : 'live'), results: ended,
-  },
   tag: {
     lobby: () => 'lobby', countdown: () => 'countdown', live: () => 'live', results: ended,
   },

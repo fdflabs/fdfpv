@@ -1441,9 +1441,9 @@ export class FpvOsd {
 
   /*
    * The game's own clocks, in the firmware's type, top centre: the lap or
-   * the run, the gate, the gate's cue, last and best, and the ghost's gap
-   * while it is lit. A race keeps all five rows, lit or not, so what hangs
-   * under the readout does not jump when a line comes and goes.
+   * the run, the gate, the gate's cue, and last and best. A race keeps all
+   * four rows, lit or not, so what hangs under the readout does not jump
+   * when a line comes and goes.
    */
   buildRace(v) {
     const up = (s) => s.toUpperCase();
@@ -1466,13 +1466,8 @@ export class FpvOsd {
       parts.push(str('osd.best', { t: formatTime(this.x.bestMs) }));
     }
     const laps = fit(up(parts.join('  ')));
-    let ghost = '';
-    if (v.ghostGapMs != null) {
-      const gap = `${v.ghostGapMs <= 0 ? '-' : '+'}${(Math.abs(v.ghostGapMs) / 1000).toFixed(2)}`;
-      ghost = fit(up(str(v.ghostFinal ? 'osd.ghost_lap' : 'osd.ghost', { gap })));
-    }
-    Object.assign(this.values, { clock, gate, cue, laps, ghost });
-    return this.readout('race', 'c', 't', [clock, gate, cue, laps, ghost]);
+    Object.assign(this.values, { clock, gate, cue, laps });
+    return this.readout('race', 'c', 't', [clock, gate, cue, laps]);
   }
 
   /* renderOsdWarning's order, over the conditions the shell can be in, and

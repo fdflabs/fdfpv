@@ -90,8 +90,8 @@
  *                 ended by the room with this pilot seated (src/main.js,
  *                 Progress.roundFinished), with {points}, this pilot's in
  *                 the room's final standings; a room race this pilot
- *                 finished, game 'race', carries {pilots} too, how many
- *                 were on its grid
+ *                 finished, game 'race', carried {pilots} too, how many
+ *                 were on its grid (a stored log's, since the race left)
  *   mission_start {mission, airframe}
  *                 a Defend the Paraná war seen begun, with no result yet,
  *                 in this pilot's room (src/ui/campaign.js observe); The

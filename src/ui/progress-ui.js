@@ -33,7 +33,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, CHALLENGES, RIM_KINDS, RunWatch, awardFlight,
+  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, CHALLENGES, RunWatch, awardFlight,
   bestKind, challengeAmounts, challengeRun, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { placeKey, placesAt, placesOf } from '../game/discovery.js';
@@ -408,12 +408,8 @@ export class Progress {
    * first, so a debrief says only this round's. */
   roundFinished(game, world, more = {}) {
     this.bests = this.bests.filter((b) => bestKind(b.key) !== game);
-    const round = this.event('round', { game, world, ...more });
+    this.event('round', { game, world, ...more });
     this.foldFlight();
-    if (this.lesson) {
-      this.lesson.round(round);
-      this.lessonNews();
-    }
   }
 
   /* Attackers the room credited to this pilot's warhead (src/share/roomwar.js
@@ -597,32 +593,20 @@ export class Progress {
   gatePass() {
     this.event('gate');
     this.foldFlight();
-    if (this.lesson) {
-      this.lesson.gatePass();
-      this.lessonNews();
-    }
   }
 
   /* Folded with the next fold: a touch pays nothing by itself. */
   touch(kind) {
     this.event('touch', { kind });
-    if (this.lesson && RIM_KINDS.includes(kind)) {
-      this.lesson.rim();
-    }
   }
 
-  /* A lap closed on `course`, { key, kind }; `ms` its time, `ghostMs`
-   * the ghost's it was flown against, and `medal` the one it reached on a
-   * course with medals (src/game/medals.js), each null when there is none;
-   * `n` and `of` the lap's place in a solo run and the run's laps, null in
-   * a room, so a run's best is read from the log (progress.js bestsOf). */
-  lap(course, { ms = null, ghostMs = null, medal = null, n = null, of = null } = {}) {
-    const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });
+  /* A lap closed on `course`, { key, kind }; `ms` its time and `medal`
+   * the one it reached on a course with medals (src/game/medals.js), each
+   * null when there is none; `n` and `of` the lap's place in a run and the
+   * run's laps, so a run's best is read from the log (progress.js bestsOf). */
+  lap(course, { ms = null, medal = null, n = null, of = null } = {}) {
+    this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });
     this.foldFlight();
-    if (this.lesson) {
-      this.lesson.lap(lapped, ghostMs);
-      this.lessonNews();
-    }
   }
 
   /* A row of the race's log that pays nothing (src/game/events.js

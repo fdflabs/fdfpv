@@ -6,7 +6,7 @@ One room's logic, and the two platforms that serve it. The plan is
 | File | What it is | Platform |
 | --- | --- | --- |
 | `core.js` | `RoomCore`, one room's logic: seats, hello, poses, ticks, kicks. Returns actions, never touches a socket. | none |
-| `safety.js`, `wrecks.js`, `race.js` | the phases' modules, called by the core | none |
+| `safety.js`, `wrecks.js`, `war.js`, `ops.js` | the phases' and the games' modules, called by the core | none |
 | `lobby.js` | the room browser's book of public rooms: `LobbyBook` (the logic) and `Lobby` (its object) | none |
 | `host.js` | `RoomHost`, a room as a server holds it: load, the action loop, init, accept, message, close, alarm | none |
 | `front.js` | the HTTP front: routes, origin check, limits, a typed room name judged (the tracks server's word filter) | none |
@@ -57,8 +57,8 @@ A new feature is a module the core calls, returning the core's actions:
 What a feature must keep across a hibernation or a restart it returns as
 `{ store: key, value }`, and `host.js` hands the value back on load to
 `core[key].restore(value)`, before the seats are restored. So a part of
-the core named `race` stores under `'race'`, one named `tag` under
-`'tag'`, and neither needs a line in any adapter. A stored key with no
+the core named `tag` stores under `'tag'`, one named `war` under
+`'war'`, and neither needs a line in any adapter. A stored key with no
 such part (one a removed part stored) is left unread at load, and logged;
 a room stored for a game the registry no longer has is closed at load,
 and its code answers `nosuch`.
@@ -78,9 +78,9 @@ unless the platform contract above does.
   it proves `do.js`.
 - `node scripts/rooms-soak.js <origin> <seconds> <clients>`: a soak.
 - `npm run rooms:load [origin] [--pilots=8,16 --rooms=4 ...]`: load, many
-  pilots through free flight, a race and a combat round, with the
+  pilots through free flight and a combat round, with the
   server's own counters; `--quick` (CI) is 32 in one room.
 - The two page browser checks (`rooms:twopage`, `rooms:safety`,
-  `rooms:wrecks`, `rooms:racetwopage`, `rooms:restart`) against any origin.
+  `rooms:wrecks`, `rooms:restart`) against any origin.
 - `npm run rooms:browser [origin]`: the room browser, three pages through
   the real shell; with no origin it starts `node.js` itself.

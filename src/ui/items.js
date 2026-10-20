@@ -56,15 +56,12 @@ import { accountsAvailable } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { nameRules, readAccount, readPilotName } from '../share/pilot.js';
 import { pageVersion } from './update.js';
-import { lapSlot, readPendingTime, readPostedBest } from '../share/trackseat.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
   LOCALES, LOCALE_NAMES, currentLocale, plural, rememberLocale, str,
 } from '../strings/index.js';
 import { customisable } from './builds.js';
 import { flightTimeText } from './carousel.js';
-import { formatTime } from './format.js';
-import { EVENT_TIERS } from '../game/economy.js';
 import { MARK_STYLES } from './peermarks.js';
 import { choice, number, stampIds, stepper, toggle } from './rows.js';
 import { CHASE_SMOOTHING, SHAKE_LEVELS, UI_SCALES } from '../render/comfort.js';
@@ -81,7 +78,7 @@ import { flyWithRows } from './flywith.js';
  * screen functions, after both modules have run, never at this module's
  * top level. */
 import {
-  SCREEN_TITLES, YAW_TIP_RATE, courseCardKey, courseCardRows, craftItem, lapCraftOf, liveListing,
+  SCREEN_TITLES, YAW_TIP_RATE, courseCardKey, courseCardRows, craftItem, liveListing,
   liveWorld, padTroubleItem, seatedFreestyleMap,
 } from './ui.js';
 
@@ -361,7 +358,6 @@ function titleRows(ui, s) {
      * and that is the room pilots fail to find. */
     { label: str('ui.settings'), value: readPilotName() || str('ui.not_set'), action: 'pilot', note: str('ui.you_and_your_radio_your_name') },
     { label: str('ui.how_to_fly'), action: 'howto', note: str('ui.the_sticks_live_and_what_the') },
-    { label: str('ui.tracks_and_statistics'), action: 'leaderboard', note: str('ui.the_public_page_every_published_track') },
     creditsRow(),
     { label: ui.gateLabel(), action: 'mode-gate', note: str('ui.the_three_cards_five_inch_racing') },
   ];
@@ -395,41 +391,7 @@ function gateRows(ui) {
   const field = ui.hub === 'ops' ? [{
     label: str('walk.field'), card: 'ops-field', svg: null, blurb: str('walk.field_blurb'), facts: [], action: 'field-walk',
   }] : [];
-  const weekly = ui.hub === 'club' && ui.weeklyEvent ? [weeklyCard(ui.weeklyEvent)] : [];
-  return [...weekly, ...ways, ...field, ...(ui.hub === 'club' ? panel : []), ...trouble];
-}
-
-const POSTERS = new Set(['alps', 'itaipu', 'swiss2']);
-
-/*
- * Flight Club's weekly event as a card at the front of the hub
- * (docs/FLIGHTCLUB-PROGRESSION.md section 4): the course, when it ends in
- * the pilot's own time, the gold to beat, where the pilot stands, and
- * what each tier pays (src/game/economy.js EVENT_TIERS). The end is the
- * only clock the game shows.
- */
-function weeklyCard(e) {
-  const fold = (n) => String(n || '').trim().toLowerCase();
-  const me = fold(readPilotName());
-  const at = e.standings.findIndex((r) => me && fold(r.name) === me);
-  const mine = at < 0 ? null : e.standings[at];
-  const ends = new Date(e.endsUtc).toLocaleString(currentLocale(), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  const pays = Object.entries(EVENT_TIERS).map(([tier, n]) => str('event.pays_tier', { tier: str(`event.tier.${tier}`), n })).join(', ');
-  return {
-    label: str('event.card', { name: e.name }),
-    card: 'weekly',
-    art: `assets/posters/${POSTERS.has(e.map) ? e.map : 'swiss2'}.jpg`,
-    blurb: str('event.blurb'),
-    facts: [
-      str('event.ends', { when: ends }),
-      str('event.gold', { time: formatTime(e.goldMs) }),
-      mine
-        ? str('event.yours', { time: formatTime(mine.lapMs), tier: str(`event.tier.${mine.medal || 'finish'}`), place: at + 1, of: e.standings.length })
-        : str('event.not_flown', { pilots: plural('count.pilots_in', e.standings.length) }),
-      str('event.pays', { pays }),
-    ],
-    action: 'weekly-event',
-  };
+  return [...ways, ...field, ...(ui.hub === 'club' ? panel : []), ...trouble];
 }
 
 /* ---- rooms ---- */
@@ -511,7 +473,6 @@ function coursesRows(ui, s) {
     ...cards,
     { label: str('ui.new_track'), action: 'newtrack', note: str('ui.build_one_choose_the_world_then') },
     ...more,
-    { label: str('ui.tracks_and_statistics_on_the_web'), action: 'leaderboard', note: str('ui.the_public_page_for_sending_somebody') },
     backRow(),
   ];
 }
@@ -817,39 +778,6 @@ function soundRows(s) {
   ];
 }
 
-/* ---- Standings ---- */
-
-function standingsRows(ui) {
-  const track = ui.standingsFor;
-  if (!track) {
-    return [
-      { label: str('ui.no_track_chosen'), info: true, disabled: true, note: str('ui.pick_a_track_in_the_race') },
-      backRow(),
-    ];
-  }
-  const times = ui.standingsTimes || [];
-  const best = times[0] || null;
-  /* Only a time that carries a ghost can be raced: older ones predate it. */
-  const ghost = times.find((t) => t.hasGhost && t.id) || null;
-  return [
-    {
-      label: str('ui.fly_this_track'),
-      action: 'standings-fly',
-      primary: true,
-      note: best
-        ? str('ui.loads_and_takes_you_to_the_2', { name: track.name, formatTime: formatTime(best.lapMs), v3: best.name || str('ui.an_unnamed_pilot') })
-        : str('ui.loads_and_takes_you_to_the', { name: track.name }),
-    },
-    ...(ghost ? [{
-      label: str('ui.race_the_record'),
-      action: 'standings-ghost',
-      note: str('ui.s_flown_as_a_ghost_beside', { v1: ghost.name || str('ui.an_unnamed_pilot_2'), formatTime: formatTime(ghost.lapMs) }),
-    }] : []),
-    { label: str('ui.open_on_the_web'), action: 'card-board', note: str('ui.the_public_page_for_a_link', { name: track.name }) },
-    backRow(),
-  ];
-}
-
 /* ---- the launch card ---- */
 
 function launchRows(ui, s) {
@@ -870,8 +798,6 @@ function launchRows(ui, s) {
     flightStyleRow(str('ui.flight_model'), str('ui.arcade_the_ideal_quad_no_propwash_2'), str('ui.expert_the_full_physics_propwash_gyro_2'), s),
     crashDamageRow(s),
     linkRow(s, str('ui.a_perfect_link_is_sharper_than'), 'ui.hz_ms_delay_ms_jitter'),
-    ...ui.ghostItems(),
-    ...ui.liveItems(),
     { label: str('ui.fly_label'), action: 'launch-go', primary: true, note: recordSentence(s, trackName) },
     backRow(),
   ];
@@ -955,9 +881,6 @@ function quickRows(ui, s) {
     { label: str('pause.view'), section: true },
     hudStyleRow(s),
     graphicsRow(s),
-    ...(ui.ghostItems().length || ui.liveItems().length ? [{ label: str('pause.this_run'), section: true }] : []),
-    ...ui.ghostItems(),
-    ...ui.liveItems(),
     backRow(),
   ];
 }
@@ -991,31 +914,14 @@ function resultsRows(ui, s) {
     return [
       again,
       replayRow(ui.resultsDebrief),
-      { label: str('ui.open_tracks_and_statistics'), action: 'leaderboard', note: str('ui.every_published_track_and_the_times') },
       feelRow(),
       titleRow(),
     ].filter(Boolean);
   }
-  /* A free world has no listing; its track rows would all be grey. */
+  /* A seated track's results lead back to My tracks too; a free world has
+   * no listing. */
   const listing = s.map === 'track' ? liveListing() : null;
-  const replay = replayRow(ui.resultsDebrief);
-  if (!listing) {
-    return [again, replay, feelRow(), titleRow()].filter(Boolean);
-  }
-  return [
-    again,
-    replay,
-    uploadRow(listing, ui.resultsFastest, ui.timePosted, s.airframe),
-    {
-      label: str('ui.open_tracks_and_statistics'),
-      action: 'leaderboard',
-      disabled: !listing.published,
-      note: listing.name ? str('ui.the_public_page_for', { name: listing.name }) : str('ui.the_public_page_a_track_has'),
-    },
-    feelRow(),
-    myTracksRow(),
-    titleRow(),
-  ].filter(Boolean);
+  return [again, replayRow(ui.resultsDebrief), feelRow(), ...(listing ? [myTracksRow()] : []), titleRow()].filter(Boolean);
 }
 
 /* Watch the replay, from the debrief's record (docs/DEBRIEF.md): greyed
@@ -1030,44 +936,6 @@ function replayRow(d) {
     action: 'watchreplay',
     disabled: !d.replay.ok,
     note: str(d.replay.ok ? 'debrief.watch_replay_note' : d.replay.why),
-  };
-}
-
-/*
- * Upload a time. Always a row, greyed with its reason when it does not
- * apply, so the list keeps its shape and the pilot learns why.
- */
-function uploadRow(listing, fastestMs, timePosted, airframe) {
-  const shareId = listing.shareId;
-  const craft = lapCraftOf(listing.doc, airframe);
-  const grey = (note) => ({ label: str('ui.upload_a_time'), action: 'posttime', disabled: true, note });
-  if (timePosted && shareId) {
-    const rank = timePosted.rank != null ? str('ui.rank', { rank: timePosted.rank }) : '';
-    return { label: str('ui.time_uploaded'), action: 'posttime', disabled: true, note: str('ui.that_lap_is_on_the_public', { rank }) };
-  }
-  if (!shareId) {
-    return grey(str('ui.only_a_track_on_the_board'));
-  }
-  if (!listing.canPostTime) {
-    return grey(str('ui.the_layout_has_changed_since_it'));
-  }
-  /* The lap just flown, or the one left waiting for this track and craft. */
-  let ms = Number.isFinite(fastestMs) ? fastestMs : null;
-  if (ms == null) {
-    const pending = readPendingTime();
-    if (pending && pending.trackId === shareId && (pending.craft || '') === craft) {
-      ms = pending.lapMs;
-    }
-  }
-  if (ms == null) {
-    return grey(str('ui.fly_a_clean_lap_on_this'));
-  }
-  const best = readPostedBest(lapSlot(shareId, craft));
-  const faster = best != null && ms < best;
-  return {
-    label: faster ? str('ui.upload_new_best', { formatTime: formatTime(ms) }) : str('ui.upload', { formatTime: formatTime(ms) }),
-    action: 'posttime',
-    note: faster ? str('ui.faster_than_the_last_time_you') : str('ui.send_this_lap_to_the_public'),
   };
 }
 
@@ -1283,7 +1151,6 @@ const SCREENS = {
   freestyle: freestyleRows,
   quad: quadRows,
   pilot: pilotRows,
-  standings: standingsRows,
   launch: launchRows,
   paused: pausedRows,
   quick: quickRows,

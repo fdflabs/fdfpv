@@ -933,7 +933,8 @@ export function awardPlace(progress, world, id) {
  *              class's pace gives: the track's length over that pace,
  *              rounded up to the second. A multirotor's pace is the AI
  *              pilot's measured one, 13 m/s, the fastest it follows the
- *              plant through gates (scripts/aipilot-harness.js; the
+ *              plant through gates (scripts/aipilot-harness.js, in git
+ *              history since the combat-only cut, 2026-10-19; the
  *              casual quad oval is sized to that line's tightest turn):
  *              28 s. A plane's and a wing's is the middle of its own
  *              measured stall and top speed (configs/airframes.js

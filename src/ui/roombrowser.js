@@ -458,7 +458,7 @@ export function createRoomBrowser({
           /* The game, then what its pilots are doing: "War 2 · 1 in
            * lobby", "Combat · 2 flying · round 3". */
           value: str('roombrowser.chip', { game: str(`roombrowser.chip_${r.mode || r.game || 'free'}`, { n: missionNumber(r.mission) }), doing: doingNow(r) }),
-          join: str(r.state === 'waiting' || r.game === 'race' || r.game === null ? 'roombrowser.join' : r.game === 'war' ? 'roombrowser.join_battle' : 'roombrowser.join_round'),
+          join: str(r.state === 'waiting' || r.game === null ? 'roombrowser.join' : r.game === 'war' ? 'roombrowser.join_battle' : 'roombrowser.join_round'),
           /* Somebody is in the air in it (flyingNow): the panel paints it
            * green, a room in its lobby blue (index.html, THE ROOMS PANEL). */
           live: flyingNow(r),

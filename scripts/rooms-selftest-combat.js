@@ -566,19 +566,6 @@ function roundSection(check) {
   console.log('combat: one game at a time');
   {
     const r = started();
-    r.room.race.track = { id: 'tst' };
-    r.room.race.ready.set(1, 'tst');
-    r.send('A', { type: 'race', op: 'start', laps: 1 }, 2000);
-    check('no race starts under a combat round', !r.room.race.race);
-    r.send('A', { type: 'combat', op: 'stop' }, 2100);
-    r.send('A', { type: 'race', op: 'start', laps: 1 }, 2200);
-    check('the same start works once the round is stopped', r.room.race.race && r.room.race.race.state === 'on');
-    r.send('A', { type: 'combat', op: 'start', minutes: 3 }, 2300);
-    check('and no round starts under a race', r.room.combat.round.state === 'idle');
-    check('the room names its one game: the race', r.room.game() === 'race');
-  }
-  {
-    const r = started();
     check('the room names its one game: combat', r.room.game() === 'combat');
     r.send('A', { type: 'tag', op: 'start', goal: 100 }, 2000);
     check('no tag match starts under a combat round', !r.room.tag.on());

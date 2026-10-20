@@ -93,10 +93,10 @@ const GROUPS = [
     ui.show('paused');
     const fly = () => { ui.osd.style.display = ''; ui.osd.className = 'osd'; };
     fly();
-    const osdBase = { mode: 'race', lapMs: 12345, lastLapMs: 30000, gate: 3, gateCount: 9, gateCue: '', volts: 15.2, packFrac: 0.6, altitude: 3.2, speedKph: 80, throttle: 0.4, flightMode: 'acro', bounces: 0, launchState: 0, launchPitch: 0, ghostGapMs: null, ghostFinal: false };
-    ui.setOsd({ ...osdBase, lapMs: NaN, launchState: 1, launchPitch: 12, ghostGapMs: -1200 });
+    const osdBase = { mode: 'race', lapMs: 12345, lastLapMs: 30000, gate: 3, gateCount: 9, gateCue: '', volts: 15.2, packFrac: 0.6, altitude: 3.2, speedKph: 80, throttle: 0.4, flightMode: 'acro', bounces: 0, launchState: 0, launchPitch: 0 };
+    ui.setOsd({ ...osdBase, lapMs: NaN, launchState: 1, launchPitch: 12 });
     cap('osd-waiting-ahead-launch', '.osd');
-    ui.setOsd({ ...osdBase, bounces: 2, launchState: 2, ghostGapMs: 800, flaps: 1, gear: 'down' });
+    ui.setOsd({ ...osdBase, bounces: 2, launchState: 2, flaps: 1, gear: 'down' });
     cap('osd-behind-hot-bounces', '.osd');
     ui.setOsd({ ...osdBase, mode: 'freestyle', launchState: 3 });
     cap('osd-late-go', '.osd');
@@ -192,7 +192,7 @@ const GROUPS = [
   ['results-dialogs', async () => {
     /* D: results with laps, the empty and record states, the dialogs. */
     ui.settings.feelAsked = true;
-    ui.showResults([{ n: 1, ms: 31234 }, { n: 2, ms: null, reason: 'Missed gate 4' }, { n: 3, ms: 29876, score: 1200 }], 30000, 30500, 'Ghost was 0.4 s behind');
+    ui.showResults([{ n: 1, ms: 31234 }, { n: 2, ms: null, reason: 'Missed gate 4' }, { n: 3, ms: 29876, score: 1200 }], 30000, 30500);
     cap('results-record', ui.screens.results);
     ui.showResults([{ n: 1, ms: 33000 }, { n: 2, ms: 34000 }], 30000, 30000, null);
     cap('results-off', ui.screens.results);
@@ -501,9 +501,8 @@ const GROUPS = [
     ui.leaveFc();
   }],
   ['tracks', async () => {
-    /* My tracks with a board track (renderCourseCards in src/ui/cards.js), the
-     * card chosen with its rows, and the board's standings (paintStandings)
-     * with times and with none. */
+    /* My tracks with a board track (renderCourseCards in src/ui/cards.js), and
+     * the card chosen with its rows. */
     const board = [
       { id: 'bt1', name: 'River run', map: 'swiss2', gates: 9, author: 'Tester', board: null, online: '' },
       { id: 'bt2', name: 'Dam drop', map: 'swiss2', gates: 6, author: '', board: null, online: '' },
@@ -522,19 +521,6 @@ const GROUPS = [
     ui.renderCourseCards();
     cap('courses-chosen-cursor', ui.screens.courses);
     ui.cardSubject = null;
-    const { writePilotName } = await import('/src/share/pilot.js');
-    writePilotName('Tester');
-    ui.showStandings(board[0]);
-    for (let i = 0; i < 50 && ui.standingsLoading; i += 1) await new Promise((r) => setTimeout(r, 100));
-    ui.standingsLoading = null;
-    ui.standingsError = '';
-    ui.standingsTimes = [{ name: 'Fast one', lapMs: 28123, hasGhost: true }, { name: 'Tester', lapMs: 29001 }, { name: '', lapMs: 31000 }];
-    ui.paintStandings();
-    ui.renderMenu();
-    cap('standings-times', ui.screens.standings);
-    ui.standingsTimes = [];
-    ui.paintStandings();
-    cap('standings-none', ui.screens.standings);
     ui.boardCourses = [];
     ui.show('title');
   }],
@@ -643,7 +629,7 @@ const GROUPS = [
     ui.show('paused');
     ui.osd.style.display = '';
     ui.osd.className = 'osd';
-    ui.setOsd({ mode: 'race', lapMs: 12345, lastLapMs: null, gate: 3, gateCount: 9, gateCue: '', volts: 15.2, packFrac: 0.6, altitude: 3.2, speedKph: 80, throttle: 0.4, flightMode: 'acro', bounces: 1, launchState: 0, launchPitch: 0, ghostGapMs: null, ghostFinal: false });
+    ui.setOsd({ mode: 'race', lapMs: 12345, lastLapMs: null, gate: 3, gateCount: 9, gateCue: '', volts: 15.2, packFrac: 0.6, altitude: 3.2, speedKph: 80, throttle: 0.4, flightMode: 'acro', bounces: 1, launchState: 0, launchPitch: 0 });
     ui.setAirSlider(true, false);
     ui.screen = 'flight';
     ui.onHotSwap = ui.onHotSwap || (() => {});
@@ -835,7 +821,6 @@ const NOTES = {
   "fc": "The FC screen (src/ui/page.js fcScreen) with the module dump open as ui.onFcOpen in src/main.js opens it (src/ui/fc.js FcSession, painted by src/ui/menucontrols.js).",
   "rows": "A menu screen with a row the default states never build (rowClass row-warn: the scoring row in src/ui/items.js with scoring on).",
   "courses": "My tracks with two board tracks (renderCourseCards in src/ui/cards.js, the items from src/ui/items.js), one chosen with its rows.",
-  "standings": "The board's standings for a track (paintStandings in src/ui/cards.js), with times and with none.",
   "cursor": "A menu screen with the cursor (the on class, src/ui/nav.js setCursor) on a row kind the first row never is.",
   "osd-touch-fly": "The flight overlay and the flight chips with #ui as src/main.js leaves it in flight on a touch screen (touch-fly-on).",
   "osd-war": "The flight overlay with #ui in a war (war-on, src/ui/ui.js).",

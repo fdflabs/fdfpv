@@ -31,13 +31,12 @@
 import { MAPS } from '../maps/registry.js';
 import { activeCourseSummary } from '../share/summary.js';
 import { inspectCourse } from '../share/listing.js';
-import { writePendingTime } from '../share/trackseat.js';
 import { str, plural } from '../strings/index.js';
 import { factLines } from './factlines.js';
 import { formatDelta, formatTime } from './format.js';
 import { el } from './widgets.js';
 /* A cycle (ui.js installs these methods), so only read inside methods. */
-import { lapCraftOf, seatIsRace } from './ui.js';
+import { seatIsRace } from './ui.js';
 
 const worldOf = (settings) => MAPS.find((m) => m.id === settings.map) ?? MAPS[0];
 
@@ -220,7 +219,7 @@ export const resultsMethods = {
    * pilot did not fly). `best` is the live record; `recordAtStart` the one
    * this run was chasing, which decides the headline.
    */
-  showResults(log, best, recordAtStart, ghostNote = null, debrief = null) {
+  showResults(log, best, recordAtStart, debrief = null) {
     this.roomResults = false;
     const laps = log.filter((l) => Number.isFinite(l.ms)).map((l) => l.ms);
     const fastest = laps.length ? Math.min(...laps) : null;
@@ -289,33 +288,7 @@ export const resultsMethods = {
       const sum = points.reduce((a, b) => a + b, 0);
       this.resultsBody.append(resultRow(['total'], [cell('label', str('ui.run_score')), cell('time', plural('count.points', sum))]));
     }
-    /* Only the shell knows whose ghost was chased, so it writes the line. */
-    if (ghostNote) {
-      this.resultsBody.append(el('p', 'results-ghost', ghostNote));
-    }
-
-    const listing = listingOrNull();
-    /* The note is about the course that was flown, so it is only ever
-     * about a seated track. */
-    if (this.settings.map === 'track') {
-      if (this.share && this.share.id) {
-        const by = this.share.author ? str('ui.by_4', { author: this.share.author }) : '';
-        this.resultsNote.textContent = str('ui.is_on_the_public_board_upload', { v1: this.share.name || str('ui.this_track'), by });
-      } else if (listing && listing.kind === 'owned' && listing.layoutDrift) {
-        this.resultsNote.textContent = str('ui.has_a_layout_that_is_not', { name: listing.name });
-      }
-    }
-    this.timePosted = null;
     this.resultsFastest = fastest;
-    /* Held for the upload row: the fastest lap, on a board track that can
-     * take it. Storage may be unavailable, and the screen still shows. */
-    if (fastest != null && listing && listing.canPostTime && listing.shareId) {
-      try {
-        writePendingTime({ trackId: listing.shareId, lapMs: fastest, craft: lapCraftOf(listing.doc, this.settings.airframe) });
-      } catch (e) {
-        /* Nothing held; the times are still on screen. */
-      }
-    }
     this.show('results');
     /* A first race can only finish here, so this is where the flight feel
      * question is offered unasked. */
@@ -323,7 +296,8 @@ export const resultsMethods = {
   },
 
   /*
-   * A room's race (src/share/roomrace.js), rewritten as the others finish.
+   * A room game's results (Catch the Ace's, combat's), rewritten as the
+   * others finish.
    * v = { kicker, head, heroCap, heroTime, heroMeta, win, rows: [{ label,
    * time, tag, me, out }] }, all written by the shell. Nothing is posted.
    */

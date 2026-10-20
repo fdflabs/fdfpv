@@ -244,8 +244,6 @@ export const DEFAULTS = {
   weather: 'calm',
   /* The time of day, likewise (docs/DAYTIME-CONTRACT.md). */
   timeOfDay: 'own',
-  ghost: 'best',
-  live: 'off',
   cameraAngle: CAMERA_ANGLE_DEFAULT,
   cameraFov: CAMERA_FOV_DEFAULT,
   /* src/render/comfort.js. A missing shake level follows the system's
@@ -649,8 +647,6 @@ const ONE_OF = {
   laps: () => LAP_COUNTS,
   packVoltage: () => PACK_VOLTAGES,
   musicTrack: () => musicIds(),
-  ghost: () => ['off', 'best', 'previous'],
-  live: () => ['off', 'on'],
   weather: () => WEATHER_PRESETS,
   timeOfDay: () => DAYTIME_CHOICES,
   mouseSens: () => MOUSE_SENS,
