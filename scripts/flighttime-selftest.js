@@ -146,7 +146,7 @@ console.log('the record');
   check('a bad activity throws rather than vanishing', threw);
   check('an empty record totals nought', flightTotals(undefined).seconds === 0 && flightTotals({}).first === null);
   check('the activities are the mode registry\'s', FLIGHT_ACTIVITIES.join() === MODES.map((m) => m.id).join()
-    && ['race', 'free', 'combat', 'tag', 'war'].every((id) => FLIGHT_ACTIVITIES.includes(id)));
+    && ['free', 'combat', 'tag', 'war'].every((id) => FLIGHT_ACTIVITIES.includes(id)));
   const store = new Map();
   const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
   const id = deviceId(storage);

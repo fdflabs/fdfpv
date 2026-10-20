@@ -588,7 +588,6 @@ jobs:
       - run: npm run ratescurve:selftest
       - run: npm run panels:golden
       - run: npm run rooms:selftest
-      - run: npm run bots:selftest
       # Each map's shared world data against the page's own terrain
       # modules, which import three: the page loads three from its CDN
       # import map (index.html), so the same version is unpacked here.

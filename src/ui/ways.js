@@ -32,7 +32,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AIRFRAMES, AIRFRAME_IDS, airframeById, DEFAULT_AIRFRAME } from '../../configs/airframes.js';
+import { AIRFRAMES, AIRFRAME_IDS, airframeById } from '../../configs/airframes.js';
 import { MODES, modeById, wireMode } from '../share/modes.js';
 import { str } from '../strings/index.js';
 import { kindOf } from './carousel.js';
@@ -147,8 +147,6 @@ const leading = (first, ids) => [first, ...ids.filter((id) => id !== first)];
  * were first named for (the five inch, the 1000 mm wing).
  */
 export const WAYS = [
-  /* Racing: every aircraft, the interceptor first. */
-  { id: 'race-5inch', airframes: leading(DEFAULT_AIRFRAME, AIRFRAME_IDS), mode: 'race', ...fromRegistry('race') },
   /* Free flight: every fixed wing, the Bramor first. */
   { id: 'freestyle-wing1000', airframes: leading('bramor2300', FIXED_WINGS), mode: 'freestyle', ...fromRegistry('free') },
   /* Free flight with friends in a private room; off the title since

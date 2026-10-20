@@ -117,7 +117,6 @@ import { createRoomSafety } from './share/roomsafety.js';
 import { createVoice } from './share/voice.js';
 import { createVoiceUi } from './ui/voiceui.js';
 import { createRoomBrowser } from './ui/roombrowser.js';
-import { createRoomRace } from './share/roomrace.js';
 import { createLobbyReady } from './share/roomlobby.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
 import {
@@ -126,9 +125,7 @@ import {
 import {
   createTagShout, tagHudView, tagResultsView, tagRows,
 } from './ui/roomtaghud.js';
-import {
-  RoomRaceHud, hudView, raceRows, resultsView, trackName,
-} from './ui/roomhud.js';
+import { RoomRaceHud } from './ui/roomhud.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
   FLAG_SPAWNING, FOOT_HANGAR, FOOT_ON, checkCrashTable, checkWhack, decodeFootRelay, decodePartsRelay, encodePose, normaliseCode,
@@ -3555,15 +3552,14 @@ export async function boot({
   }
   /*
    * In a room of friends, each pilot starts at their own seat's slot
-   * (src/game/slots.js): on a gateless world, and on the room's own track,
-   * where the row is laid across the track's start, so a room's racers
-   * line up side by side rather than in one another. Another track's start
-   * is the track's. -1 out of a room, and slot 0 is the spawn itself, so a
-   * flight alone starts exactly where it always did.
+   * (src/game/slots.js) on a gateless world, so the room's pilots line up
+   * side by side rather than in one another. A track's start is the
+   * track's. -1 out of a room, and slot 0 is the spawn itself, so a flight
+   * alone starts exactly where it always did.
    */
   let roomSlot = -1;
   function roomSlotSpawn(sp) {
-    return roomSlot > 0 && (race.freestyle || roomTrackSeated()) ? slotSpawn(sp, roomSlot) : sp;
+    return roomSlot > 0 && race.freestyle ? slotSpawn(sp, roomSlot) : sp;
   }
   /* Whether this run starts afloat, which is where it rests. */
   function startsAfloat() {
@@ -3956,9 +3952,6 @@ export async function boot({
       roomProfileSent = key;
     }
   }
-  /* The room's race (src/share/roomrace.js), wired below at RACING
-   * TOGETHER. Its messages go out on the room's socket. */
-  const roomRace = createRoomRace((obj) => roomLinkState.send(obj));
   /* Catch the Ace (src/share/roomtag.js), wired below at CATCH THE ACE. */
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
@@ -4010,7 +4003,7 @@ export async function boot({
   let runSimId = 0;
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
-  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card', free: 'ui.free_flight_card' };
+  const GAME_CARDS = { tag: 'roomtag.section', combat: 'combat.card', war: 'war.card', free: 'ui.free_flight_card' };
   /*
    * THE BOOTLOADER OVER A ROOM LINK BEING RETRIED (src/ui/loading.js hold):
    * a room's socket that dropped, or a rooms server that said it was
@@ -4032,7 +4025,6 @@ export async function boot({
   }
   const roomLinkState = createRoomLink({
     onWelcome: (w) => {
-      roomRace.onWelcome(w);
       roomTag.onWelcome(w);
       roomWar.onWelcome(w);
       roomOps.onWelcome(w);
@@ -4085,7 +4077,6 @@ export async function boot({
     onEvent: (ev) => {
       roomSafety.event(ev);
       roomEvent(ev);
-      roomRace.onMessage(ev);
       roomCombat.onEvent(ev);
     },
     onReported: (seat) => {
@@ -4162,7 +4153,7 @@ export async function boot({
         ui.refreshFriends();
         return;
       }
-      if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
+      if (roomTag.onMessage(m) || roomWar.onMessage(m)) {
         /* The room's word on this pilot's war start, said like a refusal. */
         /* Not the room's refusal of the aircraft a war just put this pilot
          * out of (warSeatCraft): only one still flown says it. */
@@ -4221,9 +4212,6 @@ export async function boot({
         roomSummon = null;
         roomSafety.clear();
         voice.roomClosed();
-        roomRace.clear();
-        roomRaceRunId = null;
-        roomRaceHud.update(null);
         roomTag.clear();
         roomTagRunId = null;
         roomTagHud.update(null);
@@ -5027,21 +5015,8 @@ export async function boot({
         note: 'lobby.goal_note',
         value: (n) => plural('count.points', n),
       },
-      rows: (host) => roomBotRows(host),
+      rows: () => [],
       line: (lobby) => str('lobby.tag_line', { n: lobby.goal }),
-    },
-    /* The race goes off the track the host chose, from My tracks; the
-     * pilots in the lobby have it built under the lobby screen, and are on
-     * its grid when it goes (edge/rooms/race.js start). */
-    race: {
-      view: () => roomRace.race(),
-      start: 'friends-lobby-start',
-      begin: () => roomLinkState.send({ type: 'race', op: 'start', laps: 3 }),
-      setting: null,
-      rows: (host) => [...(host ? [{
-        label: str('lobby.track'), value: roomRace.track() ? roomRace.track().name : str('lobby.track_none'), note: str('lobby.track_note'), action: 'friends-lobby-track',
-      }] : []), ...roomBotRows(host)],
-      line: () => (roomRace.track() ? str('lobby.race_line', { name: roomRace.track().name }) : str('lobby.race_none')),
     },
     /* Free flight's round is just flying, on from the first start until
      * the room is empty: a pilot who comes then flies straight in. */
@@ -6588,9 +6563,7 @@ export async function boot({
    * (gameLobbyFrame runs before the games' frames), and the results then
    * stood over the lobby for good (game:lobby, B's world rebuilt and held
    * 9 s across the end: the Ace's and the Trick Battle's,
-   * 2026-10-15). A room's race shows its results only to a pilot whose
-   * run ends in raceFrame, before gameLobbyFrame in the same frame, which
-   * then takes them to the lobby, so it needs none. */
+   * 2026-10-15). */
   function lobbyBackGone(game) {
     return lobbyGame() === game && lobbyBackAt == null;
   }
@@ -6904,9 +6877,6 @@ export async function boot({
   /* The game running in this room, as this screen knows it, or null. */
   function roomRunning() {
     const r = roomCombat.round();
-    if (roomRace.race().state === 'on') {
-      return 'race';
-    }
     if (roomTag.on()) {
       return 'tag';
     }
@@ -7137,7 +7107,7 @@ export async function boot({
     if (now == null) {
       return;
     }
-    roomRaceFrame(now, wallMs);
+    roomHoldFrame(now, wallMs);
     roomTagFrame(now, wallMs);
     roomWarFrame(now, wallMs, dt);
     roomSessionFrame(link.welcome, wallMs);
@@ -7237,23 +7207,14 @@ export async function boot({
    * the room screen with its code and start rows, the title, the pause.
    * They go up at their own Fly, the room bar's, or a game's start. */
   function roomCall(why, { restart = false } = {}) {
-    /* 'track': a race lobby's new track, built under the lobby screen and
-     * not flown until its race goes. */
-    const fly = why !== 'join' && why !== 'track';
+    const fly = why !== 'join';
     roomSummon = { why, fly, restart: restart || Boolean(roomSummon && roomSummon.restart) };
   }
 
-  /* Where the room flies now: its world, on its track when it has one
-   * there, except in the games played in free flight. Combat is flown
-   * wherever the room is, so its rounds never move anybody off a track.
-   * A watcher is never seated on the track: its own hidden aircraft would
-   * time laps, pass gates and keep records of a race it is not in. */
+  /* Where the room flies now: its world. */
   function roomTarget(w) {
-    const t = roomRace.track();
-    const free = roomTag.on() || roomWar.on() || Boolean(w.watch);
-    return { world: w.map, track: t && t.map === w.map && !free ? t : null };
+    return { world: w.map };
   }
-  const roomTargetKey = (t) => `${t.world}|${t.track ? t.track.id : ''}`;
 
   /* The world this pilot's seat builds, the title's and the builder's aside. */
   function seatWorld() {
@@ -7263,15 +7224,8 @@ export async function boot({
     const seated = seatShare();
     return seated ? seated.document.map : mapById('track').home;
   }
-  function seatTrackId() {
-    const seated = seatShare();
-    return seated ? seated.document.id : null;
-  }
   function roomInPlace(target) {
-    if (seatWorld() !== target.world) {
-      return false;
-    }
-    return target.track ? ui.settings.map === 'track' && seatTrackId() === target.track.id : ui.settings.map === target.world;
+    return seatWorld() === target.world && ui.settings.map === target.world;
   }
   function roomHost(w) {
     return Boolean(w) && w.host === w.seat;
@@ -7284,13 +7238,12 @@ export async function boot({
   }
 
   /* The welcome, a first join or a rejoin: the room's target is taken as
-   * seen, and this pilot is summoned to it. A racer is seated too, since
-   * #187 kept a pilot on a track of their own: that is a session of one. */
+   * seen, and this pilot is summoned to it. */
   function roomSessionWelcome(w) {
     const target = roomTarget(w);
     roomFailedWorld = null;
-    roomSeenTarget = roomTargetKey(target);
-    roomAsked = { map: null, track: null, at: 0 };
+    roomSeenTarget = target.world;
+    roomAsked = { map: null, at: 0 };
     /* A lesson flown elsewhere is left for this session (TRAINING.md 10). */
     ui.progress.roomJoined(modeOfWire(w.mode));
     if (!roomInPlace(target) && MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
@@ -7318,11 +7271,11 @@ export async function boot({
   }
 
   /*
-   * A seat this pilot chose that is not the room's. The host's is asked of
-   * the room (a world, a track), and put back if the room has not taken it
-   * in ROOM_ASK_MS; anybody else's is put back at once. Not while the seat
-   * is being changed, or while the builder is open, whose world is its own
-   * and whose tracks are not flown as the room's until they are seated.
+   * A seat this pilot chose that is not the room's. The host's world is
+   * asked of the room, and put back if the room has not taken it in
+   * ROOM_ASK_MS; anybody else's, and a track of one's own (a room flies
+   * worlds), is put back at once. Not while the seat is being changed, or
+   * while the builder is open, whose world is its own.
    */
   function roomDrift(w, wallMs) {
     if (roomSummon || swapInFlight || !mapReady || (build && build.active && !build.racing) || !MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')
@@ -7330,26 +7283,17 @@ export async function boot({
       return;
     }
     const world = seatWorld();
-    const track = ui.settings.map === 'track' ? seatTrackId() : null;
-    const roomTrack = roomRace.track();
     const offWorld = world !== w.map;
-    const offTrack = track != null && (!roomTrack || roomTrack.id !== track);
-    if (!offWorld && !offTrack) {
+    const onTrack = ui.settings.map === 'track';
+    if (!offWorld && !onTrack) {
       return;
     }
-    /* A public room is listed under its world, so its host moves its
-     * track only. */
-    if (roomHost(w) && !(offWorld && w.public)) {
-      const asked = roomAsked.map === world && roomAsked.track === track;
-      if (!asked) {
-        roomAsked = { map: world, track, at: wallMs };
-        if (offWorld) {
-          roomLinkState.sendWorld(world);
-        }
-        const seated = offTrack ? seatShare() : null;
-        if (seated) {
-          roomRace.loadTrack(seated.document);
-        }
+    /* A public room is listed under its world, so its host cannot move
+     * it. */
+    if (roomHost(w) && offWorld && !onTrack && !w.public) {
+      if (roomAsked.map !== world) {
+        roomAsked = { map: world, at: wallMs };
+        roomLinkState.sendWorld(world);
         return;
       }
       if (wallMs - roomAsked.at < ROOM_ASK_MS) {
@@ -7373,18 +7317,17 @@ export async function boot({
       return;
     }
     const target = roomTarget(w);
-    const key = roomTargetKey(target);
-    if (key !== roomSeenTarget) {
-      const moved = roomSeenTarget != null && roomSeenTarget.split('|')[0] !== target.world;
-      roomSeenTarget = key;
+    if (target.world !== roomSeenTarget) {
+      const moved = roomSeenTarget != null;
+      roomSeenTarget = target.world;
       if (moved) {
         roomFailedWorld = null;
       }
-      roomAsked = { map: null, track: null, at: 0 };
+      roomAsked = { map: null, at: 0 };
       if (moved && !roomHost(w)) {
         roomSay(str('rooms.world_moved', { world: mapById(target.world).name }));
       }
-      roomCall(lobbyGame() === 'race' && gameLobby() ? 'track' : 'target');
+      roomCall('target');
     }
     roomDrift(w, wallMs);
     roomSummonStep(target);
@@ -7441,15 +7384,6 @@ export async function boot({
      * now, the swap would land the pilot on the title, off the room screen
      * and its start rows. */
     if (!s.fly) {
-      /* A race lobby's track is built now, on the lobby screen (the swap
-       * comes back to it), so its pilots are on the grid when it goes. */
-      if (s.why === 'track' && !worldMatchesSettings()) {
-        titleWorld = null;
-        buildWorld = null;
-        syncWorld();
-        roomTellProfile();
-        return;
-      }
       roomSummon = null;
       return;
     }
@@ -7484,24 +7418,8 @@ export async function boot({
       titleWorld = null;
       buildWorld = null;
     }
-    const t = target.track;
-    if (t) {
-      if (seatTrackId() !== t.id) {
-        if (!writeShareImport({ id: t.id, name: trackName(t), document: t.doc, local: true })) {
-          roomSummon = null;
-          return;
-        }
-        ui.setShare(null);
-        notice = { text: str('roomrace.loading', { name: trackName(t) }), untilMs: performance.now() + 3000 };
-      }
-      ui.settings.map = 'track';
-      ui.mode = 'race';
-      ui.persistSettings();
-      syncWorld();
-    } else {
-      ui.mode = 'freestyle';
-      seatMapOwn(target.world, { stay: true });
-    }
+    ui.mode = 'freestyle';
+    seatMapOwn(target.world, { stay: true });
     roomTellProfile();
   }
 
@@ -8072,8 +7990,7 @@ export async function boot({
       status: roomStatus(),
       summon: roomSummon ? { ...roomSummon } : null,
       seatWorld: seatWorld(),
-      seatTrack: seatTrackId(),
-      target: st.welcome ? roomTargetKey(roomTarget(st.welcome)) : null,
+      target: st.welcome ? roomTarget(st.welcome).world : null,
       standing: worldMatchesSettings(),
       bar: ui.roomBarView ? ui.roomBarView.text : null,
       gone: [...roomGone.keys()],
@@ -8492,7 +8409,6 @@ export async function boot({
       const game = known === 'war' && !warFits(w) ? null : known;
       const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
       const blocks = {
-        race: roomRaceRows(host),
         tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
         combat: combatRows(host, w, game === 'combat'),
         war: warRows(host, w),
@@ -8500,7 +8416,7 @@ export async function boot({
       /* Defend Itaipu last, unless the room or its pilot came for it, and
        * only on Itaipu (warRows): a public room there says why not. */
       const first = game || (wanted === 'war' ? 'war' : null);
-      const order = first ? [first, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== first)] : ['race', 'tag', 'combat', 'war'];
+      const order = first ? [first, ...['tag', 'combat', 'war'].filter((g) => g !== first)] : ['tag', 'combat', 'war'];
       const games = [
         {
           label: game ? str('friends.games_for', { game: str(GAME_CARDS[game]) }) : str('friends.games'),
@@ -8510,9 +8426,7 @@ export async function boot({
         /* Who starts the games, for everybody else: without it a pilot
          * who is not the host sees rows that do nothing and no reason. */
         ...(w && !host ? [{ label: str('friends.host_starts', { name: roomSeatName(w.host) }), info: true }] : []),
-        /* The AI pilots row follows the block of the game the room was
-         * made for, once: the row is the room's, not each game's. */
-        ...order.flatMap((g) => (w && g === w.mode ? [...blocks[g], ...roomBotRows(host)] : blocks[g])),
+        ...order.flatMap((g) => blocks[g]),
         { label: str('roomrace.room_section'), section: true },
       ];
       const rows = [
@@ -8718,35 +8632,9 @@ export async function boot({
     return code;
   }
   devHooks.__opsCampaign = interiorScreen;
-  ui.onTrackChosen = () => {
-    if (lobbyGame() !== 'race' || !roomHost(roomLinkState.state().welcome)) {
-      return false;
-    }
-    /* The track just seated (ui.js seatLocal) is built under the lobby,
-     * and the room is sent it, so everybody here has it on their grid. */
-    /* The seat is the track (ui.js seatLocal wrote it); ui.seatMap would
-     * put a public room's pilot back in the room's world. The room takes
-     * it, and everybody in the lobby has its world built under the lobby
-     * (roomSessionFrame's 'track' summon). */
-    ui.mode = 'race';
-    ui.show('friends');
-    ui.settings.map = 'track';
-    ui.persistSettings();
-    titleWorld = null;
-    buildWorld = null;
-    syncWorld();
-    /* The seat, not seatedMapTrack: the title's world is still up. */
-    const seated = seatShare();
-    if (seated) {
-      roomAsked = { map: seated.document.map, track: seated.document.id, at: performance.now() };
-      roomRace.loadTrack(seated.document);
-    }
-    return true;
-  };
   devHooks.__campaign = campaign;
 
   function roomLeave() {
-    roomRaceRetire();
     roomLinkState.leave();
     roomNote = null;
   }
@@ -8828,7 +8716,7 @@ export async function boot({
       warSetupConsent();
       return;
     }
-    /* The host's Start now in a combat, an Ace or a race lobby: the round
+    /* The host's Start now in a combat or an Ace lobby: the round
      * the room is set for, its game's begin (the war's is
      * friends-war-start, its consent first; free flight has none). */
     if (action === 'friends-lobby-start') {
@@ -8839,14 +8727,7 @@ export async function boot({
       }
       return;
     }
-    /* A race lobby's host chooses its track in My tracks (ui.onTrackChosen
-     * brings them back here); a war lobby's campaign is a row of it. */
-    if (action === 'friends-lobby-track') {
-      /* Back from My tracks is the lobby again (ui.js back, roomFrom). */
-      ui.roomFrom = 'friends';
-      ui.show('courses');
-      return;
-    }
+    /* A war lobby's campaign is a row of it. */
     if (action === 'friends-lobby-campaign') {
       campaign.open();
       return;
@@ -8884,10 +8765,6 @@ export async function boot({
     }
     if (action === 'friends-combat-stop') {
       roomCombat.stop();
-      return;
-    }
-    if (action === 'friends-end-race') {
-      roomRace.end();
       return;
     }
     if (action === 'friends-end-tag') {
@@ -8949,10 +8826,6 @@ export async function boot({
       ui.refreshFriends();
       return;
     }
-    if (action.startsWith('friends-race-')) {
-      roomRaceAction(action.slice('friends-'.length));
-      ui.refreshFriends();
-    }
     if (action.startsWith('friends-tag-')) {
       roomTagAction(action.slice('friends-'.length));
       ui.refreshFriends();
@@ -8960,235 +8833,43 @@ export async function boot({
   };
 
   /*
-   * RACING TOGETHER, Phase 4 of docs/MULTIPLAYER-PLAN.md: the room's race
-   * (src/share/roomrace.js, the room's half edge/rooms/race.js). The host
-   * sends the track their seat holds (from My tracks, the online tracks or
-   * a casual sky course: they are all one kind of document), every pilot's
-   * seat takes it and their world stands it up, and each says so. The host
-   * starts; every pilot whose world had it is put on their slot on the
-   * track's start row (roomSlotSpawn) and held there until the room's
-   * goAt, the same instant on every screen; then each flies and scores
-   * their own gates exactly as alone, and the room orders what it is told.
-   *
-   * What a room race changes about a run, and nothing else: the hold on
-   * the line (raceHoldMs, read where a parked aircraft takes off and where
-   * an air start lets go), which lap count ends the run (roomRace.done
-   * instead of runLaps), and the results screen. A wreck is the wreck
-   * rules as ever (enterWreck voids the lap in flight); R puts the pilot
-   * back on their slot and the laps already flown stay flown. Leaving for
-   * the title retires them. A pilot who was not ready when it started
-   * flies the track free and watches the order until the next one.
+   * THE HOLD ON THE LINE: ms the room's countdown still holds this
+   * aircraft, read where a parked aircraft takes off and where an air
+   * start lets go. A Catch the Ace match's, until its go (roomTagHoldMs).
    */
-  /* ms the room's countdown still holds this aircraft on the line. */
   let raceHoldMs = 0;
   let raceHoldWas = 0;
-  /* The race this run was put on the line for, or null for a run alone. */
-  let roomRaceRunId = null;
-  let roomRaceLaps = 3;
-  let roomRaceCheckAt = 0;
-  let roomResultsKey = '';
-  let roomGoWall = null;
-  let roomHudAt = 0;
-  const roomRaceHud = new RoomRaceHud(ui.root);
-
-  /* The room's track is the one this pilot's seat holds. */
-  function roomTrackSeated() {
-    const t = roomRace.track();
-    const seated = t ? seatedMapTrack() : null;
-    return Boolean(seated && seated.document.id === t.id);
-  }
-  /* And it stands in this world, with its gates, for the aircraft seated. */
-  function roomTrackReady() {
-    return roomTrackSeated() && mapReady && !swapInFlight && worldMatchesSettings()
-      && !race.freestyle && seatedFits(seatedMapTrack());
-  }
-  function roomRun() {
-    return roomRaceRunId != null && roomRaceRunId === roomRace.race().id;
-  }
-  function roomRaceRetire() {
-    if (roomRun()) {
-      roomRace.retire(roomLinkState.roomNow());
-    }
-    roomRaceRunId = null;
-  }
 
   /* Every frame the room is open, after the aircraft is posed. */
-  function roomRaceFrame(now, wallMs) {
-    if (wallMs > roomRaceCheckAt) {
-      roomRaceCheckAt = wallMs + 500;
-      roomRace.ready(roomTrackReady(), now);
-    }
-    const start = roomRace.takeStart(now);
-    if (start) {
-      roomLeaveCrashCam();
-      if (roomTrackReady()) {
-        roomRaceRunId = start.id;
-        ui.onAction('restart');
-      } else {
-        /* Not on the line when it went: out of this race, and up to fly
-         * the track and watch it. */
-        roomRace.retire(now);
-        roomCall('game');
-      }
-    }
-    roomRace.frame(now);
-    raceHoldMs = roomRun() ? roomRace.holdMs(now) : roomTagHoldMs(now);
+  function roomHoldFrame(now, wallMs) {
+    raceHoldMs = roomTagHoldMs(now);
     /* An air start lets go when its own countdown runs out (tickAirStart),
      * so the room's is written into it; a parked aircraft is held by
      * raceHoldMs where it would take off, and its GO is shown here. */
     if (raceHoldMs > 0 && airHoldMs > 0) {
       airHoldMs = raceHoldMs;
     }
-    if (raceHoldWas > 0 && raceHoldMs === 0) {
-      roomGoWall = Date.now();
-      if (!(airHoldMs > 0)) {
-        airGoUntil = wallMs + AIR_GO_MS;
-      }
+    if (raceHoldWas > 0 && raceHoldMs === 0 && !(airHoldMs > 0)) {
+      airGoUntil = wallMs + AIR_GO_MS;
     }
     raceHoldWas = raceHoldMs;
-    /* A race this pilot finished, once per race: a round in the flight's
-     * log with how many were on the grid, which the lesson Racing a pilot
-     * judges (src/game/training.js): people only, since the room's AI
-     * pilots race too (edge/rooms/airace.js) and a lesson about racing a
-     * pilot is not passed against them. A racer gone from the room is
-     * counted as the person it was. */
-    const over = roomRace.takeResults();
-    const finished = over && (over.standings || []).find((r) => r.seat === roomRace.seat() && r.ms != null);
-    if (finished) {
-      const people = (over.racers || []).filter((seat) => seat === roomRace.seat() || !roomBot(roomPeers.get(seat) || {}));
-      ui.progress.roundFinished('race', worldId(), { pilots: people.length });
-    }
-    /* Four times a second is plenty for an order that moves a gate at a
-     * time, and it keeps the names' lookups off every frame. */
-    if (wallMs < roomHudAt) {
-      return;
-    }
-    roomHudAt = wallMs + 250;
-    roomRaceHud.update(mode === 'flight' && ui.screen === 'flight' ? hudView(roomRace, now, roomSeatName) : null);
-    if (mode === 'results' && ui.roomResults && ui.screen === 'results' && roomResultsOf === 'race') {
-      roomShowResults();
-    }
-    /* The race is over and this run's part in it is shown: what is flown
-     * next is flown alone until the next start. */
-    if (roomRun() && roomRace.race().state === 'results' && mode !== 'flight') {
-      roomRaceRunId = null;
-    }
   }
 
-  /* The results screen, from the room's order; again as it changes. */
-  function roomShowResults() {
-    const view = resultsView(roomRace, roomSeatName);
-    const key = JSON.stringify(view);
-    if (key === roomResultsKey && ui.screen === 'results') {
-      return;
-    }
-    roomResultsKey = key;
-    roomResultsOf = 'race';
-    ui.showRoomResults(view, roomDebrief('roomrace', roomRace.standings(), roomRace.seat(), roomRace.race().state === 'results'));
-  }
   ui.roomResultsRows = () => {
     if (roomResultsOf === 'tag') {
       return roomTagResultsRows();
     }
-    if (roomResultsOf === 'combat') {
-      /* The host's one press to another round of the same length, the
-       * room's pilots in it as at any start (COMPLETENESS 76). */
-      const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomCombat.seat();
-      const lobby = gameLobby();
-      const again = host && lobbyGame() === 'combat' && Boolean(lobby) && roomCombat.round().state === 'over';
-      return [
-        ...(again ? [{ label: str('combat.again'), note: str('combat.again_note', { minutes: lobby.minutes }), action: 'friends-lobby-start', primary: true }] : []),
-        { label: str('roomtag.fly_on'), action: 'restart', note: str('combat.fly_on_note'), primary: !again },
-        ...ui.friendsItems(),
-        { label: str('ui.back_to_title'), action: 'title' },
-      ];
-    }
-    const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomRace.seat();
+    /* Combat's: the host's one press to another round of the same length,
+     * the room's pilots in it as at any start (COMPLETENESS 76). */
+    const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomCombat.seat();
+    const lobby = gameLobby();
+    const again = host && lobbyGame() === 'combat' && Boolean(lobby) && roomCombat.round().state === 'over';
     return [
-      ...(host && roomRace.race().state === 'results'
-        ? [{ label: str('roomrace.again'), note: str('roomrace.again_note', { laps: roomRaceLaps }), action: 'friends-race-start', primary: true }]
-        : []),
-      { label: str('roomrace.fly_on'), action: 'restart', note: str('roomrace.fly_on_note'), primary: !host },
+      ...(again ? [{ label: str('combat.again'), note: str('combat.again_note', { minutes: lobby.minutes }), action: 'friends-lobby-start', primary: true }] : []),
+      { label: str('roomtag.fly_on'), action: 'restart', note: str('combat.fly_on_note'), primary: !again },
       ...ui.friendsItems(),
       { label: str('ui.back_to_title'), action: 'title' },
     ];
-  };
-
-  /* A pass the local race just scored, handed to the room's race. */
-  function roomRacePass(passed, lapsBefore, simNow) {
-    const now = roomLinkState.roomNow();
-    if (!roomRun() || now == null) {
-      return;
-    }
-    const cross = race.lapStartMs + (race.splits.length ? race.splits[race.splits.length - 1] : 0);
-    roomRace.pass({
-      lapDone: race.laps.length > lapsBefore,
-      gate: race.lapStartMs != null ? race.splits.length + 1 : 0,
-      gatePoints: race.call && race.call.gate === passed ? race.call.points : 0,
-      hoop: Boolean(race.gates[passed].apertures[0].round),
-      lagMs: Math.max(0, simNow - cross),
-    }, now);
-  }
-
-  /* The Fly with friends screen's race rows. */
-  function roomRaceRows(host) {
-    return raceRows({
-      rr: roomRace,
-      host,
-      nameOf: roomSeatName,
-      seated: seatedMapTrack(),
-      fits: !roomTrackSeated() || seatedFits(seatedMapTrack()),
-      ready: roomTrackReady(),
-      craft: airframeById(ui.settings.airframe).short,
-      laps: roomRaceLaps,
-      here: roomPeers.size + 1,
-      onLaps: (d) => {
-        roomRaceLaps = Math.max(1, Math.min(10, roomRaceLaps + d));
-        ui.refreshFriends();
-      },
-    });
-  }
-
-  function roomRaceAction(action) {
-    if (action === 'race-send') {
-      const seated = seatedMapTrack();
-      if (seated) {
-        roomRace.loadTrack(seated.document);
-      }
-    } else if (action === 'race-start') {
-      roomRace.start(roomRaceLaps);
-    } else if (action === 'race-end') {
-      roomRace.end();
-    }
-  }
-
-  /* Harness only: the room's race as this page has it, for
-   * scripts/rooms-race-two-page.js. goWall is the wall clock (Date.now)
-   * at the frame the hold let go, to compare two pages' starts. */
-  window.__roomRace = () => {
-    const now = roomLinkState.roomNow();
-    return {
-      role: roomRace.role(now),
-      track: roomRace.track() ? { id: roomRace.track().id, name: roomRace.track().name } : null,
-      race: roomRace.race(),
-      standings: roomRace.standings(),
-      laps: roomRace.laps(),
-      seated: roomTrackSeated(),
-      ready: roomTrackReady(),
-      hold: raceHoldMs,
-      run: roomRaceRunId,
-      goWall: roomGoWall,
-      roomNow: now,
-      results: ui.roomResults && ui.screen === 'results',
-      error: roomRace.error(),
-    };
-  };
-  devHooks.__roomRaceDo = (action, laps) => {
-    if (laps) {
-      roomRaceLaps = laps;
-    }
-    roomRaceAction(action);
-    return true;
   };
 
   /* The screens a room's results are shown over and a match's results
@@ -9499,35 +9180,6 @@ export async function boot({
         ui.refreshFriends();
       },
     });
-  }
-
-  /* The host's say over the room's AI pilots (edge/rooms/roombots.js),
-   * where its game has them: off, or how well they fly. A public room
-   * starts with them on, a private one off. Everybody else is told what
-   * the host chose. */
-  const BOT_LEVELS = ['off', 'easy', 'normal', 'hard'];
-  function roomBotRows(host) {
-    const w = roomLinkState.state().welcome;
-    const mode = w ? modeOfRoom(w.mode) : null;
-    if (!w || !mode || !mode.allowAI || !BOT_LEVELS.includes(w.bots)) {
-      return [];
-    }
-    const value = str(`lobby.ai_level.${w.bots}`);
-    if (!host) {
-      return [{ label: str('lobby.ai_pilots'), value, note: str('lobby.ai_pilots_guest_note'), info: true }];
-    }
-    /* A race's AI pilots chase a lap, so the level says whose. */
-    const note = str(w.mode === 'race' ? 'lobby.ai_race_note' : 'lobby.ai_pilots_note');
-    const set = (level) => roomLinkState.send({ type: 'bots', level });
-    return [{
-      label: str('lobby.ai_pilots'),
-      value,
-      note,
-      current: w.bots,
-      options: BOT_LEVELS.map((l) => ({ value: l, label: str(`lobby.ai_level.${l}`) })),
-      pick: set,
-      adjust: (d) => set(BOT_LEVELS[(BOT_LEVELS.indexOf(w.bots) + d + BOT_LEVELS.length) % BOT_LEVELS.length]),
-    }];
   }
 
   function roomTagAction(action) {
@@ -10027,7 +9679,7 @@ export async function boot({
   };
 
   function opponentAllowed() {
-    return chaseAllowed() && !roomRun() && !airframeById(runAirframe).fixedWing;
+    return chaseAllowed() && !airframeById(runAirframe).fixedWing;
   }
 
   function opponentLap() {
@@ -16139,11 +15791,6 @@ export async function boot({
    * whose clock had already started.
    */
   function startRun(action) {
-    /* A room race this pilot has finished is over for them: flying on
-     * is flying alone. */
-    if (roomRun() && roomRace.done()) {
-      roomRaceRunId = null;
-    }
     whenConfigReady(() => {
       reset();
       mode = 'flight';
@@ -16190,7 +15837,6 @@ export async function boot({
       build.exit(false);
     }
     buildWorld = null;
-    roomRaceRetire();
     mode = 'title';
     /* Not while a world swap is in flight: the old world is already
      * disposed (syncWorldNow), its terrain gone under adoptSpawn, and the
@@ -19186,7 +18832,6 @@ export async function boot({
     const res = race.update(racePrev, pCurr, simNow, nowWall, allowPass);
     const passed = res.passed != null;
     if (passed) {
-      roomRacePass(res.passed, lapsBefore, simNow);
       view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
       if (typeof audio.event === 'function') {
         audio.event('gate');
@@ -19212,18 +18857,17 @@ export async function boot({
           ms: race.laps[race.laps.length - 1],
           medal: medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing),
           n: race.lap,
-          of: roomRun() ? null : runLaps,
+          of: runLaps,
         });
       }
     }
-    const roomOver = roomRun() && (roomRace.done() || roomRace.race().state === 'results');
-    if (!race.freestyle && (roomRun() ? roomOver : race.lap >= runLaps)) {
+    if (!race.freestyle && race.lap >= runLaps) {
       finishRun();
     }
   }
 
   /* The run is over: a turtle in progress is played out, the motors let
-   * go, and the results shown, the room's or the pilot's own. */
+   * go, and the results shown. */
   function finishRun() {
     mode = 'results';
     if (turtleWait || turtleFlip.active) {
@@ -19238,24 +18882,17 @@ export async function boot({
     setTurtleParkMotors(false);
     poseLock = false;
     paintBest();
-    if (!roomRun()) {
-      ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), withBests(fromRace({
-        aircraft: runAirframe,
-        fixedWing: Boolean(airframeById(runAirframe).fixedWing),
-        events: ui.progress.runEvents().slice(raceLogAt),
-        recordAtStart: race.recordAtStart,
-        flightMs: runAirMs,
-        totalS: aircraftSecondsNow(),
-        route: runRoute.snapshot(),
-        replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
-        condition: conditionOf(crashFlags, airframeById(runAirframe).fixedWing),
-      }), ui.progress.runBests()));
-      return;
-    }
-    roomShowResults();
-    if (roomRace.race().state === 'results') {
-      roomRaceRunId = null;
-    }
+    ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), withBests(fromRace({
+      aircraft: runAirframe,
+      fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+      events: ui.progress.runEvents().slice(raceLogAt),
+      recordAtStart: race.recordAtStart,
+      flightMs: runAirMs,
+      totalS: aircraftSecondsNow(),
+      route: runRoute.snapshot(),
+      replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+      condition: conditionOf(crashFlags, airframeById(runAirframe).fixedWing),
+    }), ui.progress.runBests()));
   }
 
   /*

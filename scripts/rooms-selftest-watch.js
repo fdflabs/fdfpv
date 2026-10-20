@@ -30,23 +30,15 @@ import {
 import { PRIVATE_CAP, RoomCore, WATCH_CAP } from '../edge/rooms/core.js';
 import { reportRoom } from '../edge/rooms/lobby.js';
 import { checkRoomLine } from '../src/share/roomlist.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
-import { createRoomRace } from '../src/share/roomrace.js';
 import { createRoomTag } from '../src/share/roomtag.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { createRoomOps } from '../src/share/roomops.js';
 
 const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
-const trackDoc = mapTrackDocument({ id: 'trk-watch001' });
 
 /* Each game as its host starts it; free flight has none. */
 const GAMES = [
   { label: 'free flight', mode: null, start: [] },
-  {
-    label: 'race',
-    mode: 'race',
-    start: [{ type: 'track', doc: trackDoc }, { all: { type: 'race', op: 'ready', ready: true, track: trackDoc.id } }, { type: 'race', op: 'start', laps: 1 }],
-  },
   { label: 'tag', mode: 'tag', start: [{ type: 'tag', op: 'start', goal: 5 }] },
   { label: 'combat', mode: 'combat', start: [{ type: 'combat', op: 'start', minutes: 5 }] },
   { label: 'war', mode: 'war', map: 'itaipu', mission: 'itaipu-drill', start: [{ type: 'war', op: 'start', mission: 'itaipu-drill' }] },
@@ -55,11 +47,6 @@ const GAMES = [
 /* Every word a pilot's page may say, each game's included: from a watcher
  * none of them may act. */
 const WORDS = [
-  { type: 'track', doc: trackDoc },
-  { type: 'race', op: 'ready', ready: true, track: trackDoc.id },
-  { type: 'race', op: 'start', laps: 1 },
-  { type: 'race', op: 'end' },
-  { type: 'event', kind: 'gate', race: 1, lap: 1, gate: 1, t: 1000 },
   { type: 'tag', op: 'start', goal: 5 },
   { type: 'tag', op: 'end' },
   { type: 'combat', op: 'start', minutes: 5 },
@@ -75,7 +62,6 @@ const WORDS = [
   { type: 'lobby', op: 'ready', ready: true },
   { type: 'handhost', seat: 2 },
   { type: 'kick', seat: 2 },
-  { type: 'bots', level: 1 },
   { type: 'world', map: 'itaipu' },
   { type: 'weather', wind: 'gusty' },
   { type: 'stockSurfaces', on: true },
@@ -129,13 +115,11 @@ export function watchSection(check) {
     host: room.host(),
     game: room.game(),
     people: room.people().map((p) => [p.seat, p.profile.airframe]),
-    race: [room.race.track && room.race.track.id, room.race.race],
     tag: room.tag.match,
     combat: room.combat.round,
     war: room.war.welcome(room),
     ops: room.ops.welcome(room),
     lobby: room.gameLobby.welcome(room),
-    bots: room.bots.welcome(),
   });
   const binaries = () => [
     encodePose({
@@ -210,7 +194,7 @@ export function watchSection(check) {
       now += 33;
       run(room.tick(now));
     }
-    check(`${g.label}: the host starts it with the watcher there`, room.game() === g.mode && (g.mode !== 'race' || room.race.race?.state === 'on'),
+    check(`${g.label}: the host starts it with the watcher there`, room.game() === g.mode,
       `${room.game()} ${JSON.stringify(pilots[0].got.filter((m) => m.error).map((m) => m.error))}`);
     check(`${g.label}: the watcher is nobody's host and holds no seat`, room.host() === 1 && !room.people().some((p) => p.seat === 0) && room.people().length === PRIVATE_CAP);
     const playing = sayAll(room, w, pilots);
@@ -286,7 +270,7 @@ export function watchSection(check) {
 
 /*
  * WHAT A WATCHER SEES (redesign phase 17): each game's state as it
- * changes, the race's passes too, the same messages its pilots get and
+ * changes, the same messages its pilots get and
  * none they do not; the pilots' own messages byte for byte what they get
  * with nobody watching. The war's and the ops' view comes with no result
  * (the stars and credits a page pays its pilot, the debrief it records),
@@ -365,21 +349,6 @@ export function watchStateSection(check) {
 
   const STATE = [
     {
-      label: 'race',
-      mode: 'race',
-      type: 'race',
-      start: [{ type: 'track', doc: trackDoc }, { all: { type: 'race', op: 'ready', ready: true, track: trackDoc.id } }, { type: 'race', op: 'start', laps: 1 }],
-      play: [
-        [0, (room) => ({ type: 'event', kind: 'gate', race: room.race.race.id, lap: 0, gate: 1, t: 900, points: 0 })],
-        [1, (room) => ({ type: 'event', kind: 'gate', race: room.race.race.id, lap: 0, gate: 1, t: 1100, points: 0 })],
-        [0, (room) => ({ type: 'race', op: 'finish', race: room.race.race.id, ms: 1800, lap: 1, points: 0 })],
-        [1, (room) => ({ type: 'race', op: 'finish', race: room.race.race.id, ms: 2300, lap: 1, points: 0 })],
-      ],
-      on: (m) => m.race.state === 'on',
-      over: (m) => m.race.state === 'results' && m.race.standings.length === 2 && m.race.standings[0].seat === 1 && m.race.standings[0].ms === 1800,
-      welcomed: (ww) => ww.race && ww.race.state === 'on' && ww.track && ww.track.id === trackDoc.id,
-    },
-    {
       label: 'tag',
       mode: 'tag',
       type: 'tag',
@@ -407,7 +376,7 @@ export function watchStateSection(check) {
     const alone = play(g, null);
     const seen = ofType(before.w, g.type).filter((m) => !m.error);
     check(`${g.label}: a watcher there from the start gets the game's state, on and then over`, seen.some(g.on) && g.over(seen.at(-1)),
-      JSON.stringify(seen.map((m) => (m.race ?? m.tag ?? m).state)));
+      JSON.stringify(seen.map((m) => (m.tag ?? m).state)));
     const told = ofType(before.pilots[0], g.type).filter((m) => !m.error);
     check(`${g.label}: the same state messages its pilots get`, JSON.stringify(seen) === JSON.stringify(told), `${seen.length} vs ${told.length}`);
     /* The one difference allowed: a welcome's count of watchers. */
@@ -422,7 +391,7 @@ export function watchStateSection(check) {
     const after = play(g, 'after');
     const ww = after.w.got.find((m) => m.type === 'welcome');
     check(`${g.label}: a watcher who comes after the start is welcomed into the game as it stands`, Boolean(ww) && ww.seat === 0 && g.welcomed(ww, after.w),
-      JSON.stringify(ww && { race: ww.race?.state, tag: ww.tag?.state }));
+      JSON.stringify(ww && { tag: ww.tag?.state }));
     check(`${g.label}: and sees it end`, g.over(lastOf(after.w, g.type)));
   }
   /* The page's half: each game's module fed what the watcher was sent
@@ -443,14 +412,7 @@ export function watchStateSection(check) {
       }
       return { roles, took, results: mod.takeResults() };
     };
-    const race = play(STATE[0], 'before');
-    const rr = createRoomRace(send);
-    const fr = feed(rr, race.w, (m) => (m.race?.goAt ?? 0) + 500);
-    rr.ready(true);
-    check('race page: the watcher is watching, never on the line, never readied, standings to the finish',
-      fr.roles.includes('watching') && !fr.roles.some((r) => r === 'countdown' || r === 'racing' || r === 'spectating') && fr.took === null && sent.length === 0
-      && rr.watcher() && rr.standings().length === 2 && rr.standings()[0].ms === 1800, JSON.stringify({ roles: [...new Set(fr.roles)], took: fr.took, sent }));
-    const tag = play(STATE[1], 'before');
+    const tag = play(STATE[0], 'before');
     const rt = createRoomTag(send);
     const ft = feed(rt, tag.w, (m) => (m.tag?.goAt ?? 0) + 500);
     check('tag page: the watcher is watching, no chase boost, no slot, no results screen',
@@ -460,15 +422,6 @@ export function watchStateSection(check) {
     const pr = createRoomTag(() => {});
     texts(tag.pilots[0]).forEach((m) => (m.type === 'welcome' ? pr.onWelcome(m) : pr.onMessage(m)));
     check('and a pilot\'s tag page fed its own messages still gets its results', pr.takeResults() !== null && !pr.watcher());
-  }
-  {
-    const g = STATE[0];
-    const { w } = play(g, 'before');
-    const passes = ofType(w, 'event').filter((m) => m.kind === 'gate');
-    check('race: a watcher hears every pass, the laps moving in its standings', passes.length === 2 && passes.map((m) => m.seat).join() === '1,2'
-      && passes.every((m) => m.lap === 0 && m.gate === 1), JSON.stringify(passes));
-    const { pilots } = play(g, 'before');
-    check('race: a pilot still hears only the other\'s pass, never its own', ofType(pilots[0], 'event').filter((m) => m.kind === 'gate').map((m) => m.seat).join() === '2');
   }
   /* The war and the ops: the view each change, a watcher's the same with
    * no result (core.js watchedView), whose stars and credits a page would

@@ -127,7 +127,7 @@ async function arrowTo(page, want) {
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`a private room by its code, rooms at ${rooms}`);
-const NAMES = ['Track Day', 'Free Flight', 'Streamer Combat', 'Catch the Ace!', 'Learn to fly'];
+const NAMES = ['Free Flight', 'Streamer Combat', 'Catch the Ace!', 'Learn to fly'];
 const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
 const FLYING = "window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'";
 const a = await openPage({ root, url, width: 1280, height: 720 });

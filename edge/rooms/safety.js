@@ -134,8 +134,7 @@ export class RoomSafety {
 
   seatConn(seat) {
     for (const [conn, s] of this.core.seats) {
-      /* An AI pilot is nobody to report or mute (roombots.js). */
-      if (s.seat === seat && !s.bot) {
+      if (s.seat === seat) {
         return conn;
       }
     }

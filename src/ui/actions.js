@@ -186,9 +186,7 @@ const CARD_ROWS = {
       ui.seatCloud(t, () => ui.play());
       return;
     }
-    /* In a race lobby the host's choice becomes the room's track and the
-     * lobby takes over; otherwise the seat flies. */
-    const go = () => { if (!(ui.onTrackChosen && ui.onTrackChosen())) ui.play(); };
+    const go = () => ui.play();
     if (card.course.kind === 'board') {
       ui.openBoardCourse(t.id, go);
     } else if (ui.seatLocal(t.id)) {

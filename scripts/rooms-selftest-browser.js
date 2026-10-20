@@ -41,7 +41,6 @@ import { modeById } from '../src/share/modes.js';
 import {
   LIST_GRACE_MS, Lobby, LobbyBook, MAX_ROOMS, PENDING_MS, listingOf,
 } from '../edge/rooms/lobby.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const ORIGIN = 'https://fdflabs.github.io';
 const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
@@ -366,16 +365,6 @@ export async function browserSection(check) {
   line = (await s.list()).rooms.find((r) => r.code === made.code);
   check('and the list shows it', line.game === 'tag' && line.state === 'countdown', JSON.stringify(line));
   await b.say({ type: 'tag', op: 'end' });
-  /* The host has sent five texts this second, the room's allowance
-   * (core.js TEXT_PER_S), and the room clock here is the wall's. */
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  const doc = mapTrackDocument({ id: 'trk-brws0001', name: 'Browser check', types: ['gate', 'gate', 'gate'], radius: 60 });
-  await b.say({ type: 'track', doc });
-  await b.say({ type: 'race', op: 'ready', ready: true, track: doc.id });
-  await b.say({ type: 'race', op: 'start', laps: 1 });
-  check('the host starts a race', texts(c, 'race').some((m) => m.race && m.race.state === 'on'));
-  line = (await s.list()).rooms.find((r) => r.code === made.code);
-  check('and the list shows it', line.game === 'race' && line.state === 'countdown', JSON.stringify(line));
 
   console.log('room browser: a bad name reported');
   const d = await s.join({ code: made.code }, [7, 8, 60]);

@@ -185,8 +185,6 @@ export const HOOKS = [
   ['__roomJoin', 'joins a room by code'],
   ['__roomJoinPublic', 'joins the map\'s public room'],
   ['__roomMute', 'mutes a seat'],
-  ['__roomRace', null],
-  ['__roomRaceDo', 'a room race\'s host actions'],
   ['__roomSay', 'reports a pilot or a name to the room'],
   ['__roomSlots', null],
   ['__roomTag', null],

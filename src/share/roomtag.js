@@ -7,8 +7,7 @@
  * says what this pilot's part in it is now (role), and hands the shell
  * each new crown once, for its banner. It never touches the physics or
  * the page: the shell (src/main.js) reads role and holdMs to put the
- * pilot on their slot and hold them there until the go, the room's
- * race's way (src/share/roomrace.js).
+ * pilot on their slot and hold them there until the go.
  *
  * The scores are the room's, not extrapolated: the room sends the match
  * on every whole point the Ace adds, so what every screen shows is the

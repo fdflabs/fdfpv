@@ -1,8 +1,7 @@
 /*
  * world-layer-selftest.js: each map's shared world is the ground the page
- * reads and the ground the room flies: the valley's
- * (src/share/valley/world.js) for alps and swiss2, Itaipu's
- * (src/share/itaipu/world.js) and the Interior's
+ * reads: the valley's (src/share/valley/world.js) for alps and swiss2,
+ * Itaipu's (src/share/itaipu/world.js) and the Interior's
  * (src/share/interior/world.js).
  *
  *     node scripts/world-layer-selftest.js --three=DIR
@@ -18,20 +17,18 @@
  * every vertex, and the headwall's (alps/nature.js buildHeadwall) at
  * every vertex, so what a craft meets is what is drawn.
  *
- * The room. edge/rooms/grounds.js groundOf must equal World.groundAt at
- * every sample of a fixed grid (Object.is), and a room ground off by a
- * centimetre must fail the same comparison (the negative control).
- *
  * The streamed maps. Their pages hold two grounds: the drawn level
  * (terrain.height), which follows the camera, and the finest
  * (terrain.finestAt), which every screen reads the same and the page
- * stands its parts, spawn and debris on (floorAt). The room's is the
- * finest. The page's own buildTerrain is run here in Node, on the same
- * files, and groundOf must equal its terrain.finestAt at every sample
- * over the map's whole square, with the same negative control; outside
- * the square the room's Itaipu ground throws rather than guess the
- * apron. Itaipu's data is its own repository: FDFPV_ITAIPU_DATA names
- * the folder, and without it this fails (a skip is not a pass).
+ * stands its parts, spawn and debris on (floorAt). The shared world's is
+ * the finest. The page's own buildTerrain is run here in Node, on the
+ * same files, and the shared world's groundAt must equal its
+ * terrain.finestAt at every sample of a fixed grid over the map's whole
+ * square (Object.is), and a ground off by a centimetre must fail the same
+ * comparison (the negative control); outside the square Itaipu's world
+ * throws rather than guess the apron. Itaipu's data is its own
+ * repository: FDFPV_ITAIPU_DATA names the folder, and without it this
+ * fails (a skip is not a pass).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -66,11 +63,12 @@ register(`data:text/javascript,${encodeURIComponent(`
   }`)}`);
 
 const THREE = await import('three');
-const { HALF, farRange } = await import('../src/maps/alps/terrain.js');
+const { farRange } = await import('../src/maps/alps/terrain.js');
 const { buildHeadwall } = await import('../src/maps/alps/nature.js');
 const { makeValleyWorld } = await import('../src/share/valley/world.js');
 const { SWISS_WORLD } = await import('../src/maps/swiss2/field.js');
-const { groundOf } = await import('../edge/rooms/grounds.js');
+const { makeItaipuWorld } = await import('../src/share/itaipu/world.js');
+const { readItaipuBytes } = await import('../src/share/itaipu/node.js');
 const ITAIPU_TERRAIN = await import('../src/maps/itaipu/terrain/index.js');
 const INTERIOR_TERRAIN = await import('../src/maps/interior/terrain.js');
 const { conformBound, fillUnder } = await import('../src/maps/itaipu/terrain/conform.js');
@@ -109,65 +107,6 @@ const beside = [
 check(missing.length === 0 && beside.length === 0,
   'alps.js reads its ground and material from the World and composes none of its own',
   `alps.js wiring: missing ${JSON.stringify(missing)}, a ground of its own ${beside.map(String).join(' ')}`);
-
-/* The grid. Integer steps from -HALF, so the field's edge (|x| = 3000) and
- * the strip's (|x| = 6, |z| = 80) fall on samples. Over the field every
- * 2 m; beyond it to the far range's edge every 50 m; over the headwall
- * every 0.25 m, half its 0.5 m grid, so its cells, partial cells and edges
- * are all sampled. */
-const FIELD_STEP = 2;
-const FAR_STEP = 50;
-const FAR_EDGE = 12000;
-const WALL_STEP = 0.25;
-/* The headwall's plan padded by ten metres: its grid holds the wall from
- * x 828 to 948.5 and z -1726 to -865.5 (measured 2026-10-10 off
- * buildHeadwall's height on a 0.5 m sweep). */
-const WALL_BOX = { x0: 818, x1: 960, z0: -1736, z1: -856 };
-const inBox = (x, z) => x >= WALL_BOX.x0 && x <= WALL_BOX.x1 && z >= WALL_BOX.z0 && z <= WALL_BOX.z1;
-
-/* Each sample once, tagged with where it is. */
-function* samples() {
-  for (let x = -HALF; x <= HALF; x += FIELD_STEP) {
-    for (let z = -HALF; z <= HALF; z += FIELD_STEP) {
-      if (!inBox(x, z)) {
-        yield [x, z, 'inField'];
-      }
-    }
-  }
-  for (let x = -FAR_EDGE; x <= FAR_EDGE; x += FAR_STEP) {
-    for (let z = -FAR_EDGE; z <= FAR_EDGE; z += FAR_STEP) {
-      if (Math.abs(x) > HALF || Math.abs(z) > HALF) {
-        yield [x, z, 'beyond'];
-      }
-    }
-  }
-  for (let x = WALL_BOX.x0; x <= WALL_BOX.x1; x += WALL_STEP) {
-    for (let z = WALL_BOX.z0; z <= WALL_BOX.z1; z += WALL_STEP) {
-      yield [x, z, 'headwall'];
-    }
-  }
-}
-
-/* Where `room` and the world's ground disagree, by part of the grid. */
-function roomGap(room, world) {
-  const part = () => ({ n: 0, differ: 0, max: 0, at: null });
-  const gap = { headwall: part(), inField: part(), beyond: part() };
-  for (const [x, z, where] of samples()) {
-    const g = gap[where];
-    const r = room(x, z);
-    const w = world.groundAt(x, z);
-    g.n += 1;
-    if (!Object.is(r, w)) {
-      g.differ += 1;
-      const d = Math.abs(r - w);
-      if (!(d <= g.max)) {
-        g.max = d;
-        g.at = [x, z];
-      }
-    }
-  }
-  return gap;
-}
 
 const look = { parts: () => new THREE.MeshBasicMaterial() };
 
@@ -210,33 +149,17 @@ for (const map of ['alps', 'swiss2']) {
     check(map === 'swiss2', `${map}: no headwall, as its nature draws none`, `${map}: the World has no headwall`);
   }
 
-  /* The room: its ground is the World's, everywhere on the grid. */
-  const t1 = Date.now();
-  const gap = roomGap(groundOf(map), world);
-  const ms = Date.now() - t1;
-  for (const [where, g] of Object.entries(gap)) {
-    check(g.differ === 0,
-      `${map}: the room's ground is the World's, ${where}, at ${g.n} samples`,
-      `${map}: the room's ground differs from the World's, ${where}, at ${g.differ} of ${g.n}`
-        + ` (${(100 * g.differ / g.n).toFixed(2)}%), max ${g.max.toFixed(2)} m at ${JSON.stringify(g.at)}`);
-  }
-  console.log(`  ${map}: World built in ${built} ms, room compared in ${ms} ms`);
-
-  /* The negative control: a room ground a centimetre off is caught. */
-  const bent = roomGap((x, z) => world.groundAt(x, z) + 0.01, world);
-  const caught = Object.values(bent).every((g) => g.differ === g.n);
-  check(caught, `${map}: negative control caught (a room ground 1 cm off differs at every sample)`,
-    `${map}: negative control not caught (${JSON.stringify(Object.values(bent).map((g) => g.differ))})`);
+  console.log(`  ${map}: World built in ${built} ms`);
 }
 
 /* The streamed maps. Each sample of `grid` (a generator of [x, z, part])
- * once: where `room` and `page` disagree, by part. */
-function streamedGap(grid, room, page) {
+ * once: where `shared` and `page` disagree, by part. */
+function streamedGap(grid, shared, page) {
   const gap = {};
   for (const [x, z, where] of grid()) {
     gap[where] ??= { n: 0, differ: 0, max: 0, at: null };
     const g = gap[where];
-    const r = room(x, z);
+    const r = shared(x, z);
     const p = page(x, z);
     g.n += 1;
     if (!Object.is(r, p)) {
@@ -251,20 +174,20 @@ function streamedGap(grid, room, page) {
   return gap;
 }
 
-function streamedCheck(map, grid, room, page) {
+function streamedCheck(map, grid, shared, page) {
   const t0 = Date.now();
-  const gap = streamedGap(grid, room, page);
+  const gap = streamedGap(grid, shared, page);
   const ms = Date.now() - t0;
   for (const [where, g] of Object.entries(gap)) {
     check(g.n > 0 && g.differ === 0,
-      `${map}: the room's ground is the page's finest, ${where}, at ${g.n} samples`,
-      `${map}: the room's ground differs from the page's finest, ${where}, at ${g.differ} of ${g.n}`
+      `${map}: the shared world's ground is the page's finest, ${where}, at ${g.n} samples`,
+      `${map}: the shared world's ground differs from the page's finest, ${where}, at ${g.differ} of ${g.n}`
         + ` (${(100 * g.differ / g.n).toFixed(2)}%), max ${g.max.toFixed(2)} m at ${JSON.stringify(g.at)}`);
   }
-  console.log(`  ${map}: room compared in ${ms} ms`);
-  const bent = streamedGap(grid, (x, z) => room(x, z) + 0.01, page);
+  console.log(`  ${map}: shared world compared in ${ms} ms`);
+  const bent = streamedGap(grid, (x, z) => shared(x, z) + 0.01, page);
   const caught = Object.values(bent).every((g) => g.differ === g.n);
-  check(caught, `${map}: negative control caught (a room ground 1 cm off differs at every sample)`,
+  check(caught, `${map}: negative control caught (a ground 1 cm off differs at every sample)`,
     `${map}: negative control not caught (${JSON.stringify(Object.values(bent).map((g) => g.differ))})`);
 }
 
@@ -351,22 +274,22 @@ if (!existsSync(`${itaipuData}/manifest.json`)) {
       }
     }
   }
-  const room = groundOf('itaipu');
-  streamedCheck('itaipu', itaipuGrid, room, (x, z) => terrain.finestAt(x, z));
+  const shared = makeItaipuWorld(readItaipuBytes()).groundAt;
+  streamedCheck('itaipu', itaipuGrid, shared, (x, z) => terrain.finestAt(x, z));
 
-  /* Past the square the page draws its apron; the room says it has no
+  /* Past the square the page draws its apron; the world says it has no
    * ground there rather than guess one. */
   const outside = [[HALF + 1, 0], [0, -HALF - 1], [Infinity, 0], [NaN, 0]];
   const threw = outside.filter(([x, z]) => {
     try {
-      room(x, z);
+      shared(x, z);
       return false;
     } catch (e) {
       return e instanceof RangeError;
     }
   });
-  check(threw.length === outside.length, 'itaipu: the room\'s ground throws past the square',
-    `itaipu: the room's ground answered past the square at ${outside.length - threw.length} of ${outside.length} points`);
+  check(threw.length === outside.length, 'itaipu: the shared world\'s ground throws past the square',
+    `itaipu: the shared world's ground answered past the square at ${outside.length - threw.length} of ${outside.length} points`);
 }
 
 /* The Interior. interior.js reads its ground from the shared world and
@@ -399,7 +322,7 @@ check(interiorMissing.length === 0, 'interior.js reads its ground from the share
       }
     }
   }
-  streamedCheck('interior', interiorGrid, groundOf('interior'), (x, z) => terrain.finestAt(x, z));
+  streamedCheck('interior', interiorGrid, world.groundAt, (x, z) => terrain.finestAt(x, z));
 }
 
 if (failed) {

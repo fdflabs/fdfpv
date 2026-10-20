@@ -96,9 +96,8 @@ async function playRing(page, track) {
   await page.until('!!window.__shellReady', 300000);
   await page.until('window.__map && window.__map().ready', 400000);
   await page.until('window.__ui.onGate()', 60000);
-  await choose(page, 'way-race-5inch');
-  await page.until('window.__ui.carousel.isOpen', 10000);
-  await page.tap('Enter');
+  /* My tracks, the race card's list, since the race card left. */
+  await page.evaluate("(() => { window.__ui.act('mytracks'); return true; })()");
   await page.until("window.__ui.screen === 'courses'", 20000);
   const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.course && it.course.track.id === ${JSON.stringify(track.id)})`);
   await page.evaluate(`(() => { window.__ui.setCursor(${at}); window.__ui.select(); return true; })()`);

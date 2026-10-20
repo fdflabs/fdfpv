@@ -323,7 +323,8 @@ export const resultsMethods = {
   },
 
   /*
-   * A room's race (src/share/roomrace.js), rewritten as the others finish.
+   * A room game's results (Catch the Ace's, combat's), rewritten as the
+   * others finish.
    * v = { kicker, head, heroCap, heroTime, heroMeta, win, rows: [{ label,
    * time, tag, me, out }] }, all written by the shell. Nothing is posted.
    */

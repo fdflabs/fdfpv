@@ -558,7 +558,7 @@ const ROWS = [
   { label: 'Adjustable', adjust: true, action: 'noop' },
   { label: 'Track card', course: localCard.course, card: 'local:trk-local0001', action: 'card-fly' },
   { label: 'Hub card', card: 'hub-club', hub: 'club', action: 'hub-club' },
-  { label: 'Way card', card: 'way-race-5inch', action: 'way-race-5inch' },
+  { label: 'Way card', card: 'way-freestyle-wing1000', action: 'way-freestyle-wing1000' },
   { label: 'Hangar card', card: 'hangar-sticks', action: 'calibrate' },
   { label: 'Plain row', action: 'quad' },
   { label: 'Fly row', action: 'fly', primary: true },

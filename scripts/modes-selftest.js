@@ -63,7 +63,7 @@ const exists = (p) => access(join(root, p)).then(() => true, () => false);
 
 console.log('modes: the entries');
 const ids = MODES.map((m) => m.id);
-check('the five activities, each once', ids.length === 5 && new Set(ids).size === 5 && ['race', 'tag', 'combat', 'war', 'free'].every((id) => ids.includes(id)), ids.join(','));
+check('the four activities, each once', ids.length === 4 && new Set(ids).size === 4 && ['tag', 'combat', 'war', 'free'].every((id) => ids.includes(id)), ids.join(','));
 const BOOLS = ['allowSolo', 'allowAI', 'allowDropIn', 'openEnded', 'consent', 'publicOnlyWhenMadeFor', 'straightToLobby', 'makeable', 'onFoot', 'hidden'];
 const worlds = new Set(MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id));
 for (const m of MODES) {
@@ -71,8 +71,7 @@ for (const m of MODES) {
   check(`${m.id}: flags are booleans`, BOOLS.every((k) => typeof m[k] === 'boolean'), BOOLS.filter((k) => typeof m[k] !== 'boolean').join(','));
   check(`${m.id}: player minimums are whole and at least 1`, [m.minPlayers, m.minElsewhere].every((n) => Number.isInteger(n) && n >= 1));
   check(`${m.id}: allowSolo is a minimum of 1`, m.allowSolo === (m.minPlayers === 1));
-  check(`${m.id}: AI pilots only where the room flies them (Catch the Ace, edge/rooms/roombots.js; races, edge/rooms/airace.js)`,
-    m.allowAI === (m.id === 'tag' || m.id === 'race'));
+  check(`${m.id}: no AI pilots: the room flies none`, m.allowAI === false);
   check(`${m.id}: setting is null or a key with choices`, m.setting === null
     || (typeof m.setting.key === 'string' && (m.setting.choices === null || (Array.isArray(m.setting.choices) && m.setting.choices.length > 0))));
   const c = m.card;
@@ -86,31 +85,32 @@ for (const m of MODES) {
 check('every card way is distinct', new Set(MODES.map((m) => m.card.way)).size === MODES.length);
 
 console.log('modes: what the tables held before');
-check('ROOM_MODES is race, tag, combat, in that order', JSON.stringify(ROOM_MODES) === JSON.stringify(['race', 'tag', 'combat']), JSON.stringify(ROOM_MODES));
-check('ROOM_SETUPS is ROOM_MODES then war', JSON.stringify(ROOM_SETUPS) === JSON.stringify(['race', 'tag', 'combat', 'war']), JSON.stringify(ROOM_SETUPS));
+check('ROOM_MODES is tag, combat, in that order', JSON.stringify(ROOM_MODES) === JSON.stringify(['tag', 'combat']), JSON.stringify(ROOM_MODES));
+check('ROOM_SETUPS is ROOM_MODES then war', JSON.stringify(ROOM_SETUPS) === JSON.stringify(['tag', 'combat', 'war']), JSON.stringify(ROOM_SETUPS));
 check('ROOM_MODES is the registry\'s makeable', JSON.stringify(ROOM_MODES) === JSON.stringify(MAKEABLE));
 check('ROOM_SETUPS is the registry\'s setups', JSON.stringify(ROOM_SETUPS) === JSON.stringify(SETUPS));
 check('combat rounds are 3 or 5 minutes', JSON.stringify(ROUND_MINUTES) === '[3,5]');
 check('tag goals are roomtag\'s', JSON.stringify(modeById('tag').setting.choices) === JSON.stringify(GOALS.map((g) => g.goal)));
 check('setting keys: war mission, combat minutes, tag goal',
   modeById('war').setting.key === 'mission' && modeById('combat').setting.key === 'minutes' && modeById('tag').setting.key === 'goal'
-  && modeById('race').setting === null && modeById('free').setting === null);
-check('a race is the round a newcomer waits out', MODES.filter((m) => !m.allowDropIn).map((m) => m.id).join() === 'race');
+  && modeById('free').setting === null);
+check('every round takes a newcomer in', MODES.every((m) => m.allowDropIn));
 check('only free flight is open ended', MODES.filter((m) => m.openEnded).map((m) => m.id).join() === 'free');
 check('only the war asks consent and is public only when made for', MODES.filter((m) => m.consent).map((m) => m.id).join() === 'war'
   && MODES.filter((m) => m.publicOnlyWhenMadeFor).map((m) => m.id).join() === 'war');
 /* A hidden row reaches no card (COMPLETENESS 81): the title's cards from
- * a registry hiding the race have no Track Day, and keep every other. */
+ * a registry hiding Catch the Ace have no card for it, and keep every
+ * other. */
 {
-  const hideRace = MODES.map((m) => (m.id === 'race' ? { ...m, hidden: true } : m));
+  const hideTag = MODES.map((m) => (m.id === 'tag' ? { ...m, hidden: true } : m));
   const shown = gateWays(WAYS, MODES).map((w) => w.id);
-  const without = gateWays(WAYS, hideRace).map((w) => w.id);
+  const without = gateWays(WAYS, hideTag).map((w) => w.id);
   check('no activity is hidden today, and every card is drawn', MODES.every((m) => !m.hidden) && shown.join() === WAYS.filter((w) => w.gate !== false).map((w) => w.id).join(), shown.join());
-  check('a hidden row reaches no card: hiding the race draws every card but Track Day\'s', !without.includes('race-5inch') && without.join() === shown.filter((id) => id !== 'race-5inch').join(), without.join());
+  check('a hidden row reaches no card: hiding Catch the Ace draws every card but its own', !without.includes('ace') && without.join() === shown.filter((id) => id !== 'ace').join(), without.join());
 }
 check('only combat goes straight back to its lobby', MODES.filter((m) => m.straightToLobby).map((m) => m.id).join() === 'combat');
 check('combat and tag need two in passing, one in their own room', minPlayersFor('combat', 'combat') === 1 && minPlayersFor('combat', null) === 2
-  && minPlayersFor('tag', 'tag') === 1 && minPlayersFor('tag', 'race') === 2 && minPlayersFor('race', null) === 1 && minPlayersFor('war', 'war') === 1);
+  && minPlayersFor('tag', 'tag') === 1 && minPlayersFor('tag', 'combat') === 2 && minPlayersFor('war', 'war') === 1);
 check('the war is Operations, the rest Flight Club', MODES.filter((m) => m.category === 'operations').map((m) => m.id).join() === 'war');
 
 console.log('modes: the title\'s cards (src/ui/ui.js WAYS)');
@@ -137,7 +137,7 @@ check('a campaign card is a campaign of src/game/campaign.js, in Operations, wit
 
 console.log('modes: the wire');
 check('free flight is null on the wire', wireMode('free') === null && modeOfWire(null) === 'free' && modeOfWire(undefined) === 'free');
-check('a game is its own id on the wire', ['race', 'tag', 'combat', 'war'].every((id) => wireMode(id) === id && modeOfWire(id) === id));
+check('a game is its own id on the wire', ['tag', 'combat', 'war'].every((id) => wireMode(id) === id && modeOfWire(id) === id));
 check('a room\'s mode finds its entry, an unknown one none', modeOfRoom(null) === modeById('free') && modeOfRoom('war') === modeById('war') && modeOfRoom('nope') === null);
 check('\'free\' never reaches a wire list', !ROOM_SETUPS.includes('free') && !ROOM_MODES.includes('free'));
 
@@ -167,9 +167,6 @@ for (const id of Object.keys(GAME_STATES)) {
 }
 const named = (id, view, t = 0) => sessionOf(id, view, t);
 check('no view is a lobby; a state this build does not know names none', named('war', null) === 'lobby' && named('tag', { state: 'overtime' }) === null);
-check('a race: lobby, its countdown to goAt, live, over or abandoned',
-  [named('race', { state: 'lobby' }), named('race', { state: 'on', goAt: 100 }, 50), named('race', { state: 'on', goAt: 100 }, 100), named('race', { state: 'results' }),
-    named('race', { state: 'results', abandoned: true })].join() === 'lobby,countdown,live,over,abandoned');
 check('Catch the Ace: lobby, countdown, live, over or abandoned',
   ['lobby', 'countdown', 'live', 'results'].map((state) => named('tag', { state })).join() === 'lobby,countdown,live,over' && named('tag', { state: 'results', abandoned: true }) === 'abandoned');
 check('combat: idle is the lobby or an abandon, results with a next round between, without one over',

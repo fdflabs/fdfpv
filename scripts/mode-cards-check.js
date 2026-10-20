@@ -111,7 +111,7 @@ async function shot(page, name) {
 
 const HUBS = 'Flight Club,Operations,Hangar';
 /* Flight Club's cards in the registry's order. */
-const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
+const NAMES = 'Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
 const N_CARDS = NAMES.split(',').length;
 /* Each hub's links, in order, as home draws them. */
 /* Operations: the war's campaign and The Interior beside it
@@ -299,9 +299,7 @@ try {
     walk.push(await onCard(a));
   }
   const back = NAMES.split(',').slice(1, -1).reverse();
-  check(`Right walks all ${N_CARDS} cards and Left steps back to Free Flight`, walk.join('>') === `${NAMES.split(',').join('>')}>${back.join('>')}`, walk.join(' > '));
-  await a.tap('ArrowRight');
-  await a.sleep(150);
+  check(`Right walks all ${N_CARDS} cards and Left steps back to Streamer Combat`, walk.join('>') === `${NAMES.split(',').join('>')}>${back.join('>')}`, walk.join(' > '));
 
   /* STREAMER COMBAT: A's one press, the keyboard's. */
   await a.tap('Enter');
@@ -401,7 +399,7 @@ try {
   await d.until("window.__ui.hub === 'club'", 10000).catch(() => {});
   await d.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
   const phone = [await onCard(d)];
-  for (let i = 0; i < 3; i += 1) {
+  for (let i = 0; i < NAMES.split(',').indexOf('Catch the Ace!'); i += 1) {
     await d.tap('ArrowDown');
     await d.sleep(150);
     phone.push(await onCard(d));
@@ -643,7 +641,7 @@ try {
     (await g.evaluate(HERE))[0] === 'update-reload' && (await g.evaluate(BAR)).lit, (await g.evaluate(HERE)).join());
   await g.tap('ArrowDown');
   await g.sleep(150);
-  check('and Down goes back to the first card, unlit', (await onCard(g)) === 'Track Day' && !(await g.evaluate(BAR)).lit);
+  check('and Down goes back to the first card, unlit', (await onCard(g)) === 'Free Flight' && !(await g.evaluate(BAR)).lit);
   await g.tap('ArrowUp');
   await g.sleep(150);
   await g.evaluate('(() => { window.__beforeReload = true; return true; })()');

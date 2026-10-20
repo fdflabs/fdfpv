@@ -40,7 +40,6 @@ import { CARD_MS, INTRO_MS } from '../src/share/war/intro.js';
 import { filmFor } from '../src/share/war/films/index.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { LATE_MS } from '../src/game/midair.js';
 import { withHeld } from './lib/held.js';
 
@@ -538,8 +537,7 @@ export function warSection(check) {
       type: 'war', op: 'start', mission: 'test-1', intro: true,
     });
     g.say(0, { type: 'combat', op: 'start', minutes: 3 });
-    g.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-war00001' }) });
-    check('another game over a briefing is refused "war": combat, and a race\'s track', !g.r.combat.on() && g.refusals(0).join() === 'war,war'
+    check('another game over a briefing is refused "war": combat', !g.r.combat.on() && g.refusals(0).join() === 'war'
       && g.view(1).state === 'briefing', g.refusals(0).join());
 
     const p = warRoom({ mission: plain, start: false });
