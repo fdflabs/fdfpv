@@ -55,7 +55,7 @@ function setupRoom({
   };
   const hello = (i, token = null) => JSON.stringify({
     type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: WAR_JOIN, name: [i, i, 30 + i],
-    profile: { airframe: 'cub1400', map, figure: 1, livery: null, parts: null }, ...(token ? { token } : {}),
+    profile: { airframe: 'bramor2300', map, figure: 1, livery: null, parts: null }, ...(token ? { token } : {}),
   });
   e.join = (i, token = null) => {
     const so = { name: `setup${i}`, address: `10.6.6.${i + 1}`, got: [] };
@@ -152,7 +152,7 @@ export function setupSection(check) {
     const pub = setupRoom({ open: true });
     pub.say(0, { type: 'setup', mode: 'war' });
     check('a public room keeps the activity it is listed for: refused', pub.refused(0).includes('setup_public') && pub.r.meta.mode === null);
-    const swiss = setupRoom({ map: 'swiss2' });
+    const swiss = setupRoom({ map: 'interior' });
     swiss.say(0, { type: 'setup', mode: 'war' });
     check('the war off a war mission\'s world: refused', swiss.refused(0).includes('war_map') && swiss.r.meta.mode === null);
     swiss.say(0, { type: 'lobby', op: 'ready', ready: true });

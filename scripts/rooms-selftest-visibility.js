@@ -27,7 +27,7 @@ import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { LobbyBook, reportRoom } from '../edge/rooms/lobby.js';
 import { withHeld } from './lib/held.js';
 
-const profile = { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 
 export function visibilitySection(check) {
   console.log('who joins, changed in place');
@@ -171,7 +171,6 @@ export function visibilitySection(check) {
     reportRoom(env, room, now);
     book.report(lines.at(-1), now);
     check('made private: its last line says nobody, and the list drops it at once', lines.length === 2 && lines[1].n === 0 && !book.list(now).some((r) => r.code === 'V1S1B1'));
-    check('and a quick join on its world never lands in it', book.quick('itaipu', now, null) === null);
     reportRoom(env, room, now + 1000);
     check('a private room says nothing more', lines.length === 2);
     say(room, host, { type: 'public', on: true });

@@ -35,7 +35,7 @@
  */
 
 import {
-  FLAG_AIRBORNE, FLAG_CRASHED, PROTO, encodePose,
+  FLAG_AIRBORNE, FLAG_CRASHED, PROTO, ROOM_LEVEL, encodePose,
 } from '../../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../../edge/rooms/core.js';
 import { docPosToThree } from '../../src/render/frame.js';
@@ -82,7 +82,7 @@ export function opsRoom(mission, {
     const tk = token ?? (tokens += 1).toString(16).padStart(32, '0');
     e.tokens[i] = tk;
     e.apply(e.r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], ...(token ? { token } : {}), profile: {
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [i, i, 20 + i], ...(token ? { token } : {}), profile: {
         airframe: 'bramor2300', map, figure: 1, livery: null, parts: null,
       },
     }), e.clock, so.address, () => tk));

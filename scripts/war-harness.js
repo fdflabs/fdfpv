@@ -90,7 +90,7 @@
  */
 
 import {
-  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, decodePose, encodePose,
+  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, ROOM_LEVEL, decodePose, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
@@ -434,7 +434,7 @@ function runOne(cfg) {
   const hello = (c, t, extra = {}) => {
     deliver(room.open(c.conn, t), t);
     deliver(room.message(c.conn, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null }, ...extra,
+      type: 'hello', proto: PROTO, build: 'harness', level: ROOM_LEVEL, name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null }, ...extra,
     }), t, `10.9.0.${c.i + 1}`, newToken), t);
     const warhead = sc.warheads && sc.warheads[c.i];
     if (warhead) {
@@ -642,7 +642,7 @@ function cost(layout, parked = 52, hunters = 8, airframe = 'cub1400') {
   for (const c of conns) {
     room.open(c, 0);
     room.message(c, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 'harness', level: ROOM_LEVEL, name: [c.i, 2, 40 + c.i], profile: { airframe: air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null },
     }), 0, `10.9.1.${c.i + 1}`, () => (tokens += 1).toString(16).padStart(32, '0'));
   }
   room.message(conns[0], JSON.stringify({ type: 'war', op: 'start', mission: 'cost' }), 0, '10.9.1.1');
@@ -921,7 +921,7 @@ function wires() {
   const waves = Array.from({ length: 40 }, (_, i) => ({ at: 1 + i * 0.5, kind: 'strike', n: 1, route: 'across' }));
   const m = mission('wires', waves, { across: route });
   const sc = {
-    name: 'wires', kind: 'wires', air: ['cub1400'], mission: m, paths: [hover([mid[0], mid[1] + 400, mid[2] + 3000])], end: GO + 1000 + 40 * 500 + ((2 * L) / KIND.strike.speed) * 1000,
+    name: 'wires', kind: 'wires', air: ['striker2500'], mission: m, paths: [hover([mid[0], mid[1] + 400, mid[2] + 3000])], end: GO + 1000 + 40 * 500 + ((2 * L) / KIND.strike.speed) * 1000,
   };
   const run = (seed) => {
     const res = runOne({
@@ -1023,7 +1023,7 @@ function latejoin() {
     /* Long enough after a change for every view it caused to be heard. */
     const settled = (t) => t + 2 * (links[0].base + links[0].jitter + links[1].base + links[1].jitter) + 200;
     const sc = {
-      name: 'latejoin', kind: 'latejoin', air: ['cub1400', 'interceptor'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
+      name: 'latejoin', kind: 'latejoin', air: ['striker2500', 'interceptor'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
     };
     const res = runOne({
       sc, seed: 1, clock: 0, links,
@@ -1064,7 +1064,7 @@ function latejoin() {
     /* C, new to the match, takes B's seat while B is away. */
     const sc2 = {
       ...sc,
-      air: ['cub1400', 'interceptor', 'cub1400'],
+      air: ['striker2500', 'interceptor', 'striker2500'],
       paths: [away, hold, away],
       at: [{}, { join: JOIN, leave: LEAVE, back: BACK }, { join: GO + 13000, token: 'c'.repeat(32), seat: bWelcome.seat }],
     };

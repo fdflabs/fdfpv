@@ -29,8 +29,8 @@ the old process.
 `edge/rooms/node.js`, `drain(capMs)`, sent by **SIGUSR2**:
 
 - Refused, 503 `{ error: 'busy' }` (the word the client already knows): a
-  new room (`POST /v2/create`), a quick join (`/v2/public/<map>`), and a
-  socket to a code whose room this process does not hold in memory.
+  new room (`POST /v2/create`) and a socket to a code whose room this
+  process does not hold in memory.
 - Kept: every room the process holds, its pilots, new pilots joining it, a
   dropped pilot reseating with its token, `/v2/version` and the rest.
 - Exits 0 when no socket is open at all ("drained (empty)" in the journal),

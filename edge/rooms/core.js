@@ -44,7 +44,7 @@
  */
 
 import {
-  CLOSE, POSE_BYTES, PROTO, PUBLIC_CAP, TYPE_POSE, checkProfile, encodeBatch, validId, validNamePick,
+  CLOSE, POSE_BYTES, PROTO, PUBLIC_CAP, ROOM_FLOOR, TYPE_POSE, checkProfile, encodeBatch, validId, validNamePick,
 } from '../../src/share/roomwire.js';
 import { retiredMap } from '../../src/maps/retired.js';
 import { PRESET_IDS } from '../../src/game/weather.js';
@@ -845,10 +845,11 @@ export class RoomCore {
     if (msg.proto !== PROTO) {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
-    /* A tab older than the room's rules is told to reload rather than
-     * seated where it would fly a session of its own (ROOM_LEVEL). */
+    /* A tab older than the room's rules, or than the floor every room
+     * holds (ROOM_FLOOR), is told to reload rather than seated where it
+     * would fly a session of its own (ROOM_LEVEL). */
     const level = Number.isInteger(msg.level) && msg.level > 0 ? msg.level : 0;
-    if (level < this.level()) {
+    if (level < Math.max(ROOM_FLOOR, this.level())) {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
     /* A room made for the war seats only a build that asks the war's

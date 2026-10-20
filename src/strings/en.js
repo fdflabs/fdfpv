@@ -2869,8 +2869,6 @@ export default {
   "roombrowser.empty_note": "Make one below: it shows up here for everybody.",
   "roombrowser.closed": "Public rooms are closed right now",
   "roombrowser.closed_note": "You can still make a room for friends and give them its code.",
-  "roombrowser.quick": "Quick join",
-  "roombrowser.quick_note": "Straight into the busiest public room in {world} with a seat, or a new one if there is none.",
   "roombrowser.new": "Make a room",
   "roombrowser.new_note": "Name it, choose who joins, the world and a game.",
   "roombrowser.entry_value": "{n} open",

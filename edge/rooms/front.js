@@ -9,14 +9,9 @@
  *   GET  /v2/rooms           the room browser's list (edge/rooms/lobby.js),
  *                            for a signed in pilot (joinerOf) without the
  *                            rooms of pilots it blocked or who blocked it
- *   GET  /v2/public          { open, cap }: whether public rooms are open
- *   GET  /v2/public/<map>    quick join: a WebSocket into the busiest
- *                            public room of that map with a seat, or a new
- *                            one; ?shard= from a page older than the
- *                            browser is ignored. Asked as a plain GET it
- *                            answers { code }, the room picked for the
- *                            pilot (joinerOf) and booked, for the page to
- *                            join by its code
+ *   GET  /v2/public          { open, cap }: whether public rooms are open;
+ *                            /v2/public/<map>, the quick join of builds
+ *                            before the combat-only cut, is 404
  *   GET  /v2/admin/health    the server's counters (edge/rooms/health.js),
  *                            with authorization: Bearer ADMIN_SECRET only;
  *                            404 on a platform that keeps none (Cloudflare)
@@ -33,10 +28,9 @@
  *
  * THE VALVE. While env.HEALTH says the server is busy (edge/rooms/health.js,
  * the VM only), a new public room is refused, 503 { error: 'busy' } on a
- * create and 503 on a quick join that finds no room with a seat, and the
- * list and /v2/public say busy: true so the room browser can say why
- * before anybody asks. Rooms already flying, and quick joins into them,
- * go on. A private room is not refused: it is a household's, made by code
+ * create, and the list and /v2/public say busy: true so the room browser
+ * can say why before anybody asks. Rooms already flying go on. A private
+ * room is not refused: it is a household's, made by code
  * for friends, capped at eight, and six a minute from one address.
  *
  * Every room, public or private, is the object `prv:<code>`: the prefix is
@@ -97,13 +91,12 @@ import { devAccountsOf } from './core.js';
 /*
  * One address is often a household or a school behind one NAT, so every
  * per address limit is sized for a full public room of pilots (PUBLIC_CAP)
- * behind it: quick joins twice over, and the list at its poll rate
- * (src/share/roomlist.js, one ask each LIST_EVERY_MS while Rooms is open)
- * half again over. A script past that is refused rather than served.
- * Making rooms stays low: a household makes a room or two, not sixteen.
+ * behind it: the list at its poll rate (src/share/roomlist.js, one ask
+ * each LIST_EVERY_MS while Rooms is open) half again over. A script past
+ * that is refused rather than served. Making rooms stays low: a household
+ * makes a room or two, not sixteen.
  */
 const CREATES_PER_MIN = 6;
-const PUBLIC_JOINS_PER_MIN = 2 * PUBLIC_CAP;
 const LISTS_PER_MIN = Math.ceil(1.5 * PUBLIC_CAP * (60000 / LIST_EVERY_MS));
 
 /*
@@ -150,7 +143,6 @@ function limiter(perMin) {
   };
 }
 const createAllowed = limiter(CREATES_PER_MIN);
-const joinAllowed = limiter(PUBLIC_JOINS_PER_MIN);
 const listAllowed = limiter(LISTS_PER_MIN);
 /* A page asks when the campaign's page first opens, and again only once
  * a sign in changes its session: a household's worth, with room over. */
@@ -428,35 +420,8 @@ async function publicRoute(request, env, url, headers) {
   if (url.pathname === '/v2/public') {
     return Response.json({ open, cap: PUBLIC_CAP, busy: busy(env) }, { headers });
   }
-  const m = url.pathname.match(/^\/v2\/public\/([a-z0-9_]{1,32})$/);
-  /* A socket from a page from before the plain GET, which has no way to
-   * name its pilot before its hello, so its pick leaves out nothing. */
-  const socket = request.headers.get('upgrade') === 'websocket';
-  if (!m || !roomMap(m[1]) || !open || !(socket || request.method === 'GET')) {
-    return new Response(open ? 'no such room' : 'public rooms are closed', { status: 404, headers });
-  }
-  if (!joinAllowed(address, Date.now())) {
-    return new Response('rate', { status: 429, headers });
-  }
-  let joiner = null;
-  if (!socket) {
-    try {
-      joiner = await joinerOf(request, env, address);
-    } catch (e) {
-      return Response.json({ error: 'accounts' }, { status: 503, headers });
-    }
-  }
-  /* Busy: a room with a seat, or nothing (no code for a new one). */
-  const full = busy(env);
-  const res = await lobbyStub(env).fetch('https://lobby/quick', { method: 'POST', body: JSON.stringify({ map: m[1], code: full ? null : newCode(), joiner }) });
-  const got = await res.json();
-  if (!got.code && full) {
-    env.HEALTH.refuse();
-  }
-  if (!got.code || (got.fresh && !(await makeRoom(env, got.code, { map: m[1], friendly: false, public: true, name: null, mode: null })))) {
-    return new Response('busy', { status: 503, headers });
-  }
-  return socket ? roomSocket(request, env, got.code) : Response.json({ code: got.code }, { headers: { ...headers, 'cache-control': 'no-store' } });
+  /* /v2/public/<map>: the quick join, gone with the combat-only cut. */
+  return new Response(open ? 'no such room' : 'public rooms are closed', { status: 404, headers });
 }
 
 export default {

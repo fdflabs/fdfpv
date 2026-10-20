@@ -34,7 +34,7 @@
 
 import { ABANDON_MS, PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { LOBBY_COUNTDOWN_MS, LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
-import { FLAG_AIRBORNE, PROTO, encodePose } from '../src/share/roomwire.js';
+import { FLAG_AIRBORNE, PROTO, ROOM_LEVEL, encodePose } from '../src/share/roomwire.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { withHeld } from './lib/held.js';
@@ -72,7 +72,7 @@ function lobbyRoom({
     env.socks[i] = so;
     env.apply(r.open(so, env.clock));
     env.apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', war: 1, name: [i, i, 30 + i], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: 1, name: [i, i, 30 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), env.clock, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };
@@ -105,7 +105,7 @@ function lobbyRoom({
     env.socks[i] = so;
     env.apply(r.open(so, env.clock));
     env.apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', war: 1, token: was.token, name: [i, i, 30 + i], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: 1, token: was.token, name: [i, i, 30 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), env.clock, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };
@@ -557,7 +557,7 @@ export function loadFailSection(check) {
   const told = (e, i) => e.socks[i].got.filter((m) => m.type === 'fail').at(-1);
   {
     const e = lobbyRoom({ n: 3, dev: true });
-    fail(e, 2, 'swiss2');
+    fail(e, 2, 'interior');
     check('a failure on a world that is not the room\'s is passed over', !told(e, 0) && !e.r.failed([...e.r.seats.values()][2]));
     fail(e, 2);
     check('the room\'s world: everybody is told the seat, the failing page too', told(e, 0) && told(e, 0).seat === 3 && told(e, 0).map === 'itaipu' && told(e, 2) && told(e, 2).seat === 3,
@@ -577,9 +577,9 @@ export function loadFailSection(check) {
     e.at(100 + LOBBY_COUNTDOWN_MS + 100);
     check('the war goes without it: two players, the failed seat not enlisted', e.r.war.on() && e.r.war.players(e.r).join() === '1,2'
       && !Object.hasOwn(e.r.war.match.players, 3), JSON.stringify(Object.keys(e.r.war.match.players)));
-    e.say(2, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null, status: 'loading' } });
+    e.say(2, { type: 'profile', profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null, status: 'loading' } });
     check('loading the world again is not standing on it', e.r.failed([...e.r.seats.values()][2]));
-    e.say(2, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null } });
+    e.say(2, { type: 'profile', profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null } });
     check('its profile on the room\'s world: counted in again, and everybody told map null', !e.r.failed([...e.r.seats.values()][2]) && told(e, 0).seat === 3 && told(e, 0).map === null,
       JSON.stringify(told(e, 0)));
   }

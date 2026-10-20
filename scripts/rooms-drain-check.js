@@ -63,7 +63,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
-import { PROTO, decodeBatch, encodePose } from '../src/share/roomwire.js';
+import { PROTO, ROOM_LEVEL, decodeBatch, encodePose } from '../src/share/roomwire.js';
 import { TICK_MS } from '../edge/rooms/core.js';
 
 let failed = 0;
@@ -173,7 +173,7 @@ async function seat(origin, path, extra = {}) {
   if (p.closed) {
     return p;
   }
-  p.say({ type: 'hello', proto: PROTO, build: 'check', name: [1, 2, 42], profile, ...extra });
+  p.say({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 2, 42], profile, ...extra });
   p.welcome = await p.until((x) => x.text('welcome')[0] || x.closed);
   p.clockAt = Date.now();
   return p;
@@ -253,9 +253,6 @@ try {
 
   const refusedMake = await make(v1.origin);
   check('a new room on v1 is refused 503 busy', refusedMake.status === 503 && (await refusedMake.json()).error === 'busy', `${refusedMake.status}`);
-  const quick = pilot(v1.origin, 'public/swiss2');
-  await quick.open;
-  check('a quick join on v1 is refused 503', quick.refused === 503, `${quick.refused}`);
   const nobody = pilot(v1.origin, 'room/BCDFGH');
   await nobody.open;
   check('a socket to a code v1 does not hold is refused 503', nobody.refused === 503, `${nobody.refused}`);

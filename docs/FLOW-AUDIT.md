@@ -44,7 +44,7 @@ against 1 (a room the screen does not show).
 | Free flight | `mode === 'freestyle'`, flying, no room | pause |
 | Room screen, out of a room | `screen === 'friends'`, phase idle or failed | Rooms, Make a room, Join with a code, Back (title) |
 | Room screen, in a room | `screen === 'friends'`, phase open | Fly, a game's start row, Leave, Back (**leaves**, see D5) |
-| Rooms lobby | `screen === 'rooms'` | join a listed room, quick join, Make a room, Join with a code, Leave (when in one), Back to the room screen |
+| Rooms lobby | `screen === 'rooms'` | join a listed room, Make a room, Join with a code, Leave (when in one), Back to the room screen |
 | Make a room | `screen === 'roomnew'` | Make (public or private, a world, a game), Back to Rooms |
 | Campaign screen | `campaign.page() !== null`, drawn on `ui.nameDialog` over whatever screen | Play (missions), Shop, Back |
 | War consent | `askConfirm` from `warConsented` (main.js 2675), once per profile | Continue (sets `settings.warConsent`), Back |
@@ -74,7 +74,7 @@ run at a time (`hostCheck`, core.js 385; `war.start`, war.js 717 refuses
 **Rooms**
 
 7. Make a room (`make`, roombrowser.js 296): `POST /v2/create` with the draft's world (default `here()`, the world on screen), public or private, a game from `ROOM_MODES` (race, tag, combat); then `join`. With game War (private and Itaipu only), it calls `warEnter` instead.
-8. Join a listed room or quick join (`act`, roombrowser.js 406): `link.join(code)` or `joinPublic(world)`.
+8. Join a listed room (`act`, roombrowser.js): `link.join(code)`.
 9. Join with a code (`onFriends` `friends-join`, main.js 4532).
 10. Leave (`friends-leave`, main.js 4549; `roomLeave` 4445): socket closed, `fdfpv.room` and the token removed. `?room=` is **not** removed (D3).
 11. Welcome (`onWelcome` main.js 2063, `roomSessionWelcome` 3471): the room's world is seated, no flight (`roomCall('join')`).

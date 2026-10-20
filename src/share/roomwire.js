@@ -80,8 +80,23 @@ export const PROTO = 2;
  * in it to the new game's lobby and asks the war's consent of each pilot
  * when the new game is the war. A page below would stay in the old
  * game's lobby and never be asked.
+ *
+ * 5: the combat-only cut (2026-10-18), which leaves the rooms server its
+ * war and ops rooms alone, on Itaipu and the Interior. A page below still
+ * offers the room games, worlds and quick join it took, so ROOM_FLOOR
+ * holds here.
  */
-export const ROOM_LEVEL = 4;
+export const ROOM_LEVEL = 5;
+
+/*
+ * The level below which a room seats nobody, whether or not a newer tab
+ * is in it: a tab below ROOM_FLOOR is told to reload on its hello
+ * (edge/rooms/core.js hello). The rule above is otherwise unchanged, so a
+ * level raised past the floor is still soft. The server reaches the VM
+ * with deploy/vm/deploy.sh after the client is live (pages.yml), so a
+ * floor raised here is always met by the client first.
+ */
+export const ROOM_FLOOR = 5;
 
 /*
  * A hello's `war`: this build asks the war's consent (docs/WARFARE-PLAN.md

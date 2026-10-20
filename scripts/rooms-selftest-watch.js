@@ -33,7 +33,7 @@ import { checkRoomLine } from '../src/share/roomlist.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { createRoomOps } from '../src/share/roomops.js';
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 
 /* Each game as its host starts it; free flight has none. */
 const GAMES = [
@@ -53,7 +53,7 @@ const WORDS = [
   { type: 'combat', op: 'stop' },
   { type: 'war', op: 'start', mission: 'itaipu-drill' },
   { type: 'war', op: 'ready', ready: true },
-  { type: 'war', op: 'loadout', airframe: 'cub1400' },
+  { type: 'war', op: 'loadout', airframe: 'bramor2300' },
   { type: 'war', op: 'lost' },
   { type: 'war', op: 'skip' },
   { type: 'war', op: 'end' },
@@ -149,7 +149,7 @@ export function watchSection(check) {
 
   for (const g of GAMES) {
     const room = new RoomCore({
-      code: 'W4TCHR', cap: PRIVATE_CAP, friendly: false, map: g.map ?? 'swiss2', epoch: now - 1000, public: false,
+      code: 'W4TCHR', cap: PRIVATE_CAP, friendly: false, map: g.map ?? 'itaipu', epoch: now - 1000, public: false,
       mode: g.mode, mission: g.mission ?? null, name: null, pick: [1, 1, 11], hidden: false,
     });
     const pilots = [];
@@ -206,7 +206,7 @@ export function watchSection(check) {
   console.log('the watch seat: the host, an empty room, the cap of watchers');
   {
     const room = new RoomCore({
-      code: 'W4TCHH', cap: PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: now - 1000, public: false, mode: null, name: null, pick: [1, 1, 11], hidden: false,
+      code: 'W4TCHH', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: now - 1000, public: false, mode: null, name: null, pick: [1, 1, 11], hidden: false,
     });
     const w = sock('first');
     hello(room, w, { watch: true });
@@ -244,7 +244,7 @@ export function watchSection(check) {
       },
     };
     const room = new RoomCore({
-      code: 'W4TCHL', cap: PUBLIC_CAP, friendly: false, map: 'swiss2', epoch: now - 1000, public: true, mode: null, name: null, pick: [1, 1, 11], hidden: false,
+      code: 'W4TCHL', cap: PUBLIC_CAP, friendly: false, map: 'itaipu', epoch: now - 1000, public: true, mode: null, name: null, pick: [1, 1, 11], hidden: false,
     }, { publicRooms: true });
     const a = sock('a');
     hello(room, a);
@@ -298,7 +298,7 @@ export function watchStateSection(check) {
       return `3b${tokens.toString(16).padStart(30, '0')}`;
     };
     const room = new RoomCore({
-      code: 'W4TCHS', cap: PRIVATE_CAP, friendly: false, map: g.map ?? 'swiss2', epoch: now - 1000, public: false,
+      code: 'W4TCHS', cap: PRIVATE_CAP, friendly: false, map: g.map ?? 'itaipu', epoch: now - 1000, public: false,
       mode: g.mode, mission: g.mission ?? null, name: null, pick: [1, 1, 11], hidden: false,
     }, g.opts);
     /* The war's draws and the ops' seed the same in every run. */

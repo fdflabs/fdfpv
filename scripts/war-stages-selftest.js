@@ -45,7 +45,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 
 import {
-  FLAG_AIRBORNE, PROTO, encodePose,
+  FLAG_AIRBORNE, PROTO, ROOM_LEVEL, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
@@ -706,7 +706,7 @@ function warRoom(mission, {
     env.socks[i] = so;
     env.apply(r.open(so, env.clock));
     env.apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], profile: {
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [i, i, 20 + i], profile: {
         airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null,
       },
     }), env.clock, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));

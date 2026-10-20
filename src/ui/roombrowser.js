@@ -10,8 +10,8 @@
  *                  open public room, live (src/share/roomlist.js), its
  *                  name, world, pilots and game, one press to join,
  *                  busiest first, an empty one with the minutes before it
- *                  closes; a quick join on this world; the way to make a
- *                  room and to join a private one with its code
+ *                  closes; the way to make a room and to join a private
+ *                  one with its code
  *   Make a room    a typed name (or the room's picked one), public or
  *                  private, the world, and a game to set it up for
  *
@@ -274,25 +274,12 @@ export function createRoomBrowser({
     return [heading, ...rows];
   }
 
-  /* While the server is full it makes no new public room, so a quick join
-   * with no room of this world to land in is said, not tried. */
-  function quickRow(world) {
-    const seat = (list.rooms() || []).some((r) => r.map === here() && r.n < r.cap);
-    if (list.busy() && !seat) {
-      return { label: str('roombrowser.quick'), value: world, note: str('roombrowser.busy'), info: true };
-    }
-    return { label: str('roombrowser.quick'), value: world, note: str('roombrowser.quick_note', { world }), action: 'friends-quick' };
-  }
-
   function browserRows() {
-    const world = mapById(here()).name;
-    const quick = list.open() === false ? [] : [quickRow(world)];
     return [
       ...hereRows(),
       ...listRows(),
       { label: str('roombrowser.more_section'), section: true },
       { label: str('roombrowser.new'), note: str('roombrowser.new_note'), action: 'roomnew', primary: !(openRooms() || []).some((r) => r.n < r.cap) },
-      ...quick,
       { label: str('friends.join'), note: str('friends.join_note'), action: 'friends-join' },
     ];
   }
@@ -564,11 +551,6 @@ export function createRoomBrowser({
         return true;
       }
       if (action === 'friends-here') {
-        ui.show('friends');
-        return true;
-      }
-      if (action === 'friends-quick') {
-        link.joinPublic(here());
         ui.show('friends');
         return true;
       }

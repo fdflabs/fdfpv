@@ -2874,8 +2874,6 @@ export default {
   "roombrowser.empty_note": "Crea una abajo: aparecerá aquí para todos.",
   "roombrowser.closed": "Las salas públicas están cerradas ahora",
   "roombrowser.closed_note": "Aún puedes crear una sala para tus amigos y darles su código.",
-  "roombrowser.quick": "Entrada rápida",
-  "roombrowser.quick_note": "Directo a la sala pública con más pilotos en {world} que tenga sitio, o a una nueva si no hay ninguna.",
   "roombrowser.new": "Crear una sala",
   "roombrowser.new_note": "Ponle nombre y elige quién entra, el mundo y un juego.",
   "roombrowser.entry_value": "{n} abiertas",

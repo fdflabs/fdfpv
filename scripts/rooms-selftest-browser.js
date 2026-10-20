@@ -29,7 +29,7 @@
  */
 
 import {
-  CLOSE, EMPTY_CLOSE_MS, LIST_EVERY_MS, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PROTO, PUBLIC_CAP,
+  CLOSE, EMPTY_CLOSE_MS, LIST_EVERY_MS, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PROTO, ROOM_LEVEL, PUBLIC_CAP,
   ROOM_NAME_MAX, ROOM_NAME_REPORT, WAR_JOIN, normaliseRoomName, pilotRoomName, validNamePick,
 } from '../src/share/roomwire.js';
 import en from '../src/strings/en.js';
@@ -38,11 +38,11 @@ import front from '../edge/rooms/front.js';
 import { PURGE_MS, RoomHost } from '../edge/rooms/host.js';
 import { PRIVATE_CAP } from '../edge/rooms/core.js';
 import {
-  LIST_GRACE_MS, Lobby, LobbyBook, MAX_ROOMS, PENDING_MS, listingOf,
+  LIST_GRACE_MS, Lobby, LobbyBook, MAX_ROOMS, listingOf,
 } from '../edge/rooms/lobby.js';
 
 const ORIGIN = 'https://fdflabs.github.io';
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /* A room's storage; `alarm` is the wall ms the room asked to be purged
@@ -95,6 +95,11 @@ const texts = (c, type) => c.got.filter((m) => m && m.type === type);
 /* The rooms server of node.js in one process, minus the sockets: one
  * RoomHost per name, one Lobby, and front.js answering. `stores` outlives
  * a server, so a second one over it is the same rooms after a restart. */
+/* The caller's address when a call names none: never one used before,
+ * since front.js counts creates and lists per address across every server
+ * made here (its limiters are the module's). */
+let address = 0;
+
 export function server(stores = new Map(), publicRooms = 'on') {
   const env = { PUBLIC_ROOMS: publicRooms };
   const rooms = new Map();
@@ -125,7 +130,6 @@ export function server(stores = new Map(), publicRooms = 'on') {
   };
   const lobby = new Lobby({ storage: memoryStorage() }, env);
   env.LOBBY = { idFromName: (name) => name, get: () => ({ fetch: (input, init) => lobby.fetch(input instanceof Request ? input : new Request(input, init)) }) };
-  let address = 0;
   const call = (path, init = {}) => front.fetch(new Request(`http://rooms${path}`, {
     ...init,
     headers: { origin: ORIGIN, 'cf-connecting-ip': init.address || `10.9.${Math.floor(address / 200)}.${(address += 1) % 200}`, ...(init.headers || {}) },
@@ -145,10 +149,10 @@ export function server(stores = new Map(), publicRooms = 'on') {
       const res = await call('/v2/rooms', ip ? { address: ip } : {});
       return res.status === 200 ? res.json() : { status: res.status };
     },
-    /* A pilot into the room `code` (a /v2/room socket) or a quick join
-     * on a map, seated with a hello. */
+    /* A pilot into the room `code` (a /v2/room socket), seated with a
+     * hello. */
     async join(where, name = [1, 2, 30], ip = `10.8.0.${(address += 1) % 250}`) {
-      const res = await call(where.code ? `/v2/room/${where.code}` : `/v2/public/${where.map}`, { headers: { upgrade: 'websocket' }, address: ip });
+      const res = await call(`/v2/room/${where.code}`, { headers: { upgrade: 'websocket' }, address: ip });
       if (res.status !== 101) {
         return { refused: res.status };
       }
@@ -158,7 +162,7 @@ export function server(stores = new Map(), publicRooms = 'on') {
       await room.host.accept(c, new Request('http://room/', { headers: { 'x-room-address': ip } }));
       /* As every build since the war's consent asks it (WAR_JOIN), so a
        * room made for the war seats it. */
-      await room.host.message(c, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', war: WAR_JOIN, name, profile }));
+      await room.host.message(c, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: WAR_JOIN, name, profile }));
       await settle();
       c.room = room;
       c.welcome = texts(c, 'welcome')[0];
@@ -224,21 +228,21 @@ export async function browserSection(check) {
 
   console.log('room browser: making rooms');
   let s = server();
-  const made = await s.create({ map: 'swiss2', public: true, name: '  Sky   Club ' });
+  const made = await s.create({ map: 'itaipu', public: true, name: '  Sky   Club ' });
   check('a public room is made with a code the browser joins it by', made.status === 200 && /^[A-Z0-9]{6}$/.test(made.code), JSON.stringify(made));
   const meta = s.stores.get(`prv:${made.code}`).kept.get('meta');
   check('it keeps the name as the server normalised it, a picker name, and the public cap', meta.name === 'Sky Club' && meta.public === true
     && meta.cap === PUBLIC_CAP && validNamePick(meta.pick) && meta.hidden === false, JSON.stringify(meta));
-  const bad = await s.create({ map: 'swiss2', public: true, name: 'Fuck Club' });
+  const bad = await s.create({ map: 'itaipu', public: true, name: 'Fuck Club' });
   check('a name the word filter refuses is refused by the server, whatever the client said', bad.status === 400 && bad.error === 'name');
-  const glued = await s.create({ map: 'swiss2', public: true, name: 'the sh1t pilots' });
+  const glued = await s.create({ map: 'itaipu', public: true, name: 'the sh1t pilots' });
   check('and spelled with a digit for a letter, too', glued.status === 400 && glued.error === 'name');
-  const shape = await s.create({ map: 'swiss2', public: true, name: 'ab' });
+  const shape = await s.create({ map: 'itaipu', public: true, name: 'ab' });
   check('a name of the wrong shape is refused the same way', shape.status === 400 && shape.error === 'name');
-  const blank = await s.create({ map: 'alps', public: true, name: '   ' });
+  const blank = await s.create({ map: 'interior', public: true, name: '   ' });
   const blankMeta = s.stores.get(`prv:${blank.code}`).kept.get('meta');
   check('a blank name makes a room with its picker name', blank.status === 200 && blankMeta.name === null && validNamePick(blankMeta.pick));
-  const priv = await s.create({ map: 'swiss2', name: 'Secret Base' });
+  const priv = await s.create({ map: 'itaipu', name: 'Secret Base' });
   const privMeta = s.stores.get(`prv:${priv.code}`).kept.get('meta');
   check(`a private room is made as before, ${PRIVATE_CAP} seats, and may be named too`, priv.status === 200 && privMeta.public === false
     && privMeta.cap === PRIVATE_CAP && privMeta.name === 'Secret Base');
@@ -246,10 +250,10 @@ export async function browserSection(check) {
   check('a room can be set up for a game', moded.status === 200 && s.stores.get(`prv:${moded.code}`).kept.get('meta').mode === 'war');
   const goneGame = await s.create({ map: 'itaipu', public: true, mode: 'combat' });
   check('but not for a game this build no longer has (Streamer Combat, an older page\'s)', goneGame.status === 400 && goneGame.error === 'bad');
-  const badMode = await s.create({ map: 'swiss2', public: true, mode: 'poker' });
+  const badMode = await s.create({ map: 'itaipu', public: true, mode: 'poker' });
   check('but not for a game there is not', badMode.status === 400 && badMode.error === 'bad');
   const closed = server(new Map(), 'off');
-  const refusedPublic = await closed.create({ map: 'swiss2', public: true });
+  const refusedPublic = await closed.create({ map: 'itaipu', public: true });
   check('no public room while public rooms are closed', refusedPublic.status === 403);
   check('and the list says so, empty', JSON.stringify(await closed.list()) === '{"open":false,"rooms":[]}');
 
@@ -262,13 +266,13 @@ export async function browserSection(check) {
   check('a room on a retired world is refused, public or private, as a bad request',
     retiredPublic.status === 400 && retiredPublic.error === 'bad' && retiredPrivate.status === 400 && retiredPrivate.error === 'bad'
     && old.stores.size === 0, `${JSON.stringify(retiredPublic)} ${JSON.stringify(retiredPrivate)}`);
-  const quickOld = await old.join({ map: 'yellowstone' });
-  check('and so is a quick join on one, with no room made for it', quickOld.refused === 404 && old.stores.size === 0, JSON.stringify(quickOld));
+  const quickOld = await old.call('/v2/public/yellowstone', { headers: { upgrade: 'websocket' } });
+  check('and so is a quick join on one, the route of builds before the cut, with no room made for it', quickOld.status === 404 && old.stores.size === 0, `${quickOld.status}`);
   const unretired = await old.create({ map: 'itaipu' });
   check('a world the simulator has is made as before', unretired.status === 200);
   /* A room stored on Yellowstone before the deploy, as the VM's SQLite
    * keeps it across the restart that brings this build. */
-  const keptOld = await old.create({ map: 'alps' });
+  const keptOld = await old.create({ map: 'interior' });
   const oldStore = old.stores.get(`prv:${keptOld.code}`);
   oldStore.kept.set('meta', { ...oldStore.kept.get('meta'), map: 'yellowstone' });
   const after = server(old.stores);
@@ -286,7 +290,7 @@ export async function browserSection(check) {
   console.log('room browser: a game since removed');
   const tagMade = await old.create({ map: 'itaipu' });
   const tagStore = old.stores.get(`prv:${tagMade.code}`);
-  tagStore.kept.set('meta', { ...tagStore.kept.get('meta'), map: 'swiss2', mode: 'tag' });
+  tagStore.kept.set('meta', { ...tagStore.kept.get('meta'), map: 'itaipu', mode: 'tag' });
   tagStore.kept.set('tag', { match: null, nextId: 2 });
   tagStore.kept.set('hosting', { token: 'a'.repeat(32) });
   const cut = server(old.stores);
@@ -328,7 +332,7 @@ export async function browserSection(check) {
   check('and is, with its first pilot in', codes.includes(made.code) && codes.includes(moded.code) && !codes.includes(blank.code), codes.join());
   check('a private room never is', !codes.includes(priv.code));
   const sky = list.rooms.find((r) => r.code === made.code);
-  check('a line says the name, world, pilots, cap and game', sky && sky.name === 'Sky Club' && sky.map === 'swiss2' && sky.n === 1
+  check('a line says the name, world, pilots, cap and game', sky && sky.name === 'Sky Club' && sky.map === 'itaipu' && sky.n === 1
     && sky.cap === PUBLIC_CAP && sky.game === null && sky.state === 'waiting' && validNamePick(sky.pick), JSON.stringify(sky));
   check('and a room set up for a game shows it, waiting', list.rooms.find((r) => r.code === moded.code).game === 'war', JSON.stringify(list.rooms.find((r) => r.code === moded.code)));
   check('a line carries nothing about a pilot', sky && Object.keys(sky).sort().join() === 'cap,code,emptySince,game,map,mission,mode,n,name,pick,ready,state,watchers,wave,waves');
@@ -390,7 +394,7 @@ export async function browserSection(check) {
 
   console.log('room browser: a household behind one address');
   s = server();
-  const home = await s.create({ map: 'swiss2', public: true, name: 'Family Room' });
+  const home = await s.create({ map: 'itaipu', public: true, name: 'Family Room' });
   const family = [];
   for (let i = 0; i < PUBLIC_CAP; i += 1) {
     family.push(await s.join({ code: home.code }, [i % 24, (i * 5) % 24, 20 + i], '10.50.0.1'));
@@ -408,31 +412,31 @@ export async function browserSection(check) {
   }
   check('but a script asking twice that is refused', scripted > 0, `${scripted}`);
 
-  console.log('room browser: quick join');
+  console.log('room browser: public rooms, joined by their codes');
   s = server();
-  const q1 = await s.join({ map: 'swiss2' });
-  check('a quick join with no room makes one, public, with its picker name', q1.welcome && q1.welcome.public === true && q1.welcome.name === null
+  const nameless = await s.create({ map: 'itaipu', public: true });
+  const q1 = await s.join({ code: nameless.code });
+  check('a public room made with no name is joined by its code, public, with its picker name', q1.welcome && q1.welcome.public === true && q1.welcome.name === null
     && validNamePick(q1.welcome.pick) && /^[A-Z0-9]{6}$/.test(q1.welcome.code));
-  const q2 = await s.join({ map: 'swiss2' });
-  check('the next quick join lands in it', q2.welcome && q2.welcome.code === q1.welcome.code);
-  const named = await s.create({ map: 'swiss2', public: true, name: 'Big One' });
+  const named = await s.create({ map: 'itaipu', public: true, name: 'Big One' });
   const inBig = [];
   for (let i = 0; i < 3; i += 1) {
     inBig.push(await s.join({ code: named.code }, [i, i, 20 + i]));
   }
-  const q3 = await s.join({ map: 'swiss2' });
-  check('a quick join goes to the busiest room of its map with a seat', q3.welcome && q3.welcome.code === named.code);
-  const q4 = await s.join({ map: 'alps' });
-  check('and never to another map\'s', q4.welcome && q4.welcome.code !== named.code && q4.welcome.code !== q1.welcome.code);
+  check('a named one seats its pilots by its code', inBig.every((p) => p.welcome && p.welcome.code === named.code));
+  const elsewhere = await s.create({ map: 'interior', public: true });
+  const q4 = await s.join({ code: elsewhere.code });
   await q4.leave();
   const q4Alarm = s.stores.get(`prv:${q4.welcome.code}`).alarm;
-  check('a map that is not an id is refused', (await s.join({ map: 'Swiss2' })).refused === 404);
+  check('the quick join of builds before the cut is no route: 404, and no room made for it',
+    (await s.call('/v2/public/itaipu', { headers: { upgrade: 'websocket' } })).status === 404 && (await s.call('/v2/public/itaipu')).status === 404
+    && s.stores.size === 3, `${s.stores.size} rooms`);
 
   console.log('room browser: the book');
   let t = 1000;
   const book = new LobbyBook();
   const line1 = (code, n, created, extra = {}) => ({
-    ...listingOf({ code, name: null, pick: [1, 1, 11], map: 'swiss2', cap: PUBLIC_CAP, epoch: created, ...extra }, n, { game: null, state: 'waiting' }),
+    ...listingOf({ code, name: null, pick: [1, 1, 11], map: 'itaipu', cap: PUBLIC_CAP, epoch: created, ...extra }, n, { game: null, state: 'waiting' }),
   });
   book.report(line1('AAAAAA', 1, 1), t);
   book.report(line1('BBBBBB', 3, 2), t);
@@ -446,26 +450,19 @@ export async function browserSection(check) {
   check('the same for a room its pilots left', !book.list(t).some((r) => r.code === 'BBBBBB'));
   book.report(line1('BBBBBB', 1, 2), t);
   check('and a pilot back by its code lists it again', book.list(t).some((r) => r.code === 'BBBBBB'));
-  book.report(line1('EMPTYA', 0, 9, { map: 'alps' }), t);
-  check('a quick join never lands in an empty room, made a moment ago or left', book.quick('alps', t, 'NEWALP').code === 'NEWALP');
+  book.report(line1('EMPTYA', 0, 9, { map: 'interior' }), t);
+  check('an empty room made a moment ago is not listed either', !book.list(t).some((r) => r.code === 'EMPTYA'));
   book.report(line1('HHHHHH', 5, 4, { hidden: true }), t);
   check('a hidden room is never listed', !book.list(t).some((r) => r.code === 'HHHHHH'));
-  check('nor handed to a quick join, though busiest', book.quick('swiss2', t, 'NEWONE').code === 'CCCCCC');
-  const burst = new LobbyBook();
-  const where = [];
-  for (let i = 0; i < PUBLIC_CAP + 2; i += 1) {
-    where.push(burst.quick('alps', t, `NEW${String(i).padStart(3, '0')}`));
-  }
-  check(`a burst of quick joins before any room reports fills one room to ${PUBLIC_CAP}, then makes a second`,
-    where.filter((w) => w.code === 'NEW000').length === PUBLIC_CAP && where[0].fresh && where[PUBLIC_CAP].fresh && where[PUBLIC_CAP + 1].code === where[PUBLIC_CAP].code);
-  check('a room booked by a quick join is not listed until it reports', !burst.list(t).length);
-  t += PENDING_MS;
-  check('a booking whose room never reported lapses, and the next quick join makes a room again', burst.quick('alps', t, 'LATE01').code === 'LATE01' && !('NEW000' in burst.rooms));
+  /* A book stored by a build before the cut: its lines carry the quick
+   * join's bookings, which count for nothing now. */
+  const stored = new LobbyBook({ OLDONE: { ...line1('OLDONE', 0, 1), pending: [t], emptySince: t } });
+  check('a stored line\'s quick join bookings from before the cut seat nobody: empty, it is not listed', !stored.list(t).some((r) => r.code === 'OLDONE'));
   const flood = new LobbyBook();
   for (let i = 0; i < MAX_ROOMS; i += 1) {
     flood.report(line1(`F${i}`, 1, i), t);
   }
-  check(`the book holds at most ${MAX_ROOMS} rooms`, flood.report(line1('ONEMORE', 1, 0), t) === false && flood.quick('fresh', t, 'ONEMORE') === null);
+  check(`the book holds at most ${MAX_ROOMS} rooms`, flood.report(line1('ONEMORE', 1, 0), t) === false);
 
   console.log('room browser: after a restart');
   const again = server(s.stores);
@@ -495,7 +492,7 @@ async function closingSection(check) {
   check('five minutes, one number for the purge, the list and the browser',
     EMPTY_CLOSE_MS === 5 * 60 * 1000 && PURGE_MS === EMPTY_CLOSE_MS && LIST_GRACE_MS === EMPTY_CLOSE_MS);
   const s = server();
-  const made = await s.create({ map: 'swiss2', public: true, name: 'Closing Club' });
+  const made = await s.create({ map: 'itaipu', public: true, name: 'Closing Club' });
   const store = s.stores.get(`prv:${made.code}`);
   const room = s.rooms.get(`prv:${made.code}`);
   const a = await s.join({ code: made.code });
@@ -526,7 +523,7 @@ async function closingSection(check) {
   const late = await s.join({ code: made.code }, [6, 7, 60]);
   check('and its code finds no room', !late.welcome && late.closed && late.closed.code === CLOSE.nosuch, JSON.stringify(late.closed));
 
-  const priv = await s.create({ map: 'swiss2', name: 'Secret Close' });
+  const priv = await s.create({ map: 'itaipu', name: 'Secret Close' });
   const pstore = s.stores.get(`prv:${priv.code}`);
   const p = await s.join({ code: priv.code });
   const pLeft = Date.now();
@@ -536,7 +533,7 @@ async function closingSection(check) {
   await s.rooms.get(`prv:${priv.code}`).host.alarm();
   check('then it is gone', pstore.kept.size === 0);
 
-  const never = await s.create({ map: 'alps', public: true, name: 'Nobody Came' });
+  const never = await s.create({ map: 'interior', public: true, name: 'Nobody Came' });
   const nstore = s.stores.get(`prv:${never.code}`);
   check('a room made and never joined is not listed, and closes five minutes on', !(await s.list()).rooms.some((r) => r.code === never.code)
     && nstore.alarm >= nstore.kept.get('meta').epoch + PURGE_MS - 50);

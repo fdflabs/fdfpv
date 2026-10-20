@@ -42,7 +42,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { FLAG_AIRBORNE, PROTO, encodePose } from '../src/share/roomwire.js';
+import { FLAG_AIRBORNE, PROTO, ROOM_LEVEL, encodePose } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
@@ -320,7 +320,7 @@ function warScenario() {
     socks[i] = so;
     apply(r.open(so, at));
     apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], profile: { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [i, i, 20 + i], profile: { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), at, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };

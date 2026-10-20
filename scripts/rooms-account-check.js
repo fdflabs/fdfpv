@@ -47,7 +47,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
 import {
-  ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_SIGNIN, PROTO, WAR_JOIN,
+  ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_SIGNIN, PROTO, ROOM_LEVEL, WAR_JOIN,
 } from '../src/share/roomwire.js';
 import { startTracks } from '../tracks-api/node.js';
 import { startRooms } from '../edge/rooms/node.js';
@@ -137,7 +137,7 @@ const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3 };
 async function seat(code, extra = {}) {
   const p = pilot(code);
   await p.open;
-  p.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', name: [1, 2, 42], profile, ...extra }));
+  p.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 2, 42], profile, ...extra }));
   /* A clock ping straight behind the hello, as the simulator sends: it
    * must be answered after the welcome, not lost while the session is
    * looked up. */
@@ -200,7 +200,7 @@ check('and an account with no callsign yet', closedWith(nameless, SIGNIN), JSON.
 const binary = pilot(code);
 await binary.open;
 binary.ws.send(new Uint8Array([0x10, 0, 0]));
-binary.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', name: [2, 3, 19], profile, ...NEW, session }));
+binary.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [2, 3, 19], profile, ...NEW, session }));
 const binaryEnd = await binary.until((x) => x.got.find((m) => m.type === 'welcome') || (x.closed && { closed: x.closed }));
 check('a socket whose first word is not its hello is closed, so no hello rides past the check', binaryEnd && binaryEnd.closed === CLOSE.bad,
   JSON.stringify(binaryEnd));
@@ -325,10 +325,6 @@ console.log('blocks that outlast a room');
   check('Viper\'s list, and a guest\'s, show the public room Iceman is in', viperList.includes(icemanRoom) && (await listFor(null)).includes(icemanRoom),
     JSON.stringify(viperList));
   check('Goose\'s, who blocked him, leaves it out', !(await listFor(session)).includes(icemanRoom));
-  const pick = async (sess) => (await (await fetch(`${roomsOrigin}/v2/public/swiss2`, { headers: asking(sess) })).json()).code;
-  const goosePick = await pick(session);
-  check('Goose\'s quick join is handed another room', typeof goosePick === 'string' && goosePick !== icemanRoom, goosePick);
-  check('Viper\'s is handed Iceman\'s', await pick(viper) === icemanRoom);
   r = await api('PUT', '/api/account/blocks', { callsign: 'Iceman', on: false }, session);
   check('unblocked, Goose\'s next list shows it again', r.status === 200 && (await listFor(session)).includes(icemanRoom));
   icemanIn.ws.close(1000);
@@ -358,7 +354,7 @@ console.log('blocks that outlast a room');
       }
       return null;
     };
-    ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', name: [n, n + 1, 60 + n], profile, ...NEW }));
+    ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [n, n + 1, 60 + n], profile, ...NEW }));
     p.welcome = await p.until((x) => x.got.find((m) => m.type === 'welcome'));
     return p;
   }

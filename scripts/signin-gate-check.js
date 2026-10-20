@@ -322,7 +322,6 @@ try {
   await refused(p, 'the track builder', () => p.evaluate("window.__ui.openBuilder({ map: 'swiss2' }); true"));
   const invite = await makeRoom();
   await refused(p, 'an invite code (Join with a code)', () => p.evaluate(`window.__roomJoin(${JSON.stringify(invite)}); true`));
-  await refused(p, 'a quick join', () => p.evaluate("window.__roomJoinPublic('swiss2'); true"));
   let made = null;
   await refused(p, 'Make a room', async () => {
     made = await p.evaluate("window.__roomCreate({ map: 'swiss2' }).then(() => 'made', (e) => e.message)");

@@ -1,5 +1,5 @@
 /*
- * rooms-selftest-blocks.js: blocks in the room browser and the quick join
+ * rooms-selftest-blocks.js: blocks in the room browser
  * (COMPLETENESS 60, edge/rooms/lobby.js apart, edge/rooms/front.js
  * joinerOf), part of npm run rooms:selftest. The real front, rooms and
  * lobby in one process (rooms-selftest-browser.js server), with the
@@ -7,8 +7,7 @@
  * for four sessions as tracks-api/accounts.js would.
  *
  * A signed in pilot's list leaves out every room holding a pilot it
- * blocked, or who blocked it, and its quick join passes those rooms over
- * for the next, or a new one; the ids never reach the page. The negative
+ * blocked, or who blocked it; the ids never reach the page. The negative
  * controls: a guest is left out of nothing, and a mute, which lives in its
  * room, never reaches the lobby.
  *
@@ -28,12 +27,12 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { PROTO, PUBLIC_CAP } from '../src/share/roomwire.js';
+import { PROTO, ROOM_LEVEL, PUBLIC_CAP } from '../src/share/roomwire.js';
 import { LIST_MAX, LobbyBook, listingOf } from '../edge/rooms/lobby.js';
 import { conn, server } from './rooms-selftest-browser.js';
 
 const ACCOUNTS = 'http://accounts.check';
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /* Goose blocked Iceman; Maverick blocked Goose; Viper blocked nobody. */
@@ -69,10 +68,6 @@ export async function blocksSection(check) {
       const res = await s.call('/v2/rooms', bearer(who));
       return res.status === 200 ? (await res.json()).rooms.map((r) => r.code) : { status: res.status, ...(await res.json()) };
     };
-    const quick = async (who, map = 'swiss2') => {
-      const res = await s.call(`/v2/public/${map}`, bearer(who));
-      return res.status === 200 ? (await res.json()).code : { status: res.status };
-    };
     let n = 0;
     /* A pilot seated as node.js seats one: the accounts server's answer
      * for its session handed to the room with the hello. who null: a guest. */
@@ -83,7 +78,7 @@ export async function blocksSection(check) {
       const said = (obj) => room.host.message(c, JSON.stringify(obj), who ? who.callsign : null, who ? who.id : null, who ? who.blocks : []);
       room.sockets.add(c);
       await room.host.accept(c, new Request('http://room/', { headers: { 'x-room-address': c.address } }));
-      await said({ type: 'hello', proto: PROTO, build: 't', name: [1, 2, 30 + n], profile });
+      await said({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [1, 2, 30 + n], profile });
       await settle();
       c.say = async (obj) => {
         await said(obj);
@@ -91,7 +86,7 @@ export async function blocksSection(check) {
       };
       return c;
     }
-    const made = async (name) => (await s.create({ map: 'swiss2', public: true, name })).code;
+    const made = async (name) => (await s.create({ map: 'itaipu', public: true, name })).code;
 
     /* Iceman's room is the busiest, so a quick join's first choice. */
     const icemanRoom = await made('Iceman room');
@@ -121,19 +116,10 @@ export async function blocksSection(check) {
     check('Viper, who blocked nobody and whom nobody blocked, is shown every room', [icemanRoom, viperRoom, gooseRoom].every((c) => viper.includes(c)),
       JSON.stringify(viper));
 
-    check('a guest\'s quick join lands in the busiest room, Iceman\'s', await quick(null) === icemanRoom);
-    check('Goose\'s passes it over for the next busiest, Viper\'s', await quick(GOOSE) === viperRoom);
-    const maverickQuick = await quick(MAVERICK);
-    check('Maverick\'s lands in Iceman\'s, never Goose\'s', maverickQuick === icemanRoom, maverickQuick);
-    const elsewhere = await quick(GOOSE, 'alps');
-    check('with no room on a world to go to, a quick join makes a new one', typeof elsewhere === 'string' && ![icemanRoom, viperRoom, gooseRoom].includes(elsewhere),
-      JSON.stringify(elsewhere));
-
     /* The negative control: a mute is the room's, never the lobby's. */
     await guest.say({ type: 'mute', seats: [1] });
     const muted = await list();
     check('negative control: a guest who muted Iceman is still shown Iceman\'s room', muted.includes(icemanRoom), JSON.stringify(muted));
-    check('and is still quick joined into it', await quick(null) === icemanRoom);
     check('a made up session is a guest\'s, left out of nothing', (await list('a'.repeat(64))).includes(icemanRoom));
 
     /* The block taken back on the account: the next ask has it. */
@@ -144,12 +130,11 @@ export async function blocksSection(check) {
     const down = await list(DOWN);
     check('with the accounts server failing, the list is refused for that pilot, not guessed', down.status === 503 && down.error === 'accounts',
       JSON.stringify(down));
-    check('and the quick join too', (await quick(DOWN)).status === 503);
     await list();
-    check('a guest\'s list asks the accounts server nothing', asked === before + 2, `${asked - before}`);
+    check('a guest\'s list asks the accounts server nothing', asked === before + 1, `${asked - before}`);
 
     const noAccounts = server();
-    const nc = await (await noAccounts.call('/v2/create', { method: 'POST', body: JSON.stringify({ map: 'swiss2', public: true }), address: '10.7.1.1' })).json();
+    const nc = await (await noAccounts.call('/v2/create', { method: 'POST', body: JSON.stringify({ map: 'itaipu', public: true }), address: '10.7.1.1' })).json();
     await seat(nc.code, null, noAccounts);
     const nlist = await noAccounts.call('/v2/rooms', bearer(GOOSE));
     check('a server with no accounts reads no session: its list is everyone\'s', nlist.status === 200
@@ -160,10 +145,10 @@ export async function blocksSection(check) {
     const book = new LobbyBook();
     const t = 1000;
     for (let i = 0; i < LIST_MAX; i += 1) {
-      book.report(listingOf({ code: `I${String(i).padStart(5, '0')}`, name: null, pick: [1, 1, 11], map: 'swiss2', cap: PUBLIC_CAP, epoch: i }, 5,
+      book.report(listingOf({ code: `I${String(i).padStart(5, '0')}`, name: null, pick: [1, 1, 11], map: 'itaipu', cap: PUBLIC_CAP, epoch: i }, 5,
         { game: null, state: 'waiting' }, null, 0, [2], []), t);
     }
-    book.report(listingOf({ code: 'QUIET1', name: null, pick: [1, 1, 11], map: 'swiss2', cap: PUBLIC_CAP, epoch: 0 }, 1, { game: null, state: 'waiting' }), t);
+    book.report(listingOf({ code: 'QUIET1', name: null, pick: [1, 1, 11], map: 'itaipu', cap: PUBLIC_CAP, epoch: 0 }, 1, { game: null, state: 'waiting' }), t);
     check(`a list is filtered before its first ${LIST_MAX} are taken`, book.list(t, { account: 1, blocks: [2] }).map((r) => r.code).join() === 'QUIET1'
       && !book.list(t).some((r) => r.code === 'QUIET1'));
   } finally {

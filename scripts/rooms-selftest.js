@@ -26,7 +26,7 @@
  */
 
 import {
-  CLOSE, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, FLAG_SMOKE, POSE_BYTES, PROTO, PROFILE_MAX_BYTES, NAME_ADJECTIVES, NAME_ANIMALS,
+  CLOSE, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, FLAG_SMOKE, POSE_BYTES, PROTO, ROOM_LEVEL, PROFILE_MAX_BYTES, NAME_ADJECTIVES, NAME_ANIMALS,
   checkProfile, codeFromBytes, decodeBatch, decodePose, encodeBatch, encodePose, normaliseCode, validNamePick,
 } from '../src/share/roomwire.js';
 import { PeerTrack, DELAY_MS, EXTRAP_MAX_MS, STALE_MS, nearWeight, ACCEL_MAX, ACCEL_MS } from '../src/game/peer.js';
@@ -111,7 +111,7 @@ check('codes: six from the alphabet', normaliseCode(' k7pz2m ') === 'K7PZ2M' && 
 check('a code from random bytes is a code', normaliseCode(codeFromBytes([0, 27, 28, 255, 100, 13])) !== null);
 check('picker names are three indices in range', validNamePick([0, 0, 10]) && validNamePick([NAME_ADJECTIVES - 1, NAME_ANIMALS - 1, 99])
   && !validNamePick([NAME_ADJECTIVES, 0, 10]) && !validNamePick([0, 0, 100]) && !validNamePick(['Swift', 0, 10]) && !validNamePick([0, 0]));
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3, livery: { scheme: 'sport' }, parts: { prop: 'stock', addons: ['smoke'] } };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 3, livery: { scheme: 'sport' }, parts: { prop: 'stock', addons: ['smoke'] } };
 check('a profile passes', checkProfile(profile) !== null);
 check('a profile with free text in an id does not', checkProfile({ ...profile, airframe: 'hello there' }) === null);
 check('nor one too large', checkProfile({ ...profile, livery: { blob: 'x'.repeat(PROFILE_MAX_BYTES) } }) === null);
@@ -124,7 +124,7 @@ const newToken = () => {
   return tokens.toString(16).padStart(32, '0');
 };
 let now = 1_000_000;
-const meta = { code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: now - 5000 };
+const meta = { code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: now - 5000 };
 let room = new RoomCore(meta);
 /* A pose stamped with the room's clock now, as an honest client stamps it:
  * the room refuses one further than POSE_CLOCK_SLOP_MS from its clock. */
@@ -154,7 +154,7 @@ function run(actions) {
 }
 function hello(s, extra = {}) {
   run(room.open(s, now));
-  return run(room.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 42], profile, ...extra }), now, s.address, newToken));
+  return run(room.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', level: ROOM_LEVEL, name: [1, 2, 42], profile, ...extra }), now, s.address, newToken));
 }
 const texts = (s, type) => s.got.filter((m) => m && m.type === type);
 
@@ -167,13 +167,13 @@ hello(a);
 const wa = texts(a, 'welcome')[0];
 check('the first pilot gets seat 1 and is the host', wa && wa.seat === 1 && wa.host === 1 && wa.peers.length === 0);
 check('with a 128 bit token and the room clock', wa && /^[0-9a-f]{32}$/.test(wa.token) && wa.roomMs === 5000);
-check('and the room\'s map, code and cap', wa && wa.map === 'swiss2' && wa.code === 'K7PZ2M' && wa.cap === 8 && wa.friendly === false);
+check('and the room\'s map, code and cap', wa && wa.map === 'itaipu' && wa.code === 'K7PZ2M' && wa.cap === 8 && wa.friendly === false);
 check('the seat is attached to the socket', a.attachment && a.attachment.seat === 1 && a.attachment.token === wa.token);
 now += 10;
 const b = sock('b', '10.0.0.2');
 hello(b, { name: [3, 4, 77] });
 const wb = texts(b, 'welcome')[0];
-check('the second gets seat 2 and sees the first', wb && wb.seat === 2 && wb.peers.length === 1 && wb.peers[0].seat === 1 && wb.peers[0].profile.airframe === 'cub1400');
+check('the second gets seat 2 and sees the first', wb && wb.seat === 2 && wb.peers.length === 1 && wb.peers[0].seat === 1 && wb.peers[0].profile.airframe === 'bramor2300');
 check('and the first is told', texts(a, 'join').some((m) => m.seat === 2 && m.name[2] === 77));
 const bad = sock('bad', '10.0.0.3');
 hello(bad, { name: ['Rude', 2, 42] });
@@ -480,7 +480,7 @@ check(`the room repeats a held pose every ${REPEAT_MS} ms, under the client's ST
  */
 function slowRoom({ frame, seconds, stopAt = Infinity, status = null }) {
   let clock = 3_000_000;
-  const smeta = { code: 'SLOW22', cap: PRIVATE_CAP, friendly: true, map: 'swiss2', epoch: clock - 1000 };
+  const smeta = { code: 'SLOW22', cap: PRIVATE_CAP, friendly: true, map: 'itaipu', epoch: clock - 1000 };
   const r = new RoomCore(smeta);
   const slow = sock('slow', '10.9.0.1');
   const watcher = sock('watcher', '10.9.0.2');
@@ -493,7 +493,7 @@ function slowRoom({ frame, seconds, stopAt = Infinity, status = null }) {
   };
   for (const [i, s] of [slow, watcher].entries()) {
     deliver(r.open(s, clock));
-    deliver(r.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 60 + i], profile }), clock, s.address, newToken));
+    deliver(r.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', level: ROOM_LEVEL, name: [1, 2, 60 + i], profile }), clock, s.address, newToken));
   }
   const seat = r.seats.get(slow).seat;
   const wtrack = new PeerTrack();
@@ -589,15 +589,15 @@ console.log('mid air referee');
   const hulls = Object.keys(HULLS);
   check('configs/hulls.js has every airframe', AIRFRAME_IDS.every((id) => hulls.includes(id)) && hulls.length === AIRFRAME_IDS.length,
     AIRFRAME_IDS.filter((id) => !hulls.includes(id)).join(' '));
-  const cub = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
-  /* A room of two Cubs head on at 15 m/s each, level at 80 m, meeting at
+  const cub = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
+  /* A room of two Bramors head on at 15 m/s each, level at 80 m, meeting at
    * room time MEET, past Phase 5's five seconds of spawn protection from
    * each one's first pose; `flagsB` on every B sample, B's samples `lagB`
    * ms late, and the room made `friendly` or not. */
   const MEET = SPAWN_MS + 2000;
   const pass = ({ meet = MEET, friendly = false, flagsB = 0, lagB = 0, profileB = cub, stamp = (t) => t } = {}) => {
     let clock = 0;
-    const r = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly, map: 'swiss2', epoch: 0 });
+    const r = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly, map: 'itaipu', epoch: 0 });
     const sa = sock('ma', '10.1.0.1');
     const sb = sock('mb', '10.1.0.2');
     const mine = (s) => (actions) => {
@@ -608,9 +608,9 @@ console.log('mid air referee');
       }
     };
     mine(sa)(r.open(sa, 0));
-    mine(sa)(r.message(sa, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [1, 2, 11], profile: cub }), 0, sa.address, newToken));
+    mine(sa)(r.message(sa, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [1, 2, 11], profile: cub }), 0, sa.address, newToken));
     mine(sb)(r.open(sb, 0));
-    mine(sb)(r.message(sb, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [3, 4, 12], profile: profileB }), 0, sb.address, newToken));
+    mine(sb)(r.message(sb, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [3, 4, 12], profile: profileB }), 0, sb.address, newToken));
     const pose = (x, dir, flags, t) => encodePose({
       flags: FLAG_AIRBORNE | flags, seq: 1, t: stamp(t), px: x, py: 80, pz: 0,
       qx: 0, qy: dir > 0 ? -Math.SQRT1_2 : Math.SQRT1_2, qz: 0, qw: Math.SQRT1_2,
@@ -637,7 +637,7 @@ console.log('mid air referee');
   };
   const plain = pass();
   const h = plain.a[0];
-  check('two Cubs head on: one hit, to both seats, the same one', plain.a.length === 1 && plain.b.length === 1 && JSON.stringify(plain.a[0]) === JSON.stringify(plain.b[0]),
+  check('two Bramors head on: one hit, to both seats, the same one', plain.a.length === 1 && plain.b.length === 1 && JSON.stringify(plain.a[0]) === JSON.stringify(plain.b[0]),
     `${plain.a.length} and ${plain.b.length}`);
   check('just before they would meet, CG to CG', h && h.tc > MEET - 50 && h.tc < MEET, h ? `${h.tc} ms` : '');
   check('inside Phase 5\'s spawn protection nobody is hit: the same pass 2 s after spawning', pass({ meet: 2000 }).a.length === 0);
@@ -714,7 +714,7 @@ console.log('phase 2: shared wrecks');
   const before3 = texts(wa, 'event').length;
   /* A whack on a builder course's jelly piece, from a tab older than the
    * cut that took the builder out (2026-10-20). */
-  run(room.message(wb, JSON.stringify({ type: 'event', kind: 'whack', map: 'swiss2', course: 'k1', i: 42, n: [0, 0, 1], square: 0.8 }), now));
+  run(room.message(wb, JSON.stringify({ type: 'event', kind: 'whack', map: 'itaipu', course: 'k1', i: 42, n: [0, 0, 1], square: 0.8 }), now));
   check('an old tab\'s whack is an event kind nobody owns now, and goes nowhere', texts(wa, 'event').length === before3);
   run(room.message(wb, JSON.stringify({ type: 'event', kind: 'nonsense' }), now));
   check('an event kind nobody owns is ignored', texts(wa, 'event').length === before3);
@@ -1020,7 +1020,7 @@ console.log('blocks: a mute that outlasts the room (COMPLETENESS 60)');
 
 console.log('phase 5: kicks and caps');
 const pubMeta = {
-  code: 'PBLC23', public: true, cap: PUBLIC_CAP, friendly: false, map: 'swiss2', epoch: now - 5000, name: 'Sky Club', pick: [1, 2, 33], mode: null, hidden: false,
+  code: 'PBLC23', public: true, cap: PUBLIC_CAP, friendly: false, map: 'itaipu', epoch: now - 5000, name: 'Sky Club', pick: [1, 2, 33], mode: null, hidden: false,
 };
 room = new RoomCore(pubMeta);
 const pub = [];
@@ -1219,7 +1219,7 @@ console.log('stale games and the host');
   };
   const join = (r, so, kept, extra = {}) => {
     apply(kept)(r.open(so, clock));
-    return apply(kept)(r.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [2, 3, 30], profile: quad, ...extra }), clock, so.address, newToken));
+    return apply(kept)(r.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [2, 3, 30], profile: quad, ...extra }), clock, so.address, newToken));
   };
   const say = (r, so, obj, kept) => apply(kept)(r.message(so, JSON.stringify(obj), clock, so.address));
   const refusals = (so) => texts(so, 'refused').map((m) => m.why);
@@ -1364,12 +1364,12 @@ console.log('the room tick keeps the clock');
    * each up to 4 ms early or late, ticks exactly every TICK_MS.
    */
   const jstart = 10_000_000;
-  const jr = new RoomCore({ code: 'JITTR2', cap: PRIVATE_CAP, friendly: true, map: 'swiss2', epoch: jstart - 1000 });
+  const jr = new RoomCore({ code: 'JITTR2', cap: PRIVATE_CAP, friendly: true, map: 'itaipu', epoch: jstart - 1000 });
   const sender = sock('jsender', '10.9.1.1');
   const near = sock('jnear', '10.9.1.2');
   for (const [i, so] of [sender, near].entries()) {
     run(jr.open(so, jstart));
-    run(jr.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 70 + i], profile }), jstart, so.address, newToken));
+    run(jr.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', level: ROOM_LEVEL, name: [1, 2, 70 + i], profile }), jstart, so.address, newToken));
   }
   let seed = 7;
   const rand = () => {
