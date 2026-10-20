@@ -168,7 +168,6 @@
    }
   },
   "rows": {
-   "sys-online": "na",
    "sys-physics": "ready",
    "sys-flight": "ready",
    "sys-audio": "standby"
@@ -177,14 +176,14 @@
  },
  "url-map": {
   "best": {
-   "lastBestMs": null,
-   "osdMode": "freestyle",
+   "lastBestMs": "<undefined>",
+   "osdMode": "<undefined>",
    "view": "alps",
    "viewMode": "freestyle"
   },
   "flown": {
-   "lastBestMs": null,
-   "osdMode": "freestyle",
+   "lastBestMs": "<undefined>",
+   "osdMode": "<undefined>",
    "view": "alps",
    "viewMode": "freestyle"
   },
@@ -197,73 +196,11 @@
    }
   }
  },
- "share-ghost": {
-  "settings": {
-   "live": {
-    "map": "track"
-   },
-   "stored": {
-    "map": "alps"
-   }
-  },
-  "seat": {
-   "id": "trk-golden01",
-   "name": "Golden",
-   "board": true,
-   "map": "swiss2"
-  },
-  "rows": {
-   "sys-online": "ready",
-   "sys-physics": "ready",
-   "sys-flight": "ready",
-   "sys-audio": "standby"
-  },
-  "ghost": "board:tm-0123abcd",
-  "view": {
-   "id": "swiss2",
-   "mode": "race",
-   "gates": 4
-  },
-  "filed": [
-   "interceptor/race"
-  ],
-  "asked": [
-   "GET /api/tracks/trk-golden01",
-   "GET /api/tracks/trk-golden01/document",
-   "GET /api/tracks/trk-golden01/times/tm-0123abcd/ghost"
-  ]
- },
- "share-bad-ghost": {
-  "ghost": "best",
-  "asked": [
-   "GET /api/tracks/trk-golden01",
-   "GET /api/tracks/trk-golden01/document"
-  ]
- },
- "share-missing": {
-  "settings": {
-   "live": {
-    "map": "track"
-   },
-   "stored": {
-    "map": "alps"
-   }
-  },
-  "rows": {
-   "sys-online": "fail",
-   "sys-physics": "ready",
-   "sys-flight": "ready",
-   "sys-audio": "standby"
-  },
-  "banners": [
-   "Could not open that published track.\nnot here"
-  ]
- },
  "stats": {
   "words": [
-   "{\"kind\":\"flush\",\"craft\":\"interceptor\",\"map\":\"custom\"}",
+   "{\"kind\":\"flush\",\"craft\":\"interceptor\",\"map\":\"swiss2\"}",
    "{\"kind\":\"frames\"}",
-   "{\"kind\":\"session\",\"craft\":\"interceptor\",\"map\":\"custom\",\"input\":\"keyboard\"}",
+   "{\"kind\":\"session\",\"craft\":\"interceptor\",\"map\":\"swiss2\",\"input\":\"keyboard\"}",
    "{\"kind\":\"visit\"}"
   ],
   "filed": [
@@ -392,7 +329,6 @@
    }
   },
   "rows": {
-   "sys-online": "na",
    "sys-physics": "ready",
    "sys-flight": "ready",
    "sys-audio": "standby"
@@ -445,7 +381,6 @@
    }
   },
   "rows": {
-   "sys-online": "na",
    "sys-physics": "ready",
    "sys-flight": "ready",
    "sys-audio": "standby"
@@ -498,39 +433,10 @@
    }
   },
   "rows": {
-   "sys-online": "na",
    "sys-physics": "ready",
    "sys-flight": "ready",
    "sys-audio": "standby"
   }
- },
- "floor-seat": {
-  "view": "alps",
-  "settings": {
-   "live": {
-    "map": "alps"
-   },
-   "stored": {
-    "map": "itaipu"
-   }
-  },
-  "banners": [
-   "Itaipu could not be loaded.\nThe Alps was loaded instead."
-  ]
- },
- "floor-title": {
-  "view": "alps",
-  "settings": {
-   "live": {
-    "map": "alps"
-   },
-   "stored": {
-    "map": "swiss2"
-   }
-  },
-  "banners": [
-   "Swiss valley, photoreal could not be loaded.\nThe Alps was loaded instead."
-  ]
  },
  "tune-custom-clamped": {
   "tune": {
@@ -579,7 +485,6 @@
    }
   },
   "rows": {
-   "sys-online": "na",
    "sys-physics": "ready",
    "sys-flight": "ready",
    "sys-audio": "standby"
@@ -632,11 +537,38 @@
    }
   },
   "rows": {
-   "sys-online": "na",
    "sys-physics": "ready",
    "sys-flight": "ready",
    "sys-audio": "standby"
   }
+ },
+ "floor-seat": {
+  "view": "alps",
+  "settings": {
+   "live": {
+    "map": "alps"
+   },
+   "stored": {
+    "map": "itaipu"
+   }
+  },
+  "banners": [
+   "Itaipu could not be loaded.\nThe Alps was loaded instead."
+  ]
+ },
+ "floor-title": {
+  "view": "alps",
+  "settings": {
+   "live": {
+    "map": "alps"
+   },
+   "stored": {
+    "map": "swiss2"
+   }
+  },
+  "banners": [
+   "Swiss valley, photoreal could not be loaded.\nThe Alps was loaded instead."
+  ]
  },
  "music-title": {
   "title": {
