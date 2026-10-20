@@ -4,25 +4,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-club",
-     "label": "Flight Club",
-     "action": "hub-club",
-     "card": "hub-club",
-     "hub": "club",
-     "art": "assets/posters/swiss2.jpg",
-     "blurb": "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly.",
-     "facts": [],
-     "svg": "<svg 1448 chars>",
-     "links": [
-      {
-       "label": "Free Flight",
-       "action": "way-freestyle-wing1000",
-       "key": "freestyle-wing1000"
-      }
-     ],
-     "drives": {}
-    },
-    {
      "id": "title:a-hub-ops",
      "label": "Operations",
      "action": "hub-ops",
@@ -100,25 +81,6 @@
   "title-gate-home-rooms": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-hub-club",
-     "label": "Flight Club",
-     "action": "hub-club",
-     "card": "hub-club",
-     "hub": "club",
-     "art": "assets/posters/swiss2.jpg",
-     "blurb": "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly.",
-     "facts": [],
-     "svg": "<svg 1448 chars>",
-     "links": [
-      {
-       "label": "Free Flight",
-       "action": "way-freestyle-wing1000",
-       "key": "freestyle-wing1000"
-      }
-     ],
-     "drives": {}
-    },
     {
      "id": "title:a-hub-ops",
      "label": "Operations",
@@ -209,20 +171,6 @@
   "title-gate-club": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-way-freestyle-wing1000",
-     "label": "Free Flight",
-     "action": "way-freestyle-wing1000",
-     "card": "freestyle-wing1000",
-     "art": "assets/gate/flight.jpg",
-     "blurb": "Every fixed wing, picked under Plane, free in the Swiss valley.",
-     "facts": [
-      "Every plane",
-      "The Swiss valley"
-     ],
-     "svg": "<svg 623 chars>",
-     "drives": {}
-    },
     {
      "id": "title:a-lobby:owls",
      "label": "Rooms panel home=false",
@@ -428,25 +376,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-club",
-     "label": "Flight Club",
-     "action": "hub-club",
-     "card": "hub-club",
-     "hub": "club",
-     "art": "assets/posters/swiss2.jpg",
-     "blurb": "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly.",
-     "facts": [],
-     "svg": "<svg 623 chars>",
-     "links": [
-      {
-       "label": "Free Flight",
-       "action": "way-freestyle-wing1000",
-       "key": "freestyle-wing1000"
-      }
-     ],
-     "drives": {}
-    },
-    {
      "id": "title:a-hub-ops",
      "label": "Operations",
      "action": "hub-ops",
@@ -525,21 +454,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "The world",
-     "value": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
-     "action": "freestyle",
-     "drives": {}
-    },
-    {
      "id": "title:a-quad",
      "label": "Quad",
      "value": "Factory default",
@@ -572,7 +486,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The home screen's cards. Changing your mind about any of it starts here.",
+     "note": "Home: the Operations cards and the Hangar. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -582,21 +496,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "The world",
-     "value": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
-     "action": "freestyle",
-     "drives": {}
-    },
-    {
      "id": "title:a-quad",
      "label": "Quad",
      "value": "Factory default",
@@ -629,7 +528,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The home screen's cards. Changing your mind about any of it starts here.",
+     "note": "Home: the Operations cards and the Hangar. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -638,21 +537,6 @@
   "title-race-named": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "The world",
-     "value": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-friends",
      "label": "Fly with friends",
@@ -694,7 +578,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The home screen's cards. Changing your mind about any of it starts here.",
+     "note": "Home: the Operations cards and the Hangar. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -704,21 +588,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "The world",
-     "value": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
-     "action": "freestyle",
-     "drives": {}
-    },
-    {
      "id": "title:a-quad",
      "label": "Quad",
      "value": "Factory default",
@@ -751,7 +620,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The home screen's cards. Changing your mind about any of it starts here.",
+     "note": "Home: the Operations cards and the Hangar. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -761,21 +630,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "The world",
-     "value": "Not loaded",
-     "note": "No gates. Pick a valley and fly.",
-     "action": "freestyle",
-     "drives": {}
-    },
-    {
      "id": "title:a-quad",
      "label": "Quad",
      "value": "Factory default",
@@ -808,7 +662,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The home screen's cards. Changing your mind about any of it starts here.",
+     "note": "Home: the Operations cards and the Hangar. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -817,21 +671,6 @@
   "title-plane": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "The world",
-     "value": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-quad",
      "label": "Plane",
@@ -865,7 +704,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The home screen's cards. Changing your mind about any of it starts here.",
+     "note": "Home: the Operations cards and the Hangar. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -874,21 +713,6 @@
   "title-update-bar": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "The world",
-     "value": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-quad",
      "label": "Quad",
@@ -922,7 +746,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The home screen's cards. Changing your mind about any of it starts here.",
+     "note": "Home: the Operations cards and the Hangar. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     },
@@ -949,8 +773,6 @@
     "|",
     "|",
     "|",
-    "|",
-    "|",
     "on|"
    ],
    "litFromGiven": "|"
@@ -958,21 +780,6 @@
   "title-both-bars": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "The world",
-     "value": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-quad",
      "label": "Quad",
@@ -1006,7 +813,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The home screen's cards. Changing your mind about any of it starts here.",
+     "note": "Home: the Operations cards and the Hangar. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     },
@@ -1047,8 +854,6 @@
     "|",
     "|",
     "|",
-    "|",
-    "|",
     "on|",
     "|on"
    ],
@@ -1057,21 +862,6 @@
   "title-room-bar-no-button": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "The world",
-     "value": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-quad",
      "label": "Quad",
@@ -1105,7 +895,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The home screen's cards. Changing your mind about any of it starts here.",
+     "note": "Home: the Operations cards and the Hangar. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -1963,485 +1753,11 @@
   },
   "freestyle-off": {
    "screen": "freestyle",
-   "items": [
-    {
-     "id": "freestyle:a-map:alps",
-     "label": "The Alps",
-     "note": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock.",
-     "action": "map:alps",
-     "map": "alps",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:swiss2",
-     "label": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock.",
-     "action": "map:swiss2",
-     "map": "swiss2",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:itaipu",
-     "label": "Itaipu",
-     "note": "Forty kilometres square round the Itaipu Dam on the Parana at real scale, from satellite imagery and elevation: the dam, the reservoir and the river below at their levels, the towns and the forests. Map data (c) OpenStreetMap contributors. No gates, no clock.",
-     "action": "map:itaipu",
-     "map": "itaipu",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:interior",
-     "label": "The Interior (in development)",
-     "note": "In development: The Interior campaign's map, sixteen kilometres square of ranch land, soy fields, gallery forest and a slow river, the land from open elevation and land cover data and every road, house and name on it invented. Mission 1's corridor only. No gates, no clock.",
-     "action": "map:interior",
-     "map": "interior",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "The machine. Its Tune row opens PIDs, where the tune is chosen and the firmware's own sliders adjust it, and the camera, the flight mode and the firmware bench are there too.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:physics-model",
-     "label": "Physics model",
-     "value": "Expert",
-     "note": "Expert: the full physics, propwash, gyro noise and build tolerance included. Arcade turns the imperfections off for a friendlier machine. Takes effect on the next flight.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Expert"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:crash-damage",
-     "label": "Crash damage",
-     "value": "On",
-     "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:weather",
-     "label": "Weather",
-     "value": "Calm",
-     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
-     "current": "calm",
-     "options": [
-      {
-       "value": "calm",
-       "label": "Calm"
-      },
-      {
-       "value": "breeze",
-       "label": "Breeze"
-      },
-      {
-       "value": "gusty",
-       "label": "Gusty"
-      },
-      {
-       "value": "front",
-       "label": "Fronts"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "weather": "breeze"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "weather": "front"
-       }
-      },
-      "pick(\"breeze\")": {
-       "settings": {
-        "weather": "breeze"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:time-of-day",
-     "label": "Time of day",
-     "value": "World's own",
-     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
-     "current": "own",
-     "options": [
-      {
-       "value": "own",
-       "label": "World's own"
-      },
-      {
-       "value": "day",
-       "label": "Day"
-      },
-      {
-       "value": "morning",
-       "label": "Morning"
-      },
-      {
-       "value": "noon",
-       "label": "Noon"
-      },
-      {
-       "value": "golden",
-       "label": "Golden hour"
-      },
-      {
-       "value": "night",
-       "label": "Night"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "timeOfDay": "day"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "timeOfDay": "night"
-       }
-      },
-      "pick(\"day\")": {
-       "settings": {
-        "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
+   "items": []
   },
   "freestyle-arcade": {
    "screen": "freestyle",
-   "items": [
-    {
-     "id": "freestyle:a-map:alps",
-     "label": "The Alps",
-     "note": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock.",
-     "action": "map:alps",
-     "map": "alps",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:swiss2",
-     "label": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock.",
-     "action": "map:swiss2",
-     "map": "swiss2",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:itaipu",
-     "label": "Itaipu",
-     "note": "Forty kilometres square round the Itaipu Dam on the Parana at real scale, from satellite imagery and elevation: the dam, the reservoir and the river below at their levels, the towns and the forests. Map data (c) OpenStreetMap contributors. No gates, no clock.",
-     "action": "map:itaipu",
-     "map": "itaipu",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:interior",
-     "label": "The Interior (in development)",
-     "note": "In development: The Interior campaign's map, sixteen kilometres square of ranch land, soy fields, gallery forest and a slow river, the land from open elevation and land cover data and every road, house and name on it invented. Mission 1's corridor only. No gates, no clock.",
-     "action": "map:interior",
-     "map": "interior",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "The machine. Its Tune row opens PIDs, where the tune is chosen and the firmware's own sliders adjust it, and the camera, the flight mode and the firmware bench are there too.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:physics-model",
-     "label": "Physics model",
-     "value": "Arcade",
-     "note": "Arcade: the ideal quad. No propwash shake, no gyro noise, no build asymmetry. It is a plant flag, so it changes a freestyle flight exactly as much as it changes a race.",
-     "current": "arcade",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Expert"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      },
-      "pick(\"expert\")": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:crash-damage",
-     "label": "Crash damage",
-     "value": "Off",
-     "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "crashDamage": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "crashDamage": true
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:weather",
-     "label": "Weather",
-     "value": "Calm",
-     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
-     "current": "calm",
-     "options": [
-      {
-       "value": "calm",
-       "label": "Calm"
-      },
-      {
-       "value": "breeze",
-       "label": "Breeze"
-      },
-      {
-       "value": "gusty",
-       "label": "Gusty"
-      },
-      {
-       "value": "front",
-       "label": "Fronts"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "weather": "breeze"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "weather": "front"
-       }
-      },
-      "pick(\"breeze\")": {
-       "settings": {
-        "weather": "breeze"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:time-of-day",
-     "label": "Time of day",
-     "value": "World's own",
-     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
-     "current": "own",
-     "options": [
-      {
-       "value": "own",
-       "label": "World's own"
-      },
-      {
-       "value": "day",
-       "label": "Day"
-      },
-      {
-       "value": "morning",
-       "label": "Morning"
-      },
-      {
-       "value": "noon",
-       "label": "Noon"
-      },
-      {
-       "value": "golden",
-       "label": "Golden hour"
-      },
-      {
-       "value": "night",
-       "label": "Night"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "timeOfDay": "day"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "timeOfDay": "night"
-       }
-      },
-      "pick(\"day\")": {
-       "settings": {
-        "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
+   "items": []
   },
   "quad": {
    "screen": "quad",
@@ -8337,6 +7653,138 @@
      }
     },
     {
+     "id": "pilot:s-the-world",
+     "label": "The world",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:s-diagnostics",
      "label": "Diagnostics",
      "section": true,
@@ -9395,6 +8843,138 @@
       "flip()": {
        "settings": {
         "focusTone": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:s-the-world",
+     "label": "The world",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }
@@ -10463,6 +10043,138 @@
      }
     },
     {
+     "id": "pilot:s-the-world",
+     "label": "The world",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:s-diagnostics",
      "label": "Diagnostics",
      "section": true,
@@ -11526,6 +11238,138 @@
      }
     },
     {
+     "id": "pilot:s-the-world",
+     "label": "The world",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:s-diagnostics",
      "label": "Diagnostics",
      "section": true,
@@ -12569,6 +12413,138 @@
       "flip()": {
        "settings": {
         "focusTone": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:s-the-world",
+     "label": "The world",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }
@@ -13626,6 +13602,138 @@
      }
     },
     {
+     "id": "pilot:s-the-world",
+     "label": "The world",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:s-diagnostics",
      "label": "Diagnostics",
      "section": true,
@@ -14652,6 +14760,138 @@
       "flip()": {
        "settings": {
         "focusTone": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:s-the-world",
+     "label": "The world",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }
@@ -15723,6 +15963,138 @@
       "flip()": {
        "settings": {
         "focusTone": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:s-the-world",
+     "label": "The world",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:time-of-day",
+     "label": "Time of day",
+     "value": "World's own",
+     "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "World's own"
+      },
+      {
+       "value": "day",
+       "label": "Day"
+      },
+      {
+       "value": "morning",
+       "label": "Morning"
+      },
+      {
+       "value": "noon",
+       "label": "Noon"
+      },
+      {
+       "value": "golden",
+       "label": "Golden hour"
+      },
+      {
+       "value": "night",
+       "label": "Night"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:stock-surfaces-only",
+     "label": "Stock surfaces only",
+     "value": "Off",
+     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }
@@ -23733,25 +24105,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-club",
-     "label": "Club de vuelo",
-     "action": "hub-club",
-     "card": "hub-club",
-     "hub": "club",
-     "art": "assets/posters/swiss2.jpg",
-     "blurb": "Vuela lo que quieras. Contra el reloj, cortando serpentinas, persiguiendo al As, o solo volar.",
-     "facts": [],
-     "svg": "<svg 1448 chars>",
-     "links": [
-      {
-       "label": "Vuelo Libre",
-       "action": "way-freestyle-wing1000",
-       "key": "freestyle-wing1000"
-      }
-     ],
-     "drives": {}
-    },
-    {
      "id": "title:a-hub-ops",
      "label": "Operaciones",
      "action": "hub-ops",
@@ -23829,25 +24182,6 @@
   "title-gate-home-rooms": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-hub-club",
-     "label": "Club de vuelo",
-     "action": "hub-club",
-     "card": "hub-club",
-     "hub": "club",
-     "art": "assets/posters/swiss2.jpg",
-     "blurb": "Vuela lo que quieras. Contra el reloj, cortando serpentinas, persiguiendo al As, o solo volar.",
-     "facts": [],
-     "svg": "<svg 1448 chars>",
-     "links": [
-      {
-       "label": "Vuelo Libre",
-       "action": "way-freestyle-wing1000",
-       "key": "freestyle-wing1000"
-      }
-     ],
-     "drives": {}
-    },
     {
      "id": "title:a-hub-ops",
      "label": "Operaciones",
@@ -23938,20 +24272,6 @@
   "title-gate-club": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-way-freestyle-wing1000",
-     "label": "Vuelo Libre",
-     "action": "way-freestyle-wing1000",
-     "card": "freestyle-wing1000",
-     "art": "assets/gate/flight.jpg",
-     "blurb": "Todas las alas fijas, a elegir en Avión, libres en el valle suizo.",
-     "facts": [
-      "Todos los aviones",
-      "El valle suizo"
-     ],
-     "svg": "<svg 623 chars>",
-     "drives": {}
-    },
     {
      "id": "title:a-lobby:owls",
      "label": "Rooms panel home=false",
@@ -24157,25 +24477,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-hub-club",
-     "label": "Club de vuelo",
-     "action": "hub-club",
-     "card": "hub-club",
-     "hub": "club",
-     "art": "assets/posters/swiss2.jpg",
-     "blurb": "Vuela lo que quieras. Contra el reloj, cortando serpentinas, persiguiendo al As, o solo volar.",
-     "facts": [],
-     "svg": "<svg 623 chars>",
-     "links": [
-      {
-       "label": "Vuelo Libre",
-       "action": "way-freestyle-wing1000",
-       "key": "freestyle-wing1000"
-      }
-     ],
-     "drives": {}
-    },
-    {
      "id": "title:a-hub-ops",
      "label": "Operaciones",
      "action": "hub-ops",
@@ -24254,21 +24555,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
-     "action": "freestyle",
-     "drives": {}
-    },
-    {
      "id": "title:a-quad",
      "label": "Dron",
      "value": "De fábrica",
@@ -24301,7 +24587,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Inicio: las tarjetas de Operaciones y el Hangar. Cambiar de idea sobre cualquiera de ellas empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -24311,21 +24597,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
-     "action": "freestyle",
-     "drives": {}
-    },
-    {
      "id": "title:a-quad",
      "label": "Dron",
      "value": "De fábrica",
@@ -24358,7 +24629,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Inicio: las tarjetas de Operaciones y el Hangar. Cambiar de idea sobre cualquiera de ellas empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -24367,21 +24638,6 @@
   "title-race-named": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-friends",
      "label": "Volar con amigos",
@@ -24423,7 +24679,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Inicio: las tarjetas de Operaciones y el Hangar. Cambiar de idea sobre cualquiera de ellas empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -24433,21 +24689,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
-     "action": "freestyle",
-     "drives": {}
-    },
-    {
      "id": "title:a-quad",
      "label": "Dron",
      "value": "De fábrica",
@@ -24480,7 +24721,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Inicio: las tarjetas de Operaciones y el Hangar. Cambiar de idea sobre cualquiera de ellas empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -24490,21 +24731,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "El mundo",
-     "value": "No cargado",
-     "note": "Sin puertas. Elige un valle y vuela.",
-     "action": "freestyle",
-     "drives": {}
-    },
-    {
      "id": "title:a-quad",
      "label": "Dron",
      "value": "De fábrica",
@@ -24537,7 +24763,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Inicio: las tarjetas de Operaciones y el Hangar. Cambiar de idea sobre cualquiera de ellas empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -24546,21 +24772,6 @@
   "title-plane": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-quad",
      "label": "Avión",
@@ -24594,7 +24805,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Inicio: las tarjetas de Operaciones y el Hangar. Cambiar de idea sobre cualquiera de ellas empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -24603,21 +24814,6 @@
   "title-update-bar": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-quad",
      "label": "Dron",
@@ -24651,7 +24847,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Inicio: las tarjetas de Operaciones y el Hangar. Cambiar de idea sobre cualquiera de ellas empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     },
@@ -24678,8 +24874,6 @@
     "|",
     "|",
     "|",
-    "|",
-    "|",
     "on|"
    ],
    "litFromGiven": "|"
@@ -24687,21 +24881,6 @@
   "title-both-bars": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-quad",
      "label": "Dron",
@@ -24735,7 +24914,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Inicio: las tarjetas de Operaciones y el Hangar. Cambiar de idea sobre cualquiera de ellas empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     },
@@ -24776,8 +24955,6 @@
     "|",
     "|",
     "|",
-    "|",
-    "|",
     "on|",
     "|on"
    ],
@@ -24786,21 +24963,6 @@
   "title-room-bar-no-button": {
    "screen": "title",
    "items": [
-    {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-freestyle",
-     "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
-     "action": "freestyle",
-     "drives": {}
-    },
     {
      "id": "title:a-quad",
      "label": "Dron",
@@ -24834,7 +24996,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Inicio: las tarjetas de Operaciones y el Hangar. Cambiar de idea sobre cualquiera de ellas empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -25692,485 +25854,11 @@
   },
   "freestyle-off": {
    "screen": "freestyle",
-   "items": [
-    {
-     "id": "freestyle:a-map:alps",
-     "label": "Los Alpes",
-     "note": "Un valle glaciar de seis kilómetros entre crestas nevadas, pinos en las laderas, un pueblo y una pista de prado en el fondo y un lago a sus pies. Sin puertas, sin reloj.",
-     "action": "map:alps",
-     "map": "alps",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:swiss2",
-     "label": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj.",
-     "action": "map:swiss2",
-     "map": "swiss2",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:itaipu",
-     "label": "Itaipú",
-     "note": "Cuarenta kilómetros de lado alrededor de la represa de Itaipú sobre el Paraná a escala real, de imágenes satelitales y datos de elevación: la represa, el embalse y el río aguas abajo a sus niveles, las ciudades y los bosques. Datos del mapa (c) colaboradores de OpenStreetMap. Sin puertas, sin reloj.",
-     "action": "map:itaipu",
-     "map": "itaipu",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:interior",
-     "label": "El Interior (en desarrollo)",
-     "note": "En desarrollo: el mapa de la campaña El Interior, dieciséis kilómetros de lado de estancias, sojales, bosque en galería y un río lento; el terreno sale de datos abiertos de elevación y cobertura del suelo, y cada camino, casa y nombre sobre él es inventado. Solo el corredor de la Misión 1. Sin puertas, sin reloj.",
-     "action": "map:interior",
-     "map": "interior",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "La máquina. Su fila Tune abre PIDs, donde se elige el tune y los propios sliders del firmware lo ajustan, y ahí también están la cámara, el modo de vuelo y el banco de firmware.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:modelo-de-f-sica",
-     "label": "Modelo de física",
-     "value": "Experto",
-     "note": "Experto: la física completa, con propwash, ruido de gyro y tolerancia de armado incluidos. Arcade apaga las imperfecciones para una máquina más amigable. Se aplica en el siguiente vuelo.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Experto"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:da-os-en-choques",
-     "label": "Daños en choques",
-     "value": "Sí",
-     "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:clima",
-     "label": "Clima",
-     "value": "Calma",
-     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
-     "current": "calm",
-     "options": [
-      {
-       "value": "calm",
-       "label": "Calma"
-      },
-      {
-       "value": "breeze",
-       "label": "Brisa"
-      },
-      {
-       "value": "gusty",
-       "label": "Ráfagas"
-      },
-      {
-       "value": "front",
-       "label": "Frentes"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "weather": "breeze"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "weather": "front"
-       }
-      },
-      "pick(\"breeze\")": {
-       "settings": {
-        "weather": "breeze"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:hora-del-d-a",
-     "label": "Hora del día",
-     "value": "La del mundo",
-     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
-     "current": "own",
-     "options": [
-      {
-       "value": "own",
-       "label": "La del mundo"
-      },
-      {
-       "value": "day",
-       "label": "Día"
-      },
-      {
-       "value": "morning",
-       "label": "Mañana"
-      },
-      {
-       "value": "noon",
-       "label": "Mediodía"
-      },
-      {
-       "value": "golden",
-       "label": "Hora dorada"
-      },
-      {
-       "value": "night",
-       "label": "Noche"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "timeOfDay": "day"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "timeOfDay": "night"
-       }
-      },
-      "pick(\"day\")": {
-       "settings": {
-        "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
+   "items": []
   },
   "freestyle-arcade": {
    "screen": "freestyle",
-   "items": [
-    {
-     "id": "freestyle:a-map:alps",
-     "label": "Los Alpes",
-     "note": "Un valle glaciar de seis kilómetros entre crestas nevadas, pinos en las laderas, un pueblo y una pista de prado en el fondo y un lago a sus pies. Sin puertas, sin reloj.",
-     "action": "map:alps",
-     "map": "alps",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:swiss2",
-     "label": "Valle suizo, fotorrealista",
-     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj.",
-     "action": "map:swiss2",
-     "map": "swiss2",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:itaipu",
-     "label": "Itaipú",
-     "note": "Cuarenta kilómetros de lado alrededor de la represa de Itaipú sobre el Paraná a escala real, de imágenes satelitales y datos de elevación: la represa, el embalse y el río aguas abajo a sus niveles, las ciudades y los bosques. Datos del mapa (c) colaboradores de OpenStreetMap. Sin puertas, sin reloj.",
-     "action": "map:itaipu",
-     "map": "itaipu",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-map:interior",
-     "label": "El Interior (en desarrollo)",
-     "note": "En desarrollo: el mapa de la campaña El Interior, dieciséis kilómetros de lado de estancias, sojales, bosque en galería y un río lento; el terreno sale de datos abiertos de elevación y cobertura del suelo, y cada camino, casa y nombre sobre él es inventado. Solo el corredor de la Misión 1. Sin puertas, sin reloj.",
-     "action": "map:interior",
-     "map": "interior",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "La máquina. Su fila Tune abre PIDs, donde se elige el tune y los propios sliders del firmware lo ajustan, y ahí también están la cámara, el modo de vuelo y el banco de firmware.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "freestyle:modelo-de-f-sica",
-     "label": "Modelo de física",
-     "value": "Arcade",
-     "note": "Arcade: el quad ideal. Sin sacudidas de propwash, sin ruido de gyro, sin asimetría de armado. Es una bandera de la planta, así que cambia un vuelo freestyle exactamente tanto como cambia una carrera.",
-     "current": "arcade",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Experto"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      },
-      "pick(\"expert\")": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:da-os-en-choques",
-     "label": "Daños en choques",
-     "value": "No",
-     "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "crashDamage": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "crashDamage": true
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:clima",
-     "label": "Clima",
-     "value": "Calma",
-     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
-     "current": "calm",
-     "options": [
-      {
-       "value": "calm",
-       "label": "Calma"
-      },
-      {
-       "value": "breeze",
-       "label": "Brisa"
-      },
-      {
-       "value": "gusty",
-       "label": "Ráfagas"
-      },
-      {
-       "value": "front",
-       "label": "Frentes"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "weather": "breeze"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "weather": "front"
-       }
-      },
-      "pick(\"breeze\")": {
-       "settings": {
-        "weather": "breeze"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:hora-del-d-a",
-     "label": "Hora del día",
-     "value": "La del mundo",
-     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
-     "current": "own",
-     "options": [
-      {
-       "value": "own",
-       "label": "La del mundo"
-      },
-      {
-       "value": "day",
-       "label": "Día"
-      },
-      {
-       "value": "morning",
-       "label": "Mañana"
-      },
-      {
-       "value": "noon",
-       "label": "Mediodía"
-      },
-      {
-       "value": "golden",
-       "label": "Hora dorada"
-      },
-      {
-       "value": "night",
-       "label": "Noche"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "timeOfDay": "day"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "timeOfDay": "night"
-       }
-      },
-      "pick(\"day\")": {
-       "settings": {
-        "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
-     "id": "freestyle:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
+   "items": []
   },
   "quad": {
    "screen": "quad",
@@ -32066,6 +31754,138 @@
      }
     },
     {
+     "id": "pilot:s-el-mundo",
+     "label": "El mundo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "No",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:s-diagn-stico",
      "label": "Diagnóstico",
      "section": true,
@@ -33124,6 +32944,138 @@
       "flip()": {
        "settings": {
         "focusTone": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:s-el-mundo",
+     "label": "El mundo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "No",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }
@@ -34192,6 +34144,138 @@
      }
     },
     {
+     "id": "pilot:s-el-mundo",
+     "label": "El mundo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "No",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:s-diagn-stico",
      "label": "Diagnóstico",
      "section": true,
@@ -35255,6 +35339,138 @@
      }
     },
     {
+     "id": "pilot:s-el-mundo",
+     "label": "El mundo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "No",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:s-diagn-stico",
      "label": "Diagnóstico",
      "section": true,
@@ -36298,6 +36514,138 @@
       "flip()": {
        "settings": {
         "focusTone": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:s-el-mundo",
+     "label": "El mundo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "No",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }
@@ -37355,6 +37703,138 @@
      }
     },
     {
+     "id": "pilot:s-el-mundo",
+     "label": "El mundo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "No",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      }
+     }
+    },
+    {
      "id": "pilot:s-diagn-stico",
      "label": "Diagnóstico",
      "section": true,
@@ -38381,6 +38861,138 @@
       "flip()": {
        "settings": {
         "focusTone": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:s-el-mundo",
+     "label": "El mundo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "No",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }
@@ -39452,6 +40064,138 @@
       "flip()": {
        "settings": {
         "focusTone": true
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:s-el-mundo",
+     "label": "El mundo",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:hora-del-d-a",
+     "label": "Hora del día",
+     "value": "La del mundo",
+     "note": "Cada mundo a su propia hora, como siempre. En una sala, lo que elige el anfitrión vale para todos; una misión mantiene su propia hora.",
+     "current": "own",
+     "options": [
+      {
+       "value": "own",
+       "label": "La del mundo"
+      },
+      {
+       "value": "day",
+       "label": "Día"
+      },
+      {
+       "value": "morning",
+       "label": "Mañana"
+      },
+      {
+       "value": "noon",
+       "label": "Mediodía"
+      },
+      {
+       "value": "golden",
+       "label": "Hora dorada"
+      },
+      {
+       "value": "night",
+       "label": "Noche"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "timeOfDay": "night"
+       }
+      },
+      "pick(\"day\")": {
+       "settings": {
+        "timeOfDay": "day"
+       }
+      }
+     }
+    },
+    {
+     "id": "pilot:solo-superficies-de-f-brica",
+     "label": "Solo superficies de fábrica",
+     "value": "No",
+     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
+     "sw": true,
+     "on": false,
+     "current": false,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "roomStockSurfaces": true
+       }
+      },
+      "adjust(-1)": {},
+      "flip()": {
+       "settings": {
+        "roomStockSurfaces": true
        }
       }
      }

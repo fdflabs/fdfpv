@@ -166,44 +166,6 @@
    "SETTINGS_KEY": "webfpv.settings.v3",
    "WAYS": [
     {
-     "action": "way-freestyle-wing1000",
-     "airframes": [
-      "bramor2300",
-      "sky1800",
-      "cub1400",
-      "radian2000",
-      "slowstick1180",
-      "timber1500",
-      "timber1500f",
-      "cub1400f",
-      "bombshell1118",
-      "kadet1981",
-      "uglystik1567",
-      "tigermoth1803",
-      "extra3d1308",
-      "nighttimber1200",
-      "hercules3077",
-      "cap1702",
-      "slick2680",
-      "p51d1450",
-      "f16878",
-      "zagi1219",
-      "nrj1490",
-      "striker2500"
-     ],
-     "art": "assets/gate/flight.jpg",
-     "blurb": "Every fixed wing, picked under Plane, free in the Swiss valley.",
-     "facts": [
-      "Every plane",
-      "The Swiss valley"
-     ],
-     "home": "swiss2",
-     "id": "freestyle-wing1000",
-     "label": "Free Flight",
-     "lobby": null,
-     "mode": "freestyle"
-    },
-    {
      "action": "way-war",
      "airframes": [
       "7inch",
@@ -3798,7 +3760,7 @@
   "wrongtype:lastActivity:2": "f5db0b17d91d2c9dce93",
   "wrongtype:lastActivity:3": "f5db0b17d91d2c9dce93",
   "wrongtype:lastActivity:4": "f5db0b17d91d2c9dce93",
-  "wrongtype:lastActivity:5": "69cfa224a6081dba7dad",
+  "wrongtype:lastActivity:5": "f5db0b17d91d2c9dce93",
   "wrongtype:lastActivity:6": "f5db0b17d91d2c9dce93",
   "wrongtype:lastActivity:7": "f5db0b17d91d2c9dce93",
   "wrongtype:lastActivity:8": "f5db0b17d91d2c9dce93",
@@ -5332,7 +5294,7 @@
   "random:226": "c12671cc11a14f57a654",
   "random:227": "76984e1600b6746d3223",
   "random:228": "b679447aa03d1470b17f",
-  "random:229": "db24c63a7c5471a50ad4",
+  "random:229": "30f416e042a4e6e3e645",
   "random:230": "f9decf63a6dcb7818b1e",
   "random:231": "999573dc6be4bd8b0873",
   "random:232": "6664725933b930bfa116",

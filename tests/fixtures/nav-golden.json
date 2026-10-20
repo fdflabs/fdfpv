@@ -1550,7 +1550,6 @@
    "log": [
     "syncChips",
     "closeDrop",
-    "renderMapCards",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -1558,7 +1557,6 @@
     "syncFcChrome",
     "syncChips",
     "closeDrop",
-    "renderMapCards",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -3591,8 +3589,8 @@
     },
     "freestyleFromRoom": {
      "state": {
-      "screen": "freestyle",
-      "cursor": 0,
+      "screen": "quad",
+      "cursor": 3,
       "rowOffset": 0,
       "focusId": null,
       "returnTo": null,
@@ -3609,12 +3607,30 @@
       "ratesFrom": null,
       "pidsFrom": null,
       "fcFrom": null,
-      "roomFrom": null,
+      "roomFrom": "freestyle",
       "ratesNotice": null,
       "cards": [
        "x"
       ],
-      "menuRows": [],
+      "menuRows": [
+       "<div.menu-section \"Flight\">",
+       "<div.row.row-nav \"Rates\">",
+       "<div.row \"Reset\">",
+       "<div.row \"Air mode\">",
+       "<div.row \"Laps\">",
+       "<div.row \"Style\">",
+       "<div.row \"Map\">",
+       "<div.row \"Rate\">",
+       "<div.row \"Weight\">",
+       "<div.row \"Search\">",
+       "<div.row \"Versionv1.2\">",
+       "<div.row.row-info \"Buildabc123 long value\">",
+       "<div.row.row-grey.row-primary \"Fly\">",
+       "<div.row.row-primary.row-mint \"Fly now\">",
+       "<div.row \"Firmware key\">",
+       "<div.row \"Spec\">",
+       "<div.row \"No id\">"
+      ],
       "url": "https://example.test/"
      },
      "displays": {
@@ -3663,7 +3679,7 @@
          "tag": "SPAN",
          "cls": "crumb-here",
          "children": [
-          "Freestyle"
+          "Quad"
          ]
         }
        ]
@@ -3704,6 +3720,26 @@
            "tag": "SPAN",
            "cls": "kbd",
            "children": [
+            "↑"
+           ]
+          },
+          {
+           "tag": "SPAN",
+           "cls": "kbd",
+           "children": [
+            "↓"
+           ]
+          },
+          " Move"
+         ]
+        },
+        {
+         "tag": "I",
+         "children": [
+          {
+           "tag": "SPAN",
+           "cls": "kbd",
+           "children": [
             "←"
            ]
           },
@@ -3714,7 +3750,7 @@
             "→"
            ]
           },
-          " Move"
+          " Adjust"
          ]
         },
         {
@@ -3748,7 +3784,7 @@
       "primary": {
        "tag": "BUTTON",
        "name": "framePrimary",
-       "hidden": true,
+       "hidden": false,
        "children": [
         "Fly now"
        ]
@@ -4520,15 +4556,21 @@
     "closeDrop",
     "syncChips",
     "closeDrop",
-    "renderMapCards",
-    "titleStop",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
     "syncPids",
     "syncFcChrome",
     "syncChips",
-    "onScreenChange freestyle",
+    "onScreenChange quad",
     "closeDrop",
     "syncChips",
     "closeDrop",
@@ -6651,7 +6693,7 @@
         "tag": "SPAN",
         "cls": "crumb-here",
         "children": [
-         "Freestyle"
+         "freestyle"
         ]
        }
       ]
@@ -10381,7 +10423,6 @@
    "log": [
     "syncChips",
     "closeDrop",
-    "renderMapCards",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -10389,7 +10430,6 @@
     "syncFcChrome",
     "syncChips",
     "closeDrop",
-    "renderMapCards",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -12422,8 +12462,8 @@
     },
     "freestyleFromRoom": {
      "state": {
-      "screen": "freestyle",
-      "cursor": 0,
+      "screen": "quad",
+      "cursor": 3,
       "rowOffset": 0,
       "focusId": null,
       "returnTo": null,
@@ -12440,12 +12480,30 @@
       "ratesFrom": null,
       "pidsFrom": null,
       "fcFrom": null,
-      "roomFrom": null,
+      "roomFrom": "freestyle",
       "ratesNotice": null,
       "cards": [
        "x"
       ],
-      "menuRows": [],
+      "menuRows": [
+       "<div.menu-section \"Flight\">",
+       "<div.row.row-nav \"Rates\">",
+       "<div.row \"Reset\">",
+       "<div.row \"Air mode\">",
+       "<div.row \"Laps\">",
+       "<div.row \"Style\">",
+       "<div.row \"Map\">",
+       "<div.row \"Rate\">",
+       "<div.row \"Weight\">",
+       "<div.row \"Search\">",
+       "<div.row \"Versionv1.2\">",
+       "<div.row.row-info \"Buildabc123 long value\">",
+       "<div.row.row-grey.row-primary \"Fly\">",
+       "<div.row.row-primary.row-mint \"Fly now\">",
+       "<div.row \"Firmware key\">",
+       "<div.row \"Spec\">",
+       "<div.row \"No id\">"
+      ],
       "url": "https://example.test/"
      },
      "displays": {
@@ -12494,7 +12552,7 @@
          "tag": "SPAN",
          "cls": "crumb-here",
          "children": [
-          "Freestyle"
+          "Quad"
          ]
         }
        ]
@@ -12535,6 +12593,26 @@
            "tag": "SPAN",
            "cls": "kbd",
            "children": [
+            "↑"
+           ]
+          },
+          {
+           "tag": "SPAN",
+           "cls": "kbd",
+           "children": [
+            "↓"
+           ]
+          },
+          " Mover"
+         ]
+        },
+        {
+         "tag": "I",
+         "children": [
+          {
+           "tag": "SPAN",
+           "cls": "kbd",
+           "children": [
             "←"
            ]
           },
@@ -12545,7 +12623,7 @@
             "→"
            ]
           },
-          " Mover"
+          " Ajustar"
          ]
         },
         {
@@ -12579,7 +12657,7 @@
       "primary": {
        "tag": "BUTTON",
        "name": "framePrimary",
-       "hidden": true,
+       "hidden": false,
        "children": [
         "Fly now"
        ]
@@ -13351,15 +13429,21 @@
     "closeDrop",
     "syncChips",
     "closeDrop",
-    "renderMapCards",
-    "titleStop",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
     "syncPids",
     "syncFcChrome",
     "syncChips",
-    "onScreenChange freestyle",
+    "onScreenChange quad",
     "closeDrop",
     "syncChips",
     "closeDrop",
@@ -15482,7 +15566,7 @@
         "tag": "SPAN",
         "cls": "crumb-here",
         "children": [
-         "Freestyle"
+         "freestyle"
         ]
        }
       ]
