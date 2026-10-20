@@ -3083,8 +3083,12 @@ export async function boot({
       yes: str('main.stay_here'),
       no: str('main.choose_a_world'),
     }).then((stay) => {
+      /* No world picker since free flight left (the combat-only cut,
+       * 2026-10-20): either answer leaves the pilot at home, on the
+       * world the retired one went to. */
       if (!stay) {
-        ui.show('freestyle');
+        ui.hub = null;
+        ui.show('title');
       }
     });
   }

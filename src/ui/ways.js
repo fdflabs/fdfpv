@@ -120,18 +120,13 @@ function fromRegistry(modeId) {
   return face;
 }
 
-const FIXED_WINGS = AIRFRAMES.filter((a) => a.fixedWing).map((a) => a.id);
-const leading = (first, ids) => [first, ...ids.filter((id) => id !== first)];
 
 /*
- * The cards, in order. Order is meaningful: picking a card for an
- * aircraft takes the first that fits, and the two solo cards come first
- * so that never lands on a room card. The ids outlived the machines they
- * were first named for (the five inch, the 1000 mm wing).
+ * The cards, in order: picking a card for an aircraft takes the first
+ * that fits. Free Flight's card left with free flight (the combat-only
+ * cut, 2026-10-20); its registry row stays hidden (src/share/modes.js).
  */
 export const WAYS = [
-  /* Free flight: every fixed wing, the Bramor first. */
-  { id: 'freestyle-wing1000', airframes: leading('bramor2300', FIXED_WINGS), mode: 'freestyle', ...fromRegistry('free') },
   /* Defend Itaipu: its consent gate runs in the shell before the room
    * (src/main.js). Off the title since 2026-09-30; Defend the Parana's
    * Play still enters through it. */

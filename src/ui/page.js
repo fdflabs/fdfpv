@@ -331,16 +331,6 @@ const PAGES = {
     menu: 'credits',
     hint: ESC_STILL_MOVE,
   },
-  /* The world cards and their rows; nothing here is timed or posted, so
-   * there is no publish cluster and no hint line. */
-  freestyle: {
-    classes: 'screen-page screen-courses screen-freestyle',
-    title: 'ui.freestyle',
-    lede: ['rates-lede', 'ui.a_whole_valley_and_no_gates'],
-    body: (shell) => [keep(shell, 'freestyleCards', 'div', 'map-cards')],
-    menu: 'freestyle',
-    scroll: true,
-  },
   /* Quad holds what survives a change of pilot, Settings (pilot) what
    * survives a change of quad; the run's own choices are the launch card. */
   quad: {
@@ -723,7 +713,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'credits', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
+  ...['howto', 'credits', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,

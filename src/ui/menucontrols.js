@@ -51,7 +51,6 @@ const HELP_FIELD = {
   title: 'titleHelp',
   howto: 'howtoHelp',
   credits: 'creditsHelp',
-  freestyle: 'freestyleHelp',
   pilot: 'pilotHelp',
   friends: 'friendsHelp',
   quad: 'quadHelp',

@@ -29,31 +29,12 @@
  */
 
 import { readWallet } from '../share/account.js';
-import { currentLocale, str } from '../strings/index.js';
+import { currentLocale } from '../strings/index.js';
 import { paintPilotStats, pilotStats } from './pilotstats.js';
 import { WAYS } from './ways.js';
 import { btn, el } from './widgets.js';
 
 const SEP = ' · ';
-
-/*
- * A world's poster on its card: a rendered frame of the world
- * (scripts/posters.js, named in src/maps/registry.js). The cards' looping
- * clips, recorded through src/share/orbit.html, left with the combat-only
- * cut (2026-10-20); the poster was always the card's first picture.
- *
- * A background, not an <img>: it is decoration the card already names in
- * type, and a file that fails to load paints nothing instead of a broken
- * image. Set on the card as --poster and painted by its .map-reel box
- * (index.html).
- */
-function wearPoster(card, world) {
-  if (!world || !world.poster) {
-    return;
-  }
-  card.style.setProperty('--poster', `url("${new URL(`../../${world.poster}`, import.meta.url).href}")`);
-  card.classList.add('has-poster');
-}
 
 /* A card is chosen the way its row would be: a hover moves the cursor onto
  * it, a click puts the cursor there and presses Enter. */
@@ -156,9 +137,7 @@ export const cardMethods = {
         node.classList.toggle('on', i === this.cursor);
         node.tabIndex = i === this.cursor ? 0 : -1;
       }
-      return;
     }
-    (this.mapCards || []).forEach((c, i) => c.card.classList.toggle('on', i === this.cursor));
   },
 
   /*
@@ -289,39 +268,6 @@ export const cardMethods = {
     if (this.titleStatsKey !== shape) {
       this.titleStatsKey = shape;
       paintPilotStats(host, st);
-    }
-  },
-
-  /* The world cards of the Freestyle picker, one per world when it has
-   * more than one. */
-  renderMapCards() {
-    const host = this.freestyleCards;
-    if (!host) {
-      return;
-    }
-    const worlds = this.items().filter((it) => it.map);
-    if (!this.mapCards || this.mapCards.length !== worlds.length) {
-      host.textContent = '';
-      this.mapCards = worlds.map((it, i) => {
-        const card = el('div', 'map-card');
-        wearPoster(card, it.map);
-        const c = {
-          card,
-          id: it.map.id,
-          name: el('div', 'map-card-name', it.label),
-          tag: el('div', 'map-card-tag', ''),
-        };
-        const body = el('div', 'map-card-body');
-        body.append(c.name, c.tag);
-        card.append(el('div', 'map-reel'), body);
-        pointAt(this, card, i);
-        host.append(card);
-        return c;
-      });
-    }
-    for (const [i, c] of this.mapCards.entries()) {
-      c.card.classList.toggle('on', i === this.cursor);
-      c.tag.textContent = c.id === this.settings.map ? str('ui.flying_now') : '';
     }
   },
 };

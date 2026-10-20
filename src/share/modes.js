@@ -109,7 +109,10 @@ export const MODES = [
     consent: false,
     publicOnlyWhenMadeFor: false,
     makeable: false,
-    hidden: false,
+    /* No card since free flight left PDCS (the combat-only cut,
+     * 2026-10-20): the row stays because the Interior's room is a free
+     * room on the wire (mode null, src/main.js opsEnter). */
+    hidden: true,
   },
 ];
 

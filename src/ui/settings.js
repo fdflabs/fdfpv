@@ -50,6 +50,7 @@ import { normaliseLiveries, normaliseSaves, normaliseSwatches } from '../../conf
 import { FC_DUMP_AIRFRAME_KEY, FC_DUMP_KEY } from '../fc/dump.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { TIME_NAMES } from '../share/daytime.js';
+import { wayOfActivity } from './continuity.js';
 import { DEFAULT_STICK_MODE, normaliseStickMode } from '../input/stickmode.js';
 import { hasKeybinds, normaliseKeybinds } from '../input/keybinds.js';
 import { hasPadbinds, normalisePadbinds } from '../input/padbinds.js';
@@ -771,6 +772,10 @@ export function loadSettings() {
   }
   if (!MAPS.some((m) => m.id === s.map)) s.map = DEFAULTS.map;
   if (!MAPS.some((m) => m.mode === 'freestyle' && m.id === s.freestyleMap)) s.freestyleMap = '';
+  /* Home's Continue (src/ui/continuity.js wayOfActivity) holds an
+   * activity with a card: a hidden registry row (free flight since the
+   * combat-only cut, 2026-10-20) or a cut one is forgotten, not offered. */
+  if (s.lastActivity && !wayOfActivity(s.lastActivity)) s.lastActivity = '';
 
   adoptSeatedStock(s);
   unsetCameraToStock(s);

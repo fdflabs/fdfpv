@@ -165,7 +165,7 @@ export { WAYS, formatRunClock, formatTime };
  * draws as a plain action, which promises less, so forgetting one is safe.
  */
 export const SCREEN_ACTIONS = new Set([
-  'freestyle', 'pilot', 'quad', 'rates', 'planerates', 'pids', 'fc',
+  'pilot', 'quad', 'rates', 'planerates', 'pids', 'fc',
   'howto', 'credits', 'choosepad',
   'calibrate', 'friends', 'rooms', 'roomnew', 'controls', 'controller',
 ]);
@@ -174,12 +174,11 @@ export const SCREEN_ACTIONS = new Set([
  * The screens a room is entered from and returned to on Back. The title is
  * left out: Back reaches it anyway when nothing else is open.
  */
-export const ROOM_PARENTS = new Set(['freestyle', 'quad', 'pilot']);
+export const ROOM_PARENTS = new Set(['quad', 'pilot']);
 
 /* The breadcrumb's word for each screen. */
 export const SCREEN_TITLES = {
   title: str('ui.product_name'),
-  freestyle: str('ui.freestyle'),
   pilot: str('ui.settings'),
   quad: str('ui.quad'),
   rates: str('ui.rates'),

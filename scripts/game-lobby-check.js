@@ -98,11 +98,6 @@ const GAMES = {
       return core.war.changed(core);
     },
   },
-  free: {
-    card: 'freestyle-wing1000', world: 'swiss2', chip: 'Free flight', upMs: 60000,
-    on: 'Boolean(window.__rooms().lobby && window.__rooms().lobby.live)',
-    end: null,
-  },
 };
 const G = GAMES[GAME];
 if (!G) {

@@ -48,7 +48,6 @@ const VISIT_PEERS = 3;
 
 const CRUMBS = {
   title: ['ui.product_name'],
-  freestyle: ['ui.freestyle'],
   pilot: ['ui.settings'],
   quad: ['ui.quad'],
   rates: ['hub.hangar', 'controller.title', 'ui.rates'],
@@ -75,7 +74,6 @@ const MENU_FIELD = {
   title: 'titleMenu',
   howto: 'howtoMenu',
   credits: 'creditsMenu',
-  freestyle: 'freestyleMenu',
   pilot: 'pilotMenu',
   friends: 'friendsMenu',
   quad: 'quadMenu',
@@ -318,9 +316,7 @@ export const navMethods = {
     /* The sign in chip's label can change without the screen changing. */
     this.syncChips();
     this.closeDrop();
-    if (this.screen === 'freestyle') {
-      this.renderMapCards();
-    } else if (this.screen === 'title') {
+    if (this.screen === 'title') {
       this.renderTitleCards();
       this.renderTitleRooms();
       this.renderTitleStats();

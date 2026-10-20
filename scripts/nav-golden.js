@@ -442,7 +442,7 @@ const scenarios = {
     ui.show('quad');
     snap('pidsLeft');
     ui.roomFrom = 'freestyle';
-    ui.show('freestyle');
+    ui.show('quad');
     snap('freestyleFromRoom');
     ui.show('title');
     snap('title');

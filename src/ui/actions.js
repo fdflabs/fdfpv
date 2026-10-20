@@ -101,7 +101,7 @@ function fcLeave(ui) {
 
 /* Screens a plain row opens. Opened from a room, Back returns to that
  * room; opened over a paused run, Back returns to the pause menu. */
-const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'freestyle', 'credits', 'friends', 'controls'];
+const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'credits', 'friends', 'controls'];
 
 function openScreen(ui, screen) {
   ui.roomFrom = ROOM_PARENTS.has(ui.screen) && ui.screen !== screen ? ui.screen : null;
@@ -147,12 +147,10 @@ function answerGate(ui, way, picked, keepWorld) {
     if (way.room) ui.show('friends');
     return;
   }
+  /* No world picker since free flight left (the combat-only cut,
+   * 2026-10-20): the remembered world, else the first. */
   const remembered = worlds.find((m) => m.id === ui.settings.freestyleMap);
-  const world = home || remembered || (worlds.length === 1 ? worlds[0] : null);
-  if (!world) {
-    ui.show('freestyle');
-    return;
-  }
+  const world = home || remembered || worlds[0];
   ui.setCursor(ui.titleStop());
   if (way.room) {
     /* The room screen is up before the seat changes, so the world swap
@@ -238,8 +236,10 @@ const ACTIONS = {
   roomnew(ui) { ui.show('roomnew'); },
   fly(ui) {
     if (!ui.seatMatchesMode()) {
-      ui.returnTo = pauseOrTitle(ui);
-      ui.show('freestyle');
+      /* Free flight has no world picker since it left (the combat-only
+       * cut, 2026-10-20): a seat that is no world is put on the first.
+       * Nothing else can miss its seat (seatMatchesMode). */
+      ui.seatMap(MAPS.find((m) => m.mode === 'freestyle').id);
       return undefined;
     }
     return FALL_THROUGH;

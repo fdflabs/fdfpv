@@ -59,7 +59,6 @@ const ONLY = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const FIXTURES = [
   { name: 'first-visit', profile: null, lang: 'en', pastGate: false },
   { name: 'race', profile: { airframeAsked: true }, lang: 'en', pastGate: 'race' },
-  { name: 'freestyle', profile: { airframeAsked: true, freestyleMap: 'swiss2', map: 'swiss2' }, lang: 'en', pastGate: 'freestyle' },
   { name: 'plane-angle', profile: { airframeAsked: true, airframe: 'cub', flightMode: 'angle' }, lang: 'en', pastGate: 'race' },
   { name: 'race-es', profile: { airframeAsked: true }, lang: 'es', pastGate: 'race' },
   /* No profile but a best lap stored: a returning pilot whose settings
