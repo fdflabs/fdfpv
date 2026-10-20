@@ -32,7 +32,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AIRFRAMES, AIRFRAME_IDS, airframeById } from '../../configs/airframes.js';
+import { AIRFRAMES, AIRFRAME_IDS } from '../../configs/airframes.js';
 import { MODES, modeById, wireMode } from '../share/modes.js';
 import { str } from '../strings/index.js';
 import { kindOf } from './carousel.js';
@@ -231,7 +231,7 @@ export const HUBS = [
 /* Actions anyone may take before signing in: getting around and leaving.
  * Everything behind a card or a row asks for the sign in first. */
 export const OPEN_ACTIONS = new Set([
-  'title', 'paused', 'pause', 'resume', 'back', 'card-back', 'mode-gate', 'update-reload', 'noop', 'room-bar', 'reportbug', 'credits', 'leaderboard',
+  'title', 'paused', 'pause', 'resume', 'back', 'card-back', 'mode-gate', 'update-reload', 'noop', 'room-bar', 'reportbug', 'credits',
 ]);
 
 /* A card's category: its mode's, from the registry, or its own. */
@@ -269,12 +269,4 @@ export function seatedWay(settings, mode) {
 export function wayFilter(way) {
   const kinds = new Set(way.airframes.map(kindOf));
   return kinds.size === 1 ? kinds.values().next().value : 'all';
-}
-
-/* What a board link carries for an aircraft: a quad's own id, a fixed
- * wing's track class. The board knows one airframe per class (for wings
- * still the retired wing1000), so every wing is sent as its class. */
-export function boardCraft(id) {
-  const airframe = airframeById(id);
-  return airframe.fixedWing ? airframe.trackClass : airframe.id;
 }

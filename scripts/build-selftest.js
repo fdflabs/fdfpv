@@ -909,7 +909,8 @@ console.log('sky hoops');
   /* A quad's casual track (course.js CASUAL.quad): the 2.5 m hoop all
    * round, 10 m over the ground, and an oval no tighter than the level
    * turn the AI pilot's harness follows the plant round at 13 m/s, the
-   * fastest pace it takes every gate at (aipilot:harness), measured here
+   * fastest pace it took every gate at (aipilot:harness, gone with the AI
+   * pilot in the combat-only cut, 2026-10-19), measured here
    * on that same reference line. */
   {
     const fixture = raceFromDocument(JSON.parse(readFileSync(new URL('../tests/fixtures/map-track-v4.json', import.meta.url), 'utf8')));

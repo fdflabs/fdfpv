@@ -60,7 +60,6 @@ const HELP_FIELD = {
   friends: 'friendsHelp',
   quad: 'quadHelp',
   launch: 'launchHelp',
-  standings: 'standingsHelp',
   rates: 'ratesHelp',
   planerates: 'planeratesHelp',
   pids: 'pidsHelp',

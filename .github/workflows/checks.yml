@@ -231,7 +231,6 @@ jobs:
       - run: npm run touchsticks:selftest
       - run: npm run input:trace
       - run: npm run stickmode:selftest
-      - run: npm run ghost:selftest
       # The in-browser flight recorder and its blackbox CSV
       # (src/share/flightlog.js), against a pinned transcript.
       - run: npm run flightlog:selftest
@@ -267,7 +266,6 @@ jobs:
       - run: npm run guide:golden
       - run: npm run trackdoc:golden
       - run: npm run race:golden
-      - run: npm run ghost:golden
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
       - run: npm run simmod:selftest
@@ -584,7 +582,6 @@ jobs:
       - run: npm run lap:selftest
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
-      - run: npm run live:selftest
       - run: npm run ratescurve:selftest
       - run: npm run panels:golden
       - run: npm run rooms:selftest
@@ -600,8 +597,6 @@ jobs:
           FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
       - run: npm run figures:selftest
       - run: npm run personpilot:selftest
-      # The first AI pilot behind a ghost on the plant, judged by race.js.
-      - run: npm run aipilot:harness
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest

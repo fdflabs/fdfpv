@@ -4,7 +4,7 @@
  * The home gate and its hubs, with the rooms panel beside them; the
  * Freestyle world cards and the short flight that plays on each; My tracks,
  * where the pilot's own tracks, the board's and the tracks server's are
- * cards; and the standings table one of those opens. Each is drawn from
+ * cards. Each is drawn from
  * the same items() the menu rows come from, so one cursor walks cards and
  * rows alike, and each card is built once and only re-marked as the
  * cursor moves: the menu is rebuilt on every key press, and a card rebuilt
@@ -33,10 +33,9 @@
 
 import { airframeById } from '../../configs/airframes.js';
 import { raceGatesOf } from '../builder/course.js';
-import { medalTimes } from '../game/medals.js';
 import { planesFor } from '../game/verify.js';
 import {
-  boardConfigured, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
+  boardConfigured, fetchTrackList, pickFeaturedTracks,
 } from '../share/board.js';
 import {
   fetchAllTracks, fetchTrack, pilotKey, pullOwnTracks, tracksConfigured,
@@ -45,7 +44,6 @@ import {
   CLIP_H, CLIP_MS_MAX, CLIP_W, clipKeyForMap, getClip, makeClipElement, putClip, recordCanvasStream,
   whenVisible, withCaptureLock,
 } from '../share/orbitcache.js';
-import { readPilotName } from '../share/pilot.js';
 import { readWallet } from '../share/account.js';
 import {
   readBind, readEditKey, readShareImport, writeShareImport,
@@ -60,7 +58,7 @@ import { paintPilotStats, pilotStats } from './pilotstats.js';
 /* A cycle: ui.js installs this module. These are read only inside methods,
  * after both modules have run, never at this module's top level. */
 import {
-  ROOM_PARENTS, byLine, courseCardKey, liveWorld,
+  byLine, courseCardKey, liveWorld,
 } from './ui.js';
 import { WAYS } from './ways.js';
 import { btn, el } from './widgets.js';
@@ -221,12 +219,6 @@ function raceableFor(af, list) {
     .map((t) => (af.fixedWing
       ? { ...t, recordMs: t.planeRecordMs, recordBy: t.planeRecordBy, times: t.planeTimes }
       : t));
-}
-
-function standingsRow(cls, rank, pilot, lap) {
-  const row = el('div', cls);
-  row.append(el('span', 'standings-rank', rank), pilot, el('span', 'standings-lap', lap));
-  return row;
 }
 
 /*
@@ -737,121 +729,10 @@ export const cardMethods = {
     })();
   },
 
-  /*
-   * The standings of one board track. `track` is a board listing, so the
-   * name, builder and gates are drawn at once and only the times wait on
-   * the network.
-   *
-   * The screen is opened here, not through act('standings'): that action
-   * is also the row that opens this screen for the seated track, and its
-   * handler calls back into here. Where it was opened from is still kept,
-   * as act() does, so Back returns to the track list.
-   */
   /* The medal this pilot holds on a board track, or ''. */
   medalOn(id) {
     const medals = this.settings && this.settings.progress && this.settings.progress.medals;
     return (medals && medals[`track:${id}`]) || '';
-  },
-
-  showStandings(track) {
-    if (!track || !track.id) {
-      return;
-    }
-    this.standingsFor = track;
-    this.standingsTimes = null;
-    this.standingsError = '';
-    this.roomFrom = ROOM_PARENTS.has(this.screen) ? this.screen : null;
-    this.returnTo = this.screen === 'paused' ? 'paused' : 'title';
-    this.show('standings');
-    /* Only the answer for the track last asked for is drawn; a slower
-     * answer for an earlier one is dropped. */
-    const asked = track.id;
-    this.standingsLoading = asked;
-    const land = (times, error) => {
-      if (this.standingsLoading !== asked) {
-        return;
-      }
-      this.standingsLoading = null;
-      this.standingsTimes = times;
-      if (error) {
-        this.standingsError = error;
-      }
-      if (this.screen === 'standings') {
-        this.paintStandings();
-        this.renderMenu();
-      }
-    };
-    (async () => {
-      try {
-        const times = await fetchTrackTimes(track.id, track.board);
-        /* A track in a world keeps two boards, quads and planes; the
-         * seated aircraft's is shown. A field track has one. */
-        const plane = Boolean(airframeById(this.settings.airframe).fixedWing);
-        const shown = track.map ? times.filter((t) => Boolean(t.craft) === plane) : [...times];
-        land(shown.sort((a, b) => a.lapMs - b.lapMs));
-      } catch (e) {
-        land([], str('ui.the_board_is_not_answering_so_2'));
-      }
-    })();
-  },
-
-  /*
-   * The standings table: drawn, not listed as rows, because forty times as
-   * menu rows would make the cursor walk all of them to reach Back, and a
-   * leaderboard is read, not traversed. The pilot's own name is marked: it
-   * is the one row anybody looks for.
-   */
-  paintStandings() {
-    const table = this.standingsTable;
-    if (!table) {
-      return;
-    }
-    const t = this.standingsFor;
-    table.textContent = '';
-    if (this.standingsLede) {
-      this.standingsLede.textContent = t
-        ? [t.name, t.gates ? `${t.gates} gates` : '', byLine(t)].filter(Boolean).join(SEP)
-        : '';
-      const times = t && medalTimes(t.medals);
-      const mine = t ? this.medalOn(t.id) : '';
-      const line = [
-        times ? str('medal.times', { gold: formatTime(times.gold), silver: formatTime(times.silver), bronze: formatTime(times.bronze) }) : '',
-        mine ? str('medal.yours', { medal: str(`medal.${mine}`) }) : '',
-      ].filter(Boolean).join(SEP);
-      if (line) {
-        this.standingsLede.append(el('div', 'standings-medals', line));
-      }
-    }
-    if (!t) {
-      return;
-    }
-    const times = this.standingsTimes;
-    let note = '';
-    if (times == null) {
-      note = str('ui.reading_the_board');
-    } else if (this.standingsError) {
-      note = this.standingsError;
-    } else if (!times.length) {
-      note = str('ui.no_times_posted_on_this_track');
-    }
-    if (note) {
-      table.append(el('div', 'standings-note', note));
-      return;
-    }
-    const fold = (name) => String(name || '').trim().toLowerCase();
-    const me = fold(readPilotName());
-    table.append(standingsRow('standings-row standings-head', '', el('span', 'standings-pilot', str('ui.pilot')), str('ui.lap_label')));
-    times.forEach((lap, i) => {
-      const pilot = el('span', 'standings-pilot', lap.name || str('ui.unnamed_pilot'));
-      /* A ghost is the difference between reading a time and racing it. */
-      if (lap.hasGhost) {
-        pilot.append(el('span', 'standings-ghost', 'ghost'));
-      }
-      const row = standingsRow('standings-row', String(i + 1), pilot, formatTime(lap.lapMs));
-      row.classList.toggle('is-me', Boolean(me) && fold(lap.name) === me);
-      row.classList.toggle('is-record', i === 0);
-      table.append(row);
-    });
   },
 
   /*

@@ -12,9 +12,9 @@
  * ui-golden.js pins every screen's items and rows. It does not see the
  * cards: the home and hub cards, the rooms panel beside them, the world
  * cards with their video reels, the My tracks cards (the pilot's own, the
- * board's and the tracks server's), the standings table and the Tricks
- * screen's caption. Those are drawn from items() by the card methods of the
- * Ui (src/ui/cards.js), and this check drives those methods through
+ * board's and the tracks server's) and the Tricks screen's caption. Those
+ * are drawn from items() by the card methods of the Ui (src/ui/cards.js),
+ * and this check drives those methods through
  * window.__ui and records the DOM they leave: classes, text, the attributes
  * a screen reader or a stylesheet reads, and which card the cursor lights.
  *
@@ -75,17 +75,6 @@ const BOARD_TRACKS = [
   { id: 'b-one', name: 'Single gate', author: '', gates: 1, times: 5, map: 'swiss2', planes: ['cub1400'] },
   { id: 'b-field', name: 'Old field', author: 'Old', gates: 9, times: 99, map: '', planes: [] },
   { id: 'b-gone', name: 'Retired world', author: 'Gone', gates: 3, times: 50, map: 'nowhere', planes: ['cub1400'] },
-];
-
-/* The times of b-flown, in posting order, quads and planes mixed. */
-const BOARD_TIMES = [
-  { id: 't1', name: 'Slow Sam', lapMs: 40100, hasGhost: false },
-  { id: 't2', name: ` ${PILOT.toUpperCase()} `, lapMs: 33000, hasGhost: true },
-  { id: 't3', name: 'Zed', lapMs: 31234, hasGhost: true },
-  { id: 't4', name: 'Wingo', lapMs: 45678, hasGhost: false, craft: 'cub1400' },
-  { id: 't5', name: '', lapMs: 38000, hasGhost: false },
-  { id: 't6', name: 'Plane two', lapMs: 50000, hasGhost: true, craft: 'cub1400' },
-  { id: 't7', name: 'No lap', lapMs: null },
 ];
 
 const CLOUD_TRACKS = [
@@ -378,43 +367,6 @@ const SEATING = (doc) => probe(`
   localStorage.removeItem('webfpv.tracks.origin');
 `);
 
-/* THE STANDINGS: a world track (the seated aircraft's board only), a field
- * track (every time), a board that fails, one with no times, and where
- * Back goes. */
-const STANDINGS = probe(`
-  const track = { id: 'b-flown', name: 'Most flown', author: 'pub', designer: 'Des Igner', gates: 7, map: 'swiss2' };
-  window.__stub.board = { '/api/tracks/b-flown': { body: { times: ${JSON.stringify(BOARD_TIMES)} } }, '/api/tracks/b-field': { body: { times: ${JSON.stringify(BOARD_TIMES)} } }, '/api/tracks/b-empty': { body: { times: [] } } };
-  const read = () => ({ screen: ui.screen, roomFrom: ui.roomFrom, returnTo: ui.returnTo, lede: text(ui.standingsLede), table: snap(ui.standingsTable), times: plain(ui.standingsTimes), error: ui.standingsError });
-  ui.showStandings(null);
-  out.none = ui.screen;
-  ui.show('courses');
-  ui.showStandings(track);
-  out.reading = read();
-  await until(() => ui.standingsLoading == null);
-  out.world = read();
-  ui.show('title');
-  ui.showStandings({ id: 'b-field', name: 'Old field', author: 'Old', gates: 0, map: '' });
-  await until(() => ui.standingsLoading == null);
-  out.field = read();
-  ui.showStandings({ id: 'b-empty', name: 'Empty', author: '', gates: 2, map: 'alps' });
-  await until(() => ui.standingsLoading == null);
-  out.empty = read();
-  window.__stub.board = null;
-  ui.showStandings({ id: 'b-down', name: 'Down', designer: 'D', gates: 1, map: 'alps' });
-  await until(() => ui.standingsLoading == null);
-  out.down = read();
-  window.__stub.board = { '/api/tracks/b-flown': { body: { times: ${JSON.stringify(BOARD_TIMES)} } } };
-  ui.showStandings({ id: 'b-slow', name: 'Slow', gates: 1, map: 'alps' });
-  ui.showStandings(track);
-  await until(() => ui.standingsLoading == null);
-  out.superseded = read();
-  ui.screen = 'paused';
-  ui.showStandings(track);
-  out.fromPaused = { roomFrom: ui.roomFrom, returnTo: ui.returnTo };
-  await until(() => ui.standingsLoading == null);
-  ui.show('title');
-`);
-
 /* THE TRICKS SCREEN's caption, at two cursor stops. */
 const TRICKS = probe(`
   ui.show('tricks');
@@ -494,7 +446,6 @@ const FIXTURES = [
       'courses-board-empty': COURSES_BOARD([]),
       'courses-cloud': COURSES_CLOUD,
       seating: SEATING(OWN[1]),
-      standings: STANDINGS,
       tricks: TRICKS,
       reels: REELS,
     },
@@ -506,7 +457,6 @@ const FIXTURES = [
     probes: {
       'courses-board': COURSES_BOARD(BOARD_TRACKS),
       'courses-board-none-fly': COURSES_BOARD([BOARD_TRACKS[1], BOARD_TRACKS[3]]),
-      standings: STANDINGS,
     },
   },
   {

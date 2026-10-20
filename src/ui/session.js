@@ -2,11 +2,10 @@
  * The Ui's session side: what the shell pushes in between runs and what
  * floats over the world rather than living on a screen.
  *
- * The shell is the side that knows what can be chased, who is in the room
- * and what the bed is playing, so it pushes rows and views in here
- * (setGhostRow, setLiveRow, setWarLobby, setRoomBar, setMusicNow,
- * setWarState) and the menus read them back as rows (ghostItems,
- * liveItems, friendsItems, roomSeatRows). The chips, the bars and the
+ * The shell is the side that knows who is in the room and what the bed is
+ * playing, so it pushes rows and views in here (setWarLobby, setRoomBar,
+ * setMusicNow, setWarState) and the menus read them back as rows
+ * (friendsItems, roomSeatRows). The chips, the bars and the
  * music dock are redrawn from one place, syncChips, because they share
  * the corner of the screen and which of them is up decides where the
  * others sit. The tutorial column and the handful of predicates the shell
@@ -60,26 +59,6 @@ function redrawOn(ui, screens) {
   if (screens.includes(ui.screen)) {
     ui.renderMenu();
   }
-}
-
-/* A row the shell pushed as { value, note, cycle }: the arrows cycle it
- * through the shell's own choices. The row may be withdrawn between the
- * menu's build and the press, so the press reads the field again. */
-function pushedRow(ui, field, label) {
-  const row = ui[field];
-  if (!row) {
-    return [];
-  }
-  return [{
-    label,
-    value: row.value,
-    note: row.note,
-    adjust: (dir) => {
-      if (ui[field]) {
-        ui[field].cycle(dir);
-      }
-    },
-  }];
 }
 
 /* mm:ss for the lobby's deadline. */
@@ -292,33 +271,10 @@ function repairCursorForBars(ui) {
 const dialogUp = (ui) => Boolean(ui.nameDialog) && !ui.nameDialog.hidden;
 
 export const sessionMethods = {
-  /* The published course this run is flying, or null. A new course has
-   * no posted time yet. */
+  /* The published course this run is flying, or null. */
   setShare(share) {
     this.share = share || null;
-    this.timePosted = null;
     redrawOn(this, ['title', 'courses', 'results']);
-  },
-
-  /* The Ghost row's contents from the shell, null to hide it. */
-  setGhostRow(row) {
-    this.ghostRow = row || null;
-    redrawOn(this, ['title', 'paused']);
-  },
-
-  /* The Live row beside it, pushed the same way; null when the track has
-   * no room. */
-  setLiveRow(row) {
-    this.liveRow = row || null;
-    redrawOn(this, ['title', 'paused']);
-  },
-
-  liveItems() {
-    return pushedRow(this, 'liveRow', str('ui.live'));
-  },
-
-  ghostItems() {
-    return pushedRow(this, 'ghostRow', str('ui.ghost'));
   },
 
   /* The Fly with friends row, only where the shell has a rooms server to
@@ -403,11 +359,6 @@ export const sessionMethods = {
         this.setCursor(this.restoreCursor());
       }
     }
-  },
-
-  markTimePosted(posted) {
-    this.timePosted = posted || { ok: true };
-    redrawOn(this, ['title', 'results']);
   },
 
   /* { text, button, act, reload } or null: the room's word to a pilot off

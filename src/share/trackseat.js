@@ -6,13 +6,11 @@
  * {sim}/?share={id}, never as a file or a message; the shell turns that
  * into a seat here: the course's schemaVersion 4 document (built in a
  * world by src/builder/), its id, its name and author, and the board it
- * came from, so a lap can be posted back there. A course of the pilot's
- * own, played from My tracks, takes the same seat marked `local`: flown
- * the same way, but on no board, so it takes no time and fetches no ghost.
+ * came from. A course of the pilot's own, played from My tracks, takes the
+ * same seat marked `local`: flown the same way, but on no board.
  *
- * Beside the seat: the edit keys of listings this browser published, the
- * bind between a local course and its listing, a lap waiting to be
- * posted, and the best lap posted per course.
+ * Beside the seat: the edit keys of listings this browser published, and
+ * the bind between a local course and its listing.
  *
  * Imports nothing but the strings, so src/trackbuilder/storage.js can take
  * readJson and writeJson from here without a cycle.
@@ -66,8 +64,6 @@ const FIXED_WINGS = new Set([
 
 const EDIT_KEYS_KEY = 'webfpv.share.editkeys.v1';
 const BINDS_KEY = 'webfpv.share.bind.v1';
-const PENDING_LAP_KEY = 'webfpv.share.pending.v1';
-const POSTED_BESTS_KEY = 'webfpv.share.posted.v1';
 
 /* The parsed value under `key`, or `fallback` when there is none, it is
  * not JSON, or storage refuses to be read. */
@@ -242,67 +238,4 @@ export function writeBind(trackId, bind) {
     sourceName: String(bind.sourceName || ''),
     sourceAuthor: String(bind.sourceAuthor || ''),
   });
-}
-
-/*
- * Where a posted best is kept: by course, and for a plane's lap beside it
- * on the plane board's own slot (src/game/verify.js planesFor), since the
- * two boards rank apart and a quad's best must not hide a plane's slower
- * improvement. `craft` is a plane's airframe id, empty for any other lap.
- */
-export function lapSlot(trackId, craft) {
-  return craft ? `${trackId}#wing` : trackId;
-}
-
-/* The lap waiting to be posted: { trackId, lapMs, craft }, or null. */
-export function readPendingTime() {
-  const lap = readJson(PENDING_LAP_KEY, null);
-  return isRecord(lap) && lap.trackId && Number.isFinite(lap.lapMs) ? lap : null;
-}
-
-export function writePendingTime(payload) {
-  if (!payload || !payload.trackId || !Number.isFinite(payload.lapMs)) {
-    return false;
-  }
-  return writeJson(PENDING_LAP_KEY, {
-    trackId: String(payload.trackId),
-    lapMs: Math.round(payload.lapMs),
-    /* The plane that flew it, so a later upload reaches that plane's
-     * board; '' for every other lap. */
-    craft: payload.craft ? String(payload.craft) : '',
-  });
-}
-
-/* Forget the waiting lap; given a course, only that course's. */
-export function clearPendingTime(trackId) {
-  const waiting = readPendingTime();
-  if (trackId && waiting && waiting.trackId !== trackId) {
-    return;
-  }
-  try {
-    localStorage.removeItem(PENDING_LAP_KEY);
-  } catch (e) {
-    /* Storage refused: nothing stored to forget. */
-  }
-}
-
-export function readPostedBest(trackId) {
-  const row = rowOf(POSTED_BESTS_KEY, trackId);
-  const ms = row ? Number(row.lapMs) : NaN;
-  return Number.isFinite(ms) ? ms : null;
-}
-
-/* Keep `lapMs` as the posted best when it beats the one kept. True when
- * kept or when the kept one is already as good; false for a lap that is
- * not a number or a write storage refuses. */
-export function writePostedBest(trackId, lapMs) {
-  const lap = Math.round(Number(lapMs));
-  if (!Number.isFinite(lap)) {
-    return false;
-  }
-  const best = readPostedBest(trackId);
-  if (best !== null && lap >= best) {
-    return true;
-  }
-  return putRow(POSTED_BESTS_KEY, trackId, { lapMs: lap });
 }

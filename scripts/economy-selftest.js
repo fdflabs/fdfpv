@@ -20,7 +20,7 @@
  */
 
 import {
-  CHALLENGE_TOKENS, EVENT_TIERS, FIRST_TOKENS, ITEMS, KIT_PRICE, earnedFrom, kitItem, eventGrants, grantCeiling, grantsFrom, itemById,
+  CHALLENGE_TOKENS, FIRST_TOKENS, ITEMS, KIT_PRICE, earnedFrom, kitItem, grantCeiling, grantsFrom, itemById,
 } from '../src/game/economy.js';
 import { KITS, slotsFor } from '../configs/kits.js';
 import { CHALLENGES, everyFirst, unlockables } from '../src/game/progress.js';
@@ -112,11 +112,8 @@ check('everything the shop sells costs less than a pilot who flies everything on
 check('a shop decal is a valid decal', SHOP_DECALS.every((k) => newDecal(k, [0, 0, 0], [0, 1, 0]).k === k));
 check('no shop item is a level unlock, so Unlock all cannot give it', !unlockables().some((u) => (u.kind === 'finish' && SHOP_FINISHES.includes(u.id)) || (u.kind === 'decal' && SHOP_DECALS.includes(u.id))));
 
-console.log('Flight Club events');
-check('a gold pays every tier under it, keyed by event', sum(eventGrants('2026-w41-alps', 'gold')) === Object.values(EVENT_TIERS).reduce((a, b) => a + b, 0)
-  && eventGrants('2026-w41-alps', 'bronze').map((g) => g.key).join() === 'event:2026-w41-alps:finish,event:2026-w41-alps:bronze');
-check('a bad id or tier pays nothing', eventGrants('Not An Id', 'gold').length === 0 && eventGrants('2026-w41-alps', 'platinum').length === 0);
-check('the tables are the contract\'s', FIRST_TOKENS.win === 60 && CHALLENGE_TOKENS === 50 && EVENT_TIERS.gold === 100);
+console.log('the tables');
+check('the tables are the contract\'s', FIRST_TOKENS.win === 60 && CHALLENGE_TOKENS === 50);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exitCode = failed ? 1 : 0;

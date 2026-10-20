@@ -164,7 +164,7 @@ const RACE_MAP = MAPS.find((m) => m.mode !== 'freestyle').id;
 const SPIES = ['show', 'renderMenu', 'renderHowto', 'maybeOfferFeel', 'writeSettings', 'onSettings'];
 const FIELDS = [
   'calCanSave', 'calCanSkip', 'calCanReverse', 'calCanZeroThrottle', 'calMoving', 'calOnConfirm', 'padPickPhase',
-  'padPickReason', 'roomResults', 'timePosted', 'resultsFastest', 'lastBestMs', 'osdMode',
+  'padPickReason', 'roomResults', 'resultsFastest', 'lastBestMs', 'osdMode',
   'stickModeDrawn', 'airHintDone', 'bannerText', 'padInfo', 'gpuInfo', 'everyoneFlightS', 'everyoneFlightAsked',
 ];
 
@@ -180,7 +180,7 @@ function stubUi() {
   ui.share = null;
   for (const k of ['brandSub', 'titleBest', 'osdBest', 'resultsBody', 'resultsFacts', 'resultsNote', 'resultsKicker', 'resultsHead',
     'resultsHeroCap', 'resultsHeroTime', 'resultsHeroMeta', 'announcer', 'osdTopBlock',
-    'osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdGhost', 'osdPackBar', 'osdSpeed', 'osdFlight',
+    'osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdPackBar', 'osdSpeed', 'osdFlight',
     'osdFlaps', 'osdGear', 'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits', 'osdSticks',
     'calPrompt', 'calKicker', 'calHint', 'calList', 'calAxes', 'calSaveBtn', 'calSkipBtn', 'calZeroBtn', 'calRevBtn',
     'calModeBtn', 'padPrompt', 'padKicker', 'padHint', 'padCards', 'padYesBtn', 'padNoBtn', 'padSkipBtn']) {
@@ -204,7 +204,6 @@ function stubUi() {
   ui.padCardNodes = new Map();
   ui.airHintDone = false;
   ui.airHintTimer = 0;
-  ui.timePosted = null;
   ui.padInfo = { count: 0, using: 'Keyboard' };
   ui.gpuInfo = null;
   ui.stickProbe = null;
@@ -285,10 +284,10 @@ async function snapshot() {
   out.results = await scenario((ui, step) => {
     call(ui, 'showResults', [], null, null); step('empty', resultNodes(ui));
     call(ui, 'showResults', [{ n: 1, ms: 42000 }], 42000, null); step('first lap, first record', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 42000 }, { n: 2, ms: null, reason: 'Missed\nGATE 3' }, { n: 3, ms: 39000 }], 39000, 41000, 'Beat the ghost by 0.4 s');
-    step('record beaten, void lap, ghost note', resultNodes(ui));
+    call(ui, 'showResults', [{ n: 1, ms: 42000 }, { n: 2, ms: null, reason: 'Missed\nGATE 3' }, { n: 3, ms: 39000 }], 39000, 41000);
+    step('record beaten, void lap', resultNodes(ui));
     call(ui, 'showResults', [{ n: 1, ms: 41000 }, { n: 2, ms: 43000 }], 41000, 41000); step('matched', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 39000 }], 39000, 41000, null, {
+    call(ui, 'showResults', [{ n: 1, ms: 39000 }], 39000, 41000, {
       activity: 'race', aircraft: 'whoop65', fixedWing: false, result: { kind: 'record', landed: null }, route: null,
       time: { flightMs: 64000, runMs: 39000 }, accuracy: [{ what: 'debrief.clean_laps', n: 1, of: 2 }],
       records: [{ what: 'debrief.track_record', now: 39000, before: 41000, improved: true },
@@ -363,22 +362,21 @@ async function snapshot() {
     call(ui, 'setTargetLock', { show: false }); step('off again', n());
   });
 
-  const osdNodes = (ui) => Object.fromEntries(['osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdGhost',
+  const osdNodes = (ui) => Object.fromEntries(['osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast',
     'osdPackBar', 'osdSpeed', 'osdFlight', 'osdFlaps', 'osdGear', 'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits']
     .map((k) => [k, ui[k]]));
   const frame = {
     mode: 'race', lapMs: null, lastLapMs: null, gate: 1, gateCount: 8, gateCue: '', volts: 16.84, packFrac: 0.99994,
     altitude: 2.345, speedKph: 41.6, throttle: 0.5, flightMode: 'acro', bounces: 0, launchState: 0, launchPitch: 0,
-    ghostGapMs: null, ghostFinal: false,
   };
   out.osd = await scenario((ui, step) => {
     const frames = [
       ['race, before the first gate', frame],
       ['same frame again', frame],
       ['tiny pack move', { ...frame, packFrac: 0.99996 }],
-      ['racing', { ...frame, lapMs: 12345, lastLapMs: 40000, gate: 3, gateCue: 'left', ghostGapMs: -420, flightMode: 'angle', bounces: 1 }],
-      ['behind ghost, final', { ...frame, lapMs: 22000, gate: 8, ghostGapMs: 1234, ghostFinal: true, flightMode: 'stab', bounces: 3, throttle: 1.4 }],
-      ['ghost gap zero', { ...frame, lapMs: 1, ghostGapMs: 0, flightMode: 'manual', packFrac: -0.2 }],
+      ['racing', { ...frame, lapMs: 12345, lastLapMs: 40000, gate: 3, gateCue: 'left', flightMode: 'angle', bounces: 1 }],
+      ['last gate, stab', { ...frame, lapMs: 22000, gate: 8, flightMode: 'stab', bounces: 3, throttle: 1.4 }],
+      ['manual, pack under empty', { ...frame, lapMs: 1, flightMode: 'manual', packFrac: -0.2 }],
       ['turtle', { ...frame, flightMode: 'turtle', launchState: 1 }],
       ['launch armed', { ...frame, launchState: 1, launchPitch: 2 }],
       ['launch hot', { ...frame, launchState: 2, launchPitch: 14.6 }],
@@ -386,7 +384,7 @@ async function snapshot() {
       ['plane flaps gear', { ...frame, flaps: 1, gear: 'up' }],
       ['plane flaps full gear down', { ...frame, flaps: 2, gear: 'down' }],
       ['plane gear moving', { ...frame, flaps: 0, gear: 'moving' }],
-      ['freestyle', { ...frame, mode: 'freestyle', lapMs: 65000, lastLapMs: 3000, ghostGapMs: 10 }],
+      ['freestyle', { ...frame, mode: 'freestyle', lapMs: 65000, lastLapMs: 3000 }],
       ['freestyle, waiting', { ...frame, mode: 'freestyle', lapMs: NaN }],
       ['bounces back to zero', { ...frame, bounces: 0 }],
     ];
@@ -394,8 +392,8 @@ async function snapshot() {
       call(ui, 'setOsd', f);
       step(name, osdNodes(ui));
     }
-    for (const k of ['osdGhost', 'osdFlight', 'osdFlaps', 'osdGear', 'osdLaunch', 'osdHits']) ui[k] = null;
-    call(ui, 'setOsd', { ...frame, lapMs: 5000, ghostGapMs: 100, flaps: 1, gear: 'up', launchState: 2, bounces: 2 });
+    for (const k of ['osdFlight', 'osdFlaps', 'osdGear', 'osdLaunch', 'osdHits']) ui[k] = null;
+    call(ui, 'setOsd', { ...frame, lapMs: 5000, flaps: 1, gear: 'up', launchState: 2, bounces: 2 });
     step('optional readouts absent', osdNodes(ui));
   });
 

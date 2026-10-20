@@ -193,7 +193,7 @@ function named(tag, name, cls = '') {
 }
 
 const MENU_SCREENS = ['title', 'howto', 'credits', 'courses', 'freestyle', 'pilot', 'friends', 'quad', 'launch',
-  'standings', 'rates', 'pids', 'fc', 'paused', 'results'];
+  'rates', 'pids', 'fc', 'paused', 'results'];
 
 /* The frame, the title's hint line and one menu host per screen, named so
  * the log and the tree say where each thing landed. */
@@ -234,7 +234,7 @@ function makeUi(extra = {}) {
     mapCards: 'x', courseCards: 'x', courseCardKey: 'x', cardSubject: null, lastCardKey: null, newTrackOpen: true,
   });
   ui.items = () => ui.lists[ui.screen] || [];
-  const quiet = ['syncChips', 'paintStandings', 'closeDrop', 'renderMapCards', 'renderCourseCards', 'renderTitleCards',
+  const quiet = ['syncChips', 'closeDrop', 'renderMapCards', 'renderCourseCards', 'renderTitleCards',
     'renderTitleRooms', 'hoverCursor', 'syncCursor', 'select', 'focusNumber', 'restoreFocusRow', 'syncRates', 'syncPids', 'syncFcChrome',
     'stopReels', 'loadLocalCourses', 'loadBoardCourses', 'loadCloudCourses', 'renderHowto', 'noteInteraction',
     'act', 'back'];
@@ -272,7 +272,6 @@ const frame = (ui) => ({
 const ROWS = [
   { section: true, label: 'Flight' },
   { id: 'nav', label: 'Rates', action: 'rates', note: 'n' },
-  { id: 'link', label: 'Board', action: 'leaderboard' },
   { id: 'act', label: 'Reset' },
   { id: 'sw', label: 'Air mode', sw: true, adjust: () => {} },
   { id: 'step', label: 'Laps', step: 1, adjust: () => {}, value: '3' },
@@ -294,7 +293,7 @@ const scenarios = {
   rows() {
     const ui = makeUi();
     ui.lists.quad = ROWS;
-    ui.cursor = 4;
+    ui.cursor = 3;
     ui.quadMenu.scrollTop = 120;
     ui.quadMenu.scrollHeight = 900;
     ui.quadMenu.clientHeight = 400;
@@ -425,10 +424,6 @@ const scenarios = {
     ui.launchLede = null;
     ui.renderMenu();
     out.noLede = state(ui);
-    ui.screen = 'standings';
-    ui.lists.standings = [{ id: 'fly', label: 'Fly this track', primary: true }];
-    ui.renderMenu();
-    out.standings = { state: state(ui), frame: frame(ui) };
     return out;
   },
 
@@ -448,7 +443,7 @@ const scenarios = {
     const displays = () => Object.fromEntries(Object.entries(ui.screens).map(([k, v]) => [k, v.style.props.display ?? null]));
     const snap = (name) => { out[name] = { state: state(ui), displays: displays(), osd: tree(ui.osd), frame: frame(ui) }; };
     ui.ratesNotice = 'old complaint';
-    ui.cursor = 4;
+    ui.cursor = 3;
     ui.show('rates');
     snap('rates');
     ui.cursor = 1;
@@ -643,7 +638,7 @@ const scenarios = {
     ui.lists.title = [{ id: 'fly', label: 'Fly' }];
     ui.lists.courses = [{ id: 'c', label: 'c', course: { kind: 'map', track: { id: 'c' } } }];
     const cases = {
-      quadAction: { screen: 'quad', cursor: 3 }, quadValue: { screen: 'quad', cursor: 5 }, quadOff: { screen: 'quad', cursor: 99 },
+      quadAction: { screen: 'quad', cursor: 2 }, quadValue: { screen: 'quad', cursor: 4 }, quadOff: { screen: 'quad', cursor: 99 },
       cards: { screen: 'courses', cursor: 0 }, titleMenu: { screen: 'title', mode: 'race', hub: null },
       titleGate: { screen: 'title', mode: null, hub: null }, titleHub: { screen: 'title', mode: null, hub: 'club' },
       flight: { screen: 'flight' }, bench: { screen: 'fc' },

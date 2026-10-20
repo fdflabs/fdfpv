@@ -180,7 +180,6 @@ const KEYBOARD_WALK = [
   act('title'),
   act('postrun'),
   act('posttime'),
-  run('a standings ghost with no id', "ui.onStandingsGhost({ id: 't' }, {});"),
   act('setname'),
   run('the name dialog closes', 'ui.closeNameDialog(null);'),
   act('importkey'),

@@ -43,11 +43,10 @@ import { resetProgress, resetSettings } from '../share/save.js';
 import { released } from '../game/campaign.js';
 import { MODES } from '../share/modes.js';
 import { freshProgress } from '../game/progress.js';
-import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTrackDocument } from '../share/board.js';
+import { fetchTrackDocument } from '../share/board.js';
 import { tracksConfigured } from '../share/cloud.js';
 import { hasFlyableTrack } from '../share/listing.js';
 import { clearShareImport, readShareImport } from '../share/trackseat.js';
-import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { str } from '../strings/index.js';
 import { duplicateTrack, normalize } from '../trackbuilder/model.js';
 import { deleteTrack, loadMapTrack, saveTrack } from '../trackbuilder/storage.js';
@@ -57,7 +56,7 @@ import { downloadCli } from './fc.js';
 import { fitsAsSegments } from './rows.js';
 import { pickStickRef } from './stickref.js';
 import { saveSettings, seatAirframe } from './settings.js';
-import { HUBS, OPEN_ACTIONS, WAYS, boardCraft, craftSvg, hubOfAction, hubWays, reticleSvg } from './ways.js';
+import { HUBS, OPEN_ACTIONS, WAYS, craftSvg, hubOfAction, hubWays, reticleSvg } from './ways.js';
 /* A cycle: ui.js installs this module. Read inside methods only. */
 import { ROOM_PARENTS, courseCardKey, seatIsRace, seatedFreestyleMap } from './ui.js';
 import { logError } from '../share/crashrecord.js';
@@ -72,8 +71,6 @@ const tellShell = (ui) => { if (ui.onSettings) ui.onSettings(ui.settings); };
 const pauseOrTitle = (ui) => (ui.screen === 'paused' || ui.screen === 'quick' ? 'paused' : 'title');
 
 const noteOn = (node, text) => { node.textContent = text; };
-
-const boardTab = (ui, board) => openNamedWindow(boardPageUrl(board, boardCraft(ui.settings.airframe)), BOARD_WINDOW);
 
 /* The credits page pins itself in the hash; show() would map the title
  * back onto it, so the pin goes before the screen does. */
@@ -195,12 +192,6 @@ const CARD_ROWS = {
   },
   'card-editcopy'(ui, card) {
     if (card.course.kind === 'cloud') ui.editCloudCopy(card.course.track);
-  },
-  'card-board'(ui, card) {
-    boardTab(ui, card.course.track.board);
-  },
-  'card-standings'(ui, card) {
-    if (card.course.kind === 'board') ui.showStandings(card.course.track);
   },
   'card-edit'(ui, card) {
     const t = card.course.track;
@@ -331,9 +322,6 @@ const ACTIONS = {
      * hangar is then a change to that build. */
     ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe));
   },
-  /* One named tab for the board, so it does not multiply and the sim
-   * stays where it is. */
-  leaderboard(ui) { boardTab(ui, ui.share && ui.share.board); },
   feel(ui) { ui.openFeelReport(); },
   /* The guided first flight launches straight past the launch card. */
   firstflight(ui) {
@@ -347,37 +335,6 @@ const ACTIONS = {
     ui.renderMenu();
     ui.renderCourseCards();
     ui.setCursor(ui.cardCursor());
-  },
-  'card-standings'(ui) {
-    const card = ui.subjectCard();
-    if (card && card.course && card.course.kind === 'board') ui.showStandings(card.course.track);
-  },
-  /* The standings screen has the board row with no card behind it. */
-  'card-board'(ui, action) {
-    if (ui.screen !== 'standings') {
-      onSubjectCard(ui, action);
-      return;
-    }
-    if (ui.standingsFor) boardTab(ui, ui.standingsFor.board);
-  },
-  'weekly-event'(ui) {
-    const e = ui.weeklyEvent;
-    /* The event is all the hub has of the track: enough to seat it, since
-     * its document is fetched by id. */
-    if (e && e.trackId) ui.openBoardCourse(e.trackId, () => ui.play(), { id: e.trackId, name: e.name, map: e.map, author: '', board: boardOrigin() });
-  },
-  'standings-fly'(ui) {
-    const t = ui.standingsFor;
-    if (t && t.id) ui.openBoardCourse(t.id, () => ui.play());
-  },
-  /* Race the record: the ghost is armed through the shell first, then
-   * the track is seated and played the way a chase link does it. */
-  'standings-ghost'(ui) {
-    const top = (ui.standingsTimes || []).find((x) => x.hasGhost && x.id);
-    const t = ui.standingsFor;
-    if (!top || !t || !t.id) return;
-    if (ui.onStandingsGhost) ui.onStandingsGhost(t, top);
-    ui.openBoardCourse(t.id, () => ui.play());
   },
   'cloud-more'(ui) { ui.loadCloudCourses(true); },
   newtrack(ui) { toggleNewTrack(ui, true); },
@@ -945,29 +902,8 @@ export const actionMethods = {
 
   openHub(id) {
     this.hub = id;
-    if (id === 'club') {
-      this.loadWeeklyEvent();
-    }
     this.setCursor(this.firstStop(this.items()));
     this.renderMenu();
-  },
-
-  /* This week's event, read each time Flight Club opens so its standings
-   * are fresh; until it answers (or with no board) the hub has no card
-   * for it. */
-  loadWeeklyEvent() {
-    if (!boardConfigured()) {
-      return;
-    }
-    fetchCurrentEvent().then((event) => {
-      const had = JSON.stringify(this.weeklyEvent || null);
-      this.weeklyEvent = event;
-      if (had !== JSON.stringify(event) && this.hub === 'club') {
-        this.renderMenu();
-      }
-    }).catch(() => {
-      /* No board this time: the hub reads as it did before events. */
-    });
   },
 
   /* The one place a world or track becomes the seat: written, handed to
@@ -1054,9 +990,8 @@ export const actionMethods = {
 
   /* Seat a board track through the shell, which owns the fetch, then
    * `then`. One at a time: a second press while one loads is ignored. */
-  openBoardCourse(id, then = null, known = null) {
-    const listed = (this.boardCourses || []).find((t) => t.id === id);
-    const track = listed || known || (this.standingsFor && this.standingsFor.id === id ? this.standingsFor : null);
+  openBoardCourse(id, then = null) {
+    const track = (this.boardCourses || []).find((t) => t.id === id);
     if (!track || this.openingBoardCourse) return;
     const failed = (why) => {
       this.openingBoardCourse = false;

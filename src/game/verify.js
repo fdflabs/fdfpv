@@ -61,8 +61,9 @@ import { AIRFRAMES } from '../../configs/airframes.js';
  */
 export const LAP_TOLERANCE_MS = 60;
 
-/* The ghost recorder's own teleport threshold, src/game/ghost.js. A segment
- * faster than this is a respawn or a forgery, and neither is a lap. */
+/* The ghost recorder's own teleport threshold (src/game/ghost.js, which
+ * left with the combat-only cut, 2026-10-19). A segment faster than this
+ * is a respawn or a forgery, and neither is a lap. */
 export const TELEPORT_SPEED = 100;
 
 /*

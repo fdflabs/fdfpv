@@ -140,7 +140,7 @@ if (DUMP) {
 }
 const { Ui } = await import('../src/ui/ui.js');
 const { DEFAULTS } = await import('../src/ui/settings.js');
-const { writeShareImport, writeBind, writePendingTime, writePostedBest } = await import('../src/share/trackseat.js');
+const { writeShareImport, writeBind } = await import('../src/share/trackseat.js');
 const { layoutFingerprint } = await import('../src/share/listing.js');
 const { normaliseRates, RATE_DEFAULTS } = await import('../configs/rates.js');
 const { setPidSlider, setPidsExpert, SLIDER_KEYS, PID_AXES, PID_FIELDS } = await import('../configs/pids.js');
@@ -209,10 +209,7 @@ function makeUi(fields = {}) {
     padInfo: null,
     gpuInfo: null,
     pidsLive: null,
-    standingsFor: null,
-    standingsTimes: [],
     resultsFastest: null,
-    timePosted: null,
     osdMode: 'race',
     ratesNotice: '',
     cardSubject: null,
@@ -222,8 +219,6 @@ function makeUi(fields = {}) {
     cloudCourses: [],
     boardCourses: [],
     coursesLede: new FakeElement('p'),
-    liveRow: null,
-    ghostRow: null,
     warLobbyOn: false,
     roomResults: false,
     updateBar: { hidden: true },
@@ -382,10 +377,6 @@ const friendsRowsStarted = () => [
   ...friendsRowsPlain(),
 ];
 
-/* A live row and a ghost row the way main.js hands them in. */
-const liveRow = () => ({ value: 'Off', note: 'Nobody is watching.', cycle: (d) => { calls.push(`live.cycle:${d}`); } });
-const ghostRow = () => ({ value: 'Best lap', note: 'Your best, beside you.', cycle: (d) => { calls.push(`ghost.cycle:${d}`); } });
-
 const localCourses = () => [
   { id: 'own-1', name: 'Barn loop', map: 'alps', gates: 6, planes: [] },
   { id: 'own-2', name: 'One gate', map: 'swiss2', gates: 1, planes: ['cub1400'] },
@@ -405,12 +396,6 @@ function pidsLiveFor(s, baselineMode = 'RPY') {
   const pids = Object.fromEntries(PID_AXES.map((axis) => [axis, Object.fromEntries(PID_FIELDS.map((f, k) => [f, 40 + k * 7]))]));
   return { tune: s.tune, baselineMode, baseline: Object.fromEntries(SLIDER_KEYS.map((k) => [k, 100])), pids };
 }
-
-const standingsTimes = () => [
-  { id: 't1', lapMs: 61234, name: 'Ace', hasGhost: false },
-  { id: 't2', lapMs: 62345, name: '', hasGhost: true },
-  { id: 't3', lapMs: 63456, name: 'Cy', hasGhost: true },
-];
 
 /*
  * Each scenario builds a fresh Ui from scratch (and reseeds storage), so
@@ -528,28 +513,22 @@ const SCENARIOS = [
   scenario('controller-wing', { settings: { airframe: 'striker2500' }, fields: { screen: 'controller', padInfo: { count: 0 } } }),
   scenario('flywith-gamepad', { fields: { screen: 'flywith', padInfo: { ...padFine, device: 'gamepad', profile: 'standard' } } }),
 
-  /* Standings. */
-  scenario('standings-none', { fields: { screen: 'standings' } }),
-  scenario('standings-empty', { fields: { screen: 'standings', standingsFor: { id: 'board-1', name: 'Hung track' } } }),
-  scenario('standings-times', { fields: { screen: 'standings', standingsFor: { id: 'board-1', name: 'Hung track' }, standingsTimes: standingsTimes() } }),
-  scenario('standings-ghost-first', { fields: { screen: 'standings', standingsFor: { id: 'board-1', name: 'Hung track' }, standingsTimes: standingsTimes().reverse() } }),
-
   /* The launch card. */
   scenario('launch-no-seat', { fields: { screen: 'launch' } }),
-  scenario('launch-seated', { seed: seedLocalSeat, fields: { screen: 'launch', liveRow: liveRow(), ghostRow: ghostRow() } }),
+  scenario('launch-seated', { seed: seedLocalSeat, fields: { screen: 'launch' } }),
   scenario('launch-arcade-weight', { seed: seedBoardSeat, settings: { flightStyle: 'arcade', weight: 120, laps: 1, packVoltage: 3.7, link: 'elrs250', crashDamage: false }, fields: { screen: 'launch' } }),
   scenario('launch-weight-perfect', { seed: seedBoardSeat, settings: { weight: 80, laps: 5 }, fields: { screen: 'launch' } }),
   scenario('launch-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'launch' } }),
 
-  /* Paused: alone, in a room, with the live and ghost rows, off a track. */
+  /* Paused: alone, in a room, off a track. */
   scenario('paused', { fields: { screen: 'paused', returnTo: 'paused' } }),
-  scenario('paused-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'paused', returnTo: 'paused', liveRow: liveRow(), ghostRow: ghostRow(), friendsRow: friendsRowOut } }),
+  scenario('paused-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowOut } }),
   scenario('paused-in-room', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, roomBar: { hidden: false }, roomBarView: { button: 'Room', text: 'OWLS' } } }),
   scenario('paused-watching', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, watching: () => true } }),
   scenario('paused-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'paused', returnTo: 'paused' } }),
   /* The pause menu's Flight panel: a quad, a quad with the race rows, planes. */
   scenario('quick', { fields: { screen: 'quick', returnTo: 'paused' } }),
-  scenario('quick-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused', liveRow: liveRow(), ghostRow: ghostRow() } }),
+  scenario('quick-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused' } }),
   scenario('quick-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
   scenario('quick-extra', { settings: { airframe: 'extra3d1308', tune: 'extra-acro', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
 
@@ -562,14 +541,7 @@ const SCENARIOS = [
   scenario('results-local-seat', { seed: seedLocalSeat, fields: { screen: 'results', resultsFastest: 61234 } }),
   scenario('results-board-no-lap', { seed: seedBoardSeat, fields: { screen: 'results' } }),
   scenario('results-board-lap', { seed: seedBoardSeat, fields: { screen: 'results', resultsFastest: 61234 } }),
-  scenario('results-board-new-best', { seed: () => { seedBoardSeat(); writePostedBest('board-golden', 65000); }, fields: { screen: 'results', resultsFastest: 61234 } }),
-  scenario('results-board-not-best', { seed: () => { seedBoardSeat(); writePostedBest('board-golden', 60000); }, fields: { screen: 'results', resultsFastest: 61234 } }),
-  scenario('results-board-pending', { seed: () => { seedBoardSeat(); writePendingTime({ trackId: 'board-golden', lapMs: 59999 }); }, fields: { screen: 'results' } }),
-  scenario('results-board-pending-other', { seed: () => { seedBoardSeat(); writePendingTime({ trackId: 'other', lapMs: 59999 }); }, fields: { screen: 'results' } }),
   scenario('results-board-moved', { seed: () => seedBoardSeat({ moved: true }), fields: { screen: 'results', resultsFastest: 61234 } }),
-  scenario('results-board-posted', { seed: seedBoardSeat, fields: { screen: 'results', resultsFastest: 61234, timePosted: { ok: true, rank: 2 } } }),
-  scenario('results-board-posted-norank', { seed: seedBoardSeat, fields: { screen: 'results', resultsFastest: 61234, timePosted: { ok: true } } }),
-  scenario('results-board-plane', { seed: () => { seedBoardSeat(); writePendingTime({ trackId: 'board-golden', lapMs: 59999, craft: 'cub1400' }); }, settings: { airframe: 'cub1400', tune: 'cub-stab' }, fields: { screen: 'results' } }),
 
   /* Rates: no presets, a matching one, an unrelated one, split, notice. */
   scenario('rates-stock', { fields: { screen: 'rates' } }),

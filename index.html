@@ -273,7 +273,7 @@
          grass and tarmac alike, which is how a video OSD stays legible. */
       .osd { position: absolute; inset: 0; }
       .osd.dim { opacity: 0.4; }
-      .osd-ghost.is-off, .osd-launch.is-off, .room-race.is-off { display: none; }
+      .osd-launch.is-off, .room-race.is-off { display: none; }
       .osd-top, .osd-corner { text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
       .osd-label, .room-race-title {
         margin-bottom: 2px; color: var(--slate);
@@ -297,11 +297,6 @@
       .osd-gate, .osd-mode { color: var(--amber); text-transform: uppercase; }
       .osd-gate { margin-top: 6px; font-size: 15px; letter-spacing: 0.08em; }
       .osd-mode { letter-spacing: 0.14em; }
-      /* The split to the ghost, shown briefly after each gate. Mint is the
-         good news everywhere on this overlay, so mint means ahead. */
-      .osd-ghost { margin-top: 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; }
-      .osd-ghost.ahead { color: var(--mint); }
-      .osd-ghost.behind { color: var(--amber); }
 
       /* The pack and flight blocks in the two lower corners. */
       .osd-corner { position: absolute; bottom: 20px; width: 190px; font-size: 15px; }
@@ -540,7 +535,7 @@
       }
 
       /* THE BANNER: one message line under the OSD's top block, 150 px down
-         so a two line banner clears the clock, gate, best and ghost lines,
+         so a two line banner clears the clock, gate and best lines,
          and high enough to stay off the gate a tilted FPV camera puts low in
          the frame. Its type scales with the window (--banner-size) so a
          long message stays a few lines on a phone. */
@@ -1692,12 +1687,9 @@
       .screen-fc .row:focus-visible { outline-color: var(--bf-accent); }
 
       /* A row shows its kind before Enter (rowKind in src/ui/ui.js): a
-         value row its control, a page a chevron, a link an arrow. */
-      .row-nav::after, .row-link::after { margin-left: 10px; color: #4d5558; }
-      .row-nav::after { content: "\203A"; font-size: 19px; line-height: 1; }
-      .row-link::after { content: "\2197"; font-size: 15px; }
+         value row its control, a page a chevron. */
+      .row-nav::after { content: "\203A"; margin-left: 10px; font-size: 19px; line-height: 1; color: #4d5558; }
       .row-nav.on::after { color: var(--sakura); }
-      .row-link.on::after { color: var(--slate); }
       .row-info { cursor: default; }
       /* A reading off the hardware (padTroubleItem), so amber, and a row
          rather than a banner so a radio pilot can reach it. */
@@ -1736,43 +1728,6 @@
       .row-primary.on { color: var(--deep); background: var(--mint); border-left-color: var(--mint); box-shadow: none; }
       /* The value too: sakura on the mint fill was unreadable. */
       .row-primary.on .row-label, .row-primary.on .row-value { color: var(--deep); }
-
-      /*
-       * STANDINGS, above the actions rather than as rows: a leaderboard is
-       * read, and forty rows would make the cursor walk all of them to
-       * reach Back. Rank, pilot, lap; a record in mint, the reader's own
-       * row marked in sakura.
-       */
-      .standings-table {
-        grid-column: 1 / -1; justify-self: center;
-        width: min(100%, 560px); max-height: min(38vh, 20em); margin: 0 0 14px;
-        overflow-y: auto; pointer-events: auto;
-        scrollbar-width: thin; scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
-      }
-      .standings-row {
-        display: grid; grid-template-columns: 2.4em 1fr auto; align-items: baseline; gap: 12px;
-        padding: 6px 14px; font-size: 15px; color: rgba(215, 221, 221, 0.82);
-      }
-      .standings-head {
-        padding-bottom: 2px;
-        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate);
-      }
-      .standings-rank, .standings-lap { font-variant-numeric: tabular-nums; }
-      .standings-rank { color: var(--slate); }
-      .standings-pilot { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-      .standings-lap { font-weight: 600; color: var(--cream); }
-      .standings-row.is-record .standings-lap { color: var(--mint); }
-      .standings-row.is-me {
-        background: linear-gradient(90deg, rgba(215, 221, 221, 0.14), rgba(215, 221, 221, 0) 70%);
-        box-shadow: inset 3px 0 0 var(--sakura);
-      }
-      .standings-row.is-me .standings-pilot { color: var(--cream); }
-      .standings-ghost {
-        margin-left: 8px; padding: 1px 6px; border-radius: 0;
-        font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-        color: var(--slate); background: rgba(154, 163, 167, 0.18);
-      }
-      .standings-note { padding: 10px 14px; font-size: 14px; color: var(--slate); }
 
       /* A group heading in a long list: not a row, so no cursor, hover or
          click, just a bracketed caption over a hairline. */
@@ -3024,11 +2979,6 @@
       .results-empty {
         margin: 0; color: var(--slate); font-size: 15px; line-height: 1.55;
         max-width: 34em;
-      }
-      /* One line about the ghost that was chased, under the lap rows. Mint
-         for the same reason the ghost itself is: it is a record, flying. */
-      .results-ghost {
-        margin: 10px 0 0; color: var(--mint); font-size: 14px; line-height: 1.5;
       }
       .result-row {
         padding: 8px 0 10px;

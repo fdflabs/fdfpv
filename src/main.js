@@ -84,24 +84,17 @@ import { planesFor } from './game/verify.js';
 import { floatStart } from './builder/course.js';
 import { createRoute, fromRace, fromRoom, replayState, withBests } from './game/debrief.js';
 import { formatRunClock, lengthText } from './ui/format.js';
-import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
-import { AiOpponent, seatOpponent } from './game/aiopponent.js';
-import { buildGhostCraft } from './render/ghostcraft.js';
-import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime } from './ui/ui.js';
+import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager, thermalMode } from './avionics/sensors.js';
 import { createPerception } from './avionics/perception.js';
 import { createTrackManager } from './avionics/tracks.js';
 import { hudStateOf } from './avionics/hudstate.js';
-import {
-  adoptShareFromLocation, fetchGhost, fetchTrackDocument,
-  fetchTrackTimes, postTime,
-} from './share/board.js';
-import { findBoardTwin, inspectCourse, layoutFingerprint, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
+import { adoptShareFromLocation, fetchTrackDocument } from './share/board.js';
+import { inspectCourse, layoutFingerprint, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
 import {
   addFlight, createFlightClock, deviceId, flightTotals, mergeFlightTime, stepsAreFlight,
@@ -109,7 +102,6 @@ import {
 import { addFlightCount, addGameResult, mergePilotCounts } from './share/pilotcounts.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
-import { createLiveLink } from './share/live.js';
 import {
   createRoomLink, devAccount, figurePick, namePick, ownName, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
 } from './share/rooms.js';
@@ -205,21 +197,17 @@ import {
   checkSession, fetchBlocks, heldBlocks, needSignIn, setBlocked,
 } from './share/account.js';
 
-/* The pilot's key for signing posted times and saved tracks, made on first
- * use and kept in this browser. See src/share/identity.js. */
+/* The pilot's key for signing saved tracks, made on first use and kept in
+ * this browser. See src/share/identity.js. */
 const identity = createIdentity();
 /* Saved tracks go online with that key (src/share/cloud.js), from boot on,
  * whether or not the builder is ever opened this visit. */
 startTrackSync(identity);
 import {
-  clearPendingTime,
   clearShareImport,
   readBind,
   readEditKey,
-  readPendingTime,
   readShareImport,
-  lapSlot,
-  writePostedBest,
   writeShareImport,
 } from './share/trackseat.js';
 import { isMapTrack } from './trackbuilder/model.js';
@@ -315,8 +303,8 @@ const WING_MOUNTS = {
 /* The aircraft the title flies, whatever is seated: the owner's choice, and
  * a wing, so the title never shows a seaplane parked on grass. */
 const TITLE_CRAFT = 'sky1800';
-import { disposeSceneGraph, shareInstancedDepth } from './render/shell.js';
-import { normaliseRates, RATE_DEFAULTS, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
+import { shareInstancedDepth } from './render/shell.js';
+import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
 import { GATE_SCALE, gateScaleFor } from './game/track.js';
@@ -2911,21 +2899,6 @@ export async function boot({
     ui.renderMenu();
   }
   /*
-   * A chase link adds ?ghost=tm- and eight hex digits. Only the id is kept
-   * here; the ghost is fetched once the course and its board times are
-   * known (ghostCourseChanged), so a slow board never holds up the boot.
-   */
-  const wantGhostId = boardTimeIdIn(window.location.search);
-  function boardTimeIdIn(search) {
-    let id = '';
-    try {
-      id = new URLSearchParams(search).get('ghost') || '';
-    } catch (e) {
-      return '';
-    }
-    return /^tm-[0-9a-f]{8}$/.test(id) ? id : '';
-  }
-  /*
    * A handle changed since this browser last published is sent to the
    * board, so the author line and the times posted under the old one catch
    * up. A changed layout is not: that clears times, so it is asked first.
@@ -3641,195 +3614,17 @@ export async function boot({
     }
   }
   /* The in-sim builder, once a world it can build in is seated. Declared up
-   * here because the ghost below asks whether a run is its test flight. See
-   * buildHost. */
+   * here because the run's code below asks whether a run is its test
+   * flight. See buildHost. */
   let build = null;
   const racePrev = new THREE.Vector3();
   let raceHasPrev = false;
 
   /*
-   * Ghost laps: a semi-transparent replay to race against. It only reads
-   * the physics (the recorder samples the interpolated pose that rendering
-   * and gate scoring already use; the replay craft has no collisions), so
-   * it cannot affect a flight. Both recording and playback measure time
-   * from the start gate crossing, so playback is lap clock lookups and
-   * frame rate does not matter. Sources: best lap this session, last lap,
-   * or a board entry with a recording. Session ghosts are memory only.
-   * settings.ghost picks between the session sources; a board ghost is a
-   * per-visit choice because it belongs to one course.
-   */
-  const ghostRecorder = new GhostRecorder();
-  const ghostBook = new GhostBook();
-  let ghostRig = buildGhostCraft();
-  /* The ghost rig outlives maps, but it sits inside the current map's
-   * scene, and a map's teardown frees everything in its scene graph,
-   * name tag texture included. Registering it here makes teardown detach
-   * it instead, since re-adding it after a free would draw freed GPU
-   * resources. */
-  shell.keepAcrossMaps(ghostRig.group);
-  /* The ghost is the seated aircraft again, so it is rebuilt when that
-   * changes: a wing chasing a wing's lap, not a quad. Between runs only,
-   * from syncCraftScale, the same moment the hero craft swaps. buildShell
-   * draws DEFAULT_AIRFRAME's. */
-  let ghostRigAirframe = DEFAULT_AIRFRAME;
-  function swapGhostRig() {
-    if (ghostRigAirframe === runAirframe) {
-      return;
-    }
-    const old = ghostRig;
-    const next = buildGhostCraft(runAirframe);
-    next.group.position.copy(old.group.position);
-    next.group.quaternion.copy(old.group.quaternion);
-    next.group.visible = old.group.visible;
-    next.setPresence(0);
-    if (ghostLap) {
-      next.setLabel(ghostLabelFor(ghostLap));
-    }
-    if (old.group.parent) {
-      old.group.parent.add(next.group);
-      old.group.parent.remove(old.group);
-    }
-    shell.keepAcrossMaps(next.group);
-    disposeSceneGraph(old.group);
-    ghostRig = next;
-    ghostRigAirframe = runAirframe;
-  }
-
-  /*
-   * Live: the other pilots on this board track, each a ghost craft fed from
-   * the room's socket. peers is by the room's peer id; the sender resamples
-   * this craft's rendered pose onto the ghost rate and the link carries it.
-   * See src/share/live.js and LiveGhost in src/game/ghost.js.
-   */
-  const livePeers = new Map();
-  const livePose = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
-  const liveLink = createLiveLink({
-    onWelcome: (id, peers) => {
-      for (const p of peers) {
-        livePeerJoin(p.id, p.name);
-      }
-      syncLiveRow();
-    },
-    onJoin: (id, name) => {
-      livePeerJoin(id, name);
-      syncLiveRow();
-    },
-    onLeave: (id) => {
-      livePeerLeave(id);
-      syncLiveRow();
-    },
-    onFrame: (frame, wallMs) => {
-      const peer = livePeers.get(frame.peer);
-      if (peer) {
-        peer.live.push(frame, wallMs);
-      }
-    },
-    onState: () => syncLiveRow(),
-  });
-  const liveSender = new LiveSender((t, x, y, z, qx, qy, qz, qw) => {
-    liveLink.send(encodeLiveFrame(t, x, y, z, qx, qy, qz, qw));
-  });
-
-  function livePeerJoin(id, name) {
-    if (livePeers.has(id)) {
-      livePeers.get(id).rig.setLabel(name);
-      return;
-    }
-    const rig = buildGhostCraft();
-    rig.setLabel(name);
-    rig.setPresence(0);
-    shell.keepAcrossMaps(rig.group);
-    livePeers.set(id, { rig, live: new LiveGhost(), name });
-  }
-
-  function livePeerLeave(id) {
-    const peer = livePeers.get(id);
-    if (!peer) {
-      return;
-    }
-    peer.rig.setPresence(0);
-    if (peer.rig.group.parent) {
-      peer.rig.group.parent.remove(peer.rig.group);
-    }
-    livePeers.delete(id);
-  }
-
-  function livePeersClear() {
-    for (const id of [...livePeers.keys()]) {
-      livePeerLeave(id);
-    }
-  }
-
-  /* Whether this track has a room: a board track, not freestyle. */
-  function liveListing() {
-    const listing = ghostListing();
-    return listing && !race.freestyle && listing.shareId ? listing : null;
-  }
-
-  function syncLive() {
-    const listing = liveListing();
-    if (!listing || ui.settings.live !== 'on') {
-      liveLink.leave();
-      liveSender.reset();
-      livePeersClear();
-      syncLiveRow();
-      return;
-    }
-    liveLink.join({ origin: listing.board, trackId: listing.shareId, name: readPilotName() || str('ui.pilot') });
-    syncLiveRow();
-  }
-
-  function syncLiveRow() {
-    if (!liveListing()) {
-      ui.setLiveRow(null);
-      return;
-    }
-    const on = ui.settings.live === 'on';
-    const state = liveLink.state();
-    let value = str('main.live_off');
-    if (on) {
-      value = state === 'open'
-        ? (livePeers.size ? str('main.live_here', { n: livePeers.size }) : str('main.alone'))
-        : (state === 'failed' ? str('main.no_room') : str('main.joining'));
-    }
-    ui.setLiveRow({
-      value,
-      note: on
-        ? str('main.other_pilots_flying_this_track_right')
-        : str('main.see_the_other_pilots_flying_this'),
-      cycle: () => {
-        ui.settings.live = ui.settings.live === 'on' ? 'off' : 'on';
-        ui.persistSettings();
-        syncLive();
-      },
-    });
-  }
-
-  /* Every frame: send this craft, pose the peers. wallMs is the render
-   * clock; peers are posed LIVE_DELAY_MS behind their sender. */
-  function liveFrame(wallMs) {
-    if (liveLink.state() !== 'open') {
-      return;
-    }
-    if (mode === 'flight') {
-      liveSender.feed(wallMs, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w);
-    }
-    for (const peer of livePeers.values()) {
-      const presence = peer.live.sample(wallMs, livePose);
-      peer.rig.group.position.set(livePose.px, livePose.py, livePose.pz);
-      peer.rig.group.quaternion.set(livePose.qx, livePose.qy, livePose.qz, livePose.qw);
-      peer.rig.setPresence(presence);
-      if (presence > 0 && shell.quad.parent && peer.rig.group.parent !== shell.quad.parent) {
-        shell.quad.parent.add(peer.rig.group);
-      }
-    }
-  }
-
-  /*
    * FLY WITH FRIENDS: a private room on the rooms Worker (edge/rooms/),
    * the socket in src/share/rooms.js, the design in
-   * docs/MULTIPLAYER-PLAN.md. Everything here is downstream of the physics,
-   * the same standing as the ghost: the sender reads the pose the renderer
+   * docs/MULTIPLAYER-PLAN.md. Everything here is downstream of the physics:
+   * the sender reads the pose the renderer
    * already drew, the peers are models nothing collides with, and a pilot
    * who never opens a room never builds any of it. The one thing a room
    * changes about a flight is where it starts (roomSlot, above).
@@ -9246,54 +9041,10 @@ export async function boot({
     roomTagAction(action);
     return true;
   };
-  /*
-   * THE GHOST CHASE. src/game/ghost.js records and samples laps; this is the
-   * shell's half: what is chased, what the menu row offers, the gap at each
-   * gate and the record key. The names below that other parts of boot()
-   * read or write (the harness hooks, frameBody, the reset, the rig swap)
-   * are that code's contract: ghostLap, ghostChased, ghostGap, ghostChoice,
-   * ghostBoardTimes, ghostBoardLap, ghostQueryId and ghostPrev's fields.
-   *
-   * ghostChoice is 'off', 'best', 'previous' or `board:<time id>`.
-   * ghostLap is the lap flown against now and ghostChased the one the last
-   * closed lap was flown against: the line re-arms the first before the
-   * results read the second. ghostGap is { deltaMs, final, untilWall }.
-   */
-  /* A chase fades in this long off the line and out this long past the
-   * ghost's own finish, and shows faintly across a recorded crash. */
-  const CHASE_FADE_MS = 400;
-  const CHASE_CUT_PRESENCE = 0.15;
-  /* How long the OSD keeps a gate's gap lit, wall clock. */
-  const GAP_SHOWN_MS = 2800;
-  /* The menu row lists this many board rivals; the board page has the rest. */
-  const BOARD_RIVALS = 5;
-  const SESSION_MODES = ['off', 'best', 'previous'];
-  let ghostChoice = storedGhostChoice();
-  let ghostLap = null;
-  let ghostChased = null;
-  let ghostGap = null;
-  let ghostBoardTimes = null;
-  let ghostBoardLap = null;
-  /* A ?ghost= chase link waits here until the course's board times are in. */
-  let ghostQueryId = wantGhostId;
-  /* frameBody writes the frame's pose here after the race step, so the next
-   * lap start can put a keyframe from before the line into the recording. */
-  const ghostPrev = { valid: false, simMs: 0, x: 0, y: 0, z: 0, qx: 0, qy: 0, qz: 0, qw: 1 };
-  /* The board time being fetched and the course it was asked for, or null. */
-  let boardFetch = null;
-  /* Scratch for GhostLap.sample, reused every frame. */
-  const chasePose = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
-
-  /* Only the session modes persist. A board pick names one time on one
-   * course, so a fresh course starts from the pilot's session mode. */
-  function storedGhostChoice() {
-    return SESSION_MODES.includes(ui.settings.ghost) ? ui.settings.ghost : 'best';
-  }
-
-  /* The session book is keyed by course, not by tune: a lap on any config
-   * paces any other. A seated track is its own course, with a plane's laps
-   * kept apart from a quad's; a world flown free is keyed by the world. */
-  function ghostCourseKey() {
+  /* The course a run's laps are kept under (progressCourse): a seated
+   * track is its own course, with a plane's laps kept apart from a quad's;
+   * a world flown free is keyed by the world. */
+  function runCourseKey() {
     const track = loadedCourseKey(view);
     if (!track) {
       return view.id;
@@ -9302,11 +9053,9 @@ export async function boot({
   }
 
   /*
-   * The plane a lap flown now is filed under on the board, or '': a fixed
-   * wing's lap on a map track goes to the plane board (src/game/verify.js
-   * planesFor) and every other lap where it always went. The session's
-   * ghosts are kept per board too, so a plane never chases or uploads a
-   * quad's lap as its own.
+   * The plane a lap flown now is filed under, or '': a fixed wing's lap on
+   * a map track is a plane's (src/game/verify.js planesFor) and every other
+   * lap is where it always was, so a plane's laps are never a quad's.
    */
   function lapCraft() {
     if (!view.courseKey) {
@@ -9314,528 +9063,6 @@ export async function boot({
     }
     const seated = seatedMapTrack();
     return seated ? lapCraftOf(seated.document, runAirframe) : '';
-  }
-
-  /* The book's lap for a session mode on the current course, or null. */
-  function sessionLap(choice) {
-    const course = ghostCourseKey();
-    return choice === 'previous' ? ghostBook.previous(course) : ghostBook.best(course);
-  }
-
-  /* No chase while freestyling, nor on a builder's TEST flight, whose track
-   * may change before its lap could be flown again. A published map track
-   * (build.racing) races like any other course. */
-  function chaseAllowed() {
-    return !race.freestyle && !(build && build.testing);
-  }
-
-  /*
-   * The rig's name tag. GhostBook labels its laps in the page's locale,
-   * and the locale is fixed for a page's life (a change reloads), so the
-   * best is told apart by its label in that same locale. Asking the book
-   * which lap is its best instead would mislabel a best that has just been
-   * beaten but is still the one armed.
-   */
-  function ghostLabelFor(lap) {
-    let who = lap.name || str('main.rival');
-    if (lap.source !== 'board') {
-      who = lap.label === str('ghost.session_best') ? str('main.best') : str('main.last');
-    }
-    return str('main.text', { name: who, formatTime: formatTime(lap.durationMs) });
-  }
-
-  /* What the choice points at now, or null. A session mode can be ahead of
-   * its data (Best before any lap is closed) and then simply chases nothing
-   * until a lap exists. A board choice is armed only once its lap is here. */
-  function chosenLap() {
-    if (!chaseAllowed() || ghostChoice === 'off' || ghostChoice === AI_CHOICE) {
-      return null;
-    }
-    if (!ghostChoice.startsWith('board:')) {
-      return sessionLap(ghostChoice);
-    }
-    const loaded = ghostBoardLap ? `board:${ghostBoardLap.timeId}` : '';
-    return loaded === ghostChoice ? ghostBoardLap : null;
-  }
-
-  function armGhost() {
-    ghostLap = chosenLap();
-    if (ghostLap) {
-      ghostRig.setLabel(ghostLabelFor(ghostLap));
-    }
-  }
-
-  /* The Ghost row's options, in the order its arrows step through them. */
-  function ghostOptions() {
-    const rivals = (ghostBoardTimes || []).map((time) => ({
-      id: `board:${time.id}`,
-      label: str('main.text', { name: time.name, formatTime: formatTime(time.lapMs) }),
-    }));
-    return [
-      { id: 'off', label: str('ui.off') },
-      { id: 'best', label: str('main.your_best_this_session') },
-      { id: 'previous', label: str('main.your_previous_lap') },
-      { id: AI_CHOICE, label: str('main.ai_opponent') },
-      ...rivals,
-    ];
-  }
-
-  /* The row's note: what the current choice will fly, or why nothing. */
-  function ghostRowNoteText() {
-    if (ghostChoice === 'off') {
-      return str('main.nobody_to_chase_laps_still_record');
-    }
-    if (ghostChoice === AI_CHOICE) {
-      return opponentNote();
-    }
-    if (ghostChoice.startsWith('board:')) {
-      if (boardFetch) {
-        return str('main.fetching_that_lap_from_the_board');
-      }
-      return str(ghostBoardLap ? 'main.a_recorded_lap_from_the_public' : 'main.that_lap_could_not_be_fetched');
-    }
-    const lap = sessionLap(ghostChoice);
-    return lap
-      ? str('main.a_translucent_pacer_flying_that_lap', { formatTime: formatTime(lap.durationMs) })
-      : str('main.no_lap_on_record_this_session');
-  }
-
-  /* ui.js draws the row; the shell is what knows its contents, so it pushes
-   * them again whenever they change. A board choice not in the list (a
-   * harness-loaded lap) shows as the session best's entry. */
-  function syncGhostRow() {
-    if (race.freestyle) {
-      ui.setGhostRow(null);
-      return;
-    }
-    const options = ghostOptions();
-    const shown = options.find((o) => o.id === ghostChoice) || options[1];
-    ui.setGhostRow({ value: shown.label, note: ghostRowNoteText(), cycle: stepGhost });
-  }
-
-  /* The row's arrows: the next option either way round, read when pressed
-   * since the list grows as board times arrive. */
-  function stepGhost(dir) {
-    const options = ghostOptions();
-    const at = Math.max(0, options.findIndex((o) => o.id === ghostChoice));
-    const step = dir < 0 ? options.length - 1 : 1;
-    pickGhost(options[(at + step) % options.length].id);
-  }
-
-  function pickGhost(id) {
-    ghostChoice = id;
-    if (id === AI_CHOICE) {
-      pickOpponent();
-    } else if (SESSION_MODES.includes(id)) {
-      ui.settings.ghost = id;
-      ui.persistSettings();
-    } else if (!ghostBoardLap || `board:${ghostBoardLap.timeId}` !== id) {
-      /* A board lap is fetched once and kept decoded for the course. */
-      fetchBoardLap(id.slice('board:'.length));
-      return;
-    }
-    armGhost();
-    syncGhostRow();
-  }
-
-  /* The course's board listing when it is a shared course, else null. */
-  function ghostListing() {
-    let listing = null;
-    try {
-      listing = inspectCourse();
-    } catch (e) {
-      return null;
-    }
-    return listing && listing.shareId ? listing : null;
-  }
-
-  /* Downloads one board time's recording and arms it, unless the pilot has
-   * moved to another course while it was on the way. */
-  async function fetchBoardLap(timeId) {
-    const listing = ghostListing();
-    if (!listing) {
-      return;
-    }
-    const ask = { timeId, course: ghostCourseKey() };
-    boardFetch = ask;
-    syncGhostRow();
-    let lap = null;
-    let failure = null;
-    try {
-      const payload = await fetchGhost(listing.shareId, timeId, listing.board);
-      lap = new GhostLap(decodeGhost(ghostFromBase64(payload.ghost)), { label: str('main.board_lap'), name: payload.name || '', source: 'board' });
-      lap.timeId = timeId;
-    } catch (e) {
-      failure = e;
-    }
-    if (ghostCourseKey() !== ask.course) {
-      return;
-    }
-    if (boardFetch === ask) {
-      boardFetch = null;
-    }
-    if (failure) {
-      ghostBoardLap = null;
-      notice = { text: str('main.could_not_fetch_that_ghost', { v1: failure.message ?? failure }), untilMs: performance.now() + 3600 };
-    } else {
-      ghostBoardLap = lap;
-      armGhost();
-    }
-    syncGhostRow();
-  }
-
-  /*
-   * A new course: drop everything tied to the old one, restore the pilot's
-   * session mode, and ask the board for this course's recorded rivals. The
-   * board is optional here, as it is for the course list: when it cannot be
-   * reached the row offers the session modes and nothing breaks.
-   */
-  function ghostCourseChanged() {
-    dropOpponent();
-    ghostRecorder.abort();
-    ghostLap = null;
-    ghostChased = null;
-    ghostGap = null;
-    ghostBoardTimes = null;
-    ghostBoardLap = null;
-    boardFetch = null;
-    ghostPrev.valid = false;
-    ghostRig.setPresence(0);
-    ghostChoice = storedGhostChoice();
-    syncGhostRow();
-    livePeersClear();
-    syncLive();
-    const listing = ghostListing();
-    if (listing && !race.freestyle) {
-      listBoardRivals(listing, ghostCourseKey());
-    }
-  }
-
-  async function listBoardRivals(listing, course) {
-    let times;
-    try {
-      times = await fetchTrackTimes(listing.shareId, listing.board);
-    } catch (e) {
-      return;
-    }
-    if (ghostCourseKey() !== course) {
-      return;
-    }
-    /* On a map track the seated aircraft's board: a quad's laps for a quad,
-     * a plane's for a plane. Only times that carry a recording can be
-     * chased. */
-    const plane = Boolean(lapCraft());
-    ghostBoardTimes = times.filter((t) => t.hasGhost && t.id && Boolean(t.craft) === plane).slice(0, BOARD_RIVALS);
-    syncGhostRow();
-    const linked = ghostQueryId;
-    ghostQueryId = '';
-    if (linked && times.some((t) => t.id === linked && t.hasGhost)) {
-      ghostChoice = `board:${linked}`;
-      fetchBoardLap(linked);
-    }
-  }
-
-  /* One recorder keyframe: a lap time and the craft's pose as drawn. */
-  function recordPose(lapMs, at, q) {
-    ghostRecorder.push(lapMs, at.x, at.y, at.z, q.x, q.y, q.z, q.w);
-  }
-
-  /*
-   * Called every frame after the race has scored the frame's travel, with
-   * the race's lap start and lap count from BEFORE that update: a change in
-   * either is how a lap boundary shows up here.
-   *
-   * Order matters at a boundary. The gap is read first, against the lap
-   * that was armed while it was flown (re-arming first would compare a new
-   * best with itself). Then the finished lap is closed, with this frame's
-   * pose (just past the line, on the old lap's clock) as its last keyframe
-   * so the stored tail runs through the line at speed. Then the next lap's
-   * recording opens with the previous frame's pose (just before the line)
-   * so its first keyframe straddles t = 0.
-   */
-  function ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passedAny) {
-    if (!chaseAllowed()) {
-      return;
-    }
-    const closed = race.laps.length > lapsBefore;
-    if (passedAny && ghostLap && lapStartBefore != null) {
-      noteGap(closed, nowWall);
-    }
-    if (closed) {
-      recordPose(simNow - race.lapStartMs + race.lastLapMs, pCurr, qPrev);
-      ghostBook.keep(ghostCourseKey(), ghostRecorder.finish(race.lastLapMs, race.lastSplits));
-      ghostChased = ghostLap;
-      syncGhostRow();
-    }
-    if (race.lapStartMs == null) {
-      return;
-    }
-    const opened = race.lapStartMs !== lapStartBefore;
-    if (opened) {
-      ghostRecorder.begin();
-      if (ghostPrev.valid) {
-        ghostRecorder.push(ghostPrev.simMs - race.lapStartMs, ghostPrev.x, ghostPrev.y, ghostPrev.z, ghostPrev.qx, ghostPrev.qy, ghostPrev.qz, ghostPrev.qw);
-      }
-    }
-    recordPose(simNow - race.lapStartMs, pCurr, qPrev);
-    if (opened) {
-      armGhost();
-      if (ghostChoice === AI_CHOICE && !aiOpp) {
-        startOpponent();
-      }
-    }
-  }
-
-  /* The gap at the gate just passed: the lap time against the ghost's at
-   * the line, else the newest split against the ghost's same split. */
-  function noteGap(closed, nowWall) {
-    const k = race.splits.length - 1;
-    const mine = closed ? race.lastLapMs : (k >= 0 ? race.splits[k] : null);
-    const theirs = closed ? ghostLap.durationMs : (k >= 0 ? ghostLap.splitMs(k) : null);
-    if (mine == null || theirs == null) {
-      return;
-    }
-    ghostGap = { deltaMs: mine - theirs, final: closed, untilWall: nowWall + GAP_SHOWN_MS };
-  }
-
-  /* Poses the rig at the ghost's own lap time every frame it can be seen;
-   * otherwise parks it (zero presence hides the whole group). */
-  function ghostFrame(simNow) {
-    const flying = mode === 'flight' || mode === 'paused';
-    if (!ghostLap || race.freestyle || race.lapStartMs == null || !flying) {
-      ghostRig.setPresence(0);
-      return;
-    }
-    const t = simNow - race.lapStartMs;
-    ghostLap.sample(t, chasePose);
-    const past = t - ghostLap.durationMs;
-    let presence = past > 0 ? Math.max(0, 1 - past / CHASE_FADE_MS) : Math.min(1, t / CHASE_FADE_MS);
-    if (chasePose.cut) {
-      presence = Math.min(presence, CHASE_CUT_PRESENCE);
-    }
-    ghostRig.group.position.set(chasePose.px, chasePose.py, chasePose.pz);
-    ghostRig.group.quaternion.set(chasePose.qx, chasePose.qy, chasePose.qz, chasePose.qw);
-    ghostRig.setPresence(presence);
-    /* The rig outlives scenes. It follows the hero craft into whichever
-     * scene holds it, here rather than at a swap, so no load path can leave
-     * it in a disposed world. */
-    const scene = shell.quad.parent;
-    if (presence > 0 && scene && ghostRig.group.parent !== scene) {
-      scene.add(ghostRig.group);
-    }
-  }
-
-  /*
-   * THE AI OPPONENT (src/game/aiopponent.js, docs/redesign/PLAN.md 18): the
-   * Ghost row's AI opponent choice races a lap with a pilot of its own on a
-   * plant of its own, through this course's ground and solids, instead of
-   * drawing the lap as a pacer. Solo, quads only (its pilot flies a quad
-   * in ANGLE mode). Its lap: the board lap fetched for the course, else
-   * the pilot's own best this session; a lap with a cut in it (a crash's
-   * recovery jump) is not one it can fly. Its plant is seated and its
-   * sticks learnt (a tenth of a second) when it is chosen and at a run's
-   * reset when the aircraft or pack changed, never at a lap; it starts from a
-   * hover on the line when the pilot's lap opens and flies on the pilot's
-   * own sim clock, so a frame's length changes nothing about it. Its own
-   * Race keeps its laps off the pilot's record, the ghost recorder, the
-   * event log and the progress (docs/AI-PILOTS-CONTRACT.md).
-   */
-  const AI_CHOICE = 'ai';
-  let aiOpp = null;
-  let aiOppStartMs = 0;
-  let aiSeat = null;
-  let aiRig = null;
-  let aiRigAirframe = '';
-  const aiPos = new THREE.Vector3();
-  const aiQuat = new THREE.Quaternion();
-  const aiNormal = new THREE.Vector3();
-  const aiWorld = {
-    toSim: (x, y, z, out) => worldPosToSim(x, y, z, out),
-    dirToSim: (x, y, z, out) => worldDirToSim(x, y, z, out),
-    fromSim: (st, out) => {
-      poseFromState(st, aiPos);
-      out.x = aiPos.x;
-      out.y = aiPos.y;
-      out.z = aiPos.z;
-      return out;
-    },
-    worldQuat: (st, out) => {
-      simQuatToThree(st[7], st[8], st[9], st[10], aiQuat).premultiply(qSpawn);
-      out.x = aiQuat.x;
-      out.y = aiQuat.y;
-      out.z = aiQuat.z;
-      out.w = aiQuat.w;
-      return out;
-    },
-    floorHeight: (x, z, fromY) => floorHeight(x, z, fromY),
-    groundNormal: (x, z, fromY, out) => {
-      sampleGroundNormal(x, z, fromY, aiNormal);
-      out.x = aiNormal.x;
-      out.y = aiNormal.y;
-      out.z = aiNormal.z;
-      return out;
-    },
-    colliders: () => view.colliders,
-  };
-
-  function opponentAllowed() {
-    return chaseAllowed() && !airframeById(runAirframe).fixedWing;
-  }
-
-  function opponentLap() {
-    const lap = ghostBoardLap || ghostBook.best(ghostCourseKey());
-    return lap && !lap.cut.includes(1) ? lap : null;
-  }
-
-  function opponentNote() {
-    if (airframeById(runAirframe).fixedWing) {
-      return str('main.ai_opponent_quads_only');
-    }
-    const lap = opponentLap();
-    return lap
-      ? str('main.ai_opponent_races', { formatTime: formatTime(lap.durationMs) })
-      : str('main.ai_opponent_needs_a_lap');
-  }
-
-  /* The opponent's plant for the seat flown now, seated and learnt once
-   * per aircraft and pack; a board lap for it when the course has one. */
-  const opponentKey = () => `${runAirframe}:${runVoltage}`;
-  function pickOpponent() {
-    if (!opponentAllowed()) {
-      return;
-    }
-    const af = airframeById(runAirframe);
-    const key = opponentKey();
-    if (!aiSeat || aiSeat.key !== key) {
-      const seat = { key, seated: null };
-      aiSeat = seat;
-      fetchTuneText(af.defaultTune)
-        .then((text) => seatOpponent(() => simBytes.then(loadSim), {
-          simId: af.simId,
-          tuneText: composeConfig(text, RATE_DEFAULTS, RATES_KEEP),
-          gravity: af.gravityBase,
-          cellVoltage: runVoltage,
-          rates: RATE_DEFAULTS,
-          wasm: simWasm,
-        }))
-        .then((seated) => {
-          seat.seated = seated;
-          syncGhostRow();
-        })
-        .catch((e) => {
-          logWarn('ai', 'AI opponent: the plant could not be seated', e);
-          if (aiSeat === seat) {
-            aiSeat = null;
-          }
-        });
-    }
-    const first = ghostBoardTimes && ghostBoardTimes[0];
-    if (first && !ghostBoardLap && !boardFetch) {
-      fetchBoardLap(first.id);
-    }
-  }
-
-  function startOpponent() {
-    const lap = opponentLap();
-    /* A plant seated for another aircraft or pack waits for the next run,
-     * whose reset seats it again: never in flight. */
-    const seated = aiSeat && aiSeat.key === opponentKey() ? aiSeat.seated : null;
-    if (!opponentAllowed() || !lap || !seated) {
-      return;
-    }
-    /* The pilot's own referee's gates, in its flying order, handed over
-     * with their axes so the opponent's Race reads the same stations. */
-    const gates = race.gates.map((g, k) => ({
-      position: { x: g.x, y: g.y, z: g.z },
-      axes: { across: g.ax, up: g.ay, travel: g.az },
-      apertures: g.apertures,
-      flyOrder: k,
-      kindName: g.kindName,
-      virtual: g.virtual,
-    }));
-    aiOpp = new AiOpponent({ seated, lap, gates, trackClass: 'full', world: aiWorld });
-    aiOppStartMs = simTimeMs;
-    if (!aiRig || aiRigAirframe !== runAirframe) {
-      if (aiRig) {
-        if (aiRig.group.parent) {
-          aiRig.group.parent.remove(aiRig.group);
-        }
-        disposeSceneGraph(aiRig.group);
-      }
-      aiRig = buildGhostCraft(runAirframe);
-      aiRigAirframe = runAirframe;
-      shell.keepAcrossMaps(aiRig.group);
-    }
-    aiRig.setLabel(str('main.ai_opponent'));
-  }
-
-  function dropOpponent() {
-    aiOpp = null;
-    if (aiRig) {
-      aiRig.setPresence(0);
-    }
-  }
-
-  /* After the pilot's plant has stepped: the opponent flies on to the same
-   * sim clock (it waits while the pilot's clock waits) and is drawn. */
-  function opponentFrame() {
-    if (!aiOpp || !aiRig) {
-      return;
-    }
-    if (mode === 'flight') {
-      aiOpp.stepTo(simTimeMs - aiOppStartMs);
-    }
-    aiWorld.fromSim(aiOpp.state, aiRig.group.position);
-    aiWorld.worldQuat(aiOpp.state, aiRig.group.quaternion);
-    aiRig.setPresence(mode === 'flight' || mode === 'paused' || mode === 'results' ? 1 : 0);
-    const scene = shell.quad.parent;
-    if (scene && aiRig.group.parent !== scene) {
-      scene.add(aiRig.group);
-    }
-  }
-
-  function opponentResultNote() {
-    if (!aiOpp) {
-      return null;
-    }
-    const laps = aiOpp.laps();
-    if (!laps.length) {
-      return str(aiOpp.crashed ? 'main.ai_opponent_crashed' : 'main.ai_opponent_no_lap', { laps: plural('count.laps', 0) });
-    }
-    const vars = { laps: plural('count.laps', laps.length), formatTime: formatTime(aiOpp.bestMs()) };
-    return str(aiOpp.crashed ? 'main.ai_opponent_crashed' : 'main.ai_opponent_result', vars);
-  }
-
-  /* The results line about the ghost the last lap was flown against, or
-   * null: level within 10 ms, else who was ahead and by how much. */
-  function ghostResultNote() {
-    if (ghostChoice === AI_CHOICE) {
-      return opponentResultNote();
-    }
-    const best = ghostChased ? race.bestLapMs() : null;
-    if (best == null) {
-      return null;
-    }
-    const theirs = ghostChased.durationMs;
-    const who = ghostChased.source === 'board'
-      ? ghostChased.name || str('main.the_board_lap')
-      : ghostChased.label.toLowerCase();
-    const vars = { who, formatTime: formatTime(theirs) };
-    const margin = best - theirs;
-    if (Math.abs(margin) < 10) {
-      return str('main.level_with_the_ghost_at', vars);
-    }
-    const v3 = (Math.abs(margin) / 1000).toFixed(2);
-    return str(margin < 0 ? 'main.you_beat_the_ghost_at_by' : 'main.the_ghost_at_stayed_ahead', { ...vars, v3 });
-  }
-
-  /* The wire base64 of this session's recording of a lap being posted, or
-   * null when the session holds none of that time. The previous lap is
-   * tried first; when it ties the best they are the same lap anyway. */
-  function ghostForUpload(lapMs) {
-    const want = Math.round(lapMs);
-    const lap = [sessionLap('previous'), sessionLap('best')].find((l) => l && Math.round(l.durationMs) === want);
-    return lap ? ghostToBase64(encodeGhost(lap)) : null;
   }
 
   /*
@@ -13187,7 +12414,7 @@ export async function boot({
     forgetContacts();
     parkAtSpawn();
     rearmSticks(keepSticks);
-    breakTrails(Boolean(at));
+    breakTrails();
     statePrev = readState();
     stateCurr = statePrev;
     ui.progress.startFlight(simTimeMs, () => roomLinkState.roomNow());
@@ -13541,16 +12768,10 @@ export async function boot({
     input.holdThrottleLow(TAKEOFF_RELEASE);
   }
 
-  /* The craft jumped, so the segment across the jump is not a flight path.
-   * The race interpolates gate crossings from prevSimMs and the ghost from
-   * its last pose; a moved spawn is also a cut in the ghost recording, so
-   * its replay sees one impossible segment rather than a glide. */
-  function breakTrails(moved) {
+  /* The craft jumped, so the segment across the jump is not a flight path:
+   * the race interpolates gate crossings from prevSimMs. */
+  function breakTrails() {
     race.prevSimMs = null;
-    if (moved) {
-      ghostRecorder.cutHere();
-    }
-    ghostPrev.valid = false;
   }
 
   /*
@@ -13741,15 +12962,6 @@ export async function boot({
     resetCraft(null);
     race.reset();
     raceLogAt = 0;
-    /* Only the recording in flight dies; the session book keeps its laps. */
-    ghostRecorder.abort();
-    ghostGap = null;
-    ghostChased = null;
-    ghostRig.setPresence(0);
-    dropOpponent();
-    if (ghostChoice === AI_CHOICE) {
-      pickOpponent();
-    }
     runLaps = ui.settings.laps;
     progressKey = '';
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
@@ -13805,7 +13017,7 @@ export async function boot({
   function progressCourse() {
     const seated = seatedMapTrack();
     const id = build && build.testing ? build.docId : (seated && seated.document ? seated.document.id : null);
-    return { key: id ? `track:${id}` : ghostCourseKey(), kind: courseKind(id, ui.settings.progress) };
+    return { key: id ? `track:${id}` : runCourseKey(), kind: courseKind(id, ui.settings.progress) };
   }
 
   /*
@@ -14044,7 +13256,7 @@ export async function boot({
     }
 
     /* The shell's copies of the machine, the same calls a choice between
-     * runs makes: its size, hull, parts, model, ghost, voice and camera. */
+     * runs makes: its size, hull, parts, model, voice and camera. */
     syncCraftScale();
     flapNotch = 0;
     wingStabApplied = -1;
@@ -14186,7 +13398,6 @@ export async function boot({
     paintBest();
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     ui.setShare(view.share || null);
-    ghostCourseChanged();
   }
 
   /* The run is over: the world follows the seat again. */
@@ -14249,7 +13460,6 @@ export async function boot({
       adoptSpawn();
       ui.setShare(view.share || null);
       reset();
-      ghostCourseChanged();
       mode = 'title';
       /* Back to the room screen only if the pilot is still on it: one who
        * left for the title while the world loaded stays there. */
@@ -14724,9 +13934,9 @@ export async function boot({
    * old one follows: the collision dimensions (src/game/collide.js exports
    * them as live bindings), the parts, the cell count, the parked height
    * (which places the ground plane, the spawn and the landed test; see
-   * SPAWN_ALT), the drawn model, the ghost's model, the motor voice and the
-   * camera mount. Between runs only: a hull swapped mid flight would move
-   * under a contact being resolved.
+   * SPAWN_ALT), the drawn model, the motor voice and the camera mount.
+   * Between runs only: a hull swapped mid flight would move under a
+   * contact being resolved.
    */
   function syncCraftScale() {
     const craft = airframeById(runAirframe);
@@ -14735,7 +13945,6 @@ export async function boot({
     runCells = craft.cells;
     seatRestHeight(craft, startsAfloat());
     dressCraft();
-    swapGhostRig();
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
     setFlownVoice(craft.voice ?? (craft.fixedWing ? 'wing' : 'quad'));
@@ -15120,131 +14329,6 @@ export async function boot({
       flashNotice(str('main.flying', { name: entry.name }), 2400);
     }
     reset();
-  }
-
-  /*
-   * Why a run of this flight cannot go on a public board, or null. Both are
-   * a different machine: arcade is another flight model, and weight off
-   * stock is another aircraft, so a time on either is not comparable with
-   * the stock rows beside it.
-   */
-  function boardTimeRefusal() {
-    if (runStyle === 'arcade') {
-      return str('main.arcade_laps_stay_off_the_public');
-    }
-    if (runWeight !== WEIGHT_STOCK) {
-      return str('main.laps_flown_at_percent_weight_stay', { runWeight });
-    }
-    return null;
-  }
-
-  /* The pilot's board name, asked for once when it has never been given. */
-  async function boardName(detailKey) {
-    return readPilotName() || ui.askName({ title: str('ui.your_name'), detail: str(detailKey) });
-  }
-
-  /* The lap to post on this track: the run's best by race's own reckoning,
-   * else a time kept from an earlier visit to the same track on the same
-   * craft, else null. */
-  function lapToPost(trackId, craft) {
-    const flown = race.bestLapMs();
-    if (flown != null) {
-      return flown;
-    }
-    const kept = readPendingTime();
-    const sameSeat = kept && kept.trackId === trackId && (kept.craft || '') === craft;
-    return sameSeat ? kept.lapMs : null;
-  }
-
-  /*
-   * Post the run's best lap on the seated board track, with this session's
-   * recording of it when there is one (a time kept from an earlier visit
-   * goes up bare). A plane's lap on a map track goes to the plane board.
-   */
-  async function submitBoardTime() {
-    const refused = boardTimeRefusal();
-    if (refused) {
-      flashNotice(refused, 3600);
-      return;
-    }
-    const listing = inspectCourse();
-    const seatId = listing && listing.shareId;
-    if (!seatId || !listing.canPostTime) {
-      const why = listing && listing.layoutDrift ? 'main.update_this_track_on_the_board' : 'main.this_track_is_not_on_the';
-      flashNotice(str(why), 2800);
-      return;
-    }
-    const craft = lapCraft();
-    const lapMs = lapToPost(seatId, craft);
-    if (lapMs == null) {
-      flashNotice(str('main.no_clean_lap_to_upload'), 2800);
-      return;
-    }
-    const name = await boardName('main.a_time_on_the_public_board');
-    if (!name) {
-      return;
-    }
-    const ghost = ghostForUpload(lapMs);
-    /* Where the post goes. It can move once, below. */
-    const target = { id: seatId, board: listing.board };
-    /* The signature covers the track id, so each attempt signs its own. */
-    const send = async () => {
-      const lap = { trackId: target.id, lapMs: Math.round(lapMs), ghost, craft };
-      const auth = await identity.signTime(lap);
-      return postTime({ ...lap, name, key: auth.key, sig: auth.sig, origin: target.board });
-    };
-    let healed = '';
-    try {
-      let posted;
-      try {
-        posted = await send();
-      } catch (e) {
-        /*
-         * A 404 means the board took this track down and may have put it
-         * back under a new id (scripts/boardpresets.js --replace, an admin
-         * removal), leaving this seat on an id it has never heard of. Find
-         * the copy with the same layout, move the seat to it so every later
-         * screen and lap uses the live id, and post there once. Anything
-         * else is the board's own answer, and is not retried: a retried
-         * upload is how a board gets the same lap twice.
-         */
-        if (!(e && e.status === 404 && listing.doc)) {
-          throw e;
-        }
-        const twin = await findBoardTwin({ doc: listing.doc, name: listing.name, trackClass: 'full', origin: listing.board });
-        if (!twin.found) {
-          throw new Error(twin.sameName
-            ? str('main.the_board_s_copy_of_is', { name: twin.sameName.name })
-            : str('main.that_track_is_no_longer_on'));
-        }
-        const live = twin.found;
-        writeShareImport(live);
-        ui.setShare({ id: live.id, name: live.name, author: live.author, board: live.board });
-        target.id = live.id;
-        target.board = live.board;
-        healed = str('main.the_board_had_republished_this_track');
-        posted = await send();
-      }
-      writePostedBest(lapSlot(target.id, craft), lapMs);
-      /* A kept time is cleared under the id it was flown on and, after a
-       * move, under the live one, or it would be offered again forever. */
-      clearPendingTime(seatId);
-      if (target.id !== seatId) {
-        clearPendingTime(target.id);
-      }
-      /* formatTime, as the row that started the upload spells it, so the
-       * confirmation reads as the same number. */
-      flashNotice(str('main.uploaded', {
-        name,
-        formatTime: formatTime(lapMs),
-        rank: posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '',
-        withGhost: ghost ? str('main.ghost_attached_ready_to_be_chased') : '',
-        healed,
-      }), 3600);
-      ui.markTimePosted(posted);
-    } catch (e) {
-      flashNotice(str('main.could_not_upload_that_time', { v1: e.message ?? e }), 3600);
-    }
   }
 
   /* Puts the flight down. A craft left parked upside down (waiting for the
@@ -15736,17 +14820,6 @@ export async function boot({
     ui.show('padpick');
   }
 
-  /*
-   * A standings row's ghost is armed the way a ?ghost= link arms one: the
-   * time id waits in ghostQueryId, and the lap downloads when the seated
-   * track's times are read, which the seat change does next anyway.
-   */
-  ui.onStandingsGhost = (track, time) => {
-    if (time && time.id) {
-      ghostQueryId = time.id;
-    }
-  };
-
   /* The optional Google sign-in's dialogs and progress sync
    * (src/ui/accountui.js), its rows in Pilot. */
   const accountUi = createAccountUi({
@@ -16052,7 +15125,6 @@ export async function boot({
     ['importkey', () => {
       importPilotKey();
     }],
-    ['posttime', () => submitBoardTime()],
     ['watchreplay', watchReplayFromResults],
   ]);
 
@@ -17742,11 +16814,9 @@ export async function boot({
 
   /* Each map starts somewhere else, so the spawn is adopted per map, and it
    * must be before the first reset, which seats the craft on the spawn's
-   * ground. The ghost picker hears about the boot course here, since the
-   * boot course does not come through adoptLoadedView. */
+   * ground. */
   adoptSpawn();
   reset();
-  ghostCourseChanged();
 
   let prevWall = performance.now();
   /* The last frame's wall interval, ms, before FRAME_DT_MAX caps it. */
@@ -18014,7 +17084,6 @@ export async function boot({
     edgeFrame();
     readPilot();
     advancePlant();
-    opponentFrame();
     composePose();
     readContacts();
     raceFrame();
@@ -18803,25 +17872,13 @@ export async function boot({
       racePrev.copy(pCurr);
       raceHasPrev = true;
       runRoute.add(simNow, pCurr.x, pCurr.y, pCurr.z);
-      ghostPrev.valid = true;
-      ghostPrev.simMs = simNow;
-      ghostPrev.x = pCurr.x;
-      ghostPrev.y = pCurr.y;
-      ghostPrev.z = pCurr.z;
-      ghostPrev.qx = qPrev.x;
-      ghostPrev.qy = qPrev.y;
-      ghostPrev.qz = qPrev.z;
-      ghostPrev.qw = qPrev.w;
     }
-    ghostFrame(simNow);
-    liveFrame(nowWall);
     /* Airtime for the freestyle display is the sim clock since the run
      * began: a frame hitch must not spend a pilot's battery. */
     airtimeMs = simTimeMs;
   }
 
   function scoreTravel(simNow, nowWall) {
-    const lapStartBefore = race.lapStartMs;
     const lapsBefore = race.laps.length;
     const allowPass = shouldScorePass(racePrev, pCurr, {
       upz: lastUpz,
@@ -18837,7 +17894,6 @@ export async function boot({
         audio.event('gate');
       }
     }
-    ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passed);
     if (!race.freestyle && build && build.testing && race.laps.length > lapsBefore) {
       noteBuilderLap(race.lastLapMs);
       /* Progress counts none off a casual track; the debrief still reads
@@ -18882,7 +17938,7 @@ export async function boot({
     setTurtleParkMotors(false);
     poseLock = false;
     paintBest();
-    ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), withBests(fromRace({
+    ui.showResults(race.log, race.bestMs, race.recordAtStart, withBests(fromRace({
       aircraft: runAirframe,
       fixedWing: Boolean(airframeById(runAirframe).fixedWing),
       events: ui.progress.runEvents().slice(raceLogAt),
@@ -19879,10 +18935,6 @@ export async function boot({
       bounces: bounceCount,
       launchState,
       launchPitch: pitchNoseDownDeg(st),
-      /* The gap to the ghost at the last gate while its readout lives;
-       * null the rest of the time, which is how the OSD knows to clear. */
-      ghostGapMs: ghostGap && nowWall < ghostGap.untilWall ? ghostGap.deltaMs : null,
-      ghostFinal: Boolean(ghostGap && ghostGap.final),
     };
   }
 
@@ -20646,68 +19698,6 @@ export async function boot({
     seconds: flightLog.seconds,
     csv: flightLog.count > 1 ? flightLog.csv().length : 0,
   });
-
-  /* The ghost chase: what is armed, what is being recorded, where the rig is. */
-  window.__ghost = () => {
-    const course = ghostCourseKey();
-    const best = ghostBook.best(course);
-    const previous = ghostBook.previous(course);
-    return {
-      choice: ghostChoice,
-      armed: Boolean(ghostLap),
-      armedLabel: ghostLap ? ghostLap.label : '',
-      armedMs: ghostLap ? ghostLap.durationMs : null,
-      recording: ghostRecorder.armed,
-      recordedFrames: ghostRecorder.pos.length / 3,
-      bestMs: best ? best.durationMs : null,
-      previousMs: previous ? previous.durationMs : null,
-      visible: ghostRig.group.visible,
-      position: ghostRig.group.position.toArray(),
-      gapMs: ghostGap ? ghostGap.deltaMs : null,
-      boardTimes: (ghostBoardTimes || []).length,
-      opponent: {
-        seated: Boolean(aiSeat && aiSeat.seated),
-        learnMs: aiSeat && aiSeat.seated ? aiSeat.seated.learnMs : null,
-        racing: Boolean(aiOpp),
-        laps: aiOpp ? aiOpp.laps() : [],
-        crashed: Boolean(aiOpp && aiOpp.crashed),
-        contacts: aiOpp ? aiOpp.touched || 0 : 0,
-        ms: aiOpp ? aiOpp.ms : 0,
-        next: aiOpp ? aiOpp.race.next : -1,
-        visible: Boolean(aiRig && aiRig.group.visible),
-        position: aiRig ? aiRig.group.position.toArray() : null,
-      },
-    };
-  };
-  /* Arm a lap from wire base64 as if the board had sent it. */
-  devHooks.__ghostLoad = (b64, name) => {
-    const lap = new GhostLap(decodeGhost(ghostFromBase64(b64)), {
-      label: str('main.board_lap'),
-      name: name || 'Harness',
-      source: 'board',
-    });
-    lap.timeId = 'tm-00000000';
-    ghostBoardLap = lap;
-    ghostChoice = `board:${lap.timeId}`;
-    armGhost();
-    syncGhostRow();
-    return { armed: Boolean(ghostLap), durationMs: lap.durationMs, splits: lap.splits.length };
-  };
-  devHooks.__ghostPick = (id) => {
-    pickGhost(String(id));
-    return ghostChoice;
-  };
-  /* Light the OSD's gap readout for 2.8 s without flying two laps. */
-  devHooks.__ghostGapShow = (deltaMs, final) => {
-    ghostGap = { deltaMs: Number(deltaMs), final: Boolean(final), untilWall: performance.now() + 2800 };
-    return ghostGap;
-  };
-  /* A session lap as wire base64 ('previous', or the best otherwise). */
-  window.__ghostExport = (which) => {
-    const course = ghostCourseKey();
-    const lap = which === 'previous' ? ghostBook.previous(course) : ghostBook.best(course);
-    return lap ? ghostToBase64(encodeGhost(lap)) : null;
-  };
 
   /*
    * The craft's whole state for a probe that flies on feedback: modes and
@@ -21872,8 +20862,6 @@ export async function boot({
     flightMode: flightModeNow,
     flapNotch: () => (airframeById(runAirframe).flaps ? flapNotch : -1),
     stickMode: () => ui.settings.stickMode,
-    /* The AI opponent racing and what drew it, or null (src/replay/opponent.js). */
-    opponent: () => (aiOpp && aiRig ? { opp: aiOpp, drawn: aiRig.group } : null),
     agl: () => lastClearance,
     surfaces: () => (shell.setSurfaces && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null),
     flaps: () => (shell.setFlaps && typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0),

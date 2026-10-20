@@ -103,7 +103,7 @@ export function buildFlightOverlay(shell) {
   shell.osd = el('div', 'osd');
 
   /* The clock is labelled because it is a lap in a race and an airtime in
-   * freestyle. The ghost line is off until the first gate gives it a gap. */
+   * freestyle. */
   const head = el('div', 'osd-top');
   head.append(
     keep(shell, 'osdClockLabel', 'div', 'osd-label', str('ui.lap_label')),
@@ -111,7 +111,6 @@ export function buildFlightOverlay(shell) {
     keep(shell, 'osdGate', 'div', 'osd-gate', ''),
     keep(shell, 'osdLast', 'div', 'osd-best', ''),
     keep(shell, 'osdBest', 'div', 'osd-best', ''),
-    keep(shell, 'osdGhost', 'div', 'osd-ghost is-off', ''),
   );
   shell.osdTopBlock = head;
 
@@ -455,18 +454,6 @@ const PAGES = {
     scroll: true,
     hint: ESC_STORED,
   },
-  /* The board's times for a track, from the endpoint the ghost picker
-   * already calls, so seeing a record never means leaving the game. */
-  standings: {
-    classes: 'screen-page screen-standings',
-    title: 'ui.standings',
-    lede: ['rates-lede', null],
-    ledeField: 'standingsLede',
-    menu: 'standings',
-    scroll: true,
-    seat: (shell) => keep(shell, 'standingsTable', 'div', 'standings-table'),
-    hint: [['Esc'], 'ui.goes_back_to_the_track_list'],
-  },
   /* Laps, pack charge and flight model belong to the run, they are what a
    * lap time means (recordKey), so they are asked here, before a race. */
   launch: {
@@ -778,7 +765,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
+  ...['howto', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'launch', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,
