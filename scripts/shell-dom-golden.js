@@ -80,7 +80,11 @@ const FIXTURES = [
  * once #ui holds the overlay build() makes first.
  */
 const SEED = `(() => {
-  const SYNC = 'webfpv-tracks-sync';
+  /* The first window listener watchSessionEvents (src/ui/session.js) adds,
+   * once the Ui is built: the capturing keydown that keeps Tab in flight.
+   * It was the track sync listener until that left with the track builder
+   * (the combat-only cut, 2026-10-20). */
+  const FIRST = 'keydown/capture';
   const lists = new WeakMap();
   const g = { lists, n: 0, first: null, watch: null };
   window.__domGolden = g;
@@ -131,7 +135,7 @@ const SEED = `(() => {
     g.n += 1;
     l.push([k, capture ? type + '/capture' : type]);
     if (g.watch) { g.watch.push([k, this]); }
-    if (this === window && type === SYNC && !g.first) {
+    if (this === window && (capture ? type + '/capture' : type) === FIRST && !g.first) {
       const r = document.getElementById('ui');
       if (r && r.querySelector('.osd')) { g.first = JSON.stringify({ tree: g.snapshot(r, 0), keys: g.regionKeys(r) }); }
     }
