@@ -4500,7 +4500,7 @@ export default {
   "debrief.replay_short": "Vuelo demasiado corto para repetir",
   "debrief.replay_open": "La repetición ya está abierta",
   "training.card": "Aprender a volar",
-  "training.card_blurb": "Lecciones desde el primer despegue hasta ganarle a tu fantasma, paso a paso.",
+  "training.card_blurb": "Lecciones desde el primer despegue hasta defender la represa, paso a paso.",
   "training.card_steps": "Lecciones cortas, en orden",
   "training.card_assists": "Primero Stabilised, después Acro",
   "training.card_gates": "Nada depende de ellas",

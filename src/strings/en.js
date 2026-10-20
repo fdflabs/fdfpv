@@ -4495,7 +4495,7 @@ export default {
   "debrief.replay_short": "Too short a flight to replay",
   "debrief.replay_open": "The replay is already open",
   "training.card": "Learn to fly",
-  "training.card_blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
+  "training.card_blurb": "Lessons from the first takeoff to defending the dam, one step at a time.",
   "training.card_steps": "Short lessons, in order",
   "training.card_assists": "Stabilised first, then Acro",
   "training.card_gates": "Nothing waits on them",
