@@ -29,7 +29,7 @@
 
 import { transcript } from './lib/transcript.js';
 
-const PINNED = '563a8de226eedf4267856682a261550eed96e9cf1a8fe2fac4d7524711545a68';
+const PINNED = '948ce9fd3b4020687959a2fb256021ae304d12c10b6d23d305b447f5a12a9d6a';
 
 class Storage {
   constructor() {
