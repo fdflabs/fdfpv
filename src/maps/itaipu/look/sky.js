@@ -24,7 +24,7 @@
  *   the bloom.
  *
  * THE HORIZON IS THE AIR. The post chain veils everything with a depth by
- * the air (swiss2/post.js AIR_GLSL), and at infinite distance a ray is the
+ * the air (maps/look/post.js AIR_GLSL), and at infinite distance a ray is the
  * air's own light, haze plus the sun's glow. The sky at and below the
  * horizon is exactly that, so the far plateau fades into a sky of its own
  * colour, with no line where the backdrop meets the ground.
@@ -70,7 +70,7 @@
  */
 
 import * as THREE from 'three';
-import { AIR as VALLEY_AIR } from '../../swiss2/post.js';
+import { AIR as VALLEY_AIR } from '../../look/post.js';
 import { thermalShader, T_SCALE } from '../../../render/thermal.js';
 import {
   EXPOSURE, METER_KEY, NIGHT_EXPOSURE, NIGHT_METER_KEY, isNight, timeOf, sunFor,
@@ -113,7 +113,7 @@ export const AIR_NIGHT = {
   ...VALLEY_AIR,
   haze: new THREE.Color().setRGB(0.035, 0.05, 0.09, THREE.LinearSRGBColorSpace),
   exposure: NIGHT_EXPOSURE,
-  /* swiss2/post.js's PhotoPass: the meter's own target for this air,
+  /* maps/look/post.js's PhotoPass: the meter's own target for this air,
    * under the day's KEY (light.js says why). */
   meterKey: NIGHT_METER_KEY,
 };
@@ -147,7 +147,7 @@ const AIRS = {
 };
 
 /*
- * Each time's print grade (swiss2/post.js air.grade, docs/LOOK.md), on
+ * Each time's print grade (maps/look/post.js air.grade, docs/LOOK.md), on
  * the photographic chain after the print's slope. The day and noon are
  * the photographs' and stay ungraded, null: the chain compiles no grade
  * for them (even an identity grade moved the day's pixels, a mean of 4

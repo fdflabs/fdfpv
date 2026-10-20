@@ -7,9 +7,9 @@
  * surfaces (src/render/library/surfaces.js), the material kit every part is handed
  * (library/photolook.js makePhotoLook, as ctx.mats), the
  * sun's shadow cascades (library/sun.js makeSun, which takes its
- * direction), the post chain (swiss2/post.js: occlusion, aerial
+ * direction), the post chain (maps/look/post.js: occlusion, aerial
  * perspective, the metered exposure, AgX, FXAA) and the photographed
- * craft (swiss2/craftlook.js).
+ * craft (maps/look/craftlook.js).
  *
  * Itaipu's own: the sun, fixed to the satellite's, and the exposure
  * (light.js); the light injection, without the Alps' terrain shadow and
@@ -66,9 +66,9 @@ import * as THREE from 'three';
 import { loadSurface, SURFACES } from '../../../render/library/surfaces.js';
 import { makeSun } from '../../../render/library/sun.js';
 import { makePhotoLook, finishScene } from '../../../render/library/photolook.js';
-import { buildPhotoComposer } from '../../swiss2/post.js';
-import { makeClouds } from '../../swiss2/clouds.js';
-import { photoCraftLook } from '../../swiss2/craftlook.js';
+import { buildPhotoComposer } from '../../look/post.js';
+import { makeClouds } from '../../look/clouds.js';
+import { photoCraftLook } from '../../look/craftlook.js';
 import {
   sunDirection, sunFor, isNight, timeOf, makeNightAmbient, NIGHT_AMBIENT_INTENSITY,
 } from './light.js';
@@ -527,7 +527,7 @@ export async function makeLook({
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
-      /* Rain thickens the air (src/main.js rainFrame, swiss2/post.js setWet). */
+      /* Rain thickens the air (src/main.js rainFrame, maps/look/post.js setWet). */
       map.setWet = post.setWet;
       /* The post chain that draws this scene, for the sensor checks,
        * which route a frame through the SensorManager with it

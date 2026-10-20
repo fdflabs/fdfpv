@@ -59,8 +59,16 @@
 
 import * as THREE from 'three';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
-import { HALF, FIELD, CELL, CELLS } from '../alps/terrain.js';
 import { AIR_GLSL } from './post.js';
+
+/* The height grid setTerrain hands over: a square FIELD metres across in
+ * CELLS cells. It is the Alps' valley grid (src/maps/alps/heights.js), the
+ * only terrain ever handed over, and src/maps/swiss2.js asserts the two
+ * agree. */
+export const FIELD = 6000;
+const HALF = FIELD / 2;
+export const CELLS = 200;
+const CELL = FIELD / CELLS;
 
 /*
  * The bank. LOW_BASE is its lowest base in metres, LOW_LIFT how much
@@ -663,7 +671,7 @@ export function makeClouds({ sun, sky, air }) {
     pass(camera, q, w, h) {
       const march = MARCH[q.id];
       if (!march) {
-        throw new Error(`swiss2 clouds: no march for the ${q.id} preset; say what it spends in src/maps/swiss2/clouds.js`);
+        throw new Error(`swiss2 clouds: no march for the ${q.id} preset; say what it spends in src/maps/look/clouds.js`);
       }
       return new CloudPass(camera, uniforms, march, w, h);
     },

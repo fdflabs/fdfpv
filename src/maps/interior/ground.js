@@ -528,7 +528,7 @@ function clearedLand(cells) {
  * THE FAR GROUND IS THE AIR. Past FAR_AIR[0] metres the ground gives way
  * to the air's own light, wholly by FAR_AIR[1], short of the apron's end
  * (terrain.js APRON). Two reasons. The post chain veils a pixel by the
- * air only where the depth buffer holds less than 1 (swiss2/post.js), and
+ * air only where the depth buffer holds less than 1 (maps/look/post.js), and
  * at a hundred kilometres and more it rounds to 1, so the apron's last
  * hills were drawn unveiled: the dark dashes along the horizon in every
  * survey view. And the thinned air (look.js AIR_THIN), right for the

@@ -227,7 +227,7 @@ function targetsOf(craft) {
       normalHome: new THREE.Matrix3().setFromMatrix4(home).transpose(),
       twoSided: mats.some((x) => x.side === THREE.DoubleSide),
       /* As it is now: a map's look may draw a palette's entries in
-       * another order (swiss2/craftlook.js) before the layers are cut. */
+       * another order (maps/look/craftlook.js) before the layers are cut. */
       geometry: o.geometry,
       from: 0,
       to: o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count,
