@@ -342,12 +342,14 @@ function gateRows(ui) {
   if (ui.hub === 'hangar') {
     return [...ui.hangarCards(), ...trouble];
   }
-  const panel = rooms && ui.titleRooms ? ui.titleRooms(true) : [];
   /* Nothing in PDCS is playable without the rooms server: the campaign,
    * the Interior and the Defence lessons all fly in rooms (the lead,
-   * 2026-10-20, ASK 5). A page with no server says so under the cards. */
-  const offline = rooms ? [] : [{ label: str('ui.no_rooms_server'), note: str('ui.no_rooms_server_note'), info: true }];
-  return [...ui.homeCards(rooms), ...panel, ...offline, ...trouble];
+   * 2026-10-20, ASK 5). A page with no server says so where the rooms
+   * panel stands (src/ui/cards.js renderTitleRooms draws a head). */
+  const panel = rooms
+    ? (ui.titleRooms ? ui.titleRooms(true) : [])
+    : [{ lobby: 'head', section: true, label: str('ui.no_rooms_server'), value: str('ui.no_rooms_server_note') }];
+  return [...ui.homeCards(rooms), ...panel, ...trouble];
 }
 
 /* ---- rooms ---- */

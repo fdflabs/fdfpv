@@ -411,7 +411,7 @@ const ACTIONS = [
   'update-reload', 'room-bar', 'hotswap', 'hangar-aircraft', 'customise', 'leaderboard', 'reportbug', 'feel',
   ...WAYS.map((w) => w.action),
   'friends-leave', 'friends-join', 'lobby:rooms', 'lobby:roomnew', 'rooms', 'roomnew',
-  'howto', 'pilot', 'quad', 'freestyle', 'credits', 'tricks', 'friends',
+  'howto', 'pilot', 'quad', 'credits', 'tricks', 'friends',
   'fly', 'rates', 'pids', 'fc', 'fc-save', 'fc-save-exit', 'fc-save-restart', 'fc-wait', 'fc-motors-stop', 'fc-preset:bf',
   'fc-keep-editing', 'fc-discard-leave', 'fc-discard', 'fc-export', 'fc-back', 'pids-default', 'rates-default', 'rates-save', 'rates-delete',
   'map:alps', 'back', 'mode-gate', 'title', 'paused', 'quick',

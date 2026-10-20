@@ -59,7 +59,7 @@ const LIBRARY_GLOBALS = new Set(['__THREE__']);
 const BASELINE_PATH = join(ROOT, 'tests', 'shell-baseline.json');
 
 const SCREENS = [
-  'title', 'freestyle', 'quad', 'pilot', 'rates', 'pids', 'fc', 'paused',
+  'title', 'quad', 'pilot', 'rates', 'pids', 'fc', 'paused',
   'results', 'howto', 'credits',
 ];
 const FC_TABS = ['setup', 'configuration', 'pid', 'receiver', 'motors'];
@@ -589,7 +589,7 @@ function behaviourProbe(ui, { screens, tabs }) {
       ui.show(room);
     };
     const result = {};
-    for (const room of ['freestyle', 'pilot']) {
+    for (const room of ['pilot']) {
       reset(room);
       if (!go(`${room}:a-quad`)) {
         result[room] = { missing: true };
@@ -599,8 +599,8 @@ function behaviourProbe(ui, { screens, tabs }) {
       ui.back();
       result[room] = { at, back: ui.screen };
     }
-    reset('freestyle');
-    go('freestyle:a-quad');
+    reset('pilot');
+    go('pilot:a-quad');
     go('quad:a-rates');
     const deep = [ui.screen];
     ui.back();
@@ -610,7 +610,7 @@ function behaviourProbe(ui, { screens, tabs }) {
     result.deep = deep;
     ui.show('title');
     ui.returnTo = 'paused';
-    ui.roomFrom = 'freestyle';
+    ui.roomFrom = 'pilot';
     ui.show('quad');
     ui.back();
     result.paused = ui.screen;
@@ -915,7 +915,7 @@ function behaviourProbe(ui, { screens, tabs }) {
         && !gateItems.some((it) => !it.card),
       asCards: hangarCards.length === gateLabels.length && hangarCards.every((c) => c.wide),
       modeSetGate,
-      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === homeCards.length
+      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === hangarCards.length
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
       free,
       freeNamesMap: !free.includes('Fly') && !free.includes('The world') && !free.includes('Race') && !free.includes('Freestyle'),
@@ -1169,7 +1169,7 @@ const BEHAVIOUR = [
     }
   }],
   ['roomReturn', 'room return', (r, fail) => {
-    for (const room of ['freestyle', 'pilot']) {
+    for (const room of ['pilot']) {
       const it = r[room];
       if (!it || it.missing) {
         fail(`room return: ${room} has no door into Quad, so nothing was exercised`);
@@ -1183,8 +1183,8 @@ const BEHAVIOUR = [
       }
     }
     const deep = (r.deep || []).join(' -> ');
-    if (deep !== 'rates -> quad -> freestyle') {
-      fail(`room return: freestyle to quad to rates and back twice went "${deep}"`);
+    if (deep !== 'rates -> quad -> pilot') {
+      fail(`room return: pilot to quad to rates and back twice went "${deep}"`);
     }
     if (r.paused !== 'paused') {
       fail(`room return: a paused run lost its pause chain, Back landed on "${r.paused}"`);

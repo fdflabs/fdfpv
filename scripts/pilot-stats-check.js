@@ -58,6 +58,10 @@ import { roomsServer } from '../tests/lib/roomsserver.js';
 import { firstsOf } from '../src/game/progress.js';
 import { flightTotals } from '../src/share/flighttime.js';
 import { SETTINGS_KEY } from '../src/ui/settings.js';
+import { GATE_WAYS } from '../src/ui/ways.js';
+
+/* Home's cards with a rooms server: the ways, the field hangar, the Hangar. */
+const CLUB_CARDS = GATE_WAYS.length + 2;
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || null;
@@ -303,6 +307,7 @@ try {
       items: window.__ui.items().filter((it) => it.card).length };
   })()`);
   check('en: nothing in the panel is focusable or takes the pointer', inert.focusable === 0 && inert.pointer === 'none', JSON.stringify(inert));
+  await en.evaluate('(() => { window.__ui.setCursor(0); return true; })()');
   const walked = [];
   for (let i = 0; i < inert.items; i += 1) {
     walked.push(await en.evaluate('(window.__ui.items()[window.__ui.cursor] || {}).card || null'));
@@ -320,7 +325,7 @@ try {
   const screen = await en.evaluate('window.__ui.screen');
   await en.click('.gate-stats-time');
   await en.sleep(300);
-  check('en: a click on the panel opens nothing', await en.evaluate(`window.__ui.screen === ${JSON.stringify(screen)} && window.__ui.hub === 'club'`));
+  check('en: a click on the panel opens nothing', await en.evaluate(`window.__ui.screen === ${JSON.stringify(screen)} && window.__ui.hub === null`));
 
   /* A SYNC BRINGS ANOTHER COMPUTER'S HOUR: an hour on the Interceptor,
    * Track Day, from the office, put to the account; then this page syncs. */

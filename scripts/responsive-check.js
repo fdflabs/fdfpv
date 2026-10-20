@@ -1,6 +1,6 @@
 /*
  * responsive-check.js: a pilot using a room is never locked out of it. The
- * Freestyle room is driven with a key press every 400 ms for 7 s while every
+ * pilot's room is driven with a key press every 400 ms for 7 s while every
  * gap between animation frames is recorded; too few frames, one very long
  * gap, or repeated long gaps fail.
  *
@@ -37,9 +37,11 @@
  * would drive it and the frame gaps are measured: a long gap is the freeze,
  * whatever caused it.
  *
- * Freestyle only, on purpose. main.js keeps the 3D world hidden behind that
- * room, so a gap there is the room's own fault. The Race room keeps the
- * world live behind its cards, and on a software rasteriser a world frame
+ * The pilot's room, on purpose: the Freestyle room this drove left with free
+ * flight and the launch room with the track builder (the combat-only cut,
+ * 2026-10-20). main.js keeps the 3D world hidden behind a room, so a gap
+ * there is the room's own fault. The title keeps the world live behind its
+ * cards, and on a software rasteriser a world frame
  * costs about 200 ms: driving it reads 33 frames in 7 s, which looks like a
  * lock-up and is really a missing GPU. A check that cannot tell those apart
  * fails on every machine without a GPU and teaches people to ignore it.
@@ -53,7 +55,7 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const ROOMS = ['freestyle'];
+const ROOMS = ['pilot'];
 const DRIVE_MS = 7000;
 const KEY_EVERY_MS = 400;
 const KEY = 'ArrowDown';

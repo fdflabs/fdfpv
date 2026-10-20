@@ -192,7 +192,7 @@ function named(tag, name, cls = '') {
   return n;
 }
 
-const MENU_SCREENS = ['title', 'howto', 'credits', 'freestyle', 'pilot', 'friends', 'quad',
+const MENU_SCREENS = ['title', 'howto', 'credits', 'pilot', 'friends', 'quad',
   'rates', 'pids', 'fc', 'paused', 'results'];
 
 /* The frame, the title's hint line and one menu host per screen, named so
@@ -243,7 +243,7 @@ function makeUi(extra = {}) {
     ui[n] = (it, i) => { say(n, it.id || it.label, i); return named('span', `${n}:${it.id || it.label}`, 'row-control'); };
   }
   ui.onGate = () => ui.screen === 'title' && (ui.craftGate || !ui.mode);
-  ui.cardScreen = () => ui.screen === 'freestyle' || ui.onGate();
+  ui.cardScreen = () => ui.onGate();
   ui.gateLabel = () => 'GATE-LABEL';
   ui.titleStop = () => { say('titleStop'); return ui.firstStop(ui.items()); };
   ui.onScreenChange = (s) => say('onScreenChange', s);
@@ -597,9 +597,11 @@ const scenarios = {
     const ui = makeUi();
     ui.lists.quad = ROWS;
     ui.lists.title = [{ id: 'fly', label: 'Fly' }];
+    /* The card legend is the gate's (titleGate, titleHub): the Freestyle
+     * picker, the last other card screen, left with free flight. */
     const cases = {
       quadAction: { screen: 'quad', cursor: 2 }, quadValue: { screen: 'quad', cursor: 4 }, quadOff: { screen: 'quad', cursor: 99 },
-      cards: { screen: 'freestyle', cursor: 0 }, titleMenu: { screen: 'title', mode: 'race', hub: null },
+      titleMenu: { screen: 'title', mode: 'race', hub: null },
       titleGate: { screen: 'title', mode: null, hub: null }, titleHub: { screen: 'title', mode: null, hub: 'hangar' },
       flight: { screen: 'flight' }, bench: { screen: 'fc' },
     };

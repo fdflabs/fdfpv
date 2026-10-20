@@ -87,7 +87,7 @@ function after(self, ret) {
   return { ret: ret === undefined ? '<undefined>' : ret, calls: self.calls, state };
 }
 
-const SCREENS = ['flight', 'calibrate', 'padpick', 'title', 'quad', 'rates', 'pids', 'fc', 'courses', 'freestyle', 'paused', 'pilot'];
+const SCREENS = ['flight', 'calibrate', 'padpick', 'title', 'quad', 'rates', 'pids', 'fc', 'courses', 'paused', 'pilot'];
 const VARIANTS = {
   plain: {},
   dialog: { nameDialog: { hidden: false } },
