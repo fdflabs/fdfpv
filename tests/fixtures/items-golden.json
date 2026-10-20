@@ -87,8 +87,8 @@
      "drives": {}
     },
     {
-     "id": "title:s-no-rooms-server-on-this-page",
-     "label": "No rooms server on this page",
+     "id": "title:s-no-rooms-server",
+     "label": "No rooms server",
      "value": "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms.",
      "section": true,
      "lobby": "head",
@@ -293,8 +293,8 @@
      "drives": {}
     },
     {
-     "id": "title:s-no-rooms-server-on-this-page",
-     "label": "No rooms server on this page",
+     "id": "title:s-no-rooms-server",
+     "label": "No rooms server",
      "value": "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms.",
      "section": true,
      "lobby": "head",
@@ -470,8 +470,8 @@
      "drives": {}
     },
     {
-     "id": "title:s-no-rooms-server-on-this-page",
-     "label": "No rooms server on this page",
+     "id": "title:s-no-rooms-server",
+     "label": "No rooms server",
      "value": "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms.",
      "section": true,
      "lobby": "head",
@@ -24217,8 +24217,8 @@
      "drives": {}
     },
     {
-     "id": "title:s-esta-p-gina-no-tiene-servidor-de-salas",
-     "label": "Esta página no tiene servidor de salas",
+     "id": "title:s-sin-servidor-de-salas",
+     "label": "Sin servidor de salas",
      "value": "Sin el servidor de salas no se puede jugar nada de esto: Defender el Paraná, El Interior y las lecciones de Defensa vuelan todas en salas.",
      "section": true,
      "lobby": "head",
@@ -24423,8 +24423,8 @@
      "drives": {}
     },
     {
-     "id": "title:s-esta-p-gina-no-tiene-servidor-de-salas",
-     "label": "Esta página no tiene servidor de salas",
+     "id": "title:s-sin-servidor-de-salas",
+     "label": "Sin servidor de salas",
      "value": "Sin el servidor de salas no se puede jugar nada de esto: Defender el Paraná, El Interior y las lecciones de Defensa vuelan todas en salas.",
      "section": true,
      "lobby": "head",
@@ -24600,8 +24600,8 @@
      "drives": {}
     },
     {
-     "id": "title:s-esta-p-gina-no-tiene-servidor-de-salas",
-     "label": "Esta página no tiene servidor de salas",
+     "id": "title:s-sin-servidor-de-salas",
+     "label": "Sin servidor de salas",
      "value": "Sin el servidor de salas no se puede jugar nada de esto: Defender el Paraná, El Interior y las lecciones de Defensa vuelan todas en salas.",
      "section": true,
      "lobby": "head",
