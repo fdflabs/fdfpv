@@ -526,7 +526,7 @@ console.log('the shell\'s producers');
   check('Progress logs a gate, a touch and a lap and pays only through the fold',
     ui.includes("this.event('gate');\n    this.foldFlight();")
     && ui.includes("touch(kind) {\n    this.event('touch', { kind });")
-    && ui.includes("const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });\n    this.foldFlight();"));
+    && ui.includes("this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });\n    this.foldFlight();"));
   check('and nothing in it pays an achievement but awardFlight',
     !/award(Lap|Medal|Challenge|Place|Firsts|Bests|Best|AircraftChallenges?)\(/.test(ui) && (ui.match(/awardFlight\(/g) || []).length === 1);
   check('a new seat is logged, with the crash flag the shell seats it with',
@@ -535,7 +535,6 @@ console.log('the shell\'s producers');
     ui.includes('for (const edge of this.watch.tick(state)) {\n      this.event(edge);'));
   check('a place found is logged and paid by the fold', ui.includes("this.event('found', { world, id });"));
   check('a new flight folds the last one to its end first', /startFlight\(simMs, roomNow = null\) \{\n    this\.foldFlight\(\);/.test(ui));
-  check('and a lesson judges the lap from that same event', ui.includes('this.lesson.lap(lapped, ghostMs);'));
   check('and logs a crash and a landing, with its time in the air, from its tick',
     ui.includes("this.event('crash', { airframe: this.airframe })") && ui.includes("this.event('landing', { airframe: this.airframe, airMs: this.watch.lastAirMs })"));
   check('a spawn starts a flight', /function resetCraft[\s\S]*?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));

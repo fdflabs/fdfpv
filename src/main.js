@@ -64,10 +64,9 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind, lockOf } from './game/progress.js';
-import { STRIPS, applyLesson, bankOf, gateCue, glidePoints, headingOf, heldSettings, heldTrack, lateralG, restoreSettings } from './game/training.js';
+import { STRIPS, applyLesson, bankOf, glidePoints, headingOf, heldSettings, heldTrack, lateralG, restoreSettings } from './game/training.js';
 import { PRACTICE_ID } from './share/war/missions/itaipu-practice.js';
 import { createGlidePath } from './render/glidepath.js';
-import { createGateCue } from './ui/gatecue.js';
 import { medalFor, publishMedals } from './game/medals.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
@@ -91,7 +90,7 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime, seatedFreestyleMap } from './ui/ui.js';
+import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager, thermalMode } from './avionics/sensors.js';
@@ -8687,13 +8686,8 @@ export async function boot({
         });
         return;
       }
-      /* A lesson flown with other pilots goes in by its activity's lobby,
-       * as that activity's card does with a rooms server. */
-      if (lesson.room && ui.friendsRow && ui.friendsRow()) {
-        ui.onGameCard(`way-${modeById(lesson.room).card.way}`, lesson.room, seatedFreestyleMap(s)?.id || 'swiss2');
-        return;
-      }
-      ui.act(lesson.place ? 'way-freestyle-wing1000' : 'way-race-5inch', craft);
+      /* Every other lesson is a place's: flown from free flight's card. */
+      ui.act('way-freestyle-wing1000', craft);
     },
   });
   ui.onTrainingCard = () => trainingScreen.open();
@@ -12083,17 +12077,14 @@ export async function boot({
   shell.keepAcrossMaps(wreckRig.group);
   shell.keepAcrossMaps(debris.group);
   /*
-   * A LESSON'S AIDS (src/game/training.js): the glide path to the strip
-   * and the next gate's chevron, drawn only while a lesson that names one
-   * is in flight. Nothing here reaches the plant.
+   * A LESSON'S AID (src/game/training.js): the glide path to the strip,
+   * drawn only while a lesson that names it is in flight. Nothing here
+   * reaches the plant.
    */
   const glidePath = createGlidePath();
   shell.keepAcrossMaps(glidePath.group);
-  const gateCueHud = createGateCue();
   let glideKey = null;
   let glideAt = null;
-  const cueCam = { x: 0, y: 0, z: 0, forward: new THREE.Vector3(), up: new THREE.Vector3() };
-  const cueTo = { x: 0, y: 0, z: 0 };
   function aidsFrame() {
     const aid = mode === 'flight' && ui.screen === 'flight' ? ui.progress.lessonAid() : null;
     const strip = aid === 'glide' && view ? STRIPS[ui.settings.map] ?? null : null;
@@ -12106,23 +12097,8 @@ export async function boot({
       glideAt = glidePoints(strip, view.height(strip.x, strip.z, Infinity));
     }
     glidePath.show(strip ? glideAt : null, strip);
-    const gate = aid === 'gate' && !race.freestyle ? race.gates[race.next] : null;
-    if (!gate) {
-      gateCueHud.show(null);
-      return;
-    }
-    const c = shell.camera;
-    cueCam.x = c.position.x;
-    cueCam.y = c.position.y;
-    cueCam.z = c.position.z;
-    c.getWorldDirection(cueCam.forward);
-    cueCam.up.set(0, 1, 0).applyQuaternion(c.quaternion);
-    cueTo.x = gate.x;
-    cueTo.y = gate.y + (gate.apertures[0] ? gate.apertures[0].centreY : 0);
-    cueTo.z = gate.z;
-    gateCueHud.show(gateCue(cueCam, cueTo));
   }
-  window.__aids = () => ({ glide: glidePath.group.visible ? glidePath.group.children.map((r) => [r.position.x, r.position.y, r.position.z]) : null, gateCue: gateCueHud.shown() });
+  window.__aids = () => ({ glide: glidePath.group.visible ? glidePath.group.children.map((r) => [r.position.x, r.position.y, r.position.z]) : null });
   /* Defend Itaipu's attackers (src/render/attackers.js), bursting through
    * the crash debris; into the map's scene from roomWarFrame. */
   const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
@@ -19234,7 +19210,6 @@ export async function boot({
         const medals = seated && seated.document && seated.document.medals;
         ui.progress.lap(progressCourse(), {
           ms: race.laps[race.laps.length - 1],
-          ghostMs: ghostChased ? ghostChased.durationMs : null,
           medal: medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing),
           n: race.lap,
           of: roomRun() ? null : runLaps,

@@ -14,10 +14,8 @@
  * tab hidden in Turns' flight pauses it and holds the lesson at its step,
  * said; Resume flies on in it; a crash says it starts again, once; a
  * reload mid lesson leaves it, its settings back, said on the next load,
- * and the page marks it Interrupted. Gates passes on a casual sky track's lap, judged
- * from the lap event in the flight's log, and not on a built track's. A
- * lap lesson's pass is stored with its time and
- * the page says Passed, also after a reload. A Defence lesson with no
+ * and the page marks it Interrupted. A lesson's pass is stored with its
+ * time and the page says Passed, also after a reload. A Defence lesson with no
  * rooms server says so and makes no room. No page error.
  *
  * Then Defence on a second page, against a local edge/rooms/node.js this
@@ -218,7 +216,7 @@ try {
   await page.evaluate('(window.__setCam(null), true)');
   await page.evaluate("window.__ui.show('title'); true");
   await page.sleep(500);
-  await page.evaluate("window.__ui.pickForWay('way-race-5inch'); true");
+  await page.evaluate("window.__ui.pickForWay('way-ace'); true");
   await page.sleep(500);
   check('another card ends the lesson', await page.evaluate('window.__ui.progress.lesson === null'));
   const heldAfter = await page.evaluate("(() => { const s = window.__ui.settings; return [s.airframe, s.tune, s.flightMode, s.weather].join(); })()");
@@ -236,27 +234,6 @@ try {
   await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'quad_hover'", 15000).catch(() => {});
   const quad = await page.evaluate("({ airframe: window.__ui.settings.airframe, mode: window.__ui.settings.flightMode, map: window.__ui.settings.map })");
   check('Hover seats the interceptor in angle mode on the valley', quad.airframe === 'interceptor' && quad.mode === 'angle' && quad.map === 'swiss2', JSON.stringify(quad));
-
-  /* GATES: a clean lap of a casual sky track, judged from the flight's
-   * log. A clean lap of a built track, closed through Progress as the
-   * race step closes one, does not pass it; a casual one does, and the
-   * lap event in the log carries the casual kind it was judged on. */
-  await page.evaluate("window.__ui.show('title'); true");
-  await page.sleep(300);
-  await page.evaluate('(window.__training.open(), true)');
-  await page.until("!!document.querySelector('.training-box')", 15000);
-  await click(page, '[data-lesson="quad_gates"] .campaign-play');
-  await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'quad_gates'", 15000).catch(() => {});
-  check('Fly on Gates holds the lesson', await page.evaluate("!!window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'quad_gates'"));
-  await page.evaluate("(window.__ui.progress.lap({ key: 'built-track', kind: 'built' }, { ms: 30000, ghostMs: null }), true)");
-  const builtLap = await page.evaluate("({ passed: !!(window.__ui.settings.progress.lessons || {}).quad_gates, held: !!window.__ui.progress.lesson })");
-  check('a clean lap of a built track does not pass it', !builtLap.passed && builtLap.held, JSON.stringify(builtLap));
-  await page.evaluate("(window.__ui.progress.lap({ key: 'casual-track', kind: 'casual' }, { ms: 30000, ghostMs: null }), true)");
-  const gatesLap = await page.evaluate(`(() => {
-    const laps = window.__ui.progress.flight.events.filter((e) => e.type === 'lap');
-    return { passed: (window.__ui.settings.progress.lessons || {}).quad_gates, kinds: laps.map((e) => e.kind) };
-  })()`);
-  check('a clean casual lap passes it, its lap event logged as casual', Number.isFinite(gatesLap.passed) && gatesLap.kinds.join() === 'built,casual', JSON.stringify(gatesLap));
 
   /* I FLY ALREADY: First flight's skip flies the unaided round in Acro,
    * and its pass, fed to Progress as the frames would feed it, passes the
@@ -292,24 +269,30 @@ try {
   check('and only the lesson flown is marked flown', !/first_takeoff|first_turns|first_land/.test(flown) && flown.includes('first_unaided'), flown);
   check('its pass passes the whole First flight track', skipped.includes('first_land,first_takeoff,first_turns,first_unaided'), skipped);
 
-  /* A PASS IS KEPT: A lap lesson flown from the page, its lap closed
-   * through Progress as the race step closes one, then the page again, and
+  /* A PASS IS KEPT: the throttle lesson flown from the page, its hold fed
+   * to Progress as the frames would feed it, then the page again, and
    * again after a reload: Passed, from the synced progress. */
   await page.evaluate("window.__ui.show('title'); true");
   await page.sleep(300);
   await page.evaluate('(window.__training.open(), true)');
   await page.until("!!document.querySelector('.training-box')", 15000);
-  await click(page, '[data-lesson="race_lap"] .campaign-play');
-  await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'race_lap'", 15000).catch(() => {});
-  await page.evaluate("(window.__ui.progress.lap({ key: null, kind: 'map' }, { ms: 30000, ghostMs: null }), true)");
+  await click(page, '[data-lesson="quad_throttle"] .campaign-play');
+  await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'quad_throttle'", 15000).catch(() => {});
+  await page.evaluate(`(() => {
+    const p = window.__ui.progress;
+    for (let t = 0; t < 6000; t += 16) {
+      p.tick({ simMs: t, crashed: false, grounded: false, agl: 10, pos: { x: 0, y: 0, z: 0 } });
+    }
+    return true;
+  })()`);
   const stored = await page.evaluate('window.__ui.settings.progress.lessons');
-  check('the lap passes the lesson and the pass is stored with its time', Number.isFinite(stored.race_lap) && stored.race_lap > 1.7e12, JSON.stringify(stored));
-  check('and the toast says so', (await page.evaluate("window.__ui.progress.log.map((t) => t.kicker + ': ' + t.title)")).includes('Lesson passed: A lap'));
+  check('the hold passes the lesson and the pass is stored with its time', Number.isFinite(stored.quad_throttle) && stored.quad_throttle > 1.7e12, JSON.stringify(stored));
+  check('and the toast says so', (await page.evaluate("window.__ui.progress.log.map((t) => t.kicker + ': ' + t.title)")).includes('Lesson passed: Throttle discipline'));
   await page.evaluate("window.__ui.show('title'); true");
   await page.sleep(300);
   await page.evaluate('(window.__training.open(), true)');
   await page.until("!!document.querySelector('.training-box')", 15000);
-  const tag = () => page.evaluate("(() => { const n = document.querySelector('[data-lesson=\"race_lap\"]'); return n ? [n.dataset.state, (n.querySelector('.campaign-tag') || {}).textContent || ''] : null; })()");
+  const tag = () => page.evaluate("(() => { const n = document.querySelector('[data-lesson=\"quad_throttle\"]'); return n ? [n.dataset.state, (n.querySelector('.campaign-tag') || {}).textContent || ''] : null; })()");
   const before = await tag();
   check('the page marks it Passed', before && before[0] === 'passed' && before[1] === 'Passed', JSON.stringify(before));
   await shot(page, 'passed');
