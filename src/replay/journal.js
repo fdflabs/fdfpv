@@ -58,11 +58,11 @@ export const PURE = new Set([
   'sim_damage_flags', 'sim_damage', 'sim_parts_state', 'sim_parts_count', 'sim_part_info', 'sim_part_hull',
   'sim_part_table', 'sim_free_bodies_active', 'sim_damage_events_dropped', 'sim_motor_damage',
   'sim_material_info', 'sim_obstacle_state', 'sim_power_state', 'sim_wing_surfaces', 'sim_plane_surfaces',
-  'sim_wing_debug', 'sim_wing_biplane', 'sim_wing_slip', 'sim_wing_yaw_budget', 'sim_wing_command', 'sim_wing_strips', 'sim_wheel_loads', 'sim_float_state', 'sim_wind', 'sim_air_lift', 'sim_water_sample',
+  'sim_wing_debug', 'sim_wing_command', 'sim_wing_strips', 'sim_wind', 'sim_water_sample',
   'sim_water_components', 'sim_airframe', 'sim_air', 'sim_gravity', 'sim_boost', 'sim_wing_stab', 'sim_wing_chute_open',
-  'sim_wing_flaps', 'sim_launch_control_state', 'sim_crashflip_active', 'sim_rate_guard_trips',
+  'sim_launch_control_state', 'sim_crashflip_active', 'sim_rate_guard_trips',
   'sim_math_sin', 'sim_math_cos', 'sim_math_atan2', 'sim_bf_debug', 'sim_bf_dump', 'sim_bf_get',
-  'sim_crash_debug', 'sim_wing_tune', 'sim_wing_tiers', 'sim_addons_state', 'sim_wing_discus_phase', 'sim_live_inertia',
+  'sim_crash_debug', 'sim_wing_tune', 'sim_wing_tiers', 'sim_addons_state', 'sim_live_inertia',
 ]);
 
 /* Arguments that are heap pointers, by function: `out` is written by the
@@ -76,7 +76,6 @@ export const POINTERS = {
   sim_set_prop_pack: { in: 0, doubles: 36 },
   sim_wing_set_tune: { in: 0, doubles: 12 },
   sim_wing_set_tiers: { in: 0, doubles: 9 },
-  sim_wing_set_heading: { in: 0, doubles: 3 },
   sim_set_addons: { in: 0, doubles: 10 },
   sim_set_addon_inertia: { in: 0, doubles: 3 },
   sim_wing_tune: { out: 0 },
@@ -86,17 +85,12 @@ export const POINTERS = {
   sim_wing_surfaces: { out: 0 },
   sim_plane_surfaces: { out: 0 },
   sim_wing_debug: { out: 0 },
-  sim_wing_biplane: { out: 0 },
-  sim_wing_slip: { out: 0 },
-  sim_wing_yaw_budget: { out: 0 },
   sim_wing_command: { out: 0 },
   sim_wing_strips: { out: 0 },
-  sim_wheel_loads: { out: 0 },
   sim_wind: { out: 0 },
   sim_power_state: { out: 0 },
   sim_water_sample: { out: 3 },
   sim_water_components: { out: 1 },
-  sim_float_state: { out: 0 },
   sim_part_info: { out: 1 },
   sim_part_hull: { out: 1 },
   sim_parts_state: { out: 0 },
@@ -121,8 +115,7 @@ export const POINTERS = {
  * world, the modes and switches) is small and grows only when the pilot
  * changes something. Measured in the shell: see docs/CONTROL-RECORDER.md.
  *
- * Left out too: sim_wing_gear, a reader the shell asks every frame that
- * is not in PURE. The air (sim_set_wind, sim_set_air_vertical) is set
+ * The air (sim_set_wind, sim_set_air_vertical) is set
  * before every step of a flight in weather (src/main.js pushWeather), so
  * it is the flight's too: logged, it filled the log in about 100 s and
  * every later clip of the session was cut short of it. And the world, which the shell declares again round the
@@ -132,7 +125,7 @@ export const POINTERS = {
  * that), the older ones are dropped (CLEARS, compactSetup).
  */
 export const STEP_CALLS = new Set([
-  'sim_input', 'sim_step', 'sim_set_ground', 'sim_set_ground_material', 'sim_damage_events', 'sim_wing_gear',
+  'sim_input', 'sim_step', 'sim_set_ground', 'sim_set_ground_material', 'sim_damage_events',
   'sim_set_wind', 'sim_set_air_vertical',
 ]);
 const CLEARS = {

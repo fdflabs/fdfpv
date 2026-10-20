@@ -1120,7 +1120,7 @@ int plant_power_custom(void) {
 /*
  * THE PILOT'S TUNING, sim_wing_set_tune in sim_abi.h: the CG where the
  * pack or the ballast put it, the ballast's mass, the throws, the expo,
- * the elevator trim and the flap to elevator mix, laid over the power
+ * and the elevator trim, laid over the power
  * option in force or the table. Owned by this file like the power copy;
  * the plant step only reads it. The ballast is a point mass at its arm:
  * it adds its mass, and m x^2 to the pitch and yaw inertia about the
@@ -1136,14 +1136,6 @@ static const PlantParams *plant_tune_over(const PlantParams *base) {
   const double *t = g_tune;
   g_fw_tune = *base->fw;
   g_fw_tune.cg_shift = base->fw->cg_shift + t[SIM_TUNE_CG_SHIFT];
-  /* The AR631 learns the travel with the rates at their most ("Relearn
-   * Servo Settings" after "travel" changes, the AR631 manual; "Learn
-   * Travel ... after maximizing the rates", the AS3000 manual): the
-   * throws under the tuning, which the tuning's rates take a share of. */
-  const double travel[3] = { base->fw->throw_a, base->fw->throw_e, base->fw->throw_r };
-  for (int i = 0; i < 3; i += 1) {
-    g_fw_tune.as3x_travel[i] = base->fw->as3x_travel[i] > 0.0 ? base->fw->as3x_travel[i] : travel[i];
-  }
   g_fw_tune.throw_a = t[SIM_TUNE_THROW_A];
   g_fw_tune.throw_e = t[SIM_TUNE_THROW_E];
   g_fw_tune.throw_r = t[SIM_TUNE_THROW_R];
@@ -1152,8 +1144,6 @@ static const PlantParams *plant_tune_over(const PlantParams *base) {
   g_fw_tune.tune_expo[1] = t[SIM_TUNE_EXPO_E];
   g_fw_tune.tune_expo[2] = t[SIM_TUNE_EXPO_R];
   g_fw_tune.trim_e = t[SIM_TUNE_TRIM_E];
-  g_fw_tune.de_df = t[SIM_TUNE_FLAP_MIX];
-  g_fw_tune.elev_flap = t[SIM_TUNE_ELEV_FLAP];
   g_plant_tune = *base;
   g_plant_tune.fw = &g_fw_tune;
   const double mb = t[SIM_TUNE_BALLAST_KG];
@@ -1218,8 +1208,8 @@ void plant_tune_read(double *out) {
   out[SIM_TUNE_EXPO_E] = fw ? fw->expo : 0.0;
   out[SIM_TUNE_EXPO_R] = fw ? fw->expo : 0.0;
   out[SIM_TUNE_TRIM_E] = 0.0;
-  out[SIM_TUNE_FLAP_MIX] = fw ? fw->de_df : 0.0;
-  out[SIM_TUNE_ELEV_FLAP] = fw ? fw->elev_flap : 0.0;
+  out[SIM_TUNE_FLAP_MIX] = 0.0;
+  out[SIM_TUNE_ELEV_FLAP] = 0.0;
 }
 
 /*
@@ -1363,19 +1353,6 @@ static void plant_seat(void) {
   g_plant_add.camera_x -= sh[0];
   g_plant_add.camera_y -= sh[1];
   g_plant_add.camera_z -= sh[2];
-  for (int w = 0; w < g_plant_add.wheel_count; w += 1) {
-    WheelParams *wp = &g_plant_add.wheel[w];
-    for (int a = 0; a < 3; a += 1) {
-      wp->pos[a] -= sh[a];
-    }
-    /* The main wheels are the braked ones with a tyre. */
-    if (wp->brake > 0.0 && wp->r > 0.0) {
-      if (in[SIM_ADDON_WHEEL_R] > 0.0) {
-        wp->r = in[SIM_ADDON_WHEEL_R];
-      }
-      wp->mu_roll *= in[SIM_ADDON_ROLL_K];
-    }
-  }
   g_plant_add.add_on = 1;
   for (int a = 0; a < 3; a += 1) {
     g_plant_add.add_shift[a] = sh[a];
@@ -1449,63 +1426,6 @@ int plant_airframe_exists(int id) {
 }
 
 /* .pos_x and .pos_y live in the table above. */
-
-/*
- * ROLLING RESISTANCE BY SURFACE. A wheel's mu_roll is its own on short
- * grass, the ground the gear was derived on (docs/CUB-STAGE1.md). Another
- * ground scales it by what that ground costs a full size tyre over what
- * short grass does, Marchman, Aerodynamics and Aircraft Performance, 3rd
- * ed., Table 7.1: concrete and asphalt 0.02 to 0.05, hard turf 0.04 to
- * 0.05, short grass 0.05, long grass 0.07 to 0.10, soft ground 0.10 to
- * 0.30. The ratio carries over to a model's wheel to first order: a
- * wheel's resistance on a yielding ground goes as the square root of its
- * sinkage over its diameter, c = sqrt(z / d), so the small wheel pays more
- * on every ground by about the same factor. Hard faces take the table's
- * low end, 0.02, which puts the Cub's 70 mm wheel at 0.032 on asphalt, the
- * 0.02 to 0.03 its derivation estimated. Loose sand is the softest ground
- * named, the top of soft ground, 0.30, which is also a car tyre's on sand
- * (the rolling resistance survey Wikipedia tabulates). Snow is soft ground
- * of unknown depth, its middle, 0.20. Bare earth is hard turf. The default
- * is the plane's own ground and grass is grass, so both are exactly 1 and
- * the gear on them is what it always was.
- */
-static const double ROLL_VS_GRASS[SIM_SURFACES] = {
-  [SIM_SURF_DEFAULT] = 1.0,
-  [SIM_SURF_GRASS] = 1.0,
-  [SIM_SURF_DIRT] = 1.0,
-  [SIM_SURF_ASPHALT] = 0.4,
-  [SIM_SURF_CONCRETE] = 0.4,
-  [SIM_SURF_ROCK] = 0.4,
-  [SIM_SURF_SNOW] = 4.0,
-  [SIM_SURF_WOOD] = 0.4,
-  [SIM_SURF_METAL] = 0.4,
-  [SIM_SURF_PVC] = 0.4,
-  [SIM_SURF_FOLIAGE] = 1.0,
-  [SIM_SURF_WATER] = 1.0,
-  [SIM_SURF_SAND] = 6.0,
-};
-
-/*
- * The brake. A braked wheel turns slower than the ground goes by, and a
- * locked one skids on its tyre at the grip it has across its heading, or
- * ploughs at the ground's own resistance where that is more; in between
- * the resistance goes linearly with the channel. Only a wheel the table
- * gives a brake feels it, never a tailwheel or a prop tip. A skid, a
- * point with no tyre, does not roll, so no ground scales its friction.
- */
-double plant_wheel_roll(const WheelParams *wp, int surf, double brake) {
-  if (!(wp->r > 0.0)) {
-    return wp->mu_roll;
-  }
-  const double k = (surf >= 0 && surf < SIM_SURFACES) ? ROLL_VS_GRASS[surf] : 1.0;
-  const double roll = wp->mu_roll * k;
-  const double b = brake * wp->brake;
-  if (!(b > 0.0)) {
-    return roll;
-  }
-  const double lock = wp->mu_side > roll ? wp->mu_side : roll;
-  return roll + b * (lock - roll);
-}
 
 /*
  * THE ROTOR DISCS ARE ABOVE THE CENTRE OF GRAVITY, AND THAT IS WHY A QUAD

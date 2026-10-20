@@ -537,9 +537,9 @@ double sim_boost(void);
  * sim_wing_set_stab(mode), sim_wing_stab(): the stabiliser, 0 Manual (the
  * sticks are the surfaces), 1 Stabilised (roll and pitch stick ask for a
  * bank and a pitch, centred flies level), 2 Acro (sticks ask for a roll
- * and pitch rate, centred holds the attitude), 3 Rate damped (the sticks
- * are the surfaces, less a damper on the body's rates, as E-flite's AS3X;
- * Manual on an aircraft without one). With a rudder, the yaw
+ * and pitch rate, centred holds the attitude); 3, the AS3X rate damper,
+ * left with the aircraft that had one on 2026-10-20 and is refused,
+ * SIM_ERR_BAD_ARG. With a rudder, the yaw
  * stick is the rudder in every mode, and in 1 and 2 a turn coordinator
  * adds the rudder that keeps a banked turn from slipping. A mode, kept
  * across resets.
@@ -554,25 +554,6 @@ double sim_boost(void);
  * sim_wing_debug(out[20]): what the last step saw, for the gates: alpha
  * (of the zero lift line), beta, qbar, CL, CD, l m n (aero convention),
  * thrust, force body x y z, moment body x y z, u v w, delta_e, delta_a.
- * sim_wing_biplane(out[4]): a biplane's two wings as the last step took
- * them, docs/PITTS-STAGE1.md: the top wing's own lift coefficient, the
- * bottom wing's, and the linear lift each would carry at the cell's
- * angle, for the gates. Zeros on a monoplane. Additive, version
- * unchanged.
- * sim_wing_slip(out[6]): the prop's slipstream as the last step took it,
- * docs/FLIGHTMODEL.md: its moments about body x, y and z as they were
- * added, the disc's pressure jump (Pa), the induced speed (m/s) and the
- * swirl's sideways speed over the fin (m/s), for the gates that take one
- * term of the moment alone. Zeros on an aircraft without a wash.
- * Additive, version unchanged.
- * sim_wing_yaw_budget(out[26]): the body's yaw moment term by term as
- * the last step added it, N m (plant_wing.c g_yaw lists the slots: the
- * fin and rudder in the free stream and in the wash, Munk, the roll
- * coefficients through sin beta, the jet, the crossflow at side_x, the
- * rates' terms, their sum and M[2], the prop's torque on the air and
- * the swirl's share at the fin), for a check that holds the plant's
- * budget against a derivation's at one flown point (scripts/
- * knife-budget.js). Zeros on a quad. Additive, version unchanged.
  * sim_wing_command(out[3]): what the receiver last wrote to the aileron,
  * elevator and rudder servos, rad, after the gyro and before the servos
  * slew or the air blows them back (plant_wing.c hinge_hold), so a gate
@@ -586,29 +567,11 @@ double sim_boost(void);
  * a flight never flies without it. Additive, version unchanged.
  */
 int sim_wing_launch(double speed);
-/* THE DISCUS LAUNCH, docs/DLG-STAGE1.md, on an aircraft thrown by its
- * wingtip (airframe 21): sim_wing_discus() starts the pilot's one turn
- * from where the aircraft is, to let it go there, facing the way it
- * faces, climbing; SIM_ERR_BAD_ARG on any other aircraft.
- * sim_wing_discus_phase(): 0 none, 1 the turn, 2 the zoom, while the
- * launch preset flies the climb. A reset ends either. */
-int sim_wing_discus(void);
-int sim_wing_discus_phase(void);
 int sim_wing_set_stab(int mode);
 int sim_wing_stab(void);
-/* sim_wing_set_heading(in[3]): mode 3's Heading gain on roll, pitch and
- * yaw, each 0 to 1 of the table's as3x_kh, the AR631's Heading setting,
- * which is zero by default: a centred stick then holds the attitude at
- * that share. Out of range or NaN is SIM_ERR_BAD_ARG. Kept across resets.
- * Additive, version unchanged. */
-#define SIM_HEADING_DOUBLES 3
-int sim_wing_set_heading(const double *in);
 int sim_wing_surfaces(double *out);
 int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
-int sim_wing_biplane(double *out);
-int sim_wing_slip(double *out);
-int sim_wing_yaw_budget(double *out);
 int sim_wing_command(double *out);
 /* sim_wing_strips(out[8]): each stall strip's lift lost to separation as
  * the last step left it, left half root to tip then right half, in units
@@ -622,27 +585,7 @@ int sim_wing_set_gyro(int on);
  * reset puts it back on. */
 int sim_wing_set_mount(int on);
 
-/*
- * sim_wheel_loads(out[4]): the normal load on each ground contact point an
- * airframe declares, newtons, in its table's order; for the Cub, the
- * Slow Stick and the Timber, left main, right main, tailwheel, and the prop's lowest
- * tip, which reads
- * nonzero only in a prop strike. Zero for a point off the ground and for
- * every airframe without gear. The gates read liftoff and touchdown from
- * it, and a renderer can compress a strut by load / stiffness less its
- * static load / stiffness, since the drawn gear is the gear at rest.
- * Additive, version unchanged; SIM_ERR_BAD_ARG for a null pointer.
- */
-int sim_wheel_loads(double *out);
 
-/*
- * sim_air_lift(x, y, z): the air's vertical speed at a world position,
- * m/s, positive up: three thermals over the airfield, still air elsewhere,
- * the same answer whichever airframe is selected. Only an airframe that
- * flies in rising air feels it (the Radian); every other one flies in
- * still air and is unchanged. Additive, version unchanged.
- */
-double sim_air_lift(double x, double y, double z);
 
 /*
  * WIND. sim_set_wind(vx, vy, gust): a horizontal wind, the air's velocity,
@@ -691,8 +634,7 @@ int sim_set_wind_clock(double ms);
  * at the craft's position and sets it each step it changes; the plant has
  * no position of its own for it. Every airframe flies through it as it
  * flies through sim_set_wind's, a plane's aerodynamics, a quad's rotors and
- * drag, the free parts; on top of the Radian's own three thermals
- * (sim_air_lift). A world property like the wind, kept across sim_reset
+ * drag, the free parts. A world property like the wind, kept across sim_reset
  * and sim_init. 0, the default, is still air and no step reads it, so
  * every flight that never sets it is bit identical to one from before it
  * existed. SIM_ERR_BAD_ARG for a non finite value or one out of range.
@@ -700,20 +642,6 @@ int sim_set_wind_clock(double ms);
  */
 int sim_set_air_vertical(double w);
 
-/*
- * BRAKE. sim_set_brake(b): the wheel brake, 0 off to 1 full, on the main
- * wheels of an airframe that stands on gear (the Cub, the Slow Stick, the
- * Timber); nothing else has a wheel for it to act on. Braked, a main
- * wheel's resistance along its heading rises from its rolling resistance
- * on the ground's material to the tyre's side grip, a locked wheel
- * skidding. An input like the sticks: 0 after sim_reset. SIM_ERR_BAD_ARG
- * for a value that is not finite or is outside 0 to 1. The ground's
- * material (sim_set_ground_material) also sets the wheels' rolling
- * resistance, from the full size table in src/native/plant.c at
- * plant_wheel_roll; the default material and grass leave it as it was.
- * Additive, version unchanged.
- */
-int sim_set_brake(double b);
 
 /*
  * sim_wing_chute(deploy): the recovery parachute of an aircraft that has
@@ -730,61 +658,6 @@ int sim_set_brake(double b);
 int sim_wing_chute(int deploy);
 double sim_wing_chute_open(void);
 
-/*
- * sim_wing_set_flaps(notch): the flaps of an aircraft that has them, the
- * Timber: 0 up, 1 half, 2 full, the radio's three position switch. The
- * flaps travel to the notch's angle at the aircraft's own rate, adding
- * lift, drag and a pitching moment, raising the CLmax, and, through the
- * radio's mix, a little down elevator. A mode, kept across sim_reset,
- * which puts the flaps where the notch has them; sim_set_airframe raises
- * them. SIM_ERR_BAD_ARG for a notch past 0 on an aircraft without flaps
- * and for anything outside 0 to 2; SIM_ERR_BAD_STATE before sim_init.
- * sim_wing_flaps(): the flaps' angle now, radians, trailing edge down.
- * sim_wing_flaps_settle(): the flaps where the notch has them at once, as
- * sim_reset puts them, for a host that holds a parked aircraft by not
- * stepping it, during which the servos would have finished moving;
- * SIM_ERR_BAD_STATE before sim_init.
- * sim_wing_set_slats(fitted): the fixed leading edge slats, 1 on, the
- * default, 0 off; they raise the CLmax and cost a little drag. A mode; no
- * effect on an aircraft without them. SIM_ERR_BAD_ARG for anything but 0
- * or 1.
- * Additive, version unchanged: an aircraft without flaps or slats adds
- * exact zeros, so every trace from before they existed is bit identical.
- */
-int sim_wing_set_flaps(int notch);
-double sim_wing_flaps(void);
-int sim_wing_flaps_settle(void);
-
-/*
- * sim_wing_set_gear(up): the retracts of an aircraft that has them
- * (docs/P51-STAGE1.md), 1 up and 0 down; the gear travels at the
- * aircraft's own rate, and its wheels carry the aircraft only while it is
- * down and locked, so a landing with it up is on the belly. A reset and
- * sim_set_airframe put it down and locked. SIM_ERR_BAD_ARG for 1 on an
- * aircraft without retracts, or anything but 0 or 1.
- * sim_wing_gear(): where it is, 0 down and locked to 1 up.
- * sim_wing_gear_selected(): the switch, 1 up and 0 down.
- * Additive, version unchanged: an aircraft without retracts reads none of
- * it and its trace is bit identical.
- */
-int sim_wing_set_gear(int up);
-double sim_wing_gear(void);
-int sim_wing_gear_selected(void);
-/*
- * sim_wing_set_door(open): the cargo ramp and door of an aircraft that has
- * them (docs/HERCULES-CONTRACT.md), 1 open and 0 shut; they travel at the
- * aircraft's own rate, and open they add their drag and pitching moment.
- * A reset and sim_set_airframe shut them. SIM_ERR_BAD_ARG for 1 on an
- * aircraft without, or anything but 0 or 1.
- * sim_wing_door(): where they are, 0 shut to 1 open.
- * sim_wing_door_selected(): the switch.
- * Additive, version unchanged: an aircraft without doors reads none of it
- * and its trace is bit identical.
- */
-int sim_wing_set_door(int open);
-double sim_wing_door(void);
-int sim_wing_door_selected(void);
-int sim_wing_set_slats(int fitted);
 
 /*
  * THE POWER SYSTEM, docs/POWER-STAGE1.md, fixed wings only (airframes 2 to
@@ -944,8 +817,9 @@ int sim_set_prop_pack(const double *in);
  * ADD-ONS, the hangar's Parts tab (configs/hangar-parts.js) on a fixed
  * wing and a combat quad's payload and accessories (docs/COMBAT-DRONES.md)
  * on a quad: what the pilot bolted on or taped up, handed over as one
- * lumped mass, one drag area and the main wheels' tyres. A quad has no
- * wheels, so WHEEL_R and ROLL_K are checked and read by nothing.
+ * lumped mass, one drag area and the main wheels' tyres. No aircraft in
+ * the module has had wheels since 2026-10-20, so WHEEL_R and ROLL_K are
+ * checked and read by nothing.
  *
  * sim_set_addons(in): the SIM_ADDON_DOUBLES below, SI units.
  *   MASS    kg added, -1 to 5 (a lighter prop takes a little off), a
@@ -954,8 +828,8 @@ int sim_set_prop_pack(const double *in);
  *           option or tuning seated after the add-ons is not checked
  *           against them again. The CG moves to the mass weighted
  *           mean, the state's origin with it, and every body
- *           frame position the plants read (the motor, the camera, the
- *           wheels) moves the other way, as a part that leaves moves them
+ *           frame position the plants read (the motor, the camera)
+ *           moves the other way, as a part that leaves moves them
  *           (crash.c). The aero is still taken about the table's CG, so
  *           every force the step sums gets the arm to the new one, the
  *           same fix-up a lost part's shift gets. The inertia about the new
@@ -1008,7 +882,7 @@ int sim_set_prop_pack(const double *in);
  *   [1] all up mass, kg
  *   [2] the add-ons' drag area, m^2
  *   [3..5] the CG's move from the table's, body frame, m
- *   [6] the first braked wheel's tyre radius, m; 0 on an aircraft without
+ *   [6] the first braked wheel's tyre radius, m: 0, no aircraft has one
  *   [7] static thrust at full throttle on a fresh pack, N; 0 on a quad
  * SIM_ERR_BAD_ARG for a null pointer.
  */
@@ -1051,9 +925,10 @@ int sim_set_addon_inertia(const double *in);
  * already, which is the whole move the host computed. The throws are the
  * surfaces' travel at full stick, the expo per surface replaces the
  * table's one expo (0 linear, 1 all cubic), the trim is added to the
- * elevator within its travel, and FLAP_MIX is the radio's flap to
- * elevator mix, elevator rad per rad of flap, and ELEV_FLAP the radio's
- * elevator to flap mix. A MODE like the power
+ * elevator within its travel. FLAP_MIX and ELEV_FLAP were the radio's
+ * mixes between the flaps and the elevator; no aircraft left in the module
+ * has flaps (2026-10-20), so they are range checked, read back, and move
+ * nothing. A MODE like the power
  * option: kept across sim_reset and sim_init, kept by sim_set_power and
  * sim_power_clear, cleared by sim_set_airframe to a different airframe.
  * SIM_ERR_BAD_ARG on a quad, for a null pointer and for a value outside
@@ -1204,20 +1079,6 @@ int sim_water_swell(int body, double height, double period, double dx, double dy
 int sim_water_sample(double x, double y, double t, double *out);
 int sim_water_components(int body, double *out);
 
-/*
- * sim_float_state(out[10]): what the floats of an airframe that has them
- * did on the last step: out[0] their buoyancy, N; out[1] the rest of the
- * water's push along the body's up axis, the planing force and the
- * damping, N; out[2] the water's drag along the keels, N, positive
- * holding the aircraft back; out[3] the displaced volume, m^3; out[4] and
- * out[5] the wetted length of the left and the right float, m; out[6]
- * the load on the keels on land, N; out[7] the water rudders' side force,
- * N, body y; out[8] the wave making drag, N; out[9] the water body under
- * the aircraft, or -1. All zero on an airframe without floats. While the
- * floats are wet or on the ground the stabiliser is in Manual, as on
- * wheels. Additive, version unchanged; SIM_ERR_BAD_ARG for a null pointer.
- */
-int sim_float_state(double *out);
 double sim_math_sin(double x);
 double sim_math_cos(double x);
 

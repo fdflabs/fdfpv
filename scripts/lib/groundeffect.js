@@ -139,37 +139,3 @@ export function groundTerms(g, h, alphaBody, alphaW) {
   return { sigma, dAlpha, clw, dTail, dCd: clw * dAlpha, R };
 }
 
-/*
- * A biplane's terms at one state. g as groundTerms's, with cla (the
- * table's cl_alpha, the curve the stall is on), bipW, bipR and bipDstall
- * (the table's bip_*) and wing2, the bottom wing; clmax the table's cell
- * CL max. h: [top, bottom] heights over the ground, m. Returns each wing's
- * upwash (up, rad) and lift on the reference area (C), the cell's angle
- * change dAlpha (its lift change over cl_alpha), each wing's angle over
- * r times that (bipDa), dTail, and the drag taken off (dCd, before the
- * stall blend).
- */
-export function biplaneGroundTerms(g, h, alphaBody, alphaW) {
-  const hb = h.map((x) => Math.max(0, x) / g.b);
-  if (hb.every((x) => x >= GE_HB_MAX)) return { sigma: [0, 0, 0], dAlpha: 0, C: [0, 0], up: [0, 0], bipDa: [0, 0], dTail: 0, dCd: 0, R: [0, 0] };
-  const sg = [sigmaOf(hb[0]), sigmaOf(hb[1])], s12 = sigmaOf((hb[0] + hb[1]) / 2);
-  const piA = Math.PI * g.b * g.b / g.S;
-  const area = [0, 1].map((i) => g.bipW[i] / g.bipR[i]);
-  const p = area.map((a) => a * g.aw / piA);
-  const rhs = [0, 1].map((i) => g.bipW[i] * g.aw * alphaW);
-  const a00 = 1 - p[0] * sg[0], a01 = -p[0] * s12, a10 = -p[1] * s12, a11 = 1 - p[1] * sg[1];
-  const det = a00 * a11 - a01 * a10;
-  const C = [(rhs[0] * a11 - a01 * rhs[1]) / det, (a00 * rhs[1] - a10 * rhs[0]) / det].map((c, i) => {
-    const most = area[i] * (g.clmax + g.cla * g.bipR[i] * g.bipDstall[i]) * (g.aw / g.cla);
-    return Math.max(-most, Math.min(most, c));
-  });
-  const up = [0, 1].map((i) => (sg[i] * C[i] + s12 * C[1 - i]) / piA);
-  const dAlpha = area[0] * up[0] + area[1] * up[1];
-  const wings = [g.wing, g.wing2];
-  const R = [0, 1].map((i) => tailShare(g, wings[i], h[i], alphaBody));
-  const dTail = g.dd * (R[0] * C[0] + R[1] * C[1]) / g.aw - dAlpha;
-  return {
-    sigma: [sg[0], sg[1], s12], C, up, dAlpha, bipDa: [0, 1].map((i) => up[i] - g.bipR[i] * dAlpha), dTail,
-    dCd: C[0] * up[0] + C[1] * up[1], R,
-  };
-}

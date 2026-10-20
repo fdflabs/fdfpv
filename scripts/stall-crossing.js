@@ -107,16 +107,14 @@ const attitude = (s) => ({
 /* How far past its stall a step is: the angle the outermost strip can
  * reach less the first strip's stall angle, radians, and whether the
  * chord's Reynolds number lets the model act at all. */
-function stallReach(t, st, d, flap) {
+function stallReach(t, st, d) {
   const V = Math.hypot(d[15], d[16], d[17]);
   const Vr = Math.max(1, V);
   const y = 0.875 * t.b / 2;
-  const dcl = t.cldf ? t.cldf * flap + t.cldf2 * flap * flap : 0;
-  const clmax = t.clmax + (t.clmaxdf ? t.clmaxdf * flap : 0);
-  const onset = clmax / t.cla - t.asym / 2;
+  const onset = t.clmax / t.cla - t.asym / 2;
   const rates = (Math.abs(st[11]) + Math.abs((V > 1e-9 ? -d[17] / V : 0) * st[13])) * y / Vr;
-  const aa = Math.abs(d[0] + dcl / t.cla);
-  return { V, alpha: d[0], aa, rates, onset, reach: aa + rates - onset, re: V * t.c / NU, dcl };
+  const aa = Math.abs(d[0]);
+  return { V, alpha: d[0], aa, rates, onset, reach: aa + rates - onset, re: V * t.c / NU };
 }
 
 let bad = 0;
@@ -145,8 +143,7 @@ for (const [key, file, prelude] of RECS) {
     must(a.step(1), 'sim_step');
     must(b.step(1), 'sim_step');
     const d = wingDebug(a);
-    const flap = a.e.sim_wing_flaps();
-    const r = stallReach(t, st, d, flap);
+    const r = stallReach(t, st, d);
     sa = a.readState().state;
     sb = b.readState().state;
     if (first === null) {
@@ -192,7 +189,7 @@ for (const [key, file, prelude] of RECS) {
   const inStall = r.reach >= -1e-12 && r.re >= 3.0e4;
   if (!inStall && !MOVED[key]) bad += 1;
   console.log(`${key.padEnd(12)} first differs at ${first.ms} ms: alpha ${(r.alpha * DEG).toFixed(2)} deg`
-    + `${r.dcl ? ` (flaps add ${(r.dcl / t.cla * DEG).toFixed(2)})` : ''}, the rates add ${(r.rates * DEG).toFixed(2)} at the tip strip, `
+    + `, the rates add ${(r.rates * DEG).toFixed(2)} at the tip strip, `
     + `${r.V.toFixed(2)} m/s, Re ${(r.re / 1000).toFixed(0)}k, ${st[3].toFixed(2)} m up; the first strip stalls at ${(r.onset * DEG).toFixed(2)}: `
     + `${inStall ? 'in the stall' : (MOVED[key] ? `moved: ${MOVED[key]}` : 'BELOW THE STALL')}`);
   for (const s of stalls.slice(0, 6)) {

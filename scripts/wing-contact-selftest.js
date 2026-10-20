@@ -141,19 +141,6 @@ function run(sim, ms, sticks = [0, 0, 0, 0]) {
   }
   return state(sim);
 }
-/* The load on each of the Cub's contact points: mains, tail, prop tip. */
-function loads(sim) {
-  const p = sim.e.malloc(4 * 8);
-  must(sim.e.sim_wheel_loads(p), 'wheel loads');
-  const out = Array.from(new Float64Array(sim.e.memory.buffer, p, 4));
-  sim.e.free(p);
-  return out;
-}
-const pitchOf = (s) => Math.asin(Math.max(-1, Math.min(1, 2 * (s[8] * s[10] - s[7] * s[9])))) * 180 / Math.PI;
-const onWheels = (plane, sim, s) => {
-  const l = loads(sim);
-  return l[0] > 0 && l[1] > 0 && l[2] > 0 && l[3] === 0 && Math.abs(pitchOf(s) - plane.wheels.restPitchDeg) < 1 && Math.abs(s[3] - plane.wheels.restZ) < 0.01;
-};
 const pitchQuat = (deg) => { const h = deg * Math.PI / 360; return [Math.cos(h), 0, Math.sin(h), 0]; };
 const rollQuat = (deg) => { const h = deg * Math.PI / 360; return [Math.cos(h), Math.sin(h), 0, 0]; };
 
@@ -163,17 +150,10 @@ for (const plane of PLANES) {
     const sim = await wing(plane);
     must(sim.e.sim_set_pose(0, 0, 0.30, 1, 0, 0, 0), 'pose');
     must(sim.e.sim_wing_launch(plane.land), 'launch');
-    if (plane.wheels) {
-      const s = run(sim, plane.rollMs ?? 12000);
-      check(`a level arrival at ${plane.land} m/s lands on the wheels and rolls to a stop`, finite(s) && Math.hypot(s[4], s[5]) < 0.05, `speed ${speed(s).toFixed(2)}`);
-      check('standing on its three wheels at its three point attitude, the hull clear', onWheels(plane, sim, s) && lowestCorner(plane, s) > 0.02, `pitch ${pitchOf(s).toFixed(2)} deg, z ${s[3].toFixed(4)}, loads ${loads(sim).map((f) => f.toFixed(2)).join(' ')}, lowest corner ${lowestCorner(plane, s).toFixed(3)}`);
-      check('and it rolled, it did not stick', s[1] > 5.0, `${s[1].toFixed(1)} m along`);
-    } else {
-      const s = run(sim, 4000);
-      check(`a belly landing at ${plane.land} m/s comes to rest`, finite(s) && speed(s) < 0.3, `speed ${speed(s).toFixed(2)}`);
-      check('resting on the plane, not in it', Math.abs(lowestCorner(plane, s)) < 0.02 && s[3] > 0, `lowest corner ${lowestCorner(plane, s).toFixed(3)} m, z ${s[3].toFixed(3)}`);
-      check('and it slid, it did not stick', s[1] > 1.0, `${s[1].toFixed(1)} m along`);
-    }
+    const s = run(sim, 4000);
+    check(`a belly landing at ${plane.land} m/s comes to rest`, finite(s) && speed(s) < 0.3, `speed ${speed(s).toFixed(2)}`);
+    check('resting on the plane, not in it', Math.abs(lowestCorner(plane, s)) < 0.02 && s[3] > 0, `lowest corner ${lowestCorner(plane, s).toFixed(3)} m, z ${s[3].toFixed(3)}`);
+    check('and it slid, it did not stick', s[1] > 1.0, `${s[1].toFixed(1)} m along`);
   }
   {
     const sim = await wing(plane);
@@ -183,9 +163,6 @@ for (const plane of PLANES) {
     const s = run(sim, 3000);
     const up = 1 - 2 * (s[8] * s[8] + s[9] * s[9]);
     check('a wingtip touching first ends with the wing flat', finite(s) && up > 0.95, `up ${up.toFixed(3)}`);
-    if (plane.wheels) {
-      check('and back on its wheels', onWheels(plane, sim, s), `pitch ${pitchOf(s).toFixed(2)} deg, z ${s[3].toFixed(4)}, loads ${loads(sim).map((f) => f.toFixed(2)).join(' ')}`);
-    }
     check('no corner below the plane after the tip strike', lowestCorner(plane, s) > -0.02, `${lowestCorner(plane, s).toFixed(3)}`);
   }
   {
@@ -214,11 +191,7 @@ for (const plane of PLANES) {
   }
   {
     const sim = await wing(plane);
-    /* An aircraft on wheels sits on them, at the pose its gear holds it
-     * in; seated on its hull instead, its struts would start the case
-     * compressed by the gear's whole height and throw it into the air. */
-    const q0 = plane.wheels ? pitchQuat(-plane.wheels.restPitchDeg) : [1, 0, 0, 0];
-    must(sim.e.sim_set_pose(0, 0, plane.wheels ? plane.wheels.restZ : plane.down + 0.005, q0[0], q0[1], q0[2], q0[3]), 'pose');
+    must(sim.e.sim_set_pose(0, 0, plane.down + 0.005, 1, 0, 0, 0), 'pose');
     must(sim.e.sim_rest(), 'rest');
     run(sim, 500);
     /* Into the hand first, as the shell does: a hull on the grass is held

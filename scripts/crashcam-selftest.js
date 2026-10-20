@@ -240,7 +240,6 @@ console.log('1. the journal\'s tables against sim_abi.h and the module');
   const counts = {
     sim_set_power: 'SIM_POWER_DOUBLES', sim_wing_set_tune: 'SIM_TUNE_DOUBLES', sim_wing_set_tiers: 'SIM_TIER_DOUBLES', sim_set_addons: 'SIM_ADDON_DOUBLES',
     sim_set_addon_inertia: 'SIM_ADDON_INERTIA_DOUBLES', sim_set_motors: 'SIM_MOTORS_DOUBLES', sim_set_prop_pack: 'SIM_PROP_PACK_DOUBLES',
-    sim_wing_set_heading: 'SIM_HEADING_DOUBLES',
   };
   const inputs = Object.keys(POINTERS).filter((n) => POINTERS[n].doubles);
   const sized = inputs.map((n) => {
@@ -754,7 +753,7 @@ async function pureReaders() {
   const ARGS = {
     sim_part_info: [1, out], sim_part_hull: [1, out], sim_material_info: [1, out], sim_obstacle_state: [0, out],
     sim_water_sample: [0, 0, 0, out], sim_water_components: [0, out], sim_damage_events_dropped: [],
-    sim_air_lift: [0, 0, 5], sim_math_sin: [0.5], sim_math_cos: [0.5], sim_math_atan2: [0.5, 0.2],
+    sim_math_sin: [0.5], sim_math_cos: [0.5], sim_math_atan2: [0.5, 0.2],
     sim_bf_debug: [13], sim_bf_dump: [out, 1 << 16], sim_bf_get: [key, out, 256], sim_crash_debug: [out, 64],
   };
   const bad = [];

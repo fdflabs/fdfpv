@@ -508,16 +508,6 @@ export function wingPrelude(sim) {
   must(sim.e.sim_wing_launch(10), 'sim_wing_launch');
 }
 
-/* The load on each contact point, newtons: left main, right main,
- * tailwheel, and the prop's tip, which is zero unless it has struck. */
-export function wheelLoads(sim) {
-  if (!sim.wheelPtr) {
-    sim.wheelPtr = sim.e.malloc(4 * 8);
-  }
-  must(sim.e.sim_wheel_loads(sim.wheelPtr), 'sim_wheel_loads');
-  return Array.from(new Float64Array(sim.e.memory.buffer, sim.wheelPtr, 4));
-}
-
 /*
  * One continuous flight with the pilot's hand on it, recorded as the stick
  * tuples it sent, so the cross-host check can replay exactly those in Node
