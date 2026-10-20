@@ -85,15 +85,6 @@
            "osd-best"
           ]
          ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-ghost is-off"
-          ]
-         ]
         }
        ]
       },
@@ -3608,129 +3599,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-standings": {
-    "after": "div.screen.screen-page.screen-roomnew",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-standings"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Standings"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "standings-table"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Goes back to the track list."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-launch": {
-    "after": "div.screen.screen-page.screen-standings",
+    "after": "div.screen.screen-page.screen-roomnew",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -8744,15 +8614,6 @@
            "osd-best"
           ]
          ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-ghost is-off"
-          ]
-         ]
         }
        ]
       },
@@ -12267,129 +12128,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-standings": {
-    "after": "div.screen.screen-page.screen-roomnew",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-standings"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Standings"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "standings-table"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Goes back to the track list."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-launch": {
-    "after": "div.screen.screen-page.screen-standings",
+    "after": "div.screen.screen-page.screen-roomnew",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -17745,9 +17485,6 @@
   "osdGear": {
    "node": "#ui/div.osd.2.3"
   },
-  "osdGhost": {
-   "node": "#ui/div.osd.0.5"
-  },
   "osdHits": {
    "node": "#ui/div.osd.1.3"
   },
@@ -18129,12 +17866,6 @@
      }
     ],
     [
-     "standings",
-     {
-      "node": "#ui/div.screen.screen-page.screen-standings"
-     }
-    ],
-    [
      "launch",
      {
       "node": "#ui/div.screen.screen-page.screen-launch"
@@ -18225,18 +17956,6 @@
   },
   "signinPanel": {
    "node": "#ui/div.signin-panel"
-  },
-  "standingsHelp": {
-   "node": "#ui/div.screen.screen-page.screen-standings.2.2"
-  },
-  "standingsLede": {
-   "node": "#ui/div.screen.screen-page.screen-standings.1"
-  },
-  "standingsMenu": {
-   "node": "#ui/div.screen.screen-page.screen-standings.2.1"
-  },
-  "standingsTable": {
-   "node": "#ui/div.screen.screen-page.screen-standings.2.0"
   },
   "stickRef": {
    "instance": "StickRef"

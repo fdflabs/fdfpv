@@ -38,27 +38,6 @@
       },
       {
        "tag": "DIV",
-       "cls": "row row-link",
-       "attrs": {
-        "aria-selected": "false",
-        "role": "option"
-       },
-       "dataset": {
-        "rowId": "link"
-       },
-       "tabIndex": -1,
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "row-label",
-         "children": [
-          "Board"
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "DIV",
        "cls": "row",
        "attrs": {
         "aria-selected": "false",
@@ -428,7 +407,7 @@
     },
     "first": {
      "screen": "quad",
-     "cursor": 4,
+     "cursor": 3,
      "rowOffset": 0,
      "focusId": null,
      "returnTo": null,
@@ -452,7 +431,6 @@
      "menuRows": [
       "<div.menu-section \"Flight\">",
       "<div.row.row-nav \"Rates\">",
-      "<div.row.row-link \"Board\">",
       "<div.row \"Reset\">",
       "<div.row \"Air mode\">",
       "<div.row \"Laps\">",
@@ -609,7 +587,6 @@
     "kinds": [
      "action",
      "navigation",
-     "link",
      "action",
      "value",
      "value",
@@ -633,7 +610,6 @@
      false,
      false,
      false,
-     false,
      true,
      false,
      false,
@@ -649,7 +625,7 @@
     ],
     "afterEvents": {
      "screen": "quad",
-     "cursor": 17,
+     "cursor": 16,
      "rowOffset": 0,
      "focusId": null,
      "returnTo": null,
@@ -673,7 +649,6 @@
      "menuRows": [
       "<div.menu-section \"Flight\">",
       "<div.row.row-nav \"Rates\">",
-      "<div.row.row-link \"Board\">",
       "<div.row \"Reset\">",
       "<div.row \"Air mode\">",
       "<div.row \"Laps\">",
@@ -720,7 +695,6 @@
       "menuRows": [
        "<div.menu-section \"Flight\">",
        "<div.row.row-nav \"Rates\">",
-       "<div.row.row-link \"Board\">",
        "<div.row \"Reset\">",
        "<div.row \"Air mode\">",
        "<div.row \"Laps\">",
@@ -766,7 +740,6 @@
      "menuRows": [
       "<div.menu-section \"Flight\">",
       "<div.row.row-nav \"Rates\">",
-      "<div.row.row-link \"Board\">",
       "<div.row \"Reset\">",
       "<div.row \"Air mode\">",
       "<div.row \"Laps\">",
@@ -811,7 +784,6 @@
      "menuRows": [
       "<div.menu-section \"Flight\">",
       "<div.row.row-nav \"Rates\">",
-      "<div.row.row-link \"Board\">",
       "<div.row \"Reset\">",
       "<div.row \"Air mode\">",
       "<div.row \"Laps\">",
@@ -834,14 +806,14 @@
    "log": [
     "syncChips",
     "closeDrop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -849,17 +821,13 @@
     "syncFcChrome",
     "> focus <div.row.row-nav \"Rates\">",
     "syncCursor false",
-    "> focus <div.row \"Laps\">",
+    "> focus <div.row \"Style\">",
     "syncCursor false",
-    "> focus <div.row \"Laps\">",
-    "> pointermove <div.row \"Air mode\">",
-    "> pointermove <div.row.row-link \"Board\">",
-    "hoverCursor [event pointermove on <div.row.row-link \"Board\">] 2",
+    "> focus <div.row \"Style\">",
+    "> pointermove <div.row \"Laps\">",
+    "> pointermove <div.row \"Reset\">",
+    "hoverCursor [event pointermove on <div.row \"Reset\">] 2",
     "> click <div.row.row-nav \"Rates\">",
-    "closeDrop",
-    "syncCursor false",
-    "select",
-    "> click <div.row.row-link \"Board\">",
     "closeDrop",
     "syncCursor false",
     "select",
@@ -882,11 +850,11 @@
     "> click <div.row \"Rate\">",
     "closeDrop",
     "syncCursor false",
-    "focusNumber 8",
+    "focusNumber 7",
     "> click <div.row \"Weight\">",
     "closeDrop",
     "syncCursor false",
-    "focusNumber 9",
+    "focusNumber 8",
     "> click <div.row \"Search\">",
     "closeDrop",
     "syncCursor false",
@@ -918,18 +886,18 @@
     "closeDrop",
     "syncCursor false",
     "> click <makeSwitch:sw>",
-    "> click <div.row \"Reset\">",
+    "> click <div.row \"Air mode\">",
     "syncChips",
     "closeDrop",
     "titleStop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -939,14 +907,14 @@
     "syncChips",
     "closeDrop",
     "titleStop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -2832,165 +2800,6 @@
       "<div.row.row-primary \"Fly\">"
      ],
      "url": "https://example.test/"
-    },
-    "standings": {
-     "state": {
-      "screen": "standings",
-      "cursor": 0,
-      "rowOffset": 0,
-      "focusId": null,
-      "returnTo": null,
-      "cursorMemory": {},
-      "padRearm": false,
-      "swapPadPrev": {},
-      "numberFocusWanted": null,
-      "ratesFrom": null,
-      "pidsFrom": null,
-      "fcFrom": null,
-      "roomFrom": null,
-      "ratesNotice": null,
-      "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
-      ],
-      "menuRows": [
-       "<div.row.row-primary \"Fly this track\">"
-      ],
-      "url": "https://example.test/"
-     },
-     "frame": {
-      "top": {
-       "tag": "DIV",
-       "name": "frameTop",
-       "hidden": false
-      },
-      "bot": {
-       "tag": "DIV",
-       "name": "frameBot",
-       "hidden": false
-      },
-      "rootCls": "bar-shown",
-      "rootStyle": {
-       "--bar-top": "48px",
-       "--bar-bot": "52px"
-      },
-      "crumb": {
-       "tag": "DIV",
-       "name": "crumb",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "crumb-up",
-         "children": [
-          "Race"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-sep",
-         "children": [
-          "/"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-here",
-         "children": [
-          "Standings"
-         ]
-        }
-       ]
-      },
-      "context": {
-       "tag": "DIV",
-       "name": "frameContext",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "frame-chip",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "frame-chip-key",
-           "children": [
-            "Flying"
-           ]
-          },
-          {
-           "tag": "B",
-           "children": [
-            "Track"
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      "legend": {
-       "tag": "DIV",
-       "name": "frameLegend",
-       "children": [
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "↑"
-           ]
-          },
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "↓"
-           ]
-          },
-          " Move"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Enter"
-           ]
-          },
-          " Choose"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Esc"
-           ]
-          },
-          " Back"
-         ]
-        }
-       ]
-      },
-      "primary": {
-       "tag": "BUTTON",
-       "name": "framePrimary",
-       "hidden": false,
-       "children": [
-        "Fly this track"
-       ]
-      }
-     }
     }
    },
    "log": [
@@ -3013,14 +2822,6 @@
     "syncChips",
     "closeDrop",
     "makeSegments radio 0",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome",
-    "syncChips",
-    "paintStandings",
-    "closeDrop",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -3077,7 +2878,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -3280,7 +3080,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -3439,7 +3238,7 @@
     "backToQuad": {
      "state": {
       "screen": "quad",
-      "cursor": 4,
+      "cursor": 3,
       "rowOffset": 0,
       "focusId": null,
       "returnTo": null,
@@ -3470,7 +3269,6 @@
       "menuRows": [
        "<div.menu-section \"Flight\">",
        "<div.row.row-nav \"Rates\">",
-       "<div.row.row-link \"Board\">",
        "<div.row \"Reset\">",
        "<div.row \"Air mode\">",
        "<div.row \"Laps\">",
@@ -3499,7 +3297,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -3696,7 +3493,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -3866,7 +3662,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4014,7 +3809,7 @@
     "pidsLeft": {
      "state": {
       "screen": "quad",
-      "cursor": 4,
+      "cursor": 3,
       "rowOffset": 0,
       "focusId": null,
       "returnTo": null,
@@ -4045,7 +3840,6 @@
       "menuRows": [
        "<div.menu-section \"Flight\">",
        "<div.row.row-nav \"Rates\">",
-       "<div.row.row-link \"Board\">",
        "<div.row \"Reset\">",
        "<div.row \"Air mode\">",
        "<div.row \"Laps\">",
@@ -4074,7 +3868,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4271,7 +4064,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4460,7 +4252,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4637,7 +4428,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4815,7 +4605,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4993,7 +4782,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -5170,7 +4958,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -5329,14 +5116,14 @@
     "noteInteraction",
     "syncChips",
     "closeDrop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -5381,14 +5168,14 @@
     "noteInteraction",
     "syncChips",
     "closeDrop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -8310,135 +8097,6 @@
       ]
      }
     },
-    "standings": {
-     "top": {
-      "tag": "DIV",
-      "name": "frameTop",
-      "hidden": false
-     },
-     "bot": {
-      "tag": "DIV",
-      "name": "frameBot",
-      "hidden": false
-     },
-     "rootCls": "bar-shown",
-     "rootStyle": {
-      "--bar-top": "48px",
-      "--bar-bot": "52px"
-     },
-     "crumb": {
-      "tag": "DIV",
-      "name": "crumb",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "crumb-up",
-        "children": [
-         "Race"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-sep",
-        "children": [
-         "/"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-here",
-        "children": [
-         "Standings"
-        ]
-       }
-      ]
-     },
-     "context": {
-      "tag": "DIV",
-      "name": "frameContext",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "frame-chip",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "frame-chip-key",
-          "children": [
-           "Flying"
-          ]
-         },
-         {
-          "tag": "B",
-          "children": [
-           "The Alps"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     "legend": {
-      "tag": "DIV",
-      "name": "frameLegend",
-      "children": [
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↑"
-          ]
-         },
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↓"
-          ]
-         },
-         " Move"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Enter"
-          ]
-         },
-         " Choose"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Esc"
-          ]
-         },
-         " Back"
-        ]
-       }
-      ]
-     },
-     "primary": {
-      "tag": "BUTTON",
-      "name": "framePrimary",
-      "hidden": true,
-      "children": [
-       "Fly now"
-      ]
-     }
-    },
     "rates": {
      "top": {
       "tag": "DIV",
@@ -10221,27 +9879,6 @@
       },
       {
        "tag": "DIV",
-       "cls": "row row-link",
-       "attrs": {
-        "aria-selected": "false",
-        "role": "option"
-       },
-       "dataset": {
-        "rowId": "link"
-       },
-       "tabIndex": -1,
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "row-label",
-         "children": [
-          "Board"
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "DIV",
        "cls": "row",
        "attrs": {
         "aria-selected": "false",
@@ -10611,7 +10248,7 @@
     },
     "first": {
      "screen": "quad",
-     "cursor": 4,
+     "cursor": 3,
      "rowOffset": 0,
      "focusId": null,
      "returnTo": null,
@@ -10635,7 +10272,6 @@
      "menuRows": [
       "<div.menu-section \"Flight\">",
       "<div.row.row-nav \"Rates\">",
-      "<div.row.row-link \"Board\">",
       "<div.row \"Reset\">",
       "<div.row \"Air mode\">",
       "<div.row \"Laps\">",
@@ -10792,7 +10428,6 @@
     "kinds": [
      "action",
      "navigation",
-     "link",
      "action",
      "value",
      "value",
@@ -10816,7 +10451,6 @@
      false,
      false,
      false,
-     false,
      true,
      false,
      false,
@@ -10832,7 +10466,7 @@
     ],
     "afterEvents": {
      "screen": "quad",
-     "cursor": 17,
+     "cursor": 16,
      "rowOffset": 0,
      "focusId": null,
      "returnTo": null,
@@ -10856,7 +10490,6 @@
      "menuRows": [
       "<div.menu-section \"Flight\">",
       "<div.row.row-nav \"Rates\">",
-      "<div.row.row-link \"Board\">",
       "<div.row \"Reset\">",
       "<div.row \"Air mode\">",
       "<div.row \"Laps\">",
@@ -10903,7 +10536,6 @@
       "menuRows": [
        "<div.menu-section \"Flight\">",
        "<div.row.row-nav \"Rates\">",
-       "<div.row.row-link \"Board\">",
        "<div.row \"Reset\">",
        "<div.row \"Air mode\">",
        "<div.row \"Laps\">",
@@ -10949,7 +10581,6 @@
      "menuRows": [
       "<div.menu-section \"Flight\">",
       "<div.row.row-nav \"Rates\">",
-      "<div.row.row-link \"Board\">",
       "<div.row \"Reset\">",
       "<div.row \"Air mode\">",
       "<div.row \"Laps\">",
@@ -10994,7 +10625,6 @@
      "menuRows": [
       "<div.menu-section \"Flight\">",
       "<div.row.row-nav \"Rates\">",
-      "<div.row.row-link \"Board\">",
       "<div.row \"Reset\">",
       "<div.row \"Air mode\">",
       "<div.row \"Laps\">",
@@ -11017,14 +10647,14 @@
    "log": [
     "syncChips",
     "closeDrop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -11032,17 +10662,13 @@
     "syncFcChrome",
     "> focus <div.row.row-nav \"Rates\">",
     "syncCursor false",
-    "> focus <div.row \"Laps\">",
+    "> focus <div.row \"Style\">",
     "syncCursor false",
-    "> focus <div.row \"Laps\">",
-    "> pointermove <div.row \"Air mode\">",
-    "> pointermove <div.row.row-link \"Board\">",
-    "hoverCursor [event pointermove on <div.row.row-link \"Board\">] 2",
+    "> focus <div.row \"Style\">",
+    "> pointermove <div.row \"Laps\">",
+    "> pointermove <div.row \"Reset\">",
+    "hoverCursor [event pointermove on <div.row \"Reset\">] 2",
     "> click <div.row.row-nav \"Rates\">",
-    "closeDrop",
-    "syncCursor false",
-    "select",
-    "> click <div.row.row-link \"Board\">",
     "closeDrop",
     "syncCursor false",
     "select",
@@ -11065,11 +10691,11 @@
     "> click <div.row \"Rate\">",
     "closeDrop",
     "syncCursor false",
-    "focusNumber 8",
+    "focusNumber 7",
     "> click <div.row \"Weight\">",
     "closeDrop",
     "syncCursor false",
-    "focusNumber 9",
+    "focusNumber 8",
     "> click <div.row \"Search\">",
     "closeDrop",
     "syncCursor false",
@@ -11101,18 +10727,18 @@
     "closeDrop",
     "syncCursor false",
     "> click <makeSwitch:sw>",
-    "> click <div.row \"Reset\">",
+    "> click <div.row \"Air mode\">",
     "syncChips",
     "closeDrop",
     "titleStop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -11122,14 +10748,14 @@
     "syncChips",
     "closeDrop",
     "titleStop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -13015,165 +12641,6 @@
       "<div.row.row-primary \"Fly\">"
      ],
      "url": "https://example.test/"
-    },
-    "standings": {
-     "state": {
-      "screen": "standings",
-      "cursor": 0,
-      "rowOffset": 0,
-      "focusId": null,
-      "returnTo": null,
-      "cursorMemory": {},
-      "padRearm": false,
-      "swapPadPrev": {},
-      "numberFocusWanted": null,
-      "ratesFrom": null,
-      "pidsFrom": null,
-      "fcFrom": null,
-      "roomFrom": null,
-      "ratesNotice": null,
-      "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
-      ],
-      "menuRows": [
-       "<div.row.row-primary \"Fly this track\">"
-      ],
-      "url": "https://example.test/"
-     },
-     "frame": {
-      "top": {
-       "tag": "DIV",
-       "name": "frameTop",
-       "hidden": false
-      },
-      "bot": {
-       "tag": "DIV",
-       "name": "frameBot",
-       "hidden": false
-      },
-      "rootCls": "bar-shown",
-      "rootStyle": {
-       "--bar-top": "48px",
-       "--bar-bot": "52px"
-      },
-      "crumb": {
-       "tag": "DIV",
-       "name": "crumb",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "crumb-up",
-         "children": [
-          "Race"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-sep",
-         "children": [
-          "/"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-here",
-         "children": [
-          "Standings"
-         ]
-        }
-       ]
-      },
-      "context": {
-       "tag": "DIV",
-       "name": "frameContext",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "frame-chip",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "frame-chip-key",
-           "children": [
-            "Volando"
-           ]
-          },
-          {
-           "tag": "B",
-           "children": [
-            "Track"
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      "legend": {
-       "tag": "DIV",
-       "name": "frameLegend",
-       "children": [
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "↑"
-           ]
-          },
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "↓"
-           ]
-          },
-          " Mover"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Enter"
-           ]
-          },
-          " Elegir"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Esc"
-           ]
-          },
-          " Volver"
-         ]
-        }
-       ]
-      },
-      "primary": {
-       "tag": "BUTTON",
-       "name": "framePrimary",
-       "hidden": false,
-       "children": [
-        "Fly this track"
-       ]
-      }
-     }
     }
    },
    "log": [
@@ -13196,14 +12663,6 @@
     "syncChips",
     "closeDrop",
     "makeSegments radio 0",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome",
-    "syncChips",
-    "paintStandings",
-    "closeDrop",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -13260,7 +12719,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -13463,7 +12921,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -13622,7 +13079,7 @@
     "backToQuad": {
      "state": {
       "screen": "quad",
-      "cursor": 4,
+      "cursor": 3,
       "rowOffset": 0,
       "focusId": null,
       "returnTo": null,
@@ -13653,7 +13110,6 @@
       "menuRows": [
        "<div.menu-section \"Flight\">",
        "<div.row.row-nav \"Rates\">",
-       "<div.row.row-link \"Board\">",
        "<div.row \"Reset\">",
        "<div.row \"Air mode\">",
        "<div.row \"Laps\">",
@@ -13682,7 +13138,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -13879,7 +13334,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14049,7 +13503,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14197,7 +13650,7 @@
     "pidsLeft": {
      "state": {
       "screen": "quad",
-      "cursor": 4,
+      "cursor": 3,
       "rowOffset": 0,
       "focusId": null,
       "returnTo": null,
@@ -14228,7 +13681,6 @@
       "menuRows": [
        "<div.menu-section \"Flight\">",
        "<div.row.row-nav \"Rates\">",
-       "<div.row.row-link \"Board\">",
        "<div.row \"Reset\">",
        "<div.row \"Air mode\">",
        "<div.row \"Laps\">",
@@ -14257,7 +13709,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14454,7 +13905,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14643,7 +14093,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14820,7 +14269,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14998,7 +14446,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -15176,7 +14623,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -15353,7 +14799,6 @@
       "friends": null,
       "quad": null,
       "launch": null,
-      "standings": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -15512,14 +14957,14 @@
     "noteInteraction",
     "syncChips",
     "closeDrop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -15564,14 +15009,14 @@
     "noteInteraction",
     "syncChips",
     "closeDrop",
-    "makeSwitch sw 4",
-    "makeStepper step 5",
-    "makeSegments seg 6",
-    "makeDrop drop 7",
-    "makeNumber num 8",
-    "makeSliderControl slider 9",
-    "makeSearch text 10",
-    "makeStepper No id 17",
+    "makeSwitch sw 3",
+    "makeStepper step 4",
+    "makeSegments seg 5",
+    "makeDrop drop 6",
+    "makeNumber num 7",
+    "makeSliderControl slider 8",
+    "makeSearch text 9",
+    "makeStepper No id 16",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -18403,135 +17848,6 @@
         "cls": "crumb-here",
         "children": [
          "Before you fly"
-        ]
-       }
-      ]
-     },
-     "context": {
-      "tag": "DIV",
-      "name": "frameContext",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "frame-chip",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "frame-chip-key",
-          "children": [
-           "Volando"
-          ]
-         },
-         {
-          "tag": "B",
-          "children": [
-           "The Alps"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     "legend": {
-      "tag": "DIV",
-      "name": "frameLegend",
-      "children": [
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↑"
-          ]
-         },
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↓"
-          ]
-         },
-         " Mover"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Enter"
-          ]
-         },
-         " Elegir"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Esc"
-          ]
-         },
-         " Volver"
-        ]
-       }
-      ]
-     },
-     "primary": {
-      "tag": "BUTTON",
-      "name": "framePrimary",
-      "hidden": true,
-      "children": [
-       "Fly now"
-      ]
-     }
-    },
-    "standings": {
-     "top": {
-      "tag": "DIV",
-      "name": "frameTop",
-      "hidden": false
-     },
-     "bot": {
-      "tag": "DIV",
-      "name": "frameBot",
-      "hidden": false
-     },
-     "rootCls": "bar-shown",
-     "rootStyle": {
-      "--bar-top": "48px",
-      "--bar-bot": "52px"
-     },
-     "crumb": {
-      "tag": "DIV",
-      "name": "crumb",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "crumb-up",
-        "children": [
-         "Race"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-sep",
-        "children": [
-         "/"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-here",
-        "children": [
-         "Standings"
         ]
        }
       ]
