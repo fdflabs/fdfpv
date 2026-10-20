@@ -28,19 +28,14 @@
  },
  "gateWays": [
   "freestyle-wing1000",
-  "combat",
-  "ace",
   "campaign",
   "interior",
   "training"
  ],
  "hubOfAction": {
   "fly": null,
-  "way-ace": "club",
   "way-campaign": "ops",
-  "way-combat": "club",
   "way-freestyle-wing1000": "club",
-  "way-friends": null,
   "way-interior": "ops",
   "way-nope": null,
   "way-training": "club",
@@ -49,8 +44,6 @@
  "hubWays": {
   "club": [
    "freestyle-wing1000",
-   "combat",
-   "ace",
    "training"
   ],
   "hangar": [],
@@ -99,14 +92,14 @@
  ],
  "reticleSvg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><g transform=\"translate(93 93) scale(0.38)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>",
  "seatedWay": {
-  "10inch/freestyle": "friends",
-  "10inch/nope": "friends",
-  "10inch/null": "friends",
-  "10inch/race": "friends",
-  "7inch/freestyle": "friends",
-  "7inch/nope": "friends",
-  "7inch/null": "friends",
-  "7inch/race": "friends",
+  "10inch/freestyle": "war",
+  "10inch/nope": "war",
+  "10inch/null": "war",
+  "10inch/race": "war",
+  "7inch/freestyle": "war",
+  "7inch/nope": "war",
+  "7inch/null": "war",
+  "7inch/race": "war",
   "bombshell1118/freestyle": "freestyle-wing1000",
   "bombshell1118/nope": "freestyle-wing1000",
   "bombshell1118/null": "freestyle-wing1000",
@@ -139,10 +132,10 @@
   "hercules3077/nope": "freestyle-wing1000",
   "hercules3077/null": "freestyle-wing1000",
   "hercules3077/race": "freestyle-wing1000",
-  "interceptor/freestyle": "friends",
-  "interceptor/nope": "friends",
-  "interceptor/null": "friends",
-  "interceptor/race": "friends",
+  "interceptor/freestyle": "war",
+  "interceptor/nope": "war",
+  "interceptor/null": "war",
+  "interceptor/race": "war",
   "kadet1981/freestyle": "freestyle-wing1000",
   "kadet1981/nope": "freestyle-wing1000",
   "kadet1981/null": "freestyle-wing1000",
@@ -201,11 +194,8 @@
   "zagi1219/race": "freestyle-wing1000"
  },
  "wayFilter": {
-  "ace": "all",
   "campaign": "all",
-  "combat": "all",
   "freestyle-wing1000": "plane",
-  "friends": "all",
   "interior": "plane",
   "training": "plane",
   "war": "all"
@@ -248,140 +238,6 @@
    "label": "Free Flight",
    "lobby": null,
    "mode": "freestyle"
-  },
-  {
-   "action": "way-friends",
-   "airframes": [
-    "7inch",
-    "10inch",
-    "interceptor",
-    "sky1800",
-    "cub1400",
-    "radian2000",
-    "bramor2300",
-    "slowstick1180",
-    "timber1500",
-    "timber1500f",
-    "cub1400f",
-    "bombshell1118",
-    "kadet1981",
-    "uglystik1567",
-    "tigermoth1803",
-    "extra3d1308",
-    "nighttimber1200",
-    "hercules3077",
-    "cap1702",
-    "slick2680",
-    "p51d1450",
-    "f16878",
-    "zagi1219",
-    "nrj1490",
-    "striker2500"
-   ],
-   "art": "assets/gate/friends.jpg",
-   "blurb": "Join a room from the list or make your own, then fly together.",
-   "facts": [
-    "Public rooms",
-    "Invite code",
-    "Planes and quads"
-   ],
-   "gate": false,
-   "home": "swiss2",
-   "id": "friends",
-   "label": "Fly with friends",
-   "mode": "freestyle",
-   "room": true,
-   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><g transform=\"translate(4 20) scale(0.56)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g><g transform=\"translate(128 112) scale(0.56)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>"
-  },
-  {
-   "action": "way-combat",
-   "airframes": [
-    "7inch",
-    "10inch",
-    "interceptor",
-    "sky1800",
-    "cub1400",
-    "radian2000",
-    "bramor2300",
-    "slowstick1180",
-    "timber1500",
-    "timber1500f",
-    "cub1400f",
-    "bombshell1118",
-    "kadet1981",
-    "uglystik1567",
-    "tigermoth1803",
-    "extra3d1308",
-    "nighttimber1200",
-    "hercules3077",
-    "cap1702",
-    "slick2680",
-    "p51d1450",
-    "f16878",
-    "zagi1219",
-    "nrj1490",
-    "striker2500"
-   ],
-   "art": "assets/gate/combat.jpg",
-   "blurb": "Everybody tows a streamer of toilet paper. Cut theirs, keep yours.",
-   "facts": [
-    "Cut the paper",
-    "3 or 5 minutes",
-    "Invite code"
-   ],
-   "game": "combat",
-   "home": "swiss2",
-   "id": "combat",
-   "label": "Streamer Combat",
-   "lobby": "combat",
-   "mode": "freestyle",
-   "room": true,
-   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><g transform=\"translate(78 4) scale(0.48)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g><path d=\"M 150 132 C 120 170, 190 190, 150 222 S 110 262, 150 294\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"12\" stroke-opacity=\"0.7\" stroke-linecap=\"round\"/></svg>"
-  },
-  {
-   "action": "way-ace",
-   "airframes": [
-    "7inch",
-    "10inch",
-    "interceptor",
-    "sky1800",
-    "cub1400",
-    "radian2000",
-    "bramor2300",
-    "slowstick1180",
-    "timber1500",
-    "timber1500f",
-    "cub1400f",
-    "bombshell1118",
-    "kadet1981",
-    "uglystik1567",
-    "tigermoth1803",
-    "extra3d1308",
-    "nighttimber1200",
-    "hercules3077",
-    "cap1702",
-    "slick2680",
-    "p51d1450",
-    "f16878",
-    "zagi1219",
-    "nrj1490",
-    "striker2500"
-   ],
-   "art": "assets/gate/ace.jpg",
-   "blurb": "The Ace wears the crown and scores. Fly into its bubble to take it.",
-   "facts": [
-    "The crown",
-    "Enter its bubble",
-    "Invite code"
-   ],
-   "game": "tag",
-   "home": "swiss2",
-   "id": "ace",
-   "label": "Catch the Ace!",
-   "lobby": "tag",
-   "mode": "freestyle",
-   "room": true,
-   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><path d=\"M 50 210 L 38 96 L 104 150 L 150 70 L 196 150 L 262 96 L 250 210 Z\" fill=\"currentColor\" fill-opacity=\"0.45\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><rect x=\"50\" y=\"222\" width=\"200\" height=\"26\" rx=\"6\" fill=\"currentColor\" fill-opacity=\"0.7\"/></svg>"
   },
   {
    "action": "way-war",
@@ -521,36 +377,6 @@
    ],
    "id": "freestyle-wing1000",
    "label": "Vuelo Libre"
-  },
-  {
-   "blurb": "Únete a una sala de la lista o crea la tuya, y vuelen juntos.",
-   "facts": [
-    "Salas públicas",
-    "Código de invitación",
-    "Aviones y quads"
-   ],
-   "id": "friends",
-   "label": "Volar con amigos"
-  },
-  {
-   "blurb": "Todos arrastran una cinta de papel higiénico. Corta la ajena, cuida la tuya.",
-   "facts": [
-    "Corta el papel",
-    "3 o 5 minutos",
-    "Código de invitación"
-   ],
-   "id": "combat",
-   "label": "Combate de serpentinas"
-  },
-  {
-   "blurb": "El As lleva la corona y suma puntos. Entra en su burbuja para quitársela.",
-   "facts": [
-    "La corona",
-    "Entra en su burbuja",
-    "Código de invitación"
-   ],
-   "id": "ace",
-   "label": "¡Atrapa al As!"
   },
   {
    "blurb": "Drones de ataque vienen por Itaipú. Trae a tu escuadrón y defiende la represa.",
