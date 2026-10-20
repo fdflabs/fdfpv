@@ -344,7 +344,7 @@ try {
   await resize(e, 1280, 720);
 
   /* E, the keyboard: Right off the last card lands on the panel's first room. */
-  const lastCard = await e.evaluate("window.__ui.items().findIndex((it) => it.card === 'ace')");
+  const lastCard = await e.evaluate("window.__ui.items().findLastIndex((it) => Boolean(it.card))");
   await e.evaluate(`(() => { window.__ui.setCursor(${lastCard}); return true; })()`);
   const walked = [];
   for (let i = 0; i < 6 && (await e.evaluate(HERE))[0] !== roomAction; i += 1) {
@@ -363,7 +363,7 @@ try {
   await shot(f, 'panel-390x844');
   const fCut = await f.evaluate(CUT(PANEL_TEXT));
   check('390 by 844: no room name, load or count in the panel is cut', fCut.length === 0, fCut.join(' | '));
-  const fLast = await f.evaluate("window.__ui.items().findIndex((it) => it.card === 'ace')");
+  const fLast = await f.evaluate("window.__ui.items().findLastIndex((it) => Boolean(it.card))");
   await f.evaluate(`(() => { window.__ui.setCursor(${fLast}); return true; })()`);
   const pad = (nav) => f.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
   for (let i = 0; i < 8 && (await f.evaluate(HERE))[0] !== 'lobby:rooms'; i += 1) {
