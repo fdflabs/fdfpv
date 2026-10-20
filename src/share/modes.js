@@ -38,12 +38,6 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { GOALS } from './roomtag.js';
-
-/* A combat round's lengths in minutes, the host's choice between rounds;
- * the first is a room's until its host picks. */
-export const ROUND_MINUTES = [3, 5];
-
 /*
  * One entry per activity. The fields:
  *
@@ -72,8 +66,6 @@ export const ROUND_MINUTES = [3, 5];
  *                 seats only a build that asks it (roomwire.js WAR_JOIN)
  *   publicOnlyWhenMadeFor  in a public room only when the room was made
  *                 for it, so nobody meets it without having chosen it
- *   straightToLobby  a room made for it skips the results pause and goes
- *                 back to its lobby when a round ends (combat.js)
  *   makeable      offered on Make a room's Game row as is (the war has its
  *                 own rule there: only on its map)
  *   onFoot        a landed and stopped pilot may step out and walk
@@ -83,48 +75,6 @@ export const ROUND_MINUTES = [3, 5];
  *                 row, the author's decision over a flags system)
  */
 export const MODES = [
-  {
-    id: 'tag',
-    category: 'flightclub',
-    card: {
-      way: 'ace', label: 'roomtag.section', blurb: 'roomtag.card_blurb', facts: ['roomtag.card_crown', 'roomtag.card_touch', 'friends.card_code'],
-      art: 'assets/gate/ace.jpg', home: 'swiss2',
-    },
-    minPlayers: 1,
-    minElsewhere: 2,
-    allowSolo: true,
-    allowAI: false,
-    allowDropIn: true,
-    openEnded: false,
-    setting: { key: 'goal', choices: GOALS.map((g) => g.goal) },
-    consent: false,
-    publicOnlyWhenMadeFor: false,
-    straightToLobby: false,
-    makeable: true,
-    onFoot: false,
-    hidden: false,
-  },
-  {
-    id: 'combat',
-    category: 'flightclub',
-    card: {
-      way: 'combat', label: 'combat.card', blurb: 'combat.card_blurb', facts: ['combat.card_cut', 'combat.card_rounds', 'friends.card_code'],
-      art: 'assets/gate/combat.jpg', home: 'swiss2',
-    },
-    minPlayers: 1,
-    minElsewhere: 2,
-    allowSolo: true,
-    allowAI: false,
-    allowDropIn: true,
-    openEnded: false,
-    setting: { key: 'minutes', choices: ROUND_MINUTES },
-    consent: false,
-    publicOnlyWhenMadeFor: false,
-    straightToLobby: true,
-    makeable: true,
-    onFoot: false,
-    hidden: false,
-  },
   {
     id: 'war',
     category: 'operations',
@@ -141,7 +91,6 @@ export const MODES = [
     setting: { key: 'mission', choices: null },
     consent: true,
     publicOnlyWhenMadeFor: true,
-    straightToLobby: false,
     makeable: false,
     onFoot: false,
     hidden: false,
@@ -162,7 +111,6 @@ export const MODES = [
     setting: null,
     consent: false,
     publicOnlyWhenMadeFor: false,
-    straightToLobby: false,
     makeable: false,
     onFoot: true,
     hidden: false,
@@ -237,10 +185,8 @@ export function minPlayersFor(id, roomMode) {
  *   countdown  a round started, its go still to come (the war's briefing
  *              too)
  *   live       the round flying
- *   between    a round of a match over and the next to come: a combat
- *              round's results before the next (not in a room made for
- *              combat, which goes back to its lobby), the war's round
- *              result
+ *   between    a round of a match over and the next to come: the war's
+ *              round result
  *   over       the round or match ended, its results standing
  *   abandoned  ended by the room because too few of its players were here
  *              (edge/rooms/core.js settleGames, ABANDON_MS), not by its end
@@ -249,11 +195,9 @@ export function minPlayersFor(id, roomMode) {
  * Each game keeps its own states (GAME_STATES, as its view says them,
  * edge/rooms/<game>.js view(); free flight's is its lobby's `live`) and
  * sessionOf maps them, at the room's time. A countdown ends at the view's
- * goAt (combat's startsAt) on the room clock. The room stamps each game's
- * view with `session`, as
- * it stands when sent; a reader with the room clock maps the view itself.
- * Combat's abandoned round is idle at once (combat.js stop), so its
- * abandoned stands until its next round as the others' results do.
+ * goAt on the room clock. The room stamps each game's view with `session`,
+ * as it stands when sent; a reader with the room clock maps the view
+ * itself.
  */
 export const SESSION_STATES = ['lobby', 'countdown', 'live', 'between', 'over', 'abandoned'];
 /* A round under way, and one ended. */
@@ -261,20 +205,12 @@ export const SESSION_ON = ['countdown', 'live', 'between'];
 export const SESSION_ENDED = ['over', 'abandoned'];
 
 export const GAME_STATES = {
-  tag: ['lobby', 'countdown', 'live', 'results'],
-  combat: ['idle', 'countdown', 'on', 'over'],
   war: ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'],
   free: ['lobby', 'live'],
 };
 
 const ended = (v) => (v.abandoned ? 'abandoned' : 'over');
 const GAME_SESSION = {
-  tag: {
-    lobby: () => 'lobby', countdown: () => 'countdown', live: () => 'live', results: ended,
-  },
-  combat: {
-    idle: (v) => (v.abandoned ? 'abandoned' : 'lobby'), countdown: () => 'countdown', on: () => 'live', over: (v) => (v.nextAt > 0 ? 'between' : 'over'),
-  },
   war: {
     lobby: () => 'lobby',
     briefing: () => 'countdown',

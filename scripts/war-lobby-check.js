@@ -205,7 +205,7 @@ try {
     r.pick(o.value);
     return true;
   })()`);
-  await a.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); window.__ui.act('roomnew'); return true; })()");
+  await a.evaluate("(() => { window.__ui.act('lobby:rooms'); window.__ui.act('roomnew'); return true; })()");
   await a.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
   const picked = [await pick('Who joins', 'Public'), await pick('The world', 'Itaipu'), await pick('Game', 'Defend the Paraná'), await pick('Mission', 'Mission 1')];
   check('Make a room: Public, Itaipu, Defend the Paraná, Mission 1', picked.every(Boolean), JSON.stringify(picked));

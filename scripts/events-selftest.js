@@ -542,9 +542,6 @@ console.log('the shell\'s producers');
     /devHooks\.__placeCraft = [\s\S]{0,1600}?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
   check('a lap carries its course and its place in a solo run',
     src('src/main.js').includes("n: race.lap,\n          of: runLaps,"));
-  check('a room game\'s end is logged as a round, Streamer Combat and Catch the Ace!, with this pilot\'s points',
-    src('src/main.js').includes("ui.progress.roundFinished('combat', worldId(), { points: roomCombat.mine().points })") && src('src/main.js').includes("ui.progress.roundFinished('tag', worldId(), { points: mine.points })")
-    && ui.includes("this.event('round', { game, world, ...more })"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
   const missionLogged = (file, type) => new RegExp(`ui\\.progress\\.event\\('${type}', \\{[^}]*airframe: ui\\.progress\\.airframe,?\\s*\\}\\);\\n\\s*ui\\.progress\\.foldFlight\\(\\);`).test(src(file));

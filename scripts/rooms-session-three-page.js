@@ -17,12 +17,13 @@
  *              rest.
  *   world      B goes to the title and C into the hangar; the host A picks
  *              the Swiss valley. The room moves, and all three fly there.
- *   game       B opens the crash cam and C leaves for the title; A starts
- *              a combat round. All three fly in the round, B out of the
- *              replay.
  *   pause      B pauses: A and C name B "here but not flying: paused",
- *              and B is asked to fly while the round is on, from a bar
+ *              and B is asked to fly while the others do, from a bar
  *              whose Fly puts B back in the air.
+ *
+ * A game part, the host's Streamer Combat round taking up all three
+ * pilots, B out of the crash cam's replay, left with the game in the
+ * combat-only cut (2026-10-20).
  *   alone      C leaves for a room nobody else is in: told so, with its
  *              code, over the flight and on the pause menu.
  *   race       A loads a race track in the room while B flies. B wrecks
@@ -125,7 +126,6 @@ async function look(k) {
       screen: window.__ui.screen, flying: c.mode === 'flight' && window.__ui.screen === 'flight',
       peers: r.peers.map((p) => ({ seat: p.seat, name: p.name, drawn: p.drawn })),
       away: window.__peerMarks().away || [], note: window.__peerMarks().note ?? null, bar: r.bar ?? null,
-      combat: window.__combat().round.state,
     };
   })()`);
 }
@@ -181,18 +181,6 @@ try {
   const held = await pages.B.evaluate('window.__rooms().world');
   check('the room holds the world the host picked', held === MOVED, held);
 
-  console.log('the host starts a game');
-  await pages.B.sleep(1500);
-  const opened = await pages.B.evaluate('window.__crashCam.open() !== false');
-  await pages.B.until("window.__craftState().mode === 'replay'", 10000).catch(() => {});
-  await pages.C.evaluate("window.__ui.show('title'); window.__ui.onAction('title'); true");
-  const bMode = (await look('B')).mode;
-  check('B is in the crash cam and C on the title', opened && bMode === 'replay', bMode);
-  await pages.A.evaluate('window.__combatStart(3); true');
-  const s = await allIn(MOVED, 'the host started combat');
-  check('and the round is on every page', names.every((k) => ['countdown', 'on'].includes(s[k].combat)),
-    names.map((k) => `${k} ${s[k].combat}`).join(', '));
-
   console.log('a pause');
   await pages.B.evaluate("window.__ui.act('pause'); window.__ui.show('paused'); true");
   await pages.A.sleep(3500);
@@ -203,11 +191,9 @@ try {
     const mark = (await look(k)).away.find((m) => m.seat === b.seat);
     check(`${k} names B: "${paused}"`, Boolean(mark) && mark.text === paused, JSON.stringify(mark));
   }
-  check('while the round\'s HUD is up, nothing of the room\'s is drawn over it', b.bar === null, String(b.bar));
-  await pages.A.evaluate("window.__ui.onFriends('friends-combat-stop'); true");
   await pages.B.until(`window.__rooms().bar === ${JSON.stringify(en['rooms.fly_prompt'])}`, 15000).catch(() => {});
   const asked = (await look('B')).bar;
-  check(`the round over, B is asked: "${en['rooms.fly_prompt']}"`, asked === en['rooms.fly_prompt'], String(asked));
+  check(`B is asked: "${en['rooms.fly_prompt']}"`, asked === en['rooms.fly_prompt'], String(asked));
   await pages.B.evaluate('window.__ui.roomBarView && window.__ui.roomBarView.act(); true');
   await pages.B.until(flyingIn(MOVED), 30000).catch(() => {});
   check('and its Fly puts B back in the air', (await look('B')).flying);
@@ -229,8 +215,6 @@ try {
   console.log('a race track, a wreck and a pause');
   /* B flies free when the track comes (already, where the room put B). */
   await pages.B.evaluate("window.__craftState().mode === 'flight' || window.__ui.onAction('fly', window.__ui.settings); true");
-  await pages.A.evaluate("window.__combatStart && window.__ui.onFriends('friends-combat-stop'); true");
-  await pages.A.until("window.__combat().round.state !== 'on' && window.__combat().round.state !== 'countdown'", 15000).catch(() => {});
   const sp = await pages.A.evaluate('window.__map().spawn');
   const fx = -Math.sin(sp.yaw);
   const fz = -Math.cos(sp.yaw);

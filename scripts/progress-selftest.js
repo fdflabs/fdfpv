@@ -27,7 +27,7 @@ import {
   CHALLENGES, FIRST_LAP_XP, LAP_XP, LEVEL_XP, PLANE_LEVELS, RunWatch, STARTER_PLANES, STREAK_HOOPS,
   FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, everyFirst, firstsOf,
   BESTS, BEST_MARGIN, BEST_XP, awardBest, awardBests, bestsOf,
-  COUNTED, PLAYED_GAMES, WORLDS, countOf, foldEvents, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
+  COUNTED, countOf, foldEvents, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
   AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, BEST_GLIDE, CASUAL_LAP_M, LANDING_STREAK, PLACE_XP,
   aircraftChallengesOf, awardAircraftChallenge, awardAircraftChallenges, awardPlace, challengeAmounts,
@@ -559,33 +559,27 @@ console.log('landings, crashes, laps, kills and missions, from the event log');
 
 /*
  * A ROOM GAME FINISHED, ONCE PER WORLD (PROGRESSION.md 3, the lead's
- * ruling of 2026-10-13): Streamer Combat and Catch the Ace! firsts.
+ * ruling of 2026-10-13) paid Streamer Combat and Catch the Ace! firsts
+ * until both left in the combat-only cut (2026-10-20). What a pilot holds
+ * from them stays: the `played` flags, the firsts paid and their XP.
  */
-console.log('room games: a first per game and world');
+console.log('room games: what was paid stays');
 {
-  const { MAPS } = await import('../src/maps/registry.js');
-  check('the worlds are the registry\'s, less the track seat', same([...WORLDS].sort(), MAPS.map((m) => m.id).filter((id) => id !== 'track').sort()), WORLDS.join());
-  check('a room game first pays the lower Flight Club activity first, a course\'s first lap', FIRST_XP.game === FIRST_LAP_XP && FIRST_LAP_XP < FIRST_XP.lesson);
+  check('a room game first paid the lower Flight Club activity first, a course\'s first lap, as a place still does', FIRST_XP.game === FIRST_LAP_XP && FIRST_LAP_XP < FIRST_XP.lesson);
   const p = freshProgress();
   const log = new EventLog();
   log.append('round', 1, { game: 'combat', world: 'alps' });
-  log.append('round', 2, { game: 'combat', world: 'alps' });
-  log.append('round', 3, { game: 'tag', world: 'itaipu' });
-  log.append('round', 4, { game: 'jam', world: 'alps' });
-  log.append('round', 5, { game: 'combat', world: 'atlantis' });
+  log.append('round', 2, { game: 'tag', world: 'itaipu', points: 9 });
   foldEvents(p, log.events);
-  check('a round is played on its world; an unknown game or world is not', same(p.played, { 'combat:alps': true, 'tag:itaipu': true }), JSON.stringify(p.played));
-  const ev = awardFirsts(p, { played: p.played });
-  check('each pays once, at FIRST_XP.game', same(ev.filter((e) => e.type === 'first').map((e) => e.key), ['game:combat:alps', 'game:tag:itaipu']) && p.xp === 2 * FIRST_XP.game, `${p.xp}`);
-  check('the same game on the same world again pays nothing', awardFirsts(p, { played: p.played }).length === 0);
-  p.played['combat:swiss2'] = true;
-  check('the same game on another world pays', same(awardFirsts(p, { played: p.played }).filter((e) => e.type === 'first').map((e) => e.key), ['game:combat:swiss2']));
-  check('a made up game or world is no first: the list is finite', firstsOf({ played: { 'combat:atlantis': true, 'jam:alps': true, 'war:alps': true } }).length === 0);
-  check('every game on every world is in the full list, once', everyFirst().filter((f) => f.key.startsWith('game:')).length === PLAYED_GAMES.length * WORLDS.length);
+  check('a round from an old log is played nowhere and is no best', same(p.played, {}) && bestsOf(log.events).length === 0, JSON.stringify(p.played));
+  check('no game is a first: the finite list holds none', !everyFirst().some((f) => f.key.startsWith('game:'))
+    && firstsOf({ played: { 'combat:alps': true, 'tag:itaipu': true } }).length === 0);
   check('played survives a load and junk is dropped', same(normaliseProgress({ played: { 'tag:alps': true, 'combat:alps': 1 } }).played, { 'tag:alps': true }));
+  const paid = normaliseProgress({ v: PROGRESS_VERSION, xp: 80, firsts: { 'game:tag:alps': true, 'game:combat:swiss2': true }, played: { 'tag:alps': true, 'combat:swiss2': true } });
+  check('a first paid before stays paid, its XP kept, and pays nothing again', paid.xp === 80 && paid.firsts['game:tag:alps'] === true
+    && awardFirsts(paid, { played: paid.played }).length === 0 && paid.xp === 80, JSON.stringify(paid.firsts));
   const blob = (played) => ({ v: 1, data: { progress: { ...freshProgress(), played } }, stamps: {} });
   check('two computers merge played as the union', same(mergeBlobs(blob({ 'tag:alps': true }), blob({ 'combat:itaipu': true })).data.progress.played, { 'combat:itaipu': true, 'tag:alps': true }));
-  check('Unlock all is untouched by a room game first', (() => { const q = freshProgress(true); awardFirsts(q, { played: { 'tag:alps': true } }); return q.unlockAll === true && q.xp === FIRST_XP.game; })());
 }
 
 /*
@@ -663,18 +657,12 @@ console.log('bests: a personal record per activity and place');
   const better = awardBests(r, lapLog([39000, 39000, 39000], { of: 3 }).events).filter((e) => e.type === 'best' && e.key.startsWith('run:'));
   check('run: a faster run by the margin pays the improvement', better.length === 1 && better[0].xp === BEST_XP.improved && better[0].before === 120000);
 
-  /* Streamer Combat and Catch the Ace!: a round's points per world. */
+  /* Streamer Combat's and Catch the Ace!'s points per world were bests
+   * until the games left (the combat-only cut, 2026-10-20): a best held
+   * is kept, and only a better value moves it. */
   const g = freshProgress();
-  const round = (game, world, points) => { const log = new EventLog(); log.append('round', 1, { game, world, points }); return log.events; };
-  check('combat: a round\'s points set its world\'s best and pay BEST_XP.set', xpOf(awardBests(g, round('combat', 'alps', 300))) === BEST_XP.set && g.bests['combat:alps'] === 300);
-  check('combat: the same score again pays nothing', awardBests(g, round('combat', 'alps', 300)).length === 0);
-  check('combat: a lower score pays nothing', awardBests(g, round('combat', 'alps', 299)).length === 0 && g.bests['combat:alps'] === 300);
-  check('combat: one point more is a real gain and pays BEST_XP.improved', xpOf(awardBests(g, round('combat', 'alps', 301))) === BEST_XP.improved && g.bests['combat:alps'] === 301);
-  check('tag: higher is better, per world', xpOf(awardBests(g, round('tag', 'itaipu', 5))) === BEST_XP.set && xpOf(awardBests(g, round('tag', 'swiss2', 2))) === BEST_XP.set
-    && xpOf(awardBests(g, round('tag', 'itaipu', 7))) === BEST_XP.improved && same([g.bests['tag:itaipu'], g.bests['tag:swiss2']], [7, 2]));
-  check('rounds: no points, nought, an unknown game or world is no best',
-    bestsOf(round('combat', 'alps', 0)).length === 0 && bestsOf(round('jam', 'alps', 50)).length === 0
-    && bestsOf(round('combat', 'atlantis', 50)).length === 0 && bestsOf([{ type: 'round', game: 'tag', world: 'alps', seq: 0, simMs: 0 }]).length === 0);
+  check('combat: a stored best is still a best kind, higher better, and pays BEST_XP.set the first time', xpOf(awardBest(g, 'combat:alps', 300)) === BEST_XP.set && g.bests['combat:alps'] === 300);
+  check('tag: a lower value pays nothing and moves nothing', awardBest(g, 'tag:itaipu', 7).length > 0 && awardBest(g, 'tag:itaipu', 5).length === 0 && g.bests['tag:itaipu'] === 7);
 
   /* Folding from where the last fold stopped finds nothing twice. */
   const f = freshProgress();
@@ -687,7 +675,7 @@ console.log('bests: a personal record per activity and place');
   check('awardBest refuses an unknown kind or a junk value', awardBest(freshProgress(), 'jam:alps', 5).length === 0
     && awardBest(freshProgress(), 'lap:plane:x', 1.5).length === 0 && awardBest(freshProgress(), 'lap:plane:x', -3).length === 0);
   check('bests are not firsts: none is on the finite list the tokens are paid from', !everyFirst().some((x) => /^(lap|run|combat|tag):/.test(x.key)));
-  check('Unlock all is untouched by a best', (() => { const q = freshProgress(true); awardBests(q, round('tag', 'alps', 3)); return q.unlockAll === true && q.bests['tag:alps'] === 3; })());
+  check('Unlock all is untouched by a best', (() => { const q = freshProgress(true); awardBests(q, lapLog([42000]).events); return q.unlockAll === true && q.bests['lap:plane:track:t1'] === 42000; })());
 
   /* Stored, and the save's migration: additive inside v2, no step. */
   const v2 = { v: 2, xp: 640, firsts: { 'game:tag:alps': true }, courses: { 'track:t1': true } };
@@ -711,18 +699,19 @@ console.log('bests: a personal record per activity and place');
   /* Flight Club's pilot numbers (src/ui/pilotstats.js, docs/PILOT-STATS.md). */
   const { pilotStats } = await import('../src/ui/pilotstats.js');
   const shown = pilotStats({ progress: { xp: 0, bests: { ...da, ...db, 'combat:itaipu': 400, 'jam:alps': 9 } } }).bests;
-  check('pilot stats: Track Day counts its lap and run bests, Streamer Combat shows its highest round', same(shown, { race: 2, combat: 400 }), JSON.stringify(shown));
-  check('pilot stats: a pilot with none shows none', same(pilotStats({}).bests, { race: 0, combat: 0 }));
+  check('pilot stats: Track Day counts its lap and run bests; a Streamer Combat best, its game gone, shows nowhere', same(shown, { race: 2 }), JSON.stringify(shown));
+  check('pilot stats: a pilot with none shows none', same(pilotStats({}).bests, { race: 0 }));
   check('sync: a side from before bests loses nothing the other has', same(mergeBlobs(blob(undefined), blob(da)).data.progress.bests, Object.fromEntries(Object.entries(da).sort())));
 }
 
 console.log('discovery (src/game/discovery.js, PROGRESSION.md section 6)');
 {
   const { PLACES, placeKey, placesAt, placesOf } = await import('../src/game/discovery.js');
+  const { MAPS } = await import('../src/maps/registry.js');
   const { CREST_SPAWN, AIR_SPAWN } = await import('../src/maps/itaipu/spawns.js');
   const { grantsFrom } = await import('../src/game/economy.js');
   check('every world with places is a world, with 6 to 12 of them, ids plain',
-    Object.entries(PLACES).every(([w, list]) => WORLDS.includes(w) && list.length >= 6 && list.length <= 12 && list.every((p) => /^[a-z0-9_]{1,40}$/.test(p.id))),
+    Object.entries(PLACES).every(([w, list]) => MAPS.some((m) => m.id === w && m.id !== 'track') && list.length >= 6 && list.length <= 12 && list.every((p) => /^[a-z0-9_]{1,40}$/.test(p.id))),
     Object.entries(PLACES).map(([w, l]) => `${w} ${l.length}`).join());
   check('every place has a name and a fact in English and in Spanish, the fact one short line',
     Object.entries(PLACES).every(([w, list]) => list.every((p) => [en, es].every((t) => t[`discovery.place.${w}.${p.id}`] && t[`discovery.place.${w}.${p.id}_fact`]

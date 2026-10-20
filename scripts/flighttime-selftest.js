@@ -146,7 +146,7 @@ console.log('the record');
   check('a bad activity throws rather than vanishing', threw);
   check('an empty record totals nought', flightTotals(undefined).seconds === 0 && flightTotals({}).first === null);
   check('the activities are the mode registry\'s', FLIGHT_ACTIVITIES.join() === MODES.map((m) => m.id).join()
-    && ['free', 'combat', 'tag', 'war'].every((id) => FLIGHT_ACTIVITIES.includes(id)));
+    && ['free', 'war'].every((id) => FLIGHT_ACTIVITIES.includes(id)));
   const store = new Map();
   const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
   const id = deviceId(storage);
@@ -170,7 +170,7 @@ console.log('the words');
     && plural('count.hours_flown', 2) === '2 horas voladas');
   setLocale('en');
   const keys = Object.keys(en).filter((k) => k.startsWith('flight.') || k.startsWith('count.hours_flown'));
-  check('every flight time string is in both tables', keys.length >= 14 && keys.every((k) => typeof es[k] === 'string' && es[k].length > 0), `${keys.length}`);
+  check('every flight time string is in both tables', keys.length >= 13 && keys.every((k) => typeof es[k] === 'string' && es[k].length > 0), `${keys.length}`);
 }
 
 console.log('the board\'s craft');

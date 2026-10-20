@@ -2,7 +2,7 @@
  * rooms-selftest-browser.js: the room browser's section of npm run
  * rooms:selftest (the owner's request of 2026-09-28: public rooms listed
  * by name and joined without a code, and a name typed at creation). Kept
- * in its own file, as the combat section is, so the phases that add to
+ * in its own file, as the war section is, so the phases that add to
  * scripts/rooms-selftest.js do not edit the same lines.
  *
  * It drives the real front (edge/rooms/front.js), rooms (host.js around
@@ -30,14 +30,13 @@
 
 import {
   CLOSE, EMPTY_CLOSE_MS, LIST_EVERY_MS, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PROTO, PUBLIC_CAP,
-  ROOM_NAME_MAX, ROOM_NAME_REPORT, normaliseRoomName, pilotRoomName, validNamePick,
+  ROOM_NAME_MAX, ROOM_NAME_REPORT, WAR_JOIN, normaliseRoomName, pilotRoomName, validNamePick,
 } from '../src/share/roomwire.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 import front from '../edge/rooms/front.js';
 import { PURGE_MS, RoomHost } from '../edge/rooms/host.js';
 import { PRIVATE_CAP } from '../edge/rooms/core.js';
-import { modeById } from '../src/share/modes.js';
 import {
   LIST_GRACE_MS, Lobby, LobbyBook, MAX_ROOMS, PENDING_MS, listingOf,
 } from '../edge/rooms/lobby.js';
@@ -95,10 +94,8 @@ const texts = (c, type) => c.got.filter((m) => m && m.type === type);
 
 /* The rooms server of node.js in one process, minus the sockets: one
  * RoomHost per name, one Lobby, and front.js answering. `stores` outlives
- * a server, so a second one over it is the same rooms after a restart.
- * `registry`, when given, is the rooms' mode registry by id in place of
- * modes.js's (host.js RoomHost options.modeById). */
-export function server(stores = new Map(), publicRooms = 'on', registry = undefined) {
+ * a server, so a second one over it is the same rooms after a restart. */
+export function server(stores = new Map(), publicRooms = 'on') {
   const env = { PUBLIC_ROOMS: publicRooms };
   const rooms = new Map();
   env.ROOMS = {
@@ -109,7 +106,7 @@ export function server(stores = new Map(), publicRooms = 'on', registry = undefi
           stores.set(name, memoryStorage());
         }
         const sockets = new Set();
-        const host = new RoomHost({ storage: stores.get(name), getWebSockets: () => [...sockets] }, env, { modeById: registry });
+        const host = new RoomHost({ storage: stores.get(name), getWebSockets: () => [...sockets] }, env);
         rooms.set(name, {
           host,
           sockets,
@@ -159,7 +156,9 @@ export function server(stores = new Map(), publicRooms = 'on', registry = undefi
       const c = conn(ip);
       room.sockets.add(c);
       await room.host.accept(c, new Request('http://room/', { headers: { 'x-room-address': ip } }));
-      await room.host.message(c, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name, profile }));
+      /* As every build since the war's consent asks it (WAR_JOIN), so a
+       * room made for the war seats it. */
+      await room.host.message(c, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', war: WAR_JOIN, name, profile }));
       await settle();
       c.room = room;
       c.welcome = texts(c, 'welcome')[0];
@@ -243,8 +242,10 @@ export async function browserSection(check) {
   const privMeta = s.stores.get(`prv:${priv.code}`).kept.get('meta');
   check(`a private room is made as before, ${PRIVATE_CAP} seats, and may be named too`, priv.status === 200 && privMeta.public === false
     && privMeta.cap === PRIVATE_CAP && privMeta.name === 'Secret Base');
-  const moded = await s.create({ map: 'swiss2', public: true, name: 'Paper Wars', mode: 'combat' });
-  check('a room can be set up for a game', moded.status === 200 && s.stores.get(`prv:${moded.code}`).kept.get('meta').mode === 'combat');
+  const moded = await s.create({ map: 'itaipu', public: true, name: 'Dam Watch', mode: 'war' });
+  check('a room can be set up for a game', moded.status === 200 && s.stores.get(`prv:${moded.code}`).kept.get('meta').mode === 'war');
+  const goneGame = await s.create({ map: 'itaipu', public: true, mode: 'combat' });
+  check('but not for a game this build no longer has (Streamer Combat, an older page\'s)', goneGame.status === 400 && goneGame.error === 'bad');
   const badMode = await s.create({ map: 'swiss2', public: true, mode: 'poker' });
   check('but not for a game there is not', badMode.status === 400 && badMode.error === 'bad');
   const closed = server(new Map(), 'off');
@@ -280,17 +281,15 @@ export async function browserSection(check) {
 
   /* The combat-only cut (2026-10-18) takes every room game but the war,
    * and the VM keeps rooms across the restart that brings it. A room
-   * stored for Catch the Ace, as the build before kept it, wakes in a
-   * build whose registry has no 'tag': this check's own registry stands
-   * in for that build while this one still has the game. */
+   * stored for Catch the Ace, as the build before kept it, wakes in this
+   * build, whose registry has no 'tag'. */
   console.log('room browser: a game since removed');
-  const noTag = (id) => (id === 'tag' ? null : modeById(id));
   const tagMade = await old.create({ map: 'itaipu' });
   const tagStore = old.stores.get(`prv:${tagMade.code}`);
   tagStore.kept.set('meta', { ...tagStore.kept.get('meta'), map: 'swiss2', mode: 'tag' });
   tagStore.kept.set('tag', { match: null, nextId: 2 });
   tagStore.kept.set('hosting', { token: 'a'.repeat(32) });
-  const cut = server(old.stores, 'on', noTag);
+  const cut = server(old.stores);
   const tagWakes = await cut.join({ code: tagMade.code });
   check('a room stored for a game the build no longer has is closed as it wakes: no seat, nosuch, and forgotten',
     !tagWakes.welcome && tagWakes.closed && tagWakes.closed.code === CLOSE.nosuch && tagStore.kept.size === 0,
@@ -331,8 +330,8 @@ export async function browserSection(check) {
   const sky = list.rooms.find((r) => r.code === made.code);
   check('a line says the name, world, pilots, cap and game', sky && sky.name === 'Sky Club' && sky.map === 'swiss2' && sky.n === 1
     && sky.cap === PUBLIC_CAP && sky.game === null && sky.state === 'waiting' && validNamePick(sky.pick), JSON.stringify(sky));
-  check('and a room set up for a game shows it, waiting', list.rooms.find((r) => r.code === moded.code).game === 'combat');
-  check('a line carries nothing about a pilot', sky && Object.keys(sky).sort().join() === 'cap,code,emptySince,game,map,mission,mode,n,name,pick,ready,round,state,watchers,wave,waves');
+  check('and a room set up for a game shows it, waiting', list.rooms.find((r) => r.code === moded.code).game === 'war', JSON.stringify(list.rooms.find((r) => r.code === moded.code)));
+  check('a line carries nothing about a pilot', sky && Object.keys(sky).sort().join() === 'cap,code,emptySince,game,map,mission,mode,n,name,pick,ready,state,watchers,wave,waves');
   await m1.leave();
   check('a room its last pilot left is not listed', !(await s.list()).rooms.some((r) => r.code === moded.code));
 
@@ -353,18 +352,24 @@ export async function browserSection(check) {
   check('when the host leaves, the pilot in longest becomes host', handed && handed.host === b.welcome.seat && texts(c, 'leave').pop().host === b.welcome.seat);
   await b.say({ type: 'kick', seat: c.welcome.seat });
   check('and a public room\'s host still cannot kick: reports decide', !c.closed);
-  await c.say({ type: 'combat', op: 'start', minutes: 3 });
-  check('a pilot who is not host starts nothing', texts(b, 'combat').length === 0);
-  await b.say({ type: 'combat', op: 'start', minutes: 3 });
-  check('the host starts combat', texts(c, 'combat').some((m) => m.state === 'countdown'));
-  let line = (await s.list()).rooms.find((r) => r.code === made.code);
-  check('and the list shows combat counting down', line.game === 'combat' && line.state === 'countdown', JSON.stringify(line));
-  await b.say({ type: 'combat', op: 'stop' });
-  await b.say({ type: 'tag', op: 'start', goal: 5 });
-  check('the host starts Catch the Ace', texts(c, 'tag').some((m) => m.tag && m.tag.state === 'countdown'));
-  line = (await s.list()).rooms.find((r) => r.code === made.code);
-  check('and the list shows it', line.game === 'tag' && line.state === 'countdown', JSON.stringify(line));
-  await b.say({ type: 'tag', op: 'end' });
+  /* The war, the one game a public room plays, and only in a room made
+   * for it (src/share/modes.js publicOnlyWhenMadeFor). */
+  const WAR_START = { type: 'war', op: 'start', mission: 'itaipu-1' };
+  await b.say(WAR_START);
+  check('a public free flight room\'s host starts no war there: refused "private"', texts(b, 'refused').some((m) => m.why === 'private')
+    && !texts(c, 'war').some((m) => m.war && m.war.state !== 'lobby'));
+  const wh = await s.join({ code: moded.code }, [9, 9, 61]);
+  const wp = await s.join({ code: moded.code }, [9, 9, 62]);
+  const warOn = (so) => texts(so, 'war').some((m) => m.war && ['briefing', 'countdown'].includes(m.war.state));
+  await wp.say(WAR_START);
+  check('in the room made for it, a pilot who is not host starts nothing', !warOn(wh) && texts(wp, 'refused').some((m) => m.why === 'host'));
+  await wh.say(WAR_START);
+  check('the host starts the war', warOn(wp));
+  const line = (await s.list()).rooms.find((r) => r.code === moded.code);
+  check('and the list shows the war counting down', line.game === 'war' && line.state === 'countdown', JSON.stringify(line));
+  await wh.say({ type: 'war', op: 'end' });
+  await wp.leave();
+  await wh.leave();
 
   console.log('room browser: a bad name reported');
   const d = await s.join({ code: made.code }, [7, 8, 60]);

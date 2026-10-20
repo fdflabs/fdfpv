@@ -273,9 +273,9 @@
          grass and tarmac alike, which is how a video OSD stays legible. */
       .osd { position: absolute; inset: 0; }
       .osd.dim { opacity: 0.4; }
-      .osd-launch.is-off, .room-race.is-off { display: none; }
+      .osd-launch.is-off { display: none; }
       .osd-top, .osd-corner { text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
-      .osd-label, .room-race-title {
+      .osd-label {
         margin-bottom: 2px; color: var(--slate);
         font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
       }
@@ -325,28 +325,6 @@
       @keyframes launch-blink {
         50% { opacity: 0.2; }
       }
-
-      /* A ROOM'S STANDINGS (src/ui/roomhud.js), in the left column under
-         the link readout. The column's other user, the freestyle score, is
-         never up during a race. */
-      .room-race {
-        position: absolute; top: calc(var(--bar-top) + 96px); left: 16px;
-        min-width: 180px; max-width: 42vw; padding: 6px 10px; border-radius: 4px;
-        pointer-events: none; background: rgba(16, 22, 17, 0.62);
-        font-size: 13px; line-height: 1.45; text-shadow: 0 1px 3px rgba(0,0,0,0.85);
-      }
-      /* A tag for something only this pilot has right now, such as Catch
-         the Ace's chase boost. */
-      .room-race-chip {
-        display: inline-block; margin: 1px 0 3px; padding: 0 6px; border-radius: 3px;
-        background: var(--amber); color: #1b1405;
-        font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-      }
-      .room-race-row { display: flex; gap: 8px; white-space: nowrap; }
-      .room-race-row.is-me { color: var(--amber); }
-      .room-race-place { width: 1.2em; text-align: right; }
-      .room-race-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-      .room-race-value { font-variant-numeric: tabular-nums; }
 
       /* THE STICK GHOST: two Mode 2 gimbals (yaw and throttle left, roll
          and pitch right) with the air slider between them, bottom centre.
@@ -2252,20 +2230,23 @@
           -webkit-line-clamp: 3; line-clamp: 3;
         }
         .gate-card-mark { left: 7px; bottom: 6px; width: 42px; height: 42px; }
-        /* Three to seven cards on an upright phone (360 by 640 is the
+        /* Two to seven cards on an upright phone (360 by 640 is the
            floor) fit by dropping the sentence and all tags but the card's
-           own; name, picture and that tag carry the choice. The picture is
-           laid over its box so its aspect cannot hold the card tall. */
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-blurb,
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art::before,
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 56px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { left: 5px; bottom: 5px; width: 34px; height: 34px; }
+           own (two since the combat-only cut left Flight Club with Free
+           Flight and Learn to fly, whose full cards ran under the command
+           bar at 360 by 640); name, picture and that tag carry the choice.
+           The picture is laid over its box so its aspect cannot hold the
+           card tall. */
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-blurb,
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art::before,
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 56px; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { left: 5px; bottom: 5px; width: 34px; height: 34px; }
 
         .screen-maps .menu-stage { display: block; position: relative; width: 100%; max-width: 540px; }
         .screen-maps .menu { grid-column: auto; }

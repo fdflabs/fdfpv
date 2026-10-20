@@ -1,7 +1,7 @@
 /*
  * rooms-selftest-session.js: the room as one shared session, the server's
  * half, a section of npm run rooms:selftest kept in its own file as the
- * combat and browser sections are.
+ * war and browser sections are.
  *
  * The owner, 2026-09-29: "i cant see the 3 people in my room, force
  * everyone in the same game and the same thing". What the room holds for
@@ -88,10 +88,10 @@ export function sessionSection(check) {
   const c = sock('ccc');
   hello(room, c, { level: ROOM_LEVEL });
   check('a joiner is welcomed into the world the host moved it to', got(c, 'welcome')[0].map === 'itaipu');
-  run(room.message(host, JSON.stringify({ type: 'combat', op: 'start', minutes: 3 }), now));
+  run(room.message(host, JSON.stringify({ type: 'war', op: 'start', mission: 'itaipu-drill' }), now));
   const busy = say(room, host, { type: 'world', map: 'alps' });
   check('not while a game is on, and it says which',
-    meta.map === 'itaipu' && busy.some((a) => a.send === host && JSON.parse(a.data).why === 'combat'));
+    meta.map === 'itaipu' && busy.some((a) => a.send === host && JSON.parse(a.data).why === 'war'));
   const pub = new RoomCore({ ...meta, code: 'PUBL22', map: 'alps', public: true });
   const ph = sock('pubhost');
   hello(pub, ph, { level: ROOM_LEVEL });
@@ -110,8 +110,8 @@ export function sessionSection(check) {
   /* The pause rule (docs/redesign/SESSIONS.md, COMPLETENESS 23): a pause
    * is the pilot's own; in a room nothing else stops. */
   const seatOf = (sk) => [...room.seats.entries()].find(([conn]) => conn === sk)?.[1];
-  check('the pause stops nothing in the room: the combat round runs on, the pilot still seated, its seat kept',
-    room.combat.on() && Boolean(seatOf(b)) && !got(host, 'leave').some((m) => m.seat === seatOf(b).seat));
+  check('the pause stops nothing in the room: the war runs on, the pilot still seated, its seat kept',
+    room.war.on() && Boolean(seatOf(b)) && !got(host, 'leave').some((m) => m.seat === seatOf(b).seat));
 
   /* The level. */
   now += 10;

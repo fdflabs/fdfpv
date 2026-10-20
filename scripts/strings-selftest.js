@@ -71,9 +71,9 @@ for (const [f, noun] of Object.entries(PLURAL_NOUNS)) {
   const pairs = Object.keys(table).filter((k) => /^count\..*\.one$/.test(k)).map((k) => k.slice(0, -4));
   check(`${f} has both forms of every count`, pairs.length > 0 && pairs.every((k) => `${k}.other` in table), pairs.join(','));
 }
-check('one cut, two cuts', plural('count.cuts', 1) === '1 cut' && plural('count.cuts', 2) === '2 cuts' && plural('count.points', 0) === '0 points');
+check('one point, two points', plural('count.points', 1) === '1 point' && plural('count.points', 2) === '2 points' && plural('count.points', 0) === '0 points');
 await useLocale('es');
-check('un corte, dos cortes', plural('count.cuts', 1) === '1 corte' && plural('count.cuts', 2) === '2 cortes' && plural('count.paper_left', 1) === 'queda 1 m de papel');
+check('un punto, dos puntos', plural('count.points', 1) === '1 punto' && plural('count.points', 2) === '2 puntos');
 setLocale('en');
 
 check('a plain lookup returns the text', str('ui.settings') === en['ui.settings'] || typeof str('ui.settings') === 'string');

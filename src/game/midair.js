@@ -549,7 +549,8 @@ export function hullDistance(h, p, x, y, z) {
 }
 
 /*
- * The bubble rule (a tag, edge/rooms/tag.js): the first room millisecond
+ * The bubble rule (Catch the Ace's tag until the combat-only cut; a
+ * warhead's fuze, edge/rooms/war.js): the first room millisecond
  * in (t0, t1] at which some part box of B comes within r metres of A's
  * centre, the point its pose carries, or null: { tc, d } with d that
  * distance. The poses, the untouchable flags and the taxiing pair are

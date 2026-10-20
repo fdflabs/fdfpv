@@ -7,7 +7,7 @@
  *
  *   SIM_GPU=1 node scripts/watch-two-page.js [outdir]
  *
- * A lobby: A makes a room for Catch the Ace and presses Ready the
+ * A lobby: A makes a free flight room and presses Ready the
  * moment it is in (the page's joining texts would have dropped it), then
  * stands down; B, put on the title, joins it to watch. B is never pulled to the lobby's Ready (it
  * stays on its watch camera, its own ready goes nowhere) and its banner
@@ -101,7 +101,7 @@ try {
     await p.until('window.__map && window.__map().ready', 400000);
   }
   const BANNER = 'window.__war().watch.banner';
-  const codeL = await a.evaluate("window.__roomCreate({ mode: 'tag' })");
+  const codeL = await a.evaluate("window.__roomCreate({ mode: null })");
   await a.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(codeL)} && window.__rooms().lobby !== null`, 30000);
   /* Ready the moment the lobby is in, inside the burst of texts a page
    * sends on joining, which fills the room's allowance for a second: it

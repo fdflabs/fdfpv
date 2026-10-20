@@ -193,7 +193,7 @@ export function createRoomBrowser({
    * WHAT ITS PILOTS ARE DOING, as true as the list knows it (the owner,
    * 2026-10-02, of a lobby's one idle pilot the panel called flying): in
    * a lobby, how many are there and how many said ready; flying, how many
-   * and where the game is (a war's wave, a combat round). A room not in a
+   * and where the game is (a war's wave). A room not in a
    * game and not made for one (an older server's free flight) is flying.
    */
   function flyingNow(r) {
@@ -214,9 +214,6 @@ export function createRoomBrowser({
     const flying = who(r);
     if (r.game === 'war' && r.wave) {
       return str('roombrowser.flying_wave', { flying, w: r.wave, of: r.waves });
-    }
-    if (r.game === 'combat' && r.round) {
-      return str('roombrowser.flying_round', { flying, n: r.round });
     }
     return flying;
   }
@@ -456,7 +453,7 @@ export function createRoomBrowser({
           lobby: 'room',
           label: title(r),
           /* The game, then what its pilots are doing: "War 2 · 1 in
-           * lobby", "Combat · 2 flying · round 3". */
+           * lobby", "Free flight · 2 flying". */
           value: str('roombrowser.chip', { game: str(`roombrowser.chip_${r.mode || r.game || 'free'}`, { n: missionNumber(r.mission) }), doing: doingNow(r) }),
           join: str(r.state === 'waiting' || r.game === null ? 'roombrowser.join' : r.game === 'war' ? 'roombrowser.join_battle' : 'roombrowser.join_round'),
           /* Somebody is in the air in it (flyingNow): the panel paints it

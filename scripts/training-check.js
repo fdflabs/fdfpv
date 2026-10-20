@@ -216,7 +216,7 @@ try {
   await page.evaluate('(window.__setCam(null), true)');
   await page.evaluate("window.__ui.show('title'); true");
   await page.sleep(500);
-  await page.evaluate("window.__ui.pickForWay('way-ace'); true");
+  await page.evaluate("window.__ui.pickForWay('way-freestyle-wing1000'); true");
   await page.sleep(500);
   check('another card ends the lesson', await page.evaluate('window.__ui.progress.lesson === null'));
   const heldAfter = await page.evaluate("(() => { const s = window.__ui.settings; return [s.airframe, s.tune, s.flightMode, s.weather].join(); })()");
@@ -400,7 +400,7 @@ try {
   await click(war, '[data-lesson="first_turns"] .campaign-play');
   await war.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'first_turns'", 15000).catch(() => {});
   const turnsHeld = await war.evaluate("window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null");
-  const other = await war.evaluate("window.__roomCreate({ map: 'swiss2', mode: 'combat', public: false })");
+  const other = await war.evaluate("window.__roomCreate({ map: 'swiss2', mode: null, public: false })");
   await war.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(other)}`, 30000).catch(() => {});
   await war.until('window.__ui.progress.lesson === null', 10000).catch(() => {});
   const left = await war.evaluate("({ lesson: window.__ui.progress.lesson ? window.__ui.progress.lesson.lesson.id : null, mode: window.__rooms().mode, said: window.__ui.progress.log.map((t) => t.title + ': ' + t.sub) })");

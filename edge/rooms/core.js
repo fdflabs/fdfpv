@@ -10,7 +10,7 @@
  *   { close: conn, code, reason }   close that socket
  *   { attach: conn, value }         store this with the socket, to survive a hibernation
  *   { store: key, value }           keep this in the room's storage, the same; host.js
- *                                   hands it back to this[key].restore() on load (a tag match)
+ *                                   hands it back to this[key].restore() on load (a war match)
  *   { tick: true }                  call tick() again in TICK_MS
  *   { empty: true }                 nobody is left: schedule the purge
  *
@@ -49,17 +49,14 @@ import {
 import { retiredMap } from '../../src/maps/retired.js';
 import { PRESET_IDS } from '../../src/game/weather.js';
 import { Referee } from './referee.js';
-import { RoomTag } from './tag.js';
 import { RoomSafety } from './safety.js';
 import {
-  ROOM_SETUPS, TYPE_FOOT, TYPE_PARTS, TYPE_STREAMER, WAR_JOIN,
+  ROOM_SETUPS, TYPE_FOOT, TYPE_PARTS, WAR_JOIN,
 } from '../../src/share/roomwire.js';
 import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
 import { released } from '../../src/game/campaign.js';
 import * as wrecks from './wrecks.js';
-import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
-import { RoomDrops } from './drops.js';
 import { RoomOps } from './ops.js';
 import { RoomGameLobby, warMission } from './gamelobby.js';
 import { TIME_NAMES, clockOfTime, missionClock } from '../../src/share/daytime.js';
@@ -124,7 +121,7 @@ export const KICKED_JOIN_GAP_MS = 60 * 1000;
 /* A seat's token takes the same seat back for this long after its socket
  * drops, so a reconnect lands where it was rather than in a new slot. */
 export const RESEAT_MS = 60 * 1000;
-/* A game (a tag match, a combat round, a war) with too few of its
+/* A game (a war, an ops mission) with too few of its
  * players in the room for this long is ended by the room: a deploy or a
  * restart restores a game from storage whether or not anybody comes back
  * to it, and one nobody plays must never hold the room (game()). Long
@@ -292,10 +289,7 @@ export class RoomCore {
     this.now = 0;
     /* Phase 3, mid air: edge/rooms/referee.js. */
     this.referee = new Referee(meta.friendly);
-    this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
-    this.drops = new RoomDrops(); /* the Hercules' paradrops, edge/rooms/drops.js */
     this.safety = new RoomSafety(this);
-    this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     /* The accounts whose rooms start missions in development (devHost). */
     this.devAccounts = options.devAccounts ?? new Set();
     this.devMissions = options.devMissions === true;
@@ -320,8 +314,7 @@ export class RoomCore {
    * THE ROOM'S CLOCK, which stands while the room is empty (the owner,
    * 2026-10-02, of a war listed in battle with nobody in it: "once theyre
    * done or empty they need to be closed out"). Every game's times are on
-   * it (a war's waves and births, a combat round's end, a tag match's
-   * frontier, the lobby's seconds), so a game in an empty room is paused,
+   * it (a war's waves and births, the lobby's seconds), so a game in an empty room is paused,
    * and a pilot back before the room is purged finds it where they left
    * it. meta.emptyAt is when the last pilot left, meta.pausedMs the time
    * the room has stood empty since it was made; both are kept with the
@@ -357,12 +350,11 @@ export class RoomCore {
     return [{ store: 'meta', value: this.meta }, { empty: true, ...(this.finished() ? { now: true } : {}) }];
   }
 
-  /* Whether the room's last game is over: a war won, lost or ended, a
-   * combat round's results or a tag match's. */
+  /* Whether the room's last game is over: a war won, lost or ended, or an
+   * ops mission's. */
   finished() {
     const m = this.war.match;
-    return Boolean(m && ['won', 'lost', 'ended'].includes(m.state)) || this.ops.finished() || this.combat.round.state === 'over'
-      || Boolean(this.tag.match && this.tag.match.state === 'results');
+    return Boolean(m && ['won', 'lost', 'ended'].includes(m.state)) || this.ops.finished();
   }
 
   /* The seats as they were before a hibernation, from each socket's
@@ -374,7 +366,6 @@ export class RoomCore {
       } else if (attachment && attachment.seat) {
         this.seats.set(conn, { ...attachment, pose: null, recent: [], sent: new Map(), poseRate: { since: 0, n: 0 }, ...textRates(0) });
         this.referee.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
-        this.combat.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
       } else {
         this.pending.set(conn, { since: 0, n: 0 });
       }
@@ -476,12 +467,9 @@ export class RoomCore {
    * its abandon (settleGames: named abandoned, modes.js sessionOf), and
    * the fewest of them here that keep it going (the mode registry's: a
    * room made for a game plays it alone too, the owner 2026-10-02: "ready
-   * to go either single or multi"; combat and tag started in passing in
-   * another room still need two). */
+   * to go either single or multi"). */
   games(now) {
     return [
-      { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: minPlayersFor('tag', this.meta.mode), end: () => this.tag.abandon(this, now, true) },
-      { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: minPlayersFor('combat', this.meta.mode), end: () => this.combat.stop(this, true) },
       { id: 'war', on: this.war.on(), players: this.war.players(this), min: minPlayersFor('war', this.meta.mode), end: () => this.war.abandon(this, now, true) },
       /* No mode registry entry yet: one pilot flies an ops mission alone. */
       { id: 'ops', on: this.ops.on(), players: this.ops.players(this), min: 1, end: () => this.ops.abandon(this, now) },
@@ -492,16 +480,6 @@ export class RoomCore {
    * (fail): counted out of every game until its profile is on it. */
   failed(t) {
     return t.failed != null && t.failed === this.meta.map;
-  }
-
-  /* The seats a start counts toward its game's minimum (tag.js start,
-   * its 'alone'): on the room's world and not failed. Stricter than
-   * present(), which a round already on keeps: a
-   * pilot still building the world, or one whose world would not build,
-   * is not yet a second pilot, and a round started on one would be
-   * abandoned ABANDON_MS later (settleGames). */
-  fielded() {
-    return [...this.seats.values()].filter((t) => !this.failed(t) && t.profile.map === this.meta.map && t.profile.status !== 'loading').length;
   }
 
   present(players) {
@@ -543,13 +521,10 @@ export class RoomCore {
 
   /* The room's own clock: the tick runs while a game waits to be ended or
    * the host to come back, even with nobody flying, and never in an empty
-   * room, which the next arrival settles. A combat round or a tag match a
-   * lobby started is among them: its pilots are on the lobby screen when it
-   * counts down, and nothing else would move it on until one flies. */
+   * room, which the next arrival settles. */
   waiting() {
-    return this.people().length > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting()
-      || this.war.on() || this.ops.on() || this.gameLobby.waiting(this)
-      || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on())));
+    return this.people().length > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null
+      || this.war.on() || this.ops.on() || this.gameLobby.waiting(this));
   }
 
   wake() {
@@ -569,18 +544,16 @@ export class RoomCore {
   /*
    * A host's action (starting, ending or loading a game; a kick), checked
    * once here for every mode, so a refused one always says why:
-   * { type: 'refused', why: 'public'|'private'|'host'|'tag'|'combat'|'war' }. Returns
+   * { type: 'refused', why: 'public'|'private'|'host'|'war'|'ops' }. Returns
    * the actions of a refusal, or null to let the mode handle it. `start`
    * is the mode it would start; a game with too few players is ended
    * first rather than refused.
    */
   hostCheck(conn, s, msg, now) {
-    const start = (msg.type === 'tag' && msg.op === 'start') ? 'tag'
-      : (msg.type === 'combat' && msg.op === 'start') ? 'combat'
-        : (msg.type === 'war' && msg.op === 'start') ? 'war'
-          : (msg.type === 'ops' && msg.op === 'start') ? 'ops' : null;
-    const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end')
-      || (msg.type === 'combat' && msg.op === 'stop') || (msg.type === 'war' && (msg.op === 'end' || msg.op === 'skipIntro'))
+    const start = (msg.type === 'war' && msg.op === 'start') ? 'war'
+      : (msg.type === 'ops' && msg.op === 'start') ? 'ops' : null;
+    const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost'
+      || (msg.type === 'war' && (msg.op === 'end' || msg.op === 'skipIntro'))
       || (msg.type === 'ops' && (msg.op === 'end' || msg.op === 'lock' || msg.op === 'skipIntro'));
     if (!hostOnly) {
       return null;
@@ -624,14 +597,6 @@ export class RoomCore {
    * a game shows that game; and, for a game room in its lobby, `ready`,
    * how many of its pilots said ready, for "2 ready of 3". */
   activity(now) {
-    const m = this.tag.match;
-    if (this.tag.on()) {
-      return { game: 'tag', state: m.state === 'live' ? 'on' : 'countdown' };
-    }
-    if (this.combat.on()) {
-      /* Its round's number, for "In round n". */
-      return { game: 'combat', state: this.combat.round.state, round: this.combat.round.n };
-    }
     if (this.war.on()) {
       /* The wave a pilot joining now would meet, for "In battle, wave x/y". */
       const mission = this.war.mission();
@@ -805,9 +770,8 @@ export class RoomCore {
    * THE WATCH SEAT (docs/FLIGHTCLUB-PROGRESSION.md section 3): a hello
    * with watch: true. The watcher gets the room's welcome with seat 0 and
    * its pilots, then their poses, the roster's news (roster()) and every
-   * game's state as it changes (everyone()): tag's,
-   * combat's, the war's and the ops' (with no result, viewed()) and the
-   * lobby's, and nothing else: no seat, no token a pilot's tab could take
+   * game's state as it changes (everyone()): the war's and the ops'
+   * (with no result, viewed()) and the lobby's, and nothing else: no seat, no token a pilot's tab could take
    * over, no game join, no role, no say in the clock, the host or ready,
    * never counted in the lobby (people()). Pilots are never told a
    * watcher came, since there is nothing of it to draw and no public list
@@ -853,13 +817,11 @@ export class RoomCore {
           peers: this.peerList(null),
           /* Every game as it stands (everyone()); the war's and the
            * ops' with no result (watchedView). */
-          ...this.tag.welcome(this),
           war: watchedView(this.war.view(this)),
           ops: watchedView(this.ops.view(this)),
           ...this.gameLobby.welcome(this),
         }),
       },
-      ...this.combat.join(this, conn),
       ...this.war.watch(conn),
       ...(this.ticking || !this.seats.size ? [] : [{ tick: true }]),
     ];
@@ -1014,7 +976,6 @@ export class RoomCore {
          * coming or going (watch). */
         watchers: this.watchers.size,
         peers: this.peerList(conn),
-        ...this.tag.welcome(this),
         ...this.war.welcome(this, s),
         ...this.ops.welcome(this, s),
         ...this.gameLobby.welcome(this),
@@ -1024,18 +985,12 @@ export class RoomCore {
       type: 'join', seat, name: s.name, ...(callsign ? { callsign } : {}), profile, host: this.host(),
     })));
     actions.push(...wrecks.wrecksFor(this, conn));
-    actions.push(...this.drops.join(conn));
     /* A newcomer to a running round flies in where its game allows it
      * (modes.js allowDropIn), every game reading the one field: the war
-     * enlists it, combat gives it paper, the Ace makes it a hunter.
-     * Elsewhere it
-     * waits for the next round, a war's told the attackers as a watcher
+     * enlists it. Elsewhere it waits for the next round, a war's told the attackers as a watcher
      * is. A player back from a drop is always back. */
     const running = this.game();
     const dropIn = running === null || running === 'ops' || this.modeById(running).allowDropIn;
-    this.combat.arrive(seat, profile.airframe, dropIn);
-    actions.push(...this.combat.join(this, conn));
-    actions.push(...this.tag.join(this, s, dropIn));
     actions.push(...(dropIn ? this.war.join(this, conn) : this.war.watch(conn)));
     actions.push(...this.ops.join(this, conn, now));
     actions.push(...this.gameLobby.join(this, now));
@@ -1064,9 +1019,6 @@ export class RoomCore {
     if (typeof data !== 'string') {
       if (s && data[0] === TYPE_PARTS) {
         return wrecks.onParts(this, conn, s, data, now);
-      }
-      if (s && data[0] === TYPE_STREAMER) {
-        return this.combat.frame(this, conn, s, data, now);
       }
       if (s && data[0] === TYPE_FOOT) {
         return onFoot(this, conn, s, data, now);
@@ -1126,7 +1078,6 @@ export class RoomCore {
       }
       s.profile = profile;
       this.referee.seat(s.seat, profile.airframe);
-      this.combat.seat(s.seat, profile.airframe);
       return [
         { attach: conn, value: this.attachmentOf(s) },
         ...this.roster(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
@@ -1157,9 +1108,6 @@ export class RoomCore {
     if (msg.type === 'daytime') {
       return this.setDaytime(conn, s, msg);
     }
-    if (msg.type === 'drop') {
-      return this.drops.message(this, conn, s, msg);
-    }
     /* A game room's lobby: ready from anybody, the round's setting from
      * the host (edge/rooms/gamelobby.js), with the clock its times need. */
     if (msg.type === 'lobby') {
@@ -1170,9 +1118,6 @@ export class RoomCore {
       return checked;
     }
     const first = checked ? checked.pass : [];
-    if (msg.type === 'combat') {
-      return [...first, ...this.combat.message(this, conn, s, msg, now)];
-    }
     /* A war started from the menus has nobody flying, and the room's clock
      * otherwise runs only on relayed poses: the war wakes it, or it never
      * reaches its go. */
@@ -1191,9 +1136,6 @@ export class RoomCore {
     }
     if (msg.type === 'handhost') {
       return this.handHost(conn, s, msg.seat, now);
-    }
-    if (msg.type === 'tag') {
-      return [...first, ...this.tag.message(this, conn, s, msg, now)];
     }
     return [];
   }
@@ -1530,7 +1472,6 @@ export class RoomCore {
         this.keepOut(t, now, KICK_MS);
         this.seats.delete(conn);
         this.referee.leave(seat);
-        this.combat.leave(seat);
         this.war.leave(seat);
         this.ops.leave(seat, this.roomMs(now));
         return [
@@ -1572,15 +1513,9 @@ export class RoomCore {
     }
     s.poseNow = now;
     /* The referee judges the bytes the room relays: Phase 5 sets
-     * FLAG_SPAWNING on a spawning seat, which the rule leaves out. It
-     * judges in a tag match too, whose bubble is a rule of its own on the
-     * same bytes: a hunter in the bubble takes the crown, and a hunter
-     * that hits the Ace crashes as well (docs/TAG-PLAN.md decision 1). */
+     * FLAG_SPAWNING on a spawning seat, which the rule leaves out. */
     const decided = this.referee.pose(s.seat, bytes, this.roomMs(now));
     const hits = decided.flatMap((h) => this.others(null, JSON.stringify(h)));
-    hits.push(...this.tag.pose(this, s, bytes, now));
-    /* After the referee: a crash from a hit it just decided is a mid air's. */
-    hits.push(...this.combat.pose(this, s, now));
     hits.push(...this.war.pose(this, s, bytes, now));
     hits.push(...this.ops.pose(this, s, bytes, now));
     return hits;
@@ -1590,7 +1525,7 @@ export class RoomCore {
    * One room tick: every seat gets one batch of the others' poses it has
    * not been sent yet, each at its interest band's rate (INTEREST): a peer
    * near this seat every tick, a far one every few. The room's own judges
-   * (the referee, a tag match, a combat round) see every pose as it
+   * (the referee, a war, an ops mission) see every pose as it
    * arrives (pose()), so this thins only what a screen draws. A pose
    * already sent goes again after REPEAT_MS while its seat is holding().
    * Ticks stop when every seat has been sent every newest pose and nobody
@@ -1600,7 +1535,7 @@ export class RoomCore {
     this.now = now;
     this.referee.tick(this.roomMs(now));
     this.tickNo += 1;
-    const out = [...this.tag.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.ops.tick(this, now), ...this.gameLobby.tick(this, now)];
+    const out = [...this.war.tick(this, now), ...this.ops.tick(this, now), ...this.gameLobby.tick(this, now)];
     out.push(...this.settleHost(now), ...this.settleGames(now));
     const flying = [...this.seats.values()].filter((f) => f.pose);
     const at = new Map(flying.map((f) => [f, poseAt(f.pose)]));
@@ -1702,7 +1637,6 @@ export class RoomCore {
     }
     this.seats.delete(conn);
     this.referee.leave(s.seat);
-    this.combat.leave(s.seat);
     this.war.leave(s.seat);
     this.ops.leave(s.seat, this.roomMs(now));
     for (const [token, r] of this.recent) {

@@ -103,12 +103,13 @@ const BACK = en['offline.back'];
 const count = (said, text) => said.filter((t) => t === text).length;
 const SYNC_FAILED = en['account.sync_failed'].split('{')[0];
 
-/* Whether the shell offers rooms, and whether a room game's card is on
- * Flight Club's hub. */
+/* Whether the shell offers rooms, and whether a room game's card (the
+ * campaign's, Defend the Parana, since the combat-only cut took Streamer
+ * Combat) is on its hub. */
 const OFFER = `(() => {
   const ui = window.__ui;
   ui.act('mode-gate');
-  return { rooms: ui.friendsItems().length > 0, combat: document.querySelector('.screen-title').textContent.includes(${JSON.stringify(en['combat.card'])}) };
+  return { rooms: ui.friendsItems().length > 0, combat: document.querySelector('.screen-title').textContent.includes(${JSON.stringify(en['campaign.card'])}) };
 })()`;
 
 async function network(page, offline) {

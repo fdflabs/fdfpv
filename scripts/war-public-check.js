@@ -156,7 +156,7 @@ try {
     JSON.stringify(chip && { label: chip.label, value: chip.value }));
   const rowAction = `friends-room-${code}`;
   const openRooms = async () => {
-    await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");
+    await b.evaluate("(() => { window.__ui.act('lobby:rooms'); return true; })()");
     await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(rowAction)})`, 30000).catch(() => {});
   };
   await openRooms();

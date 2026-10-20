@@ -1,7 +1,7 @@
 /*
  * rooms-selftest-war.js: the war section of npm run rooms:selftest
- * (docs/WARFARE-PLAN.md sections 4 and 5.1), in its own file as combat's
- * is. rooms-selftest.js calls warSection(check) once. The referee under
+ * (docs/WARFARE-PLAN.md sections 4 and 5.1), in its own file as the
+ * ops' is. rooms-selftest.js calls warSection(check) once. The referee under
  * lag, measured, is scripts/war-harness.js.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -315,8 +315,8 @@ export function warSection(check) {
     check('the host starts it: everybody gets the countdown, the output and the floor', e.r.war.on() && v.state === 'countdown'
       && v.goAt === COUNTDOWN_MS && v.output === 3000 && v.floor === 1500 && v.blast === BLAST_M);
     check('a war game keeps the room\'s clock running with nobody flying', e.r.waiting());
-    e.say(0, { type: 'tag', op: 'start', goal: 10 });
-    check('one game at a time: a tag match under a war is refused "war"', !e.r.tag.on() && e.refusals(0).at(-1) === 'war');
+    e.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('one game at a time: an ops mission under a war is refused "war"', !e.r.ops.on() && e.refusals(0).at(-1) === 'war');
     e.fly(COUNTDOWN_MS + 40);
     check('at the go the rack is rack x pilots', e.view().state === 'live' && e.view().rack === 4 && e.view().rackMax === 4);
     e.fly(COUNTDOWN_MS + 1000);
@@ -426,8 +426,8 @@ export function warSection(check) {
       });
       check('and a mission at the map\'s own day has none', d.view(1).briefAt === 500 && d.view(1).goAt === go);
     }
-    check('a briefing is a war game: the clock runs, and a tag match is refused "war"', e.r.waiting()
-      && (e.say(0, { type: 'tag', op: 'start', goal: 10 }), !e.r.tag.on() && e.refusals(0).at(-1) === 'war'));
+    check('a briefing is a war game: the clock runs, and an ops mission is refused "war"', e.r.waiting()
+      && (e.say(0, { type: 'ops', op: 'start', mission: 'interior-1' }), !e.r.ops.on() && e.refusals(0).at(-1) === 'war'));
     check('the room browser shows a briefing as a war counting down', warActivity(e.r.activity(e.clock), 'countdown'), JSON.stringify(e.r.activity(e.clock)));
     e.say(1, { type: 'war', op: 'skipIntro' });
     check('only the host skips it: another pilot is refused "host", and the briefing holds', e.refusals(1).at(-1) === 'host' && e.view().state === 'briefing');
@@ -536,8 +536,8 @@ export function warSection(check) {
     g.say(0, {
       type: 'war', op: 'start', mission: 'test-1', intro: true,
     });
-    g.say(0, { type: 'combat', op: 'start', minutes: 3 });
-    check('another game over a briefing is refused "war": combat', !g.r.combat.on() && g.refusals(0).join() === 'war'
+    g.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('another game over a briefing is refused "war": an ops mission', !g.r.ops.on() && g.refusals(0).join() === 'war'
       && g.view(1).state === 'briefing', g.refusals(0).join());
 
     const p = warRoom({ mission: plain, start: false });
@@ -1253,7 +1253,7 @@ export function warSection(check) {
     e.apply(e.r.close(e.socks[1], e.clock));
     e.apply(e.r.safety.remove(e.socks[2], e.clock));
     check('a pilot who left, and one removed by the room\'s safety, are gone from it (safety.js calls the games\' leave)',
-      !e.r.war.seats.has(2) && !e.r.war.seats.has(3) && !e.r.combat.seats.has(3) && e.r.war.seats.has(1));
+      !e.r.war.seats.has(2) && !e.r.war.seats.has(3) && e.r.war.seats.has(1));
   }
 
   console.log('war: the HUD always says what comes next');

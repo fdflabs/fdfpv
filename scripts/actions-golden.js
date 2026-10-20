@@ -377,7 +377,7 @@ function seedStore(state) {
 const STATES = {
   'gate-home': { screen: 'title', craftGate: true, mode: null },
   'gate-hub-club': { screen: 'title', craftGate: true, mode: null, hub: 'club' },
-  'gate-hub-hangar': { screen: 'title', craftGate: true, mode: null, hub: 'hangar', lobbyCard: 'way-combat' },
+  'gate-hub-hangar': { screen: 'title', craftGate: true, mode: null, hub: 'hangar', lobbyCard: 'way-freestyle-wing1000' },
   'gate-visitor': { screen: 'title', craftGate: true, mode: null, visitor: true },
   'title-race': { screen: 'title', craftGate: false, mode: 'race', settings: { map: 'track', airframeAsked: true }, seat: 'track' },
   'title-race-noseat': { screen: 'title', craftGate: false, mode: 'race', settings: { map: 'track', airframeAsked: true } },

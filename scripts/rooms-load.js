@@ -9,7 +9,7 @@
  *   --pilots=8,16,24,32  pilots a room; a list is one run after another
  *   --rooms=1            rooms at once, each with that many pilots
  *   --phase=20           seconds each phase is measured
- *   --phases=free,combat
+ *   --phases=free
  *   --spread=wide        free flight spread over kilometres (the thinning's
  *                        case), or near: everybody within 250 m
  *   --quick              CI: 32 pilots in one room, 5 s phases
@@ -34,8 +34,9 @@
  *
  *   free     free flight, spread as asked; every pilot crashes once: the
  *            crash event, PARTS at 10 Hz for 3 s, then flies on
- *   combat   the host starts a round; everybody tows a fifty link streamer
- *            at 10 Hz through the 20 s countdown and the round
+ *
+ * A combat phase, every pilot towing Streamer Combat's paper through a
+ * round, left with the game in the combat-only cut (2026-10-20).
  *
  * What it reports per phase: the server's CPU (a fraction of one core),
  * the loop's p99 delay, memory, messages and bytes out a second, per room
@@ -47,14 +48,14 @@
  * THE CHECKS are about function, not speed, so a slow machine does not
  * fail them: every pilot seated, near peers at the full rate with no gap
  * past three ticks, mid and far peers at their bands' rates, and each
- * phase's traffic arrived (a chat, a wreck, a combat round on). The speed is in the numbers, for a person to read with the load on
+ * phase's traffic arrived (a chat, a wreck). The speed is in the numbers, for a person to read with the load on
  * the machine it ran on, which is printed with them.
  *
  * THE GAPS ARE THE SERVER'S. A gap is read on the batch's own room clock,
  * the server's at the send, not on the receiving pilot's wall clock, and
  * the three tick bound leaves out a gap only where the sender sent its
  * very next pose more than a tick late. One worker thread flies a whole
- * room's pilots, so on a small runner it falls behind in combat: on CI
+ * room's pilots, so on a small runner it fell behind in combat: on CI
  * it read gaps of 142 and 157 ms
  * with the server's loop lag p99 under 4 ms and 5 to 8 percent of the
  * entries still unread when the phase ended. That was the load generator
@@ -86,8 +87,8 @@ import { fileURLToPath } from 'node:url';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import WebSocket from 'ws';
 import {
-  CHAT_PRESETS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, PROTO, TYPE_BATCH, TYPE_PARTS_RELAY, TYPE_STREAMER_RELAY,
-  BATCH_ENTRY, BATCH_HEAD, encodeParts, encodePose, encodeStreamer,
+  CHAT_PRESETS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, PROTO, TYPE_BATCH, TYPE_PARTS_RELAY,
+  BATCH_ENTRY, BATCH_HEAD, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
 import { INTEREST, TICK_MS } from '../edge/rooms/core.js';
 import { TRACK_MS } from '../src/share/roomclock.js';
@@ -96,7 +97,6 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const WEB_ORIGIN = 'https://fdflabs.github.io';
 const SETTLE_S = 3;
-const COMBAT_COUNTDOWN_S = 21;
 const GAP_BIN_MS = 5;
 const GAP_BINS = 400;
 const BANDS = INTEREST.length;
@@ -171,8 +171,6 @@ function flightPlan(room, i, n, spread, rand) {
   const r0 = ring[0] + rand() * (ring[1] - ring[0]);
   const b0 = rand() * Math.PI * 2;
   plans.free = circle(Math.cos(b0) * r0, 150 + 10 * i, Math.sin(b0) * r0, 40 + rand() * 80, 20 + rand() * 15, rand() * 6.28);
-  /* Combat: one piece of sky 200 m across, 4 m apart in height. */
-  plans.combat = circle(rand() * 60 - 30, 200 + 4 * i, rand() * 60 - 30, 60 + rand() * 40, 25, rand() * 6.28);
   return plans;
 }
 
@@ -184,22 +182,9 @@ function crashTable() {
   return table;
 }
 
-/* A streamer towed behind a circle: fifty one-metre links back along the
- * path, sagging. */
-function towed(f, links = 50) {
-  const x = new Float64Array((links + 1) * 3);
-  for (let k = 0; k <= links; k += 1) {
-    const a = f.a - (k / f.radius);
-    x[k * 3] = f.p[0] - f.radius * Math.cos(f.a) + f.radius * Math.cos(a);
-    x[k * 3 + 1] = f.p[1] - 0.15 * k;
-    x[k * 3 + 2] = f.p[2] - f.radius * Math.sin(f.a) + f.radius * Math.sin(a);
-  }
-  return [{ id: 0, n: links + 1, x }];
-}
-
 function emptyPhaseStats() {
   return {
-    rxBytes: 0, rxMsgs: 0, batches: 0, texts: 0, parts: 0, streamers: 0, chats: 0, crashes: 0, cuts: 0,
+    rxBytes: 0, rxMsgs: 0, batches: 0, texts: 0, parts: 0, chats: 0, crashes: 0,
     txPoses: 0, txMsgs: 0, txBytes: 0,
     entries: new Array(BANDS).fill(0),
     gaps: Array.from({ length: BANDS }, () => new Uint32Array(GAP_BINS + 1)),
@@ -208,7 +193,6 @@ function emptyPhaseStats() {
      * those were. */
     held: Array.from({ length: BANDS }, () => new Uint32Array(GAP_BINS + 1)),
     senderLate: new Array(BANDS).fill(0),
-    combatOn: 0,
   };
 }
 
@@ -235,7 +219,7 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
     const rand = rng(seed * 1000003 + room.index * 1009 + i);
     const c = {
       room, i, rand, ws: null, welcome: null, offset: null, bestRtt: Infinity, pings: 0, closed: null,
-      plans: flightPlan(room, i, pilots, spread, rand), seq: 0, nextPose: 0, nextChat: 0, nextKeep: 0, nextStreamer: 0,
+      plans: flightPlan(room, i, pilots, spread, rand), seq: 0, nextPose: 0, nextChat: 0, nextKeep: 0,
       last: new Map(), wreck: null, crashAt: null,
       quad: i % 2 === 0,
     };
@@ -305,8 +289,6 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
         }
       } else if (type === TYPE_PARTS_RELAY && s) {
         s.parts += 1;
-      } else if (type === TYPE_STREAMER_RELAY && s) {
-        s.streamers += 1;
       }
       return;
     }
@@ -329,15 +311,11 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
       }
     } else if (m.type === 'host' && c.welcome) {
       c.welcome.host = m.seat;
-    } else if (m.type === 'combat' && plan && m.state === 'on') {
-      statsFor('combat').combatOn += 1;
     } else if (m.type === 'event' && s) {
       if (m.kind === 'chat') {
         s.chats += 1;
       } else if (m.kind === 'crash' && !m.clear) {
         s.crashes += 1;
-      } else if (m.kind === 'cut') {
-        s.cuts += 1;
       }
     }
   }
@@ -388,33 +366,7 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
   parentPort.postMessage({ ready: all.filter((c) => c.welcome && !c.closed).length, closed: all.filter((c) => c.closed).map((c) => c.closed) });
   plan = await new Promise((resolve) => parentPort.once('message', resolve));
 
-  const isHost = (c) => c.welcome && c.welcome.host === c.welcome.seat;
-  const hostOf = (room) => all.find((c) => c.room === room && isHost(c));
   const phaseOf = (name) => plan.phases.find((p) => p.name === name);
-  const done = new Set();
-  const once = (key, fn) => {
-    if (!done.has(key)) {
-      done.add(key);
-      fn();
-    }
-  };
-
-  /* The rooms' hosts: loading, starting and ending each game. */
-  function hostActions(wall) {
-    for (const room of rooms) {
-      const h = hostOf(room);
-      if (!h) {
-        continue;
-      }
-      const combat = phaseOf('combat');
-      if (combat && wall >= combat.lead) {
-        once(`combat${room.index}`, () => h.sendText({ type: 'combat', op: 'start', minutes: 3 }));
-      }
-      if (combat && wall >= combat.to - 200) {
-        once(`stop${room.index}`, () => h.sendText({ type: 'combat', op: 'stop' }));
-      }
-    }
-  }
 
   /* The phase a wall time flies in, counting a phase's lead (the host's
    * set up) as that phase. */
@@ -470,10 +422,6 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
       }
       c.send(encodeParts(t, pieces));
     }
-    if (name === 'combat' && wall >= c.nextStreamer) {
-      c.nextStreamer = Math.max(c.nextStreamer + 100, wall - 100);
-      c.send(encodeStreamer(t, towed(f)));
-    }
     c.nextClock ||= wall + c.rand() * TRACK_MS;
     if (wall >= c.nextClock) {
       c.sendText({ type: 't', c: Date.now() });
@@ -498,7 +446,6 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
   await new Promise((resolve) => {
     const timer = setInterval(() => {
       const wall = Date.now();
-      hostActions(wall);
       for (const c of all) {
         frame(c, wall);
       }
@@ -519,7 +466,7 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
 /* The driver. */
 
 function argsOf(argv) {
-  const a = { origin: null, pilots: [8, 16, 24, 32], rooms: 1, phase: 20, phases: ['free', 'combat'], spread: 'wide', json: null, server: null, pin: null };
+  const a = { origin: null, pilots: [8, 16, 24, 32], rooms: 1, phase: 20, phases: ['free'], spread: 'wide', json: null, server: null, pin: null };
   for (const arg of argv) {
     const [k, v] = arg.replace(/^--/, '').split('=');
     if (!arg.startsWith('--')) {
@@ -541,8 +488,8 @@ function argsOf(argv) {
   if (!a.pilots.every((n) => Number.isInteger(n) && n >= 2 && n <= 64) || !(a.rooms >= 1) || !(a.phase >= 3)) {
     throw new Error('--pilots 2 to 64 each, --rooms 1 or more, --phase 3 s or more');
   }
-  if (!['wide', 'near'].includes(a.spread) || !a.phases.every((p) => ['free', 'combat'].includes(p))) {
-    throw new Error('--spread wide|near, --phases of free,combat');
+  if (!['wide', 'near'].includes(a.spread) || !a.phases.every((p) => ['free'].includes(p))) {
+    throw new Error('--spread wide|near, --phases of free');
   }
   return a;
 }
@@ -686,14 +633,12 @@ async function oneRun(a, pilots, report) {
   const refused = ready.flatMap((r) => r.closed);
   report.check(`${a.rooms} room(s) of ${pilots}: every pilot seated`, seated === a.rooms * pilots, `${seated} seated, closed ${JSON.stringify(refused.slice(0, 3))}`);
 
-  /* The timeline, the same wall clock for every worker. Combat's lead is
-   * the round's 20 s countdown. */
+  /* The timeline, the same wall clock for every worker. */
   const phases = [];
   let at = Date.now() + 1000;
   for (const name of a.phases) {
-    const lead = name === 'combat' ? COMBAT_COUNTDOWN_S : 0;
-    phases.push({ name, lead: at, from: at + lead * 1000, to: at + (lead + a.phase) * 1000 });
-    at += (lead + a.phase) * 1000 + 1000;
+    phases.push({ name, lead: at, from: at, to: at + a.phase * 1000 });
+    at += a.phase * 1000 + 1000;
   }
   const load0 = os.loadavg()[0];
   const samples = [];
@@ -760,7 +705,7 @@ async function oneRun(a, pilots, report) {
         m: INTEREST[i].m, hz: b.hz, p50Ms: b.p50Ms, p99Ms: b.p99Ms, maxMs: s.gapMax[i], n: b.n, heldP99Ms: held[i] ? held[i].p99Ms : null, senderLate: s.senderLate[i],
       } : null)),
       entriesSaved: every ? 1 - got / every : 0,
-      chats: s.chats, crashes: s.crashes, parts: s.parts, streamers: s.streamers, cuts: s.cuts, combatOn: s.combatOn,
+      chats: s.chats, crashes: s.crashes, parts: s.parts,
       loadAvg: [load0, load1],
     };
     rows.push(row);
@@ -776,8 +721,6 @@ async function oneRun(a, pilots, report) {
     }
     if (ph.name === 'free') {
       report.check(`free, ${a.rooms}x${pilots}: chat and wrecks passed on`, s.chats > 0 && s.crashes >= n && s.parts > 0, `${s.chats} chats, ${s.crashes} crashes, ${s.parts} parts`);
-    } else if (ph.name === 'combat') {
-      report.check(`combat, ${a.rooms}x${pilots}: the round went on and every streamer was relayed`, s.combatOn > 0 && s.streamers > 0, `${s.combatOn} on, ${s.streamers} streamers`);
     }
   }
   if (server) {

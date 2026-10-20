@@ -377,19 +377,15 @@ export function countMap(o) {
 
 /*
  * A flight's events folded into progress, in place, from the event at
- * `from` on: the COUNTED ones per aircraft, and a room game's `round`
- * {game, world} as played there. Returns { at, counted }: where the next
- * fold starts, and how many events it took. Folding the same log again
- * from `at` takes nothing twice.
+ * `from` on: the COUNTED ones per aircraft. A room game's `round`, which
+ * Streamer Combat and Catch the Ace! logged until the combat-only cut
+ * (2026-10-20), folds as nothing: their `played` flags stay as stored.
+ * Returns { at, counted }: where the next fold starts, and how many events
+ * it took. Folding the same log again from `at` takes nothing twice.
  */
 export function foldEvents(progress, events, from = 0) {
   let counted = 0;
   for (const e of events.slice(from)) {
-    if (e.type === 'round' && PLAYED_GAMES.includes(e.game) && WORLDS.includes(e.world)) {
-      progress.played ??= {};
-      progress.played[`${e.game}:${e.world}`] = true;
-      counted += 1;
-    }
     const map = COUNTED[e.type];
     /* An Interior match's result logged for its debrief and paid before
      * (src/ui/opscampaign.js record) is not completed again. */
@@ -489,10 +485,6 @@ export function bestsOf(events, from = 0) {
   const start = events.length && events[0].type === 'spawned' ? events[0].simMs : null;
   for (let i = from; i < events.length; i += 1) {
     const e = events[i];
-    if (e.type === 'round' && PLAYED_GAMES.includes(e.game) && WORLDS.includes(e.world) && Number.isInteger(e.points) && e.points > 0) {
-      out.push({ key: `${e.game}:${e.world}`, value: e.points, at: i });
-      continue;
-    }
     const cls = e.type === 'lap' ? classOf(e.airframe) : null;
     if (!cls || typeof e.course !== 'string' || !e.course || !Number.isFinite(e.ms) || e.ms <= 0 || start == null || e.ms > e.simMs - start) {
       continue;
@@ -782,20 +774,14 @@ export const FIRST_XP = { win: 100, star: 40, flight: 40, ten: 60, hour: 150, le
 export const MILESTONE_S = { flight: 1, ten: 600, hour: 3600 };
 const MISSION_IDS = new Set([...ACT1, ...INTERIOR].map((m) => m.id));
 /*
- * A ROOM GAME FINISHED, ONCE PER WORLD (PROGRESSION.md section 3): a
- * Streamer Combat round or a Catch the Ace! match this pilot had a seat
- * in, at its end, on each world. Kept as `played`, flags of
- * '<game>:<world>' (folded from the log's `round` event, foldEvents),
- * and paid as the first 'game:<game>:<world>'. FIRST_XP.game is the
- * lead's ruling of 2026-10-13: the Flight Club activity firsts are a
- * course's first lap (FIRST_LAP_XP, 40) and a lesson (60), and the lower
- * pays. The worlds are the registry's (src/maps/registry.js MAPS less
- * the track seat, which is no world), listed here because the registry
- * pulls the string table and the server reads this file; the selftest
- * holds the two equal.
+ * FIRST_XP.game is the lead's ruling of 2026-10-13: the Flight Club
+ * activity firsts are a course's first lap (FIRST_LAP_XP, 40) and a lesson
+ * (60), and the lower pays. It paid a room game finished once per world
+ * (the first 'game:<game>:<world>', from `played`) until Streamer Combat
+ * and Catch the Ace! left in the combat-only cut (2026-10-20); a first
+ * paid then stays paid (progress.firsts, the wallet's grants), and
+ * PLACE_XP still pays it.
  */
-export const PLAYED_GAMES = ['combat', 'tag'];
-export const WORLDS = ['alps', 'swiss2', 'itaipu', 'interior'];
 const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) => af.id);
 
 /* Every first the facts show, paid or not: [{ key, xp }], in a fixed order. */
@@ -807,15 +793,8 @@ const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) =
  * skip is no shortcut to XP or tokens. A covered lesson flown later is
  * flagged then and pays then.
  */
-export function firstsOf({ campaign = null, seconds = {}, lessons = {}, flown = {}, played = {} } = {}) {
+export function firstsOf({ campaign = null, seconds = {}, lessons = {}, flown = {} } = {}) {
   const out = [];
-  for (const g of PLAYED_GAMES) {
-    for (const w of WORLDS) {
-      if (isRecord(played) && played[`${g}:${w}`] === true) {
-        out.push({ key: `game:${g}:${w}`, xp: FIRST_XP.game });
-      }
-    }
-  }
   for (const l of LESSONS) {
     if (isRecord(lessons) && Number.isFinite(lessons[l.id]) && lessons[l.id] > 0 && isRecord(flown) && flown[l.id] === true) {
       out.push({ key: `lesson:${l.id}`, xp: FIRST_XP.lesson });
@@ -858,7 +837,6 @@ export function everyFirst() {
     seconds: Object.fromEntries(MASTERED.map((id) => [id, MILESTONE_S.hour])),
     lessons: Object.fromEntries(LESSONS.map((l) => [l.id, 1])),
     flown: Object.fromEntries(LESSONS.map((l) => [l.id, true])),
-    played: Object.fromEntries(PLAYED_GAMES.flatMap((g) => WORLDS.map((w) => [`${g}:${w}`, true]))),
   });
 }
 
@@ -1186,7 +1164,7 @@ export function awardFlight(progress, events, from, run, outside = null) {
   const { at, counted } = foldEvents(progress, events, from);
   if (outside) {
     add(awardFirsts(progress, {
-      ...outside, lessons: progress.lessons, flown: progress.lessonsFlown, played: progress.played,
+      ...outside, lessons: progress.lessons, flown: progress.lessonsFlown,
     }));
   }
   return { at, counted, awards };

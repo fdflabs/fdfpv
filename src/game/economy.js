@@ -44,12 +44,11 @@ import { MAX_STARS, cleanCampaign } from './campaign.js';
 import { flightTotals } from '../share/flighttime.js';
 import { KITS } from '../../configs/kits.js';
 
-/* Tokens a first pays, by the kind of first (progress.js firstsOf keys). */
-/* `game`, a room game finished once per world, is the lead's ruling of
- * 2026-10-13 applied to this table: it pays FIRST_XP.game, 40, and the
- * firsts here that pay 40 XP are a star (30) and a first flight (10), so
- * the lower. Reversible until a grant is paid; paid grants stay. */
-export const FIRST_TOKENS = { win: 60, star: 30, flight: 10, ten: 20, hour: 60, lesson: 20, game: 10 };
+/* Tokens a first pays, by the kind of first (progress.js firstsOf keys).
+ * `game`, a room game finished once per world, paid 10 until Streamer
+ * Combat and Catch the Ace! left in the combat-only cut (2026-10-20);
+ * grants paid then stay paid. */
+export const FIRST_TOKENS = { win: 60, star: 30, flight: 10, ten: 20, hour: 60, lesson: 20 };
 export const CHALLENGE_TOKENS = 50;
 
 /*
@@ -125,14 +124,13 @@ function factsOf(blob) {
     seconds: flightTotals(data.flightTime).byAirframe,
     lessons: isRecord(progress.lessons) ? progress.lessons : {},
     flown: isRecord(progress.lessonsFlown) ? progress.lessonsFlown : {},
-    played: isRecord(progress.played) ? progress.played : {},
     challenges: CHALLENGES.filter((c) => done[c.id] === true).map((c) => c.id),
   };
 }
 
 function tokensForFirst(key) {
   const [what, , part] = key.split(':');
-  if (what === 'lesson' || what === 'game') {
+  if (what === 'lesson') {
     return FIRST_TOKENS[what];
   }
   return FIRST_TOKENS[part.startsWith('star') ? 'star' : part];

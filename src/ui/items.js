@@ -660,8 +660,6 @@ function identityRows() {
 const FLIGHT_SPLIT = [
   ['race', 'ui.track_mode'],
   ['free', 'ui.free_flight_card'],
-  ['combat', 'combat.card'],
-  ['tag', 'flight.act_tag'],
   ['war', 'hub.ops'],
 ];
 

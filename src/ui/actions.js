@@ -34,7 +34,7 @@
 import { KEYBIND_PREFIX, keybindAction } from './controls.js';
 import { FLY_WITH_PREFIX, answerFlyWith } from './flywith.js';
 import { MAPS } from '../maps/registry.js';
-import { airframeById } from '../../configs/airframes.js';
+import { AIRFRAME_IDS, airframeById } from '../../configs/airframes.js';
 import { clearPidsFor } from '../../configs/pids.js';
 import { RATE_DEFAULTS, normaliseRates } from '../../configs/rates.js';
 import { deleteRatePreset, presetMatching, saveRatePreset } from '../../configs/ratepresets.js';
@@ -118,6 +118,11 @@ function openScreen(ui, screen) {
   ui.returnTo = pauseOrTitle(ui);
   ui.show(screen);
 }
+
+/* The title's rooms panel's way into the room screen: any aircraft, flown
+ * free, in a room. The Fly with friends card was this until the
+ * combat-only cut (2026-10-20); the panel keeps what pressing it did. */
+const ROOMS_PANEL = { airframes: AIRFRAME_IDS, mode: 'freestyle', room: true };
 
 /* The one gate question, answered by a card: aircraft, mode, and the seat
  * the mode flies in, or the room that can choose one. */
@@ -552,11 +557,11 @@ const PREFIXES = [
   /* A pilot in the room the pilot is in, visited straight from the
    * walkable hangar's command bar (src/ui/hangarwalk.js). */
   ['walk-visit:', (ui, action, callsign) => ui.visitHangar(callsign)],
-  /* The gate's rooms panel: the friends card's way in, then the room,
-   * the lobby or Make a room, with the card's world left unbuilt because
-   * the room's welcome seats its own. */
+  /* The gate's rooms panel: the room screen first, then the room, the
+   * lobby or Make a room, with the world left unbuilt because the room's
+   * welcome seats its own. */
   ['lobby:', (ui, action, rest) => {
-    ui.act(WAYS.find((w) => w.id === 'friends').action, null, { keepWorld: true });
+    answerGate(ui, ROOMS_PANEL, null, true);
     ui.act(rest);
   }],
   ['fc-preset:', (ui, action, id) => {

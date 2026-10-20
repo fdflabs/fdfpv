@@ -117,16 +117,6 @@
        "key": "freestyle-wing1000"
       },
       {
-       "label": "Streamer Combat",
-       "action": "way-combat",
-       "key": "combat"
-      },
-      {
-       "label": "Catch the Ace!",
-       "action": "way-ace",
-       "key": "ace"
-      },
-      {
        "label": "Learn to fly",
        "action": "way-training",
        "key": "training"
@@ -231,36 +221,6 @@
       "The Swiss valley"
      ],
      "svg": "<svg 623 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-combat",
-     "label": "Streamer Combat",
-     "action": "way-combat",
-     "card": "combat",
-     "art": "assets/gate/combat.jpg",
-     "blurb": "Everybody tows a streamer of toilet paper. Cut theirs, keep yours.",
-     "facts": [
-      "Cut the paper",
-      "3 or 5 minutes",
-      "Invite code"
-     ],
-     "svg": "<svg 834 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-ace",
-     "label": "Catch the Ace!",
-     "action": "way-ace",
-     "card": "ace",
-     "art": "assets/gate/ace.jpg",
-     "blurb": "The Ace wears the crown and scores. Fly into its bubble to take it.",
-     "facts": [
-      "The crown",
-      "Enter its bubble",
-      "Invite code"
-     ],
-     "svg": "<svg 412 chars>",
      "drives": {}
     },
     {
@@ -11518,7 +11478,7 @@
      "id": "pilot:flight-time",
      "label": "Flight time",
      "value": "2 h 2 min",
-     "note": "Since Aug 15, 2026. Track Day 1 h 1 min, Free Flight 30 min, Streamer Combat 15 min, Catch the Ace 10 min, Operations 6 min",
+     "note": "Since Aug 15, 2026. Track Day 1 h 1 min, Free Flight 30 min, Operations 6 min",
      "info": true,
      "drives": {}
     },
@@ -26064,16 +26024,6 @@
        "key": "freestyle-wing1000"
       },
       {
-       "label": "Combate de serpentinas",
-       "action": "way-combat",
-       "key": "combat"
-      },
-      {
-       "label": "¡Atrapa al As!",
-       "action": "way-ace",
-       "key": "ace"
-      },
-      {
        "label": "Aprender a volar",
        "action": "way-training",
        "key": "training"
@@ -26178,36 +26128,6 @@
       "El valle suizo"
      ],
      "svg": "<svg 623 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-combat",
-     "label": "Combate de serpentinas",
-     "action": "way-combat",
-     "card": "combat",
-     "art": "assets/gate/combat.jpg",
-     "blurb": "Todos arrastran una cinta de papel higiénico. Corta la ajena, cuida la tuya.",
-     "facts": [
-      "Corta el papel",
-      "3 o 5 minutos",
-      "Código de invitación"
-     ],
-     "svg": "<svg 834 chars>",
-     "drives": {}
-    },
-    {
-     "id": "title:a-way-ace",
-     "label": "¡Atrapa al As!",
-     "action": "way-ace",
-     "card": "ace",
-     "art": "assets/gate/ace.jpg",
-     "blurb": "El As lleva la corona y suma puntos. Entra en su burbuja para quitársela.",
-     "facts": [
-      "La corona",
-      "Entra en su burbuja",
-      "Código de invitación"
-     ],
-     "svg": "<svg 412 chars>",
      "drives": {}
     },
     {
@@ -37465,7 +37385,7 @@
      "id": "pilot:flight-time",
      "label": "Tiempo de vuelo",
      "value": "2 h 2 min",
-     "note": "Desde el 15 ago 2026. Día de pista 1 h 1 min, Vuelo Libre 30 min, Combate de serpentinas 15 min, Atrapa al As 10 min, Operaciones 6 min",
+     "note": "Desde el 15 ago 2026. Día de pista 1 h 1 min, Vuelo Libre 30 min, Operaciones 6 min",
      "info": true,
      "drives": {}
     },

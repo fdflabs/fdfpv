@@ -73,23 +73,6 @@ export function planeSvg() {
   return plan(PLANE);
 }
 
-/* Two planes: flying together. */
-export function pairSvg() {
-  return plan(placed(4, 20, 0.56, PLANE) + placed(128, 112, 0.56, PLANE));
-}
-
-/* A plane trailing a streamer: the streamer combat game. */
-export function streamerSvg() {
-  return plan(placed(78, 4, 0.48, PLANE)
-    + tag('path', { d: 'M 150 132 C 120 170, 190 190, 150 222 S 110 262, 150 294', fill: 'none', ...line(12, 0.7), 'stroke-linecap': 'round' }));
-}
-
-/* A crown: the tag game, where one pilot holds it. */
-export function crownSvg() {
-  return plan(tag('path', { d: 'M 50 210 L 38 96 L 104 150 L 150 70 L 196 150 L 262 96 L 250 210 Z', ...ink(0.45), ...line(8, 0.9), 'stroke-linejoin': 'round' })
-    + tag('rect', { x: 50, y: 222, width: 200, height: 26, rx: 6, ...ink(0.7) }));
-}
-
 /* A sight over a target ball: the Interior campaign's card. */
 export function ballSvg() {
   return plan(SIGHT
@@ -149,24 +132,6 @@ const leading = (first, ids) => [first, ...ids.filter((id) => id !== first)];
 export const WAYS = [
   /* Free flight: every fixed wing, the Bramor first. */
   { id: 'freestyle-wing1000', airframes: leading('bramor2300', FIXED_WINGS), mode: 'freestyle', ...fromRegistry('free') },
-  /* Free flight with friends in a private room; off the title since
-   * 2026-10-02, still the way in for the title's rooms panel. */
-  {
-    id: 'friends',
-    gate: false,
-    airframes: AIRFRAME_IDS,
-    mode: 'freestyle',
-    home: 'swiss2',
-    room: true,
-    label: str('friends.title'),
-    art: 'assets/gate/friends.jpg',
-    svg: pairSvg(),
-    blurb: str('friends.card_blurb'),
-    facts: [str('friends.card_public'), str('friends.card_code'), str('friends.card_craft')],
-  },
-  /* The room games: the friends card with its game chosen. */
-  { id: 'combat', airframes: AIRFRAME_IDS, mode: 'freestyle', room: true, game: 'combat', ...fromRegistry('combat'), svg: streamerSvg() },
-  { id: 'ace', airframes: AIRFRAME_IDS, mode: 'freestyle', room: true, game: 'tag', ...fromRegistry('tag'), svg: crownSvg() },
   /* Defend Itaipu: its consent gate runs in the shell before the room
    * (src/main.js). Off the title since 2026-09-30; Defend the Parana's
    * Play still enters through it. */

@@ -37,7 +37,7 @@
  * With no origin it starts edge/rooms/node.js itself, on a scratch SQLite
  * file, and adds what only a process of its own can show: a restart with
  * two pilots flying, after which both reconnect into their own seats of
- * the same private room, with its Catch the Ace match, and the purge alarm carried
+ * the same private room, with its war, and the purge alarm carried
  * across the restart, and the public room listed again straight after it.
  *
  * Then src/share/rooms.js itself, with its storage and socket stood in: a
@@ -83,7 +83,7 @@ import WebSocket from 'ws';
 import {
   ACCOUNT_JOIN, CHAT_PRESETS, CLOSE, CLOSE_SIGNIN, PROTO, ROOM_LEVEL, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
-import { ABANDON_MS, TEXT_CLOSE_PER_S, WATCH_CAP } from '../edge/rooms/core.js';
+import { TEXT_CLOSE_PER_S, WATCH_CAP } from '../edge/rooms/core.js';
 import { DEAD_MS, PROBE_MS } from '../edge/rooms/node.js';
 import { PURGE_MS } from '../edge/rooms/host.js';
 import { withHeld } from './lib/held.js';
@@ -774,9 +774,14 @@ if (server) {
   check('and the server is still up', res.status === 200);
 
   console.log('a restart with two pilots flying (edge/rooms/node.js)');
-  /* A Catch the Ace match on, to come back with them. */
-  a.say({ type: 'tag', op: 'start', goal: 90 });
-  check('the host starts a Catch the Ace match', Boolean(await b.until((x) => x.text('tag').find((m) => m.tag && m.tag.state === 'countdown'))));
+  /* A war on, to come back with them: the room moved to the war's world
+   * first, as its host moves it (core.js world). */
+  const WAR_START = { type: 'war', op: 'start', mission: 'itaipu-1' };
+  const warOn = (m) => m.war && ['briefing', 'countdown', 'live'].includes(m.war.state);
+  a.say({ type: 'world', map: 'itaipu' });
+  await b.until((x) => x.text('world').find((m) => m.map === 'itaipu'));
+  a.say(WAR_START);
+  check('the host starts a war', Boolean(await b.until((x) => x.text('war').find(warOn))));
   const seats = { a: a.welcome, b: b.welcome };
   await server.stop();
   await a.until((x) => x.closed);
@@ -797,22 +802,25 @@ if (server) {
   check('B, back first, was told it acts as host while A was away', b2.welcome.host === 2, `${b2.welcome.host}`);
   check('A back is the host again, in its welcome and to B', a2.welcome.host === 1
     && Boolean(await b2.until((x) => x.text('host').find((m) => m.seat === 1))));
-  b2.say({ type: 'combat', op: 'start', minutes: 5 });
-  check('so B\'s combat start is refused, and B is told why: host', Boolean(await b2.until((x) => x.text('refused').find((m) => m.why === 'host'))));
-  a2.say({ type: 'combat', op: 'start', minutes: 5 });
-  check('A\'s is refused while the match its two players came back to runs: tag', Boolean(await a2.until((x) => x.text('refused').find((m) => m.why === 'tag'))));
+  b2.say(WAR_START);
+  check('so B\'s war start is refused, and B is told why: host', Boolean(await b2.until((x) => x.text('refused').find((m) => m.why === 'host'))));
+  a2.say(WAR_START);
+  check('A\'s is refused while the war its two players came back to runs: war', Boolean(await a2.until((x) => x.text('refused').find((m) => m.why === 'war'))));
   /* The host hands the room to B and B hands it back, each told. */
   a2.say({ type: 'handhost', seat: 2 });
   check('A hands the room to B: B is told it is the host', Boolean(await b2.until((x) => x.text('host').at(-1)?.seat === 2)));
   b2.say({ type: 'handhost', seat: 1 });
   check('and B hands it back: A is told', Boolean(await a2.until((x) => x.text('host').at(-1)?.seat === 1)));
-  /* B leaves for good: the match has one player, and the room ends it by
-   * itself after ABANDON_MS, with nobody flying to drive the clock. */
+  /* The host ends the war it came back to, and starts the next. A match
+   * left with one player was ended by the room itself here, after
+   * ABANDON_MS, while Catch the Ace's needed two; the war is played alone
+   * (src/share/modes.js minElsewhere 1). */
   b2.ws.close(1000);
-  const ended = await a2.until((x) => x.text('tag').find((m) => m.tag && m.tag.state === 'results'), ABANDON_MS + 5000);
-  check(`the match left with one player ends by itself after ${ABANDON_MS / 1000} s`, Boolean(ended) && ended.tag.winner === null);
-  a2.say({ type: 'combat', op: 'start', minutes: 5 });
-  check('and then the host\'s combat round starts', Boolean(await a2.until((x) => x.text('combat').find((m) => m.state === 'countdown'))));
+  a2.say({ type: 'war', op: 'end' });
+  check('the host ends the war', Boolean(await a2.until((x) => x.text('war').find((m) => m.war && m.war.state === 'ended'))));
+  const warsBefore = a2.text('war').filter(warOn).length;
+  a2.say(WAR_START);
+  check('and then the host\'s next war starts', Boolean(await a2.until((x) => x.text('war').filter(warOn).length > warsBefore)));
   if (publicCode) {
     const again = await listed();
     check('the public room, back after the restart with nobody in it, is not listed', !again.rooms.some((r) => r.code === publicCode), JSON.stringify(again));
