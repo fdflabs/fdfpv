@@ -149,7 +149,7 @@ import {
   choice, cycle, fitsAsSegments, number, stampIds, stepper, toggle,
 } from './rows.js';
 import {
-  WAYS, GATE_WAYS, HUBS, OPEN_ACTIONS, hubWays, hubOfAction, seatedWay, wayFilter, craftSvg, reticleSvg,
+  WAYS, GATE_WAYS, HUBS, OPEN_ACTIONS, seatedWay, wayFilter, craftSvg, reticleSvg,
 } from './ways.js';
 import { formatDay, formatDelta, formatRunClock, formatTime } from './format.js';
 import {
@@ -165,7 +165,7 @@ export { WAYS, formatRunClock, formatTime };
  * draws as a plain action, which promises less, so forgetting one is safe.
  */
 export const SCREEN_ACTIONS = new Set([
-  'freestyle', 'pilot', 'quad', 'rates', 'planerates', 'pids', 'fc',
+  'pilot', 'quad', 'rates', 'planerates', 'pids', 'fc',
   'howto', 'credits', 'choosepad',
   'calibrate', 'friends', 'rooms', 'roomnew', 'controls', 'controller',
 ]);
@@ -174,12 +174,11 @@ export const SCREEN_ACTIONS = new Set([
  * The screens a room is entered from and returned to on Back. The title is
  * left out: Back reaches it anyway when nothing else is open.
  */
-export const ROOM_PARENTS = new Set(['freestyle', 'quad', 'pilot']);
+export const ROOM_PARENTS = new Set(['quad', 'pilot']);
 
 /* The breadcrumb's word for each screen. */
 export const SCREEN_TITLES = {
   title: str('ui.product_name'),
-  freestyle: str('ui.freestyle'),
   pilot: str('ui.settings'),
   quad: str('ui.quad'),
   rates: str('ui.rates'),
@@ -420,7 +419,7 @@ export class Ui {
     const seatedByLink = seatLinkedCraft(this.settings);
     /* The gate is up while either half is unanswered: see onGate. */
     this.craftGate = !seatedByLink;
-    /* The hub on the gate, null for home and its three hub cards. */
+    /* The hub on the gate ('hangar'), null for home. */
     this.hub = null;
     /* The walkable hangar, while it is open (src/ui/hangarwalk.js). */
     this.walk = null;
@@ -556,24 +555,14 @@ export class Ui {
   }
 
   /*
-   * Where the title's cursor lands when it is reset. On the gate it is the
-   * card the pilot already stands on, so two presses of Enter from a cold
-   * start put a returning pilot back where they were: at home the first
-   * hub, in a hub the seated aircraft's card (seatedWay). Everywhere else
-   * the first row that can be chosen.
+   * Where the title's cursor lands when it is reset: the first row that
+   * can be chosen. On the gate that is the first card, home's campaign
+   * (the Operations cards stand on home since Flight Club left, the lead,
+   * 2026-10-20) or the Hangar's first card, so two presses of Enter from
+   * a cold start put a returning pilot where they were.
    */
   titleStop() {
-    const items = this.items();
-    if (this.onGate()) {
-      /* Home opens on the first hub (Flight Club, the owner's call of
-       * 2026-10-03); inside a hub, on the seated aircraft's card. */
-      const target = this.hub ? seatedWay(this.settings, this.mode).action : `hub-${HUBS[0].id}`;
-      const found = items.findIndex(({ action }) => action === target);
-      if (found !== -1) {
-        return found;
-      }
-    }
-    return this.firstStop(items);
+    return this.firstStop(this.items());
   }
 
   /* Write guards for the overlay: setOsd runs every flight frame over the

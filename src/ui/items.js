@@ -45,7 +45,6 @@ import {
 import { CUSTOM_TUNE, tuneById } from '../../configs/registry.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { LINK_PRESETS } from '../input/link.js';
-import { MAPS } from '../maps/registry.js';
 import { PERF_MODES } from '../render/dynres.js';
 import {
   CAMERA_ANGLE_DEFAULT, CAMERA_ANGLE_MAX, CAMERA_ANGLE_MIN, CAMERA_FOVS, cameraTiltRad, clampCameraAngle,
@@ -69,7 +68,6 @@ import {
   RENDER_SCALES, hudStyleFor, keepCamera, tuneChoices,
 } from './settings.js';
 import { tuneName } from './tunename.js';
-import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
 import { controllerRows, usingLabel } from './controller.js';
 import { flyWithRows } from './flywith.js';
@@ -77,7 +75,7 @@ import { flyWithRows } from './flywith.js';
  * screen functions, after both modules have run, never at this module's
  * top level. */
 import {
-  SCREEN_TITLES, YAW_TIP_RATE, craftItem, padTroubleItem, seatedFreestyleMap,
+  SCREEN_TITLES, YAW_TIP_RATE, craftItem, padTroubleItem,
 } from './ui.js';
 
 /*
@@ -316,18 +314,11 @@ function titleRows(ui, s) {
   if (ui.onGate()) {
     return gateRows(ui);
   }
-  const world = seatedFreestyleMap(s);
-  /* One row for the place: the world flown. */
-  const place = {
-    label: str('ui.the_world'),
-    value: world ? world.name : str('ui.not_loaded'),
-    action: 'freestyle',
-    note: world ? str('ui.your_quad_and_the_physics_model', { note: world.note }) : str('ui.no_gates_pick_a_valley'),
-  };
+  /* The menu behind the gate: no Fly and no world here since free
+   * flight left (the combat-only cut, 2026-10-20); every flight is a
+   * card's. */
   return [
     ...padTrouble(ui),
-    { label: str('ui.fly_label'), action: 'fly', primary: true },
-    place,
     ...ui.friendsItems(),
     machineRow(s, str('ui.the_machine_tune_pids_camera_angle')),
     /* Labelled Settings and valued with the name: the radio lives here,
@@ -340,34 +331,25 @@ function titleRows(ui, s) {
 }
 
 /*
- * The gate: cards, then the rooms panel, then the pad trouble row. The
- * renderer places the rows by counting what is not a row, so every card
- * and panel entry has to come before any row.
+ * The gate: cards, then the rooms panel, then the rows. The renderer
+ * places the rows by counting what is not a row, so every card and panel
+ * entry has to come before any row. Home is the Operations cards and the
+ * Hangar (src/ui/actions.js homeCards); the Hangar is the one hub.
  */
 function gateRows(ui) {
   const rooms = ui.friendsItems().length > 0;
-  const panel = rooms && ui.titleRooms ? ui.titleRooms(!ui.hub) : [];
   const trouble = padTrouble(ui);
-  if (!ui.hub) {
-    return [...ui.hubCards(rooms), ...panel, ...trouble];
-  }
   if (ui.hub === 'hangar') {
     return [...ui.hangarCards(), ...trouble];
   }
-  const ways = hubWays(ui.hub).filter((w) => rooms || !w.room).map((w) => ({
-    label: w.label,
-    card: w.id,
-    art: w.art,
-    svg: w.svg ?? craftSvg(airframeById(w.airframes[0])),
-    blurb: w.blurb,
-    facts: w.facts,
-    action: w.action,
-  }));
-  /* The war's field hangar, a card of its own under Operations. */
-  const field = ui.hub === 'ops' ? [{
-    label: str('walk.field'), card: 'ops-field', svg: null, blurb: str('walk.field_blurb'), facts: [], action: 'field-walk',
-  }] : [];
-  return [...ways, ...field, ...(ui.hub === 'club' ? panel : []), ...trouble];
+  /* Nothing in PDCS is playable without the rooms server: the campaign,
+   * the Interior and the Defence lessons all fly in rooms (the lead,
+   * 2026-10-20, ASK 5). A page with no server says so where the rooms
+   * panel stands (src/ui/cards.js renderTitleRooms draws a head). */
+  const panel = rooms
+    ? (ui.titleRooms ? ui.titleRooms(true) : [])
+    : [{ lobby: 'head', section: true, label: str('ui.no_rooms_server'), value: str('ui.no_rooms_server_note') }];
+  return [...ui.homeCards(rooms), ...panel, ...trouble];
 }
 
 /* ---- rooms ---- */
@@ -397,26 +379,6 @@ function friendsRows(ui) {
 
 function roomRows(ui) {
   return [...(ui.roomRows ? ui.roomRows(ui.screen) : []), backRow()];
-}
-
-/* ---- Freestyle ---- */
-
-function freestyleRows(ui, s) {
-  /* The world cards only once there is more than one world to pick. */
-  const worlds = MAPS.filter((m) => m.mode === 'freestyle');
-  const cards = worlds.length > 1
-    ? worlds.map((m) => ({ label: m.name, note: m.note, map: m, action: `map:${m.id}` }))
-    : [];
-  return [
-    ...cards,
-    machineRow(s, str('ui.the_machine_its_tune_row_opens', { pids: SCREEN_TITLES.pids })),
-    flightStyleRow(str('ui.physics_model'), str('ui.arcade_the_ideal_quad_no_propwash'), str('ui.expert_the_full_physics_propwash_gyro'), s),
-    crashDamageRow(s),
-    weatherRow(s),
-    daytimeRow(s),
-    stockSurfacesRow(s),
-    backRow(),
-  ];
 }
 
 /* ---- Quad ---- */
@@ -508,6 +470,14 @@ function pilotRows(ui, s) {
     ...screenRows(ui, s),
     { label: str('ui.sound'), section: true },
     ...soundRows(s),
+    /* The air and the hour a room this pilot makes flies in (src/main.js
+     * openSession, chosenTime) and its stock surfaces: Freestyle's rows
+     * until that screen left with free flight (the combat-only cut,
+     * 2026-10-20). */
+    { label: str('ui.the_world'), section: true },
+    weatherRow(s),
+    daytimeRow(s),
+    stockSurfacesRow(s),
     { label: str('ui.diagnostics'), section: true },
     toggle(str('ui.flight_log'), str('ui.record_the_run_for_download_as'), s.flightLog, (v) => { s.flightLog = v; }),
     { label: str('ui.download_flight_log'), action: 'downloadflightlog', note: str('ui.writes_what_was_recorded_as_blackbox') },
@@ -559,7 +529,7 @@ function identityRows() {
 const FLIGHT_SPLIT = [
   ['race', 'ui.track_mode'],
   ['free', 'ui.free_flight_card'],
-  ['war', 'hub.ops'],
+  ['war', 'war.card'],
 ];
 
 /*
@@ -986,7 +956,6 @@ const SCREENS = {
   friends: friendsRows,
   rooms: roomRows,
   roomnew: roomRows,
-  freestyle: freestyleRows,
   quad: quadRows,
   pilot: pilotRows,
   paused: pausedRows,

@@ -75,15 +75,6 @@ export function startButton(gp) {
   return standard(gp) && Boolean(gp.buttons) && pressed(gp, B.start);
 }
 
-/* `button` (B unless the pilot moved it, padbinds.js `foot`), held in
- * flight to step out of a landed aircraft and to fly again (main.js THE
- * PILOT ON FOOT). Not View: on a world the builder works in, View enters
- * the builder (src/builder/buildmode.js PAD.back). B is a menu's back, and
- * in flight nothing else reads it. */
-export function footButton(gp, button = B.b) {
-  return standard(gp) && Boolean(gp.buttons) && pressed(gp, button);
-}
-
 /* Y, which the aircraft picker takes as its Floats switch. */
 export function floatsButton(gp) {
   return standard(gp) && Boolean(gp.buttons) && pressed(gp, B.y);

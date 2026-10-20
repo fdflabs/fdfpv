@@ -67,9 +67,9 @@ const page = await openPage({ root, width: 1280, height: 720, url: '/index.html'
 try {
   await page.until('window.__shellReady && window.__map && window.__map().ready', 300000);
   const errors0 = page.errors.length;
-  await page.evaluate("window.__ui.show('freestyle'); true");
+  await page.evaluate("window.__ui.show('pilot'); true");
   await page.evaluate('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))');
-  check('the Freestyle screen has a Weather row with Calm lit', (await page.evaluate(mark(en['weather.calm']))) === 'true');
+  check('Settings has a Weather row with Calm lit', (await page.evaluate(mark(en['weather.calm']))) === 'true');
   const found = await page.evaluate(mark(en['weather.gusty']));
   check('and a Gusty choice, not lit', found === 'false', String(found));
   check('Gusty is reached with a real pointer', await page.click('[data-wtest]'));

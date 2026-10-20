@@ -43,13 +43,6 @@ import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { el, keyHowtoRows, placeSticks, thrNote } from './widgets.js';
 import { SCREEN_TITLES, Ui, craftItem, seatedFreestyleMap } from './ui.js';
 
-/* The Freestyle picker lays its choices out as cards above the rows. The
- * title is not here because it is a card screen only on the gate:
- * Ui.cardScreen is the predicate that knows both. */
-export function isCardScreen(screen) {
-  return screen === 'freestyle';
-}
-
 /* Redraw the menu if the pilot is looking at one of these screens. */
 function redrawOn(ui, screens) {
   if (screens.includes(ui.screen)) {
@@ -563,9 +556,11 @@ export const sessionMethods = {
     return this.screen === 'title' && (this.craftGate || !this.mode);
   },
 
-  /* Every screen drawing some of its choices as cards. */
+  /* Every screen drawing some of its choices as cards: only the gate, since
+   * the Freestyle picker left with free flight (the combat-only cut,
+   * 2026-10-20). */
   cardScreen() {
-    return isCardScreen(this.screen) || this.onGate();
+    return this.onGate();
   },
 };
 

@@ -62,7 +62,6 @@ export const devHooks = DEV ? window : Object.create(null);
 /* [name, what it changes]; null: reads only, ungated. */
 export const HOOKS = [
   ['__accountSync', 'sends the account\'s settings and progress to the accounts server now'],
-  ['__aids', null],
   ['__air', null],
   ['__airFlown', null],
   ['__animMs', null],
@@ -107,7 +106,6 @@ export const HOOKS = [
   ['__dynres', null],
   ['__flightLog', null],
   ['__flightMode', null],
-  ['__foot', 'steps the pilot out on foot, faces and walks them'],
   ['__fpvOsd', null],
   ['__frameFault', null],
   ['__frameMs', 'fixes the frame step'],

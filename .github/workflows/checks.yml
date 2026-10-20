@@ -343,12 +343,6 @@ jobs:
       - run: npm run surfaces:gates
       - run: npm run surfaces:selftest
       - run: npm run paradrop:selftest
-      # The pilot on foot (docs/ON-FOOT.md): the walk never ends inside a
-      # solid, steps and slopes, pace; then on swiss2 in the real shell,
-      # step out, pace, the eye over the terrain, the hangar wall, fly
-      # again from where the pilot stands, pad and touch.
-      - run: npm run foot:node
-      - run: npm run foot:walk
       # Extreme Flight's 105.5 in Slick 580 (docs/SLICK-STAGE1.md): its
       # table, plant row and bands against the derivation, its gates and
       # its stabiliser.

@@ -63,7 +63,6 @@ import { weatherSection } from './rooms-selftest-weather.js';
 import { stockSurfacesSection } from './rooms-selftest-surfaces.js';
 import { visibilitySection } from './rooms-selftest-visibility.js';
 import { setupSection } from './rooms-selftest-setup.js';
-import { footSection } from './rooms-selftest-foot.js';
 import { watchSection, watchStateSection } from './rooms-selftest-watch.js';
 import { warSection } from './rooms-selftest-war.js';
 import { opsSection } from './rooms-selftest-ops.js';
@@ -696,6 +695,12 @@ console.log('phase 2: shared wrecks');
     sent += binaries(wb).length - n;
   }
   check(`parts over ${PARTS_PER_S} a second are dropped`, sent === PARTS_PER_S, `${sent}`);
+  /* An older page's FOOT (0x40, 16 bytes, until the pilot on foot left in
+   * the combat-only cut): dropped, nobody told, the seat kept. */
+  const heardFoot = binaries(wb).length;
+  const footActs = room.message(wa, new Uint8Array([0x40, 1, 0, 0, 128, 63, 0, 0, 0, 64, 0, 0, 64, 64, 0, 0]), now);
+  run(footActs);
+  check('an older page\'s FOOT is dropped: nothing relayed, nothing closed', binaries(wb).length === heardFoot && footActs.every((x) => !x.close) && !wa.closed);
   const wc = sock('wc', '10.2.0.3');
   hello(wc);
   check('a pilot who joins late gets the wreck as it lies', texts(wc, 'event').some((m) => m.kind === 'crash' && m.seat === 1)
@@ -1177,7 +1182,6 @@ weatherSection(check);
 stockSurfacesSection(check);
 visibilitySection(check);
 setupSection(check);
-footSection(check);
 watchSection(check);
 watchStateSection(check);
 await browserSection(check);

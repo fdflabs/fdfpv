@@ -48,7 +48,6 @@ const VISIT_PEERS = 3;
 
 const CRUMBS = {
   title: ['ui.product_name'],
-  freestyle: ['ui.freestyle'],
   pilot: ['ui.settings'],
   quad: ['ui.quad'],
   rates: ['hub.hangar', 'controller.title', 'ui.rates'],
@@ -75,7 +74,6 @@ const MENU_FIELD = {
   title: 'titleMenu',
   howto: 'howtoMenu',
   credits: 'creditsMenu',
-  freestyle: 'freestyleMenu',
   pilot: 'pilotMenu',
   friends: 'friendsMenu',
   quad: 'quadMenu',
@@ -296,19 +294,19 @@ function arriveAt(ui, screen) {
   }
 }
 
-/* The breadcrumb's parts, root first. A hub on the gate names itself
+/* The breadcrumb's parts, root first. The Hangar on the gate names itself
  * under the product; a screen without a trail shows its title. */
 function crumbTrail(ui) {
   const hub = ui.screen === 'title' && ui.onGate() && ui.hub ? HUBS.find((h) => h.id === ui.hub) : null;
   if (hub) {
     return [str('ui.product_name'), str(hub.label)];
   }
-  /* A walkable hangar is under the hub it was opened from. */
+  /* A walkable hangar is under the Hangar; the field hangar under home. */
   if (ui.screen === 'walk' && ui.walk && ui.walk.roomLineup) {
     return [str('friends.title'), str('walk.lineup_room')];
   }
   if (ui.screen === 'walk' && ui.walk) {
-    return ui.walk.tier === 'field' ? [str('hub.ops'), str('walk.field')] : [str('hub.hangar'), str('walk.card')];
+    return ui.walk.tier === 'field' ? [str('ui.product_name'), str('walk.field')] : [str('hub.hangar'), str('walk.card')];
   }
   return CRUMBS[ui.screen] || [SCREEN_TITLES[ui.screen] || ui.screen];
 }
@@ -318,9 +316,7 @@ export const navMethods = {
     /* The sign in chip's label can change without the screen changing. */
     this.syncChips();
     this.closeDrop();
-    if (this.screen === 'freestyle') {
-      this.renderMapCards();
-    } else if (this.screen === 'title') {
+    if (this.screen === 'title') {
       this.renderTitleCards();
       this.renderTitleRooms();
       this.renderTitleStats();

@@ -696,9 +696,13 @@ const GROUPS = [
     if (barAt >= 0) { ui.setCursor(barAt); cap('cursor-update-bar', [ui.frameBot, ui.screens.paused]); }
     ui.updateReady = false;
     ui.syncChips();
-    ui.show('freestyle');
+    /* Settings' not-saved row: Freestyle's warning row until that screen
+     * left with free flight (the combat-only cut, 2026-10-20). */
+    ui.resetNotice = 'x';
+    ui.show('pilot');
     const warnAt = ui.items().findIndex((x) => x.rowClass === 'row-warn');
-    if (warnAt >= 0) { ui.setCursor(warnAt); cap('cursor-row-warn', ui.screens.freestyle); }
+    if (warnAt >= 0) { ui.setCursor(warnAt); cap('cursor-row-warn', ui.screens.pilot); }
+    ui.resetNotice = null;
     ui.onFcOpen('pid');
     ui.fcFrom = 'title';
     ui.show('fc');

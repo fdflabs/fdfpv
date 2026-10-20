@@ -68,8 +68,6 @@
  *                 for it, so nobody meets it without having chosen it
  *   makeable      offered on Make a room's Game row as is (the war has its
  *                 own rule there: only on its map)
- *   onFoot        a landed and stopped pilot may step out and walk
- *                 (docs/ON-FOOT.md); free flight only
  *   hidden        offered nowhere: no card draws it and home's Continue
  *                 never holds it (COMPLETENESS 81: one place to hide a
  *                 row, the author's decision over a flags system)
@@ -92,7 +90,6 @@ export const MODES = [
     consent: true,
     publicOnlyWhenMadeFor: true,
     makeable: false,
-    onFoot: false,
     hidden: false,
   },
   {
@@ -112,8 +109,10 @@ export const MODES = [
     consent: false,
     publicOnlyWhenMadeFor: false,
     makeable: false,
-    onFoot: true,
-    hidden: false,
+    /* No card since free flight left PDCS (the combat-only cut,
+     * 2026-10-20): the row stays because the Interior's room is a free
+     * room on the wire (mode null, src/main.js opsEnter). */
+    hidden: true,
   },
 ];
 

@@ -8,8 +8,7 @@
  * a key, and the server pays a key at most once per account. The keys
  * come from a FINITE list read off the synced record: the firsts that pay
  * XP (src/game/progress.js firstsOf: a known mission's win and stars, a
- * known aircraft's flight time milestones, a known lesson passed) and the
- * seven challenges. Laps
+ * known aircraft's flight time milestones, a known lesson passed). Laps
  * and built courses pay XP and never tokens, since anyone can make a new
  * course. So repetition pays nothing, and the most a record can ever be
  * paid is grantCeiling(), whatever is written in it.
@@ -39,8 +38,8 @@
  *  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { CHALLENGES, everyFirst, firstsOf } from './progress.js';
-import { MAX_STARS, cleanCampaign } from './campaign.js';
+import { everyFirst, firstsOf } from './progress.js';
+import { ACT1, INTERIOR, MAX_STARS, cleanCampaign, released } from './campaign.js';
 import { flightTotals } from '../share/flighttime.js';
 import { KITS } from '../../configs/kits.js';
 
@@ -49,7 +48,6 @@ import { KITS } from '../../configs/kits.js';
  * Combat and Catch the Ace! left in the combat-only cut (2026-10-20);
  * grants paid then stay paid. */
 export const FIRST_TOKENS = { win: 60, star: 30, flight: 10, ten: 20, hour: 60, lesson: 20 };
-export const CHALLENGE_TOKENS = 50;
 
 /*
  * THE SHOP. Bought items carry a price; earned ones carry `earn`, the feat,
@@ -57,17 +55,25 @@ export const CHALLENGE_TOKENS = 50;
  * has more than the shop costs: the shop is the reason to try something
  * new, not a wall. Every id is `<kind>:<paint id>`: a finish of
  * configs/paint.js FINISHES or a decal kind of DECAL_KINDS.
+ *
+ * The finishes cost 300, 500, 600, 500 and 400 until the combat-only cut
+ * (2026-10-20) took the recreational lessons' and the challenges' 650
+ * tokens out of what flying everything once pays (4600 to 3930, against a
+ * shop of 4470). Each came down by about 30 percent, rounded to 50, in
+ * the same order of dearness: 1650 for the five, so the shop is 3820.
+ * With the cut planes' milestones and kits gone as well (#12) it is 2140
+ * against 2310.
  */
 /* A kit item's price (see kitItems below). */
 export const KIT_PRICE = 70;
 
 export const ITEMS = [
-  { id: 'finish:satin', kind: 'finish', paint: 'satin', price: 300 },
-  { id: 'finish:pearl', kind: 'finish', paint: 'pearl', price: 500 },
-  { id: 'finish:candy', kind: 'finish', paint: 'candy', price: 600 },
-  { id: 'finish:gold', kind: 'finish', paint: 'gold', earn: 'challenges' },
-  { id: 'finish:flake', kind: 'finish', paint: 'flake', price: 500 },
-  { id: 'finish:brushed', kind: 'finish', paint: 'brushed', price: 400 },
+  { id: 'finish:satin', kind: 'finish', paint: 'satin', price: 200 },
+  { id: 'finish:pearl', kind: 'finish', paint: 'pearl', price: 350 },
+  { id: 'finish:candy', kind: 'finish', paint: 'candy', price: 450 },
+  { id: 'finish:gold', kind: 'finish', paint: 'gold', earn: 'campaigns' },
+  { id: 'finish:flake', kind: 'finish', paint: 'flake', price: 350 },
+  { id: 'finish:brushed', kind: 'finish', paint: 'brushed', price: 300 },
   { id: 'decal:ribbon', kind: 'decal', paint: 'ribbon', earn: 'three_stars' },
   ...kitItems(),
 ];
@@ -118,13 +124,11 @@ function isRecord(o) {
 function factsOf(blob) {
   const data = isRecord(blob) && isRecord(blob.data) ? blob.data : {};
   const progress = isRecord(data.progress) ? data.progress : {};
-  const done = isRecord(progress.challenges) ? progress.challenges : {};
   return {
     campaign: cleanCampaign(data.campaign),
     seconds: flightTotals(data.flightTime).byAirframe,
     lessons: isRecord(progress.lessons) ? progress.lessons : {},
     flown: isRecord(progress.lessonsFlown) ? progress.lessonsFlown : {},
-    challenges: CHALLENGES.filter((c) => done[c.id] === true).map((c) => c.id),
   };
 }
 
@@ -137,20 +141,33 @@ function tokensForFirst(key) {
 }
 
 /* Every grant the record shows: [{ key, amount }]. Keys are stable, so
- * the server pays each once however often it is asked. */
+ * the server pays each once however often it is asked. A challenge done
+ * paid 50 (`challenge:<id>`) until the challenges left with Flight Club
+ * in the combat-only cut (2026-10-20); those grants stay in the wallet
+ * (tracks-api/wallet.js inserts, never takes back). */
 export function grantsFrom(blob) {
-  const f = factsOf(blob);
-  return [
-    ...firstsOf(f).map((x) => ({ key: `first:${x.key}`, amount: tokensForFirst(x.key) })),
-    ...f.challenges.map((id) => ({ key: `challenge:${id}`, amount: CHALLENGE_TOKENS })),
-  ];
+  return firstsOf(factsOf(blob)).map((x) => ({ key: `first:${x.key}`, amount: tokensForFirst(x.key) }));
+}
+
+/*
+ * The gold finish's feat: every mission of both campaigns a pilot may fly
+ * today won. It was every challenge done until the combat-only cut
+ * (2026-10-20) took the challenges, all recreational, with it; a pilot who
+ * earned it then keeps it (tracks-api/wallet.js never takes an owned item
+ * back). Read at load, so a mission released later joins the feat for
+ * whoever has not earned it yet. Never empty: an empty list would make
+ * every() true and grant gold to every account (economy:selftest).
+ */
+const CAMPAIGN_FEAT = [...ACT1, ...INTERIOR].filter((m) => released(m.id)).map((m) => m.id);
+if (!CAMPAIGN_FEAT.length) {
+  throw new Error('economy.js: no released mission, so the gold finish would be every account\'s');
 }
 
 /* The earned items the record shows: their ids. */
 export function earnedFrom(blob) {
   const f = factsOf(blob);
   const feats = {
-    challenges: f.challenges.length === CHALLENGES.length,
+    campaigns: CAMPAIGN_FEAT.every((id) => f.campaign.missions[id]?.won === true),
     three_stars: Object.values(f.campaign.missions).some((m) => m.stars >= MAX_STARS),
   };
   for (const [id, secs] of Object.entries(f.seconds)) {
@@ -161,8 +178,7 @@ export function earnedFrom(blob) {
   return ITEMS.filter((it) => it.earn && feats[it.earn]).map((it) => it.id);
 }
 
-/* The most any record can be paid: every first and every
- * challenge, once. */
+/* The most any record can be paid: every first, once. */
 export function grantCeiling() {
-  return everyFirst().reduce((n, x) => n + tokensForFirst(x.key), 0) + CHALLENGES.length * CHALLENGE_TOKENS;
+  return everyFirst().reduce((n, x) => n + tokensForFirst(x.key), 0);
 }

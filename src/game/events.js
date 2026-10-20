@@ -28,8 +28,7 @@
  *                 a new run key (Progress.startRun): the aircraft, its
  *                 power's kind ('electric', 'glow' or null) and whether
  *                 it is on its smallest pack or tank, and whether the
- *                 crash flag was up as it was seated; the challenges
- *                 start over on it (progress.js challengeRun)
+ *                 crash flag was up as it was seated
  *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js);
  *                 a lap carries {ms, airframe, medal, kind, course, n,
  *                 of}, the medal it reached on a course with medals or

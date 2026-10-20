@@ -51,7 +51,7 @@ import { PRESET_IDS } from '../../src/game/weather.js';
 import { Referee } from './referee.js';
 import { RoomSafety } from './safety.js';
 import {
-  ROOM_SETUPS, TYPE_FOOT, TYPE_PARTS, WAR_JOIN,
+  ROOM_SETUPS, TYPE_PARTS, WAR_JOIN,
 } from '../../src/share/roomwire.js';
 import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
 import { released } from '../../src/game/campaign.js';
@@ -63,7 +63,6 @@ import { TIME_NAMES, clockOfTime, missionClock } from '../../src/share/daytime.j
 import { MISSIONS, missionTime } from '../../src/share/war/missions/index.js';
 import { stagesOf } from '../../src/share/war/stages.js';
 import { RoomVoice, VOICE_PER_S } from './voice.js';
-import { onFoot } from './foot.js';
 
 /* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
  * ownership in fdfpv-loop/multiplayer/COORD.md). */
@@ -1019,9 +1018,6 @@ export class RoomCore {
     if (typeof data !== 'string') {
       if (s && data[0] === TYPE_PARTS) {
         return wrecks.onParts(this, conn, s, data, now);
-      }
-      if (s && data[0] === TYPE_FOOT) {
-        return onFoot(this, conn, s, data, now);
       }
       return s ? this.pose(conn, s, data, now) : [];
     }

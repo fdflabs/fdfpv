@@ -404,11 +404,11 @@
     "value": "C"
    },
    {
-    "action": "keybind:foot",
-    "id": "controls:a-keybind:foot",
-    "label": "Step out, or fly again",
-    "note": "Default: 1, pad B. Press, then the new key or pad button.",
-    "value": "1, pad B"
+    "action": "keybind:strike",
+    "id": "controls:a-keybind:strike",
+    "label": "Strike (an ops mission's strike aircraft)",
+    "note": "Default: 2. Press, then the new key or pad button.",
+    "value": "2"
    },
    {
     "action": "keybind:replay",
@@ -486,7 +486,7 @@
    },
    {
     "cls": "row",
-    "text": "Step out, or fly again1, pad B"
+    "text": "Strike (an ops mission's strike aircraft)2"
    },
    {
     "cls": "row",
@@ -658,7 +658,7 @@
    },
    {
     "i": 10,
-    "id": "controls:a-keybind:foot",
+    "id": "controls:a-keybind:strike",
     "to": "controls",
     "calls": [
      [
@@ -751,94 +751,6 @@
      [
       "onScreenChange",
       "controller"
-     ]
-    ]
-   }
-  ]
- },
- "courses": {
-  "screen": "courses",
-  "items": [
-   {
-    "action": "newtrack",
-    "id": "courses:a-newtrack",
-    "label": "New track",
-    "note": "Build one: choose the world, then place the gates where you want them."
-   },
-   {
-    "action": "leaderboard",
-    "id": "courses:a-leaderboard",
-    "label": "Tracks and Statistics on the web",
-    "note": "The public page, for sending somebody a link. Everything on it is in here too. Opens in a new tab."
-   },
-   {
-    "action": "back",
-    "id": "courses:a-back",
-    "label": "Back"
-   }
-  ],
-  "rows": [
-   {
-    "cls": "row on",
-    "text": "New track"
-   },
-   {
-    "cls": "row row-link",
-    "text": "Tracks and Statistics on the web"
-   },
-   {
-    "cls": "row",
-    "text": "Back"
-   }
-  ],
-  "leads": [
-   {
-    "i": 0,
-    "id": "courses:a-newtrack",
-    "to": "courses",
-    "calls": [
-     [
-      "onUiSound",
-      "select"
-     ]
-    ]
-   },
-   {
-    "i": 1,
-    "id": "courses:a-leaderboard",
-    "to": "courses",
-    "calls": [
-     [
-      "onUiSound",
-      "select"
-     ]
-    ]
-   },
-   {
-    "i": 2,
-    "id": "courses:a-back",
-    "to": "title",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onUiSound",
-      "back"
-     ],
-     [
-      "onScreenChange",
-      "title"
-     ],
-     [
-      "onAction",
-      "title",
-      "object"
      ]
     ]
    }
@@ -3812,505 +3724,6 @@
    }
   ]
  },
- "freestyle": {
-  "screen": "freestyle",
-  "items": [
-   {
-    "action": "map:alps",
-    "id": "freestyle:a-map:alps",
-    "label": "The Alps",
-    "map": {
-     "build": true,
-     "buildMs": 917,
-     "id": "alps",
-     "mode": "freestyle",
-     "name": "The Alps",
-     "note": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock.",
-     "poster": "assets/posters/alps.jpg"
-    },
-    "note": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock."
-   },
-   {
-    "action": "map:swiss2",
-    "id": "freestyle:a-map:swiss2",
-    "label": "Swiss valley, photoreal",
-    "map": {
-     "build": true,
-     "buildMs": 2500,
-     "id": "swiss2",
-     "mode": "freestyle",
-     "name": "Swiss valley, photoreal",
-     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock.",
-     "poster": "assets/posters/swiss2.jpg"
-    },
-    "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock."
-   },
-   {
-    "action": "map:itaipu",
-    "id": "freestyle:a-map:itaipu",
-    "label": "Itaipu",
-    "map": {
-     "build": true,
-     "buildMs": 2600,
-     "id": "itaipu",
-     "mode": "freestyle",
-     "name": "Itaipu",
-     "note": "Forty kilometres square round the Itaipu Dam on the Parana at real scale, from satellite imagery and elevation: the dam, the reservoir and the river below at their levels, the towns and the forests. Map data (c) OpenStreetMap contributors. No gates, no clock.",
-     "poster": "assets/posters/itaipu.jpg"
-    },
-    "note": "Forty kilometres square round the Itaipu Dam on the Parana at real scale, from satellite imagery and elevation: the dam, the reservoir and the river below at their levels, the towns and the forests. Map data (c) OpenStreetMap contributors. No gates, no clock."
-   },
-   {
-    "action": "map:interior",
-    "id": "freestyle:a-map:interior",
-    "label": "The Interior (in development)",
-    "map": {
-     "buildMs": 2600,
-     "id": "interior",
-     "mode": "freestyle",
-     "name": "The Interior (in development)",
-     "note": "In development: The Interior campaign's map, sixteen kilometres square of ranch land, soy fields, gallery forest and a slow river, the land from open elevation and land cover data and every road, house and name on it invented. Mission 1's corridor only. No gates, no clock."
-    },
-    "note": "In development: The Interior campaign's map, sixteen kilometres square of ranch land, soy fields, gallery forest and a slow river, the land from open elevation and land cover data and every road, house and name on it invented. Mission 1's corridor only. No gates, no clock."
-   },
-   {
-    "current": "off",
-    "id": "freestyle:scoring",
-    "label": "Scoring",
-    "note": "Off: no overlay, no names and no run clock, just the valley and the quad. Free flight: tricks are named and scored as you land them, with no clock and no board, and the run never ends. That is the one to learn a Powerloop in. Scored run: two minutes on the clock, and what you finish with goes to the high score board.",
-    "options": [
-     {
-      "label": "Off",
-      "value": "off"
-     },
-     {
-      "label": "Free flight",
-      "value": "free"
-     },
-     {
-      "label": "Scored run",
-      "value": "scored"
-     }
-    ],
-    "pickOnly": true,
-    "value": "Off"
-   },
-   {
-    "current": true,
-    "id": "freestyle:trick-callouts",
-    "label": "Trick callouts",
-    "note": "Names every trick and aerobatic figure as you land it, with its grade, its points and the chain. Shown with the score off too.",
-    "on": true,
-    "sw": true,
-    "value": "On"
-   },
-   {
-    "action": "quad",
-    "id": "freestyle:a-quad",
-    "label": "Quad",
-    "note": "The machine. Its Tune row opens PIDs, where the tune is chosen and the firmware's own sliders adjust it, and the camera, the flight mode and the firmware bench are there too.",
-    "value": "Factory default"
-   },
-   {
-    "current": "expert",
-    "id": "freestyle:physics-model",
-    "label": "Physics model",
-    "note": "Expert: the full physics, propwash, gyro noise and build tolerance included. Arcade turns the imperfections off for a friendlier machine. Takes effect on the next flight.",
-    "options": [
-     {
-      "label": "Expert",
-      "value": "expert"
-     },
-     {
-      "label": "Arcade",
-      "value": "arcade"
-     }
-    ],
-    "value": "Expert"
-   },
-   {
-    "current": true,
-    "id": "freestyle:crash-damage",
-    "label": "Crash damage",
-    "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
-    "on": true,
-    "sw": true,
-    "value": "On"
-   },
-   {
-    "current": "calm",
-    "id": "freestyle:weather",
-    "label": "Weather",
-    "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
-    "options": [
-     {
-      "label": "Calm",
-      "value": "calm"
-     },
-     {
-      "label": "Breeze",
-      "value": "breeze"
-     },
-     {
-      "label": "Gusty",
-      "value": "gusty"
-     },
-     {
-      "label": "Fronts",
-      "value": "front"
-     }
-    ],
-    "value": "Calm"
-   },
-   {
-    "current": "own",
-    "id": "freestyle:time-of-day",
-    "label": "Time of day",
-    "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
-    "options": [
-     {
-      "label": "World's own",
-      "value": "own"
-     },
-     {
-      "label": "Day",
-      "value": "day"
-     },
-     {
-      "label": "Morning",
-      "value": "morning"
-     },
-     {
-      "label": "Noon",
-      "value": "noon"
-     },
-     {
-      "label": "Golden hour",
-      "value": "golden"
-     },
-     {
-      "label": "Night",
-      "value": "night"
-     }
-    ],
-    "value": "World's own"
-   },
-   {
-    "current": false,
-    "id": "freestyle:stock-surfaces-only",
-    "label": "Stock surfaces only",
-    "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-    "on": false,
-    "sw": true,
-    "value": "Off"
-   },
-   {
-    "action": "back",
-    "id": "freestyle:a-back",
-    "label": "Back"
-   }
-  ],
-  "rows": [
-   {
-    "cls": "row",
-    "text": "ScoringOffFree flightScored run"
-   },
-   {
-    "cls": "row",
-    "text": "Trick calloutsOffOn"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "QuadFactory default"
-   },
-   {
-    "cls": "row",
-    "text": "Physics modelExpertArcade"
-   },
-   {
-    "cls": "row",
-    "text": "Crash damageOffOn"
-   },
-   {
-    "cls": "row",
-    "text": "WeatherCalmBreezeGustyFronts"
-   },
-   {
-    "cls": "row",
-    "text": "Time of dayWorld's own"
-   },
-   {
-    "cls": "row",
-    "text": "Stock surfaces onlyOffOn"
-   },
-   {
-    "cls": "row",
-    "text": "Back"
-   }
-  ],
-  "leads": [
-   {
-    "i": 0,
-    "id": "freestyle:a-map:alps",
-    "to": "title",
-    "calls": [
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "title"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 1,
-    "id": "freestyle:a-map:swiss2",
-    "to": "title",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "title"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 2,
-    "id": "freestyle:a-map:itaipu",
-    "to": "title",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "title"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 3,
-    "id": "freestyle:a-map:interior",
-    "to": "title",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "title"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 4,
-    "id": "freestyle:scoring",
-    "to": "freestyle",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ]
-    ]
-   },
-   {
-    "i": 5,
-    "id": "freestyle:trick-callouts",
-    "to": "freestyle",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 6,
-    "id": "freestyle:a-quad",
-    "to": "quad",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "quad"
-     ]
-    ]
-   },
-   {
-    "i": 7,
-    "id": "freestyle:physics-model",
-    "to": "freestyle",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 8,
-    "id": "freestyle:crash-damage",
-    "to": "freestyle",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 9,
-    "id": "freestyle:weather",
-    "to": "freestyle",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 10,
-    "id": "freestyle:time-of-day",
-    "to": "freestyle",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ]
-    ]
-   },
-   {
-    "i": 11,
-    "id": "freestyle:stock-surfaces-only",
-    "to": "freestyle",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 12,
-    "id": "freestyle:a-back",
-    "to": "title",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onUiSound",
-      "back"
-     ],
-     [
-      "onScreenChange",
-      "title"
-     ],
-     [
-      "onAction",
-      "title",
-      "object"
-     ]
-    ]
-   }
-  ]
- },
  "friends": {
   "screen": "friends",
   "items": [
@@ -4544,344 +3957,6 @@
    }
   ]
  },
- "launch": {
-  "screen": "launch",
-  "items": [
-   {
-    "id": "launch:track",
-    "info": true,
-    "label": "Track",
-    "note": "This is what your time will be measured on.",
-    "value": "Track"
-   },
-   {
-    "action": "quad",
-    "id": "launch:a-quad",
-    "label": "Quad",
-    "note": "The tune, the PIDs, the camera and the firmware. Opens Quad. Whatever is loaded there is what this run flies, and it goes to the board with the time.",
-    "value": "Factory default"
-   },
-   {
-    "id": "launch:s-what-this-run-counts-as",
-    "label": "What this run counts as",
-    "section": true
-   },
-   {
-    "current": 3,
-    "id": "launch:laps",
-    "label": "Laps",
-    "note": "How many laps a run lasts before the result screen. Latched when you launch, so changing it mid-run does nothing until the next one.",
-    "options": [
-     {
-      "label": "1",
-      "value": 1
-     },
-     {
-      "label": "3",
-      "value": 3
-     },
-     {
-      "label": "5",
-      "value": 5
-     }
-    ],
-    "value": "3"
-   },
-   {
-    "current": 4.2,
-    "id": "launch:pack-charge",
-    "label": "Pack charge",
-    "note": "A tired pack sags harder and gives less punch. Best laps are kept per charge level, so a time set on a fresh pack and a time set on a tired one are two different records.",
-    "options": [
-     {
-      "label": "4.20 volts per cell",
-      "value": 4.2
-     },
-     {
-      "label": "3.80 volts per cell",
-      "value": 3.8
-     },
-     {
-      "label": "3.50 volts per cell",
-      "value": 3.5
-     }
-    ],
-    "value": "4.20 volts per cell"
-   },
-   {
-    "current": "expert",
-    "id": "launch:flight-model",
-    "label": "Flight model",
-    "note": "Expert: the full physics, propwash, gyro noise and build tolerance included, which is what every board time is flown on. Arcade turns the imperfections off for a friendlier machine.",
-    "options": [
-     {
-      "label": "Expert",
-      "value": "expert"
-     },
-     {
-      "label": "Arcade",
-      "value": "arcade"
-     }
-    ],
-    "value": "Expert"
-   },
-   {
-    "current": true,
-    "id": "launch:crash-damage",
-    "label": "Crash damage",
-    "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
-    "on": true,
-    "sw": true,
-    "value": "On"
-   },
-   {
-    "current": "perfect",
-    "id": "launch:radio-link",
-    "label": "Radio link",
-    "note": "A perfect link is sharper than any real radio: every frame arrives, exactly on time. Times set on it are marked on the board.",
-    "options": [
-     {
-      "label": "Perfect (no radio)",
-      "value": "perfect"
-     },
-     {
-      "label": "ELRS 500 Hz",
-      "value": "elrs500"
-     },
-     {
-      "label": "ELRS 250 Hz",
-      "value": "elrs250"
-     },
-     {
-      "label": "ELRS 150 Hz",
-      "value": "elrs150"
-     },
-     {
-      "label": "Crossfire 150 Hz",
-      "value": "crossfire"
-     }
-    ],
-    "value": "Perfect (no radio)"
-   },
-   {
-    "action": "launch-go",
-    "id": "launch:a-launch-go",
-    "label": "Fly",
-    "note": "Your best on Track is filed under exactly this: Expert physics, 4.20 V per cell, 3 laps, the Factory default tune. Change any part of it and you are on a different board. This run is on a perfect link.",
-    "primary": true
-   },
-   {
-    "action": "back",
-    "id": "launch:a-back",
-    "label": "Back"
-   }
-  ],
-  "rows": [
-   {
-    "cls": "row row-info",
-    "text": "TrackTrack"
-   },
-   {
-    "cls": "row row-nav",
-    "text": "QuadFactory default"
-   },
-   {
-    "cls": "row",
-    "text": "Laps135"
-   },
-   {
-    "cls": "row",
-    "text": "Pack charge4.20 volts per cell"
-   },
-   {
-    "cls": "row",
-    "text": "Flight modelExpertArcade"
-   },
-   {
-    "cls": "row",
-    "text": "Crash damageOffOn"
-   },
-   {
-    "cls": "row",
-    "text": "Radio linkPerfect (no radio)"
-   },
-   {
-    "cls": "row row-primary on",
-    "text": "Fly"
-   },
-   {
-    "cls": "row",
-    "text": "Back"
-   }
-  ],
-  "leads": [
-   {
-    "i": 0,
-    "id": "launch:track",
-    "to": "launch",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ]
-    ]
-   },
-   {
-    "i": 1,
-    "id": "launch:a-quad",
-    "to": "quad",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "quad"
-     ]
-    ]
-   },
-   {
-    "i": 3,
-    "id": "launch:laps",
-    "to": "launch",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 4,
-    "id": "launch:pack-charge",
-    "to": "launch",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ]
-    ]
-   },
-   {
-    "i": 5,
-    "id": "launch:flight-model",
-    "to": "launch",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 6,
-    "id": "launch:crash-damage",
-    "to": "launch",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 7,
-    "id": "launch:radio-link",
-    "to": "launch",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ]
-    ]
-   },
-   {
-    "i": 8,
-    "id": "launch:a-launch-go",
-    "to": "launch",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "fly",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 9,
-    "id": "launch:a-back",
-    "to": "title",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onUiSound",
-      "back"
-     ],
-     [
-      "onScreenChange",
-      "title"
-     ],
-     [
-      "onAction",
-      "title",
-      "object"
-     ]
-    ]
-   }
-  ]
- },
  "padpick": {
   "screen": "padpick",
   "items": [],
@@ -4923,12 +3998,6 @@
     "note": "Your radio and keys, screen, sound, language, and help."
    },
    {
-    "action": "mytracks",
-    "id": "paused:a-mytracks",
-    "label": "My tracks",
-    "note": "Back to the list of tracks: play another, edit this one, or build a new one."
-   },
-   {
     "action": "title",
     "id": "paused:a-title",
     "label": "Quit to title"
@@ -4954,10 +4023,6 @@
    {
     "cls": "row row-nav",
     "text": "Settings"
-   },
-   {
-    "cls": "row",
-    "text": "My tracks"
    },
    {
     "cls": "row",
@@ -5056,38 +4121,6 @@
    },
    {
     "i": 5,
-    "id": "paused:a-mytracks",
-    "to": "courses",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onScreenChange",
-      "title"
-     ],
-     [
-      "onAction",
-      "title",
-      "object"
-     ],
-     [
-      "onScreenChange",
-      "courses"
-     ],
-     [
-      "onUiSound",
-      "move"
-     ]
-    ]
-   },
-   {
-    "i": 6,
     "id": "paused:a-title",
     "to": "title",
     "calls": [
@@ -5624,7 +4657,7 @@
     "action": "setname",
     "id": "pilot:a-setname",
     "label": "Your name",
-    "note": "Needed to publish a track or post a time. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
+    "note": "The name this computer flies under. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
     "value": "Not set"
    },
    {
@@ -6047,6 +5080,78 @@
     "value": "Off"
    },
    {
+    "id": "pilot:s-the-world",
+    "label": "The world",
+    "section": true
+   },
+   {
+    "current": "calm",
+    "id": "pilot:weather",
+    "label": "Weather",
+    "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+    "options": [
+     {
+      "label": "Calm",
+      "value": "calm"
+     },
+     {
+      "label": "Breeze",
+      "value": "breeze"
+     },
+     {
+      "label": "Gusty",
+      "value": "gusty"
+     },
+     {
+      "label": "Fronts",
+      "value": "front"
+     }
+    ],
+    "value": "Calm"
+   },
+   {
+    "current": "own",
+    "id": "pilot:time-of-day",
+    "label": "Time of day",
+    "note": "Each world at its own time, as always. In a room, the host's choice is everyone's; a mission keeps its own time.",
+    "options": [
+     {
+      "label": "World's own",
+      "value": "own"
+     },
+     {
+      "label": "Day",
+      "value": "day"
+     },
+     {
+      "label": "Morning",
+      "value": "morning"
+     },
+     {
+      "label": "Noon",
+      "value": "noon"
+     },
+     {
+      "label": "Golden hour",
+      "value": "golden"
+     },
+     {
+      "label": "Night",
+      "value": "night"
+     }
+    ],
+    "value": "World's own"
+   },
+   {
+    "current": false,
+    "id": "pilot:stock-surfaces-only",
+    "label": "Stock surfaces only",
+    "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
     "id": "pilot:s-diagnostics",
     "label": "Diagnostics",
     "section": true
@@ -6254,6 +5359,18 @@
    {
     "cls": "row",
     "text": "Binaural toneOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "WeatherCalmBreezeGustyFronts"
+   },
+   {
+    "cls": "row",
+    "text": "Time of dayWorld's own"
+   },
+   {
+    "cls": "row",
+    "text": "Stock surfaces onlyOffOn"
    },
    {
     "cls": "row",
@@ -6862,7 +5979,7 @@
    },
    {
     "i": 39,
-    "id": "pilot:flight-log",
+    "id": "pilot:weather",
     "to": "pilot",
     "calls": [
      [
@@ -6881,6 +5998,59 @@
    },
    {
     "i": 40,
+    "id": "pilot:time-of-day",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 41,
+    "id": "pilot:stock-surfaces-only",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 43,
+    "id": "pilot:flight-log",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 44,
     "id": "pilot:a-downloadflightlog",
     "to": "pilot",
     "calls": [
@@ -6900,7 +6070,7 @@
     ]
    },
    {
-    "i": 41,
+    "i": 45,
     "id": "pilot:a-downloadcontrolrec",
     "to": "pilot",
     "calls": [
@@ -6920,7 +6090,7 @@
     ]
    },
    {
-    "i": 42,
+    "i": 46,
     "id": "pilot:build",
     "to": "pilot",
     "calls": [
@@ -6931,7 +6101,7 @@
     ]
    },
    {
-    "i": 44,
+    "i": 48,
     "id": "pilot:a-resetsettings",
     "to": "pilot",
     "calls": [
@@ -6946,7 +6116,7 @@
     ]
    },
    {
-    "i": 45,
+    "i": 49,
     "id": "pilot:a-resetprogress",
     "to": "pilot",
     "calls": [
@@ -6961,7 +6131,7 @@
     ]
    },
    {
-    "i": 47,
+    "i": 51,
     "id": "pilot:a-howto",
     "to": "howto",
     "calls": [
@@ -6980,7 +6150,7 @@
     ]
    },
    {
-    "i": 48,
+    "i": 52,
     "id": "pilot:a-credits",
     "to": "credits",
     "calls": [
@@ -6999,7 +6169,7 @@
     ]
    },
    {
-    "i": 49,
+    "i": 53,
     "id": "pilot:a-back",
     "to": "title",
     "calls": [
@@ -8628,22 +7798,6 @@
      {
       "label": "Just fly",
       "value": "0"
-     },
-     {
-      "label": "Race",
-      "value": "1"
-     },
-     {
-      "label": "Catch the Ace",
-      "value": "2"
-     },
-     {
-      "label": "Combat",
-      "value": "3"
-     },
-     {
-      "label": "Trick Battle",
-      "value": "4"
      }
     ],
     "value": "Just fly"
@@ -8752,7 +7906,11 @@
      ],
      [
       "onUiSound",
-      "select"
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
      ]
     ]
    },
@@ -8826,13 +7984,6 @@
     "primary": true
    },
    {
-    "action": "friends-quick",
-    "id": "rooms:a-friends-quick",
-    "label": "Quick join",
-    "note": "Straight into the busiest public room in Swiss valley, photoreal with a seat, or a new one if there is none.",
-    "value": "Swiss valley, photoreal"
-   },
-   {
     "action": "friends-join",
     "id": "rooms:a-friends-join",
     "label": "Join with a code",
@@ -8852,10 +8003,6 @@
    {
     "cls": "row row-nav row-primary on",
     "text": "Make a room"
-   },
-   {
-    "cls": "row",
-    "text": "Quick joinSwiss valley, photoreal"
    },
    {
     "cls": "row",
@@ -8899,25 +8046,6 @@
    },
    {
     "i": 4,
-    "id": "rooms:a-friends-quick",
-    "to": "rooms",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onFriends",
-      "friends-quick"
-     ]
-    ]
-   },
-   {
-    "i": 5,
     "id": "rooms:a-friends-join",
     "to": "rooms",
     "calls": [
@@ -8936,7 +8064,7 @@
     ]
    },
    {
-    "i": 6,
+    "i": 5,
     "id": "rooms:a-back",
     "to": "friends",
     "calls": [
@@ -8960,122 +8088,44 @@
    }
   ]
  },
- "standings": {
-  "screen": "standings",
-  "items": [
-   {
-    "disabled": true,
-    "id": "standings:no-track-chosen",
-    "info": true,
-    "label": "No track chosen",
-    "note": "Pick a track in the Race room and open its standings from there."
-   },
-   {
-    "action": "back",
-    "id": "standings:a-back",
-    "label": "Back"
-   }
-  ],
-  "rows": [
-   {
-    "cls": "row row-info row-grey on",
-    "text": "No track chosen"
-   },
-   {
-    "cls": "row",
-    "text": "Back"
-   }
-  ],
-  "leads": [
-   {
-    "i": 0,
-    "id": "standings:no-track-chosen",
-    "to": "standings",
-    "calls": []
-   },
-   {
-    "i": 1,
-    "id": "standings:a-back",
-    "to": "title",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onUiSound",
-      "back"
-     ],
-     [
-      "onScreenChange",
-      "title"
-     ],
-     [
-      "onAction",
-      "title",
-      "object"
-     ]
-    ]
-   }
-  ]
- },
  "title": {
   "screen": "title",
   "items": [
    {
-    "action": "hub-club",
-    "art": "assets/posters/swiss2.jpg",
-    "blurb": "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly.",
-    "card": "hub-club",
-    "facts": [],
-    "hub": "club",
-    "id": "title:a-hub-club",
-    "label": "Flight Club",
-    "links": [
-     {
-      "action": "way-race-5inch",
-      "key": "race-5inch",
-      "label": "Track Day"
-     },
-     {
-      "action": "way-freestyle-wing1000",
-      "key": "freestyle-wing1000",
-      "label": "Free Flight"
-     },
-     {
-      "action": "way-training",
-      "key": "training",
-      "label": "Learn to fly"
-     }
+    "action": "way-interior",
+    "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+    "card": "interior",
+    "facts": [
+     "Five missions",
+     "Co-op roles, any squad",
+     "Camera ball, quiet HUD"
     ],
-    "svg": "<svg viewBox=\"0 0 417 417\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><line x1=\"208.5\" y1=\"208.5\" x2=\"318.95007922133874\" y2=\"318.95007922133874\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"318.95007922133874\" y2=\"98.04992077866127\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"98.04992077866127\" y2=\"318.95007922133874\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"98.04992077866127\" y2=\"98.04992077866127\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><rect x=\"186.5\" y=\"170.5\" width=\"44\" height=\"76\" rx=\"10\" fill=\"currentColor\" fill-opacity=\"0.30\"/><circle cx=\"318.95007922133874\" cy=\"318.95007922133874\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"318.95007922133874\" cy=\"98.04992077866127\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.04992077866127\" cy=\"318.95007922133874\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.04992077866127\" cy=\"98.04992077866127\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/></svg>"
+    "id": "title:a-way-interior",
+    "label": "The Interior",
+    "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><circle cx=\"150\" cy=\"150\" r=\"46\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.7\"/><circle cx=\"150\" cy=\"150\" r=\"14\" fill=\"currentColor\" fill-opacity=\"0.8\"/></svg>"
    },
    {
-    "action": "hub-ops",
+    "action": "way-training",
     "art": "assets/posters/itaipu.jpg",
-    "blurb": "Defend the Paraná: missions at Itaipu, alone or as a squad.",
-    "card": "hub-ops",
-    "facts": [],
-    "hub": "ops",
-    "id": "title:a-hub-ops",
-    "label": "Operations",
-    "links": [
-     {
-      "action": "way-interior",
-      "key": "interior",
-      "label": "The Interior"
-     },
-     {
-      "action": "field-walk",
-      "key": "ops-field",
-      "label": "Field hangar"
-     }
+    "blurb": "Three lessons in the war's own rooms: an interception, a track held, then a mission flown with others.",
+    "card": "training",
+    "facts": [
+     "Interception, tracking, a mission",
+     "Flown in war rooms",
+     "Nothing waits on them"
     ],
+    "id": "title:a-way-training",
+    "label": "Defence training",
     "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><g transform=\"translate(93 93) scale(0.38)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>"
+   },
+   {
+    "action": "field-walk",
+    "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+    "card": "ops-field",
+    "facts": [],
+    "id": "title:a-field-walk",
+    "label": "Field hangar",
+    "svg": null
    },
    {
     "action": "hub-hangar",
@@ -9119,24 +8169,35 @@
      }
     ],
     "svg": "<svg viewBox=\"0 0 417 417\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><line x1=\"208.5\" y1=\"208.5\" x2=\"318.95007922133874\" y2=\"318.95007922133874\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"318.95007922133874\" y2=\"98.04992077866127\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"98.04992077866127\" y2=\"318.95007922133874\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"98.04992077866127\" y2=\"98.04992077866127\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><rect x=\"186.5\" y=\"170.5\" width=\"44\" height=\"76\" rx=\"10\" fill=\"currentColor\" fill-opacity=\"0.30\"/><circle cx=\"318.95007922133874\" cy=\"318.95007922133874\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"318.95007922133874\" cy=\"98.04992077866127\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.04992077866127\" cy=\"318.95007922133874\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.04992077866127\" cy=\"98.04992077866127\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/></svg>"
+   },
+   {
+    "id": "title:s-no-rooms-server",
+    "label": "No rooms server",
+    "lobby": "head",
+    "section": true,
+    "value": "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms."
    }
   ],
   "rows": [],
   "leads": [
    {
     "i": 0,
-    "id": "title:a-hub-club",
+    "id": "title:a-way-interior",
     "to": "title",
     "calls": [
      [
       "onUiSound",
       "select"
+     ],
+     [
+      "onOpsCampaignCard",
+      "interior"
      ]
     ]
    },
    {
     "i": 1,
-    "id": "title:a-hub-ops",
+    "id": "title:a-way-training",
     "to": "title",
     "calls": [
      [
@@ -9148,13 +8209,31 @@
       "select"
      ],
      [
-      "onUiSound",
-      "move"
+      "onTrainingCard"
      ]
     ]
    },
    {
     "i": 2,
+    "id": "title:a-field-walk",
+    "to": "walk",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "walk"
+     ]
+    ]
+   },
+   {
+    "i": 3,
     "id": "title:a-hub-hangar",
     "to": "title",
     "calls": [
@@ -9169,1096 +8248,6 @@
      [
       "onUiSound",
       "move"
-     ]
-    ]
-   }
-  ]
- },
- "tricks": {
-  "screen": "tricks",
-  "items": [
-   {
-    "action": "noop",
-    "id": "tricks:a-noop",
-    "label": "1 Trippy Spin",
-    "note": "Reliable. Block. A whole turn or more around a post, flown belly up. Seen from above.",
-    "value": "100"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~2",
-    "label": "Matty Flip",
-    "note": "Reliable. Novice. Half a lap around a rail, entered from over the top, carrying a half turn of flip. Seen from the side.",
-    "value": "200"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~3",
-    "label": "Anti Matty",
-    "note": "Reliable. Novice. Half a lap around a rail, entered from over the top, carrying a whole turn of flip. Seen from the side.",
-    "value": "250"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~4",
-    "label": "Power Matty",
-    "note": "Reliable. Intermediate. Half a lap around a rail, entered from over the top, carrying 1.5 turns of flip. Seen from the side.",
-    "value": "300"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~5",
-    "label": "Matty Roll",
-    "note": "Reliable. Advanced. Half a lap around a rail, entered from over the top, carrying three quarters of a turn of flip and a whole turn of roll. Seen from the side.",
-    "value": "425"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~6",
-    "label": "Matty 360",
-    "note": "Fussy. Advanced. Half a lap around a rail, entered from over the top, carrying a half turn of flip and a whole turn of yaw spin. Seen from the side.",
-    "value": "425"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~7",
-    "label": "Maverick Loop",
-    "note": "Reliable. Beginner. A whole lap around a rail, entered from underneath, carrying a whole turn of roll. Seen from the side.",
-    "value": "100"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~8",
-    "label": "Mavvy Roll",
-    "note": "Reliable. Novice. A whole lap around a rail, entered from underneath, carrying two whole turns of roll. Seen from the side.",
-    "value": "250"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~9",
-    "label": "Donkey Loop",
-    "note": "Reliable. Master. A whole lap around a rail, entered from underneath, carrying a half turn of flip and a whole turn of roll and a whole turn of yaw spin. Seen from the side.",
-    "value": "600"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~10",
-    "label": "Yaw Spin",
-    "note": "Reliable. Beginner. A whole turn or more around a post, with the post held on the screen. Seen from above.",
-    "value": "50"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~11",
-    "label": "Flip",
-    "note": "Reliable. Beginner. A whole turn of flip. Seen from the side.",
-    "value": "50"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~12",
-    "label": "Roll",
-    "note": "Reliable. Beginner. A whole turn of roll. Seen from behind.",
-    "value": "50"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~13",
-    "label": "Segmented Flips/Rolls",
-    "note": "Reliable. Beginner. A half turn of rotation, then a half turn of rotation the same way again, after a pause. Seen from the side.",
-    "value": "75"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~14",
-    "label": "Invert Rewind",
-    "note": "Reliable. Beginner. A half turn of rotation, then a half turn of rotation back the other way. Seen from the side.",
-    "value": "75"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~15",
-    "label": "Vanny Roll",
-    "note": "Reliable. Beginner. A half turn of yaw spin, then a whole turn of roll, then a half turn of yaw spin the same way again. Seen from above.",
-    "value": "125"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~16",
-    "label": "Double Flip",
-    "note": "Reliable. Beginner. Two whole turns of flip. Seen from the side.",
-    "value": "150"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~17",
-    "label": "Double Roll",
-    "note": "Reliable. Beginner. Two whole turns of roll. Seen from behind.",
-    "value": "150"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~18",
-    "label": "Juicy Flick",
-    "note": "Reliable. Novice. A half turn of flip, then a half turn of roll. Seen from the side.",
-    "value": "200"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~19",
-    "label": "Snapback",
-    "note": "Reliable. Novice. A half turn of flip, then a half turn of roll. Seen from the side.",
-    "value": "200"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~20",
-    "label": "Rubik's Cube",
-    "note": "Reliable. Intermediate. A half turn of roll, then a whole turn of flip, then a half turn of roll the same way again. Seen from the side.",
-    "value": "325"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~21",
-    "label": "Cubik's Rube",
-    "note": "Reliable. Intermediate. A half turn of flip, then a whole turn of roll, then a half turn of flip the same way again. Seen from the side.",
-    "value": "325"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~22",
-    "label": "Inverted Yaw Spin",
-    "note": "Reliable. Advanced. A whole turn of yaw spin, upside down. Seen from above.",
-    "value": "400"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~23",
-    "label": "Inverted Yaw Tracking",
-    "note": "Reliable. Advanced. A half turn of roll, then a whole turn of yaw spin back the other way, upside down, then a half turn of roll. Seen from above.",
-    "value": "425"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~24",
-    "label": "Eject Roll",
-    "note": "Reliable. Novice. A half turn of flip, then a whole turn of roll. Seen from the side.",
-    "value": "200"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~25",
-    "label": "Orbit x2",
-    "note": "Reliable. Beginner. Two whole turns or more around a post, with the post held on the screen. Seen from above.",
-    "value": "75"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~26",
-    "label": "Trippy Spin x2",
-    "note": "Reliable. Advanced. Two whole turns or more around a post, flown belly up. Seen from above.",
-    "value": "500"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~27",
-    "label": "Powerloop",
-    "note": "Reliable. Novice. A whole lap around a rail, entered from underneath, carrying a whole turn of flip. Seen from the side.",
-    "value": "200"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~28",
-    "label": "Immelmann Turn",
-    "note": "Reliable. Novice. Half a lap around a rail, entered from underneath, carrying a half turn of flip, then a half turn of roll. Seen from the side.",
-    "value": "250"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~29",
-    "label": "Power Flip",
-    "note": "Reliable. Intermediate. A whole lap around a rail, entered from underneath, carrying two whole turns of flip. Seen from the side.",
-    "value": "350"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~30",
-    "label": "Power Roll",
-    "note": "Fussy. Advanced. A whole lap around a rail, entered from underneath, carrying a whole turn of flip and a whole turn of roll. Seen from the side.",
-    "value": "450"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~31",
-    "label": "Inverted 360 Powerloop",
-    "note": "Fussy. Master. A whole lap around a rail, entered from underneath, carrying a whole turn of flip and a whole turn of yaw spin. Seen from the side.",
-    "value": "650"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~32",
-    "label": "Flip Stall Rewind",
-    "note": "Reliable. Novice. A whole turn of flip, after a pause. Seen from the side.",
-    "value": "275"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~33",
-    "label": "360 Stall Rewind",
-    "note": "Reliable. Novice. A whole turn of roll, after a pause. Seen from behind.",
-    "value": "275"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~34",
-    "label": "Split-S",
-    "note": "Fussy. Beginner. Half a lap around a rail, entered from over the top, carrying a half turn of roll and a half turn of flip. Seen from the side.",
-    "value": "100"
-   },
-   {
-    "action": "noop",
-    "id": "tricks:a-noop~35",
-    "label": "Split Yaw",
-    "note": "Fussy. Intermediate. Half a lap around a rail, entered from over the top, carrying a half turn of roll and a half turn of flip and a half turn of yaw spin. Seen from the side.",
-    "value": "300"
-   }
-  ],
-  "rows": [
-   {
-    "cls": "row on",
-    "text": "1 Trippy Spin100"
-   },
-   {
-    "cls": "row",
-    "text": "Matty Flip200"
-   },
-   {
-    "cls": "row",
-    "text": "Anti Matty250"
-   },
-   {
-    "cls": "row",
-    "text": "Power Matty300"
-   },
-   {
-    "cls": "row",
-    "text": "Matty Roll425"
-   },
-   {
-    "cls": "row",
-    "text": "Matty 360425"
-   },
-   {
-    "cls": "row",
-    "text": "Maverick Loop100"
-   },
-   {
-    "cls": "row",
-    "text": "Mavvy Roll250"
-   },
-   {
-    "cls": "row",
-    "text": "Donkey Loop600"
-   },
-   {
-    "cls": "row",
-    "text": "Yaw Spin50"
-   },
-   {
-    "cls": "row",
-    "text": "Flip50"
-   },
-   {
-    "cls": "row",
-    "text": "Roll50"
-   },
-   {
-    "cls": "row",
-    "text": "Segmented Flips/Rolls75"
-   },
-   {
-    "cls": "row",
-    "text": "Invert Rewind75"
-   },
-   {
-    "cls": "row",
-    "text": "Vanny Roll125"
-   },
-   {
-    "cls": "row",
-    "text": "Double Flip150"
-   },
-   {
-    "cls": "row",
-    "text": "Double Roll150"
-   },
-   {
-    "cls": "row",
-    "text": "Juicy Flick200"
-   },
-   {
-    "cls": "row",
-    "text": "Snapback200"
-   },
-   {
-    "cls": "row",
-    "text": "Rubik's Cube325"
-   },
-   {
-    "cls": "row",
-    "text": "Cubik's Rube325"
-   },
-   {
-    "cls": "row",
-    "text": "Inverted Yaw Spin400"
-   },
-   {
-    "cls": "row",
-    "text": "Inverted Yaw Tracking425"
-   },
-   {
-    "cls": "row",
-    "text": "Eject Roll200"
-   },
-   {
-    "cls": "row",
-    "text": "Orbit x275"
-   },
-   {
-    "cls": "row",
-    "text": "Trippy Spin x2500"
-   },
-   {
-    "cls": "row",
-    "text": "Powerloop200"
-   },
-   {
-    "cls": "row",
-    "text": "Immelmann Turn250"
-   },
-   {
-    "cls": "row",
-    "text": "Power Flip350"
-   },
-   {
-    "cls": "row",
-    "text": "Power Roll450"
-   },
-   {
-    "cls": "row",
-    "text": "Inverted 360 Powerloop650"
-   },
-   {
-    "cls": "row",
-    "text": "Flip Stall Rewind275"
-   },
-   {
-    "cls": "row",
-    "text": "360 Stall Rewind275"
-   },
-   {
-    "cls": "row",
-    "text": "Split-S100"
-   },
-   {
-    "cls": "row",
-    "text": "Split Yaw300"
-   }
-  ],
-  "leads": [
-   {
-    "i": 0,
-    "id": "tricks:a-noop",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 1,
-    "id": "tricks:a-noop~2",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 2,
-    "id": "tricks:a-noop~3",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 3,
-    "id": "tricks:a-noop~4",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 4,
-    "id": "tricks:a-noop~5",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 5,
-    "id": "tricks:a-noop~6",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 6,
-    "id": "tricks:a-noop~7",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 7,
-    "id": "tricks:a-noop~8",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 8,
-    "id": "tricks:a-noop~9",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 9,
-    "id": "tricks:a-noop~10",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 10,
-    "id": "tricks:a-noop~11",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 11,
-    "id": "tricks:a-noop~12",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 12,
-    "id": "tricks:a-noop~13",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 13,
-    "id": "tricks:a-noop~14",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 14,
-    "id": "tricks:a-noop~15",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 15,
-    "id": "tricks:a-noop~16",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 16,
-    "id": "tricks:a-noop~17",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 17,
-    "id": "tricks:a-noop~18",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 18,
-    "id": "tricks:a-noop~19",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 19,
-    "id": "tricks:a-noop~20",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 20,
-    "id": "tricks:a-noop~21",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 21,
-    "id": "tricks:a-noop~22",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 22,
-    "id": "tricks:a-noop~23",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 23,
-    "id": "tricks:a-noop~24",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 24,
-    "id": "tricks:a-noop~25",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 25,
-    "id": "tricks:a-noop~26",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 26,
-    "id": "tricks:a-noop~27",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 27,
-    "id": "tricks:a-noop~28",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 28,
-    "id": "tricks:a-noop~29",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 29,
-    "id": "tricks:a-noop~30",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 30,
-    "id": "tricks:a-noop~31",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 31,
-    "id": "tricks:a-noop~32",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 32,
-    "id": "tricks:a-noop~33",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 33,
-    "id": "tricks:a-noop~34",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
-     ]
-    ]
-   },
-   {
-    "i": 34,
-    "id": "tricks:a-noop~35",
-    "to": "tricks",
-    "calls": [
-     [
-      "onUiSound",
-      "move"
-     ],
-     [
-      "onUiSound",
-      "select"
-     ],
-     [
-      "onAction",
-      "noop",
-      "object"
      ]
     ]
    }

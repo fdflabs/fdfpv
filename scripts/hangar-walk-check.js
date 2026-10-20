@@ -286,13 +286,11 @@ try {
   await page.until("window.__ui.screen === 'title'", 10000).then(() => true, () => false);
   check('Escape leaves to the Hangar hub', await page.evaluate("window.__ui.screen === 'title' && window.__ui.hub === 'hangar' && window.__walkStats() === null"), await page.evaluate('JSON.stringify([window.__ui.screen, window.__ui.hub])'));
 
-  /* The war's field hangar, from the Operations hub: its own room. */
+  /* The war's field hangar, from home: its own room. */
   await page.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
   await page.sleep(300);
-  check('the Operations hub card clicked', await page.click('.gate-card.gate-card-hub-ops'), 'clicked');
-  await page.until("window.__ui.hub === 'ops'", 10000);
   const fieldCard = '.gate-card.gate-card-ops-field';
-  check('Operations shows a Field hangar card', (await page.evaluate(`document.querySelector('${fieldCard} .gate-card-name')?.textContent`)) === en['walk.field'], en['walk.field']);
+  check('home shows a Field hangar card', (await page.evaluate(`document.querySelector('${fieldCard} .gate-card-name')?.textContent`)) === en['walk.field'], en['walk.field']);
   check('Field hangar clicked', await page.click(fieldCard), 'clicked');
   await need("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
   await page.sleep(800);
@@ -313,7 +311,7 @@ try {
   console.log(`field hangar in the real shell: ${fieldView.calls} draw calls, ${fieldView.triangles} triangles`);
   await page.tap('Escape');
   await page.until("window.__ui.screen === 'title'", 10000).then(() => true, () => false);
-  check('Escape leaves the field hangar to the Operations hub', await page.evaluate("window.__ui.screen === 'title' && window.__ui.hub === 'ops'"), await page.evaluate('JSON.stringify([window.__ui.screen, window.__ui.hub])'));
+  check('Escape leaves the field hangar to home', await page.evaluate("window.__ui.screen === 'title' && window.__ui.hub === null"), await page.evaluate('JSON.stringify([window.__ui.screen, window.__ui.hub])'));
 
   await page.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
   await page.sleep(300);

@@ -38,7 +38,7 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { liveryKey, paintable } from '../configs/liveries.js';
 import { seedSignedIn, startAccounts } from '../tests/lib/account.js';
-import { CHALLENGES, everyFirst } from '../src/game/progress.js';
+import { everyFirst } from '../src/game/progress.js';
 import { addFlight } from '../src/share/flighttime.js';
 import { grantsFrom, itemById } from '../src/game/economy.js';
 
@@ -70,7 +70,7 @@ for (const af of AIRFRAMES) {
 const blob = {
   v: 1,
   data: {
-    progress: { v: 2, xp: 0, courses: {}, challenges: Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), seen: {}, casual: {}, firsts: {}, unlockAll: true },
+    progress: { v: 2, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, unlockAll: true },
     campaign: { v: 1, missions: Object.fromEntries(everyFirst().filter((f) => f.key.startsWith('mission:')).map((f) => [f.key.split(':')[1], { stars: 3, won: true, credits: 0 }])), earned: 0, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {} },
     flightTime: flight,
   },

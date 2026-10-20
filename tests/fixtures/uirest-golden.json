@@ -3759,7 +3759,7 @@
      "log": [
       [
        "firstStop",
-       9
+       6
       ]
      ]
     },
@@ -3769,7 +3769,7 @@
      "log": [
       [
        "firstStop",
-       6
+       5
       ]
      ]
     },
@@ -3779,7 +3779,7 @@
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -3799,7 +3799,7 @@
      "log": [
       [
        "firstStop",
-       9
+       6
       ]
      ]
     },
@@ -3809,7 +3809,7 @@
      "log": [
       [
        "firstStop",
-       6
+       5
       ]
      ]
     },
@@ -3819,7 +3819,7 @@
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -3839,7 +3839,7 @@
      "log": [
       [
        "firstStop",
-       9
+       6
       ]
      ]
     },
@@ -3849,7 +3849,7 @@
      "log": [
       [
        "firstStop",
-       6
+       5
       ]
      ]
     },
@@ -3859,7 +3859,7 @@
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -3873,17 +3873,7 @@
       ]
      ]
     },
-    "false:club:null:all": {
-     "at": 99,
-     "action": null,
-     "log": [
-      [
-       "firstStop",
-       9
-      ]
-     ]
-    },
-    "false:club:null:nohubs": {
+    "false:hangar:null:all": {
      "at": 99,
      "action": null,
      "log": [
@@ -3893,17 +3883,27 @@
       ]
      ]
     },
-    "false:club:null:nofirst": {
+    "false:hangar:null:nohubs": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
-    "false:club:null:empty": {
+    "false:hangar:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
+    "false:hangar:null:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -3913,17 +3913,7 @@
       ]
      ]
     },
-    "false:club:race:all": {
-     "at": 99,
-     "action": null,
-     "log": [
-      [
-       "firstStop",
-       9
-      ]
-     ]
-    },
-    "false:club:race:nohubs": {
+    "false:hangar:race:all": {
      "at": 99,
      "action": null,
      "log": [
@@ -3933,17 +3923,27 @@
       ]
      ]
     },
-    "false:club:race:nofirst": {
+    "false:hangar:race:nohubs": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
-    "false:club:race:empty": {
+    "false:hangar:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
+    "false:hangar:race:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -3953,17 +3953,7 @@
       ]
      ]
     },
-    "false:club:freestyle:all": {
-     "at": 99,
-     "action": null,
-     "log": [
-      [
-       "firstStop",
-       9
-      ]
-     ]
-    },
-    "false:club:freestyle:nohubs": {
+    "false:hangar:freestyle:all": {
      "at": 99,
      "action": null,
      "log": [
@@ -3973,17 +3963,27 @@
       ]
      ]
     },
-    "false:club:freestyle:nofirst": {
+    "false:hangar:freestyle:nohubs": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
-    "false:club:freestyle:empty": {
+    "false:hangar:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
+    "false:hangar:freestyle:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -3994,11 +3994,6 @@
      ]
     },
     "true:null:null:all": {
-     "at": 1,
-     "action": "hub-club",
-     "log": []
-    },
-    "true:null:null:nohubs": {
      "at": 99,
      "action": null,
      "log": [
@@ -4008,13 +4003,23 @@
       ]
      ]
     },
+    "true:null:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
     "true:null:null:nofirst": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -4029,11 +4034,6 @@
      ]
     },
     "true:null:race:all": {
-     "at": 1,
-     "action": "hub-club",
-     "log": []
-    },
-    "true:null:race:nohubs": {
      "at": 99,
      "action": null,
      "log": [
@@ -4043,13 +4043,23 @@
       ]
      ]
     },
+    "true:null:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
     "true:null:race:nofirst": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -4064,11 +4074,6 @@
      ]
     },
     "true:null:freestyle:all": {
-     "at": 1,
-     "action": "hub-club",
-     "log": []
-    },
-    "true:null:freestyle:nohubs": {
      "at": 99,
      "action": null,
      "log": [
@@ -4078,13 +4083,23 @@
       ]
      ]
     },
+    "true:null:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
     "true:null:freestyle:nofirst": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -4098,22 +4113,37 @@
       ]
      ]
     },
-    "true:club:null:all": {
-     "at": 5,
-     "action": "way-war",
-     "log": []
+    "true:hangar:null:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       6
+      ]
+     ]
     },
-    "true:club:null:nohubs": {
-     "at": 2,
-     "action": "way-war",
-     "log": []
+    "true:hangar:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:null:nofirst": {
-     "at": 4,
-     "action": "way-war",
-     "log": []
+    "true:hangar:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:null:empty": {
+    "true:hangar:null:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -4123,22 +4153,37 @@
       ]
      ]
     },
-    "true:club:race:all": {
-     "at": 5,
-     "action": "way-war",
-     "log": []
+    "true:hangar:race:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       6
+      ]
+     ]
     },
-    "true:club:race:nohubs": {
-     "at": 2,
-     "action": "way-war",
-     "log": []
+    "true:hangar:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:race:nofirst": {
-     "at": 4,
-     "action": "way-war",
-     "log": []
+    "true:hangar:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:race:empty": {
+    "true:hangar:race:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -4148,22 +4193,37 @@
       ]
      ]
     },
-    "true:club:freestyle:all": {
-     "at": 5,
-     "action": "way-war",
-     "log": []
+    "true:hangar:freestyle:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       6
+      ]
+     ]
     },
-    "true:club:freestyle:nohubs": {
-     "at": 2,
-     "action": "way-war",
-     "log": []
+    "true:hangar:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:freestyle:nofirst": {
-     "at": 4,
-     "action": "way-war",
-     "log": []
+    "true:hangar:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:freestyle:empty": {
+    "true:hangar:freestyle:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -7967,7 +8027,7 @@
      "log": [
       [
        "firstStop",
-       9
+       6
       ]
      ]
     },
@@ -7977,7 +8037,7 @@
      "log": [
       [
        "firstStop",
-       6
+       5
       ]
      ]
     },
@@ -7987,7 +8047,7 @@
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -8007,7 +8067,7 @@
      "log": [
       [
        "firstStop",
-       9
+       6
       ]
      ]
     },
@@ -8017,7 +8077,7 @@
      "log": [
       [
        "firstStop",
-       6
+       5
       ]
      ]
     },
@@ -8027,7 +8087,7 @@
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -8047,7 +8107,7 @@
      "log": [
       [
        "firstStop",
-       9
+       6
       ]
      ]
     },
@@ -8057,7 +8117,7 @@
      "log": [
       [
        "firstStop",
-       6
+       5
       ]
      ]
     },
@@ -8067,7 +8127,7 @@
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -8081,17 +8141,7 @@
       ]
      ]
     },
-    "false:club:null:all": {
-     "at": 99,
-     "action": null,
-     "log": [
-      [
-       "firstStop",
-       9
-      ]
-     ]
-    },
-    "false:club:null:nohubs": {
+    "false:hangar:null:all": {
      "at": 99,
      "action": null,
      "log": [
@@ -8101,17 +8151,27 @@
       ]
      ]
     },
-    "false:club:null:nofirst": {
+    "false:hangar:null:nohubs": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
-    "false:club:null:empty": {
+    "false:hangar:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
+    "false:hangar:null:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -8121,17 +8181,7 @@
       ]
      ]
     },
-    "false:club:race:all": {
-     "at": 99,
-     "action": null,
-     "log": [
-      [
-       "firstStop",
-       9
-      ]
-     ]
-    },
-    "false:club:race:nohubs": {
+    "false:hangar:race:all": {
      "at": 99,
      "action": null,
      "log": [
@@ -8141,17 +8191,27 @@
       ]
      ]
     },
-    "false:club:race:nofirst": {
+    "false:hangar:race:nohubs": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
-    "false:club:race:empty": {
+    "false:hangar:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
+    "false:hangar:race:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -8161,17 +8221,7 @@
       ]
      ]
     },
-    "false:club:freestyle:all": {
-     "at": 99,
-     "action": null,
-     "log": [
-      [
-       "firstStop",
-       9
-      ]
-     ]
-    },
-    "false:club:freestyle:nohubs": {
+    "false:hangar:freestyle:all": {
      "at": 99,
      "action": null,
      "log": [
@@ -8181,17 +8231,27 @@
       ]
      ]
     },
-    "false:club:freestyle:nofirst": {
+    "false:hangar:freestyle:nohubs": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
-    "false:club:freestyle:empty": {
+    "false:hangar:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
+    "false:hangar:freestyle:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -8202,11 +8262,6 @@
      ]
     },
     "true:null:null:all": {
-     "at": 1,
-     "action": "hub-club",
-     "log": []
-    },
-    "true:null:null:nohubs": {
      "at": 99,
      "action": null,
      "log": [
@@ -8216,13 +8271,23 @@
       ]
      ]
     },
+    "true:null:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
     "true:null:null:nofirst": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -8237,11 +8302,6 @@
      ]
     },
     "true:null:race:all": {
-     "at": 1,
-     "action": "hub-club",
-     "log": []
-    },
-    "true:null:race:nohubs": {
      "at": 99,
      "action": null,
      "log": [
@@ -8251,13 +8311,23 @@
       ]
      ]
     },
+    "true:null:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
     "true:null:race:nofirst": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -8272,11 +8342,6 @@
      ]
     },
     "true:null:freestyle:all": {
-     "at": 1,
-     "action": "hub-club",
-     "log": []
-    },
-    "true:null:freestyle:nohubs": {
      "at": 99,
      "action": null,
      "log": [
@@ -8286,13 +8351,23 @@
       ]
      ]
     },
+    "true:null:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
+    },
     "true:null:freestyle:nofirst": {
      "at": 99,
      "action": null,
      "log": [
       [
        "firstStop",
-       8
+       5
       ]
      ]
     },
@@ -8306,22 +8381,37 @@
       ]
      ]
     },
-    "true:club:null:all": {
-     "at": 5,
-     "action": "way-war",
-     "log": []
+    "true:hangar:null:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       6
+      ]
+     ]
     },
-    "true:club:null:nohubs": {
-     "at": 2,
-     "action": "way-war",
-     "log": []
+    "true:hangar:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:null:nofirst": {
-     "at": 4,
-     "action": "way-war",
-     "log": []
+    "true:hangar:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:null:empty": {
+    "true:hangar:null:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -8331,22 +8421,37 @@
       ]
      ]
     },
-    "true:club:race:all": {
-     "at": 5,
-     "action": "way-war",
-     "log": []
+    "true:hangar:race:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       6
+      ]
+     ]
     },
-    "true:club:race:nohubs": {
-     "at": 2,
-     "action": "way-war",
-     "log": []
+    "true:hangar:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:race:nofirst": {
-     "at": 4,
-     "action": "way-war",
-     "log": []
+    "true:hangar:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:race:empty": {
+    "true:hangar:race:empty": {
      "at": 99,
      "action": null,
      "log": [
@@ -8356,22 +8461,37 @@
       ]
      ]
     },
-    "true:club:freestyle:all": {
-     "at": 5,
-     "action": "way-war",
-     "log": []
+    "true:hangar:freestyle:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       6
+      ]
+     ]
     },
-    "true:club:freestyle:nohubs": {
-     "at": 2,
-     "action": "way-war",
-     "log": []
+    "true:hangar:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:freestyle:nofirst": {
-     "at": 4,
-     "action": "way-war",
-     "log": []
+    "true:hangar:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       5
+      ]
+     ]
     },
-    "true:club:freestyle:empty": {
+    "true:hangar:freestyle:empty": {
      "at": 99,
      "action": null,
      "log": [

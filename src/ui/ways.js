@@ -7,11 +7,12 @@
  * seats the aircraft and sets the mode together. The aircraft is kept in
  * the settings; the mode is not, so every visit comes back through here.
  *
- * Cards are grouped under three hubs. The mode registry
- * (src/share/modes.js) names each mode's card and its category, which is
- * what puts a card under a hub, and modes:selftest holds the two tables
- * together. Cards with gate: false stay reachable by their action (the
- * title's rooms panel, Defend Itaipu's Play) but are not drawn.
+ * The cards are home's, every one of them Operations' (the mode
+ * registry, src/share/modes.js, names each mode's card and its category,
+ * and modes:selftest holds the two tables together); the Hangar stands
+ * beside them as one card (HUBS). Cards with gate: false stay reachable by
+ * their action (the title's rooms panel, Defend Itaipu's Play) but are
+ * not drawn.
  *
  * The plan drawings over each card are built here as SVG text, so the
  * title can paint before anything has been flown or fetched.
@@ -120,18 +121,13 @@ function fromRegistry(modeId) {
   return face;
 }
 
-const FIXED_WINGS = AIRFRAMES.filter((a) => a.fixedWing).map((a) => a.id);
-const leading = (first, ids) => [first, ...ids.filter((id) => id !== first)];
 
 /*
- * The cards, in order. Order is meaningful: picking a card for an
- * aircraft takes the first that fits, and the two solo cards come first
- * so that never lands on a room card. The ids outlived the machines they
- * were first named for (the five inch, the 1000 mm wing).
+ * The cards, in order: picking a card for an aircraft takes the first
+ * that fits. Free Flight's card left with free flight (the combat-only
+ * cut, 2026-10-20); its registry row stays hidden (src/share/modes.js).
  */
 export const WAYS = [
-  /* Free flight: every fixed wing, the Bramor first. */
-  { id: 'freestyle-wing1000', airframes: leading('bramor2300', FIXED_WINGS), mode: 'freestyle', ...fromRegistry('free') },
   /* Defend Itaipu: its consent gate runs in the shell before the room
    * (src/main.js). Off the title since 2026-09-30; Defend the Parana's
    * Play still enters through it. */
@@ -163,20 +159,21 @@ export const WAYS = [
     blurb: str('ops.campaign.interior.card_blurb'),
     facts: [str('ops.campaign.interior.card_missions'), str('ops.campaign.interior.card_roles'), str('ops.campaign.interior.card_quiet')],
   },
-  /* Learn to fly, the lessons (src/game/training.js): a solo card, not a
-   * room game, so it is not in the mode registry, as the Interior's is
-   * not. Its own page lists the lessons; a lesson seats its aircraft. */
+  /* Defence training, the lessons (src/game/training.js): not a room game
+   * of its own, so it is not in the mode registry, as the Interior's is
+   * not. Its own page lists the lessons; each flies in a war room, which
+   * seats the war's aircraft. */
   {
     id: 'training',
     training: true,
-    category: 'flightclub',
-    airframes: ['timber1500'],
+    category: 'operations',
+    airframes: AIRFRAME_IDS,
     mode: 'freestyle',
     label: str('training.card'),
-    art: 'assets/posters/swiss2.jpg',
-    svg: planeSvg(),
+    art: 'assets/posters/itaipu.jpg',
+    svg: reticleSvg(),
     blurb: str('training.card_blurb'),
-    facts: [str('training.card_steps'), str('training.card_assists'), str('training.card_gates')],
+    facts: [str('training.card_steps'), str('training.card_rooms'), str('training.card_gates')],
   },
 ].map((way) => ({ ...way, action: `way-${way.id}` }));
 
@@ -186,11 +183,11 @@ export function gateWays(ways, modes) {
 }
 export const GATE_WAYS = gateWays(WAYS, MODES);
 
-/* The title's three hubs; a card belongs to the hub of its category. */
+/* The one hub left: the Hangar, a card beside the Operations cards on
+ * home. Home shows the Operations cards themselves since Flight Club left
+ * with its games (the lead, 2026-10-20, ASK 4: no hub layer). */
 export const HUBS = [
-  { id: 'club', label: 'hub.club', blurb: 'hub.club_blurb', art: 'assets/posters/swiss2.jpg', category: 'flightclub' },
-  { id: 'ops', label: 'hub.ops', blurb: 'hub.ops_blurb', art: 'assets/posters/itaipu.jpg', category: 'operations' },
-  { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg', category: null },
+  { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg' },
 ];
 
 /* Actions anyone may take before signing in: getting around and leaving.
@@ -198,27 +195,6 @@ export const HUBS = [
 export const OPEN_ACTIONS = new Set([
   'title', 'paused', 'pause', 'resume', 'back', 'card-back', 'mode-gate', 'update-reload', 'noop', 'room-bar', 'reportbug', 'credits',
 ]);
-
-/* A card's category: its mode's, from the registry, or its own. */
-function categoryOf(way) {
-  const mode = MODES.find((m) => m.card.way === way.id);
-  return mode ? mode.category : way.category;
-}
-
-export function hubWays(hubId) {
-  const hub = HUBS.find((h) => h.id === hubId);
-  if (!hub) return [];
-  return GATE_WAYS.filter((way) => categoryOf(way) === hub.category);
-}
-
-/* The hub a card's action lives under, or null. */
-export function hubOfAction(action) {
-  const way = WAYS.find((w) => w.action === action);
-  const category = way && categoryOf(way);
-  if (!category) return null;
-  const hub = HUBS.find((h) => h.category === category);
-  return hub ? hub.id : null;
-}
 
 /* The card the seated aircraft answers for a mode: the first that takes
  * it in that mode, else the first whose aircraft are all its kind, else

@@ -1,6 +1,6 @@
 /*
- * training.js: the Learn to fly page (docs/TRAINING-DAMAGE-CONTRACT.md,
- * item 18). Its card in Flight Club opens it; it lists the lessons of
+ * training.js: the Defence training page (docs/TRAINING-DAMAGE-CONTRACT.md,
+ * item 18). Its card under Operations opens it; it lists the lessons of
  * src/game/training.js by track, in order, each with Fly. Nothing on it is
  * locked: any lesson may be flown first, and no card or aircraft waits on
  * one (training gates nothing).
@@ -25,7 +25,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { LESSONS, SKIPS, TRACKS, lessonById } from '../game/training.js';
+import { LESSONS, TRACKS } from '../game/training.js';
 import { str } from '../strings/index.js';
 import { el } from './dom.js';
 
@@ -80,17 +80,6 @@ export function createTrainingScreen({ ui, passed, fly }) {
     box.append(el('p', 'lede', str('training.lede')));
     for (const track of TRACKS) {
       box.append(el('h3', 'campaign-eyebrow', str(`training.track.${track}`)));
-      const skip = lessonById(SKIPS[track]);
-      if (skip) {
-        const row = el('div', 'campaign-line training-skip');
-        row.dataset.skip = track;
-        row.append(el('span', null, str('training.skip_note', { lesson: str(`training.lesson.${skip.id}`) })), ' ');
-        row.append(button('name-dialog-btn training-skip-btn', str('training.skip'), () => {
-          close();
-          fly(skip);
-        }));
-        box.append(row);
-      }
       const list = el('div', 'campaign-list');
       LESSONS.filter((l) => l.track === track).forEach((l, i) => list.append(lessonCard(l, i)));
       box.append(list);

@@ -688,7 +688,7 @@ const scenarios = {
 
   gate() {
     const out = { label: makeUi().gateLabel() };
-    for (const screen of ['title', 'freestyle', 'paused', 'menu']) {
+    for (const screen of ['title', 'paused', 'menu']) {
       for (const craftGate of [true, false]) {
         for (const mode of [null, 'race', 'freestyle']) {
           const ui = makeUi({ screen, craftGate, mode });

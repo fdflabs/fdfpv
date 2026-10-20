@@ -25,7 +25,7 @@
  */
 
 import {
-  CLOSE, PROTO, PUBLIC_CAP, ROOM_LEVEL, TYPE_PARTS, WAR_JOIN, encodeFoot, encodePose,
+  CLOSE, PROTO, PUBLIC_CAP, ROOM_LEVEL, TYPE_PARTS, WAR_JOIN, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore, WATCH_CAP } from '../edge/rooms/core.js';
 import { reportRoom } from '../edge/rooms/lobby.js';
@@ -125,7 +125,8 @@ export function watchSection(check) {
     new Uint8Array([TYPE_PARTS, 0, 0, 0, 0, 1]),
     /* An older page's toilet paper (STREAMER, 0x80, until the cut). */
     new Uint8Array([0x80, 0, 0, 0, 0, 1]),
-    encodeFoot({ flags: 1, x: 1, y: 2, z: 3, heading: 0 }),
+    /* An older page's FOOT (0x40, until the pilot on foot left). */
+    new Uint8Array([0x40, 1, 0, 0, 128, 63, 0, 0, 0, 64, 0, 0, 64, 64, 0, 0]),
   ];
   /* The watcher says everything; true when nothing moved and no pilot
    * was told anything. */

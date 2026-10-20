@@ -64,18 +64,14 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { lockOf } from './game/progress.js';
-import { STRIPS, applyLesson, bankOf, glidePoints, headingOf, heldSettings, heldTrack, lateralG, restoreSettings } from './game/training.js';
+import { heldTrack, restoreSettings } from './game/training.js';
 import { PRACTICE_ID } from './share/war/missions/itaipu-practice.js';
-import { createGlidePath } from './render/glidepath.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
 import { translate as translateKey, effectiveKeys, keyLabel } from './input/keybinds.js';
 import { bindPad } from './ui/controls.js';
-import { createFootInput } from './input/footinput.js';
-import { SKIP_KINDS as FOOT_SKIP, createWalker, depthInside, findClear, step as stepWalker } from './game/onfoot.js';
-import { BODY_RADIUS, EYE_HEIGHT, STATURE, STEP_UP } from './game/human.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
 import { ControlRecorder, controlRecName, keepLast } from './share/controlrec.js';
 import { createRoute, replayState } from './game/debrief.js';
@@ -109,7 +105,7 @@ import {
 } from './share/modes.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
-  FLAG_SPAWNING, FOOT_HANGAR, FOOT_ON, checkCrashTable, decodeFootRelay, decodePartsRelay, encodePose, normaliseCode,
+  FLAG_SPAWNING, checkCrashTable, decodePartsRelay, encodePose, normaliseCode,
   pilotRoomName,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
@@ -121,7 +117,6 @@ import { WORLD_EDGES, edgeState, edgeStep } from './game/edges.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { createRain } from './render/rain.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
-import { createFootSender, createFootTrack } from './share/roomfoot.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
 import { grounded } from './share/ops/missions.js';
@@ -680,12 +675,11 @@ export async function boot({
   loading.system('input', 'ready');
   const ui = new Ui(uiRoot);
   /*
-   * A LESSON'S SETTINGS (src/game/training.js): what the pilot's aircraft,
-   * tune, flight mode and weather were before the first lesson, held in
-   * memory and in storage, so a reload mid lesson puts them back too;
-   * restored when the lesson is left (Progress.endLesson, any other card)
-   * and here, on the load after one. Without storage the memory still
-   * restores them within the page.
+   * A LESSON'S SETTINGS (src/game/training.js): the lessons that left with
+   * Flight Club (the combat-only cut, 2026-10-20) held the pilot's
+   * aircraft, tune, flight mode and weather in storage while they flew,
+   * so a page closed mid lesson before the cut left them held. Put back
+   * once, here, and the key dropped; nothing writes it any more.
    */
   const LESSON_RESTORE_KEY = 'fdfpv.lessonRestore';
   let lessonHeld = null;
@@ -706,29 +700,14 @@ export async function boot({
     }
     return WEATHER_PRESETS.includes(value);
   }
-  function holdLessonSettings() {
-    if (lessonHeld) {
-      return;
-    }
-    lessonHeld = heldSettings(ui.settings);
-    try {
-      localStorage.setItem(LESSON_RESTORE_KEY, JSON.stringify(lessonHeld));
-    } catch (e) {
-      /* No storage: held in memory for this page. */
-    }
+  if (restoreSettings(ui.settings, lessonHeld, seatAirframe, lessonSettingValid)) {
+    ui.persistSettings();
   }
-  function restoreLessonSettings() {
-    if (restoreSettings(ui.settings, lessonHeld, seatAirframe, lessonSettingValid)) {
-      ui.persistSettings();
-    }
-    lessonHeld = null;
-    try {
-      localStorage.removeItem(LESSON_RESTORE_KEY);
-    } catch (e) {
-      /* No storage: nothing was kept there. */
-    }
+  try {
+    localStorage.removeItem(LESSON_RESTORE_KEY);
+  } catch (e) {
+    /* No storage: nothing was kept there. */
   }
-  restoreLessonSettings();
   /* And the lesson that load's page was flying, said (TRAINING.md 10). */
   ui.progress.lessonReloaded();
   /* Every model of a plane is built in the pilot's paint for it
@@ -2295,7 +2274,6 @@ export async function boot({
       ui.show('paused');
     }),
     onSwap: () => leaveFlightFromThumbs(() => ui.openSwap('flight')),
-    onFoot: () => toggleFoot(),
   }) : null;
   /* Both buttons mean something only in flight, the same two steps the
    * Escape key takes for Pause, and both hide the sticks at once rather
@@ -3105,8 +3083,12 @@ export async function boot({
       yes: str('main.stay_here'),
       no: str('main.choose_a_world'),
     }).then((stay) => {
+      /* No world picker since free flight left (the combat-only cut,
+       * 2026-10-20): either answer leaves the pilot at home, on the
+       * world the retired one went to. */
       if (!stay) {
-        ui.show('freestyle');
+        ui.hub = null;
+        ui.show('title');
       }
     });
   }
@@ -3419,19 +3401,15 @@ export async function boot({
 
   /*
    * THE PILOT'S SPOT: where the person who flies stands, the pilot and
-   * line of sight views' eye and the place they step out onto. Seated
-   * here, once per spawn, 20 m right of the spawn and 15 m ahead, and
-   * after that moved only by walking (docs/ON-FOOT.md). A clip recovery
-   * or a swap in the air moves the spawn (seatSpawnAt), never the pilot:
-   * the spot used to be worked out from the spawn every frame, which
-   * carried the pilot off with every recovery. fromY is the height the
-   * ground is asked from: anywhere over the spot until walked, then
-   * a step over the feet that walked there.
+   * line of sight views' eye. Seated here, once per spawn, 20 m right of
+   * the spawn and 15 m ahead. A clip recovery or a swap in the air moves
+   * the spawn (seatSpawnAt), never the pilot: the spot used to be worked
+   * out from the spawn every frame, which carried the pilot off with
+   * every recovery. fromY is the height the ground is asked from:
+   * anywhere over the spot. (Walking moved it, until the pilot on foot
+   * left with free flight in the combat-only cut, 2026-10-20.)
    */
   const pilotSpot = { x: 0, z: 0, fromY: Infinity };
-  /* The walk, while the pilot is out on foot, else null (THE PILOT ON
-   * FOOT, below). Up here because a reset at boot asks it. */
-  let walker = null;
   function seatPilotSpot() {
     /* The spawn's right, (1, 0, 0), and ahead, (0, 0, -1), turned by its
      * yaw about the vertical as qSpawn turns them. */
@@ -3561,11 +3539,6 @@ export async function boot({
     if (mode === 'replay') {
       return 'crashcam';
     }
-    /* Gone through the field hangar's door on foot: the parked aircraft
-     * still sends, the pilot is not at the sticks. */
-    if (walker && walker.inHangar) {
-      return 'hangar';
-    }
     if (mode === 'flight' && ui.screen === 'flight') {
       return null;
     }
@@ -3669,9 +3642,6 @@ export async function boot({
       voice.welcomed(w.seat);
       if (roomWreckSender) {
         roomWreckSender.resend();
-      }
-      if (roomFootSender) {
-        roomFootSender.resend();
       }
       roomGone.clear();
       roomSessionWelcome(w);
@@ -3779,15 +3749,6 @@ export async function boot({
     onBinary: (bytes) => {
       /* AGENTS first: the one binary the war sends, 30 times a second. */
       if (roomWar.onBinary(bytes)) {
-        return;
-      }
-      const foot = decodeFootRelay(bytes);
-      if (foot) {
-        const walking = roomPeers.get(foot.seat);
-        if (walking) {
-          walking.foot ??= createFootTrack();
-          walking.foot.push(foot, performance.now());
-        }
         return;
       }
       const got = decodePartsRelay(bytes);
@@ -6291,35 +6252,6 @@ export async function boot({
    * thrown where the peer is when the news arrives.
    */
   let roomWreckSender = null;
-  let roomFootSender = null;
-
-  /*
-   * WHERE THIS PILOT STANDS, FOR THE ROOM (roomwire.js FOOT): on foot, the
-   * walk, in or out of the hangar; flying from a spot walked to, that spot,
-   * facing the aircraft; at the spot every pilot starts on, nothing, and
-   * the others draw this pilot at the station. Only in flight: paused or on
-   * a menu the others draw no pilot at all.
-   */
-  function roomFootSource() {
-    if (mode !== 'flight' || !mapReady || !view) {
-      return null;
-    }
-    if (walker) {
-      return {
-        flags: FOOT_ON | (walker.inHangar ? FOOT_HANGAR : 0), x: walker.x, y: walker.feet, z: walker.z, heading: walker.heading,
-      };
-    }
-    if (pilotSpot.fromY === Infinity) {
-      return null;
-    }
-    return {
-      flags: 0,
-      x: pilotSpot.x,
-      y: view.height(pilotSpot.x, pilotSpot.z, pilotSpot.fromY),
-      z: pilotSpot.z,
-      heading: Math.atan2(pCurr.x - pilotSpot.x, -(pCurr.z - pilotSpot.z)),
-    };
-  }
 
   function roomEvent(ev) {
     const peer = roomPeers.get(ev.seat);
@@ -6475,8 +6407,6 @@ export async function boot({
     if (mode === 'flight' || roomWreckSender.active()) {
       roomWreckSender.frame(now, wallMs);
     }
-    roomFootSender ??= createFootSender(roomLinkState, roomFootSource);
-    roomFootSender.frame(wallMs);
     const scene = shell.quad.parent;
     const simT = stateCurr ? stateCurr[0] : 0;
     /* The others are drawn at the frame's own moment, wallMs on the room
@@ -7117,44 +7047,21 @@ export async function boot({
   }
 
   /*
-   * A PEER'S PILOT, WHERE THEY STAND (src/share/roomfoot.js). On foot,
-   * walked to a spot, or gone into the hangar, the pilot says where with
-   * FOOT, and the figure stands there: walking between samples, facing
-   * the way they walk, and watching their aircraft once still. Inside the
-   * hangar the body is put away and the name, saying so, stays over the
-   * door they went in by. A pilot who sends no FOOT (at the station, or a
-   * build from before it) stands at their station as always.
+   * A PEER'S PILOT stands at their station, watching their aircraft. (A
+   * pilot on foot said where they stood with FOOT until the pilot on foot
+   * left with free flight in the combat-only cut, 2026-10-20.)
    */
   function roomPlaceFigure(peer, label, dt) {
     const fig = peer.figure;
-    /* On the page's clock, as the FOOT_RELAY was taken (onBinary). */
-    const at = peer.foot ? peer.foot.draw(performance.now()) : null;
     fig.group.visible = true;
-    if (!at) {
-      const sp = view.spawn || { x: 0, z: 0, yaw: 0 };
-      const st = stationFor(sp, peer.seat - 1);
-      /* On the deck a spawn's hint names, not the ground under it. */
-      fig.group.position.set(st.x, sp.y != null ? view.height(st.x, st.z, sp.y) : groundAt(st.x, st.z), st.z);
-      fig.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
-      fig.setBodyVisible(true);
-      fig.stride(0, dt);
-      fig.lookAt(roomDrawn.px, roomDrawn.py, roomDrawn.pz);
-      return;
-    }
-    fig.group.position.set(at.x, at.y, at.z);
-    /* The walk's heading is clockwise from -z (src/game/onfoot.js); the
-     * figure faces -z at rotation 0, and a rotation turns it the other way. */
-    fig.group.rotation.y = -at.heading;
-    const inside = (at.flags & FOOT_HANGAR) !== 0 || peer.profile.status === 'hangar';
-    fig.setBodyVisible(!inside);
-    if (inside) {
-      fig.setLabel(label && str('rooms.in_hangar', { name: label }));
-      return;
-    }
-    fig.stride(at.moved, dt);
-    if (!(at.flags & FOOT_ON) || at.moved === 0) {
-      fig.lookAt(roomDrawn.px, roomDrawn.py, roomDrawn.pz);
-    }
+    const sp = view.spawn || { x: 0, z: 0, yaw: 0 };
+    const st = stationFor(sp, peer.seat - 1);
+    /* On the deck a spawn's hint names, not the ground under it. */
+    fig.group.position.set(st.x, sp.y != null ? view.height(st.x, st.z, sp.y) : groundAt(st.x, st.z), st.z);
+    fig.group.rotation.y = (view.spawn && view.spawn.yaw) || 0;
+    fig.setBodyVisible(true);
+    fig.stride(0, dt);
+    fig.lookAt(roomDrawn.px, roomDrawn.py, roomDrawn.pz);
   }
 
   /*
@@ -7291,13 +7198,12 @@ export async function boot({
         paint: p.rig ? p.rig.paint() : null,
         decals: p.rig ? p.rig.decals() : null,
         figure: p.figure ? p.figure.group.position.toArray() : null,
-        /* Where the figure is drawn and how: on foot from FOOT, its body
-         * shown or put away in the hangar, its legs' swing (rad). */
+        /* Where the figure is drawn and how: its body shown, its legs'
+         * swing (rad). */
         figureShown: Boolean(p.figure && p.figure.group.visible && p.figure.bodyVisible()),
         figureYaw: p.figure ? p.figure.group.rotation.y : null,
         figureLabel: p.figure ? p.figure.label() : null,
         figureSwing: p.figure ? p.figure.swing() : null,
-        foot: p.foot ? p.foot.drawn() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
         status: p.profile.status ?? null,
         flags: p.last ? p.last.flags : null,
@@ -7838,49 +7744,37 @@ export async function boot({
   /* Home's Continue asks each campaign for its next mission (src/ui/actions.js continueWay). */
   ui.campaigns = { war: campaign, [INTERIOR_CAMPAIGN.id]: interiorScreen };
   /*
-   * LEARN TO FLY: a lesson seats its aircraft and its assist (the tune,
-   * Stabilised or Acro) and goes in by the card it is flown from, Free
-   * Flight on its world or Track mode's tracks; its judge rides on the
-   * progress calls (src/ui/progress-ui.js) until another card is pressed.
+   * DEFENCE TRAINING: a lesson flies in a war room, its consent asked
+   * first: the practice in a solo room made for it (roomMade, not
+   * remembered, so the war's own Who joins stays as the pilot left it), a
+   * campaign mission the campaign's way. The stage engine runs only in a
+   * room. Its judge rides on the progress calls (src/ui/progress-ui.js)
+   * until another card is pressed.
    */
   const trainingScreen = createTrainingScreen({
     ui,
     passed: (id) => Boolean(ui.settings.progress.lessons[id]),
     fly: (lesson) => {
-      const s = ui.settings;
-      holdLessonSettings();
-      applyLesson(s, lesson, seatAirframe);
-      const craft = s.airframe;
       ui.progress.startLesson(lesson);
-      /* A Defence lesson flies in a war room, its consent asked first: the
-       * practice in a solo room made for it (roomMade, not remembered, so
-       * the war's own Who joins stays as the pilot left it), a campaign mission the
-       * campaign's way. The stage engine runs only in a room. */
-      if (lesson.mission) {
-        /* No rooms server, or a campaign mission this pilot may not fly
-         * yet (First Light held in development): said, and the lesson
-         * left, rather than a room whose start the server refuses. */
-        const closed = !(ui.friendsRow && ui.friendsRow()) ? str('training.needs_rooms')
-          : lesson.mission !== PRACTICE_ID && !(campaignRef ? campaignRef.playable() : []).includes(lesson.mission) ? str('training.mission_closed', { mission: str(`campaign.m.${missionKey(lesson.mission)}`) })
-            : null;
-        if (closed) {
-          ui.progress.toast({ cls: 'lap', icon: '!', kicker: str('training.toast_lesson'), title: str(`training.lesson.${lesson.id}`), sub: closed });
-          ui.progress.endLesson();
-          return;
-        }
-        const enter = lesson.mission === PRACTICE_ID ? roomMade({ map: WAR_MAP, mode: 'war', who: 'solo', mission: PRACTICE_ID, remember: false }) : ui.onWarCard('way-war', lesson.mission);
-        enter.catch(() => {
-          roomRefusal = { text: str('roombrowser.make_failed'), untilMs: performance.now() + 8000 };
-          ui.refreshFriends();
-        });
+      /* No rooms server, or a campaign mission this pilot may not fly
+       * yet (First Light held in development): said, and the lesson
+       * left, rather than a room whose start the server refuses. */
+      const closed = !(ui.friendsRow && ui.friendsRow()) ? str('training.needs_rooms')
+        : lesson.mission !== PRACTICE_ID && !(campaignRef ? campaignRef.playable() : []).includes(lesson.mission) ? str('training.mission_closed', { mission: str(`campaign.m.${missionKey(lesson.mission)}`) })
+          : null;
+      if (closed) {
+        ui.progress.toast({ cls: 'lap', icon: '!', kicker: str('training.toast_lesson'), title: str(`training.lesson.${lesson.id}`), sub: closed });
+        ui.progress.endLesson();
         return;
       }
-      /* Every other lesson is a place's: flown from free flight's card. */
-      ui.act('way-freestyle-wing1000', craft);
+      const enter = lesson.mission === PRACTICE_ID ? roomMade({ map: WAR_MAP, mode: 'war', who: 'solo', mission: PRACTICE_ID, remember: false }) : ui.onWarCard('way-war', lesson.mission);
+      enter.catch(() => {
+        roomRefusal = { text: str('roombrowser.make_failed'), untilMs: performance.now() + 8000 };
+        ui.refreshFriends();
+      });
     },
   });
   ui.onTrainingCard = () => trainingScreen.open();
-  ui.progress.onLessonEnd = restoreLessonSettings;
   devHooks.__training = trainingScreen;
   /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
@@ -9939,29 +9833,6 @@ export async function boot({
   const debris = createDebris();
   shell.keepAcrossMaps(wreckRig.group);
   shell.keepAcrossMaps(debris.group);
-  /*
-   * A LESSON'S AID (src/game/training.js): the glide path to the strip,
-   * drawn only while a lesson that names it is in flight. Nothing here
-   * reaches the plant.
-   */
-  const glidePath = createGlidePath();
-  shell.keepAcrossMaps(glidePath.group);
-  let glideKey = null;
-  let glideAt = null;
-  function aidsFrame() {
-    const aid = mode === 'flight' && ui.screen === 'flight' ? ui.progress.lessonAid() : null;
-    const strip = aid === 'glide' && view ? STRIPS[ui.settings.map] ?? null : null;
-    const scene = shell.quad.parent;
-    if (scene && glidePath.group.parent !== scene) {
-      scene.add(glidePath.group);
-    }
-    if (strip && glideKey !== ui.settings.map) {
-      glideKey = ui.settings.map;
-      glideAt = glidePoints(strip, view.height(strip.x, strip.z, Infinity));
-    }
-    glidePath.show(strip ? glideAt : null, strip);
-  }
-  window.__aids = () => ({ glide: glidePath.group.visible ? glidePath.group.children.map((r) => [r.position.x, r.position.y, r.position.z]) : null });
   /* Defend Itaipu's attackers (src/render/attackers.js), bursting through
    * the crash debris; into the map's scene from roomWarFrame. */
   const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
@@ -11215,7 +11086,6 @@ export async function boot({
    */
   function resetCraft(at, keepSticks = false) {
     runRoute.cut();
-    leaveFoot();
     if (at) {
       seatSpawnAt(at);
     }
@@ -11795,19 +11665,10 @@ export async function boot({
       progressKey = ctx.key;
       ui.progress.startRun({ ...ctx, crashed });
     }
-    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
-      agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
-      sticks: input.channels, airspeed: airspeedNow(), stall: airframeById(runAirframe).stall ?? null, airUp: weather ? airOut.up : 0,
-      bank: bankOf(stateCurr), slipG: lateralG(statePrev, stateCurr), world: worldId(),
+    ui.progress.tick({
+      simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt,
+      agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position, world: worldId(),
     });
-  }
-  /* The craft's speed through the air, m/s: the plant's world velocity
-   * (sim_abi.h state [4..6]) less the air it last stepped in, the mean
-   * wind and the rising air (pushWeather), gusts left out; still air
-   * without weather. */
-  function airspeedNow() {
-    const air = weather ? airSim : { x: 0, y: 0 };
-    return Math.hypot(stateCurr[4] - air.x, stateCurr[5] - air.y, stateCurr[6] - (weather ? airOut.up : 0));
   }
   /*
    * AN AIR START, for a spawn that names a height (Itaipu's air spawn,
@@ -13644,204 +13505,6 @@ export async function boot({
   }
 
   /*
-   * THE PILOT ON FOOT (docs/ON-FOOT.md). In free flight, landed and
-   * stopped, the foot key (keybinds.js `foot`), a held B on a pad or
-   * the thumbs' chip steps the pilot out onto the pilot's spot facing the
-   * aircraft, and the walk (src/game/onfoot.js) takes the devices
-   * (src/input/footinput.js) while the flight sticks are held centred at
-   * zero throttle (input.js rung 1a). The same key flies again from
-   * wherever the pilot stands: the pilot and line of sight views look
-   * from there. Anything that reseats the craft (resetCraft: a restart, a
-   * swap, a recovery) ends the walk first.
-   *
-   * DETERMINISM. Only a landed craft is left, and a landed craft is not
-   * stepped (advancePlant); the sticks it would read are centred; the
-   * walk asks the map's height and Colliders.bodyPush, which read and
-   * write nothing a sweep reads. So no call the plant hears changes, and
-   * no map's solids do.
-   */
-  const footInput = createFootInput(input, () => document.pointerLockElement === shell.canvas);
-  const footWorld = {
-    height: (x, z, fromY) => view.height(x, z, fromY),
-    get solids() {
-      return view.colliders && view.colliders.built ? view.colliders : null;
-    },
-    wet: (x, z) => Boolean(view.water && view.water.length && waterAt(x, z)),
-  };
-  /* m/s: stopped, as the plan's rule has it; a landed craft rests at 0. */
-  const FOOT_STILL = 0.5;
-  /* ms a pad's B is held to step out or in, so a brush does neither. */
-  const FOOT_PAD_HOLD_MS = 500;
-  const FOOT_FOV = 70;
-  const footEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-  let footPadMs = 0;
-  let footPadFired = false;
-
-  /* A free flight, flown here and now by this pilot, not a war, a
-   * mission or a watcher's seat. */
-  function footAllowedHere() {
-    const m = modeById(flightActivity());
-    return Boolean(m && m.onFoot) && !roomWar.on() && !roomOps.on() && !roomWatching() && !warSpectating();
-  }
-
-  function canStepOut() {
-    return walker === null && mode === 'flight' && ui.screen === 'flight' && mapReady && Boolean(stateCurr)
-      && landed && !crashed && !wrecked && !turtleWait && !turtleFlip.active && !launchStaging && !poseLock
-      && !takingOff && plantSpeed(stateCurr) < FOOT_STILL && input.channels.throttle <= TAKEOFF_RELEASE
-      && footAllowedHere();
-  }
-
-  function footKeyLabel() {
-    if (input.standardPad()) {
-      return str('foot.pad_view', { button: input.padActionLabel('foot') });
-    }
-    return keyLabel(effectiveKeys(ui.settings.keybinds, runAirframe).foot);
-  }
-
-  function stepOut() {
-    const spot = findClear(footWorld, pilotSpot.x, pilotSpot.z);
-    if (!spot) {
-      flashNotice(str('foot.no_room'), 2600);
-      return;
-    }
-    walker = createWalker(spot.x, spot.z, spot.feet, Math.atan2(pCurr.x - spot.x, -(pCurr.z - spot.z)));
-    input.onFoot = true;
-    footInput.clear();
-    introMs = -1;
-    chaseValid = false;
-    flashNotice(str('foot.stepped_out', { key: footKeyLabel() }), 3200);
-  }
-
-  /* Back to the sticks, from where the pilot stands. */
-  function leaveFoot() {
-    if (walker === null) {
-      return;
-    }
-    pilotSpot.x = walker.x;
-    pilotSpot.z = walker.z;
-    pilotSpot.fromY = walker.feet + STEP_UP;
-    walker = null;
-    input.onFoot = false;
-    /* What the keys, the wheel or a thumb left on the sticks while
-     * walking is not the pilot's throttle; and a pad resting at half
-     * waits for its stick to come down, as at a landing. */
-    input.resetKeyboardSticks();
-    input.holdThrottleLow(TAKEOFF_RELEASE);
-    chaseValid = false;
-  }
-
-  function toggleFoot() {
-    if (walker !== null) {
-      leaveFoot();
-      flashNotice(str('foot.flying_again'), 1800);
-      return;
-    }
-    if (canStepOut()) {
-      stepOut();
-      return;
-    }
-    flashNotice(str(footAllowedHere() ? 'foot.land_first' : 'foot.free_flight_only'), 2600);
-  }
-
-  /* The foot key in flight; on foot, every other flight key but R (a
-   * restart) is swallowed, since the aircraft is out of reach. */
-  function footKey(code, repeat) {
-    if (ui.screen !== 'flight' || (mode !== 'flight' && walker === null)) {
-      return false;
-    }
-    if (code === 'Digit1') {
-      if (!repeat && mode === 'flight') {
-        toggleFoot();
-      }
-      return true;
-    }
-    return walker !== null && code !== 'KeyR';
-  }
-
-  /* Once a frame, before the camera: the pad's B, the thumbs' chip and
-   * the walk itself. No banner says a step out is possible: a notice on
-   * every landing took the banner from the turtle's and the race's own. */
-  function walkFrame() {
-    if (walker !== null && (mode === 'title' || mode === 'results')) {
-      leaveFoot();
-    }
-    const flying = mode === 'flight' && ui.screen === 'flight';
-    const could = canStepOut();
-    const gp = input.firstGamepad();
-    if (flying && input.padFootButton()) {
-      footPadMs += fr.dt;
-      if (footPadMs >= FOOT_PAD_HOLD_MS && !footPadFired) {
-        footPadFired = true;
-        toggleFoot();
-      }
-    } else {
-      footPadMs = 0;
-      footPadFired = false;
-    }
-    if (touch) {
-      touch.setFoot(!flying ? null : walker !== null ? str('foot.chip_fly') : could ? str('foot.chip_out') : null);
-    }
-    if (walker === null || !flying) {
-      return;
-    }
-    const dt = fr.dt / 1000;
-    stepWalker(walker, footInput.read(dt, gp, touch && touch.active() ? touch : null), dt, footWorld);
-  }
-
-  function footCamera() {
-    fpvLensLive = false;
-    chaseValid = false;
-    shell.quad.visible = true;
-    shell.camera.up.set(0, 1, 0);
-    shell.camera.position.set(walker.x, walker.feet + EYE_HEIGHT, walker.z);
-    shell.camera.quaternion.setFromEuler(footEuler.set(walker.pitch, -walker.heading, 0, 'YXZ'));
-    setFov(FOOT_FOV);
-  }
-
-  /* Harness: the solid within 5 cm of the body, by kind, or null. */
-  function footTouching() {
-    const set = footWorld.solids;
-    if (!walker || !set) {
-      return null;
-    }
-    const i = set.bodyPush(walker.x, walker.z, walker.feet + BODY_RADIUS, walker.feet + STATURE - BODY_RADIUS, BODY_RADIUS + 0.05, FOOT_SKIP);
-    return i < 0 ? null : set.kindName(set.fkind[i]);
-  }
-
-  /* Harness: the walk as it stands, and a turn (checks steer with it;
-   * the pilot turns with the mouse, a stick or a thumb). */
-  devHooks.__foot = {
-    state: () => ({
-      on: walker !== null,
-      could: canStepOut(),
-      allowed: footAllowedHere(),
-      walker: walker && { ...walker },
-      spot: { ...pilotSpot },
-      ground: walker && view.height(walker.x, walker.z, walker.feet + STEP_UP),
-      eye: walker && walker.feet + EYE_HEIGHT,
-      camera: shell.camera.position.toArray(),
-      fov: shell.camera.fov,
-      source: input.stats().source,
-      touching: footTouching(),
-      inside: walker ? depthInside(walker, footWorld) : 0,
-    }),
-    face: (heading) => {
-      if (walker) {
-        walker.heading = heading;
-      }
-      return Boolean(walker);
-    },
-    /* In or out of the field hangar, as its door will put the pilot
-     * (walk plan slice 4); until there is a door, for foot:twopage. */
-    hangar: (on) => {
-      if (walker) {
-        walker.inHangar = Boolean(on);
-      }
-      return Boolean(walker);
-    },
-  };
-
-  /*
    * MOUSE FLIGHT'S POINTER LOCK. The mouse flies only while the pointer is
    * captured, and it is captured only on the flight screen, never in the
    * builder's editor, which has its own use for a mouse. Everywhere else
@@ -13880,10 +13543,9 @@ export async function boot({
   let mouseEscGuardUntil = 0;
   const MOUSE_ESC_GUARD_MS = 300;
   const mouseLocked = () => document.pointerLockElement === shell.canvas;
-  /* Mouse flight's in the air, the walk's on foot (a thumb looks on a
-   * touch screen). */
+  /* Mouse flight's in the air. */
   function mouseWantsLock() {
-    return (input.mouseEnabled || (walker !== null && !(touch && touch.active()))) && mode === 'flight' && ui.screen === 'flight'
+    return input.mouseEnabled && mode === 'flight' && ui.screen === 'flight'
       && !debrief.isOpen;
   }
   function askMouseLock() {
@@ -13896,7 +13558,7 @@ export async function boot({
   function syncMouseLock(nowWall) {
     const want = mouseWantsLock();
     const locked = mouseLocked();
-    input.setMouseLive(want && locked && !walker);
+    input.setMouseLive(want && locked);
     const wing = Boolean(airframeById(runAirframe).fixedWing);
     input.setMouseCraft(wing, ui.settings.flightMode !== 'angle');
     if (!want) {
@@ -13915,7 +13577,7 @@ export async function boot({
       askMouseLock();
     }
     if (!notice || notice.mouse || nowWall >= notice.untilMs) {
-      notice = { text: str(walker ? 'foot.click_to_look' : 'main.mouse_click_to_fly'), untilMs: nowWall + 250, mouse: true };
+      notice = { text: str('main.mouse_click_to_fly'), untilMs: nowWall + 250, mouse: true };
     }
   }
   window.addEventListener('mousedown', (e) => {
@@ -13944,7 +13606,7 @@ export async function boot({
     mouseLockMine = false;
     mouseExitAsked = false;
     input.setMouseLive(false);
-    if (mine && !ours && (input.mouseEnabled || walker) && mode === 'flight' && ui.screen === 'flight') {
+    if (mine && !ours && input.mouseEnabled && mode === 'flight' && ui.screen === 'flight') {
       mouseEscGuardUntil = performance.now() + MOUSE_ESC_GUARD_MS;
       ui.act('pause');
       ui.show('paused');
@@ -14043,9 +13705,6 @@ export async function boot({
       return;
     }
     if (ui.handleKey(code, repeat)) {
-      return;
-    }
-    if (footKey(code, repeat)) {
       return;
     }
     if (repeat) {
@@ -15144,7 +14803,6 @@ export async function boot({
     routeFrame();
     dressWorld();
     placeLens();
-    walkFrame();
     pickCamera();
     moveScenery();
     drawFrame();
@@ -15158,8 +14816,7 @@ export async function boot({
    * THE WORLD'S EDGE (src/game/edges.js): turn back past the world's
    * square, the start again past twice it, with the R key's own reset, on
    * last frame's pose as a key between frames would be. A live operation
-   * keeps its own boundary (edge/rooms/ops.js) instead, and a pilot on
-   * foot has left the aircraft where it is. Home is where the reset puts
+   * keeps its own boundary (edge/rooms/ops.js) instead. Home is where the reset puts
    * the craft (runSpawn), taken at each run's start: a clip recovery moves
    * startX, not the start a reset goes back to.
    */
@@ -15173,7 +14830,7 @@ export async function boot({
       return;
     }
     const half = WORLD_EDGES[view.id];
-    if (!half || mode !== 'flight' || walker !== null || roomOps.on() || warSpectating() || roomWatching()) {
+    if (!half || mode !== 'flight' || roomOps.on() || warSpectating() || roomWatching()) {
       worldEdge.since = null;
       edgeBanner = null;
       return;
@@ -16156,8 +15813,6 @@ export async function boot({
       }
     } else if (mode === 'results' && !camOverride) {
       finishCamera(dt);
-    } else if (walker) {
-      footCamera();
     } else if (watching) {
       watchCamera(watching, dt);
     } else if (introMs >= 0 && (mode === 'flight' || mode === 'paused') && !camOverride) {
@@ -16202,7 +15857,6 @@ export async function boot({
       }
     }
     crashFrameLate(nowWall);
-    aidsFrame();
   }
 
   /* The projection is rebuilt only when the fov moves: exactly, when the
@@ -16363,6 +16017,10 @@ export async function boot({
   /* deg: a monitor or a laptop at arm's length subtends about 40 to 55
    * deg of a person's view, ESTIMATED; at 50 the picture is life size. */
   const PILOT_FOV = 50;
+  /* m: the pilot's eye over the ground: a 1.75 m stature (the room's
+   * pilot figure, src/render/peers.js) times eye height over stature,
+   * 0.936 (Drillis and Contini 1966, body segment proportions). */
+  const EYE_HEIGHT = 1.64;
   function outsideCamera(dt, nowWall) {
     shell.quad.visible = true;
     shell.camera.up.set(0, 1, 0);
@@ -17112,10 +16770,6 @@ export async function boot({
       return [notice.text, false];
     }
     if (ui.isModal()) {
-      return NO_BANNER;
-    }
-    /* On foot the aircraft's prompts are not the pilot's. */
-    if (walker !== null) {
       return NO_BANNER;
     }
     if (input.throttleWaiting && inFlight) {
@@ -18566,9 +18220,6 @@ export async function boot({
     liveGroups: [wreckRig.group, debris.group, smoke.group],
     mode: () => mode,
     screen: () => ui.screen,
-    /* On foot the parked aircraft is not a clip: the ring stops at the
-     * step out, and flying again starts a new one. */
-    onFoot: () => walker !== null,
     enter: () => {
       mode = 'replay';
     },

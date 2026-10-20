@@ -38,7 +38,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 console.log('the table');
 check('every action has its own default key', new Set(ACTIONS.map((a) => a.code)).size === ACTIONS.length);
 check('no default key is reserved', ACTIONS.every((a) => !RESERVED.has(a.code)));
-check('the defaults are the keys main.js reads', same(ACTIONS.map((a) => a.code), ['KeyR', 'KeyX', 'KeyT', 'KeyL', 'KeyP', 'KeyF', 'KeyG', 'KeyO', 'KeyC', 'Digit1', 'Digit2']));
+check('the defaults are the keys main.js reads', same(ACTIONS.map((a) => a.code), ['KeyR', 'KeyX', 'KeyT', 'KeyL', 'KeyP', 'KeyF', 'KeyG', 'KeyO', 'KeyC', 'Digit2']));
 
 console.log('no bindings: the identity');
 const none = emptyKeybinds();
@@ -89,8 +89,8 @@ check('an aircraft may move an every-aircraft binding again', r.ok && translate(
   && translate(r.binds, 'cub1400', 'Comma') === 'KeyR');
 
 console.log('reset to defaults');
-/* Digit1 and Digit2 are the foot and strike keys' own defaults, so flaps
- * moves to Digit3 and the chute to Digit4. */
+/* Digit2 is the strike key's own default, so flaps moves to Digit3 and
+ * the chute to Digit4. */
 const both = bind(bind(b, 'flaps', 'Digit3').binds, 'chute', 'Digit4', 'bramor2300').binds;
 let back = resetAction(both, 'reset');
 check('one action back, for every aircraft', same(back.all, { flaps: 'Digit3' }) && translate(back, null, 'KeyR') === 'KeyR');

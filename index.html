@@ -248,12 +248,10 @@
          * rule reads --hub-accent. Measured on --pdcs-bg and on the
          * ground's lighter centre (#101416):
          *   --hub-ops     #6aa3c8   7.3 and 6.8 : 1 (the blue accent)
-         *   --hub-club    #e09a5f   8.5 and 7.9 : 1, apart from --pdcs-warn
          *   --hub-hangar  #a9b4bb   9.4 and 8.8 : 1
          * Dark text on each is the same ratio.
          */
         --hub-ops: var(--pdcs-blue);
-        --hub-club: #e09a5f;
         --hub-hangar: #a9b4bb;
         --hub-accent: var(--hub-ops);
       }
@@ -1123,6 +1121,12 @@
         min-width: 0;
         font-size: 12.5px; letter-spacing: 0.04em; color: var(--cream);
       }
+      /* With no rooms server the panel is a note alone (src/ui/items.js
+         gateRows: nothing is playable without one), a sentence that wraps
+         under its title rather than a count that fits beside it. */
+      .gate-rooms:not(:has(.gate-rooms-list)) .gate-rooms-head { flex-wrap: wrap; row-gap: 2px; }
+      .gate-rooms:not(:has(.gate-rooms-list)) .gate-rooms-title { flex: 0 1 auto; white-space: normal; overflow: visible; text-overflow: clip; }
+      .gate-rooms:not(:has(.gate-rooms-list)) .gate-rooms-count { flex: 1 1 100%; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.35; }
       .gate-rooms-list, .gate-rooms-buttons { display: flex; gap: 6px; min-width: 0; }
       .gate-room {
         flex: 1 1 0; min-width: 0;
@@ -1150,9 +1154,10 @@
       .gate-room.on .gate-room-name { color: var(--pdcs-bright); }
       .gate-room:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 2px; }
       /*
-       * FLIGHT CLUB'S PILOT STATS (src/ui/pilotstats.js; the owner,
+       * THE PILOT STATS on home (src/ui/pilotstats.js; the owner,
        * 2026-10-08: "i need prominently to see the game stats, played hours
-       * in total"). The room between the wordmark and the cards was empty;
+       * in total"; Flight Club's page until it left, the combat-only cut,
+       * 2026-10-20). The room between the wordmark and the cards was empty;
        * the panel takes it, the total time large on the left, the tiles in
        * a row beside it, each mode's time along the foot. The cards keep
        * their auto margin, so a short window loses the gap above them,
@@ -1160,7 +1165,7 @@
        * stays on it.
        */
       .gate-stats { display: none; }
-      .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
+      .screen-title.is-gate[data-hub=""] .gate-stats:not([hidden]) {
         display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr);
         column-gap: clamp(16px, 2.4vw, 40px); row-gap: 10px; align-items: stretch;
         width: 100%; box-sizing: border-box;
@@ -1222,7 +1227,7 @@
          onto a second row the cards have no height for. */
       @media (max-height: 820px) {
         .gate-stat-sub, .gate-stats-time-label, .gate-stats-title, .gate-stats-mode-game { display: none; }
-        .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
+        .screen-title.is-gate[data-hub=""] .gate-stats:not([hidden]) {
           margin: 6px 0 8px; padding: 8px 14px; row-gap: 6px;
         }
         .gate-stats-time { font-size: clamp(28px, 3.4vw, 46px); }
@@ -1233,7 +1238,7 @@
       /* A window under 1100 wide: the tiles go to their own row under the
          time, three and two, so no label is cut to a letter a line. */
       @media (max-width: 1100px) {
-        .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+        .screen-title.is-gate[data-hub=""] .gate-stats:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
         .gate-stats-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       }
       /* A phone, upright or on its side: one line, the total time and the
@@ -1242,7 +1247,7 @@
          where the tags wrap). The rest stays on the wider page and the
          Pilot rows in Settings. */
       @media (max-width: 860px), (max-height: 520px) {
-        .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
+        .screen-title.is-gate[data-hub=""] .gate-stats:not([hidden]) {
           display: flex; align-items: baseline; justify-content: space-between; gap: 4px 12px;
           margin: 4px 0; padding: 5px 12px;
         }
@@ -1292,6 +1297,39 @@
       @media (max-width: 860px), (max-height: 520px) {
         .screen-title.is-gate[data-hub=""] .gate-card-art { display: none; }
       }
+      /* Home at a laptop's height (1280 by 720 is the common one), or a
+         phone on its side: five cards under the pilot stats and the rooms
+         panel, the Hangar's six links among them, so each card keeps its
+         name, its first tag and its links and gives up the sentence, as
+         the phone rule above does for three cards and more (pilot:stats
+         measures the tags clear of the command bar in Spanish). */
+      @media (min-width: 861px) and (max-height: 820px), (max-height: 520px) {
+        .screen-title.is-gate[data-hub=""] .gate-card-blurb,
+        .screen-title.is-gate[data-hub=""] .gate-card-fact:nth-child(n+2) { display: none; }
+        .screen-title.is-gate[data-hub=""] .gate-card-body { gap: 4px; padding: 7px 12px 8px; }
+        .screen-title.is-gate[data-hub=""] .gate-links { gap: 4px 6px; margin-top: 2px; }
+        .screen-title.is-gate[data-hub=""] .gate-link { padding: 3px 7px; font-size: 11px; letter-spacing: 0.06em; }
+      }
+      /* Home's cards take the height the wordmark, the rooms panel and the
+         pilot stats leave them, and the picture gives back what they lack:
+         it is laid over its box, so its aspect never holds a card tall, and
+         it shrinks before a link reaches the command bar. Only the panel's
+         rooms and the window decide that height, so no breakpoint can
+         (modes:card: the links 73 px under the bar at 1920 by 1080, and
+         past it at 1280 by 720 with three rooms listed). */
+      @media (min-width: 861px) and (min-height: 521px) {
+        .screen-title.is-gate[data-hub=""] .gate-cards { flex: 0 1 auto; min-height: 0; }
+        .screen-title.is-gate[data-hub=""] .gate-card-art { flex: 0 1 auto; min-height: 0; }
+        .screen-title.is-gate[data-hub=""] .gate-card-body { flex: 0 0 auto; }
+        .screen-title.is-gate[data-hub=""] .gate-card-shot { position: absolute; inset: 0; }
+      }
+      /* A phone on its side has no picture to give back: the Hangar's card,
+         the one with links, takes two cards' width so its six links run two
+         or three to a line instead of six lines past the command bar
+         (modes:card at 844 by 390). */
+      @media (max-height: 520px) {
+        .screen-title.is-gate[data-hub=""] .gate-card:has(.gate-link) { flex-grow: 2; }
+      }
       /*
        * A GATE CARD is a framed panel on the ground: a survey plate (the
        * mode's picture greyed and darkened under a fine grid, its number in
@@ -1316,9 +1354,8 @@
       }
       /* After .on, so a keyboard focus shows its own ring on the cursor's card. */
       .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
-      /* One accent per hub (src/ui/ui.js HUBS): its card on home, and every
-         card inside it. Operations keeps the default blue. */
-      .gate-card[data-hub="club"], .screen-title[data-hub="club"] .gate-card { --card-accent: var(--hub-club); }
+      /* The Hangar's accent (src/ui/ways.js HUBS): its card on home, and
+         every card inside it. The Operations cards keep the default blue. */
       .gate-card[data-hub="hangar"], .screen-title[data-hub="hangar"] .gate-card { --card-accent: var(--hub-hangar); }
       /* A hub card's activities, each a press straight into its lobby. */
       .gate-links { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 4px; }
@@ -1637,6 +1674,12 @@
       }
       .frame-primary[hidden] { display: none; }
       .frame-primary:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 2px; }
+      /* On a phone a longer primary gives way first and wraps, since the
+         legend beside it clips: Make a room's CREAR LA SALA cut Esc Volver
+         at 390 and 360 px (modes:card). */
+      @media (max-width: 480px) {
+        .frame-primary { flex-shrink: 1000; padding: 0 12px; letter-spacing: 0.06em; line-height: 1.15; }
+      }
       /* On a coarse pointer every target is at least 44 px: the copy may
          shrink on a phone, the target never does. */
       @media (pointer: coarse) {
@@ -2360,9 +2403,6 @@
         /* Narrow, so a 32 letter name keeps to one line beside it. */
         .screen-title.is-gate .gate-rooms-list .gate-room-watch { padding-left: 6px; padding-right: 6px; }
         .screen-title.is-gate .gate-rooms-list .gate-room-watch .gate-room-name { letter-spacing: 0.06em; }
-        /* The stacked cards' 4 px gap the count rule above asks for, which
-           the gate's own 10 px outranks: the rooms took that height. */
-        .screen-title.is-gate[data-hub="club"]:has(.gate-rooms-list .gate-room) .gate-cards { gap: 4px; }
       }
       /* Home on a short upright phone: the hub cards' links come down a
          step, as the cards do in the block above, so the Hangar's seven
@@ -2385,26 +2425,6 @@
         .screen-title.is-gate[data-hub=""] .gate-cards {
           flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
         }
-      }
-      /* With rooms listed, Flight Club's panel and its pilot stats both
-         stand over the cards, so the pictures give back the height, as
-         home's do under its rooms band (106 px at 720 high, so the plan
-         drawing clears the card's number; 330 px at 1080); on a short
-         window on its side the
-         cards are their names and tags, as home's are on a phone. */
-      @media (min-width: 861px) and (min-height: 521px) {
-        .screen-title.is-gate[data-hub="club"]:has(.gate-rooms-list .gate-room) .gate-card-art {
-          height: clamp(64px, calc(62vh - 340px), 400px);
-        }
-      }
-      @media (max-height: 520px) {
-        .screen-title.is-gate[data-hub="club"]:has(.gate-rooms-list .gate-room) .gate-card-art { display: none; }
-      }
-      /* Over 820 high the pilot stats stand at full height over the cards
-         even with no room listed, and Trick Battle's three tags ran under
-         the bar at 1080 (modes:card: 1031 px over a bar at 1028). */
-      @media (min-width: 861px) and (min-height: 821px) {
-        .screen-title.is-gate[data-hub="club"] .gate-card-art { height: clamp(120px, calc(62vh - 340px), 400px); }
       }
 
       /* The map screen: a card per world, each one playing a short flight

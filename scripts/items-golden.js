@@ -379,12 +379,10 @@ function functionsOf(fields) {
 }
 
 const SCENARIOS = [
-  /* The title: the gate (home, each hub), and the menu behind it. */
+  /* The title: the gate (home, with and without rooms, and the Hangar), and the menu behind it. */
   scenario('title-gate-home', { fields: { mode: null, craftGate: true } }),
   scenario('title-gate-home-rooms', { fields: { mode: null, craftGate: true, friendsRow: friendsRowOut, titleRooms: (home) => [{ label: `Rooms panel home=${home}`, lobby: 'room', action: 'lobby:owls' }] } }),
-  scenario('title-gate-club', { fields: { mode: null, craftGate: true, hub: 'club', friendsRow: friendsRowOut, titleRooms: (home) => [{ label: `Rooms panel home=${home}`, lobby: 'room', action: 'lobby:owls' }], padInfo: padGuessing } }),
-  scenario('title-gate-ops', { fields: { mode: null, craftGate: true, hub: 'ops', padInfo: padNoButtons } }),
-  scenario('title-gate-ops-rooms', { fields: { mode: null, craftGate: true, hub: 'ops', friendsRow: friendsRowOut } }),
+  scenario('title-gate-home-pad', { fields: { mode: null, craftGate: true, padInfo: padNoButtons } }),
   scenario('title-gate-hangar', { fields: { mode: null, craftGate: true, hub: 'hangar', padInfo: padNoYaw } }),
   scenario('title-gate-plane', { settings: { airframe: 'cub1400' }, fields: { mode: null, craftGate: true } }),
   scenario('title-race-no-seat', { fields: { padInfo: padFine } }),

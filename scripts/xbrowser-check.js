@@ -149,13 +149,13 @@ async function run(engineName, origin, roomsOrigin) {
       if (c1 === c0) {
         throw new Error(`ArrowRight left the cursor at ${c0}`);
       }
-      /* Onto Flight Club the way scripts/mode-cards-check.js does, then the key. */
-      await page.evaluate("window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'club')); true");
+      /* Onto the Hangar the way scripts/mode-cards-check.js does, then the key. */
+      await page.evaluate("window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'hangar')); true");
       await page.keyboard.press('Enter');
       try {
-        await until(page, "window.__ui.hub === 'club'", 15000);
+        await until(page, "window.__ui.hub === 'hangar'", 15000);
       } catch (e) {
-        throw new Error(`Enter on Flight Club opened no hub (hub ${await page.evaluate('window.__ui.hub')})`);
+        throw new Error(`Enter on the Hangar opened no hub (hub ${await page.evaluate('window.__ui.hub')})`);
       }
       await page.keyboard.press('Escape');
       await until(page, 'window.__ui.onGate()', 15000);

@@ -435,7 +435,7 @@ const scenarios = {
       'quadHelp', 'launchHelp', 'ratesHelp', 'pidsHelp', 'fcHelp', 'pausedHelp', 'resultsHelp'];
     for (const n of names) ui[n] = named('div', n);
     const out = {};
-    const screens = ['title', 'howto', 'credits', 'courses', 'freestyle', 'pilot', 'friends', 'rooms', 'roomnew',
+    const screens = ['title', 'howto', 'credits', 'courses', 'pilot', 'friends', 'rooms', 'roomnew',
       'quad', 'launch', 'rates', 'pids', 'fc', 'paused', 'results', 'hangar', 'bogus'];
     for (const s of screens) {
       ui.screen = s;

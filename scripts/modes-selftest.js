@@ -63,7 +63,7 @@ const exists = (p) => access(join(root, p)).then(() => true, () => false);
 console.log('modes: the entries');
 const ids = MODES.map((m) => m.id);
 check('the two activities, each once', ids.length === 2 && new Set(ids).size === 2 && ['war', 'free'].every((id) => ids.includes(id)), ids.join(','));
-const BOOLS = ['allowSolo', 'allowAI', 'allowDropIn', 'openEnded', 'consent', 'publicOnlyWhenMadeFor', 'makeable', 'onFoot', 'hidden'];
+const BOOLS = ['allowSolo', 'allowAI', 'allowDropIn', 'openEnded', 'consent', 'publicOnlyWhenMadeFor', 'makeable', 'hidden'];
 const worlds = new Set(MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id));
 for (const m of MODES) {
   check(`${m.id}: category is a hub`, ['flightclub', 'operations'].includes(m.category), m.category);
@@ -94,21 +94,21 @@ check('every round takes a newcomer in', MODES.every((m) => m.allowDropIn));
 check('only free flight is open ended', MODES.filter((m) => m.openEnded).map((m) => m.id).join() === 'free');
 check('only the war asks consent and is public only when made for', MODES.filter((m) => m.consent).map((m) => m.id).join() === 'war'
   && MODES.filter((m) => m.publicOnlyWhenMadeFor).map((m) => m.id).join() === 'war');
-/* A hidden row reaches no card (COMPLETENESS 81): the title's cards from
- * a registry hiding Free Flight have no card for it, and keep every
- * other. */
+/* A hidden row reaches no card (COMPLETENESS 81): free flight is hidden
+ * since its card left PDCS (the combat-only cut, 2026-10-20), its row
+ * kept for the Interior's room (wire mode null), and no way names it;
+ * every other card is drawn. */
 {
-  const hideFree = MODES.map((m) => (m.id === 'free' ? { ...m, hidden: true } : m));
   const shown = gateWays(WAYS, MODES).map((w) => w.id);
-  const without = gateWays(WAYS, hideFree).map((w) => w.id);
-  check('no activity is hidden today, and every card is drawn', MODES.every((m) => !m.hidden) && shown.join() === WAYS.filter((w) => w.gate !== false).map((w) => w.id).join(), shown.join());
-  check('a hidden row reaches no card: hiding Free Flight draws every card but its own', !without.includes('freestyle-wing1000') && without.join() === shown.filter((id) => id !== 'freestyle-wing1000').join(), without.join());
+  check('free flight is the one hidden activity', MODES.filter((m) => m.hidden).map((m) => m.id).join() === 'free');
+  check('a hidden row reaches no card: no way is Free Flight\'s, and every other card is drawn', !WAYS.some((w) => w.id === modeById('free').card.way)
+    && shown.join() === WAYS.filter((w) => w.gate !== false).map((w) => w.id).join(), shown.join());
 }
 check('the war needs one, in its own room or another', minPlayersFor('war', 'war') === 1 && minPlayersFor('war', null) === 1);
 check('the war is Operations, the rest Flight Club', MODES.filter((m) => m.category === 'operations').map((m) => m.id).join() === 'war');
 
 console.log('modes: the title\'s cards (src/ui/ui.js WAYS)');
-for (const m of MODES) {
+for (const m of MODES.filter((x) => !x.hidden)) {
   const way = WAYS.find((w) => w.id === m.card.way);
   check(`${m.id}: its card is the way ${m.card.way}, on the title`, Boolean(way) && way.gate !== false);
   check(`${m.id}: the card's lobby is the room's mode`, Boolean(way) && way.lobby === wireMode(m.id), way && String(way.lobby));
@@ -121,11 +121,12 @@ const cards = WAYS.filter((w) => w.gate !== false);
  * the campaigns src/game/campaign.js lists, in Operations, and nothing
  * else may skip the registry. */
 const opsCards = cards.filter((w) => w.opsCampaign);
-/* Learn to fly is solo lessons, never a room, so it has no mode either
- * (docs/TRAINING-DAMAGE-CONTRACT.md): one card, in Flight Club. */
+/* Defence training is lessons, each flown in a war room the lesson makes
+ * itself, so it has no mode either (docs/TRAINING-DAMAGE-CONTRACT.md):
+ * one card, in Operations. */
 const trainingCards = cards.filter((w) => w.training);
-check('every card on the title is an activity of the registry, a campaign of ops missions, or Learn to fly', cards.filter((w) => !w.opsCampaign && !w.training).every((w) => MODES.some((m) => m.card.way === w.id)), cards.map((w) => w.id).join(','));
-check('Learn to fly is one card, in Flight Club, with no lobby', trainingCards.length === 1 && trainingCards[0].category === 'flightclub' && !Object.hasOwn(trainingCards[0], 'lobby'));
+check('every card on the title is an activity of the registry, a campaign of ops missions, or Defence training', cards.filter((w) => !w.opsCampaign && !w.training).every((w) => MODES.some((m) => m.card.way === w.id)), cards.map((w) => w.id).join(','));
+check('Defence training is one card, in Operations, with no lobby', trainingCards.length === 1 && trainingCards[0].category === 'operations' && !Object.hasOwn(trainingCards[0], 'lobby'));
 check('a campaign card is a campaign of src/game/campaign.js, in Operations, with no lobby', opsCards.length > 0 && opsCards.every((w) => w.opsCampaign === INTERIOR_CAMPAIGN.id && w.category === 'operations' && !Object.hasOwn(w, 'lobby')),
   opsCards.map((w) => `${w.id}:${w.opsCampaign}:${w.category}`).join());
 

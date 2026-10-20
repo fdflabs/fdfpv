@@ -434,14 +434,14 @@ console.log('each save point writes its key, and nothing else writes');
    * shell drives it: a run seated (startRun), frames (tick), gates passed
    * (gatePass); each pays through progress.js awardFlight, the one place
    * an achievement is paid, and saves when anything was. */
-  const { RunWatch, challengeRun } = await import('../src/game/progress.js');
+  const { RunWatch } = await import('../src/game/progress.js');
   const progress = () => {
     const u = ui();
     u.settings.progress = u.settings.progress ?? freshProgress(false);
     u.persistSettings = Ui.prototype.persistSettings;
     const p = Object.create(Progress.prototype);
     Object.assign(p, {
-      ui: u, show: () => {}, toast: () => {}, flight: new EventLog(), runLog: [], folded: 0, bests: [], run: challengeRun(),
+      ui: u, show: () => {}, toast: () => {}, flight: new EventLog(), runLog: [], folded: 0, bests: [],
       watch: new RunWatch(), simMs: 0, wasCrashed: false, heldTrack: null, placeWorld: null, placeSkip: null, lesson: null,
     });
     return p;
@@ -467,9 +467,9 @@ console.log('each save point writes its key, and nothing else writes');
      * gate events are logged and folded as the race's gatePass did; the
      * race left with the combat-only cut (2026-10-20), and the challenge
      * stays until its own PR. */
-    const blob = JSON.parse(good[SETTINGS_KEY]);
-    delete blob.progress.challenges.hoops_10;
-    const undone = { ...good, [SETTINGS_KEY]: JSON.stringify(blob) };
+    /* Gates in a row paid the ten in a row challenge until the
+     * challenges left with Flight Club (the combat-only cut, 2026-10-20):
+     * now they pay nothing, so nothing is written. */
     const gates = (p, n) => {
       p.startRun({ airframe: 'interceptor', fixedWing: false, power: 'electric' });
       for (let i = 0; i < n; i += 1) {
@@ -477,25 +477,13 @@ console.log('each save point writes its key, and nothing else writes');
         p.foldFlight();
       }
     };
-    none('nine gates in a row', await written(() => { gates(progress(), 9); }, undone));
-    point('a challenge done (hoops_10)', await written((store) => {
-      gates(progress(), 10);
-      check('and the challenge is stored', progressOf(store).challenges.hoops_10 === true);
-    }, undone), [SETTINGS_KEY]);
-    const again = await written(() => { gates(progress(), 20); }, undone);
-    check('the same challenge twice writes once', again.writes === 1, `${again.writes}`);
+    none('ten gates in a row', await written(() => { gates(progress(), 10); }));
   }
   point('a landing counted', await written((store) => {
     const p = progress();
     p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
     flyAndLand(p);
     check('and the landing is stored', Object.values(progressOf(store).landings ?? {}).some((n) => n > 0));
-  }), [SETTINGS_KEY]);
-  point('a challenge paid on a landing (deadstick)', await written((store) => {
-    const p = progress();
-    p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
-    flyAndLand(p, 'warning');
-    check('and the challenge is stored', progressOf(store).challenges.deadstick === true);
   }), [SETTINGS_KEY]);
   none('frames in the air with nothing to count', await written(() => {
     const p = progress();

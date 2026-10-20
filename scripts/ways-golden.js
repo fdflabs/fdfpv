@@ -44,8 +44,6 @@ const out = {};
 out.ways = w.WAYS;
 out.gateWays = w.GATE_WAYS.map((x) => x.id);
 out.hubs = w.HUBS;
-out.hubWays = Object.fromEntries([...w.HUBS.map((h) => h.id), 'nope'].map((id) => [id, w.hubWays(id).map((x) => x.id)]));
-out.hubOfAction = Object.fromEntries([...w.WAYS.map((x) => x.action), 'fly', 'way-nope'].map((a) => [a, w.hubOfAction(a)]));
 out.seatedWay = Object.fromEntries(AIRFRAME_IDS.flatMap((id) => ['race', 'freestyle', null, 'nope'].map((mode) => [`${id}/${mode}`, w.seatedWay({ airframe: id }, mode).id])));
 out.wayFilter = Object.fromEntries(w.WAYS.map((x) => [x.id, w.wayFilter(x)]));
 out.craftSvg = Object.fromEntries(AIRFRAME_IDS.map((id) => [id, w.craftSvg(airframeById(id))]));

@@ -335,7 +335,6 @@ function seedStore(state) {
 
 const STATES = {
   'gate-home': { screen: 'title', craftGate: true, mode: null },
-  'gate-hub-club': { screen: 'title', craftGate: true, mode: null, hub: 'club' },
   'gate-hub-hangar': { screen: 'title', craftGate: true, mode: null, hub: 'hangar', lobbyCard: 'way-freestyle-wing1000' },
   'gate-visitor': { screen: 'title', craftGate: true, mode: null, visitor: true },
   'title-race': { screen: 'title', craftGate: false, mode: 'race', settings: { map: 'track', airframeAsked: true } },
@@ -412,13 +411,13 @@ const ACTIONS = [
   'update-reload', 'room-bar', 'hotswap', 'hangar-aircraft', 'customise', 'leaderboard', 'reportbug', 'feel',
   ...WAYS.map((w) => w.action),
   'friends-leave', 'friends-join', 'lobby:rooms', 'lobby:roomnew', 'rooms', 'roomnew',
-  'howto', 'pilot', 'quad', 'freestyle', 'credits', 'tricks', 'friends',
+  'howto', 'pilot', 'quad', 'credits', 'tricks', 'friends',
   'fly', 'rates', 'pids', 'fc', 'fc-save', 'fc-save-exit', 'fc-save-restart', 'fc-wait', 'fc-motors-stop', 'fc-preset:bf',
   'fc-keep-editing', 'fc-discard-leave', 'fc-discard', 'fc-export', 'fc-back', 'pids-default', 'rates-default', 'rates-save', 'rates-delete',
   'map:alps', 'back', 'mode-gate', 'title', 'paused', 'quick',
   'pause', 'restart', 'resume', 'postrun', 'posttime', 'noop', 'setname', 'choosepad', 'downloadflightlog', 'exportkey', 'importkey',
   'calibrate', 'calibrate-cancel', 'calibrate-save', 'padpick-yes', 'padpick-no', 'padpick-cancel',
-  'padpick-skip', 'accountsignin', 'accountsignout', 'hub-club', 'hub-hangar', 'nosuchaction',
+  'padpick-skip', 'accountsignin', 'accountsignout', 'hub-hangar', 'nosuchaction',
   'controller', 'controller-builtin', 'controls', 'flywith:radio', 'flywith:skip',
 ];
 
@@ -491,7 +490,7 @@ const ROWS = [
   { label: 'Segmented', options: [{ label: 'a' }, { label: 'b' }], action: 'noop' },
   { label: 'Stepper', step: 1, action: 'noop' },
   { label: 'Adjustable', adjust: true, action: 'noop' },
-  { label: 'Hub card', card: 'hub-club', hub: 'club', action: 'hub-club' },
+  { label: 'Hub card', card: 'hub-hangar', hub: 'hangar', action: 'hub-hangar' },
   { label: 'Way card', card: 'way-freestyle-wing1000', action: 'way-freestyle-wing1000' },
   { label: 'Hangar card', card: 'hangar-sticks', action: 'calibrate' },
   { label: 'Plain row', action: 'quad' },
@@ -500,7 +499,7 @@ const ROWS = [
 
 async function selectSweep() {
   const out = {};
-  for (const name of ['gate-home', 'gate-hub-club', 'title-race', 'pilot']) {
+  for (const name of ['gate-home', 'gate-hub-hangar', 'title-race', 'pilot']) {
     out[name] = {};
     for (let i = 0; i < ROWS.length; i += 1) {
       const ui = setUp(name);
@@ -525,7 +524,7 @@ async function cardsSweep() {
     ui.settings.airframe = airframe;
     const strip = (c) => ({ ...c, svg: c.svg ? `svg:${c.svg.length}` : c.svg });
     out[`${airframe} rooms:${rooms}`] = {
-      hub: ui.hubCards(rooms).map(strip),
+      home: ui.homeCards(rooms).map(strip),
       hangar: ui.hangarCards().map(strip),
       calls: ui.calls.splice(0),
     };
@@ -536,7 +535,7 @@ async function cardsSweep() {
   for (const [last, rooms] of [['combat', true], ['combat', false], ['race', true], ['free', false], ['war', true], ['nosuch', true]]) {
     const ui = setUp('gate-home');
     ui.settings.lastActivity = last;
-    out[`continue ${last} rooms:${rooms}`] = ui.hubCards(rooms).map((c) => c.links.map((l) => `${l.key}:${l.action}`));
+    out[`continue ${last} rooms:${rooms}`] = ui.homeCards(rooms).map((c) => (c.links || []).map((l) => `${l.key}:${l.action}`));
   }
   /* A campaign's Continue (src/ui/continuity.js) as its screen answers
    * it: its next mission's Play, the mission named in the link's title;
@@ -554,7 +553,7 @@ async function cardsSweep() {
     ui.settings.lastActivity = last;
     if (playable) ui.campaigns = { [last]: screen(playable, next) };
     const key = `continue ${last} campaign:${playable ? playable.length : 'none'} next:${next ? next.id : 'none'}`;
-    out[key] = ui.hubCards(true).map((c) => c.links.map((l) => `${l.key}:${l.action}${l.title ? `:${l.title}` : ''}`));
+    out[key] = ui.homeCards(true).map((c) => (c.links || []).map((l) => `${l.key}:${l.action}${l.title ? `:${l.title}` : ''}`));
     ui.act('continue-mission');
     out[`${key} press`] = ui.calls.splice(0);
   }
@@ -573,8 +572,8 @@ async function helpersSweep() {
       out[`${name} seatMap ${id}${opts.stay ? ' stay' : ''}`] = await press(ui3, () => ui3.seatMap(id, opts));
     }
     const ui4 = setUp(name);
-    ui4.rows = [{ label: 'a', action: 'x' }, { section: true }, { label: 'b', action: 'hub-club', card: 'hub-club' }];
-    out[`${name} openHub`] = await press(ui4, () => ui4.openHub('club'));
+    ui4.rows = [{ label: 'a', action: 'x' }, { section: true }, { label: 'b', action: 'hub-hangar', card: 'hub-hangar' }];
+    out[`${name} openHub`] = await press(ui4, () => ui4.openHub('hangar'));
   }
   return out;
 }

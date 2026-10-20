@@ -2606,90 +2606,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-courses.screen-freestyle": {
-    "after": "div.screen.screen-page.screen-credits",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-courses screen-freestyle"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Freestyle"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ],
-       "kids": [
-        {
-         "t": "A whole valley and no gates. Fly it, and this is where the machine you fly it on lives. Scoring is the switch below and it starts off, because the part that names what you flew is still being built."
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "map-cards"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-quad": {
-    "after": "div.screen.screen-page.screen-courses.screen-freestyle",
+    "after": "div.screen.screen-page.screen-credits",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -10751,90 +10669,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-courses.screen-freestyle": {
-    "after": "div.screen.screen-page.screen-credits",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-courses screen-freestyle"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Freestyle"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ],
-       "kids": [
-        {
-         "t": "A whole valley and no gates. Fly it, and this is where the machine you fly it on lives. Scoring is the switch below and it starts off, because the part that names what you flew is still being built."
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "map-cards"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-quad": {
-    "after": "div.screen.screen-page.screen-courses.screen-freestyle",
+    "after": "div.screen.screen-page.screen-credits",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -16473,15 +16309,6 @@
   "frameTop": {
    "node": "#ui/div.frame-top"
   },
-  "freestyleCards": {
-   "node": "#ui/div.screen.screen-page.screen-courses.screen-freestyle.2"
-  },
-  "freestyleHelp": {
-   "node": "#ui/div.screen.screen-page.screen-courses.screen-freestyle.3.1"
-  },
-  "freestyleMenu": {
-   "node": "#ui/div.screen.screen-page.screen-courses.screen-freestyle.3.0"
-  },
   "friendsHelp": {
    "node": "#ui/div.screen.screen-page.screen-friends.3.1"
   },
@@ -17006,12 +16833,6 @@
      "credits",
      {
       "node": "#ui/div.screen.screen-page.screen-credits"
-     }
-    ],
-    [
-     "freestyle",
-     {
-      "node": "#ui/div.screen.screen-page.screen-courses.screen-freestyle"
      }
     ],
     [

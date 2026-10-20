@@ -206,12 +206,6 @@ export function createCrashCam(host) {
     if (!recording || host.mode() !== 'flight') {
       return;
     }
-    if (host.onFoot && host.onFoot()) {
-      /* The ring ends at the step out; forgetting its aircraft makes
-       * flying again start a new clip. */
-      ringAirframe = null;
-      return;
-    }
     const st = host.state();
     if (!st) {
       return;
