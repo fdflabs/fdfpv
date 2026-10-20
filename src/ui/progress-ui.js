@@ -32,8 +32,8 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, CHALLENGES, RunWatch, awardFlight,
-  bestKind, challengeAmounts, challengeRun, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, RunWatch, awardFlight,
+  bestKind, challengeAmounts, findItem, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { placeKey, placesAt, placesOf } from '../game/discovery.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
@@ -251,10 +251,6 @@ export class Progress {
     this.ui = ui;
     this.host = host;
     this.watch = new RunWatch();
-    /* The run's state as the challenges read it (progress.js
-     * challengeRun), carried across the flights of one run: a recovery or
-     * a placement starts a new log, not a new run. */
-    this.run = challengeRun();
     /* This flight's events (src/game/events.js), and the sim clock as the
      * last tick gave it, for the calls that do not carry one. */
     this.flight = new EventLog();
@@ -360,7 +356,7 @@ export class Progress {
     if (!this.state.firsts || typeof this.state.firsts !== 'object') {
       this.state.firsts = {};
     }
-    const { at, counted, awards } = awardFlight(this.state, this.flight.events, this.folded, this.run, {
+    const { at, counted, awards } = awardFlight(this.state, this.flight.events, this.folded, {
       campaign: this.ui.settings.campaign,
       seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
     });
@@ -629,7 +625,6 @@ export class Progress {
    * the plane first and the rest counted. */
   show(events) {
     const xp = events.find((e) => e.type === 'xp');
-    const ch = events.find((e) => e.type === 'challenge');
     const firsts = events.filter((e) => e.type === 'first');
     const medal = events.find((e) => e.type === 'medal');
     const best = events.find((e) => e.type === 'best' && e.xp > 0);
@@ -682,15 +677,6 @@ export class Progress {
         kicker: up ? str('progress.toast_first_level', { n: up }) : str('progress.toast_first'),
         title: firstTitle(firsts[0].key),
         sub: firsts.length > 1 ? str('progress.first_more', { n: firsts.length - 1 }) : '',
-        xp: xp ? xp.xp : 0,
-        frac: info.frac,
-      });
-    } else if (ch) {
-      this.toast({
-        cls: `challenge${up ? ' level' : ''}`,
-        icon: '\u2713',
-        kicker: up ? str('progress.toast_challenge_level', { n: up }) : str('progress.toast_challenge'),
-        title: str(`progress.challenge.${ch.id}`),
         xp: xp ? xp.xp : 0,
         frac: info.frac,
       });
@@ -881,8 +867,9 @@ export class Progress {
 
   /*
    * THE CHALLENGES TAB: the level and how far into it, the Unlock all
-   * switch, this plane's challenges first and then the rest, and what the
-   * next levels open.
+   * switch, this aircraft's challenges, and what the next levels open.
+   * The seven plane challenges listed under them left with Flight Club
+   * (the combat-only cut, 2026-10-20).
    */
   paintTab(h) {
     const box = el('div', 'hangar-tab pg-tab');
@@ -925,15 +912,6 @@ export class Progress {
       box.append(el('h3', 'hangar-h', str('progress.this_aircraft', { plane: airframeById(h.id).name })));
       box.append(this.aircraftList(h.id));
     }
-    const ctx = { airframe: h.id, fixedWing: Boolean(airframeById(h.id).fixedWing), power: this.powerKind(h) };
-    const here = CHALLENGES.filter((c) => fits(c, ctx) && c.plane);
-    const rest = CHALLENGES.filter((c) => !here.includes(c));
-    if (here.length) {
-      box.append(el('h3', 'hangar-h', str('progress.this_plane')));
-      box.append(this.challengeList(here, true));
-    }
-    box.append(el('h3', 'hangar-h', str(here.length ? 'progress.more_challenges' : 'progress.challenges')));
-    box.append(this.challengeList(rest, false));
 
     if (!s.unlockAll) {
       const soon = unlockables().filter((it) => it.level > info.level).sort((a, b) => a.level - b.level).slice(0, 5);
@@ -952,11 +930,6 @@ export class Progress {
     return box;
   }
 
-  powerKind(h) {
-    const option = h.power && h.power.options ? h.power.options.find((o) => o.id === h.choice.option) : null;
-    return option ? option.kind : null;
-  }
-
   /* The aircraft's own three (progress.js AIRCRAFT_CHALLENGE_IDS), with
    * the amounts its class gives, each done or its XP. */
   aircraftList(airframe) {
@@ -969,24 +942,6 @@ export class Progress {
       const words = el('div', 'pg-ch-words');
       words.append(el('span', 'pg-ch-title', challengeTitle(airframe, id)), el('span', 'pg-ch-note', challengeNote(airframe, id)));
       row.append(el('span', 'pg-ch-mark', done ? '\u2713' : ''), words, el('span', 'pg-ch-xp', done ? str('progress.done') : str('progress.xp_gain', { n: number(AIRCRAFT_CHALLENGE_XP) })));
-      box.append(row);
-    }
-    return box;
-  }
-
-  challengeList(list, here) {
-    const box = el('div', 'pg-list');
-    for (const c of list) {
-      const done = Boolean(this.state.challenges[c.id]);
-      const shut = !done && c.plane && Boolean(this.lock('plane', c.plane));
-      const row = el('div', `pg-ch${done ? ' done' : here ? ' here' : ''}${shut ? ' shut' : ''}`);
-      row.dataset.challenge = c.id;
-      const words = el('div', 'pg-ch-words');
-      words.append(el('span', 'pg-ch-title', str(`progress.challenge.${c.id}`)), el('span', 'pg-ch-note', str(`progress.challenge.${c.id}_note`)));
-      if (shut) {
-        words.append(el('span', 'pg-lock', str('progress.plane_at', { plane: airframeById(c.plane).name, n: this.lock('plane', c.plane).level })));
-      }
-      row.append(el('span', 'pg-ch-mark', done ? '\u2713' : ''), words, el('span', 'pg-ch-xp', done ? str('progress.done') : str('progress.xp_gain', { n: number(c.xp) })));
       box.append(row);
     }
     return box;

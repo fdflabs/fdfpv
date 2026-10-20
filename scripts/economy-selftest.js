@@ -20,10 +20,10 @@
  */
 
 import {
-  CHALLENGE_TOKENS, FIRST_TOKENS, ITEMS, KIT_PRICE, earnedFrom, kitItem, grantCeiling, grantsFrom, itemById,
+  FIRST_TOKENS, ITEMS, KIT_PRICE, earnedFrom, kitItem, grantCeiling, grantsFrom, itemById,
 } from '../src/game/economy.js';
 import { KITS, slotsFor } from '../configs/kits.js';
-import { CHALLENGES, everyFirst, freshProgress, unlockables } from '../src/game/progress.js';
+import { everyFirst, freshProgress, unlockables } from '../src/game/progress.js';
 import {
   DECAL_KINDS, FINISHES, SHOP_DECALS, SHOP_FINISHES, newDecal,
 } from '../configs/paint.js';
@@ -53,7 +53,7 @@ for (const af of AIRFRAMES) {
 const everything = {
   v: 1,
   data: {
-    progress: { challenges: { ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), my_own: true }, lessons: { ...Object.fromEntries(LESSONS.map((l) => [l.id, 1759800000000])), my_lesson: 1 }, lessonsFlown: { ...Object.fromEntries(LESSONS.map((l) => [l.id, true])), my_lesson: true },
+    progress: { challenges: { first_course: true, deadstick: true, my_own: true }, lessons: { ...Object.fromEntries(LESSONS.map((l) => [l.id, 1759800000000])), my_lesson: 1 }, lessonsFlown: { ...Object.fromEntries(LESSONS.map((l) => [l.id, true])), my_lesson: true },
       played: { 'combat:alps': true, 'tag:swiss2': true } },
     campaign: { v: 1, missions: Object.fromEntries(everyFirst().filter((f) => f.key.startsWith('mission:')).map((f) => [f.key.split(':')[1], { stars: 99, won: true, credits: 0 }])) },
     flightTime: flight,
@@ -70,6 +70,10 @@ check('every first there is is granted by the record holding every fact, at a wh
  * never takes back). */
 check('a room game\'s stored played flags pay nothing since its game left', !all.some((g) => g.key.startsWith('first:game:')));
 check('every grant key is unique, so the server pays each once', new Set(all.map((g) => g.key)).size === all.length);
+/* The seven challenges paid 50 each until they left with Flight Club
+ * (the combat-only cut, 2026-10-20): a record's stored challenge flags
+ * now pay nothing new, and the grants paid before stay in the wallet. */
+check('a record\'s stored challenges pay nothing since the challenges left', !all.some((g) => g.key.startsWith('challenge:')));
 check('a made up challenge, lesson, mission or aircraft pays nothing; every known lesson pays', !all.some((g) => /my_own|my_lesson/.test(g.key))
   && LESSONS.every((l) => all.some((g) => g.key === `first:lesson:${l.id}` && g.amount === FIRST_TOKENS.lesson))
   && grantsFrom({ data: { campaign: { missions: { 'my-war-1': { stars: 3, won: true } } }, flightTime: addFlight({}, 'everydevice1', 'notaplane', 'free', 1e6, '2026-10-01') } }).length === 0);
@@ -134,7 +138,7 @@ check('a shop decal is a valid decal', SHOP_DECALS.every((k) => newDecal(k, [0, 
 check('no shop item is a level unlock, so Unlock all cannot give it', !unlockables().some((u) => (u.kind === 'finish' && SHOP_FINISHES.includes(u.id)) || (u.kind === 'decal' && SHOP_DECALS.includes(u.id))));
 
 console.log('the tables');
-check('the tables are the contract\'s', FIRST_TOKENS.win === 60 && CHALLENGE_TOKENS === 50);
+check('the tables are the contract\'s', FIRST_TOKENS.win === 60);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exitCode = failed ? 1 : 0;

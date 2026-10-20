@@ -24,14 +24,14 @@
  */
 
 import {
-  CHALLENGES, FIRST_LAP_XP, LAP_XP, LEVEL_XP, PLANE_LEVELS, RunWatch, STARTER_PLANES, STREAK_HOOPS,
-  FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, everyFirst, firstsOf,
+  FIRST_LAP_XP, LAP_XP, LEVEL_XP, PLANE_LEVELS, RunWatch, STARTER_PLANES,
+  FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardFirsts, awardLap, courseKind, everyFirst, firstsOf,
   BESTS, BEST_MARGIN, BEST_XP, awardBest, awardBests, bestsOf,
   COUNTED, countOf, foldEvents, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
   AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, BEST_GLIDE, LANDING_STREAK, PLACE_XP,
   aircraftChallengesOf, awardAircraftChallenge, awardAircraftChallenges, awardPlace, challengeAmounts,
-  awardFlight, challengeRun, challengesOn,
+  awardFlight,
 } from '../src/game/progress.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { POWER } from '../configs/power.js';
@@ -201,92 +201,10 @@ check('it makes level 2 and opens the Kadet', e1.some((e) => e.type === 'level' 
 check('and the Kadet is open now', lockOf(p1, 'plane', 'kadet1981') === null);
 const e2 = awardLap(p1, { key: 'custom:abc', kind: 'built' });
 check('the same track again: no bonus', e2[0].xp === LAP_XP.built && !e2[0].why.first);
-const c1 = awardChallenge(p1, 'first_course');
-check('a challenge: its XP once', c1[0].type === 'challenge' && c1[1].xp === 40 && awardChallenge(p1, 'first_course').length === 0);
-check('an unknown challenge earns nothing', awardChallenge(p1, 'nope').length === 0);
 const p2 = { ...freshProgress(false), unlockAll: true };
 check('with Unlock all a level opens no item toasts', addXp(p2, 5000, { kind: 'lap' }).every((e) => e.type !== 'unlock'));
 check('a track recorded as casual is the casual track, any other a built one, none the world\'s', courseKind('trk-1', { casual: { 'trk-1': true } }) === 'casual'
   && courseKind('trk-2', { casual: { 'trk-1': true } }) === 'built' && courseKind(null, freshProgress()) === 'map');
-
-console.log('the challenges, judged');
-const words = CHALLENGES.every((c) => en[`progress.challenge.${c.id}`] && en[`progress.challenge.${c.id}_note`] && es[`progress.challenge.${c.id}`] && es[`progress.challenge.${c.id}_note`]);
-check('every challenge has its words in English and Spanish', words);
-const timber = { airframe: 'timber1500', fixedWing: true, power: 'electric', smallestPack: false };
-const kadetSmall = { airframe: 'kadet1981', fixedWing: true, power: 'glow', smallestPack: true };
-const bomb = { airframe: 'bombshell1118', fixedWing: true, power: 'glow', smallestPack: false };
-const slow = { airframe: 'slowstick1180', fixedWing: true, power: 'electric', smallestPack: true };
-const quad = { airframe: 'interceptor', fixedWing: false, power: null, smallestPack: false };
-
-/* A run of `steps`, each { t, ...tick } or an action name, logged as
- * src/ui/progress-ui.js Progress logs them (RunWatch detecting the crash,
- * engine and battery edges and the landings), gathering the challenges
- * the rows find in the log (challengesOn). */
-function run(ctx, steps) {
-  const w = new RunWatch();
-  w.start(ctx);
-  const log = new EventLog();
-  let simMs = 0;
-  let was = false;
-  log.append('seated', 0, { ...ctx, crashed: false });
-  const base = { crashed: false, grounded: false, power: null, battery: 'ok' };
-  for (const s of steps) {
-    if (s === 'pass') {
-      log.append('gate', simMs);
-    } else if (s === 'lap') {
-      log.append('lap', simMs, { ms: 1, airframe: ctx.airframe, medal: null });
-    } else if (typeof s === 'string') {
-      log.append('touch', simMs, { kind: s.slice(6) });
-    } else {
-      const state = { ...base, ...s };
-      simMs = state.simMs;
-      if (state.crashed && !was) {
-        log.append('crash', simMs, { airframe: ctx.airframe });
-      }
-      was = state.crashed;
-      const landings = w.landings;
-      for (const edge of w.tick(state)) {
-        log.append(edge, simMs);
-      }
-      if (w.landings > landings) {
-        log.append('landing', simMs, { airframe: ctx.airframe, airMs: w.lastAirMs });
-      }
-    }
-  }
-  const r = challengeRun();
-  return new Set(log.events.flatMap((e) => challengesOn(r, e)));
-}
-check('any lap is the first lap, even a quad\'s', run(quad, ['lap']).has('first_course'));
-check('a Timber lap with no touch is clean', run(timber, ['pass', 'pass', 'lap']).has('timber_clean'));
-check('a Timber lap with a gate touched is not', !run(timber, ['pass', 'touch:gate', 'pass', 'lap']).has('timber_clean'));
-check('a tree is not a rim', run(timber, ['pass', 'touch:tree', 'lap']).has('timber_clean'));
-check('a crash spoils the lap', !run(timber, [{ simMs: 0, crashed: true }, { simMs: 10 }, 'lap']).has('timber_clean'));
-check('a clean lap on the Cub is not the Timber\'s', !run({ ...timber, airframe: 'cub1400' }, ['lap']).has('timber_clean'));
-check('the float Timber counts as the Timber', run({ ...timber, airframe: 'timber1500f' }, ['lap']).has('timber_clean'));
-const ten = Array(STREAK_HOOPS).fill('pass');
-check('ten hoops in a row', run(timber, ten).has('hoops_10'));
-check('nine, a rim, and nine more is not', !run(timber, [...ten.slice(1), 'touch:hoop', ...ten.slice(1)]).has('hoops_10'));
-check('a rim then ten is', run(timber, ['touch:hoop', ...ten]).has('hoops_10'));
-check('three Slow Stick laps', run(slow, ['lap', 'lap', 'lap']).has('slowstick_three') && !run(slow, ['lap', 'lap']).has('slowstick_three'));
-const running = { tankM3: 1e-4, running: true };
-const out = { tankM3: 1e-4, running: false };
-check('the Kadet round on the small tank with the engine running', run(kadetSmall, [{ simMs: 0, power: running }, 'lap']).has('kadet_small_tank'));
-check('not once the engine has quit', !run(kadetSmall, [{ simMs: 0, power: out }, 'lap']).has('kadet_small_tank'));
-check('not on the big tank', !run({ ...kadetSmall, smallestPack: false }, ['lap']).has('kadet_small_tank'));
-/* Airborne then down: 2.5 s up, then 1.2 s down in one piece. */
-const flight = (extra, landing = {}) => [
-  { simMs: 0, grounded: false, ...extra }, { simMs: 2500, grounded: false, ...extra },
-  { simMs: 2600, grounded: true, ...extra, ...landing }, { simMs: 3700, grounded: true, ...extra, ...landing },
-];
-check('dead stick: LOW BATTERY, then down in one piece', run(timber, [{ simMs: 0, battery: 'warning' }, ...flight({ battery: 'warning' })]).has('deadstick'));
-check('not without LOW BATTERY', !run(timber, flight({})).has('deadstick'));
-check('not if it crashed after the warning', !run(timber, [{ simMs: 0, battery: 'warning' }, { simMs: 10, crashed: true }, ...flight({ battery: 'warning' })]).has('deadstick'));
-check('not a hop: under 2 s in the air is not a flight', !run(timber, [{ simMs: 0, battery: 'warning' }, { simMs: 100, grounded: false }, { simMs: 900, grounded: true }, { simMs: 2500, grounded: true }]).has('deadstick'));
-check('not on a glow plane', !run(kadetSmall, [{ simMs: 0, battery: 'warning' }, ...flight({ battery: 'warning' })]).has('deadstick'));
-check('the Bombshell glides home after the engine quits', run(bomb, [{ simMs: 0, power: out }, ...flight({ power: out })]).has('bombshell_glide'));
-check('not with the engine running', !run(bomb, flight({ power: running })).has('bombshell_glide'));
-check('a row per challenge, each on one event type with a condition', CHALLENGES.every((c) => ['gate', 'lap', 'landing'].includes(c.on) && typeof c.when === 'function'));
-check('a log with no seat judges nothing: no row fits no aircraft', challengesOn(challengeRun(), { type: 'lap' }).length === 0);
 
 /*
  * THE ONE FOLD (awardFlight, COMPLETENESS.md item 28): recorded logs fed
@@ -297,7 +215,6 @@ console.log('the one fold: a log in, exactly these achievements out');
   const say = (g) => {
     const e = g[0];
     if (e.type === 'xp') return `lap${e.why.first ? ' first' : ''}`;
-    if (e.type === 'challenge') return `challenge:${e.id}`;
     if (e.type === 'medal') return `medal:${e.medal}`;
     if (e.type === 'best') return `best:${e.key}`;
     if (e.type === 'aircraft_challenge') return `aircraft:${e.key}`;
@@ -309,31 +226,29 @@ console.log('the one fold: a log in, exactly these achievements out');
   const log = new EventLog();
   log.append('spawned', 0);
   log.append('seated', 0, timber);
-  for (let g = 1; g <= STREAK_HOOPS; g += 1) log.append('gate', g * 4000);
+  for (let g = 1; g <= 10; g += 1) log.append('gate', g * 4000);
   log.append('lap', 45000, { ms: 44000, airframe: 'timber1500', medal: 'silver', kind: 'built', course: 'track:t1', n: 1, of: 1 });
   log.append('found', 50000, { world: 'itaipu', id: 'main_dam' });
   log.append('battery_low', 60000);
   log.append('landing', 400000, { airframe: 'timber1500', airMs: 330000 });
   const outside = { campaign: null, seconds: { timber1500: 700 } };
   const p = freshProgress();
-  const r = challengeRun();
-  const once = awardFlight(p, log.events, 0, r, outside);
+  const once = awardFlight(p, log.events, 0, outside);
   const got = once.awards.map(say);
   const want = [
-    'challenge:hoops_10', 'lap first', 'medal:silver', 'best:lap:plane:track:t1', 'best:run:1:plane:track:t1',
-    'challenge:first_course', 'challenge:timber_clean', 'place:itaipu:main_dam',
-    'aircraft:timber1500:endurance', 'challenge:deadstick', 'first:aircraft:timber1500:flight+aircraft:timber1500:ten',
+    'lap first', 'medal:silver', 'best:lap:plane:track:t1', 'best:run:1:plane:track:t1', 'place:itaipu:main_dam',
+    'aircraft:timber1500:endurance', 'first:aircraft:timber1500:flight+aircraft:timber1500:ten',
   ];
   check('a flight: these, in log order, the firsts last', same(got, want), got.join(' | '));
   check('the fold took the whole log, and counted its lap and landing', once.at === log.events.length && once.counted === 2 && p.laps.timber1500 === 1 && p.landings.timber1500 === 1);
   check('the XP is the sum of what it paid', p.xp === once.awards.flat().filter((e) => e.type === 'xp').reduce((n, e) => n + e.xp, 0));
-  const again = awardFlight(p, log.events, once.at, r, outside);
+  const again = awardFlight(p, log.events, once.at, outside);
   check('folded again from where it stopped: nothing', again.awards.length === 0 && again.counted === 0 && again.at === once.at);
   const xp = p.xp;
-  const replayed = awardFlight(p, log.events, 0, challengeRun(), outside);
+  const replayed = awardFlight(p, log.events, 0, outside);
   check('the whole log again from the start: no achievement twice, only the lap\'s own XP (a lap pays every time, its course\'s first once)',
     same(replayed.awards.map(say), ['lap']) && p.xp === xp + LAP_XP.built, replayed.awards.map(say).join(' | '));
-  check('no outside facts: no firsts read', awardFlight(freshProgress(), log.events, 0, challengeRun(), null).awards.every((g) => g[0].type !== 'first'));
+  check('no outside facts: no firsts read', awardFlight(freshProgress(), log.events, 0, null).awards.every((g) => g[0].type !== 'first'));
   /* The debrief's words (src/game/events.js lap_void, bail, trick,
    * COMPLETENESS.md item 26) between every event of the same flight: the
    * fold pays exactly the same, counts the same and gives the same XP. */
@@ -349,9 +264,9 @@ console.log('the one fold: a log in, exactly these achievements out');
     noisy.append(w, simMs, d);
   });
   const pn = freshProgress();
-  const quiet = awardFlight(pn, noisy.events, 0, challengeRun(), outside);
+  const quiet = awardFlight(pn, noisy.events, 0, outside);
   check('the debrief\'s words between every event: the same achievements, counts and XP', same(quiet.awards.map(say), want) && quiet.counted === 2
-    && pn.xp === awardFlight(freshProgress(), log.events, 0, challengeRun(), outside).awards.flat().filter((e) => e.type === 'xp').reduce((n, e) => n + e.xp, 0)
+    && pn.xp === awardFlight(freshProgress(), log.events, 0, outside).awards.flat().filter((e) => e.type === 'xp').reduce((n, e) => n + e.xp, 0)
     && same(pn.laps, { timber1500: 1 }) && same(pn.crashes, {}), quiet.awards.map(say).join(' | '));
 
   /* A thousand seeded random flights folded with and without the
@@ -396,62 +311,13 @@ console.log('the one fold: a log in, exactly these achievements out');
     }
     const pa = freshProgress();
     const pb = freshProgress();
-    const fa = awardFlight(pa, plain.events, 0, challengeRun(), outside);
-    const fb = awardFlight(pb, loud.events, 0, challengeRun(), outside);
+    const fa = awardFlight(pa, plain.events, 0, outside);
+    const fb = awardFlight(pb, loud.events, 0, outside);
     paidAll += fa.awards.length;
     if (same(fa.awards.map(say), fb.awards.map(say)) && fa.counted === fb.counted && same(pa, pb)) alike += 1;
     else if (!firstOdd) firstOdd = `flight ${k}: ${fa.awards.map(say).join()} vs ${fb.awards.map(say).join()}`;
   }
   check(`a thousand seeded flights, the debrief's words between their events: the same achievements and progress (${alike} of 1000, ${paidAll} paid)`, alike === 1000 && paidAll > 1000, firstOdd);
-
-  /* A run is carried across its flights: a placement starts a new log,
-   * not a new run, so a third lap after two placements is the third. */
-  const slow = { airframe: 'slowstick1180', fixedWing: true, power: 'electric', smallestPack: false, crashed: false };
-  const q = freshProgress();
-  const carried = challengeRun();
-  const flights = [0, 1, 2].map((k) => {
-    const l = new EventLog();
-    l.append('spawned', k * 100000);
-    if (k === 0) l.append('seated', 0, slow);
-    l.append('lap', k * 100000 + 50000, { ms: 40000, airframe: 'slowstick1180', medal: null, kind: 'built', course: 'track:s', n: 1, of: null });
-    return l.events;
-  });
-  const paid = flights.map((events) => awardFlight(q, events, 0, carried, null).awards.map(say).filter((x) => x.startsWith('challenge')));
-  check('three laps over three flights of one run: the Slow Stick\'s three on the third', same(paid, [['challenge:first_course'], [], ['challenge:slowstick_three']]), JSON.stringify(paid));
-  const reseat = challengeRun();
-  const l2 = new EventLog();
-  l2.append('spawned', 0);
-  l2.append('seated', 0, slow);
-  l2.append('lap', 50000, { ms: 40000, airframe: 'slowstick1180', medal: null, kind: 'built', course: 'track:s', n: 1, of: null });
-  l2.append('lap', 90000, { ms: 40000, airframe: 'slowstick1180', medal: null, kind: 'built', course: 'track:s', n: 1, of: null });
-  l2.append('seated', 95000, slow);
-  l2.append('lap', 140000, { ms: 40000, airframe: 'slowstick1180', medal: null, kind: 'built', course: 'track:s', n: 1, of: null });
-  check('a new seat is a new run: two laps, a refit, one more is not three', !l2.events.flatMap((e) => challengesOn(reseat, e)).includes('slowstick_three'));
-  const dead = (rows) => {
-    const l = new EventLog();
-    l.append('seated', 0, timber);
-    rows.forEach(([type, t, data]) => l.append(type, t, data));
-    const rr = challengeRun();
-    return l.events.flatMap((e) => challengesOn(rr, e));
-  };
-  const landing = ['landing', 9000, { airframe: 'timber1500', airMs: 6000 }];
-  check('dead stick from the log: LOW BATTERY then a landing', same(dead([['battery_low', 1000], landing]), ['deadstick']));
-  check('a crash after LOW BATTERY spoils it', dead([['battery_low', 1000], ['crash', 2000, { airframe: 'timber1500' }], landing]).length === 0);
-  check('a crash before it does not', same(dead([['crash', 500, { airframe: 'timber1500' }], ['battery_low', 1000], landing]), ['deadstick']));
-  const bombshell = { airframe: 'bombshell1118', fixedWing: true, power: 'glow', smallestPack: false, crashed: false };
-  const glide = (rows) => {
-    const l = new EventLog();
-    l.append('seated', 0, bombshell);
-    rows.forEach(([type, t, data]) => l.append(type, t, data));
-    const rr = challengeRun();
-    return l.events.flatMap((e) => challengesOn(rr, e));
-  };
-  check('the Bombshell\'s glide from the log: the engine out, then a landing', same(glide([['engine_out', 1000], ['landing', 9000, { airframe: 'bombshell1118', airMs: 6000 }]]), ['bombshell_glide']));
-  check('seated mid crash reads as a crash: the next lap is not clean', (() => {
-    const rr = challengeRun();
-    challengesOn(rr, { type: 'seated', ...timber, crashed: true });
-    return !challengesOn(rr, { type: 'lap' }).includes('timber_clean');
-  })());
 }
 
 /*
