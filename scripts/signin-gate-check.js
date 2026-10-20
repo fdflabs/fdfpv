@@ -293,10 +293,10 @@ try {
   await p.evaluate("window.__ui.hub = null; window.__ui.renderMenu(); true");
 
   console.log('nothing playable before signing in');
-  await refused(p, 'a hub activity\'s link on home, clicked', async () => {
+  await refused(p, 'an activity card on home, clicked', async () => {
     await p.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
     await p.sleep(400);
-    check('home has an activity link to click', await p.click('.screen-title .gate-card .gate-link'));
+    check('home has an activity card to click', await p.click('.screen-title .gate-card-interior .gate-card-name'));
   });
   await refused(p, 'a card chosen with the keys', async () => {
     await p.evaluate("window.__ui.hub = null; window.__ui.renderMenu(); window.__ui.setCursor(window.__ui.titleStop()); true");

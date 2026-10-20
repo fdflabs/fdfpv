@@ -1121,6 +1121,12 @@
         min-width: 0;
         font-size: 12.5px; letter-spacing: 0.04em; color: var(--cream);
       }
+      /* With no rooms server the panel is a note alone (src/ui/items.js
+         gateRows: nothing is playable without one), a sentence that wraps
+         under its title rather than a count that fits beside it. */
+      .gate-rooms:not(:has(.gate-rooms-list)) .gate-rooms-head { flex-wrap: wrap; row-gap: 2px; }
+      .gate-rooms:not(:has(.gate-rooms-list)) .gate-rooms-title { flex: 0 1 auto; white-space: normal; overflow: visible; text-overflow: clip; }
+      .gate-rooms:not(:has(.gate-rooms-list)) .gate-rooms-count { flex: 1 1 100%; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.35; }
       .gate-rooms-list, .gate-rooms-buttons { display: flex; gap: 6px; min-width: 0; }
       .gate-room {
         flex: 1 1 0; min-width: 0;
@@ -1290,6 +1296,39 @@
          by 640, measured with five rooms open). */
       @media (max-width: 860px), (max-height: 520px) {
         .screen-title.is-gate[data-hub=""] .gate-card-art { display: none; }
+      }
+      /* Home at a laptop's height (1280 by 720 is the common one), or a
+         phone on its side: five cards under the pilot stats and the rooms
+         panel, the Hangar's six links among them, so each card keeps its
+         name, its first tag and its links and gives up the sentence, as
+         the phone rule above does for three cards and more (pilot:stats
+         measures the tags clear of the command bar in Spanish). */
+      @media (min-width: 861px) and (max-height: 820px), (max-height: 520px) {
+        .screen-title.is-gate[data-hub=""] .gate-card-blurb,
+        .screen-title.is-gate[data-hub=""] .gate-card-fact:nth-child(n+2) { display: none; }
+        .screen-title.is-gate[data-hub=""] .gate-card-body { gap: 4px; padding: 7px 12px 8px; }
+        .screen-title.is-gate[data-hub=""] .gate-links { gap: 4px 6px; margin-top: 2px; }
+        .screen-title.is-gate[data-hub=""] .gate-link { padding: 3px 7px; font-size: 11px; letter-spacing: 0.06em; }
+      }
+      /* Home's cards take the height the wordmark, the rooms panel and the
+         pilot stats leave them, and the picture gives back what they lack:
+         it is laid over its box, so its aspect never holds a card tall, and
+         it shrinks before a link reaches the command bar. Only the panel's
+         rooms and the window decide that height, so no breakpoint can
+         (modes:card: the links 73 px under the bar at 1920 by 1080, and
+         past it at 1280 by 720 with three rooms listed). */
+      @media (min-width: 861px) and (min-height: 521px) {
+        .screen-title.is-gate[data-hub=""] .gate-cards { flex: 0 1 auto; min-height: 0; }
+        .screen-title.is-gate[data-hub=""] .gate-card-art { flex: 0 1 auto; min-height: 0; }
+        .screen-title.is-gate[data-hub=""] .gate-card-body { flex: 0 0 auto; }
+        .screen-title.is-gate[data-hub=""] .gate-card-shot { position: absolute; inset: 0; }
+      }
+      /* A phone on its side has no picture to give back: the Hangar's card,
+         the one with links, takes two cards' width so its six links run two
+         or three to a line instead of six lines past the command bar
+         (modes:card at 844 by 390). */
+      @media (max-height: 520px) {
+        .screen-title.is-gate[data-hub=""] .gate-card:has(.gate-link) { flex-grow: 2; }
       }
       /*
        * A GATE CARD is a framed panel on the ground: a survey plate (the
@@ -1635,6 +1674,12 @@
       }
       .frame-primary[hidden] { display: none; }
       .frame-primary:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 2px; }
+      /* On a phone a longer primary gives way first and wraps, since the
+         legend beside it clips: Make a room's CREAR LA SALA cut Esc Volver
+         at 390 and 360 px (modes:card). */
+      @media (max-width: 480px) {
+        .frame-primary { flex-shrink: 1000; padding: 0 12px; letter-spacing: 0.06em; line-height: 1.15; }
+      }
       /* On a coarse pointer every target is at least 44 px: the copy may
          shrink on a phone, the target never does. */
       @media (pointer: coarse) {

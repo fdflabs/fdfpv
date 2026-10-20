@@ -1528,7 +1528,7 @@ export default {
   "ui.track_mode": "Track Day",
   "hub.continue": "Continue",
   "hub.hangar": "Hangar",
-  "ui.no_rooms_server": "No rooms server on this page",
+  "ui.no_rooms_server": "No rooms server",
   "ui.no_rooms_server_note": "Nothing here can be played without the rooms server: Defend the Paraná, The Interior and the Defence lessons all fly in rooms.",
   "hub.hangar_blurb": "Your aircraft, its power, paint and parts, and your radio.",
   "hub.aircraft_blurb": "Twenty aircraft on one physics. Pick the one you fly next.",

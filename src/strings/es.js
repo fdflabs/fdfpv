@@ -1533,7 +1533,7 @@ export default {
   "ui.track_mode": "Día de pista",
   "hub.continue": "Continuar",
   "hub.hangar": "Hangar",
-  "ui.no_rooms_server": "Esta página no tiene servidor de salas",
+  "ui.no_rooms_server": "Sin servidor de salas",
   "ui.no_rooms_server_note": "Sin el servidor de salas no se puede jugar nada de esto: Defender el Paraná, El Interior y las lecciones de Defensa vuelan todas en salas.",
   "hub.hangar_blurb": "Tu aeronave, su motor, pintura y piezas, y tu radio.",
   "hub.aircraft_blurb": "Veinte aeronaves con una misma física. Elige la próxima que vuelas.",
