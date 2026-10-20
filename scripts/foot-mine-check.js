@@ -233,12 +233,15 @@ try {
     check('Wren: her build is in her own list', same(me.builds, ['wrencub']), JSON.stringify(me.builds));
     await roomShot(page, 'wren-garage');
 
-    /* A lap through the progress path a pilot's lap takes: up a level. */
+    /* XP through the progress path a pilot's run takes: up a level. The
+     * events are a lap's, logged and folded as Progress.lap did until the
+     * race left (the combat-only cut, 2026-10-20); the fold still pays
+     * the laps already in pilots' logs. */
     await page.tap('Escape');
     await need(page, "window.__ui.screen !== 'walk'", 'Wren: out of the room');
     /* As many first laps as it takes, each a course flown once. */
     for (let k = 0; k < 8 && (await page.evaluate('window.__ui.progress.state.xp')) < LEVEL_XP[TIER_LEVELS.workshop - 1]; k += 1) {
-      await page.evaluate(`window.__ui.progress.lap({ key: 'foot-mine-lap-${k}', kind: 'map' }); true`);
+      await page.evaluate(`(() => { const p = window.__ui.progress; p.event('lap', { ms: 40000, airframe: p.airframe, medal: null, kind: 'map', course: 'foot-mine-lap-${k}', n: 1, of: 1 }); p.foldFlight(); return true; })()`);
     }
     const after = await page.evaluate(own);
     check('Wren: the lap took her to the workshop\'s level', after.xp >= LEVEL_XP[TIER_LEVELS.workshop - 1], `${me.xp} -> ${after.xp} XP`);
