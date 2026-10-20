@@ -2280,7 +2280,6 @@
     }
    },
    "log": [
-    "noteInteraction",
     "markBars 3"
    ]
   },
@@ -2345,19 +2344,14 @@
     }
    },
    "log": [
-    "noteInteraction",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row2> {\"block\":\"nearest\"}",
     "sound move",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}",
     "sound move",
-    "noteInteraction",
     "markCards",
     "markBars 3",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}"
    ]
@@ -6170,7 +6164,6 @@
     }
    },
    "log": [
-    "noteInteraction",
     "markBars 3"
    ]
   },
@@ -6235,19 +6228,14 @@
     }
    },
    "log": [
-    "noteInteraction",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row2> {\"block\":\"nearest\"}",
     "sound move",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}",
     "sound move",
-    "noteInteraction",
     "markCards",
     "markBars 3",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}"
    ]
