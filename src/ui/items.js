@@ -68,7 +68,6 @@ import {
   RENDER_SCALES, hudStyleFor, keepCamera, tuneChoices,
 } from './settings.js';
 import { tuneName } from './tunename.js';
-import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
 import { controllerRows, usingLabel } from './controller.js';
 import { flyWithRows } from './flywith.js';
@@ -332,34 +331,23 @@ function titleRows(ui, s) {
 }
 
 /*
- * The gate: cards, then the rooms panel, then the pad trouble row. The
- * renderer places the rows by counting what is not a row, so every card
- * and panel entry has to come before any row.
+ * The gate: cards, then the rooms panel, then the rows. The renderer
+ * places the rows by counting what is not a row, so every card and panel
+ * entry has to come before any row. Home is the Operations cards and the
+ * Hangar (src/ui/actions.js homeCards); the Hangar is the one hub.
  */
 function gateRows(ui) {
   const rooms = ui.friendsItems().length > 0;
-  const panel = rooms && ui.titleRooms ? ui.titleRooms(!ui.hub) : [];
   const trouble = padTrouble(ui);
-  if (!ui.hub) {
-    return [...ui.hubCards(rooms), ...panel, ...trouble];
-  }
   if (ui.hub === 'hangar') {
     return [...ui.hangarCards(), ...trouble];
   }
-  const ways = hubWays(ui.hub).filter((w) => rooms || !w.room).map((w) => ({
-    label: w.label,
-    card: w.id,
-    art: w.art,
-    svg: w.svg ?? craftSvg(airframeById(w.airframes[0])),
-    blurb: w.blurb,
-    facts: w.facts,
-    action: w.action,
-  }));
-  /* The war's field hangar, a card of its own under Operations. */
-  const field = ui.hub === 'ops' ? [{
-    label: str('walk.field'), card: 'ops-field', svg: null, blurb: str('walk.field_blurb'), facts: [], action: 'field-walk',
-  }] : [];
-  return [...ways, ...field, ...(ui.hub === 'club' ? panel : []), ...trouble];
+  const panel = rooms && ui.titleRooms ? ui.titleRooms(true) : [];
+  /* Nothing in PDCS is playable without the rooms server: the campaign,
+   * the Interior and the Defence lessons all fly in rooms (the lead,
+   * 2026-10-20, ASK 5). A page with no server says so under the cards. */
+  const offline = rooms ? [] : [{ label: str('ui.no_rooms_server'), note: str('ui.no_rooms_server_note'), info: true }];
+  return [...ui.homeCards(rooms), ...panel, ...offline, ...trouble];
 }
 
 /* ---- rooms ---- */
@@ -539,7 +527,7 @@ function identityRows() {
 const FLIGHT_SPLIT = [
   ['race', 'ui.track_mode'],
   ['free', 'ui.free_flight_card'],
-  ['war', 'hub.ops'],
+  ['war', 'war.card'],
 ];
 
 /*

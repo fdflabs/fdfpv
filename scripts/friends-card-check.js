@@ -136,9 +136,8 @@ try {
   for (const p of [a, b]) {
     await p.until('window.__shellReady === true', 300000);
     await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000);
-    /* Flight Club, where the rooms panel is, by a click on its card. */
-    await p.click('.gate-card-hub-club .gate-card-name');
-    await p.until(`window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length === ${NAMES.length}`, 10000).catch(() => {});
+    /* Home, where the rooms panel is. */
+    await p.until("window.__ui.hub === null", 10000).catch(() => {});
     await p.until(`${CARDS}.every((c) => c.loaded)`, 30000);
   }
 

@@ -270,7 +270,7 @@ try {
   for (const [width, height] of [[1280, 720], [1920, 1080], [1024, 768], [768, 1024], [390, 844], [360, 640], [844, 390]]) {
     await p.cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false }, p.sessionId);
     await p.until(`window.innerWidth === ${width} && window.innerHeight === ${height}`, 10000);
-    for (const hub of [null, 'club']) {
+    for (const hub of [null, 'hangar']) {
       await p.evaluate(hub ? `window.__ui.openHub(${JSON.stringify(hub)}); true` : "window.__ui.hub = null; window.__ui.renderMenu(); true");
       await p.sleep(500);
       const v = await p.evaluate(`({
@@ -299,7 +299,7 @@ try {
     check('home has an activity link to click', await p.click('.screen-title .gate-card .gate-link'));
   });
   await refused(p, 'a card chosen with the keys', async () => {
-    await p.evaluate("window.__ui.openHub('club'); true");
+    await p.evaluate("window.__ui.hub = null; window.__ui.renderMenu(); window.__ui.setCursor(window.__ui.titleStop()); true");
     await p.sleep(400);
     await p.tap('Enter');
   });

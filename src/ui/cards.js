@@ -78,11 +78,11 @@ function cardArt(it) {
 }
 
 /*
- * A hub card's activities, each one press into its lobby (pickForWay,
- * exactly as the activity's own card does inside the hub) or the Hangar's
- * action. Each link wears its activity card's class, so a check or a
- * pilot finds the same thing at home and in the hub, Continue too (it
- * adds gate-card-continue). Not a cursor stop: the card is.
+ * A card's links: the Hangar card's own cards, each one press into its
+ * action, or a campaign card's Continue (pickForWay or the next mission's
+ * Play; it adds gate-card-continue). Each link wears its card's class, so
+ * a check or a pilot finds the same thing at home and in the Hangar. Not
+ * a cursor stop: the card is.
  */
 function gateLinks(ui, links) {
   const row = el('div', 'gate-links');
@@ -141,8 +141,8 @@ export const cardMethods = {
   },
 
   /*
-   * Home's hub cards, or a hub's activity cards. Rebuilt only when the set
-   * of cards (or a hub card's activity links) changes.
+   * Home's cards, or the Hangar's. Rebuilt only when the set of cards (or
+   * a card's links) changes.
    */
   renderTitleCards() {
     const host = this.gateCards;
@@ -170,8 +170,10 @@ export const cardMethods = {
       const facts = el('div', 'gate-card-facts');
       facts.append(...(it.facts || []).map((f) => el('span', 'gate-card-fact', f)));
       body.append(el('div', 'gate-card-name', it.label), el('p', 'gate-card-blurb', it.blurb), facts);
-      if (it.links) {
+      if (it.hub) {
         card.dataset.hub = it.hub;
+      }
+      if (it.links) {
         body.append(gateLinks(this, it.links));
       }
       card.append(cardArt(it), body);
@@ -184,9 +186,9 @@ export const cardMethods = {
       host.append(card);
       return card;
     });
-    /* The first sight of home lands on Flight Club (the owner, 2026-10-03),
-     * not on whatever index the cursor carried from the list before the
-     * gate. Once only: after that the cursor is where the pilot left it. */
+    /* The first sight of home lands on its first card, not on whatever
+     * index the cursor carried from the list before the gate. Once only:
+     * after that the cursor is where the pilot left it. */
     if (this.onGate() && !this.hub && !this.homeSeen) {
       this.homeSeen = true;
       this.cursor = this.titleStop();
@@ -249,16 +251,18 @@ export const cardMethods = {
   },
 
   /*
-   * FLIGHT CLUB'S PILOT STATS (src/ui/pilotstats.js), shown in that hub
-   * only. Rebuilt when a number on it changes, so a sync that brings
-   * another computer's time repaints it through the same renderMenu.
+   * THE PILOT STATS (src/ui/pilotstats.js), shown on home (the owner,
+   * 2026-10-08: "i need prominently to see the game stats"; Flight Club's
+   * page until it left, the combat-only cut, 2026-10-20). Rebuilt when a
+   * number on it changes, so a sync that brings another computer's time
+   * repaints it through the same renderMenu.
    */
   renderTitleStats() {
     const host = this.gateStats;
     if (!host) {
       return;
     }
-    const show = this.onGate() && this.hub === 'club';
+    const show = this.onGate() && !this.hub;
     host.hidden = !show;
     if (!show) {
       return;

@@ -5,7 +5,7 @@
  *   act(action, picked, { keepWorld })   every action name, one table
  *   back()                               Escape and the Back row
  *   select()                             Enter on the row under the cursor
- *   hubCards, hangarCards, openHub       home and its three hubs
+ *   homeCards, hangarCards, openHub      home and the Hangar
  *   continueWay                          home's Continue, the last session
  *   seatMap, flown, seatMatchesMode      the seat and the first flight
  *
@@ -48,7 +48,7 @@ import { downloadCli } from './fc.js';
 import { fitsAsSegments } from './rows.js';
 import { pickStickRef } from './stickref.js';
 import { saveSettings, seatAirframe } from './settings.js';
-import { HUBS, OPEN_ACTIONS, WAYS, craftSvg, hubOfAction, hubWays, reticleSvg } from './ways.js';
+import { GATE_WAYS, HUBS, OPEN_ACTIONS, WAYS, craftSvg } from './ways.js';
 /* A cycle: ui.js installs this module. Read inside methods only. */
 import { ROOM_PARENTS, seatedFreestyleMap } from './ui.js';
 import { logError } from '../share/crashrecord.js';
@@ -368,13 +368,11 @@ const ACTIONS = {
   resetsettings(ui) { askReset(ui, 'settings', () => resetSettings()); },
   resetprogress(ui) { askReset(ui, 'progress', () => resetProgress({ progress: freshProgress(false) })); },
   back(ui) { ui.back(); },
-  /* Escape from the title, as a row: both halves of the gate cleared. A
-   * lobby's card came from a hub, and the gate reopens on that hub. */
+  /* Escape from the title, as a row: both halves of the gate cleared,
+   * the gate reopening on home. */
   'mode-gate'(ui) {
     ui.mode = null;
     ui.craftGate = true;
-    const hub = ui.lobbyCard && hubOfAction(ui.lobbyCard);
-    if (hub) ui.hub = hub;
     ui.show('title');
     ui.setCursor(ui.titleStop());
     ui.renderMenu();
@@ -675,40 +673,43 @@ export const actionMethods = {
     then(this, it);
   },
 
-  /* The three hub cards with their activities as links. A hub with
-   * nothing to offer (Operations without a rooms server) is left out. */
-  hubCards(rooms) {
-    const ways = (id) => hubWays(id).filter((w) => rooms || !w.room).map((w) => ({ label: w.label, action: w.action, key: w.id }));
-    /* Operations also holds the war's field hangar, which needs no rooms
-     * server to walk round. */
-    const field = { label: str('walk.field'), action: 'field-walk', key: 'ops-field' };
-    const own = (hub) => {
-      if (hub.id === 'hangar') {
-        return this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card }));
-      }
-      return hub.id === 'ops' ? [...ways(hub.id), field] : ways(hub.id);
-    };
-    /* Continue stands in the last activity's own link, its press that
-     * card's (src/ui/cards.js gateLinks, pickForWay), so the session is
-     * the one the pilot last chose for it. In its place, not beside it:
-     * the label is no longer than any activity's it replaces, in either
-     * language, so the links' wrapping never gains a line and the hub no
-     * height. It keeps the activity's key, so the link still wears that
-     * card's class (src/ui/cards.js gateLinks) and is the same thing at
-     * home and in the hub. */
+  /* Home's cards: the Operations cards themselves (the lead, 2026-10-20,
+   * ASK 4: no hub layer), the war's field hangar, which needs no rooms
+   * server to walk round, and the Hangar as one card with its own cards
+   * as links. A room card is left out on a page with no rooms server;
+   * home says why (src/ui/items.js gateRows). */
+  homeCards(rooms) {
+    /* Continue stands on the last activity's own card, as it stood in
+     * that card's hub link: one link under the card, its press the
+     * campaign's next mission (continueLink, src/ui/cards.js gateLinks).
+     * It keeps the activity's key, so it wears that card's class. */
     const last = this.continueWay();
-    const linksOf = (hub) => own(hub).map((l) => (last && l.action === last.way.action ? continueLink(l, last) : l));
-    return HUBS.map((hub) => ({
+    const ways = GATE_WAYS.filter((w) => rooms || !w.room).map((w) => ({
+      label: w.label,
+      card: w.id,
+      art: w.art,
+      svg: w.svg ?? craftSvg(airframeById(w.airframes[0])),
+      blurb: w.blurb,
+      facts: w.facts,
+      action: w.action,
+      ...(last && last.way.id === w.id ? { links: [continueLink({ label: w.label, action: w.action, key: w.id }, last)] } : {}),
+    }));
+    const field = {
+      label: str('walk.field'), card: 'ops-field', svg: null, blurb: str('walk.field_blurb'), facts: [], action: 'field-walk',
+    };
+    const hub = HUBS[0];
+    const hangar = {
       label: str(hub.label),
       card: `hub-${hub.id}`,
       hub: hub.id,
       art: hub.art,
-      svg: hub.id === 'ops' ? reticleSvg() : craftSvg(airframeById(this.settings.airframe)),
+      svg: craftSvg(airframeById(this.settings.airframe)),
       blurb: str(hub.blurb),
       facts: [],
-      links: linksOf(hub),
+      links: this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card })),
       action: `hub-${hub.id}`,
-    })).filter((card) => card.links.length > 0);
+    };
+    return [...ways, field, hangar];
   },
 
   /* What home's Continue holds, { way, mission }, or null: none yet, an

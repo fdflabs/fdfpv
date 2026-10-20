@@ -220,16 +220,6 @@ try {
   await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
   await page.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 15000).catch(() => {});
 
-  /* FLIGHT CLUB KEEPS ITS PANEL. */
-  for (let i = 0; i < 2 && await page.evaluate('window.__ui.hub !== null'); i += 1) {
-    await page.tap('Escape');
-    await page.sleep(400);
-  }
-  await page.evaluate("(() => { window.__ui.openHub('club'); return true; })()");
-  await page.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-rooms-list .gate-room').length > 0", 15000).catch(() => {});
-  const club = await page.evaluate(LAYOUT);
-  check('Flight Club keeps its rooms panel', club.hub === 'club' && Boolean(club.panel) && club.rooms.length > 0, JSON.stringify({ hub: club.hub, panel: club.panel, rooms: club.rooms.length }));
-
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

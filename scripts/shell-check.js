@@ -865,7 +865,6 @@ function behaviourProbe(ui, { screens, tabs }) {
         wide: card.getBoundingClientRect().width > 0,
       };
     });
-    const pictured = (list) => list.every((c) => c.shot && c.drawn);
 
     ui.firstRun = false;
     ui.craftGate = true;
@@ -877,10 +876,10 @@ function behaviourProbe(ui, { screens, tabs }) {
     const home = labels(homeItems);
     const homeCards = cards();
 
-    ui.openHub('club');
+    ui.openHub('hangar');
     const gateItems = stopItems();
     const gateLabels = labels(gateItems);
-    const clubCards = cards();
+    const hangarCards = cards();
 
     ui.mode = 'race';
     ui.show('title');
@@ -901,21 +900,25 @@ function behaviourProbe(ui, { screens, tabs }) {
     ui.craftGate = saved.craftGate;
     ui.show('title');
 
+    /* Home since Flight Club left (the combat-only cut, 2026-10-20): the
+     * Operations cards themselves (Defend the Paraná only with a rooms
+     * server), the field hangar, the Hangar; the Hangar's cards behind
+     * its card. The Hangar's cards carry a plan, not a picture. */
     const modeGate = {
       gate: gateLabels,
-      cards: clubCards,
+      cards: hangarCards,
       home,
       homeCards,
-      asksHubs: home.join(',') === 'Flight Club,Operations,Hangar' && homeItems.every((it) => it.card)
-        && homeCards.length === 3 && pictured(homeCards),
-      asksWays: gateLabels.length === 2 && gateLabels.join(',') === 'Free Flight,Learn to fly'
+      asksHubs: home.slice(-2).join(',') === 'Field hangar,Hangar' && home.includes('The Interior') && home.includes('Defence training')
+        && homeItems.every((it) => it.card) && homeCards.length === home.length && homeCards.every((c) => c.wide),
+      asksWays: gateLabels.join(',') === 'Walk in,Aircraft,Customise,Upgrades,Controller,How to fly'
         && !gateItems.some((it) => !it.card),
-      asCards: clubCards.length === 2 && pictured(clubCards),
+      asCards: hangarCards.length === gateLabels.length && hangarCards.every((c) => c.wide),
       modeSetGate,
-      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 2
+      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === homeCards.length
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
       free,
-      freeNamesMap: free.includes('The world') && !free.includes('Race') && !free.includes('Freestyle'),
+      freeNamesMap: !free.includes('Fly') && !free.includes('The world') && !free.includes('Race') && !free.includes('Freestyle'),
     };
     return { modeGate };
   });
@@ -1084,11 +1087,11 @@ const BEHAVIOUR = [
   ['modeGate', 'the gate', (r, fail) => {
     const m = r.modeSetGate;
     const checks = [
-      [r.asksHubs, `home opens on ${or(r.home, 'nothing')} drawn as ${JSON.stringify(r.homeCards)}, not on Flight Club, Operations and the Hangar, each with a picture and a plan`],
-      [r.asksWays, `Flight Club opens on ${or(r.gate, 'nothing')}, not on the two ways in`],
-      [r.asCards, `the gate: ${r.cards.length} card(s) drawn as ${JSON.stringify(r.cards)}, so a card is a row again or has lost its picture or its plan`],
+      [r.asksHubs, `home opens on ${or(r.home, 'nothing')} drawn as ${JSON.stringify(r.homeCards)}, not on the Operations cards, the field hangar and the Hangar`],
+      [r.asksWays, `the Hangar opens on ${or(r.gate, 'nothing')}, not on its six cards`],
+      [r.asCards, `the Hangar: ${r.cards.length} card(s) drawn as ${JSON.stringify(r.cards)}, so a card is a row again or is not drawn`],
       [r.gateWithMode, `the gate: with the mode already answered it drew ${m.cards.length} card(s), ${m.cards.filter((c) => c.wide).length} of them visible, is-gate ${m.isGate}, ${m.keepNote} menu note(s) still showing`],
-      [r.freeNamesMap, `the title in Freestyle names ${r.free.join(', ')}, which is not a The world row without a mode beside it`],
+      [r.freeNamesMap, `the title in Freestyle names ${r.free.join(', ')}: a Fly or The world row, which left with free flight`],
     ];
     for (const [ok, said] of checks) {
       if (!ok) {

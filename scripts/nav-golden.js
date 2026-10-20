@@ -371,10 +371,10 @@ const scenarios = {
   title() {
     const out = {};
     const ui = makeUi({ screen: 'title', mode: null, firstRun: true });
-    ui.lists.title = [{ id: 'hub-club', label: 'Flight Club', action: 'hub-club', card: true }, { id: 'fly', label: 'Fly', primary: true }, { id: 'gate', label: 'What to fly' }];
+    ui.lists.title = [{ id: 'hub-hangar', label: 'Hangar', action: 'hub-hangar', card: true }, { id: 'fly', label: 'Fly', primary: true }, { id: 'gate', label: 'What to fly' }];
     ui.renderMenu();
     out.gate = { screen: tree(ui.screens.title), hint: tree(ui.titleHint), menu: tree(ui.titleMenu), frame: frame(ui), state: state(ui) };
-    ui.hub = 'club';
+    ui.hub = 'hangar';
     ui.renderMenu();
     out.hub = { frame: frame(ui), hint: tree(ui.titleHint) };
     ui.mode = 'freestyle';
@@ -600,7 +600,7 @@ const scenarios = {
     const cases = {
       quadAction: { screen: 'quad', cursor: 2 }, quadValue: { screen: 'quad', cursor: 4 }, quadOff: { screen: 'quad', cursor: 99 },
       cards: { screen: 'freestyle', cursor: 0 }, titleMenu: { screen: 'title', mode: 'race', hub: null },
-      titleGate: { screen: 'title', mode: null, hub: null }, titleHub: { screen: 'title', mode: null, hub: 'club' },
+      titleGate: { screen: 'title', mode: null, hub: null }, titleHub: { screen: 'title', mode: null, hub: 'hangar' },
       flight: { screen: 'flight' }, bench: { screen: 'fc' },
     };
     for (const [name, c] of Object.entries(cases)) {
@@ -648,7 +648,7 @@ const scenarios = {
     }
     ui.screen = 'title';
     ui.mode = null;
-    ui.hub = 'club';
+    ui.hub = 'hangar';
     ui.lastInput = 'pad';
     ui.syncFrame();
     out.hub = frame(ui);

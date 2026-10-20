@@ -1,5 +1,5 @@
 /*
- * pilot-stats-check.js: Flight Club's pilot stats (src/ui/pilotstats.js,
+ * pilot-stats-check.js: home's pilot stats (src/ui/pilotstats.js,
  * docs/PILOT-STATS.md), read off the screen the way a pilot reads them.
  *
  *   node scripts/pilot-stats-check.js [outdir]
@@ -23,9 +23,9 @@
  * Page EMPTY, a brand new pilot, in en and es: zeros, level 1 and the
  * one line nudge.
  *
- * A rooms server of the check's own is up, so Flight Club is as on the
- * site: its cards are the hub's (src/ui/ways.js hubWays), none of them a
- * room game's since the combat-only cut.
+ * A rooms server of the check's own is up, so home is as on the site:
+ * the Operations cards and the Hangar (src/ui/actions.js homeCards),
+ * where the panel stands since Flight Club left (the combat-only cut).
  *
  * Each at 390 by 844 and 360 by 640 too: the panel inside the window,
  * on no card, every card's tags clear of the command bar, no sideways
@@ -58,10 +58,6 @@ import { roomsServer } from '../tests/lib/roomsserver.js';
 import { firstsOf } from '../src/game/progress.js';
 import { flightTotals } from '../src/share/flighttime.js';
 import { SETTINGS_KEY } from '../src/ui/settings.js';
-import { hubWays } from '../src/ui/ways.js';
-
-/* Flight Club's cards, as the title draws them. */
-const CLUB_CARDS = hubWays('club').length;
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || null;
@@ -214,18 +210,18 @@ async function resize(page, width, height) {
   await page.sleep(500);
 }
 
+/* Home, where the panel stands since Flight Club left (the combat-only
+ * cut, 2026-10-20). */
 async function toClub(page) {
   await page.until('window.__shellReady === true', 300000);
-  await page.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-club')", 60000);
+  await page.until("window.__ui.onGate() && window.__ui.hub === null && document.querySelector('.screen-title .gate-card')", 60000);
   await page.loaded();
   await drawOff(page, true);
-  await page.click('.gate-card-hub-club .gate-card-name');
-  await page.until(`window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length === ${CLUB_CARDS}`, 30000).catch(async (e) => {
-    await shot(page, 'no-club');
+  await page.until("!document.querySelector('.gate-stats').hidden", 10000).catch(async (e) => {
+    await shot(page, 'no-stats');
     console.log(await page.evaluate("JSON.stringify({ screen: window.__ui.screen, hub: window.__ui.hub, cards: document.querySelectorAll('.screen-title .gate-card').length, dialog: [...document.querySelectorAll('[role=dialog]:not([hidden]), .name-dialog:not([hidden])')].map((d) => d.textContent.slice(0, 120)) })"));
     throw e;
   });
-  await page.until("!document.querySelector('.gate-stats').hidden", 10000);
   await page.sleep(400);
 }
 

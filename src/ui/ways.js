@@ -7,11 +7,12 @@
  * seats the aircraft and sets the mode together. The aircraft is kept in
  * the settings; the mode is not, so every visit comes back through here.
  *
- * Cards are grouped under three hubs. The mode registry
- * (src/share/modes.js) names each mode's card and its category, which is
- * what puts a card under a hub, and modes:selftest holds the two tables
- * together. Cards with gate: false stay reachable by their action (the
- * title's rooms panel, Defend Itaipu's Play) but are not drawn.
+ * The cards are home's, every one of them Operations' (the mode
+ * registry, src/share/modes.js, names each mode's card and its category,
+ * and modes:selftest holds the two tables together); the Hangar stands
+ * beside them as one card (HUBS). Cards with gate: false stay reachable by
+ * their action (the title's rooms panel, Defend Itaipu's Play) but are
+ * not drawn.
  *
  * The plan drawings over each card are built here as SVG text, so the
  * title can paint before anything has been flown or fetched.
@@ -182,11 +183,11 @@ export function gateWays(ways, modes) {
 }
 export const GATE_WAYS = gateWays(WAYS, MODES);
 
-/* The title's three hubs; a card belongs to the hub of its category. */
+/* The one hub left: the Hangar, a card beside the Operations cards on
+ * home. Home shows the Operations cards themselves since Flight Club left
+ * with its games (the lead, 2026-10-20, ASK 4: no hub layer). */
 export const HUBS = [
-  { id: 'club', label: 'hub.club', blurb: 'hub.club_blurb', art: 'assets/posters/swiss2.jpg', category: 'flightclub' },
-  { id: 'ops', label: 'hub.ops', blurb: 'hub.ops_blurb', art: 'assets/posters/itaipu.jpg', category: 'operations' },
-  { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg', category: null },
+  { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg' },
 ];
 
 /* Actions anyone may take before signing in: getting around and leaving.
@@ -194,27 +195,6 @@ export const HUBS = [
 export const OPEN_ACTIONS = new Set([
   'title', 'paused', 'pause', 'resume', 'back', 'card-back', 'mode-gate', 'update-reload', 'noop', 'room-bar', 'reportbug', 'credits',
 ]);
-
-/* A card's category: its mode's, from the registry, or its own. */
-function categoryOf(way) {
-  const mode = MODES.find((m) => m.card.way === way.id);
-  return mode ? mode.category : way.category;
-}
-
-export function hubWays(hubId) {
-  const hub = HUBS.find((h) => h.id === hubId);
-  if (!hub) return [];
-  return GATE_WAYS.filter((way) => categoryOf(way) === hub.category);
-}
-
-/* The hub a card's action lives under, or null. */
-export function hubOfAction(action) {
-  const way = WAYS.find((w) => w.action === action);
-  const category = way && categoryOf(way);
-  if (!category) return null;
-  const hub = HUBS.find((h) => h.category === category);
-  return hub ? hub.id : null;
-}
 
 /* The card the seated aircraft answers for a mode: the first that takes
  * it in that mode, else the first whose aircraft are all its kind, else
