@@ -470,7 +470,6 @@
     "listing:selftest": "node scripts/listing-selftest.js",
     "trackseat:selftest": "node scripts/trackseat-selftest.js",
     "move:check": "node scripts/move-check.js",
-    "tracks:e2e": "node scripts/tracks-online-check.js",
     "lint:nouns": "node scripts/noun-lint.js",
     "lint:interior-names": "node scripts/interior-names.js",
     "interior:views": "node scripts/interior-views.js",

@@ -33,7 +33,7 @@ import { googleKeys, verifyGoogleIdToken } from './google.js';
 import { inspectCallsign, looksLikePickerName, parseClientIds } from './accounts.js';
 import { ACCOUNT_WRITE_LIMIT, BLOCKS_PER_ACCOUNT, SIGNIN_LIMIT } from './limits.js';
 import {
-  createIdentity, keyLinkMessage, memoryStorage, trackMessage,
+  createIdentity, keyLinkMessage, memoryStorage,
 } from '../src/share/identity.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import {
@@ -525,11 +525,15 @@ check('and junk is refused', r.status === 422);
 
 console.log('a second computer\'s tracks');
 const laptopKey = await laptop.publicKey();
+/* A track the laptop saved before the tracks routes retired (the
+ * combat-only cut, 2026-10-20): the table and its rows stay, so a
+ * computer that signs in still hands its stored tracks to the account. */
 const lapTrack = mapTrackDocument({ id: 'trk-0000c001', name: 'Laptop loop', gates: 3 });
-const lapText = JSON.stringify(lapTrack);
-const lapSigned = await laptop.signBytes(await trackMessage({ id: lapTrack.id, ts: 5, author: 'Maverick', documentText: lapText }));
-r = await call('PUT', `/api/tracks/${lapTrack.id}`, { document: lapText, author: 'Maverick', ts: 5, ...lapSigned });
-check('the laptop saved a track under its own key', r.status === 201 && r.body.owner === laptopKey);
+await env.DB.prepare(
+  'INSERT INTO tracks (id, owner, name, author, map, gates, planes, document, created_utc, updated_utc, signed_ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+).bind(lapTrack.id, laptopKey, lapTrack.name, 'Maverick', lapTrack.map, 3, '[]', JSON.stringify(lapTrack), '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z', 5).run();
+const ownerOf = async (id) => (await env.DB.prepare('SELECT owner FROM tracks WHERE id = ?').bind(id).first()).owner;
+check('the laptop holds a stored track under its own key', (await ownerOf(lapTrack.id)) === laptopKey);
 const handOver = await laptop.signBytes(keyLinkMessage(laptopKey, deskKey));
 r = await call('POST', '/api/account/adopt', { key: laptopKey, sig: (await desk.signBytes(keyLinkMessage(laptopKey, deskKey))).sig }, aliceLaptop);
 check('an adopt the old key did not sign is refused', r.status === 401);
@@ -537,11 +541,7 @@ r = await call('POST', '/api/account/adopt', { key: laptopKey, sig: handOver.sig
 check('and one for an account the signature does not name', r.status === 409 || r.status === 401, `${r.status}`);
 r = await call('POST', '/api/account/adopt', { key: laptopKey, sig: handOver.sig }, aliceLaptop);
 check('the laptop hands its tracks to the account', r.status === 200 && r.body.tracks === 1, JSON.stringify(r.body));
-r = await call('GET', `/api/tracks/${lapTrack.id}`);
-check('which are then filed under the account\'s key', r.body.owner === deskKey);
-const later = await carried.signBytes(await trackMessage({ id: lapTrack.id, ts: 6, author: 'Maverick', documentText: lapText }));
-r = await call('PUT', `/api/tracks/${lapTrack.id}`, { document: lapText, author: 'Maverick', ts: 6, ...later });
-check('so any computer of the account may save them', r.status === 200);
+check('which are then filed under the account\'s key', (await ownerOf(lapTrack.id)) === deskKey);
 const row = env.DB;
 const held = await row.prepare("SELECT identity FROM accounts WHERE sub = 'alice'").first();
 const d = JSON.parse(await desk.exportText()).privateJwk.d;
