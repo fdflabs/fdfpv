@@ -38,7 +38,7 @@ import front from '../edge/rooms/front.js';
 import { PURGE_MS, RoomHost } from '../edge/rooms/host.js';
 import { PRIVATE_CAP } from '../edge/rooms/core.js';
 import {
-  LIST_GRACE_MS, Lobby, LobbyBook, MAX_ROOMS, PENDING_MS, listingOf,
+  LIST_GRACE_MS, Lobby, LobbyBook, MAX_ROOMS, listingOf,
 } from '../edge/rooms/lobby.js';
 
 const ORIGIN = 'https://fdflabs.github.io';
@@ -95,6 +95,11 @@ const texts = (c, type) => c.got.filter((m) => m && m.type === type);
 /* The rooms server of node.js in one process, minus the sockets: one
  * RoomHost per name, one Lobby, and front.js answering. `stores` outlives
  * a server, so a second one over it is the same rooms after a restart. */
+/* The caller's address when a call names none: never one used before,
+ * since front.js counts creates and lists per address across every server
+ * made here (its limiters are the module's). */
+let address = 0;
+
 export function server(stores = new Map(), publicRooms = 'on') {
   const env = { PUBLIC_ROOMS: publicRooms };
   const rooms = new Map();
@@ -125,7 +130,6 @@ export function server(stores = new Map(), publicRooms = 'on') {
   };
   const lobby = new Lobby({ storage: memoryStorage() }, env);
   env.LOBBY = { idFromName: (name) => name, get: () => ({ fetch: (input, init) => lobby.fetch(input instanceof Request ? input : new Request(input, init)) }) };
-  let address = 0;
   const call = (path, init = {}) => front.fetch(new Request(`http://rooms${path}`, {
     ...init,
     headers: { origin: ORIGIN, 'cf-connecting-ip': init.address || `10.9.${Math.floor(address / 200)}.${(address += 1) % 200}`, ...(init.headers || {}) },
@@ -145,10 +149,10 @@ export function server(stores = new Map(), publicRooms = 'on') {
       const res = await call('/v2/rooms', ip ? { address: ip } : {});
       return res.status === 200 ? res.json() : { status: res.status };
     },
-    /* A pilot into the room `code` (a /v2/room socket) or a quick join
-     * on a map, seated with a hello. */
+    /* A pilot into the room `code` (a /v2/room socket), seated with a
+     * hello. */
     async join(where, name = [1, 2, 30], ip = `10.8.0.${(address += 1) % 250}`) {
-      const res = await call(where.code ? `/v2/room/${where.code}` : `/v2/public/${where.map}`, { headers: { upgrade: 'websocket' }, address: ip });
+      const res = await call(`/v2/room/${where.code}`, { headers: { upgrade: 'websocket' }, address: ip });
       if (res.status !== 101) {
         return { refused: res.status };
       }
@@ -262,8 +266,8 @@ export async function browserSection(check) {
   check('a room on a retired world is refused, public or private, as a bad request',
     retiredPublic.status === 400 && retiredPublic.error === 'bad' && retiredPrivate.status === 400 && retiredPrivate.error === 'bad'
     && old.stores.size === 0, `${JSON.stringify(retiredPublic)} ${JSON.stringify(retiredPrivate)}`);
-  const quickOld = await old.join({ map: 'yellowstone' });
-  check('and so is a quick join on one, with no room made for it', quickOld.refused === 404 && old.stores.size === 0, JSON.stringify(quickOld));
+  const quickOld = await old.call('/v2/public/yellowstone', { headers: { upgrade: 'websocket' } });
+  check('and so is a quick join on one, the route of builds before the cut, with no room made for it', quickOld.status === 404 && old.stores.size === 0, `${quickOld.status}`);
   const unretired = await old.create({ map: 'itaipu' });
   check('a world the simulator has is made as before', unretired.status === 200);
   /* A room stored on Yellowstone before the deploy, as the VM's SQLite
@@ -408,25 +412,25 @@ export async function browserSection(check) {
   }
   check('but a script asking twice that is refused', scripted > 0, `${scripted}`);
 
-  console.log('room browser: quick join');
+  console.log('room browser: public rooms, joined by their codes');
   s = server();
-  const q1 = await s.join({ map: 'itaipu' });
-  check('a quick join with no room makes one, public, with its picker name', q1.welcome && q1.welcome.public === true && q1.welcome.name === null
+  const nameless = await s.create({ map: 'itaipu', public: true });
+  const q1 = await s.join({ code: nameless.code });
+  check('a public room made with no name is joined by its code, public, with its picker name', q1.welcome && q1.welcome.public === true && q1.welcome.name === null
     && validNamePick(q1.welcome.pick) && /^[A-Z0-9]{6}$/.test(q1.welcome.code));
-  const q2 = await s.join({ map: 'itaipu' });
-  check('the next quick join lands in it', q2.welcome && q2.welcome.code === q1.welcome.code);
   const named = await s.create({ map: 'itaipu', public: true, name: 'Big One' });
   const inBig = [];
   for (let i = 0; i < 3; i += 1) {
     inBig.push(await s.join({ code: named.code }, [i, i, 20 + i]));
   }
-  const q3 = await s.join({ map: 'itaipu' });
-  check('a quick join goes to the busiest room of its map with a seat', q3.welcome && q3.welcome.code === named.code);
-  const q4 = await s.join({ map: 'interior' });
-  check('and never to another map\'s', q4.welcome && q4.welcome.code !== named.code && q4.welcome.code !== q1.welcome.code);
+  check('a named one seats its pilots by its code', inBig.every((p) => p.welcome && p.welcome.code === named.code));
+  const elsewhere = await s.create({ map: 'interior', public: true });
+  const q4 = await s.join({ code: elsewhere.code });
   await q4.leave();
   const q4Alarm = s.stores.get(`prv:${q4.welcome.code}`).alarm;
-  check('a map that is not an id is refused', (await s.join({ map: 'Swiss2' })).refused === 404);
+  check('the quick join of builds before the cut is no route: 404, and no room made for it',
+    (await s.call('/v2/public/itaipu', { headers: { upgrade: 'websocket' } })).status === 404 && (await s.call('/v2/public/itaipu')).status === 404
+    && s.stores.size === 3, `${s.stores.size} rooms`);
 
   console.log('room browser: the book');
   let t = 1000;
@@ -447,25 +451,18 @@ export async function browserSection(check) {
   book.report(line1('BBBBBB', 1, 2), t);
   check('and a pilot back by its code lists it again', book.list(t).some((r) => r.code === 'BBBBBB'));
   book.report(line1('EMPTYA', 0, 9, { map: 'interior' }), t);
-  check('a quick join never lands in an empty room, made a moment ago or left', book.quick('interior', t, 'NEWALP').code === 'NEWALP');
+  check('an empty room made a moment ago is not listed either', !book.list(t).some((r) => r.code === 'EMPTYA'));
   book.report(line1('HHHHHH', 5, 4, { hidden: true }), t);
   check('a hidden room is never listed', !book.list(t).some((r) => r.code === 'HHHHHH'));
-  check('nor handed to a quick join, though busiest', book.quick('itaipu', t, 'NEWONE').code === 'CCCCCC');
-  const burst = new LobbyBook();
-  const where = [];
-  for (let i = 0; i < PUBLIC_CAP + 2; i += 1) {
-    where.push(burst.quick('interior', t, `NEW${String(i).padStart(3, '0')}`));
-  }
-  check(`a burst of quick joins before any room reports fills one room to ${PUBLIC_CAP}, then makes a second`,
-    where.filter((w) => w.code === 'NEW000').length === PUBLIC_CAP && where[0].fresh && where[PUBLIC_CAP].fresh && where[PUBLIC_CAP + 1].code === where[PUBLIC_CAP].code);
-  check('a room booked by a quick join is not listed until it reports', !burst.list(t).length);
-  t += PENDING_MS;
-  check('a booking whose room never reported lapses, and the next quick join makes a room again', burst.quick('interior', t, 'LATE01').code === 'LATE01' && !('NEW000' in burst.rooms));
+  /* A book stored by a build before the cut: its lines carry the quick
+   * join's bookings, which count for nothing now. */
+  const stored = new LobbyBook({ OLDONE: { ...line1('OLDONE', 0, 1), pending: [t], emptySince: t } });
+  check('a stored line\'s quick join bookings from before the cut seat nobody: empty, it is not listed', !stored.list(t).some((r) => r.code === 'OLDONE'));
   const flood = new LobbyBook();
   for (let i = 0; i < MAX_ROOMS; i += 1) {
     flood.report(line1(`F${i}`, 1, i), t);
   }
-  check(`the book holds at most ${MAX_ROOMS} rooms`, flood.report(line1('ONEMORE', 1, 0), t) === false && flood.quick('fresh', t, 'ONEMORE') === null);
+  check(`the book holds at most ${MAX_ROOMS} rooms`, flood.report(line1('ONEMORE', 1, 0), t) === false);
 
   console.log('room browser: after a restart');
   const again = server(s.stores);

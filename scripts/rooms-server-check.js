@@ -429,8 +429,10 @@ if (pub.open) {
   check('a pilot joins it by its code', p.welcome && p.welcome.public === true && p.welcome.code === publicCode && p.welcome.name === 'Server check' && p.welcome.cap === 16, JSON.stringify(p.welcome));
   const line = (await listed()).rooms.find((r) => r.code === publicCode);
   check('and the browser lists it, with its name', line && line.name === 'Server check' && line.n === 1, JSON.stringify(line));
-  const q = await seat('public/swiss2', { name: [2, 3, 44] });
-  check('a quick join on its world lands in the busiest room there', q.welcome && q.welcome.code === publicCode, JSON.stringify(q.welcome && q.welcome.code));
+  const q = await seat(`room/${publicCode}`, { name: [2, 3, 44] });
+  check('a second pilot joins it by its code', q.welcome && q.welcome.code === publicCode, JSON.stringify(q.welcome && q.welcome.code));
+  const quickGone = await fetch(`${origin}/v2/public/swiss2`, { headers: { origin: 'https://fdflabs.github.io' } });
+  check('the quick join of builds before the cut is 404', quickGone.status === 404, `${quickGone.status}`);
   const rooms = await listed();
   check('and the list, read at once, counts both', rooms.rooms.find((r) => r.code === publicCode).n === 2);
   /* Who joins, changed in place by the host with others here
@@ -571,11 +573,12 @@ if (pub.open) {
   const warLine = (await listed()).rooms.find((r) => r.code === pubWar);
   check('with its pilot in, the browser lists it as the war\'s, with its mission', warLine && warLine.mode === 'war' && warLine.game === 'war' && warLine.mission === 'itaipu-drill',
     JSON.stringify(warLine));
-  const quick = await seat('public/itaipu', { name: [2, 5, 31] });
-  check('a quick join on Itaipu is never handed it', quick.welcome && quick.welcome.code && quick.welcome.code !== pubWar && quick.welcome.mode !== 'war',
+  const plainCode = (await (await make({ map: 'itaipu', public: true, name: 'Plain Itaipu' })).json()).code;
+  const quick = await seat(`room/${plainCode}`, { name: [2, 5, 31] });
+  check('a public room on Itaipu not made for the war seats a pilot as any', quick.welcome && quick.welcome.code === plainCode && quick.welcome.mode !== 'war',
     JSON.stringify(quick.welcome && { code: quick.welcome.code, mode: quick.welcome.mode }));
   quick.say({ type: 'war', op: 'start', mission: 'itaipu-1' });
-  check('and the public room it lands in, not made for the war, refuses the war', Boolean(await quick.until((x) => x.text('refused').find((m) => m.why === 'private'))),
+  check('and refuses the war', Boolean(await quick.until((x) => x.text('refused').find((m) => m.why === 'private'))),
     JSON.stringify(quick.text('refused')));
   /* Its lobby (edge/rooms/gamelobby.js): a second pilot, both ready, the
    * five seconds on the room's clock, then mission 2's briefing. */
@@ -738,27 +741,6 @@ function raw(text) {
   anew.leave();
   beside.ws.close(1000);
 
-  /* The link's quick join asks the server for its room with a plain GET,
-   * which carries a signed in pilot's session for the server to leave out
-   * rooms of pilots it blocked (edge/rooms/front.js joinerOf), and then
-   * joins that room by its code. */
-  if (pub.open) {
-    const fetched = [];
-    const realFetch = globalThis.fetch;
-    globalThis.fetch = (input, init) => {
-      fetched.push(String(input));
-      return realFetch(input, init);
-    };
-    const quickLink = createRoomLink({}, hello);
-    quickLink.joinPublic('alps');
-    const quickIn = await opened(quickLink);
-    globalThis.fetch = realFetch;
-    const quickCode = quickLink.state().code;
-    check('the link\'s quick join asks for its room with a plain GET, then joins it by its code',
-      quickIn && fetched.some((u) => u.endsWith('/v2/public/alps')) && Boolean(quickCode) && sockets.at(-1).url.endsWith(`/v2/room/${quickCode}`),
-      JSON.stringify({ fetched, url: sockets.at(-1).url, quickCode }));
-    quickLink.leave();
-  }
   globalThis.WebSocket = WebSocket;
   delete globalThis.window;
 }

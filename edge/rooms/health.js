@@ -8,9 +8,8 @@
  * when the core is short is the loop: ticks start late, batches bunch up,
  * and every pilot in every room sees peers stutter together. So the valve
  * watches the loop's delay and this process's share of the core, and
- * while either stays high, front.js refuses new public rooms (quick joins
- * into a room with a seat still go ahead): a pilot is told the servers
- * are full now rather than everyone flying worse.
+ * while either stays high, front.js refuses new public rooms: a pilot is
+ * told the servers are full now rather than everyone flying worse.
  *
  * Counters, per room and for the server: pilots, rooms, messages and
  * bytes a second each way, the process's CPU and the host's, the loop's

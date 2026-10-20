@@ -101,15 +101,16 @@ try {
     await p.until('window.__shellReady === true', 300000);
     await p.until('window.__map && window.__map().ready', 400000);
   }
-  await a.evaluate("window.__roomJoinPublic('swiss2'); true");
+  await a.evaluate("window.__roomCreate({ public: true }); true");
   await a.until("window.__rooms().phase === 'open'", 30000);
-  await b.evaluate("window.__roomJoinPublic('swiss2'); true");
+  const madeCode = await a.evaluate('window.__rooms().code');
+  await b.evaluate(`window.__roomJoin(${JSON.stringify(madeCode)}); true`);
   for (const p of [a, b]) {
     await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1 && window.__rooms().roomNow != null", 30000);
   }
   const ra = await a.evaluate('window.__rooms()');
   const rb = await b.evaluate('window.__rooms()');
-  check('with no code typed, the lobby puts both pages in one public room', ra.public && rb.public && ra.code && ra.code === rb.code,
+  check('a public room made on one page and joined by its code on the other holds both', ra.public && rb.public && ra.code && ra.code === rb.code,
     `rooms ${ra.code} ${rb.code}`);
 
   for (const p of [a, b]) {

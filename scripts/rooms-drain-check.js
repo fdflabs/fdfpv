@@ -253,9 +253,6 @@ try {
 
   const refusedMake = await make(v1.origin);
   check('a new room on v1 is refused 503 busy', refusedMake.status === 503 && (await refusedMake.json()).error === 'busy', `${refusedMake.status}`);
-  const quick = pilot(v1.origin, 'public/swiss2');
-  await quick.open;
-  check('a quick join on v1 is refused 503', quick.refused === 503, `${quick.refused}`);
   const nobody = pilot(v1.origin, 'room/BCDFGH');
   await nobody.open;
   check('a socket to a code v1 does not hold is refused 503', nobody.refused === 503, `${nobody.refused}`);

@@ -45,7 +45,7 @@
  * restart, which the client (src/share/rooms.js) answers by reconnecting.
  *
  * On SIGUSR2 the process drains instead (drain below, docs/ROOMS-DRAIN.md):
- * a new room, a quick join and a socket to a code it does not hold are
+ * a new room and a socket to a code it does not hold are
  * refused 503 busy, the rooms it holds fly on and take their pilots back,
  * and it exits once nobody is connected, or at DRAIN_CAP_MS with today's
  * 1012. That is the old half of a deploy whose new process already serves
@@ -732,9 +732,6 @@ export async function startRooms({
     const url = new URL(request.url);
     if (url.pathname === '/v2/create') {
       return request.method === 'POST';
-    }
-    if (url.pathname.startsWith('/v2/public/')) {
-      return true;
     }
     const name = roomNameOf(url.pathname);
     return Boolean(name) && !holds(name);

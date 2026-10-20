@@ -7515,7 +7515,6 @@ export async function boot({
     return true;
   };
   devHooks.__roomJoin = (code, opts) => roomLinkState.join(code, opts);
-  devHooks.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
   devHooks.__roomSay = (kind, id) => roomSafety.say(kind, id);
   devHooks.__roomMute = (seat, on) => roomSafety.setMuted(seat, on);
   devHooks.__roomCreate = async (room = {}) => {
@@ -7547,7 +7546,7 @@ export async function boot({
       };
     }
     if (st.phase === 'connecting') {
-      const unlisted = !st.publicMap && !roomBrowser.listed(st.code);
+      const unlisted = !roomBrowser.listed(st.code);
       return { value: unlisted ? str('friends.row_joining', { code: st.code }) : str('friends.row_joining_public'), note: str('friends.row_in_note') };
     }
     return { value: '', note: str('friends.row_off') };
@@ -7710,7 +7709,7 @@ export async function boot({
         ...games,
         ...roomBrowser.nameRows(w),
         /* A public room's code is how the browser joins it, never shown. */
-        (w ? w.public : st.publicMap)
+        w && w.public
           ? { label: str('friends.public_row'), value: world, note: str('friends.public_row_note'), info: true }
           : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
         {

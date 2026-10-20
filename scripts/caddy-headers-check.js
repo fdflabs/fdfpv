@@ -178,8 +178,11 @@ try {
   const cors = await fetch(`${origin}/api/version`, { headers: { origin: SITE } });
   check('the tracks server answers the game origin with CORS', cors.ok && Boolean(cors.headers.get('access-control-allow-origin')));
   const { WebSocket } = await import('ws');
+  const madeRes = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: SITE, 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu' }) });
+  const madeCode = madeRes.ok ? (await madeRes.json()).code : null;
+  check('a room is made through Caddy', typeof madeCode === 'string', `${madeRes.status}`);
   const upgraded = await new Promise((resolve) => {
-    const ws = new WebSocket(`ws://127.0.0.1:${front}/v2/public/swiss2`, { headers: { origin: SITE } });
+    const ws = new WebSocket(`ws://127.0.0.1:${front}/v2/room/${madeCode}`, { headers: { origin: SITE } });
     ws.on('open', () => { ws.close(); resolve('open'); });
     ws.on('unexpected-response', (req, res) => resolve(`http ${res.statusCode}`));
     ws.on('error', (e) => resolve(`error ${e.message}`));

@@ -4,9 +4,9 @@
  * public not private make it not be a code and have it list in the lobby
  * the rooms that are up").
  *
- * Every public room is made like a private one, by POST /v2/create (or by
- * a quick join that finds no room, front.js), and has a code the browser
- * joins it by; the pilot never sees or types it. One Lobby object holds a
+ * Every public room is made like a private one, by POST /v2/create, and
+ * has a code the browser joins it by; the pilot never sees or types it.
+ * One Lobby object holds a
  * line per public room, which the room itself sends whenever what the list
  * shows of it changes (reportRoom): its name, world, pilots, cap and the
  * game on. The Lobby never sees a pose, a pilot's name or an address.
@@ -14,34 +14,25 @@
  *
  * BLOCKS (COMPLETENESS 60). A line also carries, for the lobby alone, the
  * account ids of the signed in pilots in the room and the ids they
- * blocked (core.js hello, from the accounts server). A list or a quick
- * join asked for by a signed in pilot (front.js joinerOf) leaves out every
+ * blocked (core.js hello, from the accounts server). A list asked for by
+ * a signed in pilot (front.js joinerOf) leaves out every
  * room holding a pilot that pilot blocked or who blocked it, the pair
  * safety.js shut keeps apart inside a room. The ids never leave the
  * lobby: list() sends none of them, and a guest is left out of nothing.
  *
  *   GET /v2/rooms          the list (front.js), cached LIST_CACHE_MS
- *   GET /v2/public/<map>   quick join: the busiest listed room of that map
- *                          with a seat, or a new one (front.js)
  *
- * AN EMPTY ROOM IS NEVER LISTED, nor handed to a quick join (the owner,
+ * AN EMPTY ROOM IS NEVER LISTED (the owner,
  * 2026-10-02, of rooms listed in battle with nobody in them: "once theyre
  * done or empty they need to be closed out"). The room itself is held five
  * minutes after its last pilot left (host.js PURGE_MS), its game paused
  * (core.js roomMs), for whoever comes back by its code, a link or a
  * reload; a pilot back before the purge keeps it, and it is listed with
- * its pilots again. A room just made is listed once its maker is in it,
- * or a quick join has booked it.
+ * its pilots again. A room just made is listed once its maker is in it.
  *
  * A HIDDEN ROOM (safety.js: enough pilots reported its name) is never
- * listed and never handed to a quick join. Its pilots fly on. A ROOM MADE
- * FOR THE WAR is listed, with its mission, and never handed to a quick
- * join either.
- *
- * A quick join is counted as a pilot for PENDING_MS, until the room's own
- * count arrives, so a burst of joiners does not all land on one room past
- * its cap; the rare one who still finds it full is told so and asks again
- * (src/share/rooms.js).
+ * listed. Its pilots fly on. A ROOM MADE FOR THE WAR is listed, with its
+ * mission.
  *
  * WHERE THE BOOK LIVES. On Cloudflare the Lobby keeps it in its storage,
  * so a lobby evicted from memory still knows the rooms that are flying.
@@ -67,9 +58,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { EMPTY_CLOSE_MS, PUBLIC_CAP } from '../../src/share/roomwire.js';
+import { EMPTY_CLOSE_MS } from '../../src/share/roomwire.js';
 
-export const PENDING_MS = 30000;
 export const LIST_GRACE_MS = EMPTY_CLOSE_MS;
 /* Bounds on what the lobby holds and answers: a thousand rooms is sixteen
  * thousand pilots, far past what one VM carries, and a list longer than a
@@ -124,32 +114,28 @@ function apart(e, joiner) {
 }
 
 export class LobbyBook {
-  /* rooms: { [code]: a listing, with pending: [ms] and emptySince }, as stored. */
+  /* rooms: { [code]: a listing, with emptySince }, as stored. A book
+   * stored by a build before the combat-only cut carries a pending array
+   * (its quick join's bookings) on each line, read by nothing now. */
   constructor(rooms = {}) {
     this.rooms = rooms;
   }
 
-  load(e, now) {
-    e.pending = e.pending.filter((at) => now - at < PENDING_MS);
-    return e.n + e.pending.length;
+  listed(e) {
+    return !e.hidden && Boolean(e.pick) && e.n > 0;
   }
 
-  listed(e, now) {
-    return !e.hidden && Boolean(e.pick) && this.load(e, now) > 0;
-  }
-
-  /* A room booked by a quick join that never reported (its making
-   * failed) goes when its booking lapses. */
+  /* A room empty past the grace, or one that never reported, goes. */
   prune(now) {
     for (const [code, e] of Object.entries(this.rooms)) {
-      if (this.load(e, now) === 0 && (!e.pick || now - e.emptySince >= LIST_GRACE_MS)) {
+      if (e.n === 0 && (!e.pick || now - e.emptySince >= LIST_GRACE_MS)) {
         delete this.rooms[code];
       }
     }
   }
 
-  /* A room's own line, which replaces the book's. Its count replaces the
-   * guessed joiners too, when it moved. False when the book is full. */
+  /* A room's own line, which replaces the book's. False when the book is
+   * full. */
   report(entry, now) {
     const old = this.rooms[entry.code];
     if (!old && Object.keys(this.rooms).length >= MAX_ROOMS) {
@@ -158,12 +144,11 @@ export class LobbyBook {
         return false;
       }
     }
-    const pending = old && old.n === entry.n ? old.pending : [];
     /* The room's own time when it sends one; the book's guess otherwise. */
     const emptySince = entry.n > 0 ? null
       : Number.isFinite(entry.emptySince) ? entry.emptySince
         : (old && old.emptySince != null ? old.emptySince : now);
-    this.rooms[entry.code] = { ...entry, pending, emptySince };
+    this.rooms[entry.code] = { ...entry, emptySince };
     return true;
   }
 
@@ -172,7 +157,7 @@ export class LobbyBook {
   list(now, joiner = null) {
     this.prune(now);
     return Object.values(this.rooms)
-      .filter((e) => this.listed(e, now) && !apart(e, joiner))
+      .filter((e) => this.listed(e) && !apart(e, joiner))
       .sort((a, b) => (b.n - a.n) || (b.created - a.created))
       .slice(0, LIST_MAX)
       .map((e) => ({
@@ -180,50 +165,6 @@ export class LobbyBook {
         mission: e.mission ?? null, wave: e.wave ?? null, waves: e.waves ?? null, ready: e.ready ?? null, emptySince: e.emptySince,
         watchers: e.watchers ?? 0,
       }));
-  }
-
-  /*
-   * A quick join on `map`: { code, fresh }. The busiest listed room with a
-   * seat, the older of two as busy; or, when there is none, `fresh`, a new
-   * code the caller must make the room for, booked here first so the
-   * joiners right behind this one land in it rather than each making
-   * their own. null when the map cannot be had, or when there is no room
-   * with a seat and `fresh` is null (the server is busy, front.js). A
-   * room `joiner` must be kept apart from is passed over (apart).
-   */
-  quick(map, now, fresh, joiner = null) {
-    if (!MAP_RE.test(map)) {
-      return null;
-    }
-    this.prune(now);
-    let best = null;
-    let bestLoad = -1;
-    for (const e of Object.values(this.rooms)) {
-      /* Never into a room made for the war: nobody arrives there without
-       * having chosen it (docs/WARFARE-PLAN.md section 9). */
-      if (e.map !== map || e.hidden || e.mode === 'war' || apart(e, joiner)) {
-        continue;
-      }
-      /* Nor into an empty one, whose last pilots may come back to it. */
-      const n = this.load(e, now);
-      if (n > 0 && n < e.cap && (n > bestLoad || (n === bestLoad && e.created < best.created))) {
-        best = e;
-        bestLoad = n;
-      }
-    }
-    if (best) {
-      best.pending.push(now);
-      return { code: best.code, fresh: false };
-    }
-    if (!fresh || Object.keys(this.rooms).length >= MAX_ROOMS) {
-      return null;
-    }
-    /* No pick yet, so not listed until the room made for it reports. */
-    this.rooms[fresh] = {
-      code: fresh, name: null, pick: null, map, n: 0, cap: PUBLIC_CAP, game: null, state: 'waiting', mode: null,
-      hidden: false, created: now, pending: [now], emptySince: now, accounts: [], blocking: [],
-    };
-    return { code: fresh, fresh: true };
   }
 }
 
@@ -264,11 +205,6 @@ export class Lobby {
       book.report(body, now);
       await this.ctx.storage.put('rooms', book.rooms);
       return new Response('ok');
-    }
-    if (url.pathname === '/quick') {
-      const got = book.quick(String(body.map), now, body.code, body.joiner ?? null);
-      await this.ctx.storage.put('rooms', book.rooms);
-      return Response.json(got || { code: null });
     }
     return new Response('not found', { status: 404 });
   }

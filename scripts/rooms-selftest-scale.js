@@ -248,7 +248,7 @@ export async function scaleSection(check) {
   check('and with no secret set on the server, nobody does', res.status === 401);
   const open = await s.create({ map: 'itaipu', public: true, name: 'Open Sky' });
   check('an open valve makes public rooms as ever', open.status === 200);
-  /* A pilot in it: an empty room is never listed nor quick joined. */
+  /* A pilot in it: an empty room is never listed. */
   const flying = await s.join({ code: open.code });
   check('and its first pilot is in', Boolean(flying.welcome));
   busyNow = true;
@@ -260,14 +260,11 @@ export async function scaleSection(check) {
   check('the list says busy, and still lists the rooms', listed.busy === true && listed.rooms.some((r) => r.code === open.code));
   res = await fetchFront(s, '/v2/public', {});
   check('and so does /v2/public', (await res.json()).busy === true);
-  const into = await s.join({ map: 'itaipu' });
-  check('a quick join still lands in a room with a seat', into.welcome && into.welcome.code === open.code);
-  const nowhere = await s.join({ map: 'interior' });
-  check('but one with no room to land in is refused, and no room is made for it', nowhere.refused === 503 && refused === 2
-    && !(await s.list()).rooms.some((r) => r.map === 'interior'));
+  const into = await s.join({ code: open.code });
+  check('a pilot still joins a room with a seat by its code', into.welcome && into.welcome.code === open.code);
   busyNow = false;
-  const again = await s.join({ map: 'interior' });
-  check('once the valve opens, the same quick join makes its room', again.welcome && again.welcome.public === true);
+  const again = await s.create({ map: 'interior', public: true, name: 'Open Again' });
+  check('once the valve opens, a public room is made again', again.status === 200);
 }
 
 function fetchFront(s, path, headers) {

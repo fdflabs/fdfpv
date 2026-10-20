@@ -325,10 +325,6 @@ console.log('blocks that outlast a room');
   check('Viper\'s list, and a guest\'s, show the public room Iceman is in', viperList.includes(icemanRoom) && (await listFor(null)).includes(icemanRoom),
     JSON.stringify(viperList));
   check('Goose\'s, who blocked him, leaves it out', !(await listFor(session)).includes(icemanRoom));
-  const pick = async (sess) => (await (await fetch(`${roomsOrigin}/v2/public/swiss2`, { headers: asking(sess) })).json()).code;
-  const goosePick = await pick(session);
-  check('Goose\'s quick join is handed another room', typeof goosePick === 'string' && goosePick !== icemanRoom, goosePick);
-  check('Viper\'s is handed Iceman\'s', await pick(viper) === icemanRoom);
   r = await api('PUT', '/api/account/blocks', { callsign: 'Iceman', on: false }, session);
   check('unblocked, Goose\'s next list shows it again', r.status === 200 && (await listFor(session)).includes(icemanRoom));
   icemanIn.ws.close(1000);

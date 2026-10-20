@@ -1,5 +1,5 @@
 /*
- * rooms-selftest-blocks.js: blocks in the room browser and the quick join
+ * rooms-selftest-blocks.js: blocks in the room browser
  * (COMPLETENESS 60, edge/rooms/lobby.js apart, edge/rooms/front.js
  * joinerOf), part of npm run rooms:selftest. The real front, rooms and
  * lobby in one process (rooms-selftest-browser.js server), with the
@@ -7,8 +7,7 @@
  * for four sessions as tracks-api/accounts.js would.
  *
  * A signed in pilot's list leaves out every room holding a pilot it
- * blocked, or who blocked it, and its quick join passes those rooms over
- * for the next, or a new one; the ids never reach the page. The negative
+ * blocked, or who blocked it; the ids never reach the page. The negative
  * controls: a guest is left out of nothing, and a mute, which lives in its
  * room, never reaches the lobby.
  *
@@ -69,10 +68,6 @@ export async function blocksSection(check) {
       const res = await s.call('/v2/rooms', bearer(who));
       return res.status === 200 ? (await res.json()).rooms.map((r) => r.code) : { status: res.status, ...(await res.json()) };
     };
-    const quick = async (who, map = 'itaipu') => {
-      const res = await s.call(`/v2/public/${map}`, bearer(who));
-      return res.status === 200 ? (await res.json()).code : { status: res.status };
-    };
     let n = 0;
     /* A pilot seated as node.js seats one: the accounts server's answer
      * for its session handed to the room with the hello. who null: a guest. */
@@ -121,19 +116,10 @@ export async function blocksSection(check) {
     check('Viper, who blocked nobody and whom nobody blocked, is shown every room', [icemanRoom, viperRoom, gooseRoom].every((c) => viper.includes(c)),
       JSON.stringify(viper));
 
-    check('a guest\'s quick join lands in the busiest room, Iceman\'s', await quick(null) === icemanRoom);
-    check('Goose\'s passes it over for the next busiest, Viper\'s', await quick(GOOSE) === viperRoom);
-    const maverickQuick = await quick(MAVERICK);
-    check('Maverick\'s lands in Iceman\'s, never Goose\'s', maverickQuick === icemanRoom, maverickQuick);
-    const elsewhere = await quick(GOOSE, 'interior');
-    check('with no room on a world to go to, a quick join makes a new one', typeof elsewhere === 'string' && ![icemanRoom, viperRoom, gooseRoom].includes(elsewhere),
-      JSON.stringify(elsewhere));
-
     /* The negative control: a mute is the room's, never the lobby's. */
     await guest.say({ type: 'mute', seats: [1] });
     const muted = await list();
     check('negative control: a guest who muted Iceman is still shown Iceman\'s room', muted.includes(icemanRoom), JSON.stringify(muted));
-    check('and is still quick joined into it', await quick(null) === icemanRoom);
     check('a made up session is a guest\'s, left out of nothing', (await list('a'.repeat(64))).includes(icemanRoom));
 
     /* The block taken back on the account: the next ask has it. */
@@ -144,9 +130,8 @@ export async function blocksSection(check) {
     const down = await list(DOWN);
     check('with the accounts server failing, the list is refused for that pilot, not guessed', down.status === 503 && down.error === 'accounts',
       JSON.stringify(down));
-    check('and the quick join too', (await quick(DOWN)).status === 503);
     await list();
-    check('a guest\'s list asks the accounts server nothing', asked === before + 2, `${asked - before}`);
+    check('a guest\'s list asks the accounts server nothing', asked === before + 1, `${asked - before}`);
 
     const noAccounts = server();
     const nc = await (await noAccounts.call('/v2/create', { method: 'POST', body: JSON.stringify({ map: 'itaipu', public: true }), address: '10.7.1.1' })).json();
