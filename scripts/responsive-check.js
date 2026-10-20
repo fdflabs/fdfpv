@@ -27,10 +27,10 @@
  * The report was "the freestyle page is unresponsive when I get to it,
  * becomes responsive after a time". Measured on arrival with a cold clip
  * cache it gave 23 frames in 10.4 s, one of them a 5155 ms gap with no paint
- * at all. Each world card's preview loads src/share/orbit.html in a
- * same-origin iframe, and that builds a whole Three.js scene on the page's
- * own thread. The clip is cached per browser afterwards, so it is a
- * first-visit cost worth paying, only not while somebody is using the room.
+ * at all. The cause then was each world card's preview building a whole
+ * Three.js scene on the page's own thread (src/share/orbit.html, gone with
+ * the combat-only cut, 2026-10-20); the check stays because any work on
+ * that thread freezes the room the same way.
  *
  * Responsive is not how long something takes but whether the page can paint
  * and answer a key while it happens. So the room is driven like a person

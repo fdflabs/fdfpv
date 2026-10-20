@@ -40,10 +40,6 @@ import {
 import {
   fetchAllTracks, fetchTrack, pilotKey, pullOwnTracks, tracksConfigured,
 } from '../share/cloud.js';
-import {
-  CLIP_H, CLIP_MS_MAX, CLIP_W, clipKeyForMap, getClip, makeClipElement, putClip, recordCanvasStream,
-  whenVisible, withCaptureLock,
-} from '../share/orbitcache.js';
 import { readWallet } from '../share/account.js';
 import {
   readBind, readEditKey, readShareImport, writeShareImport,
@@ -62,40 +58,19 @@ import {
 } from './ui.js';
 import { WAYS } from './ways.js';
 import { btn, el } from './widgets.js';
-import { logWarn } from '../share/crashrecord.js';
-
-/*
- * How long the room must go untouched before a world preview may start
- * recording. Arrowing along four cards never leaves a gap this long; a
- * pilot who stops to read a card does. See noteInteraction.
- */
-const QUIET_MS = 900;
-
-/* A recorder that has not delivered by now never will. */
-const ORBIT_TIMEOUT_MS = 90000;
-
-/* What a world preview reports its finished clip as (src/share/orbit.html).
- * The name is shared with that page, so it changes only together with it. */
-const ORBIT_CLIP_MESSAGE = 'fdfpv-orbit-clip';
 
 const SEP = ' · ';
 
-const clock = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
-
-const aborted = () => new DOMException('aborted', 'AbortError');
-const isAbort = (e) => Boolean(e) && e.name === 'AbortError';
-
 /*
- * A world's poster under a card, so a cold browser's first visit, which
- * records every clip from nothing, shows the places rather than dark boxes
- * saying "loading". The poster is a rendered frame of the world
- * (scripts/posters.js, named in src/maps/registry.js).
+ * A world's poster on its card: a rendered frame of the world
+ * (scripts/posters.js, named in src/maps/registry.js). The cards' looping
+ * clips, recorded through src/share/orbit.html, left with the combat-only
+ * cut (2026-10-20); the poster was always the card's first picture.
  *
  * A background, not an <img>: it is decoration the card already names in
- * type, it outlives the replaceChildren the reel code calls on the shot,
- * and a file that fails to load paints nothing instead of a broken image.
- * On the CARD, not the reel, because two rules read it: the reel paints it,
- * and so does the wait panel over an opaque recorder iframe (index.html).
+ * type, and a file that fails to load paints nothing instead of a broken
+ * image. Set on the card as --poster and painted by its .map-reel box
+ * (index.html).
  */
 function wearPoster(card, world) {
   if (!world || !world.poster) {
@@ -219,62 +194,6 @@ function raceableFor(af, list) {
     .map((t) => (af.fixedWing
       ? { ...t, recordMs: t.planeRecordMs, recordBy: t.planeRecordBy, times: t.planeTimes }
       : t));
-}
-
-/*
- * The orbit page's clip for one world. The iframe records, caches and posts
- * the clip back; anything else posted to this window, or a post from some
- * other frame, is not the answer. Settles once: on the clip, on a failure,
- * on the timeout, or on the session being torn down.
- */
-function orbitClip(frame, mapId, signal) {
-  return new Promise((resolve, reject) => {
-    let timer = null;
-    const settle = (err, blob) => {
-      if (timer == null) {
-        return;
-      }
-      clearTimeout(timer);
-      timer = null;
-      window.removeEventListener('message', onMessage);
-      signal.removeEventListener('abort', onAbort);
-      if (err) {
-        reject(err);
-      } else {
-        resolve(blob);
-      }
-    };
-    function onAbort() {
-      settle(aborted());
-    }
-    function onMessage(e) {
-      const msg = e.data;
-      if (!msg || msg.type !== ORBIT_CLIP_MESSAGE || e.source !== frame.contentWindow) {
-        return;
-      }
-      if (!msg.buffer) {
-        settle(new Error('Preview sent no clip.'));
-        return;
-      }
-      settle(null, new Blob([msg.buffer], { type: msg.mime || 'video/webm' }));
-    }
-    timer = setTimeout(() => settle(new Error('Preview timed out.')), ORBIT_TIMEOUT_MS);
-    signal.addEventListener('abort', onAbort);
-    window.addEventListener('message', onMessage);
-    if (signal.aborted) {
-      onAbort();
-      return;
-    }
-    frame.src = new URL(`../share/orbit.html?map=${encodeURIComponent(mapId)}`, import.meta.url).href;
-  });
-}
-
-/* A preview that failed for any reason but being cancelled: the card shows
- * its poster and a line saying so, and nothing retries until next visit. */
-function previewFailed(c) {
-  c.wait = null;
-  c.shot.replaceChildren();
-  c.still.textContent = str('ui.preview_unavailable');
 }
 
 export const cardMethods = {
@@ -454,7 +373,6 @@ export const cardMethods = {
     }
     const worlds = this.items().filter((it) => it.map);
     if (!this.mapCards || this.mapCards.length !== worlds.length) {
-      this.stopReels();
       host.textContent = '';
       this.mapCards = worlds.map((it, i) => {
         const card = el('div', 'map-card');
@@ -462,20 +380,16 @@ export const cardMethods = {
         const c = {
           card,
           id: it.map.id,
-          shot: el('div', 'map-reel'),
-          still: el('div', 'map-card-still', ''),
           name: el('div', 'map-card-name', it.label),
           tag: el('div', 'map-card-tag', ''),
-          liveCanvas: null,
         };
         const body = el('div', 'map-card-body');
         body.append(c.name, c.tag);
-        card.append(c.shot, c.still, body);
+        card.append(el('div', 'map-reel'), body);
         pointAt(this, card, i);
         host.append(card);
         return c;
       });
-      this.startReels();
     }
     for (const [i, c] of this.mapCards.entries()) {
       c.card.classList.toggle('on', i === this.cursor);
@@ -733,316 +647,5 @@ export const cardMethods = {
   medalOn(id) {
     const medals = this.settings && this.settings.progress && this.settings.progress.medals;
     return (medals && medals[`track:${id}`]) || '';
-  },
-
-  /*
-   * The world cards' reels. A clip cached in this browser plays at once. A
-   * miss shows the wait panel and is recorded later, one world at a time
-   * and only while nobody is using the room: the seated world by copying
-   * the view already on screen, any other by loading its orbit page in an
-   * iframe. Either blocks this thread for seconds, so it is paid once per
-   * browser and never while the pilot is pressing keys (noteInteraction).
-   */
-  startReels() {
-    this.stopReels();
-    const cards = this.mapCards ?? [];
-    const seated = this.settings.map;
-    const session = { ac: new AbortController(), urls: [], unsub: [] };
-    this.reelSession = session;
-    this.reelFreezeWorld = false;
-    const live = () => this.reelSession === session;
-
-    const onVisibility = () => {
-      const hidden = document.hidden || this.screen !== 'courses';
-      for (const c of this.mapCards || []) {
-        if (!c.clip || !c.clip.pause) {
-          continue;
-        }
-        if (hidden) {
-          c.clip.pause();
-        } else {
-          /* Autoplay refused is a still card, not an error. */
-          c.clip.play().catch(() => {});
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    session.unsub.push(() => document.removeEventListener('visibilitychange', onVisibility));
-
-    for (const c of cards) {
-      c.shot.replaceChildren();
-      c.liveCanvas = null;
-      c.clip = null;
-      c.still.textContent = '';
-    }
-
-    const fill = async () => {
-      const missing = [];
-      for (const c of cards) {
-        if (!live()) {
-          return;
-        }
-        c.clipKey = clipKeyForMap(c.id);
-        try {
-          const blob = await getClip(c.clipKey);
-          if (blob) {
-            this.attachClip(c, blob, session);
-            continue;
-          }
-        } catch (e) {
-          /* An unreadable cache, or a clip that will not play, is a miss:
-           * record it afresh. */
-        }
-        missing.push(c);
-      }
-      missing.forEach((c) => this.showReelWait(c));
-      /* The seated world first, from the view already drawn, then the
-       * rest through their orbit pages. */
-      const queue = [
-        ...missing.filter((c) => c.id === seated).map((c) => [c, this.captureCurrentCard]),
-        ...missing.filter((c) => c.id !== seated).map((c) => [c, this.captureRemoteCard]),
-      ];
-      for (const [c, capture] of queue) {
-        if (!live()) {
-          return;
-        }
-        await this.whenQuiet(session);
-        this.reelCapturing = true;
-        try {
-          await capture.call(this, c, session);
-        } finally {
-          this.reelCapturing = false;
-        }
-      }
-    };
-    fill().catch((e) => {
-      if (!isAbort(e)) {
-        logWarn('render', e);
-      }
-    });
-  },
-
-  /* A finished clip into its card, replacing whatever was there. Its object
-   * URL belongs to the session and is revoked with it. */
-  attachClip(c, blob, session) {
-    const { node, url } = makeClipElement(blob, 'map-reel-view');
-    session.urls.push(url);
-    c.liveCanvas = null;
-    c.clip = node;
-    c.wait = null;
-    c.still.textContent = '';
-    c.shot.replaceChildren(node);
-    if (document.hidden && node.pause) {
-      node.pause();
-    }
-  },
-
-  /* The wait panel over a card whose clip is still to come; one per card. */
-  showReelWait(c) {
-    if (c.wait && c.shot.contains(c.wait)) {
-      return;
-    }
-    c.wait = el('div', 'map-reel-wait');
-    c.wait.append(el('div', 'map-reel-wait-stage', 'loading'));
-    c.shot.append(c.wait);
-  },
-
-  /*
-   * The seated world's clip, recorded from a canvas the render loop copies
-   * the title view into (paintMapThumbs) rather than loading the same world
-   * a second time.
-   */
-  async captureCurrentCard(c, session) {
-    const canvas = el('canvas', 'map-reel-view');
-    canvas.setAttribute('aria-hidden', 'true');
-    canvas.width = CLIP_W;
-    canvas.height = CLIP_H;
-    /* Marks a recorder canvas, whose size is the clip's and not the card's. */
-    canvas.dataset.clip = '1';
-    const ctx = canvas.getContext('2d', { alpha: false });
-    if (ctx) {
-      /* The poster's dark green, so the first frames are not black. */
-      ctx.fillStyle = '#1a241c';
-      ctx.fillRect(0, 0, CLIP_W, CLIP_H);
-    }
-    c.shot.append(canvas);
-    c.liveCanvas = canvas;
-    c.still.textContent = '';
-    this.showReelWait(c);
-    try {
-      /* One recorder at a time across every tab of this site. Another may
-       * have cached this world while we waited for the lock. */
-      await withCaptureLock(async () => {
-        if (this.reelSession !== session) {
-          return;
-        }
-        const cached = await getClip(c.clipKey);
-        if (cached) {
-          this.attachClip(c, cached, session);
-          return;
-        }
-        await whenVisible(session.ac.signal);
-        const blob = await recordCanvasStream(canvas, CLIP_MS_MAX, session.ac.signal);
-        await putClip(c.clipKey, blob);
-        if (this.reelSession === session) {
-          this.attachClip(c, blob, session);
-        }
-      });
-    } catch (e) {
-      if (!isAbort(e)) {
-        previewFailed(c);
-      }
-    } finally {
-      c.liveCanvas = null;
-    }
-  },
-
-  /* Any other world's clip, from its orbit page in an iframe that records,
-   * caches and posts the clip back. The world behind the menu is held
-   * still meanwhile (main.js reads reelFreezeWorld), and the iframe is
-   * removed whatever happens, which ends the scene it built. */
-  async captureRemoteCard(c, session) {
-    c.still.textContent = '';
-    const frame = document.createElement('iframe');
-    frame.className = 'map-reel-view';
-    frame.title = str('ui.world_preview');
-    frame.tabIndex = -1;
-    frame.setAttribute('aria-hidden', 'true');
-    c.shot.append(frame);
-    this.showReelWait(c);
-    this.reelFreezeWorld = true;
-    try {
-      await whenVisible(session.ac.signal);
-      const blob = await orbitClip(frame, c.id, session.ac.signal);
-      if (this.reelSession === session) {
-        await putClip(c.clipKey, blob);
-        this.attachClip(c, blob, session);
-      }
-    } catch (e) {
-      if (!isAbort(e)) {
-        previewFailed(c);
-      }
-    } finally {
-      frame.remove();
-      if (this.reelSession === session) {
-        this.reelFreezeWorld = false;
-      }
-    }
-  },
-
-  /*
-   * The render loop's frame, copied onto any card recording the seated
-   * world, cropped to cover the card the way the poster does. main.js calls
-   * this every frame on My tracks; once the clips exist there is nothing to
-   * copy.
-   */
-  paintMapThumbs(src) {
-    if (this.screen !== 'courses' || !this.mapCards) {
-      return;
-    }
-    const sw = src.width;
-    const sh = src.height;
-    if (!(sw > 0 && sh > 0)) {
-      return;
-    }
-    for (const { liveCanvas: dest } of this.mapCards) {
-      if (!dest) {
-        continue;
-      }
-      /* A plain thumbnail follows its card's size; a recorder keeps the
-       * clip's. */
-      if (dest.dataset.clip !== '1') {
-        const w = Math.max(1, dest.clientWidth);
-        const h = Math.max(1, dest.clientHeight);
-        if (dest.width !== w || dest.height !== h) {
-          dest.width = w;
-          dest.height = h;
-        }
-      }
-      const zoom = Math.max(dest.width / sw, dest.height / sh);
-      const cw = dest.width / zoom;
-      const ch = dest.height / zoom;
-      try {
-        dest.getContext('2d').drawImage(src, (sw - cw) / 2, (sh - ch) / 2, cw, ch, 0, 0, dest.width, dest.height);
-      } catch (e) {
-        /* A tainted source would throw on every frame; the card keeps its
-         * last good picture instead. */
-      }
-    }
-  },
-
-  /*
-   * Any input at all, noted so a preview recording gets out of the way.
-   *
-   * A recording builds a whole Three.js scene on this thread: measured on a
-   * cold cache, 23 frames in 10.4 s with one 5155 ms gap, reported as "the
-   * freestyle page is unresponsive when I get to it". Waiting for quiet
-   * before starting is not enough, since a pilot who reads for a second and
-   * then reaches for the arrows walks into a block already begun. So input
-   * tears a running recording down (removing its iframe ends its scene)
-   * and re-arms it for the next quiet spell; once one finishes it is
-   * cached for every later visit.
-   */
-  noteInteraction() {
-    this.lastInteractionAt = clock();
-    if (this.reelCapturing && this.reelSession) {
-      this.stopReels();
-      this.armReels();
-    }
-  },
-
-  /* Restart the reels after input tore them down. One timer, replaced, so
-   * arrowing past four cards schedules one restart and not four. */
-  armReels() {
-    clearTimeout(this.reelRestart);
-    this.reelRestart = setTimeout(() => {
-      this.reelRestart = null;
-      if (this.screen === 'courses' || this.screen === 'freestyle') {
-        this.startReels();
-      }
-    }, QUIET_MS);
-  },
-
-  /*
-   * Resolves once the room has gone QUIET_MS without input, rejects with
-   * an AbortError if the session ends first. Polled, because what is waited
-   * for is an absence, which fires no event.
-   */
-  whenQuiet(session) {
-    return new Promise((resolve, reject) => {
-      const look = () => {
-        if (!session || this.reelSession !== session || session.ac.signal.aborted) {
-          reject(aborted());
-          return;
-        }
-        const idle = clock() - (this.lastInteractionAt || 0);
-        if (idle >= QUIET_MS) {
-          resolve();
-          return;
-        }
-        session.quietTimer = setTimeout(look, Math.max(80, QUIET_MS - idle));
-      };
-      look();
-    });
-  },
-
-  /* End the reel session: cancel its wait and any recording, drop its
-   * listeners, free its clips, and empty every card's reel. */
-  stopReels() {
-    this.reelFreezeWorld = false;
-    this.reelCapturing = false;
-    const session = this.reelSession;
-    this.reelSession = null;
-    if (session) {
-      clearTimeout(session.quietTimer);
-      session.ac.abort();
-      session.unsub.forEach((off) => off());
-      session.urls.forEach((url) => URL.revokeObjectURL(url));
-    }
-    for (const c of this.mapCards || []) {
-      c.liveCanvas = null;
-      c.clip = null;
-      c.shot.replaceChildren();
-    }
   },
 };

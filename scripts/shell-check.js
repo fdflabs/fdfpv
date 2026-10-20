@@ -1427,8 +1427,8 @@ function judgeHookIndex(fail, note) {
       }
     }
   }
-  /* Not every hook is a plain assignment: orbit.js sets __orbitCached
-   * through Object.assign. Named anywhere but the index will do. */
+  /* Not every hook is a plain assignment (Object.assign, a destructured
+   * name): named anywhere but the index will do. */
   const others = texts.filter(({ file }) => !file.endsWith(join('share', 'devhooks.js')));
   for (const [name] of HOOKS) {
     const word = new RegExp(`\\b${name}\\b`);

@@ -159,7 +159,6 @@ function openBenchSearch(ui) {
 
 export const keyMethods = {
   handleKey(code, repeat = false) {
-    this.noteInteraction();
     /* A text field is open: typing is for it. */
     if (this.nameDialog && !this.nameDialog.hidden) return true;
     /* Keys and buttons is waiting for the key to bind. */

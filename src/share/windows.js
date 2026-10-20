@@ -51,8 +51,8 @@ export const BOARD_WINDOW = 'fdfpv-board';
 
 /*
  * Name this page's tab. Returns the name taken, or '' when none was: a
- * frame takes none (orbit.html runs inside the board's cards, and a
- * thumbnail named like a tab would catch the simulator's links), and
+ * frame takes none (a page inside another's frame, named like a tab, would
+ * catch the simulator's links), and
  * neither does a page with no window or one that will not answer.
  */
 export function claimWindowName(name) {

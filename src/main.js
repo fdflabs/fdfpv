@@ -17046,13 +17046,12 @@ export async function boot({
   };
 
   function dressWorld() {
-    const freezeWorld = Boolean(ui.reelFreezeWorld);
-    fr.attractOn = !freezeWorld && mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
+    fr.attractOn = mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
     fr.pickerOn = ui.carousel.isOpen || ui.hangar.isOpen;
     /* A replay the TV opened draws the world in the room's place. */
     fr.walkOn = ui.screen === 'walk' && Boolean(ui.walk) && !crashCam.live;
     fr.studioOn = ui.screen === 'quad' && !fr.pickerOn;
-    fr.worldLive = !freezeWorld && (
+    fr.worldLive = (
       Boolean(finishLoadingOnFrame)
       || mode === 'flight'
       || mode === 'paused'
@@ -17647,9 +17646,6 @@ export async function boot({
       } else {
         warCutaway.drawPip(nowWall);
       }
-    }
-    if (ui.screen === 'courses') {
-      ui.paintMapThumbs(shell.canvas);
     }
     fr.renderMs = performance.now() - renderStart;
     if (drawThis) {

@@ -65,12 +65,12 @@ function gateCard(cls, art, name, blurb, facts) {
       h('div', 'gate-card-facts', ...facts.map((f) => h('span', 'gate-card-fact', f)))));
 }
 
-/* The poster is a custom property on the card, as markPoster sets it in
- * ui.js, which the reel paints; the still and the tag are empty until a
- * clip is recorded or the world is the one flying. */
+/* The poster is a custom property on the card, as wearPoster sets it in
+ * cards.js, which the .map-reel box paints; the tag is empty until the
+ * world is the one flying. */
 function worldCard(cls, poster, name, tag = '') {
   return `<div class="map-card has-poster${cls ? ` ${cls}` : ''}" style="--poster: url('${esc(poster)}')">`
-    + h('div', 'map-reel') + h('div', 'map-card-still')
+    + h('div', 'map-reel')
     + h('div', 'map-card-body', h('div', 'map-card-name', name), h('div', 'map-card-tag', tag)) + '</div>';
 }
 

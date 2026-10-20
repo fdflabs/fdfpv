@@ -257,8 +257,6 @@ function leaveFor(ui, screen) {
   const from = ui.screen;
   const leaving = (s) => from === s && screen !== s;
   if (leaving('courses')) {
-    /* Nothing draws a thumbnail for a screen nobody is looking at. */
-    ui.stopReels();
     ui.mapCards = null;
     ui.courseCards = null;
     ui.courseCardKey = null;
@@ -483,9 +481,6 @@ export const navMethods = {
     if (this.screen !== screen) {
       this.focusId = null;
     }
-    /* Arriving is interaction: a preview recorder must not start into the
-     * frame still painting the room. */
-    this.noteInteraction();
     this.screen = screen;
     this.cursor = this.restoreCursor();
     arriveAt(this, screen);

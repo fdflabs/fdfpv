@@ -865,7 +865,7 @@ const written = new Set();
 try {
   await page.until('window.__shellReady === true', 300000);
   await page.loaded();
-  await page.evaluate("(() => { const ui = window.__ui; ui.firstRun = false; ui.craftGate = false; ui.mode = 'race'; ui.armReels = () => {}; ui.startReels = () => {}; return true; })()");
+  await page.evaluate("(() => { const ui = window.__ui; ui.firstRun = false; ui.craftGate = false; ui.mode = 'race'; return true; })()");
   for (const [name, run] of GROUPS) {
     if (ONLY.length && !ONLY.includes(name)) {
       continue;

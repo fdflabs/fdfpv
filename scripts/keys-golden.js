@@ -41,7 +41,7 @@ const RECORD = process.argv.includes('--record');
 const { Ui } = await import('../src/ui/ui.js');
 
 const RECORDED = [
-  'noteInteraction', 'openBugReport', 'act', 'show', 'openSwap', 'cycleSwap', 'back', 'moveDrop', 'confirmDrop',
+  'openBugReport', 'act', 'show', 'openSwap', 'cycleSwap', 'back', 'moveDrop', 'confirmDrop',
   'closeDrop', 'move', 'adjust', 'select', 'pageMove', 'jumpEdge', 'renderMenu', 'setCursor', 'restoreSearchCaret',
   'onUiSound',
 ];

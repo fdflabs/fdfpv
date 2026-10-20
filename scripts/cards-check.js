@@ -11,7 +11,7 @@
  *
  * ui-golden.js pins every screen's items and rows. It does not see the
  * cards: the home and hub cards, the rooms panel beside them, the world
- * cards with their video reels, the My tracks cards (the pilot's own, the
+ * cards, the My tracks cards (the pilot's own, the
  * board's and the tracks server's) and the Tricks screen's caption. Those
  * are drawn from items() by the card methods of the Ui (src/ui/cards.js),
  * and this check drives those methods through
@@ -383,56 +383,6 @@ const TRICKS = probe(`
   ui.show('title');
 `);
 
-/* THE WORLD CARDS on Freestyle and their reels: the cards, a cached clip
- * played at once, the wait panel on a miss, a recording starting only after
- * the room is quiet, and input tearing it down and re-arming it. */
-const REELS = probe(`
-  const cache = await import('/src/share/orbitcache.js');
-  const busy = setInterval(() => ui.noteInteraction(), 100);
-  ui.show('freestyle');
-  out.cards = snap(ui.freestyleCards);
-  out.ids = (ui.mapCards || []).map((c) => c.id);
-  await sleep(300);
-  out.waiting = snap(ui.freestyleCards);
-  out.freeze = ui.reelFreezeWorld;
-  const cachedId = out.ids.find((id) => id !== ui.settings.map) || out.ids[0];
-  const blob = new Blob([new Uint8Array(64)], { type: 'video/webm' });
-  await cache.putClip(cache.clipKeyForMap(cachedId), blob);
-  ui.startReels();
-  await until(() => document.querySelector('.screen-freestyle video, .map-cards video'));
-  await sleep(100);
-  out.cached = { id: cachedId, shots: [...ui.freestyleCards.querySelectorAll('.map-reel')].map((s) => snap(s)) };
-  const keep = ui.freestyleCards.firstChild;
-  ui.setCursor(1);
-  out.keptOnCursor = ui.freestyleCards.firstChild === keep;
-  out.lit = lit(ui.freestyleCards);
-  out.tags = [...ui.freestyleCards.querySelectorAll('.map-card-tag')].map(text);
-  clearInterval(busy);
-  const t0 = performance.now();
-  const recorder = () => ui.freestyleCards.querySelector('iframe.map-reel-view, canvas.map-reel-view');
-  await sleep(400);
-  out.quietTooSoon = Boolean(recorder());
-  out.started = await until(() => recorder(), 8000);
-  out.startedAfterQuiet = performance.now() - t0 >= 800;
-  const rec = recorder();
-  out.recorder = rec ? { tag: rec.tagName.toLowerCase(), cls: rec.className, clip: rec.dataset.clip || null, title: rec.title || null, src: rec.tagName === 'IFRAME' ? tidy(rec.getAttribute('src') || '') : null } : null;
-  out.freezeWhileRecording = ui.reelFreezeWorld;
-  ui.noteInteraction();
-  out.afterInput = { recorder: Boolean(recorder()), freeze: ui.reelFreezeWorld, shots: [...ui.freestyleCards.querySelectorAll('.map-reel')].map((s) => s.childElementCount) };
-  out.rearmed = await until(() => ui.freestyleCards.querySelector('.map-reel-wait'), 4000);
-  const busy2 = setInterval(() => ui.noteInteraction(), 100);
-  await sleep(200);
-  out.afterRearm = [...ui.freestyleCards.querySelectorAll('.map-reel')].map((s) => snap(s));
-  ui.stopReels();
-  out.stopped = { freeze: ui.reelFreezeWorld, shots: [...ui.freestyleCards.querySelectorAll('.map-reel')].map((s) => s.childElementCount) };
-  const src = document.createElement('canvas');
-  src.width = 64;
-  src.height = 32;
-  out.thumbs = [ui.paintMapThumbs(src) === undefined];
-  ui.show('title');
-  clearInterval(busy2);
-`);
-
 const FIXTURES = [
   { name: 'home', profile: null, pastGate: false, probes: { title: TITLE } },
   {
@@ -447,7 +397,6 @@ const FIXTURES = [
       'courses-cloud': COURSES_CLOUD,
       seating: SEATING(OWN[1]),
       tricks: TRICKS,
-      reels: REELS,
     },
   },
   {
@@ -458,12 +407,6 @@ const FIXTURES = [
       'courses-board': COURSES_BOARD(BOARD_TRACKS),
       'courses-board-none-fly': COURSES_BOARD([BOARD_TRACKS[1], BOARD_TRACKS[3]]),
     },
-  },
-  {
-    name: 'freestyle',
-    profile: { airframeAsked: true, freestyleMap: 'swiss2', map: 'swiss2' },
-    pastGate: 'freestyle',
-    probes: { reels: REELS },
   },
 ];
 

@@ -134,18 +134,6 @@ import {
   writeShareImport,
 } from '../share/trackseat.js';
 import {
-  clipKeyForMap,
-  getClip,
-  putClip,
-  makeClipElement,
-  recordCanvasStream,
-  withCaptureLock,
-  whenVisible,
-  CLIP_MS_MAX,
-  CLIP_W,
-  CLIP_H,
-} from '../share/orbitcache.js';
-import {
   GRAPHICS_IDS,
   graphicsLabel,
   graphicsNote,
@@ -717,7 +705,6 @@ export class Ui {
     this.dropIndex = null;
     this.menuRows = [];
     this.rowOffset = 0;
-    this.reelFreezeWorld = false;
     this.gpuInfo = null;
     /* Set by main.js; see setStickProbe. */
     this.stickProbe = null;

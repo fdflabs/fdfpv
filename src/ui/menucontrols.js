@@ -506,7 +506,6 @@ export const menuControlMethods = {
    * twenty rows.
    */
   setCursor(i, pointer = false) {
-    this.noteInteraction();
     if (i === this.cursor) {
       return;
     }

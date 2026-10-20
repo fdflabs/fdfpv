@@ -236,7 +236,7 @@ function makeUi(extra = {}) {
   ui.items = () => ui.lists[ui.screen] || [];
   const quiet = ['syncChips', 'closeDrop', 'renderMapCards', 'renderCourseCards', 'renderTitleCards',
     'renderTitleRooms', 'hoverCursor', 'syncCursor', 'select', 'focusNumber', 'restoreFocusRow', 'syncRates', 'syncPids', 'syncFcChrome',
-    'stopReels', 'loadLocalCourses', 'loadBoardCourses', 'loadCloudCourses', 'renderHowto', 'noteInteraction',
+    'loadLocalCourses', 'loadBoardCourses', 'loadCloudCourses', 'renderHowto',
     'act', 'back'];
   for (const n of quiet) ui[n] = (...a) => say(n, ...a);
   ui.setCursor = (i, pointer) => { say('setCursor', i, pointer ?? ''); ui.cursor = i; };
