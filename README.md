@@ -84,34 +84,21 @@ as your own, with its own adjustment. Rates are yours and stay put across
 all of them: the Rates screen draws the stick to rate curve with your sticks
 on it.
 
-Track mode races tracks built in a world. It opens on **My tracks**: the
-tracks you have built, and the board's when there is one, each with Play,
-Edit, Duplicate and Delete, and **New track**, which asks for the world
-(the Alps or the Swiss valley) and opens the builder there. B in flight
-opens the same builder on the track you are flying; B again test flies it,
-and Escape brings you back to My tracks. Every quad races every track, and
-a plane races the ones whose every gate it fits.
-
-Tracks you build stay in this browser. Clearing it, or another device,
-starts you from nothing. P in the builder publishes a track to the public
-board. The board is a separate site,
-[fdfpv-leaderboard](https://github.com/fdflabs/fdfpv-leaderboard), live at
-https://129.151.39.48/board/. Locally it serves at
-`http://127.0.0.1:3180/`. Fly this course from the board opens this
-simulator in another tab with `?share=` and the track. F8, and the flight
-feel form behind it, file their tickets there too.
+The track builder, My tracks and Track mode left with the combat-only
+cut (2026-10-20): PDCS flies combat quads and planes over Itaipu and the
+Interior, and nothing here is raced against a clock. Tracks built before
+that stay in the browser that built them, unread. The board is a separate
+site, [fdfpv-leaderboard](https://github.com/fdflabs/fdfpv-leaderboard),
+live at https://129.151.39.48/board/ and locally at
+`http://127.0.0.1:3180/`; F8, and the flight feel form behind it, file
+their tickets there.
 
 ## Posting a time, and flying with others
 
-A lap posted to the board travels with its ghost, position and attitude
-at 30 Hz, and the board runs this simulator's own gate detector over it
-before the time goes up: start on the line, every gate in flying order,
-line again, and the course's clock has to agree with the claim and with
-every split. A lap that does not hold up is refused with the reason. The
-check is `src/game/verify.js`, and the board imports it from a pinned
-checkout of this repository, so the two can never disagree about what a
-gate is. `npm run lap:selftest` threads a synthetic lap through the
-reference course and then breaks it seven ways.
+Nothing is posted to the board from here since the combat-only cut: the
+race, its laps and the gate detector the board ran over them
+(`src/game/verify.js`) left this repository on 2026-10-20. The board keeps
+its own pinned copy.
 
 Your name on the board belongs to a key this browser makes the first time
 you post, and every post is signed with it. Another browser posting under

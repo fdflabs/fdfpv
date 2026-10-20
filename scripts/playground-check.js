@@ -127,7 +127,7 @@ check('every component in the playground is in the plan', notPlanned.length === 
 console.log('playground: not for players');
 const pages = await read('scripts/stage-site.sh');
 check('the staged site (Pages and previews) leaves tests/browser out of the site', /--exclude\s+'tests\/browser'/.test(pages));
-const served = ['index.html', 'privacy.html', 'terms.html', 'src/trackbuilder/index.html'];
+const served = ['index.html', 'privacy.html', 'terms.html'];
 async function walk(dir) {
   const out = [];
   for (const e of await readdir(join(root, dir), { withFileTypes: true })) {

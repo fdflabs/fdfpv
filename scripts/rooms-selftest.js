@@ -52,7 +52,6 @@ import {
 import {
   IMPOSSIBLE_LIMIT, POSE_MAX_SPEED, REMOVE_MS, REPORTS_PER_WINDOW, SPAWN_MS,
 } from '../edge/rooms/safety.js';
-import { TELEPORT_SPEED } from '../src/game/verify.js';
 import { SYNC_GAP_MS } from '../src/share/roomclock.js';
 import { UNDO_MS, createRoomSafety } from '../src/share/roomsafety.js';
 import { str } from '../src/strings/index.js';
@@ -712,12 +711,11 @@ console.log('phase 2: shared wrecks');
   hello(we);
   check('and the room forgets the wreck', !texts(we, 'event').length && !binaries(we).length && wa.attachment.wreck === null);
   now += 1000;
-  run(room.message(wb, JSON.stringify({ type: 'event', kind: 'whack', map: 'swiss2', course: 'k1', i: 42, n: [0, 0, 1], square: 0.8 }), now));
-  const wh = texts(wa, 'event').find((m) => m.kind === 'whack');
-  check('a whack reaches the others with the seat', wh && wh.seat === 2 && wh.i === 42 && wh.square === 0.8 && wh.course === 'k1');
   const before3 = texts(wa, 'event').length;
-  run(room.message(wb, JSON.stringify({ type: 'event', kind: 'whack', map: 'swiss2', course: 'k1', i: 42, n: [0, 0, 9], square: 0.8 }), now));
-  check('a whack with a bad normal is not', texts(wa, 'event').length === before3);
+  /* A whack on a builder course's jelly piece, from a tab older than the
+   * cut that took the builder out (2026-10-20). */
+  run(room.message(wb, JSON.stringify({ type: 'event', kind: 'whack', map: 'swiss2', course: 'k1', i: 42, n: [0, 0, 1], square: 0.8 }), now));
+  check('an old tab\'s whack is an event kind nobody owns now, and goes nowhere', texts(wa, 'event').length === before3);
   run(room.message(wb, JSON.stringify({ type: 'event', kind: 'nonsense' }), now));
   check('an event kind nobody owns is ignored', texts(wa, 'event').length === before3);
 }
@@ -1065,7 +1063,7 @@ now += 100;
 run(room.message(f1, livePose({ px: 500, py: 10, pz: 0 }), now));
 const jumped = relayed();
 check(`a jump faster than ${POSE_MAX_SPEED} m/s is a respawn or a forgery: spawning again`, jumped && (jumped.flags & FLAG_SPAWNING) !== 0 && Math.abs(jumped.px - 500) < 1e-3);
-check('the room\'s speed limit is the board\'s teleport speed', POSE_MAX_SPEED === TELEPORT_SPEED);
+check('the room\'s speed limit is 100 m/s, the leaderboard\'s teleport speed', POSE_MAX_SPEED === 100);
 now += SPAWN_MS;
 const impossible = [
   ['a position that is not a number', livePose({ px: NaN })],

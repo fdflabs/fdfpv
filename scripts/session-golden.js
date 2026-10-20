@@ -164,10 +164,8 @@ const { settingsDelta, storeView } = await import('../tests/lib/golden-settings.
  * The methods are given a copy taken before any constructor ran. */
 const DEFAULTS = structuredClone(LIVE_DEFAULTS);
 const { ACCOUNT_KEY } = await import('../src/share/pilot.js');
-const { writeShareImport } = await import('../src/share/trackseat.js');
 const { useLocale } = await import('../src/strings/index.js');
 
-const MAP_TRACK = JSON.parse(readFileSync(join(root, 'tests', 'fixtures', 'map-track-v4.json'), 'utf8'));
 
 /* ---- recording ---- */
 
@@ -251,7 +249,6 @@ function makeUi(extra = {}) {
     cursorMemory: {},
     craftGate: true,
     mode: null,
-    share: null,
     onHotSwap: null,
     onMusicSkip: null,
     onSettings: null,
@@ -307,23 +304,11 @@ function chrome(ui) {
   };
 }
 
-const SCREENS = ['title', 'courses', 'results', 'paused', 'friends', 'flight', 'calibrate', 'padpick', 'howto', 'menu'];
+const SCREENS = ['title', 'results', 'paused', 'friends', 'flight', 'calibrate', 'padpick', 'howto', 'menu'];
 
 /* ---- scenarios: the methods ---- */
 
 const scenarios = {
-  setShare() {
-    const out = {};
-    for (const screen of SCREENS) {
-      for (const share of [{ id: 's1', name: 'Loop', author: 'Ace', board: 'b' }, null, undefined]) {
-        const ui = makeUi({ screen });
-        ui.setShare(share);
-        out[`${screen}:${share === undefined ? 'undefined' : JSON.stringify(share)}`] = { share: ui.share, calls: ui.calls.splice(0) };
-      }
-    }
-    return out;
-  },
-
   friendsItems() {
     const out = {};
     const rows = {
@@ -389,8 +374,7 @@ const scenarios = {
     const seats = {
       defaults: {},
       alps: { freestyleMap: 'alps', map: 'alps' },
-      swiss: { freestyleMap: 'swiss2', map: 'track' },
-      unknown: { freestyleMap: 'nowhere', map: 'track' },
+      unknown: { freestyleMap: 'nowhere', map: 'nowhere' },
       plane: { airframe: 'cub1400' },
     };
     for (const [name, patch] of Object.entries(seats)) {
@@ -411,8 +395,6 @@ const scenarios = {
             if (r.pick) {
               r.pick('itaipu');
               drove.push({ pick: 'itaipu', freestyleMap: ui.settings.freestyleMap, map: ui.settings.map });
-              r.pick('track');
-              drove.push({ pick: 'track', freestyleMap: ui.settings.freestyleMap, map: ui.settings.map });
             }
           }
           out[`${name}:${inRoom ? 'in' : 'out'}:${shown}`] = { rows: rows.map(item), drove, calls: ui.calls.splice(0) };
@@ -704,44 +686,9 @@ const scenarios = {
     return seq;
   },
 
-  seatCraft() {
-    const out = {};
-    const quad = { ...MAP_TRACK, id: 'doc1' };
-    const docs = {
-      null: null,
-      fits: quad,
-      notMap: { ...quad, map: 'nowhere' },
-      old: { ...quad, schemaVersion: 3 },
-    };
-    for (const airframe of ['interceptor', 'cub1400', 'sky1800', 'bramor2300']) {
-      for (const [name, doc] of Object.entries(docs)) {
-        const ui = makeUi();
-        ui.settings.airframe = airframe;
-        ui.settings.airframeAsked = false;
-        const got = ui.seatCraftForDoc(doc);
-        out[`doc:${airframe}:${name}`] = { got: got ? got.id : got, airframe: ui.settings.airframe, asked: ui.settings.airframeAsked, calls: ui.calls.splice(0) };
-      }
-      for (const map of ['track', 'alps']) {
-        for (const seated of [false, true]) {
-          store.clear();
-          const ui = makeUi();
-          ui.settings.airframe = airframe;
-          ui.settings.map = map;
-          ui.settings.airframeAsked = false;
-          store.set(SETTINGS_KEY, JSON.stringify(ui.settings));
-          if (seated) writeShareImport({ id: 'share1', name: 'Loop', document: quad });
-          const got = ui.seatCraftForCourse();
-          out[`course:${airframe}:${map}:${seated ? 'seated' : 'empty'}`] = { got: got ? got.id : got, airframe: ui.settings.airframe, asked: ui.settings.airframeAsked, calls: ui.calls.splice(0) };
-        }
-      }
-    }
-    store.clear();
-    return out;
-  },
-
   gate() {
     const out = { label: makeUi().gateLabel() };
-    for (const screen of ['title', 'courses', 'freestyle', 'paused', 'menu']) {
+    for (const screen of ['title', 'freestyle', 'paused', 'menu']) {
       for (const craftGate of [true, false]) {
         for (const mode of [null, 'race', 'freestyle']) {
           const ui = makeUi({ screen, craftGate, mode });
@@ -768,7 +715,6 @@ class Probe extends Ui {
 
   renderMenu() { this.calls.push('renderMenu'); }
 
-  loadLocalCourses() { this.calls.push('loadLocalCourses'); }
 
   renderCourseCards() { this.calls.push('renderCourseCards'); }
 
@@ -854,14 +800,6 @@ function construct(search, hash, seed) {
     drive.tab[name] = [key('Tab'), key('Enter')];
     Object.assign(ui, was);
   }
-  const sync = () => {
-    for (const l of windowListeners) if (l.type === 'webfpv-tracks-sync') l.fn({});
-    return calls.splice(0);
-  };
-  drive.sync = { title: sync() };
-  ui.screen = 'courses';
-  drive.sync.courses = sync();
-  ui.screen = 'title';
   const mouse = (target) => {
     for (const l of rootEl.listeners) if (l.type === 'mousedown') l.fn({ target });
     return calls.splice(0);

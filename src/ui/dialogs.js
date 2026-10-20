@@ -7,8 +7,7 @@
  *   askConfirm, offerYawTip              a yes or no
  *   confirmDiscard                       the "keep this report?" guard
  *   openBugReport, askBugReport          the F8 bug report
- *   maybeOfferFeel, openFeelReport,
- *   askFeelReport                        the flight feel report
+ *   openFeelReport, askFeelReport        the flight feel report
  *   bugSnapshot, feelSnapshot            what a report carries about the shell
  *   closeNameDialog                      the single way out of all of them
  *
@@ -49,7 +48,6 @@ import { BUG_KINDS, reportFields, submitBug } from '../share/bugs.js';
 import { loadPadChoice } from '../input/stickstore.js';
 import { pageVersion } from './update.js';
 import { crashRecord } from '../share/crashrecord.js';
-import { activeCourseSummary } from '../share/summary.js';
 import {
   fullStickDeg, hoverStickPercent, normaliseRates, ratesSummary, throttleSummary,
 } from '../../configs/rates.js';
@@ -80,10 +78,6 @@ const FAULT_FRAMES = 4;
 
 const TITLE_MIN = 8;
 const STORY_MIN = 20;
-
-/* The automatic feel offer waits for the results screen to land, so a
- * record celebration is not remembered as a form in the way. */
-const FEEL_OFFER_DELAY_MS = 1400;
 
 /* What the default single field of askForm and askName is: the pilot's
  * stored name, checked and written back by share/pilot.js. */
@@ -647,11 +641,10 @@ export const dialogMethods = {
    * aircraft, activity and controller (src/share/bugs.js reportFields) say
    * which game and which machine, and `log` the last warnings it wrote
    * (crashrecord.js), present when there are any. The board takes 32 keys:
-   * with a crash, a fault, the log and the feel form's five this is 31.
+   * with a crash, a fault, the log and the feel form's four this is 28.
    */
   bugSnapshot() {
     const s = this.settings || {};
-    const seat = s.map === 'track' ? activeCourseSummary() : null;
     const gpu = this.gpuInfo || {};
     const fault = frameFault();
     const crash = crashRecord.report();
@@ -665,8 +658,6 @@ export const dialogMethods = {
       map: s.map || '',
       ...(fault && { fault }),
       ...(crash && { crash }),
-      courseId: (seat && (seat.shareId || (seat.doc && seat.doc.id))) || '',
-      courseName: (seat && seat.name) || '',
       flightMode: s.flightMode || '',
       rates: ratesSummary(rates),
       throttle: throttleSummary(rates, s.airframe),
@@ -817,8 +808,8 @@ export const dialogMethods = {
 
   /*
    * A bug snapshot plus what the tune work reads off a feel report: the
-   * tune flown, the pilot's PID edits, the PIDs the module actually ran
-   * (the readback, not the menu) and the best lap if there was a race.
+   * tune flown, the pilot's PID edits and the PIDs the module actually
+   * ran (the readback, not the menu).
    */
   feelSnapshot() {
     const s = this.settings || {};
@@ -828,37 +819,14 @@ export const dialogMethods = {
       tuneName: tuneById(s.tune).name,
       pids: pidsSummary(s.pids, s.tune),
       pidsLive: this.pidsLive,
-      bestLapMs: Number.isFinite(this.resultsFastest) ? this.resultsFastest : null,
     };
   },
 
-  /*
-   * Called by showResults. The feel question asks itself once ever, after
-   * the first finished race; from then on it is a row on Results and the
-   * pause menu, because a prompt that keeps returning gets closed unread.
-   */
-  maybeOfferFeel() {
-    if (this.settings.feelAsked) {
-      return;
-    }
-    setTimeout(() => {
-      const stillWanted = !this.settings.feelAsked && this.screen === 'results';
-      if (stillWanted && !this.bugFiling && !isOpen(this)) {
-        this.openFeelReport();
-      }
-    }, FEEL_OFFER_DELAY_MS);
-  },
-
-  /* Opening it on either path counts as asked. No pause step as in
-   * openBugReport: this is only reachable from the paused and results
-   * menus. */
+  /* No pause step as in openBugReport: this is only reachable from the
+   * paused and results menus. */
   openFeelReport() {
     if (this.bugFiling || isOpen(this)) {
       return;
-    }
-    if (!this.settings.feelAsked) {
-      this.settings.feelAsked = true;
-      saveSettings(this.settings);
     }
     this.askFeelReport(this.feelSnapshot());
   },

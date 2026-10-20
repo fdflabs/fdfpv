@@ -198,9 +198,9 @@ function makeStreamer(colliders, parts, uncover) {
 
 /*
  * LOCAL_BASE is beside the site's index.html, which is two levels above
- * this module, not beside whatever page loaded it: the title's world
- * previews build the map inside src/share/orbit.html, where a page
- * relative path asked for src/share/itaipu-data/ and got a 404.
+ * this module, not beside whatever page loaded it: the world previews
+ * once built the map inside src/share/orbit.html, where a page relative
+ * path asked for src/share/itaipu-data/ and got a 404.
  * ?itdata= is the page's own, so it stays relative to the page.
  */
 export function dataBase() {

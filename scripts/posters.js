@@ -1,6 +1,5 @@
 /*
- * posters.js: the still each world card in the Freestyle picker shows
- * while that world's orbit clip is not cached yet. npm run gen:posters, or
+ * posters.js: the still each world card in the Freestyle picker shows. npm run gen:posters, or
  * node scripts/posters.js [mapId ...] for some of them.
  *
  * A first Freestyle visit has no clips cached, and making them costs a
@@ -42,7 +41,12 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { MAPS } from '../src/maps/registry.js';
-import { CLIP_W, CLIP_H } from '../src/share/orbitcache.js';
+
+/* 16 by 9 at 480 lines: the size the world cards' clips were recorded at
+ * (src/share/orbitcache.js, gone with the combat-only cut, 2026-10-20), so
+ * the posters already made keep their shape. */
+const POSTER_W = 854;
+const POSTER_H = 480;
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -80,8 +84,8 @@ function shotArgs(out, id, camera) {
     `--out=${out}`,
     /* The clip's own frame size, so the clip that replaces the still is the
      * same picture at the same shape and the card does not jump. */
-    `--w=${CLIP_W}`,
-    `--h=${CLIP_H}`,
+    `--w=${POSTER_W}`,
+    `--h=${POSTER_H}`,
     `--jpeg=${QUALITY}`,
     /* Headless Chromium rasterises on the CPU, so boot would detect a slow
      * machine and drop the preset; the poster is the authored look. */

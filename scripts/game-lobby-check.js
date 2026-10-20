@@ -752,9 +752,6 @@ try {
       d.clicks - dBefore === 2 && seen.code === code && seen.watch && seen.seat === 0 && seen.watching !== null && seen.watchGap < 30,
       JSON.stringify({ code: seen.code, watch: seen.watch, seat: seen.seat, watching: seen.watching, gap: seen.watchGap }));
     check('the pilots were not told of a watcher: A still sees C alone', pilots === 1, `${pilots}`);
-    /* A card's reel recording when Watch was pressed once held the world
-     * still under the watch camera, a blank picture (src/ui/cards.js). */
-    check('and the world is drawn, not held still by a card\'s reel', await d.evaluate('!window.__ui.reelFreezeWorld'));
     await shot(d, '4-d-watching');
     await d.tap('KeyJ');
     await d.sleep(1500);

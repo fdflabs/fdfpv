@@ -37,12 +37,9 @@ import worker from './worker.js';
 import { openD1 } from './d1sqlite.js';
 import { startTracks } from './node.js';
 import { NO_REVISION, readRevision } from '../edge/node-http.js';
-import { DOCUMENT_MAX_CHARS, WRITE_LIMIT } from './limits.js';
 import { Latency, cpuShares, getState, history, liveRooms, mask, openStore, readCpu, readServices, serverReport, sizing, writeMinute } from './metrics.js';
 import { writeFixture } from './metrics-fixture.js';
 import { collect } from './collect.js';
-import { createIdentity, memoryStorage, trackDeleteMessage, trackMessage } from '../src/share/identity.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -63,10 +60,9 @@ function check(name, ok, detail = '') {
 }
 
 let env = freshEnv();
-let ip = '203.0.113.1';
 
 async function call(method, path, body, headers = {}) {
-  const init = { method, headers: { 'cf-connecting-ip': ip, ...headers } };
+  const init = { method, headers: { 'cf-connecting-ip': '203.0.113.1', ...headers } };
   if (body !== undefined) {
     init.body = typeof body === 'string' ? body : JSON.stringify(body);
     init.headers['content-type'] = 'application/json';
@@ -76,147 +72,35 @@ async function call(method, path, body, headers = {}) {
   return { status: res.status, body: text ? JSON.parse(text) : null, headers: res.headers };
 }
 
-let clock = 1_000_000;
-async function save(pilot, doc, { author = 'Fernando', ts = (clock += 1), tamper } = {}) {
-  const documentText = JSON.stringify(doc);
-  const signed = await pilot.signBytes(await trackMessage({ id: doc.id, ts, author, documentText }));
-  const body = { document: documentText, author, ts, ...signed, ...(tamper || {}) };
-  return call('PUT', `/api/tracks/${doc.id}`, body);
+/*
+ * The tracks routes left with the track builder (the combat-only cut,
+ * 2026-10-20). An old tab's uploader retried only 429 and 5xx, so every
+ * one of them must be a plain 404, admin or not; the table they wrote
+ * stays, with write_counts, the rate limiter every kept route spends from.
+ */
+console.log('the retired tracks routes');
+const admin = { authorization: 'Bearer selftest-admin-secret' };
+const retired = [
+  ['GET', '/api/tracks', undefined, {}],
+  ['GET', '/api/tracks?map=swiss2', undefined, {}],
+  ['GET', '/api/tracks/trk-0000a001', undefined, {}],
+  ['PUT', '/api/tracks/trk-0000a001', { document: '{}', ts: 1 }, {}],
+  ['DELETE', '/api/tracks/trk-0000a001', { ts: 1 }, {}],
+  ['POST', '/api/admin/tracks/trk-0000a001', { hidden: true }, admin],
+  ['DELETE', '/api/admin/tracks/trk-0000a001', undefined, admin],
+];
+const answers = [];
+for (const [method, path, body, headers] of retired) {
+  answers.push(`${method} ${path} ${(await call(method, path, body, headers)).status}`);
 }
-
-async function remove(pilot, id, ts = (clock += 1)) {
-  const signed = await pilot.signBytes(trackDeleteMessage({ id, ts }));
-  return call('DELETE', `/api/tracks/${id}`, { ts, ...signed });
-}
-
-const alice = createIdentity(memoryStorage());
-const bob = createIdentity(memoryStorage());
-const aliceKey = await alice.publicKey();
-
-console.log('save and read back');
-const ring = mapTrackDocument({ id: 'trk-0000a001', name: 'Valley ring', gates: 3 });
-let r = await save(alice, ring);
-check('a first save is created', r.status === 201, JSON.stringify(r.body));
-check('and is filed under the key that signed it', r.body && r.body.owner === aliceKey);
-check('with its world, gates and pilot', r.body && r.body.map === 'swiss2' && r.body.gates === 3 && r.body.author === 'Fernando');
-r = await call('GET', `/api/tracks/${ring.id}`);
-check('anyone can open it', r.status === 200 && r.body.document && r.body.document.id === ring.id);
-check('and the document is the track that was sent', r.body.document.elements.length === ring.elements.length && r.body.document.map === 'swiss2');
-r = await call('GET', '/api/tracks');
-check('it is in the list of everybody\'s tracks', r.status === 200 && r.body.tracks.some((t) => t.id === ring.id));
-check('and the list carries no documents', r.body.tracks.every((t) => !('document' in t)));
-
-console.log('ownership');
-const renamed = { ...ring, name: 'Valley ring, longer' };
-r = await save(alice, renamed);
-check('the owner\'s save updates it', r.status === 200 && r.body.name === 'Valley ring, longer', JSON.stringify(r.body));
-r = await save(bob, { ...ring, name: 'Taken over' }, { author: 'Bob' });
-check('another key\'s save of the same id is refused as a conflict', r.status === 409 && r.body.conflict === true, JSON.stringify(r.body));
-r = await call('GET', `/api/tracks/${ring.id}`);
-check('and leaves the owner\'s track as it was', r.body.name === 'Valley ring, longer' && r.body.owner === aliceKey);
-r = await save(alice, renamed, { ts: 5 });
-check('an older save than the one held is refused as stale', r.status === 409 && r.body.stale === true && r.body.ts > 5);
-r = await save(alice, renamed, { tamper: { author: 'Mallory' } });
-check('a signature does not cover another pilot name', r.status === 401);
-r = await save(alice, renamed, { tamper: { document: JSON.stringify({ ...renamed, name: 'Swapped' }) } });
-check('nor another document', r.status === 401);
-const [bobCopy] = [mapTrackDocument({ id: 'trk-0000b001', name: 'Valley ring, copy', gates: 3 })];
-r = await save(bob, bobCopy, { author: 'Bob' });
-check('a copy under a new id is the other pilot\'s own', r.status === 201 && r.body.owner === await bob.publicKey());
-
-console.log('lists');
-const alps = mapTrackDocument({ id: 'trk-0000a002', name: 'Glacier line', map: 'alps', gates: 4 });
-await save(alice, alps);
-r = await call('GET', '/api/tracks?map=alps');
-check('by world', r.body.tracks.length === 1 && r.body.tracks[0].id === alps.id);
-r = await call('GET', `/api/tracks?owner=${encodeURIComponent(aliceKey)}`);
-check('by pilot key', r.body.tracks.length === 2 && r.body.tracks.every((t) => t.owner === aliceKey));
-r = await call('GET', '/api/tracks?limit=2');
-const all = (await call('GET', '/api/tracks')).body.tracks;
-check('newest save first', all.every((t, i) => i === 0 || `${all[i - 1].updatedUtc}|${all[i - 1].id}` > `${t.updatedUtc}|${t.id}`)
-  && all[all.length - 1].id === ring.id, all.map((t) => `${t.id}@${t.updatedUtc}`).join(','));
-check('a page says where the next one starts', r.body.tracks.length === 2 && typeof r.body.next === 'string');
-const r2 = await call('GET', `/api/tracks?limit=2&before=${encodeURIComponent(r.body.next)}`);
-check('and the next page holds the rest, no repeats', r2.body.tracks.length === 1 && r2.body.next === null
-  && !r.body.tracks.some((t) => t.id === r2.body.tracks[0].id));
-r = await call('GET', '/api/tracks?before=junk');
-check('a bent cursor is refused', r.status === 400);
-const retired = mapTrackDocument({ id: 'trk-0000a003', name: 'Downtown', map: 'city', gates: 2 });
-r = await save(alice, retired);
-check('a track on a world the simulator no longer seats is still saved and listed', r.status === 201
-  && (await call('GET', '/api/tracks?map=city')).body.tracks.length === 1);
-
-console.log('the boundary');
-r = await save(alice, { ...mapTrackDocument({ id: 'trk-0000a004' }), name: 'Sh1t course' });
-check('a track name with a listed word is refused', r.status === 422 && r.body.field === 'name', JSON.stringify(r.body));
-r = await save(alice, mapTrackDocument({ id: 'trk-0000a005', name: 'Grass valley' }), { author: 'Cucumber' });
-check('an innocent name that hides a short word is not', r.status === 201, JSON.stringify(r.body));
-r = await save(alice, mapTrackDocument({ id: 'trk-0000a006' }), { author: 'puta madre' });
-check('a pilot name with a listed word is refused', r.status === 422 && r.body.field === 'author');
-r = await save(alice, mapTrackDocument({ id: 'trk-0000a007' }), { author: 'x' });
-check('a pilot name outside the name rule is refused', r.status === 422);
-r = await save(alice, { ...mapTrackDocument({ id: 'trk-0000a008' }), name: 'x'.repeat(81) });
-check('an 81 character track name is refused', r.status === 422);
-const fat = mapTrackDocument({ id: 'trk-0000a009' });
-fat.padding = 'x'.repeat(DOCUMENT_MAX_CHARS);
-r = await save(alice, fat);
-check('a document over the cap is refused before anything else', r.status === 413);
-const field = { ...mapTrackDocument({ id: 'trk-0000a00a' }), schemaVersion: 3 };
-delete field.map;
-r = await save(alice, field);
-check('a field track, which nothing flies any more, is refused', r.status === 400);
-r = await save(alice, mapTrackDocument({ id: 'trk-0000a00b' }), { tamper: { document: JSON.stringify(mapTrackDocument({ id: 'trk-0000a00c' })) } });
-check('a document whose id is not the path\'s is refused', r.status === 400 || r.status === 401);
-r = await call('PUT', '/api/tracks/../../etc', {});
-check('a path that is not a track id is refused', r.status === 400 || r.status === 404);
-r = await call('PUT', `/api/tracks/${ring.id}`, 'not json');
-check('a body that is not JSON is refused', r.status === 400);
-r = await call('GET', '/api/tracks/trk-ffffffff');
-check('a track that is not there is a 404', r.status === 404);
-r = await call('OPTIONS', '/api/tracks/trk-00000001');
-check('a preflight is answered for any origin, without credentials', r.status === 204
+check('every tracks route, the admin\'s too, answers 404', answers.every((a) => a.endsWith(' 404')), answers.join(', '));
+let r = await call('OPTIONS', '/api/tracks/trk-00000001');
+check('a preflight is still answered for any origin, without credentials', r.status === 204
   && r.headers.get('access-control-allow-origin') === '*' && !r.headers.get('access-control-allow-credentials'));
-
-console.log('delete');
-r = await remove(bob, ring.id);
-check('another pilot cannot delete a track', r.status === 403);
-r = await remove(alice, retired.id);
-check('its owner can', r.status === 200 && (await call('GET', `/api/tracks/${retired.id}`)).status === 404);
-
-console.log('admin');
-r = await call('POST', `/api/admin/tracks/${bobCopy.id}`, { hidden: true }, { authorization: 'Bearer wrong' });
-check('a wrong admin secret is refused', r.status === 401);
-r = await call('POST', `/api/admin/tracks/${bobCopy.id}`, { hidden: true }, { authorization: 'Bearer selftest-admin-secret' });
-check('the admin can hide a track', r.status === 200 && r.body.hidden === true);
-check('a hidden track is in no list', !(await call('GET', '/api/tracks')).body.tracks.some((t) => t.id === bobCopy.id));
-check('and cannot be opened', (await call('GET', `/api/tracks/${bobCopy.id}`)).status === 404);
-r = await save(bob, { ...bobCopy, name: 'Back again' }, { author: 'Bob' });
-check('and its owner saving it again does not unhide it', r.status === 200
-  && (await call('GET', `/api/tracks/${bobCopy.id}`)).status === 404);
-r = await call('DELETE', `/api/admin/tracks/${bobCopy.id}`, undefined, { authorization: 'Bearer selftest-admin-secret' });
-check('the admin can delete one', r.status === 200);
-env = { ...env, ADMIN_SECRET: '' };
-r = await call('POST', `/api/admin/tracks/${ring.id}`, { hidden: true }, { authorization: 'Bearer ' });
-check('with no secret set, nobody is an admin', r.status === 401);
-
-console.log('rate limit');
-env = freshEnv();
-ip = '198.51.100.7';
-const burst = mapTrackDocument({ id: 'trk-0000c001', name: 'Burst' });
-const statuses = [];
-for (let i = 0; i < WRITE_LIMIT + 1; i += 1) {
-  statuses.push((await save(alice, burst)).status);
-}
-check(`the first ${WRITE_LIMIT} saves from one address go through`, statuses.slice(0, WRITE_LIMIT).every((s) => s === 200 || s === 201), statuses.join(','));
-r = await save(alice, burst);
-check('the next is refused with a wait', r.status === 429 && r.body.retryAfterS > 0);
-ip = '198.51.100.8';
-r = await save(alice, burst);
-check('another address is not held up by it', r.status === 200);
-ip = '198.51.100.9';
-r = await save(bob, burst, { author: 'Bob' });
-check('and a refused conflict spends nothing', r.status === 409
-  && (await save(alice, burst)).status === 200);
+const tables = (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all()).results.map((t) => t.name);
+check('the tracks table and write_counts are still made', tables.includes('tracks') && tables.includes('write_counts'), tables.join(','));
+r = await call('GET', '/api/admin/overview', undefined, admin);
+check('and the admin overview still counts the stored tracks', r.status === 200 && r.body.tracks === 0 && r.body.hiddenTracks === 0, JSON.stringify(r.body));
 
 console.log('the VM\'s server, over HTTP (tracks-api/node.js)');
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-tracks-'));
@@ -233,13 +117,9 @@ async function over(method, path, body, headers = {}) {
   const text = await res.text();
   return { status: res.status, body: text ? JSON.parse(text) : null, headers: res.headers };
 }
-async function saveOver(pilot, doc, ts = (clock += 1)) {
-  const documentText = JSON.stringify(doc);
-  const signed = await pilot.signBytes(await trackMessage({ id: doc.id, ts, author: 'Fernando', documentText }));
-  return over('PUT', `/api/tracks/${doc.id}`, { document: documentText, author: 'Fernando', ts, ...signed });
-}
 r = await over('GET', '/api/health');
 check('it answers its health check', r.status === 200 && r.body.ok === true);
+check('with the CORS answer the page needs', r.headers.get('access-control-allow-origin') === '*');
 r = await over('GET', '/api/version');
 check('a checkout has no REVISION, so its version names no commit', r.status === 200 && r.body.commit === null && r.body.dirty === false, JSON.stringify(r.body));
 const revisionFile = join(scratch, 'REVISION');
@@ -256,31 +136,25 @@ check('REVISION as deploy/vm/deploy.sh writes it: a commit, or a commit and dirt
   && revisionOf(`${'b'.repeat(40)} dirty\n`).dirty === true);
 check('anything else in it stops the server rather than being guessed at', revisionOf('main\n') instanceof Error && revisionOf(`${'a'.repeat(39)}\n`) instanceof Error);
 check('and no file is no commit', readRevision(join(scratch, 'none')) === NO_REVISION);
-const vmTrack = mapTrackDocument({ id: 'trk-0000d001', name: 'On the VM', gates: 2 });
-r = await saveOver(alice, vmTrack);
-check('a save over HTTP is created', r.status === 201 && r.body.owner === aliceKey, JSON.stringify(r.body));
-check('with the CORS answer the page needs', r.headers.get('access-control-allow-origin') === '*');
-r = await saveOver(bob, { ...vmTrack, name: 'Mine now' });
-check('another key\'s save is refused as a conflict', r.status === 409 && r.body.conflict === true);
-r = await over('PUT', `/api/tracks/${vmTrack.id}`, 'x'.repeat(DOCUMENT_MAX_CHARS + 16 * 1024));
+r = await over('GET', '/api/tracks');
+check('a retired tracks route is a 404 over HTTP too', r.status === 404, `${r.status}`);
+r = await over('POST', '/api/admin/waitlist', { email: 'vm@example.com', approved: false }, admin);
+check('an admin write over HTTP is stored', r.status === 200 && r.body.email === 'vm@example.com', JSON.stringify(r.body));
+r = await over('POST', '/api/admin/waitlist', 'x'.repeat(1024 * 1024), admin);
 check('a body over the cap is refused, streamed through the bridge', r.status === 413, `${r.status}`);
-r = await over('POST', `/api/admin/tracks/${vmTrack.id}`, { hidden: true }, { authorization: 'Bearer wrong' });
+r = await over('GET', '/api/admin/waitlist', undefined, { authorization: 'Bearer wrong' });
 check('a wrong admin secret is refused', r.status === 401);
 await server.stop();
 server = await startTracks({ db: dbFile, port: 0, adminSecret: 'selftest-admin-secret', revision: revisionOf(`${'c'.repeat(40)} dirty\n`) });
 base = `http://127.0.0.1:${server.port}`;
 r = await over('GET', '/api/version');
 check('a deployed server answers the commit it started on', r.status === 200 && r.body.commit === 'c'.repeat(40) && r.body.dirty === true, JSON.stringify(r.body));
-r = await over('GET', `/api/tracks/${vmTrack.id}`);
-check('the track is still there after a restart', r.status === 200 && r.body.document.id === vmTrack.id);
-r = await over('GET', '/api/tracks?map=swiss2');
-check('and listed under its world', r.status === 200 && r.body.tracks.some((t) => t.id === vmTrack.id));
+r = await over('GET', '/api/admin/waitlist', undefined, admin);
+check('what was written is still there after a restart', r.status === 200 && r.body.waitlist.some((w) => w.email === 'vm@example.com'), JSON.stringify(r.body));
 const applied = openD1(dbFile).db;
 const migrations = readdirSync(join(HERE, 'migrations')).filter((f) => f.endsWith('.sql')).length;
 check('a restart applies no migration twice', applied.prepare('SELECT COUNT(*) AS n FROM d1_migrations').get().n === migrations);
 applied.close();
-r = await over('DELETE', `/api/admin/tracks/${vmTrack.id}`, undefined, { authorization: 'Bearer selftest-admin-secret' });
-check('the admin can delete it', r.status === 200);
 await server.stop();
 
 /* The shape `wrangler d1 export` writes: d1_migrations already counting

@@ -236,7 +236,7 @@ function makeUi(extra = {}) {
   });
   ui.list = [];
   ui.items = () => ui.list;
-  for (const n of ['renderMenu', 'adjust', 'noteInteraction', 'markCards', 'refreshBest', 'show']) {
+  for (const n of ['renderMenu', 'adjust', 'markCards', 'refreshBest', 'show']) {
     ui[n] = (...a) => say(n, ...a);
   }
   ui.markBars = (items) => say('markBars', items.length);

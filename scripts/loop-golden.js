@@ -196,16 +196,7 @@ const PAGES = [
     id: 'alps-scored', map: 'alps', settings: {},
     scenarios: [{ id: 'tricks', start: { dy: 0.3 }, program: 'tricks', frames: 600 }],
   },
-  {
-    id: 'track', map: 'track', settings: {},
-    scenarios: [{ id: 'fly', start: { dy: 0.3 }, program: 'fly', frames: 500 }],
-  },
 ];
-
-const TRACK_DOC = JSON.parse(readFileSync(join(root, 'tests', 'fixtures', 'map-track-v4.json'), 'utf8'));
-const TRACK_SEAT = `localStorage.setItem('webfpv.share.import.v1', ${JSON.stringify(JSON.stringify({
-  id: TRACK_DOC.id, name: TRACK_DOC.name, author: '', board: '', document: TRACK_DOC, local: true,
-}))});`;
 
 function seed(page) {
   const settings = {
@@ -224,7 +215,6 @@ function seed(page) {
     Object.assign(s, ${JSON.stringify(settings)});
     localStorage.setItem(k, JSON.stringify(s));
     localStorage.setItem('webfpv.airhint.v2', '1');
-    ${page.map === 'track' ? TRACK_SEAT : ''}
   } catch (e) { /* Storage refused; the run boots on defaults and the record says so. */ }`];
 }
 

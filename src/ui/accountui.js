@@ -72,7 +72,7 @@ import {
 import {
   SYNCED_SECTIONS, mergeBlobs, pickSynced, stampChanges,
 } from '../share/progressmerge.js';
-import { tracksOrigin } from '../share/cloud.js';
+import { tracksOrigin } from '../share/tracksorigin.js';
 import { deviceOnline, onNetwork } from '../share/offline.js';
 import { SETTINGS_KEY, loadSettings, saveSettings } from './settings.js';
 import { keepRecords, readRecords } from '../share/records.js';

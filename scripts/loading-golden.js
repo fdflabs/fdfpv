@@ -670,11 +670,11 @@ add('data', async (s) => {
 });
 
 const PLANS = [
-  [['three', 'board', 'sim', 'module', 'world', 'frame'], 2964],
-  [['three', 'board', 'sim', 'module', 'world', 'frame'], undefined],
-  [['three', 'board', 'sim', 'module', 'world', 'frame'], 917],
-  [['three', 'board', 'sim', 'module', 'world', 'frame'], 0],
-  [['three', 'board', 'sim', 'module', 'world', 'frame'], null],
+  [['three', 'sim', 'module', 'world', 'frame'], 2964],
+  [['three', 'sim', 'module', 'world', 'frame'], undefined],
+  [['three', 'sim', 'module', 'world', 'frame'], 917],
+  [['three', 'sim', 'module', 'world', 'frame'], 0],
+  [['three', 'sim', 'module', 'world', 'frame'], null],
   [['module', 'world', 'frame'], 900],
   [['module', 'world', 'frame'], 2500],
   [['module', 'world', 'frame'], undefined],
@@ -687,7 +687,7 @@ const PLANS = [
   [['bogus', 'sim'], 10],
   [['frame', 'frame'], 5],
   [Array(25).fill('sim'), 1],
-  [Array(20).fill('board'), 1],
+  [Array(20).fill('module'), 1],
   [['world', 'world'], 1e9],
 ];
 
@@ -941,7 +941,7 @@ const VALLEY = ['look', 'terrain', 'nature', 'village', 'life', 'shaders'];
 const SWISS = ['look', 'terrain', 'nature', 'village', 'life', 'finish', 'shaders'];
 const ITAIPU = ['imagery', 'data', 'heightmaps', 'dam', 'water', 'town', 'vegetation', 'war', 'shaders'];
 const INTERIOR = ['data', 'heightmaps', 'vegetation', 'town', 'shaders'];
-const COLD = ['three', 'board', 'sim', 'module', 'world', 'frame'];
+const COLD = ['three', 'sim', 'module', 'world', 'frame'];
 
 /* A full cold boot in the order boot.js and main.js drive it. */
 async function coldBoot(t, phases, worldMs) {
@@ -951,9 +951,6 @@ async function coldBoot(t, phases, worldMs) {
   t.step('start three', (ld) => { ld.start('three'); ld.detail = 'r170'; });
   t.wait(73);
   t.step('done three', (ld) => { ld.done('three'); ld.detail = ''; });
-  t.step('start board', (ld) => { ld.start('board'); ld.system('online', 'loading'); });
-  t.wait(60);
-  t.step('board answered', (ld) => { ld.system('online', 'na'); ld.done('board'); });
   t.step('audio standby', (ld) => ld.system('audio', 'standby'));
   t.step('start sim', (ld) => { ld.start('sim'); ld.system('physics', 'loading'); ld.report('sim', 0.25, '1.2 of 4.8 MB'); });
   t.wait(11);
@@ -1042,7 +1039,7 @@ loaderCase('stall', {}, async (t) => {
   t.step('report no detail', (ld) => ld.report('three', 0.6));
   t.step('report empty detail', (ld) => ld.report('three', 0.6, ''));
   t.wait(250);
-  t.step('next stage', (ld) => ld.start('board'));
+  t.step('next stage', (ld) => ld.start('sim'));
   t.wait(7000);
   t.step('sim stalls by report', (ld) => ld.report('sim', 0.1, '0.5 of 4.8 MB'));
   t.wait(6500);
@@ -1100,8 +1097,7 @@ loaderCase('hold-es', { lang: 'es' }, async (t) => {
 loaderCase('fail-network', {}, async (t) => {
   t.step('run', (ld) => ld.run(t.mod.planStages(COLD, 2964)));
   t.step('rows loading', (ld) => {
-    ld.start('board');
-    ld.system('online', 'loading');
+    ld.start('sim');
     ld.system('physics', 'loading');
     ld.mapSystem('terrain', 'loading');
     ld.finalSystem('world', 'loading');
@@ -1113,7 +1109,7 @@ loaderCase('fail-network', {}, async (t) => {
   env.clipboard = 'refuse';
   await t.stepAsync('copy refused', (ld) => ld.root.querySelector('.loading-actions button.quiet').click());
   await t.stepAsync('retry', (ld) => ld.root.querySelector('.loading-actions button').click());
-  t.step('paint after fail', (ld) => { ld.report('board', 0.5); ld.done('board'); ld.paint(); });
+  t.step('paint after fail', (ld) => { ld.report('sim', 0.5); ld.done('sim'); ld.paint(); });
   t.wait(7000);
   t.step('fail again', (ld) => ld.fail('second'));
 });
@@ -1230,7 +1226,7 @@ loaderCase('stages-odd', {}, async (t) => {
   t.step('done unstarted', (ld) => ld.done('world'));
   t.step('report unknown', (ld) => ld.report('bogus', 0.5, 'x'));
   t.step('done earlier stage', (ld) => ld.done('three'));
-  t.step('start earlier stage', (ld) => ld.start('board'));
+  t.step('start earlier stage', (ld) => ld.start('sim'));
   t.step('start frame', (ld) => ld.start('frame'));
   t.step('done frame', (ld) => ld.done('frame'));
   t.step('finish', (ld) => ld.finish());
@@ -1251,7 +1247,7 @@ loaderCase('relabel', {}, async (t) => {
   t.step('screen 4 relabels', (ld) => ld.start('frame'));
   t.step('run es', (ld) => ld.run(t.mod.planStages(COLD, 2964)));
   t.step('switch to en', () => setLocale('en'));
-  t.step('screen 2', (ld) => ld.start('board'));
+  t.step('screen 2', (ld) => ld.start('sim'));
 });
 
 /* ------------------------------------------------------------------ */

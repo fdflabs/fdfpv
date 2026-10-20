@@ -235,7 +235,6 @@ function makeUi(extra = {}) {
     discarding: null,
     gpuInfo: { display: 'Stand-in GPU 9000', name: 'raw' },
     pidsLive: { roll: [45, 80, 30], pitch: [47, 84, 32], yaw: [45, 80, 0] },
-    resultsFastest: 61234,
     stickProbe: () => ({ source: 'gamepad', padHz: 250 }),
     syncChips() { calls.push('syncChips'); },
     renderMenu() { calls.push('renderMenu'); },
@@ -284,7 +283,6 @@ function recorder(ui) {
           discarding: typeof ui.discarding,
           bugFiling: ui.bugFiling,
           yawTipAsked: ui.yawTipAsked,
-          feelAsked: ui.settings.feelAsked,
         },
         posts: posts.splice(0),
         store: storeView(store),
@@ -606,9 +604,8 @@ const scenarios = {
     const feelUi = makeUi({ screen: 'results' });
     feelUi.settings.map = 'meadow';
     out.feel = feelUi.feelSnapshot();
-    feelUi.resultsFastest = undefined;
     feelUi.settings.tune = 'nope';
-    out.feelNoLap = feelUi.feelSnapshot();
+    out.feelNoTune = feelUi.feelSnapshot();
     clock = 1e9;
     return JSON.parse(JSON.stringify(out));
   },
@@ -760,38 +757,6 @@ const scenarios = {
       ui.askBugReport({ fault: { message: 'frame threw' }, crash: { errors: [{ message: 'e' }], craft: { ageS: 3 } } });
       await r.note('a frame fault wins the message');
       out.attached = r.steps;
-    }
-    return out;
-  },
-
-  async feelOffer() {
-    const out = {};
-    const realTimeout = globalThis.setTimeout;
-    for (const name of ['asked', 'fires', 'leftResults', 'dialogOpen', 'filing']) {
-      const ui = makeUi({ screen: 'results' });
-      ui.settings.feelAsked = name === 'asked';
-      const timers = [];
-      globalThis.setTimeout = (fn, ms) => { timers.push(ms); fn.pending = true; timers.fn = fn; return 1; };
-      ui.maybeOfferFeel();
-      globalThis.setTimeout = realTimeout;
-      const r = recorder(ui);
-      r.steps.push({ timers: [...timers] });
-      if (name === 'leftResults') ui.screen = 'menu';
-      if (name === 'dialogOpen') ui.nameDialog.hidden = false;
-      if (name === 'filing') ui.bugFiling = true;
-      if (timers.fn) timers.fn();
-      await r.note('timer fired');
-      out[name] = r.steps;
-      store.clear();
-    }
-    {
-      const ui = makeUi({ screen: 'paused' });
-      ui.settings.feelAsked = true;
-      const r = recorder(ui);
-      ui.openFeelReport();
-      await r.note('opened from the row after it was asked');
-      out.rowAfterAsked = r.steps;
-      store.clear();
     }
     return out;
   },

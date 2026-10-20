@@ -421,12 +421,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.menu-section \"Flight\">",
@@ -639,12 +634,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.menu-section \"Flight\">",
@@ -685,12 +675,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Flight\">",
@@ -730,12 +715,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.menu-section \"Flight\">",
@@ -774,12 +754,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.menu-section \"Flight\">",
@@ -1040,12 +1015,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row.fc-tab \"Setup\">",
@@ -1272,10 +1242,10 @@
   },
   "cards": {
    "result": {
-    "courses": {
+    "freestyle": {
      "menu": {
       "tag": "DIV",
-      "name": "coursesMenu",
+      "name": "freestyleMenu",
       "cls": "menu",
       "scrollTop": 0,
       "children": [
@@ -1283,28 +1253,7 @@
         "tag": "DIV",
         "cls": "menu-section",
         "children": [
-         "Tracks"
-        ]
-       },
-       {
-        "tag": "DIV",
-        "cls": "row",
-        "attrs": {
-         "aria-selected": "false",
-         "role": "option"
-        },
-        "dataset": {
-         "rowId": "new"
-        },
-        "tabIndex": -1,
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "row-label",
-          "children": [
-           "New track"
-          ]
-         }
+         "Worlds"
         ]
        },
        {
@@ -1331,9 +1280,9 @@
       ]
      },
      "state": {
-      "screen": "courses",
+      "screen": "freestyle",
       "cursor": 1,
-      "rowOffset": 4,
+      "rowOffset": 3,
       "focusId": null,
       "returnTo": null,
       "cursorMemory": {},
@@ -1346,16 +1295,10 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
-       "<div.menu-section \"Tracks\">",
-       "<div.row \"New track\">",
+       "<div.menu-section \"Worlds\">",
        "<div.row \"Back\">"
       ],
       "url": "https://example.test/"
@@ -1413,7 +1356,7 @@
       ]
      }
     },
-    "freestyle": {
+    "freestyleLast": {
      "menu": {
       "tag": "DIV",
       "name": "freestyleMenu",
@@ -1424,28 +1367,7 @@
         "tag": "DIV",
         "cls": "menu-section",
         "children": [
-         "Tracks"
-        ]
-       },
-       {
-        "tag": "DIV",
-        "cls": "row",
-        "attrs": {
-         "aria-selected": "false",
-         "role": "option"
-        },
-        "dataset": {
-         "rowId": "new"
-        },
-        "tabIndex": -1,
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "row-label",
-          "children": [
-           "New track"
-          ]
-         }
+         "Worlds"
         ]
        },
        {
@@ -1473,8 +1395,8 @@
      },
      "state": {
       "screen": "freestyle",
-      "cursor": 7,
-      "rowOffset": 4,
+      "cursor": 5,
+      "rowOffset": 3,
       "focusId": null,
       "returnTo": null,
       "cursorMemory": {},
@@ -1487,16 +1409,10 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
-       "<div.menu-section \"Tracks\">",
-       "<div.row \"New track\">",
+       "<div.menu-section \"Worlds\">",
        "<div.row \"Back\">"
       ],
       "url": "https://example.test/"
@@ -1526,27 +1442,6 @@
           "cls": "row-label",
           "children": [
            "Alps"
-          ]
-         }
-        ]
-       },
-       {
-        "tag": "DIV",
-        "cls": "row",
-        "attrs": {
-         "aria-selected": "false",
-         "role": "option"
-        },
-        "dataset": {
-         "rowId": "c1"
-        },
-        "tabIndex": -1,
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "row-label",
-          "children": [
-           "Track"
           ]
          }
         ]
@@ -1597,28 +1492,7 @@
         "tag": "DIV",
         "cls": "menu-section",
         "children": [
-         "Tracks"
-        ]
-       },
-       {
-        "tag": "DIV",
-        "cls": "row",
-        "attrs": {
-         "aria-selected": "false",
-         "role": "option"
-        },
-        "dataset": {
-         "rowId": "new"
-        },
-        "tabIndex": -1,
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "row-label",
-          "children": [
-           "New track"
-          ]
-         }
+         "Worlds"
         ]
        },
        {
@@ -1646,7 +1520,7 @@
      },
      "state": {
       "screen": "quad",
-      "cursor": 7,
+      "cursor": 5,
       "rowOffset": 0,
       "focusId": null,
       "returnTo": null,
@@ -1660,20 +1534,13 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Alps\">",
-       "<div.row \"Track\">",
        "<div.row \"Card\">",
        "<div.row \"Lobby\">",
-       "<div.menu-section \"Tracks\">",
-       "<div.row \"New track\">",
+       "<div.menu-section \"Worlds\">",
        "<div.row \"Back\">"
       ],
       "url": "https://example.test/"
@@ -1684,7 +1551,6 @@
     "syncChips",
     "closeDrop",
     "renderMapCards",
-    "renderCourseCards",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -1916,12 +1782,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row.row-primary \"Fly\">",
@@ -2346,12 +2207,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Flight Club\">",
@@ -2416,12 +2272,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row.row-primary \"Fly\">",
@@ -2450,12 +2301,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row.row-primary \"Fly\">",
@@ -2602,233 +2448,6 @@
    },
    "log": []
   },
-  "lede": {
-   "result": {
-    "alps": {
-     "lede": "The Alps",
-     "state": {
-      "screen": "launch",
-      "cursor": 0,
-      "rowOffset": 0,
-      "focusId": null,
-      "returnTo": null,
-      "cursorMemory": {},
-      "padRearm": false,
-      "swapPadPrev": {},
-      "numberFocusWanted": null,
-      "ratesFrom": null,
-      "pidsFrom": null,
-      "fcFrom": null,
-      "roomFrom": null,
-      "ratesNotice": null,
-      "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
-      ],
-      "menuRows": [
-       "<div.row \"Radio link\">",
-       "<div.row.row-primary \"Fly\">"
-      ],
-      "url": "https://example.test/"
-     },
-     "frame": {
-      "top": {
-       "tag": "DIV",
-       "name": "frameTop",
-       "hidden": false
-      },
-      "bot": {
-       "tag": "DIV",
-       "name": "frameBot",
-       "hidden": false
-      },
-      "rootCls": "bar-shown",
-      "rootStyle": {
-       "--bar-top": "48px",
-       "--bar-bot": "52px"
-      },
-      "crumb": {
-       "tag": "DIV",
-       "name": "crumb",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "crumb-here",
-         "children": [
-          "Before you fly"
-         ]
-        }
-       ]
-      },
-      "context": {
-       "tag": "DIV",
-       "name": "frameContext",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "frame-chip",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "frame-chip-key",
-           "children": [
-            "Flying"
-           ]
-          },
-          {
-           "tag": "B",
-           "children": [
-            "The Alps"
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      "legend": {
-       "tag": "DIV",
-       "name": "frameLegend",
-       "children": [
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "↑"
-           ]
-          },
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "↓"
-           ]
-          },
-          " Move"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "←"
-           ]
-          },
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "→"
-           ]
-          },
-          " Adjust"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Enter"
-           ]
-          },
-          " Choose"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Esc"
-           ]
-          },
-          " Back"
-         ]
-        }
-       ]
-      },
-      "primary": {
-       "tag": "BUTTON",
-       "name": "framePrimary",
-       "hidden": false,
-       "children": [
-        "Fly"
-       ]
-      }
-     }
-    },
-    "unknownMap": "Track",
-    "noLede": {
-     "screen": "launch",
-     "cursor": 0,
-     "rowOffset": 0,
-     "focusId": null,
-     "returnTo": null,
-     "cursorMemory": {},
-     "padRearm": false,
-     "swapPadPrev": {},
-     "numberFocusWanted": null,
-     "ratesFrom": null,
-     "pidsFrom": null,
-     "fcFrom": null,
-     "roomFrom": null,
-     "ratesNotice": null,
-     "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
-     ],
-     "menuRows": [
-      "<div.row \"Radio link\">",
-      "<div.row.row-primary \"Fly\">"
-     ],
-     "url": "https://example.test/"
-    }
-   },
-   "log": [
-    "syncChips",
-    "closeDrop",
-    "makeSegments radio 0",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome",
-    "syncChips",
-    "closeDrop",
-    "makeSegments radio 0",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome",
-    "syncChips",
-    "closeDrop",
-    "makeSegments radio 0",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome"
-   ]
-  },
   "show": {
    "result": {
     "rates": {
@@ -2843,7 +2462,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -2855,12 +2473,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Roll\">",
@@ -2872,12 +2485,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -3045,7 +2656,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -3057,12 +2667,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Roll\">",
@@ -3074,12 +2679,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -3247,7 +2850,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -3259,12 +2861,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Flight\">",
@@ -3291,12 +2888,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -3459,7 +3054,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -3471,12 +3065,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Setup\">"
@@ -3487,12 +3076,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -3628,7 +3215,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -3640,12 +3226,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"P\">"
@@ -3656,12 +3237,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -3818,7 +3397,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -3830,12 +3408,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Flight\">",
@@ -3862,12 +3435,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4018,197 +3589,7 @@
       }
      }
     },
-    "courses": {
-     "state": {
-      "screen": "courses",
-      "cursor": 0,
-      "rowOffset": 1,
-      "focusId": null,
-      "returnTo": null,
-      "cursorMemory": {
-       "quad": "sw",
-       "rates": "r2",
-       "pids": "p1",
-       "fc": "f1",
-       "courses": "c1",
-       "paused": "resume"
-      },
-      "padRearm": true,
-      "swapPadPrev": null,
-      "numberFocusWanted": null,
-      "ratesFrom": null,
-      "pidsFrom": null,
-      "fcFrom": null,
-      "roomFrom": "freestyle",
-      "ratesNotice": null,
-      "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
-      ],
-      "menuRows": [
-       "<div.row \"Back\">"
-      ],
-      "url": "https://example.test/"
-     },
-     "displays": {
-      "title": null,
-      "howto": null,
-      "credits": null,
-      "courses": null,
-      "freestyle": null,
-      "pilot": null,
-      "friends": null,
-      "quad": null,
-      "launch": null,
-      "rates": null,
-      "pids": null,
-      "fc": null,
-      "paused": null,
-      "results": null,
-      "flight": null,
-      "rooms": null,
-      "roomnew": null
-     },
-     "osd": {
-      "tag": "DIV",
-      "name": "osd",
-      "cls": "osd"
-     },
-     "frame": {
-      "top": {
-       "tag": "DIV",
-       "name": "frameTop",
-       "hidden": false
-      },
-      "bot": {
-       "tag": "DIV",
-       "name": "frameBot",
-       "hidden": false
-      },
-      "rootCls": "bar-shown",
-      "rootStyle": {
-       "--bar-top": "48px",
-       "--bar-bot": "52px"
-      },
-      "crumb": {
-       "tag": "DIV",
-       "name": "crumb",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "crumb-up",
-         "children": [
-          "Track Day"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-sep",
-         "children": [
-          "/"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-here",
-         "children": [
-          "My tracks"
-         ]
-        }
-       ]
-      },
-      "context": {
-       "tag": "DIV",
-       "name": "frameContext",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "frame-chip",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "frame-chip-key",
-           "children": [
-            "Flying"
-           ]
-          },
-          {
-           "tag": "B",
-           "children": [
-            "The Alps"
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      "legend": {
-       "tag": "DIV",
-       "name": "frameLegend",
-       "children": [
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "←"
-           ]
-          },
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "→"
-           ]
-          },
-          " Move"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Enter"
-           ]
-          },
-          " Choose"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Esc"
-           ]
-          },
-          " Back"
-         ]
-        }
-       ]
-      },
-      "primary": {
-       "tag": "BUTTON",
-       "name": "framePrimary",
-       "hidden": true,
-       "children": [
-        "Fly now"
-       ]
-      }
-     }
-    },
-    "leftCourses": {
+    "freestyleFromRoom": {
      "state": {
       "screen": "freestyle",
       "cursor": 0,
@@ -4220,7 +3601,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -4232,12 +3612,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [],
       "url": "https://example.test/"
@@ -4246,12 +3621,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4394,7 +3767,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -4406,12 +3778,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [
        "<div.row.row-primary \"Fly\">"
@@ -4422,12 +3789,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4570,7 +3935,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -4582,12 +3946,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Paused\">",
@@ -4599,12 +3958,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4747,7 +4104,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -4759,12 +4115,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Paused\">",
@@ -4776,12 +4127,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -4924,7 +4273,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -4936,12 +4284,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [
        "<div.row \"Keys\">"
@@ -4952,12 +4295,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -5091,7 +4432,6 @@
    },
    "log": [
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5102,7 +4442,6 @@
     "syncChips",
     "onScreenChange rates",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5113,7 +4452,6 @@
     "syncChips",
     "onScreenChange rates",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "makeSwitch sw 3",
@@ -5132,7 +4470,6 @@
     "syncChips",
     "onScreenChange quad",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5143,7 +4480,6 @@
     "syncChips",
     "onScreenChange pids",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5154,7 +4490,6 @@
     "syncChips",
     "onScreenChange fc",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5165,7 +4500,6 @@
     "syncChips",
     "onScreenChange pids",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "makeSwitch sw 3",
@@ -5184,24 +4518,6 @@
     "syncChips",
     "onScreenChange quad",
     "closeDrop",
-    "noteInteraction",
-    "loadLocalCourses",
-    "loadBoardCourses",
-    "loadCloudCourses",
-    "syncChips",
-    "closeDrop",
-    "renderMapCards",
-    "renderCourseCards",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome",
-    "syncChips",
-    "onScreenChange courses",
-    "closeDrop",
-    "stopReels",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "renderMapCards",
@@ -5214,7 +4530,6 @@
     "syncChips",
     "onScreenChange freestyle",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "renderTitleCards",
@@ -5227,7 +4542,6 @@
     "syncChips",
     "onScreenChange title",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5238,13 +4552,11 @@
     "syncChips",
     "onScreenChange paused",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "syncChips",
     "onScreenChange flight",
     "closeDrop",
-    "noteInteraction",
     "renderHowto",
     "syncChips",
     "closeDrop",
@@ -5279,12 +4591,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Rooms\">"
@@ -5311,12 +4618,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Rooms\">"
@@ -5343,12 +4645,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -5375,12 +4672,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -5390,7 +4682,6 @@
    },
    "log": [
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5401,7 +4692,6 @@
     "syncChips",
     "onScreenChange friends",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5412,7 +4702,6 @@
     "syncChips",
     "onScreenChange friends",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5425,7 +4714,6 @@
     "closeDrop",
     "carousel.close",
     "hangar.cancel",
-    "noteInteraction",
     "history.replaceState https://example.test/#credits",
     "syncChips",
     "closeDrop",
@@ -5439,7 +4727,6 @@
     "closeDrop",
     "carousel.close",
     "hangar.cancel",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5451,7 +4738,6 @@
     "closeDrop",
     "carousel.close",
     "hangar.cancel",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5482,12 +4768,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -5512,12 +4793,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -5542,12 +4818,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -5572,12 +4843,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [],
      "url": "https://example.test/play/?map=alps"
@@ -5600,12 +4866,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -5630,12 +4891,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -5660,12 +4916,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -5675,7 +4926,6 @@
    },
    "log": [
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5686,7 +4936,6 @@
     "syncChips",
     "onScreenChange credits",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5697,7 +4946,6 @@
     "syncChips",
     "onScreenChange credits",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5709,7 +4957,6 @@
     "onScreenChange credits",
     "closeDrop",
     "history.replaceState https://example.test/play/?map=alps",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "titleStop",
@@ -5721,7 +4968,6 @@
     "syncChips",
     "onScreenChange quad",
     "closeDrop",
-    "noteInteraction",
     "history.replaceState https://example.test/play/#credits",
     "syncChips",
     "closeDrop",
@@ -5733,7 +4979,6 @@
     "syncChips",
     "onScreenChange credits",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -5972,17 +5217,6 @@
     "setCursor 1 ",
     "setCursor 7 "
    ]
-  },
-  "cardCursor": {
-   "result": {
-    "noSubject": null,
-    "noLast": 0,
-    "subject": "t2",
-    "last": 1,
-    "subjectGone": null,
-    "lastGone": 0
-   },
-   "log": []
   },
   "legend": {
    "result": {
@@ -7034,7 +6268,7 @@
     "unknownMap": [
      {
       "label": "Flying",
-      "value": "Track"
+      "value": "The Alps"
      },
      {
       "label": "Pilot",
@@ -7351,135 +6585,6 @@
           "cls": "kbd",
           "children": [
            "↓"
-          ]
-         },
-         " Move"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Enter"
-          ]
-         },
-         " Choose"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Esc"
-          ]
-         },
-         " Back"
-        ]
-       }
-      ]
-     },
-     "primary": {
-      "tag": "BUTTON",
-      "name": "framePrimary",
-      "hidden": true,
-      "children": [
-       "Fly"
-      ]
-     }
-    },
-    "courses": {
-     "top": {
-      "tag": "DIV",
-      "name": "frameTop",
-      "hidden": false
-     },
-     "bot": {
-      "tag": "DIV",
-      "name": "frameBot",
-      "hidden": false
-     },
-     "rootCls": "bar-shown",
-     "rootStyle": {
-      "--bar-top": "48px",
-      "--bar-bot": "52px"
-     },
-     "crumb": {
-      "tag": "DIV",
-      "name": "crumb",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "crumb-up",
-        "children": [
-         "Track Day"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-sep",
-        "children": [
-         "/"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-here",
-        "children": [
-         "My tracks"
-        ]
-       }
-      ]
-     },
-     "context": {
-      "tag": "DIV",
-      "name": "frameContext",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "frame-chip",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "frame-chip-key",
-          "children": [
-           "Flying"
-          ]
-         },
-         {
-          "tag": "B",
-          "children": [
-           "The Alps"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     "legend": {
-      "tag": "DIV",
-      "name": "frameLegend",
-      "children": [
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "←"
-          ]
-         },
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "→"
           ]
          },
          " Move"
@@ -7977,121 +7082,6 @@
       "tag": "BUTTON",
       "name": "framePrimary",
       "hidden": false,
-      "children": [
-       "Fly now"
-      ]
-     }
-    },
-    "launch": {
-     "top": {
-      "tag": "DIV",
-      "name": "frameTop",
-      "hidden": false
-     },
-     "bot": {
-      "tag": "DIV",
-      "name": "frameBot",
-      "hidden": false
-     },
-     "rootCls": "bar-shown",
-     "rootStyle": {
-      "--bar-top": "48px",
-      "--bar-bot": "52px"
-     },
-     "crumb": {
-      "tag": "DIV",
-      "name": "crumb",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "crumb-here",
-        "children": [
-         "Before you fly"
-        ]
-       }
-      ]
-     },
-     "context": {
-      "tag": "DIV",
-      "name": "frameContext",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "frame-chip",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "frame-chip-key",
-          "children": [
-           "Flying"
-          ]
-         },
-         {
-          "tag": "B",
-          "children": [
-           "The Alps"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     "legend": {
-      "tag": "DIV",
-      "name": "frameLegend",
-      "children": [
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↑"
-          ]
-         },
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↓"
-          ]
-         },
-         " Move"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Enter"
-          ]
-         },
-         " Choose"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Esc"
-          ]
-         },
-         " Back"
-        ]
-       }
-      ]
-     },
-     "primary": {
-      "tag": "BUTTON",
-      "name": "framePrimary",
-      "hidden": true,
       "children": [
        "Fly now"
       ]
@@ -10262,12 +9252,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.menu-section \"Flight\">",
@@ -10480,12 +9465,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.menu-section \"Flight\">",
@@ -10526,12 +9506,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Flight\">",
@@ -10571,12 +9546,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.menu-section \"Flight\">",
@@ -10615,12 +9585,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.menu-section \"Flight\">",
@@ -10881,12 +9846,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row.fc-tab \"Setup\">",
@@ -11113,10 +10073,10 @@
   },
   "cards": {
    "result": {
-    "courses": {
+    "freestyle": {
      "menu": {
       "tag": "DIV",
-      "name": "coursesMenu",
+      "name": "freestyleMenu",
       "cls": "menu",
       "scrollTop": 0,
       "children": [
@@ -11124,28 +10084,7 @@
         "tag": "DIV",
         "cls": "menu-section",
         "children": [
-         "Tracks"
-        ]
-       },
-       {
-        "tag": "DIV",
-        "cls": "row",
-        "attrs": {
-         "aria-selected": "false",
-         "role": "option"
-        },
-        "dataset": {
-         "rowId": "new"
-        },
-        "tabIndex": -1,
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "row-label",
-          "children": [
-           "New track"
-          ]
-         }
+         "Worlds"
         ]
        },
        {
@@ -11172,9 +10111,9 @@
       ]
      },
      "state": {
-      "screen": "courses",
+      "screen": "freestyle",
       "cursor": 1,
-      "rowOffset": 4,
+      "rowOffset": 3,
       "focusId": null,
       "returnTo": null,
       "cursorMemory": {},
@@ -11187,16 +10126,10 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
-       "<div.menu-section \"Tracks\">",
-       "<div.row \"New track\">",
+       "<div.menu-section \"Worlds\">",
        "<div.row \"Back\">"
       ],
       "url": "https://example.test/"
@@ -11254,7 +10187,7 @@
       ]
      }
     },
-    "freestyle": {
+    "freestyleLast": {
      "menu": {
       "tag": "DIV",
       "name": "freestyleMenu",
@@ -11265,28 +10198,7 @@
         "tag": "DIV",
         "cls": "menu-section",
         "children": [
-         "Tracks"
-        ]
-       },
-       {
-        "tag": "DIV",
-        "cls": "row",
-        "attrs": {
-         "aria-selected": "false",
-         "role": "option"
-        },
-        "dataset": {
-         "rowId": "new"
-        },
-        "tabIndex": -1,
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "row-label",
-          "children": [
-           "New track"
-          ]
-         }
+         "Worlds"
         ]
        },
        {
@@ -11314,8 +10226,8 @@
      },
      "state": {
       "screen": "freestyle",
-      "cursor": 7,
-      "rowOffset": 4,
+      "cursor": 5,
+      "rowOffset": 3,
       "focusId": null,
       "returnTo": null,
       "cursorMemory": {},
@@ -11328,16 +10240,10 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
-       "<div.menu-section \"Tracks\">",
-       "<div.row \"New track\">",
+       "<div.menu-section \"Worlds\">",
        "<div.row \"Back\">"
       ],
       "url": "https://example.test/"
@@ -11367,27 +10273,6 @@
           "cls": "row-label",
           "children": [
            "Alps"
-          ]
-         }
-        ]
-       },
-       {
-        "tag": "DIV",
-        "cls": "row",
-        "attrs": {
-         "aria-selected": "false",
-         "role": "option"
-        },
-        "dataset": {
-         "rowId": "c1"
-        },
-        "tabIndex": -1,
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "row-label",
-          "children": [
-           "Track"
           ]
          }
         ]
@@ -11438,28 +10323,7 @@
         "tag": "DIV",
         "cls": "menu-section",
         "children": [
-         "Tracks"
-        ]
-       },
-       {
-        "tag": "DIV",
-        "cls": "row",
-        "attrs": {
-         "aria-selected": "false",
-         "role": "option"
-        },
-        "dataset": {
-         "rowId": "new"
-        },
-        "tabIndex": -1,
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "row-label",
-          "children": [
-           "New track"
-          ]
-         }
+         "Worlds"
         ]
        },
        {
@@ -11487,7 +10351,7 @@
      },
      "state": {
       "screen": "quad",
-      "cursor": 7,
+      "cursor": 5,
       "rowOffset": 0,
       "focusId": null,
       "returnTo": null,
@@ -11501,20 +10365,13 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Alps\">",
-       "<div.row \"Track\">",
        "<div.row \"Card\">",
        "<div.row \"Lobby\">",
-       "<div.menu-section \"Tracks\">",
-       "<div.row \"New track\">",
+       "<div.menu-section \"Worlds\">",
        "<div.row \"Back\">"
       ],
       "url": "https://example.test/"
@@ -11525,7 +10382,6 @@
     "syncChips",
     "closeDrop",
     "renderMapCards",
-    "renderCourseCards",
     "restoreFocusRow",
     "syncCursor false",
     "syncRates",
@@ -11757,12 +10613,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row.row-primary \"Fly\">",
@@ -12187,12 +11038,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Flight Club\">",
@@ -12257,12 +11103,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row.row-primary \"Fly\">",
@@ -12291,12 +11132,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row.row-primary \"Fly\">",
@@ -12443,233 +11279,6 @@
    },
    "log": []
   },
-  "lede": {
-   "result": {
-    "alps": {
-     "lede": "The Alps",
-     "state": {
-      "screen": "launch",
-      "cursor": 0,
-      "rowOffset": 0,
-      "focusId": null,
-      "returnTo": null,
-      "cursorMemory": {},
-      "padRearm": false,
-      "swapPadPrev": {},
-      "numberFocusWanted": null,
-      "ratesFrom": null,
-      "pidsFrom": null,
-      "fcFrom": null,
-      "roomFrom": null,
-      "ratesNotice": null,
-      "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
-      ],
-      "menuRows": [
-       "<div.row \"Radio link\">",
-       "<div.row.row-primary \"Fly\">"
-      ],
-      "url": "https://example.test/"
-     },
-     "frame": {
-      "top": {
-       "tag": "DIV",
-       "name": "frameTop",
-       "hidden": false
-      },
-      "bot": {
-       "tag": "DIV",
-       "name": "frameBot",
-       "hidden": false
-      },
-      "rootCls": "bar-shown",
-      "rootStyle": {
-       "--bar-top": "48px",
-       "--bar-bot": "52px"
-      },
-      "crumb": {
-       "tag": "DIV",
-       "name": "crumb",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "crumb-here",
-         "children": [
-          "Before you fly"
-         ]
-        }
-       ]
-      },
-      "context": {
-       "tag": "DIV",
-       "name": "frameContext",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "frame-chip",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "frame-chip-key",
-           "children": [
-            "Volando"
-           ]
-          },
-          {
-           "tag": "B",
-           "children": [
-            "The Alps"
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      "legend": {
-       "tag": "DIV",
-       "name": "frameLegend",
-       "children": [
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "↑"
-           ]
-          },
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "↓"
-           ]
-          },
-          " Mover"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "←"
-           ]
-          },
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "→"
-           ]
-          },
-          " Ajustar"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Enter"
-           ]
-          },
-          " Elegir"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Esc"
-           ]
-          },
-          " Volver"
-         ]
-        }
-       ]
-      },
-      "primary": {
-       "tag": "BUTTON",
-       "name": "framePrimary",
-       "hidden": false,
-       "children": [
-        "Fly"
-       ]
-      }
-     }
-    },
-    "unknownMap": "Track",
-    "noLede": {
-     "screen": "launch",
-     "cursor": 0,
-     "rowOffset": 0,
-     "focusId": null,
-     "returnTo": null,
-     "cursorMemory": {},
-     "padRearm": false,
-     "swapPadPrev": {},
-     "numberFocusWanted": null,
-     "ratesFrom": null,
-     "pidsFrom": null,
-     "fcFrom": null,
-     "roomFrom": null,
-     "ratesNotice": null,
-     "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
-     ],
-     "menuRows": [
-      "<div.row \"Radio link\">",
-      "<div.row.row-primary \"Fly\">"
-     ],
-     "url": "https://example.test/"
-    }
-   },
-   "log": [
-    "syncChips",
-    "closeDrop",
-    "makeSegments radio 0",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome",
-    "syncChips",
-    "closeDrop",
-    "makeSegments radio 0",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome",
-    "syncChips",
-    "closeDrop",
-    "makeSegments radio 0",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome"
-   ]
-  },
   "show": {
    "result": {
     "rates": {
@@ -12684,7 +11293,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -12696,12 +11304,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Roll\">",
@@ -12713,12 +11316,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -12886,7 +11487,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -12898,12 +11498,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Roll\">",
@@ -12915,12 +11510,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -13088,7 +11681,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -13100,12 +11692,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Flight\">",
@@ -13132,12 +11719,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -13300,7 +11885,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -13312,12 +11896,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"Setup\">"
@@ -13328,12 +11907,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -13469,7 +12046,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -13481,12 +12057,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.row \"P\">"
@@ -13497,12 +12068,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -13659,7 +12228,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -13671,12 +12239,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Flight\">",
@@ -13703,12 +12266,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -13859,197 +12420,7 @@
       }
      }
     },
-    "courses": {
-     "state": {
-      "screen": "courses",
-      "cursor": 0,
-      "rowOffset": 1,
-      "focusId": null,
-      "returnTo": null,
-      "cursorMemory": {
-       "quad": "sw",
-       "rates": "r2",
-       "pids": "p1",
-       "fc": "f1",
-       "courses": "c1",
-       "paused": "resume"
-      },
-      "padRearm": true,
-      "swapPadPrev": null,
-      "numberFocusWanted": null,
-      "ratesFrom": null,
-      "pidsFrom": null,
-      "fcFrom": null,
-      "roomFrom": "freestyle",
-      "ratesNotice": null,
-      "cards": [
-       "x",
-       "x",
-       "x",
-       null,
-       null,
-       true
-      ],
-      "menuRows": [
-       "<div.row \"Back\">"
-      ],
-      "url": "https://example.test/"
-     },
-     "displays": {
-      "title": null,
-      "howto": null,
-      "credits": null,
-      "courses": null,
-      "freestyle": null,
-      "pilot": null,
-      "friends": null,
-      "quad": null,
-      "launch": null,
-      "rates": null,
-      "pids": null,
-      "fc": null,
-      "paused": null,
-      "results": null,
-      "flight": null,
-      "rooms": null,
-      "roomnew": null
-     },
-     "osd": {
-      "tag": "DIV",
-      "name": "osd",
-      "cls": "osd"
-     },
-     "frame": {
-      "top": {
-       "tag": "DIV",
-       "name": "frameTop",
-       "hidden": false
-      },
-      "bot": {
-       "tag": "DIV",
-       "name": "frameBot",
-       "hidden": false
-      },
-      "rootCls": "bar-shown",
-      "rootStyle": {
-       "--bar-top": "48px",
-       "--bar-bot": "52px"
-      },
-      "crumb": {
-       "tag": "DIV",
-       "name": "crumb",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "crumb-up",
-         "children": [
-          "Track Day"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-sep",
-         "children": [
-          "/"
-         ]
-        },
-        {
-         "tag": "SPAN",
-         "cls": "crumb-here",
-         "children": [
-          "My tracks"
-         ]
-        }
-       ]
-      },
-      "context": {
-       "tag": "DIV",
-       "name": "frameContext",
-       "children": [
-        {
-         "tag": "SPAN",
-         "cls": "frame-chip",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "frame-chip-key",
-           "children": [
-            "Volando"
-           ]
-          },
-          {
-           "tag": "B",
-           "children": [
-            "The Alps"
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      "legend": {
-       "tag": "DIV",
-       "name": "frameLegend",
-       "children": [
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "←"
-           ]
-          },
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "→"
-           ]
-          },
-          " Mover"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Enter"
-           ]
-          },
-          " Elegir"
-         ]
-        },
-        {
-         "tag": "I",
-         "children": [
-          {
-           "tag": "SPAN",
-           "cls": "kbd",
-           "children": [
-            "Esc"
-           ]
-          },
-          " Volver"
-         ]
-        }
-       ]
-      },
-      "primary": {
-       "tag": "BUTTON",
-       "name": "framePrimary",
-       "hidden": true,
-       "children": [
-        "Fly now"
-       ]
-      }
-     }
-    },
-    "leftCourses": {
+    "freestyleFromRoom": {
      "state": {
       "screen": "freestyle",
       "cursor": 0,
@@ -14061,7 +12432,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -14073,12 +12443,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [],
       "url": "https://example.test/"
@@ -14087,12 +12452,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14235,7 +12598,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -14247,12 +12609,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [
        "<div.row.row-primary \"Fly\">"
@@ -14263,12 +12620,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14411,7 +12766,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -14423,12 +12777,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Paused\">",
@@ -14440,12 +12789,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14588,7 +12935,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -14600,12 +12946,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [
        "<div.menu-section \"Paused\">",
@@ -14617,12 +12958,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14765,7 +13104,6 @@
        "rates": "r2",
        "pids": "p1",
        "fc": "f1",
-       "courses": "c1",
        "paused": "resume"
       },
       "padRearm": true,
@@ -14777,12 +13115,7 @@
       "roomFrom": null,
       "ratesNotice": null,
       "cards": [
-       null,
-       null,
-       null,
-       null,
-       null,
-       false
+       "x"
       ],
       "menuRows": [
        "<div.row \"Keys\">"
@@ -14793,12 +13126,10 @@
       "title": null,
       "howto": null,
       "credits": null,
-      "courses": null,
       "freestyle": null,
       "pilot": null,
       "friends": null,
       "quad": null,
-      "launch": null,
       "rates": null,
       "pids": null,
       "fc": null,
@@ -14932,7 +13263,6 @@
    },
    "log": [
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -14943,7 +13273,6 @@
     "syncChips",
     "onScreenChange rates",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -14954,7 +13283,6 @@
     "syncChips",
     "onScreenChange rates",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "makeSwitch sw 3",
@@ -14973,7 +13301,6 @@
     "syncChips",
     "onScreenChange quad",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -14984,7 +13311,6 @@
     "syncChips",
     "onScreenChange pids",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -14995,7 +13321,6 @@
     "syncChips",
     "onScreenChange fc",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15006,7 +13331,6 @@
     "syncChips",
     "onScreenChange pids",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "makeSwitch sw 3",
@@ -15025,24 +13349,6 @@
     "syncChips",
     "onScreenChange quad",
     "closeDrop",
-    "noteInteraction",
-    "loadLocalCourses",
-    "loadBoardCourses",
-    "loadCloudCourses",
-    "syncChips",
-    "closeDrop",
-    "renderMapCards",
-    "renderCourseCards",
-    "restoreFocusRow",
-    "syncCursor false",
-    "syncRates",
-    "syncPids",
-    "syncFcChrome",
-    "syncChips",
-    "onScreenChange courses",
-    "closeDrop",
-    "stopReels",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "renderMapCards",
@@ -15055,7 +13361,6 @@
     "syncChips",
     "onScreenChange freestyle",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "renderTitleCards",
@@ -15068,7 +13373,6 @@
     "syncChips",
     "onScreenChange title",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15079,13 +13383,11 @@
     "syncChips",
     "onScreenChange paused",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "syncChips",
     "onScreenChange flight",
     "closeDrop",
-    "noteInteraction",
     "renderHowto",
     "syncChips",
     "closeDrop",
@@ -15120,12 +13422,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Rooms\">"
@@ -15152,12 +13449,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Rooms\">"
@@ -15184,12 +13476,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -15216,12 +13503,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -15231,7 +13513,6 @@
    },
    "log": [
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15242,7 +13523,6 @@
     "syncChips",
     "onScreenChange friends",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15253,7 +13533,6 @@
     "syncChips",
     "onScreenChange friends",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15266,7 +13545,6 @@
     "closeDrop",
     "carousel.close",
     "hangar.cancel",
-    "noteInteraction",
     "history.replaceState https://example.test/#credits",
     "syncChips",
     "closeDrop",
@@ -15280,7 +13558,6 @@
     "closeDrop",
     "carousel.close",
     "hangar.cancel",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15292,7 +13569,6 @@
     "closeDrop",
     "carousel.close",
     "hangar.cancel",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15323,12 +13599,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -15353,12 +13624,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -15383,12 +13649,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -15413,12 +13674,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [],
      "url": "https://example.test/play/?map=alps"
@@ -15441,12 +13697,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -15471,12 +13722,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -15501,12 +13747,7 @@
      "roomFrom": null,
      "ratesNotice": null,
      "cards": [
-      "x",
-      "x",
-      "x",
-      null,
-      null,
-      true
+      "x"
      ],
      "menuRows": [
       "<div.row \"Back\">"
@@ -15516,7 +13757,6 @@
    },
    "log": [
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15527,7 +13767,6 @@
     "syncChips",
     "onScreenChange credits",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15538,7 +13777,6 @@
     "syncChips",
     "onScreenChange credits",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15550,7 +13788,6 @@
     "onScreenChange credits",
     "closeDrop",
     "history.replaceState https://example.test/play/?map=alps",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "titleStop",
@@ -15562,7 +13799,6 @@
     "syncChips",
     "onScreenChange quad",
     "closeDrop",
-    "noteInteraction",
     "history.replaceState https://example.test/play/#credits",
     "syncChips",
     "closeDrop",
@@ -15574,7 +13810,6 @@
     "syncChips",
     "onScreenChange credits",
     "closeDrop",
-    "noteInteraction",
     "syncChips",
     "closeDrop",
     "restoreFocusRow",
@@ -15813,17 +14048,6 @@
     "setCursor 1 ",
     "setCursor 7 "
    ]
-  },
-  "cardCursor": {
-   "result": {
-    "noSubject": null,
-    "noLast": 0,
-    "subject": "t2",
-    "last": 1,
-    "subjectGone": null,
-    "lastGone": 0
-   },
-   "log": []
   },
   "legend": {
    "result": {
@@ -16875,7 +15099,7 @@
     "unknownMap": [
      {
       "label": "Volando",
-      "value": "Track"
+      "value": "The Alps"
      },
      {
       "label": "Piloto",
@@ -17192,135 +15416,6 @@
           "cls": "kbd",
           "children": [
            "↓"
-          ]
-         },
-         " Mover"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Enter"
-          ]
-         },
-         " Elegir"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Esc"
-          ]
-         },
-         " Volver"
-        ]
-       }
-      ]
-     },
-     "primary": {
-      "tag": "BUTTON",
-      "name": "framePrimary",
-      "hidden": true,
-      "children": [
-       "Fly"
-      ]
-     }
-    },
-    "courses": {
-     "top": {
-      "tag": "DIV",
-      "name": "frameTop",
-      "hidden": false
-     },
-     "bot": {
-      "tag": "DIV",
-      "name": "frameBot",
-      "hidden": false
-     },
-     "rootCls": "bar-shown",
-     "rootStyle": {
-      "--bar-top": "48px",
-      "--bar-bot": "52px"
-     },
-     "crumb": {
-      "tag": "DIV",
-      "name": "crumb",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "crumb-up",
-        "children": [
-         "Track Day"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-sep",
-        "children": [
-         "/"
-        ]
-       },
-       {
-        "tag": "SPAN",
-        "cls": "crumb-here",
-        "children": [
-         "My tracks"
-        ]
-       }
-      ]
-     },
-     "context": {
-      "tag": "DIV",
-      "name": "frameContext",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "frame-chip",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "frame-chip-key",
-          "children": [
-           "Volando"
-          ]
-         },
-         {
-          "tag": "B",
-          "children": [
-           "The Alps"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     "legend": {
-      "tag": "DIV",
-      "name": "frameLegend",
-      "children": [
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "←"
-          ]
-         },
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "→"
           ]
          },
          " Mover"
@@ -17818,121 +15913,6 @@
       "tag": "BUTTON",
       "name": "framePrimary",
       "hidden": false,
-      "children": [
-       "Fly now"
-      ]
-     }
-    },
-    "launch": {
-     "top": {
-      "tag": "DIV",
-      "name": "frameTop",
-      "hidden": false
-     },
-     "bot": {
-      "tag": "DIV",
-      "name": "frameBot",
-      "hidden": false
-     },
-     "rootCls": "bar-shown",
-     "rootStyle": {
-      "--bar-top": "48px",
-      "--bar-bot": "52px"
-     },
-     "crumb": {
-      "tag": "DIV",
-      "name": "crumb",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "crumb-here",
-        "children": [
-         "Before you fly"
-        ]
-       }
-      ]
-     },
-     "context": {
-      "tag": "DIV",
-      "name": "frameContext",
-      "children": [
-       {
-        "tag": "SPAN",
-        "cls": "frame-chip",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "frame-chip-key",
-          "children": [
-           "Volando"
-          ]
-         },
-         {
-          "tag": "B",
-          "children": [
-           "The Alps"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     "legend": {
-      "tag": "DIV",
-      "name": "frameLegend",
-      "children": [
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↑"
-          ]
-         },
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "↓"
-          ]
-         },
-         " Mover"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Enter"
-          ]
-         },
-         " Elegir"
-        ]
-       },
-       {
-        "tag": "I",
-        "children": [
-         {
-          "tag": "SPAN",
-          "cls": "kbd",
-          "children": [
-           "Esc"
-          ]
-         },
-         " Volver"
-        ]
-       }
-      ]
-     },
-     "primary": {
-      "tag": "BUTTON",
-      "name": "framePrimary",
-      "hidden": true,
       "children": [
        "Fly now"
       ]

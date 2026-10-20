@@ -3,7 +3,7 @@
  * that set flight up, as Ui methods installed onto the class at the end
  * of ui.js.
  *
- * The flight part (OSD readouts, banner, target mark, stick ghosts, air
+ * The flight part (OSD readouts, banner, stick ghosts, air
  * slider, score overlay) is called from main.js's frame loop, so it is
  * written to the rule ui.js's Ui.text, Ui.klass and Ui.bar exist for: a
  * frame that changes nothing writes nothing to the DOM, and a frame
@@ -82,15 +82,6 @@ const PAD_REST = Object.freeze([0, 0, 0, 0]);
 const unit = (v) => Math.max(-1, Math.min(1, v));
 /* An axis value on the -1..1 track, as a left offset in per cent. */
 const trackPct = (v) => `${Math.max(0, Math.min(100, ((v + 1) / 2) * 100)).toFixed(1)}%`;
-
-/* Writes `value` to node.style[prop] unless the memo already holds it
- * under `key`. The target mark's memo, since its nodes are its own. */
-function styleOnce(memo, key, node, prop, value) {
-  if (memo[key] !== value) {
-    memo[key] = value;
-    node.style[prop] = value;
-  }
-}
 
 /*
  * The clock slot, top centre. One clock on screen whatever the mode:
@@ -230,72 +221,6 @@ export const overlayMethods = {
     }
     region.__spoken = words;
     region.textContent = words;
-  },
-
-  /*
-   * The target mark, the answer to "where is the next one": a bracket
-   * sized to the opening while it is in frame, a chevron pinned inside the
-   * edge pointing the short way round when it is not, both with the range
-   * under them and coloured by the same side test the gate uses. main.js
-   * lets go inside 6 m, where a bracket would just outline the frame.
-   */
-  buildTargetLock() {
-    const lock = el('div', 'lock is-off');
-    const box = el('div', 'lock-box');
-    box.append(el('i', 'lc tl'), el('i', 'lc tr'), el('i', 'lc bl'), el('i', 'lc br'));
-    const arrow = el('div', 'lock-arrow');
-    const dist = el('div', 'lock-dist', '');
-    lock.append(box, arrow, dist);
-    this.lock = lock;
-    this.lockBox = box;
-    this.lockArrow = arrow;
-    this.lockDist = dist;
-    /* The mark is up for a whole race, and each of its values is a style
-     * write per frame unless remembered. A fresh node's opacity is already
-     * unset, which is what full strength writes. */
-    this.lockMemo = { fade: '' };
-    return lock;
-  },
-
-  /* `x`, `y`: CSS px from the canvas's top left, already clamped by the
-   * shell. `size`: the aperture in CSS px. `angle`: the chevron's heading,
-   * degrees clockwise from up. `fade`: 0..1. */
-  setTargetLock({ show, x, y, size, angle, edge, wrong, distance, fade }) {
-    const lock = this.lock;
-    if (!lock) {
-      return;
-    }
-    const memo = this.lockMemo;
-    let cls = 'lock is-off';
-    if (show) {
-      cls = `lock${edge ? ' is-edge' : ''}${wrong ? ' is-wrong' : ''}`;
-    }
-    if (memo.cls !== cls) {
-      memo.cls = cls;
-      lock.className = cls;
-    }
-    if (!show) {
-      return;
-    }
-    styleOnce(memo, 'at', lock, 'transform', `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`);
-    styleOnce(memo, 'fade', lock, 'opacity', fade < 0.995 ? fade.toFixed(2) : '');
-    if (edge) {
-      styleOnce(memo, 'turn', this.lockArrow, 'transform', `translate(-50%, -50%) rotate(${angle.toFixed(1)}deg)`);
-    } else {
-      const side = `${size.toFixed(0)}px`;
-      styleOnce(memo, 'w', this.lockBox, 'width', side);
-      styleOnce(memo, 'h', this.lockBox, 'height', side);
-    }
-    /* The range sits under whichever mark shows, and the two are different
-     * heights, so it is placed rather than laid out. */
-    const below = (edge ? 15 : size * 0.5) + 11;
-    styleOnce(memo, 'under', this.lockDist, 'transform', `translate(-50%, ${below.toFixed(0)}px)`);
-    /* Whole metres: tenths at racing speed are a smear. */
-    const range = `${Math.round(distance)} m`;
-    if (memo.range !== range) {
-      memo.range = range;
-      this.lockDist.textContent = range;
-    }
   },
 
   /*

@@ -1911,14 +1911,14 @@
     "title": "<titleHelp>",
     "howto": "<howtoHelp>",
     "credits": "<creditsHelp>",
-    "courses": "<coursesHelp>",
+    "courses": "null",
     "freestyle": "<freestyleHelp>",
     "pilot": "<pilotHelp>",
     "friends": "<friendsHelp>",
     "rooms": "null",
     "roomnew": "null",
     "quad": "<quadHelp>",
-    "launch": "<launchHelp>",
+    "launch": "null",
     "rates": "<ratesHelp>",
     "pids": "<pidsHelp>",
     "fc": "<fcHelp>",
@@ -2280,7 +2280,6 @@
     }
    },
    "log": [
-    "noteInteraction",
     "markBars 3"
    ]
   },
@@ -2303,7 +2302,7 @@
       null,
       null
      ],
-     "lastCardKey": "mine:t9",
+     "lastCardKey": null,
      "settings": {
       "rates": {
        "r": 1
@@ -2314,7 +2313,6 @@
      },
      "active": "<body>"
     },
-    "noCourse": "mine:t9",
     "end": {
      "cursor": 1,
      "focusId": "b",
@@ -2332,7 +2330,7 @@
       null,
       null
      ],
-     "lastCardKey": "mine:t9",
+     "lastCardKey": null,
      "settings": {
       "rates": {
        "r": 1
@@ -2345,19 +2343,14 @@
     }
    },
    "log": [
-    "noteInteraction",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row2> {\"block\":\"nearest\"}",
     "sound move",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}",
     "sound move",
-    "noteInteraction",
     "markCards",
     "markBars 3",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}"
    ]
@@ -5801,14 +5794,14 @@
     "title": "<titleHelp>",
     "howto": "<howtoHelp>",
     "credits": "<creditsHelp>",
-    "courses": "<coursesHelp>",
+    "courses": "null",
     "freestyle": "<freestyleHelp>",
     "pilot": "<pilotHelp>",
     "friends": "<friendsHelp>",
     "rooms": "null",
     "roomnew": "null",
     "quad": "<quadHelp>",
-    "launch": "<launchHelp>",
+    "launch": "null",
     "rates": "<ratesHelp>",
     "pids": "<pidsHelp>",
     "fc": "<fcHelp>",
@@ -6170,7 +6163,6 @@
     }
    },
    "log": [
-    "noteInteraction",
     "markBars 3"
    ]
   },
@@ -6193,7 +6185,7 @@
       null,
       null
      ],
-     "lastCardKey": "mine:t9",
+     "lastCardKey": null,
      "settings": {
       "rates": {
        "r": 1
@@ -6204,7 +6196,6 @@
      },
      "active": "<body>"
     },
-    "noCourse": "mine:t9",
     "end": {
      "cursor": 1,
      "focusId": "b",
@@ -6222,7 +6213,7 @@
       null,
       null
      ],
-     "lastCardKey": "mine:t9",
+     "lastCardKey": null,
      "settings": {
       "rates": {
        "r": 1
@@ -6235,19 +6226,14 @@
     }
    },
    "log": [
-    "noteInteraction",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row2> {\"block\":\"nearest\"}",
     "sound move",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}",
     "sound move",
-    "noteInteraction",
     "markCards",
     "markBars 3",
-    "noteInteraction",
     "markBars 3",
     "scrollIntoView <row1> {\"block\":\"nearest\"}"
    ]

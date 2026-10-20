@@ -91,7 +91,6 @@ export { CAMERA_FOVS, CAMERA_FOV_DEFAULT, CAMERA_ANGLE_MIN, CAMERA_ANGLE_MAX, CA
 
 export const FLIGHT_MODES = ['acro', 'angle'];
 export const PACK_VOLTAGES = [4.2, 3.8, 3.5];
-export const LAP_COUNTS = [1, 3, 5];
 /* Percent of the graphics preset's resolution. Fewer pixels is the lever
  * that helps every GPU-bound machine; physics and input never see it. */
 export const RENDER_SCALES = [100, 85, 70, 55];
@@ -178,8 +177,9 @@ export const FIRST_AIRFRAME = 'timber1500';
  * back instead of reaching the code that reads it.
  */
 export const DEFAULTS = {
-  /* World: 'track' is the race seat, any other id a freestyle world. */
-  map: 'track',
+  /* World: the world the seat flies. The Swiss valley is the one the Track
+   * seat stood in with no track seated, which a new profile used to hold. */
+  map: 'swiss2',
   /* The freestyle world last chosen, '' if none ever was: the gate sends
    * such a pilot to the picker rather than choosing for them. */
   freestyleMap: '',
@@ -222,7 +222,6 @@ export const DEFAULTS = {
   pidsSeeded: {},
   /* Which one time migrations of the wing tunes have run. */
   wingDefaults: 0,
-  feelAsked: false,
   touchRatesOffered: false,
   flightMode: 'acro',
   stickMode: DEFAULT_STICK_MODE,
@@ -277,7 +276,6 @@ export const DEFAULTS = {
   floats: {},
   buildFits: {},
   weight: WEIGHT_STOCK,
-  laps: 3,
   sound: true,
   volume: 6,
   motorLevel: 5,
@@ -644,7 +642,6 @@ const ONE_OF = {
   avxLevel: () => AVX_LEVELS,
   avxPalette: () => AVX_PALETTES,
   flightStyle: () => FLIGHT_STYLES,
-  laps: () => LAP_COUNTS,
   packVoltage: () => PACK_VOLTAGES,
   musicTrack: () => musicIds(),
   weather: () => WEATHER_PRESETS,
@@ -772,7 +769,7 @@ export function loadSettings() {
     const gone = retiredMap(s[key]);
     if (gone) s[key] = gone.to;
   }
-  if (!MAPS.some((m) => m.id === s.map)) s.map = 'track';
+  if (!MAPS.some((m) => m.id === s.map)) s.map = DEFAULTS.map;
   if (!MAPS.some((m) => m.mode === 'freestyle' && m.id === s.freestyleMap)) s.freestyleMap = '';
 
   adoptSeatedStock(s);

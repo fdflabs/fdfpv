@@ -17,10 +17,7 @@
  * history if they are ever wanted back. A stored or linked id of one of
  * them is not an unknown id: src/maps/retired.js says where it went.
  *
- * The worlds a track is flown in are loaded the same way, for symmetry and
- * because the loading screen then has one shape to report.
- *
- * `poster` is the still the world card shows while its clip is being made.
+ * `poster` is the still the world card shows.
  * A first visit to Freestyle used to be four dark rectangles with the word
  * "loading" on them for the best part of a minute, which is the worst
  * possible moment to tell somebody nothing about the place they are choosing.
@@ -28,10 +25,6 @@
  * also holds the camera each one is taken from. A map with no poster falls
  * back to the rectangle, so the field is optional rather than load bearing.
  *
- * `build` marks a world a track can be built inside (src/builder/), and so
- * the worlds Track mode flies and My tracks offers a new track in. The two
- * valleys: one terrain, one height function and nothing to fly under, which
- * is where placement was proven.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -53,21 +46,6 @@ import { MAP_BUILD_MS } from './build-cost.js';
 import { str } from '../strings/index.js';
 
 export const MAPS = [
-  /*
-   * TRACK MODE, WHICH IS A SEAT AND NOT A WORLD. What it flies is the track
-   * seated from My tracks or a board link, in the world that track was
-   * built in (src/main.js worldId), and a seat with no track in it stands
-   * at `home`, the title's own valley. It has no loader on purpose: nothing
-   * may build it, and src/main.js loadMap says so if anything tries.
-   */
-  {
-    id: 'track',
-    name: str('ui.track'),
-    mode: 'race',
-    note: str('registry.a_track_built_in_the_alps'),
-    home: 'swiss2',
-    buildMs: MAP_BUILD_MS.swiss2,
-  },
   {
     id: 'alps',
     poster: 'assets/posters/alps.jpg',
@@ -75,7 +53,6 @@ export const MAPS = [
     mode: 'freestyle',
     note: str('registry.a_glacial_valley_six_kilometres'),
     buildMs: MAP_BUILD_MS.alps,
-    build: true,
     load: () => import('./alps.js'),
   },
   /* The same valley, drawn to read as a photograph rather than a
@@ -89,13 +66,10 @@ export const MAPS = [
     mode: 'freestyle',
     note: str('registry.swiss2_note'),
     buildMs: MAP_BUILD_MS.swiss2,
-    build: true,
     load: () => import('./swiss2.js'),
   },
   /* Named "(in development)" while it was terrain and water only; it has
-   * its dam, towns and forests now and the released mission flies on it.
-   * A builder world: its two courses are builder documents
-   * (docs/itaipu-courses/). */
+   * its dam, towns and forests now and the released mission flies on it. */
   {
     id: 'itaipu',
     poster: 'assets/posters/itaipu.jpg',
@@ -103,7 +77,6 @@ export const MAPS = [
     mode: 'freestyle',
     note: str('registry.itaipu_note'),
     buildMs: MAP_BUILD_MS.itaipu,
-    build: true,
     load: () => import('./itaipu.js'),
   },
   /* In development, and named so: The Interior campaign's map

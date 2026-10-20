@@ -8,9 +8,8 @@
  * the track the same way.
  *
  * Presets exist only in this browser's storage, under one versioned key,
- * fdfpv.rates.library.v1, holding every preset by id (the same shape as
- * the track library in src/trackbuilder/storage.js). Reads and writes go
- * through src/share/trackseat.js, which turns a private window or a full
+ * fdfpv.rates.library.v1, holding every preset by id. Reads and writes go
+ * through src/share/jsonstore.js, which turns a private window or a full
  * quota into a fallback value or `false`; a refused save is reported back
  * so the shell can tell the pilot. Every entry read back goes through
  * normaliseRates, so a corrupt or old entry cannot fly a profile the menu
@@ -33,7 +32,7 @@
  */
 
 import { normaliseRates, ratesDiff, ratesSummary } from './rates.js';
-import { readJson, writeJson } from '../src/share/trackseat.js';
+import { readJson, writeJson } from '../src/share/jsonstore.js';
 
 const STORAGE_KEY = 'fdfpv.rates.library.v1';
 

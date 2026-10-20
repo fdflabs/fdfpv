@@ -199,9 +199,9 @@ const served = [...files('src').filter((f) => /\.(js|html)$/.test(f)), 'index.ht
 const marks = ['__credential', 'gis-mock', 'sim.account.seeded', 'GOOGLE_JWKS', 'googleJwksUrl'];
 const carrying = served.filter((f) => marks.some((m) => read(f).includes(m)));
 check(`no served file names the stand in (${served.length} files)`, carrying.length === 0, carrying.join(', '));
-const cloud = read('src/share/cloud.js');
-check('the page off the game\'s domain asks the production tracks server', /PRODUCTION_TRACKS_ORIGIN = API_ORIGIN;/.test(cloud)
-  && /return PRODUCTION_TRACKS_ORIGIN === PLACEHOLDER_ORIGIN \? '' : PRODUCTION_TRACKS_ORIGIN;/.test(cloud));
+const origin = read('src/share/tracksorigin.js');
+check('the page off the game\'s domain asks the production tracks server', /PRODUCTION_TRACKS_ORIGIN = API_ORIGIN;/.test(origin)
+  && /return PRODUCTION_TRACKS_ORIGIN === PLACEHOLDER_ORIGIN \? '' : PRODUCTION_TRACKS_ORIGIN;/.test(origin));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

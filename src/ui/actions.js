@@ -8,8 +8,6 @@
  *   hubCards, hangarCards, openHub       home and its three hubs
  *   continueWay                          home's Continue, the last session
  *   seatMap, flown, seatMatchesMode      the seat and the first flight
- *   openBuilder, actOnCard, duplicateCard, storeCardChange,
- *   openBoardCourse                      the rows of a chosen course card
  *
  * The shell hears of a press through the on* hooks main.js installs
  * (onAction, onSettings, onUiSound and the rest); nothing here flies or
@@ -43,13 +41,7 @@ import { resetProgress, resetSettings } from '../share/save.js';
 import { released } from '../game/campaign.js';
 import { MODES } from '../share/modes.js';
 import { freshProgress } from '../game/progress.js';
-import { fetchTrackDocument } from '../share/board.js';
-import { tracksConfigured } from '../share/cloud.js';
-import { hasFlyableTrack } from '../share/listing.js';
-import { clearShareImport, readShareImport } from '../share/trackseat.js';
 import { str } from '../strings/index.js';
-import { duplicateTrack, normalize } from '../trackbuilder/model.js';
-import { deleteTrack, loadMapTrack, saveTrack } from '../trackbuilder/storage.js';
 import { customisable } from './builds.js';
 import { CAMPAIGN_MISSIONS, wayOfActivity } from './continuity.js';
 import { downloadCli } from './fc.js';
@@ -58,7 +50,7 @@ import { pickStickRef } from './stickref.js';
 import { saveSettings, seatAirframe } from './settings.js';
 import { HUBS, OPEN_ACTIONS, WAYS, craftSvg, hubOfAction, hubWays, reticleSvg } from './ways.js';
 /* A cycle: ui.js installs this module. Read inside methods only. */
-import { ROOM_PARENTS, courseCardKey, seatIsRace, seatedFreestyleMap } from './ui.js';
+import { ROOM_PARENTS, seatedFreestyleMap } from './ui.js';
 import { logError } from '../share/crashrecord.js';
 
 /* ---- small shared steps ---- */
@@ -69,8 +61,6 @@ const tellShell = (ui) => { if (ui.onSettings) ui.onSettings(ui.settings); };
 
 /* Where Back goes after this press: a run paused behind the menus is kept. */
 const pauseOrTitle = (ui) => (ui.screen === 'paused' || ui.screen === 'quick' ? 'paused' : 'title');
-
-const noteOn = (node, text) => { node.textContent = text; };
 
 /* The credits page pins itself in the hash; show() would map the title
  * back onto it, so the pin goes before the screen does. */
@@ -111,7 +101,7 @@ function fcLeave(ui) {
 
 /* Screens a plain row opens. Opened from a room, Back returns to that
  * room; opened over a paused run, Back returns to the pause menu. */
-const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'friends', 'controls'];
+const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'freestyle', 'credits', 'friends', 'controls'];
 
 function openScreen(ui, screen) {
   ui.roomFrom = ROOM_PARENTS.has(ui.screen) && ui.screen !== screen ? ui.screen : null;
@@ -147,10 +137,6 @@ function answerGate(ui, way, picked, keepWorld) {
   tellShell(ui);
   ui.returnTo = 'title';
   ui.roomFrom = null;
-  if (way.mode === 'race') {
-    ui.show('courses');
-    return;
-  }
   const worlds = MAPS.filter((m) => m.mode === 'freestyle');
   const home = way.home && !keepWorld ? worlds.find((m) => m.id === way.home) : null;
   const seated = seatedFreestyleMap(ui.settings);
@@ -176,86 +162,6 @@ function answerGate(ui, way, picked, keepWorld) {
   } else {
     ui.seatMap(world.id);
   }
-}
-
-/* What a chosen course card's rows do, by kind of course. A cloud card
- * answers two of them; the rest are the library's and the board's. */
-const CARD_ROWS = {
-  'card-fly'(ui, card) {
-    const t = card.course.track;
-    ui.cardSubject = null;
-    if (card.course.kind === 'cloud') {
-      ui.seatCloud(t, () => ui.play());
-      return;
-    }
-    const go = () => ui.play();
-    if (card.course.kind === 'board') {
-      ui.openBoardCourse(t.id, go);
-    } else if (ui.seatLocal(t.id)) {
-      go();
-    }
-  },
-  'card-editcopy'(ui, card) {
-    if (card.course.kind === 'cloud') ui.editCloudCopy(card.course.track);
-  },
-  'card-edit'(ui, card) {
-    const t = card.course.track;
-    ui.openBuilder({ map: t.map, id: t.id });
-  },
-  'card-duplicate'(ui, card) {
-    ui.duplicateCard(card.course.track, card.course.kind === 'board');
-  },
-  'card-rename'(ui, card) {
-    const t = card.course.track;
-    ui.askForm({
-      title: str('ui.rename_this_track'),
-      confirmLabel: str('ui.rename'),
-      fields: [{ key: 'name', label: str('main.track_name'), value: t.name, maxLength: 80, placeholder: str('main.track_name') }],
-    }).then((values) => {
-      const doc = values && values.name ? loadMapTrack(t.id) : null;
-      if (!doc) return;
-      doc.name = values.name;
-      ui.storeCardChange(saveTrack(doc), `local:${doc.id}`);
-    });
-  },
-  'card-delete'(ui, card) {
-    const t = card.course.track;
-    ui.askConfirm({
-      title: str('ui.delete', { name: t.name }),
-      detail: tracksConfigured() ? str('cloud.delete_detail') : str('ui.this_browser_holds_the_only_copy'),
-      yes: str('ui.delete_label'),
-      no: str('ui.keep_it'),
-      danger: true,
-    }).then((ok) => {
-      if (!ok) return;
-      const seat = readShareImport();
-      if (seat && seat.id === t.id) {
-        clearShareImport();
-        ui.setShare(null);
-      }
-      ui.storeCardChange(deleteTrack(t.id), null);
-    });
-  },
-};
-const CLOUD_CARD_ROWS = new Set(['card-fly', 'card-editcopy']);
-
-/* Rows a cloud card does not offer are ignored on it. */
-function cardRow(ui, action, card) {
-  const row = CARD_ROWS[action];
-  if (!row || (card.course.kind === 'cloud' && !CLOUD_CARD_ROWS.has(action))) return;
-  row(ui, card);
-}
-
-/* The chosen card's rows, dispatched from act(): a subject that has gone
- * (deleted in another tab) closes the card's rows instead. */
-function onSubjectCard(ui, action) {
-  const card = ui.subjectCard();
-  if (!card) {
-    ui.cardSubject = null;
-    ui.renderMenu();
-    return;
-  }
-  ui.actOnCard(action, card);
 }
 
 /* Exact action names. Each handler ends the press unless it returns
@@ -328,44 +234,15 @@ const ACTIONS = {
     ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe));
   },
   feel(ui) { ui.openFeelReport(); },
-  /* The guided first flight launches straight past the launch card. */
-  firstflight(ui) {
-    ui.flown();
-    ui.guided = true;
-    tellShell(ui);
-    if (ui.onAction) ui.onAction('fly', ui.settings);
-  },
-  'card-back'(ui) {
-    ui.cardSubject = null;
-    ui.renderMenu();
-    ui.renderCourseCards();
-    ui.setCursor(ui.cardCursor());
-  },
-  'cloud-more'(ui) { ui.loadCloudCourses(true); },
-  newtrack(ui) { toggleNewTrack(ui, true); },
-  'newtrack-back'(ui) { toggleNewTrack(ui, false); },
   rooms(ui) { ui.show('rooms'); },
   roomnew(ui) { ui.show('roomnew'); },
   fly(ui) {
-    /* A plane too wide for the track's gates gives way to the racer on
-     * the way to the card, which says which machine the run counts for. */
-    ui.seatCraftForCourse();
     if (!ui.seatMatchesMode()) {
       ui.returnTo = pauseOrTitle(ui);
-      ui.show(ui.mode === 'freestyle' ? 'freestyle' : 'courses');
-      return undefined;
-    }
-    if (seatIsRace(ui.settings)) {
-      ui.returnTo = pauseOrTitle(ui);
-      ui.show('launch');
+      ui.show('freestyle');
       return undefined;
     }
     return FALL_THROUGH;
-  },
-  /* The launch card's own button: the shell has always launched on 'fly'. */
-  'launch-go'(ui) {
-    ui.flown();
-    if (ui.onAction) ui.onAction('fly', ui.settings);
   },
   rates(ui) {
     /* Reached from the Controller, Settings or Quad, Back returns there;
@@ -502,15 +379,6 @@ const ACTIONS = {
     ui.setCursor(ui.titleStop());
     ui.renderMenu();
   },
-  /* My tracks from a run or its results: the run ends as quitting to the
-   * title ends it, and the list opens on its newest card. */
-  mytracks(ui) {
-    ui.show('title');
-    if (ui.onAction) ui.onAction('title', ui.settings);
-    ui.returnTo = 'title';
-    ui.show('courses');
-    ui.setCursor(ui.firstStop(ui.items()));
-  },
   title(ui) {
     ui.show('title');
     return FALL_THROUGH;
@@ -542,17 +410,8 @@ for (const screen of SCREEN_ROWS) {
   ACTIONS[screen] = (ui) => openScreen(ui, screen);
 }
 
-function toggleNewTrack(ui, open) {
-  ui.newTrackOpen = open;
-  ui.renderMenu();
-  ui.setCursor(ui.firstStop(ui.items(), ui.rowOffset));
-}
-
 /* Action families named by prefix, with the rest of the name as the argument. */
 const PREFIXES = [
-  ['card-', onSubjectCard],
-  ['newtrack:', (ui, action, map) => { ui.newTrackOpen = false; ui.openBuilder({ map }); }],
-  ['casualtrack:', (ui, action, map) => { ui.newTrackOpen = false; ui.openBuilder({ map, casual: true }); }],
   ['friends-', (ui, action) => { if (ui.onFriends) ui.onFriends(action); }],
   /* A pilot in the room the pilot is in, visited straight from the
    * walkable hangar's command bar (src/ui/hangarwalk.js). */
@@ -619,12 +478,6 @@ const BACK_FROM = {
     } else {
       ui.act(ui.padPickReason === 'menu' ? 'padpick-cancel' : 'padpick-skip');
     }
-    return true;
-  },
-  /* Escape closes the chosen card's rows before it leaves the list. */
-  courses(ui) {
-    if (!ui.cardSubject) return false;
-    ui.act('card-back');
     return true;
   },
   results(ui) {
@@ -728,15 +581,6 @@ const ROW_KINDS = [
   /* Nothing to open and nothing to fire: say so rather than read as a
    * dead key. */
   [(ui, it) => it.adjust || it.step, (ui) => sound(ui, 'back')],
-  /* A course card is chosen, not pressed: its rows appear, the cursor
-   * on Fly it. Choosing another card moves to it. */
-  [(ui, it) => ui.screen === 'courses' && it.course, (ui, it) => {
-    ui.cardSubject = courseCardKey(it);
-    sound(ui, 'select');
-    ui.renderMenu();
-    ui.renderCourseCards();
-    ui.setCursor(ui.firstStop(ui.items(), ui.rowOffset));
-  }],
   [(ui, it) => it.hub && ui.onGate(), (ui, it) => {
     sound(ui, 'select');
     ui.openHub(it.hub);
@@ -911,7 +755,7 @@ export const actionMethods = {
     this.renderMenu();
   },
 
-  /* The one place a world or track becomes the seat: written, handed to
+  /* The one place a world becomes the seat: written, handed to
    * the shell (which swaps the world), and the pilot put back where the
    * choice was made, unless `stay` keeps them on the screen a room's
    * welcome seated from. */
@@ -926,8 +770,9 @@ export const actionMethods = {
     tellShell(this);
   },
 
-  /* The first launch ends the first visit. Stored, or the guided flight
-   * would be offered again next load. */
+  /* The first launch ends the first visit. Stored, or the first visit's
+   * welcome (the Fly with question, the title's first look) would be
+   * offered again next load. */
   flown() {
     if (!this.firstRun) return;
     this.firstRun = false;
@@ -939,83 +784,6 @@ export const actionMethods = {
    * no Fly row to guard. */
   seatMatchesMode() {
     if (this.mode === 'freestyle') return Boolean(seatedFreestyleMap(this.settings));
-    if (this.mode === 'race') return this.settings.map === 'track' && hasFlyableTrack();
     return true;
-  },
-
-  openBuilder({ map, id = null, casual = false }) {
-    if (!this.onBuild) return;
-    Promise.resolve(this.onBuild({ map, id, casual })).catch((e) => {
-      /* The one honest failure: the track was deleted in another tab
-       * since the list was read. The list is read again either way. */
-      logError('save', e);
-      noteOn(this.localNote, str('ui.that_track_is_no_longer_saved'));
-      this.loadLocalCourses();
-      this.renderMenu();
-    });
-  },
-
-  actOnCard(action, card) {
-    cardRow(this, action, card);
-  },
-
-  /* A copy under a new id, named as one, of the pilot's own track or of
-   * a board track fetched for it; the copy is theirs to edit and publish. */
-  duplicateCard(t, board) {
-    const keep = (doc) => {
-      const copy = duplicateTrack(normalize(doc).doc, str('ui.copy_of', { name: t.name }));
-      this.storeCardChange(saveTrack(copy), `local:${copy.id}`);
-    };
-    if (!board) {
-      const doc = loadMapTrack(t.id);
-      if (doc) keep(doc);
-      return;
-    }
-    noteOn(this.boardNote, str('ui.loading_2', { name: t.name }));
-    fetchTrackDocument(t.id, t.board)
-      .then((payload) => {
-        noteOn(this.boardNote, '');
-        keep(payload.document || payload);
-      })
-      .catch((err) => noteOn(this.boardNote, str('ui.could_not_be_loaded', { name: t.name, v2: err.message ?? err })));
-  },
-
-  /* After a card's row wrote the library: say if the browser refused,
-   * read the list again, and land on the card `key` names (the copy, the
-   * renamed track) or on the first card when it is gone. */
-  storeCardChange(ok, key) {
-    noteOn(this.localNote, ok ? '' : str('ui.this_browser_would_not_store_that'));
-    this.loadLocalCourses();
-    this.cardSubject = null;
-    this.lastCardKey = key;
-    this.renderMenu();
-    this.renderCourseCards();
-    this.setCursor(this.cardCursor());
-  },
-
-  /* Seat a board track through the shell, which owns the fetch, then
-   * `then`. One at a time: a second press while one loads is ignored. */
-  openBoardCourse(id, then = null) {
-    const track = (this.boardCourses || []).find((t) => t.id === id);
-    if (!track || this.openingBoardCourse) return;
-    const failed = (why) => {
-      this.openingBoardCourse = false;
-      noteOn(this.boardNote, why);
-    };
-    this.openingBoardCourse = true;
-    noteOn(this.boardNote, str('ui.loading_2', { name: track.name }));
-    if (!this.onBoardCourse) {
-      failed(str('ui.could_not_be_loaded_from_the', { name: track.name }));
-      return;
-    }
-    this.onBoardCourse(track).then((ok) => {
-      if (!ok) {
-        failed(str('ui.could_not_be_loaded_from_the', { name: track.name }));
-        return;
-      }
-      this.openingBoardCourse = false;
-      noteOn(this.boardNote, '');
-      if (then) then();
-    }).catch((err) => failed(str('ui.could_not_be_loaded', { name: track.name, v2: err.message ?? err })));
   },
 };

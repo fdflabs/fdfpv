@@ -523,10 +523,8 @@ console.log('the shell\'s producers');
 {
   const src = (rel) => readFileSync(join(root, rel), 'utf8');
   const ui = src('src/ui/progress-ui.js');
-  check('Progress logs a gate, a touch and a lap and pays only through the fold',
-    ui.includes("this.event('gate');\n    this.foldFlight();")
-    && ui.includes("touch(kind) {\n    this.event('touch', { kind });")
-    && ui.includes("this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });\n    this.foldFlight();"));
+  check('Progress logs a touch and pays only through the fold',
+    ui.includes("touch(kind) {\n    this.event('touch', { kind });"));
   check('and nothing in it pays an achievement but awardFlight',
     !/award(Lap|Medal|Challenge|Place|Firsts|Bests|Best|AircraftChallenges?)\(/.test(ui) && (ui.match(/awardFlight\(/g) || []).length === 1);
   check('a new seat is logged, with the crash flag the shell seats it with',
@@ -540,8 +538,6 @@ console.log('the shell\'s producers');
   check('a spawn starts a flight', /function resetCraft[\s\S]*?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
   check('so does a developer hook putting the craft somewhere, so no lap across it is a best',
     /devHooks\.__placeCraft = [\s\S]{0,1600}?ui\.progress\.startFlight\(simTimeMs/.test(src('src/main.js')));
-  check('a lap carries its course and its place in a solo run',
-    src('src/main.js').includes("n: race.lap,\n          of: runLaps,"));
   check('a mission result is logged', src('src/ui/campaign.js').includes("ui.progress.event('mission_end'")
     && src('src/ui/opscampaign.js').includes("ui.progress.event('mission_end'"));
   const missionLogged = (file, type) => new RegExp(`ui\\.progress\\.event\\('${type}', \\{[^}]*airframe: ui\\.progress\\.airframe,?\\s*\\}\\);\\n\\s*ui\\.progress\\.foldFlight\\(\\);`).test(src(file));
@@ -553,19 +549,8 @@ console.log('the shell\'s producers');
     src('src/main.js').includes("if (ev.type === 'dead' && ev.kills.length) {\n        ui.progress.killed(ev.kills, v.mission ?? null);")
     && ui.includes("this.event('kill', { airframe: this.airframe, victim: k.kind, mission });"));
   const main = src('src/main.js');
-  check('a lap voided is logged with its reason when race.js kept a row for it, at every void',
-    main.includes("const rows = race.log.length;\n    race.voidLap(str(key), wallMs);\n    if (race.log.length > rows) {\n      ui.progress.lapVoid(null, reason);")
-    && !/race\.voidLap\(/.test(main.replace('race.voidLap(str(key), wallMs);', ''))
-    && ['wreck', 'swap', 'weight', 'replay'].every((r) => main.includes(`voidRaceLap('${r}', `)));
-  check('a builder\'s test flight lap off a casual track, which Progress does not count, is logged with its time',
-    main.includes("noteBuilderLap(race.lastLapMs);\n      /* Progress counts none off a casual track; the debrief still reads\n       * it from the log (src/game/events.js lap_void). */\n      if (!ui.progress.isCasual(build.docId)) {\n        ui.progress.lapVoid(race.lastLapMs, 'test');")
-    && main.includes("if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {"));
-  check('and a voided lap is not folded and pays nothing: Progress only logs it',
-    ui.includes("lapVoid(ms, reason) {\n    this.event('lap_void', { ms, reason });\n  }"));
   check('an Interior match\'s result is logged before its debrief shows, and the debrief reads the run\'s log',
     /interiorScreen\.record\(match, v\);\n\s*debrief\.show\(\{[\s\S]{0,400}?events: ui\.progress\.runEvents\(\),\n\s*match: matchOf\(match, v\),/.test(main));
-  check('so does a race\'s',
-    main.includes('events: ui.progress.runEvents().slice(raceLogAt),'));
   check('the avionics camera\'s primary track is told every perception frame, and none without the Avionics HUD',
     src('src/main.js').includes('ui.progress.contact(heldTrack(tracks.snapshot));') && src('src/main.js').includes("avionicsHud.tick(false, paused, nowWall, null);\n      ui.progress.contact(null);"));
 }

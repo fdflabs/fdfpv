@@ -65,9 +65,9 @@
  *                   (src/input/stickstore.js)
  *   aircraft        a build saved, renamed or deleted (Ui.storeBuild and
  *                   Ui.removeBuild, src/ui/ui.js, into src/ui/builds.js)
- *   records         a new best lap, never an equal or slower one
- *                   (src/game/race.js), a better one from the account
- *                   (keepRecords, src/share/records.js)
+ *   records         a better one from the account (keepRecords,
+ *                   src/share/records.js); the race that wrote a new
+ *                   best lap left with the combat-only cut, 2026-10-20
  *   player          the name set (src/share/pilot.js), the language
  *                   chosen (src/share/sharedkeys.js)
  *   this module     the version, the backups and the quarantine, once per

@@ -98,7 +98,7 @@ function pagesServer(site) {
           await new Promise((r) => setTimeout(r, site.slowMs));
         }
         body = Buffer.from(`${JSON.stringify({ version })}\n`);
-      } else if (rel.endsWith('.html') && site.stamped && ['index.html', 'src/share/orbit.html'].includes(rel)) {
+      } else if (rel.endsWith('.html') && site.stamped && ['index.html'].includes(rel)) {
         body = Buffer.from(stampPage(root, rel, site.version).html);
       } else {
         const path = join(root, rel);

@@ -8,10 +8,9 @@
  * The middle of boot() in src/main.js, from the peer marks to the start
  * pose, is a run of small decisions that no other check reads as a
  * whole: the graphics preset a detected GPU lowers, a map named in the
- * address, the record line while the title shows its own world, a board
- * link's track and chase (?share=&ghost=), the online row of the loading
- * screen, the thumb sticks' pause and aircraft buttons, the words the
- * stats beacon carries, the activity a flight is filed under, a resize
+ * address, the record line while the title shows its own world, the
+ * thumb sticks' pause and aircraft buttons, the words the stats beacon
+ * carries, the activity a flight is filed under, a resize
  * applied once a frame, and the movie export's surface; and past the
  * motor audio, the music dock's skip, the tune boot flies and its fall
  * back to the first tune, what the PIDs screen is handed, and the floor
@@ -19,9 +18,9 @@
  * boots the real page and records what those decisions left behind, as
  * plain values, so a rewrite that decides one differently shows here.
  *
- * The board is a stub served by this script: it answers one track, its
- * times and its ghost, and 404s everything else, and every path asked of
- * it is recorded.
+ * A board link's track and chase (?share=&ghost=) and the loading
+ * screen's online row were scenarios here until they left with the track
+ * builder and the race (the combat-only cut, 2026-10-20).
  *
  * Browser: run it through ~/.cache/run-check.sh.
  *
@@ -41,7 +40,6 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createServer } from 'node:http';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,38 +54,6 @@ const RECORD = join(root, 'tests', 'fixtures', 'boot-wiring-golden.json');
 const WAIT = 300000;
 const recording = process.argv.includes('--record');
 const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice('--only='.length);
-
-const TRACK_DOC = JSON.parse(readFileSync(join(root, 'tests', 'fixtures', 'map-track-v4.json'), 'utf8'));
-const TRACK_ID = 'trk-golden01';
-const TIME_ID = 'tm-0123abcd';
-
-/* The stub board. Paths are kept in the order asked, deduplicated later. */
-const asked = [];
-const board = createServer((req, res) => {
-  const path = req.url.split('?')[0];
-  asked.push(`${req.method} ${path}`);
-  const send = (code, body) => {
-    res.writeHead(code, {
-      'content-type': 'application/json',
-      'access-control-allow-origin': '*',
-      'access-control-allow-headers': '*',
-    });
-    res.end(JSON.stringify(body));
-  };
-  if (req.method === 'OPTIONS') {
-    send(204, {});
-  } else if (path === `/api/tracks/${TRACK_ID}/document`) {
-    send(200, { id: TRACK_ID, name: 'Golden', author: 'stub', document: TRACK_DOC });
-  } else if (path === `/api/tracks/${TRACK_ID}`) {
-    send(200, { id: TRACK_ID, times: [{ id: TIME_ID, name: 'stub', lapMs: 61234, hasGhost: true, craft: '' }] });
-  } else {
-    send(404, { error: 'not here' });
-  }
-});
-await new Promise((done) => {
-  board.listen(0, '127.0.0.1', done);
-});
-const BOARD = `http://127.0.0.1:${board.address().port}`;
 
 /* A renderer string the page will read as its GPU's, through the debug
  * extension readGpuInfo asks first. */
@@ -152,7 +118,7 @@ const READ_SETTINGS = (keys) => `(() => {
   return { live: pick(s), stored: pick(stored) };
 })()`;
 
-const ROWS = `(() => Object.fromEntries(['sys-online', 'sys-physics', 'sys-flight', 'sys-audio'].map((id) => {
+const ROWS = `(() => Object.fromEntries(['sys-physics', 'sys-flight', 'sys-audio'].map((id) => {
   const n = document.getElementById(id);
   return [id, n && n.parentElement ? n.parentElement.dataset.state || '' : '<none>'];
 })))()`;
@@ -279,74 +245,10 @@ SCENARIOS['url-map'] = async () => {
   }
 };
 
-/* A BOARD LINK: the track is fetched and seated before the world is built,
- * the online row says ready, and its chase is fetched and armed once the
- * course's times are known. The flight is filed as a race. */
-SCENARIOS['share-ghost'] = async () => {
-  asked.length = 0;
-  const page = await boot({
-    url: `/index.html?share=${TRACK_ID}&ghost=${TIME_ID}&board=${encodeURIComponent(BOARD)}`,
-    seed: [settingsSeed({ map: 'alps' })],
-  });
-  try {
-    const before = await page.evaluate(READ_SETTINGS(['map']));
-    await hop(page);
-    await page.until(`window.__ghost().choice === 'board:${TIME_ID}'`, 30000).catch(() => {});
-    return {
-      settings: before,
-      seat: await page.evaluate("(() => { const s = JSON.parse(localStorage.getItem('webfpv.share.import.v1') || 'null'); return s ? { id: s.id, name: s.name, board: s.board === " + JSON.stringify(BOARD) + ', map: s.document && s.document.map } : null; })()'),
-      rows: await page.evaluate(ROWS),
-      ghost: await page.evaluate('window.__ghost().choice'),
-      view: await page.evaluate('({ id: window.__map().id, mode: window.__map().mode, gates: window.__map().gates })'),
-      filed: await page.evaluate(FILED),
-      asked: [...new Set(asked)].filter((p) => p.includes('/api/tracks')).sort(),
-    };
-  } finally {
-    await page.close();
-  }
-};
-
-/* A chase id that is not a board time id is never asked for. */
-SCENARIOS['share-bad-ghost'] = async () => {
-  asked.length = 0;
-  const page = await boot({
-    url: `/index.html?share=${TRACK_ID}&ghost=tm-NOTHEX!&board=${encodeURIComponent(BOARD)}`,
-    seed: [settingsSeed({ map: 'alps' })],
-  });
-  try {
-    await fly(page);
-    await page.sleep(3000);
-    return {
-      ghost: await page.evaluate('window.__ghost().choice'),
-      asked: [...new Set(asked)].filter((p) => p.includes('/api/tracks')).sort(),
-    };
-  } finally {
-    await page.close();
-  }
-};
-
-/* A board link to a track the board does not have: the online row fails
- * and the banner says why, and the seat is left as it was. */
-SCENARIOS['share-missing'] = async () => {
-  const page = await boot({
-    url: `/index.html?share=trk-missing0&board=${encodeURIComponent(BOARD)}`,
-    seed: [settingsSeed({ map: 'alps' })],
-  });
-  try {
-    return {
-      settings: await page.evaluate(READ_SETTINGS(['map'])),
-      rows: await page.evaluate(ROWS),
-      banners: await page.evaluate('window.__goldenBanners.slice(0, 1)'),
-    };
-  } finally {
-    await page.close();
-  }
-};
-
-/* THE STATS BEACON's words: the Track seat is spelled 'custom' for the
- * board, the input is the keyboard here, and the flight is free flight. */
+/* THE STATS BEACON's words: the world flown, the input (the keyboard
+ * here) and the flight, which is free flight. */
 SCENARIOS.stats = async () => {
-  const page = await boot({ url: '/index.html', seed: [settingsSeed({ map: 'track' })] });
+  const page = await boot({ url: '/index.html', seed: [settingsSeed({ map: 'swiss2' })] });
   try {
     await hop(page);
     await page.evaluate("window.dispatchEvent(new Event('pagehide')); true");
@@ -540,7 +442,6 @@ for (const [name, run] of Object.entries(SCENARIOS)) {
     console.log(`ok: ${name} (${secs} s)`);
   }
 }
-board.close();
 if (recording) {
   const merged = only && existsSync(RECORD) ? { ...JSON.parse(readFileSync(RECORD, 'utf8')), ...got } : got;
   writeFileSync(RECORD, `${JSON.stringify(merged, null, 1)}\n`);

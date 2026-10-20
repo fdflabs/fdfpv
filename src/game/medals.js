@@ -1,18 +1,14 @@
 /*
- * medals.js: bronze, silver and gold on a built course
- * (docs/FLIGHTCLUB-PROGRESSION.md section 2).
+ * medals.js: the bronze, silver and gold a pilot's progress holds per
+ * course (docs/FLIGHTCLUB-PROGRESSION.md section 2): the steps, which of
+ * two is better, and which steps a new one reaches.
  *
- * A course document carries one number, `medals.goldMs`: its builder's
- * own best lap on that layout, written when the course is published
- * (src/main.js publishBuiltTrack). Silver and bronze are fixed ratios of
- * it, worked out where they are read, so the three can never disagree and
- * no other pilot's time ever moves them. A course without the key has no
- * medals.
- *
- * A course has two boards, quads and fixed wings (the board's plane board),
- * and a plane's lap is no measure of a quad's. So the medals carry which
- * board set them, `wing: true` when a fixed wing flew the gold, and a lap
- * flown on the other kind reaches none.
+ * The course documents that carried a gold time, the laps that reached a
+ * medal and the publish that set one left with the track builder and the
+ * race (the combat-only cut, 2026-10-20). What stays is the vocabulary of
+ * the medals already in pilots' progress: the merge on the server
+ * (src/share/progressmerge.js), the pay per step (src/game/progress.js)
+ * and the pilot's stats read it.
  *
  * Pure: no DOM, no storage, so the progress merge on the server and the
  * selftest read the same rules.
@@ -34,40 +30,6 @@
  */
 
 export const MEDAL_STEPS = ['bronze', 'silver', 'gold'];
-/* Gold is the builder's own pace; silver and bronze are that pace with
- * room for a pilot meeting the course for the first time. */
-const RATIO = { gold: 1, silver: 1.15, bronze: 1.35 };
-const LAP_MAX_MS = 3_600_000;
-
-/* A stored medals entry made safe: { goldMs, wing? } or null. `wing` is
- * written only when true, so a quad's medals read as they always did. */
-export function cleanMedals(raw) {
-  const n = Number(raw && raw.goldMs);
-  if (!Number.isInteger(n) || n < 1 || n > LAP_MAX_MS) {
-    return null;
-  }
-  return raw.wing === true ? { goldMs: n, wing: true } : { goldMs: n };
-}
-
-/* The three times, gold first, rounded up to the ms; null without medals. */
-export function medalTimes(medals) {
-  const m = cleanMedals(medals);
-  if (!m) {
-    return null;
-  }
-  return { gold: m.goldMs, silver: Math.ceil(m.goldMs * RATIO.silver), bronze: Math.ceil(m.goldMs * RATIO.bronze) };
-}
-
-/* The best medal a lap reaches, or null. Equal to a time reaches it.
- * `wing` is whether a fixed wing flew the lap. */
-export function medalFor(medals, lapMs, wing = false) {
-  const times = medalTimes(medals);
-  if (!times || !Number.isFinite(lapMs) || lapMs <= 0 || Boolean(medals.wing) !== Boolean(wing)) {
-    return null;
-  }
-  return [...MEDAL_STEPS].reverse().find((step) => lapMs <= times[step]) ?? null;
-}
-
 const rank = (m) => MEDAL_STEPS.indexOf(m);
 
 /* The better of two medals, either possibly absent. */
@@ -79,28 +41,4 @@ export function betterMedal(a, b) {
  * medal pays for (src/game/progress.js awardMedal). */
 export function newSteps(before, now) {
   return MEDAL_STEPS.slice(rank(before) + 1, rank(now) + 1);
-}
-
-/*
- * The medals a course is published with. `held` is what the document
- * carries, `layout` the layout being published (src/share/listing.js
- * layoutFingerprint), `publishedLayout` the layout last published from
- * this browser, and `flown` the builder's best test lap, { layout, ms,
- * wing }, or null. Gold is the builder's best lap on THIS layout: a test
- * lap on it, or the held gold if the layout is the one it was set on and
- * the same kind of aircraft flew it, whichever is faster; a test lap on
- * the other kind replaces it. A layout nobody has lapped since it changed
- * gets no medals, so a medal time never belongs to another course.
- */
-export function publishMedals(held, layout, publishedLayout, flown) {
-  const lap = flown && flown.layout === layout && Number.isFinite(flown.ms) ? flown : null;
-  let kept = publishedLayout === layout ? cleanMedals(held) : null;
-  if (kept && lap && Boolean(kept.wing) !== Boolean(lap.wing)) {
-    kept = null;
-  }
-  const best = Math.min(kept ? kept.goldMs : Infinity, lap ? Math.round(lap.ms) : Infinity);
-  if (!Number.isFinite(best)) {
-    return null;
-  }
-  return cleanMedals({ goldMs: best, wing: lap ? Boolean(lap.wing) : Boolean(kept.wing) });
 }

@@ -6,8 +6,7 @@
  * until they rest, then a clear when they start again. The room passes
  * each on to the others and keeps the newest crash and PARTS per seat, in
  * the seat's attachment, so a pilot who joins while a wreck lies on the
- * field sees it there, and a hibernation does not lose it. A whack on a
- * jelly piece is passed on and kept nowhere.
+ * field sees it there, and a hibernation does not lose it.
  *
  * Each function takes the RoomCore and returns core actions (see core.js).
  *
@@ -28,7 +27,7 @@
  */
 
 import {
-  CRASH_EVENT_MAX_BYTES, checkCrashTable, checkWhack, isParts, relayParts,
+  CRASH_EVENT_MAX_BYTES, checkCrashTable, isParts, relayParts,
 } from '../../src/share/roomwire.js';
 
 /* The owner sends at 10 Hz; a little over, and the rest are dropped. */
@@ -61,11 +60,6 @@ export function onCrash(core, conn, s, msg) {
   }
   s.wreck = { crash: text, parts: null };
   return [{ attach: conn, value: core.attachmentOf(s) }, ...core.others(conn, text)];
-}
-
-export function onWhack(core, conn, s, msg) {
-  const w = checkWhack(msg);
-  return w ? core.others(conn, JSON.stringify({ type: 'event', kind: 'whack', seat: s.seat, ...w })) : [];
 }
 
 /* A PARTS frame: kept as the wreck's newest and passed on. Only after a

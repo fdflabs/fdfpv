@@ -46,10 +46,7 @@ const SKIP_DIRS = new Set(['node_modules', '.git', '.claude', 'vendor', 'dist', 
 
 /* Not scanned, and why. */
 const EXCUSED = new Map([
-  ['src/share/ghostdata.js', 'wire format; its errors travel to the board and the log, not the pilot'],
   ['src/share/identity.js', 'wire format; verified by the board'],
-  ['src/game/verify.js', 'runs on the board; its refusal reasons are the board\'s to translate'],
-  ['src/game/race.js', 'runs on the board too; its flash text is composed on the OSD'],
   ['src/game/tricks.js', 'trick proper names stay as they are in every language'],
   ['src/game/tricks-sheet.js', 'GENERATED from the workbook: trick proper names, and difficulty ids that trickLevel turns into words'],
   ['src/ui/fc.js', 'Betaflight field names are the firmware\'s, not ours to translate'],

@@ -37,7 +37,6 @@
 
 import { str } from '../strings/index.js';
 import { touchWanted } from '../input/touchsticks.js';
-import { tracksConfigured } from '../share/cloud.js';
 import { WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP } from './settings.js';
 import {
   btn, el, hintWithKeys, makeGimbal, makeWeightSlider, wordmark,
@@ -170,7 +169,7 @@ export function buildFlightOverlay(shell) {
   shell.osdSticks = sticks;
   shell.bindAirSlider();
 
-  shell.osd.append(head, left, right, sticks, launch, shell.buildTargetLock());
+  shell.osd.append(head, left, right, sticks, launch);
   root.append(shell.osd);
 }
 
@@ -280,24 +279,6 @@ function howtoRig(shell) {
 }
 
 
-/*
- * My tracks' strip: the pilot's track cards first, the board's after, and
- * one line each for an empty list and for what the board said.
- * mapCardHost is made for the Freestyle room's world cards
- * (renderMapCards) and never placed here.
- */
-function courseStrip(shell) {
-  shell.mapCardHost = el('div', 'map-cards');
-  const strip = keep(shell, 'courseStrip', 'div', 'card-strip');
-  strip.append(
-    el('div', 'strip-label', tracksConfigured() ? str('cloud.strip_label') : str('ui.yours_first_then_the_board_most')),
-    keep(shell, 'courseCardHost', 'div', 'map-cards course-cards'),
-    keep(shell, 'localNote', 'div', 'board-note', ''),
-    keep(shell, 'boardNote', 'div', 'board-note', ''),
-  );
-  return strip;
-}
-
 /* The airframe showcase, seated in the first column of Quad's menu. */
 function quadShowcase(shell) {
   const frame = keep(shell, 'craftQuadFrame', 'div', 'craft-showcase-frame');
@@ -349,18 +330,6 @@ const PAGES = {
     },
     menu: 'credits',
     hint: ESC_STILL_MOVE,
-  },
-  /* Which aircraft the list is for is said in the lede, written by
-   * items(): a plane sees only the tracks it fits. */
-  courses: {
-    classes: 'screen-page screen-maps screen-courses',
-    title: 'ui.my_tracks',
-    lede: ['screen-lede', null],
-    ledeField: 'coursesLede',
-    body: (shell) => [courseStrip(shell)],
-    menu: 'courses',
-    scroll: true,
-    hint: [['↑↓', 'Enter', 'Esc'], 'ui.arrow_keys_move_enter_chooses_escape'],
   },
   /* The world cards and their rows; nothing here is timed or posted, so
    * there is no publish cluster and no hint line. */
@@ -453,17 +422,6 @@ const PAGES = {
     menu: (shell, block) => { shell.roomPages.roomnew = block; },
     scroll: true,
     hint: ESC_STORED,
-  },
-  /* Laps, pack charge and flight model belong to the run, they are what a
-   * lap time means (recordKey), so they are asked here, before a race. */
-  launch: {
-    classes: 'screen-page screen-launch',
-    title: 'ui.before_you_fly',
-    lede: ['rates-lede', null],
-    ledeField: 'launchLede',
-    menu: 'launch',
-    scroll: true,
-    hint: [['Enter', 'Esc'], 'ui.enter_flies_it_escape_goes_back'],
   },
   /* The rates curve beside the rows, from the numbers Betaflight flies. */
   rates: {
@@ -765,7 +723,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'launch', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
+  ...['howto', 'credits', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,

@@ -411,11 +411,6 @@ async function record(cfg) {
     if (p.pastGate) {
       await page.evaluate(`(() => { const ui = window.__ui; ui.firstRun = false; ui.craftGate = false; ui.mode = ${JSON.stringify(p.pastGate)}; return true; })()`);
     }
-    /* The world cards' reels start after 900 ms of quiet and draw a
-     * countdown while they capture, so what they show depends on how fast
-     * the walk went. They are kept off; their rules are pinned by text
-     * instead (SHEET). */
-    await page.evaluate("(() => { const ui = window.__ui; ui.armReels = () => {}; ui.startReels = () => {}; if (ui.stopReels) { ui.stopReels(); } clearTimeout(ui.reelRestart); ui.reelRestart = null; return true; })()");
     got['@sheet'] = await page.evaluate(SHEET);
     const names = await page.evaluate('Object.keys(window.__ui.screens).sort()');
     /* One throwaway pass over the first screen: on a phone the first

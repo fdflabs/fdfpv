@@ -61,7 +61,6 @@ import { MISSIONS as WAR_MISSIONS } from '../src/share/war/missions/index.js';
 import { FILMS as WAR_FILMS } from '../src/share/war/films/index.js';
 import { MISSIONS as OPS_MISSIONS } from '../src/share/ops/missions.js';
 import { FILMS as INTERIOR_FILMS } from '../src/share/interior/films/index.js';
-import { COURSES } from './itaipu-courses.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -159,13 +158,6 @@ const ROWS = [
     entries: MAPS.filter((m) => m.poster).map((m) => basename(m.poster)),
     support: {}, complete: true,
     checks: [],
-  },
-  {
-    kind: 'tracks', where: 'docs/itaipu-courses/', owner: 'scripts/itaipu-courses.js',
-    files: filesIn('docs/itaipu-courses'),
-    entries: COURSES.map((c) => c.file),
-    support: {}, complete: true,
-    checks: ['itaipu:courses', 'track:golden', 'world:spawns'],
   },
   {
     kind: 'missions', where: 'src/share/war/missions/', owner: 'src/share/war/missions/index.js',
@@ -289,7 +281,6 @@ const CONTROLS = [
   ['a world module no loader imports', 'src/maps/', (r) => { r.files.push('yellowstone.js'); }],
   ['a world folder for no world', 'src/maps/<id>/', (r) => { r.files.push('yellowstone'); }],
   ['a poster for no world', 'assets/posters/', (r) => { r.files.push('yellowstone.jpg'); }],
-  ['a course the generator does not write', 'docs/itaipu-courses/', (r) => { r.files.push('dam-sprint.json'); }],
   ['a mission file the registry does not import', 'src/share/war/missions/', (r) => { r.files.push('itaipu-7'); }],
   ['a registered mission with no file', 'src/share/interior/missions/', (r) => { r.files = r.files.filter((f) => f !== 'interior-2'); }],
   ['a film the registry does not import', 'src/share/war/films/', (r) => { r.files.push('night-raid'); }],

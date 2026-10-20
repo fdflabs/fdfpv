@@ -33,25 +33,21 @@
 
 import { MAPS, mapById } from '../maps/registry.js';
 import { MENU_TRACKS } from '../render/tracks.js';
-import { planesFor } from '../game/verify.js';
-import { TRACK_SYNC_EVENT } from '../share/cloud.js';
-import { airframeById, DEFAULT_AIRFRAME } from '../../configs/airframes.js';
 import { normaliseStickMode, stickCaption } from '../input/stickmode.js';
 import { accountsAvailable, mayPlay } from '../share/account.js';
 import { readAccount } from '../share/pilot.js';
-import { activeCourseSummary } from '../share/summary.js';
 import { str } from '../strings/index.js';
-import { DEFAULTS, saveSettings, seatAirframe } from './settings.js';
+import { DEFAULTS, saveSettings } from './settings.js';
 import { choice } from './rows.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { el, keyHowtoRows, placeSticks, thrNote } from './widgets.js';
 import { SCREEN_TITLES, Ui, craftItem, seatedFreestyleMap } from './ui.js';
 
-/* Both pickers lay their choices out as cards above the rows. The title
- * is not here because it is a card screen only on the gate: Ui.cardScreen
- * is the predicate that knows both. */
+/* The Freestyle picker lays its choices out as cards above the rows. The
+ * title is not here because it is a card screen only on the gate:
+ * Ui.cardScreen is the predicate that knows both. */
 export function isCardScreen(screen) {
-  return screen === 'courses' || screen === 'freestyle';
+  return screen === 'freestyle';
 }
 
 /* Redraw the menu if the pilot is looking at one of these screens. */
@@ -271,12 +267,6 @@ function repairCursorForBars(ui) {
 const dialogUp = (ui) => Boolean(ui.nameDialog) && !ui.nameDialog.hidden;
 
 export const sessionMethods = {
-  /* The published course this run is flying, or null. */
-  setShare(share) {
-    this.share = share || null;
-    redrawOn(this, ['title', 'courses', 'results']);
-  },
-
   /* The Fly with friends row, only where the shell has a rooms server to
    * offer (src/share/rooms.js roomsOrigin): a page with no server gets no
    * row rather than one that can only fail. */
@@ -562,36 +552,6 @@ export const sessionMethods = {
     return this.screen !== 'flight';
   },
 
-  /* Seat an aircraft that may race the seated track, for Fly. */
-  seatCraftForCourse() {
-    if (this.settings.map !== 'track') {
-      return null;
-    }
-    const seat = activeCourseSummary();
-    return seat && seat.doc ? this.seatCraftForDoc(seat.doc) : null;
-  },
-
-  /*
-   * If the seated aircraft may not race this track, seat one that may and
-   * return it; null when nothing moved. Every quad may, and every fixed
-   * wing that fits every gate (src/game/verify.js planesFor); a plane that
-   * does not fit gives way to the racer, DEFAULT_AIRFRAME. The boot path
-   * calls this with a track that arrived by link before anything reads a
-   * seat, because the link filed it under the aircraft flying when it
-   * arrived and the pilot has to land in the seat that holds it.
-   */
-  seatCraftForDoc(doc) {
-    const have = airframeById(this.settings.airframe);
-    if (!doc || !have.fixedWing || planesFor(doc).includes(have.id)) {
-      return null;
-    }
-    const want = airframeById(DEFAULT_AIRFRAME);
-    seatAirframe(this.settings, want.id);
-    this.settings.airframeAsked = true;
-    this.writeSettings();
-    return want;
-  },
-
   /* What the title's Escape hint names: the gate it lands on. The
    * destination rather than Back, see legendFor. */
   gateLabel() {
@@ -645,19 +605,12 @@ export function wireFcSession(ui) {
 }
 
 /*
- * The page events the session answers for its whole life. A track going
- * online, or failing to, while My tracks is open redraws its card. Tab is
- * the swap key in flight and a key of the pickers', so there it must not
- * walk the browser's focus; everywhere else the rows and cards are tab
- * stops. A press outside an open drop-down closes it.
+ * The page events the session answers for its whole life. Tab is the swap
+ * key in flight and a key of the pickers', so there it must not walk the
+ * browser's focus; everywhere else the rows and cards are tab stops. A
+ * press outside an open drop-down closes it.
  */
 export function watchSessionEvents(ui) {
-  window.addEventListener(TRACK_SYNC_EVENT, () => {
-    if (ui.screen === 'courses') {
-      ui.loadLocalCourses();
-      ui.renderCourseCards();
-    }
-  });
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Tab' && (ui.screen === 'flight' || ui.carousel.isOpen || ui.hangar.isOpen)) {
       e.preventDefault();

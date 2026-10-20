@@ -553,10 +553,6 @@ export function createRoomBrowser({
     act(action) {
       if (action.startsWith(WATCH_ACTION)) {
         joined = action.slice(WATCH_ACTION.length);
-        /* A watcher flies at its welcome, straight from this panel: a
-         * card's reel still recording would hold the world still under it
-         * (src/ui/cards.js reelFreezeWorld). */
-        ui.stopReels();
         link.join(joined, { watch: true });
         ui.show('friends');
         return true;

@@ -9,7 +9,6 @@ render.yaml
 scripts/craft-check.js
 scripts/icons.js
 src/game/airframehull.js
-src/game/verify.js
 src/main.js
 src/maps/build-cost.js
 src/maps/registry.js
