@@ -215,7 +215,8 @@ export function validId(id) {
 /* Why a pilot in a room sends no poses, in their profile, so the others can
  * say it beside the name (rooms.away_*): paused, a menu, a hidden tab, a
  * world loading, the crash cam, or gone into the field's hangar on foot
- * (FOOT below; their parked aircraft still sends). Absent while flying.
+ * (sent until the pilot on foot left in the combat-only cut, 2026-10-20;
+ * a tab from before it may still say it). Absent while flying.
  * Append only: a room server that does not know one drops it. */
 export const ROOM_STATUSES = ['paused', 'menu', 'hidden', 'loading', 'crashcam', 'hangar'];
 
@@ -532,94 +533,10 @@ export function checkCrashTable(table) {
   return out;
 }
 
-/* ------------------------------------------------------------------ */
-/* The pilot on foot (docs/ON-FOOT.md): types 0x40 to 0x41. */
-
-/*
- * FOOT, 0x40, client to room, where the pilot stands, FOOT_BYTES long:
- *
- *   u8     type 0x40
- *   u8     flags, FOOT_ON (out of the aircraft, walking or standing) and
- *          FOOT_HANGAR (inside the hangar, gone through its door)
- *   f32x3  the feet, scene world metres (y up, the POSE's frame)
- *   i16    heading, clockwise from -z seen from above as the walk's
- *          (src/game/onfoot.js), pi at 32767
- *
- * Sent at FOOT_HZ while on foot or in the hangar, and once a second while
- * flying from a spot the pilot walked to, so the others draw the figure
- * where the pilot stands; nothing while the pilot stands where every pilot
- * starts (the station, src/game/slots.js), which a receiver falls back to
- * when FOOT stops. No clock: a figure is eased to the newest, which at a
- * walk's 1.4 m/s is 14 cm a sample. FOOT_RELAY, 0x41, room to client, is
- * the same message with the sender's seat inserted after the type byte.
- * The hangar's inside is drawn from each pilot's own data and never sent.
- */
-export const TYPE_FOOT = 0x40;
-export const TYPE_FOOT_RELAY = 0x41;
-export const FOOT_BYTES = 16;
-export const FOOT_HZ = 10;
-export const FOOT_ON = 1;
-export const FOOT_HANGAR = 2;
-const FOOT_FLAGS = FOOT_ON | FOOT_HANGAR;
-/* m: the furthest a pilot stands from the world's origin, or above or
- * under it; every map fits well inside (the biggest is a few km). */
-export const FOOT_REACH_M = 50000;
-const HEADING_SCALE = 32767 / Math.PI;
-
-/* { flags, x, y, z, heading } to bytes. */
-export function encodeFoot(f) {
-  const bytes = new Uint8Array(FOOT_BYTES);
-  const v = new DataView(bytes.buffer);
-  v.setUint8(0, TYPE_FOOT);
-  v.setUint8(1, f.flags & FOOT_FLAGS);
-  v.setFloat32(2, f.x, true);
-  v.setFloat32(6, f.y, true);
-  v.setFloat32(10, f.z, true);
-  const h = Math.atan2(Math.sin(f.heading), Math.cos(f.heading));
-  v.setInt16(14, clampInt(h * HEADING_SCALE, -32767, 32767), true);
-  return bytes;
-}
-
-/* Whether bytes are a well formed FOOT from a client: its length, only
- * the flags there are, and a place inside FOOT_REACH_M. */
-export function isFoot(bytes) {
-  if (!bytes || bytes.byteLength !== FOOT_BYTES || bytes[0] !== TYPE_FOOT || (bytes[1] & ~FOOT_FLAGS) !== 0) {
-    return false;
-  }
-  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  for (const at of [2, 6, 10]) {
-    const x = v.getFloat32(at, true);
-    if (!Number.isFinite(x) || Math.abs(x) > FOOT_REACH_M) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/* The relayed form: the seat after the type byte. */
-export function relayFoot(seat, bytes) {
-  const out = new Uint8Array(FOOT_BYTES + 1);
-  out[0] = TYPE_FOOT_RELAY;
-  out[1] = seat;
-  out.set(bytes.subarray(1, FOOT_BYTES), 2);
-  return out;
-}
-
-/* { seat, flags, x, y, z, heading }, or null. */
-export function decodeFootRelay(bytes) {
-  if (!bytes || bytes.byteLength !== FOOT_BYTES + 1 || bytes[0] !== TYPE_FOOT_RELAY) {
-    return null;
-  }
-  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  return {
-    seat: v.getUint8(1),
-    flags: v.getUint8(2),
-    x: v.getFloat32(3, true),
-    y: v.getFloat32(7, true),
-    z: v.getFloat32(11, true),
-    heading: v.getInt16(15, true) / HEADING_SCALE,
-  };
-}
+/* Types 0x40 and 0x41 were the pilot on foot's FOOT and FOOT_RELAY until
+ * the pilot on foot left in the combat-only cut (2026-10-20): never reuse
+ * them, a tab from before it may still send one (the room drops it as a
+ * malformed pose, edge/rooms/core.js pose). */
 
 /*
  * PHASE 5, SAFETY (docs/MULTIPLAYER-PLAN.md section 9). No free text

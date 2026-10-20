@@ -107,7 +107,6 @@ export const HOOKS = [
   ['__dynres', null],
   ['__flightLog', null],
   ['__flightMode', null],
-  ['__foot', 'steps the pilot out on foot, faces and walks them'],
   ['__fpvOsd', null],
   ['__frameFault', null],
   ['__frameMs', 'fixes the frame step'],

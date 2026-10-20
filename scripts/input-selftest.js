@@ -1448,9 +1448,9 @@ heading('phase 20: one action table, read by name from every source');
   check('every action is unique and has a key or a pad default',
     new Set(ACTIONS.map((a) => a.id)).size === ACTIONS.length && ACTIONS.every((a) => a.key || a.pad), show(ACTIONS));
   check('the keyboard table is the rows with a key, in order, as before',
-    show(kb.ACTIONS.map((a) => a.code)) === show(['KeyR', 'KeyX', 'KeyT', 'KeyL', 'KeyP', 'KeyF', 'KeyG', 'KeyO', 'KeyC', 'Digit1', 'Digit2']));
-  check('the pad defaults are the buttons the readers used: replay X, talk LT, swap Y, foot B',
-    show(Object.fromEntries(ACTIONS.filter((a) => a.pad).map((a) => [a.id, a.pad]))) === show({ foot: 'b', replay: 'x', talk: 'lt', swap: 'y' }));
+    show(kb.ACTIONS.map((a) => a.code)) === show(['KeyR', 'KeyX', 'KeyT', 'KeyL', 'KeyP', 'KeyF', 'KeyG', 'KeyO', 'KeyC', 'Digit2']));
+  check('the pad defaults are the buttons the readers used: replay X, talk LT, swap Y',
+    show(Object.fromEntries(ACTIONS.filter((a) => a.pad).map((a) => [a.id, a.pad]))) === show({ replay: 'x', talk: 'lt', swap: 'y' }));
   check('no pad default is reserved', ACTIONS.every((a) => !a.pad || !pb.PAD_RESERVED.has(a.pad)));
 
   let r = pb.bindButton(undefined, 'reset', 'a');
@@ -1508,13 +1508,13 @@ heading('phase 20: one action table, read by name from every source');
   check('then the key let go: gone', !b.im.keys.has('KeyR'));
 
   const before = heard.length;
-  for (const [id, name] of [['replay', 'x'], ['talk', 'lt'], ['swap', 'y'], ['foot', 'b']]) {
+  for (const [id, name] of [['replay', 'x'], ['talk', 'lt'], ['swap', 'y']]) {
     press(name, true);
     const on = b.im.padAction(id);
     press(name, false);
     check(`${id} reads its default ${name.toUpperCase()} by name`, on && !b.im.padAction(id));
   }
-  check('the pad-only actions and the stepping out do not arrive as keys', heard.length === before && !b.im.keys.has('Digit1'), show(heard));
+  check('the pad-only actions do not arrive as keys', heard.length === before, show(heard));
   binding = { binds: pb.bindButton(pb.bindButton(undefined, 'talk', 'a').binds, 'swap', 'lt').binds, airframe: null, flight: true };
   press('a', true);
   check('talk moved to A reads A', b.im.padAction('talk') && b.im.padActionLabel('talk') === 'A');
@@ -1524,9 +1524,6 @@ heading('phase 20: one action table, read by name from every source');
   press('lt', true);
   check('swap moved to the left trigger: the flight swap opens on it', b.im.padSwapButtons().open === true && !b.im.padAction('talk'));
   press('lt', false);
-  press('b', true);
-  check('foot reads through the table too', b.im.padFootButton() === true);
-  press('b', false);
 
   const r2 = radio([0, 0, -1, 0], 17);
   const rb = new Bench(r2);

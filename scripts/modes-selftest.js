@@ -63,7 +63,7 @@ const exists = (p) => access(join(root, p)).then(() => true, () => false);
 console.log('modes: the entries');
 const ids = MODES.map((m) => m.id);
 check('the two activities, each once', ids.length === 2 && new Set(ids).size === 2 && ['war', 'free'].every((id) => ids.includes(id)), ids.join(','));
-const BOOLS = ['allowSolo', 'allowAI', 'allowDropIn', 'openEnded', 'consent', 'publicOnlyWhenMadeFor', 'makeable', 'onFoot', 'hidden'];
+const BOOLS = ['allowSolo', 'allowAI', 'allowDropIn', 'openEnded', 'consent', 'publicOnlyWhenMadeFor', 'makeable', 'hidden'];
 const worlds = new Set(MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id));
 for (const m of MODES) {
   check(`${m.id}: category is a hub`, ['flightclub', 'operations'].includes(m.category), m.category);
