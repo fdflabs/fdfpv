@@ -146,8 +146,8 @@ globalThis.Date = class extends RealDate {
   static now() { return FIXED_MS; }
 };
 
-/* The board, asked for a track's document: answers with one, or refuses
- * when the scenario says the network is down. */
+/* The network: answers nothing, or refuses when the scenario says it is
+ * down. */
 let boardDown = false;
 globalThis.fetch = async (url) => {
   page.push(['fetch', String(url).replace(/^https?:\/\/[^/]+/, '')]);
@@ -156,8 +156,8 @@ globalThis.fetch = async (url) => {
     ok: true,
     status: 200,
     headers: { get: () => 'application/json' },
-    json: async () => ({ document: boardDoc }),
-    text: async () => JSON.stringify({ document: boardDoc }),
+    json: async () => ({}),
+    text: async () => '{}',
   };
 };
 
@@ -165,23 +165,17 @@ const { Ui } = await import('../src/ui/ui.js');
 const { DEFAULTS, SETTINGS_KEY } = await import('../src/ui/settings.js');
 const { WAYS } = await import('../src/ui/ways.js');
 const { onSignInNeeded } = await import('../src/share/account.js');
-const { writeShareImport } = await import('../src/share/trackseat.js');
-const { saveTrack } = await import('../src/trackbuilder/storage.js');
 const { saveRatePreset } = await import('../configs/ratepresets.js');
-const { mapTrackDocument } = await import('../tests/lib/maptrack.js');
 const { useLocale } = await import('../src/strings/index.js');
 
 useLocale('en');
-
-const boardDoc = mapTrackDocument({ id: 'trk-board0001', name: 'Board ring', gates: 3 });
-const localDoc = mapTrackDocument({ id: 'trk-local0001', name: 'My ring', gates: 3 });
 
 /* ---- the stand-in Ui ---- */
 
 /* Fields whose value after the press is written down when it changed. */
 const STATE_KEYS = [
   'screen', 'mode', 'craftGate', 'hub', 'returnTo', 'roomFrom', 'ratesFrom', 'pidsFrom', 'fcFrom', 'roomGame',
-  'cardSubject', 'lastCardKey', 'newTrackOpen', 'guided', 'firstRun', 'openingBoardCourse', 'ratesNotice', 'cursor',
+  'firstRun', 'ratesNotice', 'cursor',
   'lobbyCard', 'dropEl',
 ];
 const SETTINGS_KEYS = ['airframe', 'airframeAsked', 'map', 'freestyleMap', 'cameraFov', 'cameraAngle', 'tune', 'ratesSplitPitch'];
@@ -220,38 +214,22 @@ function makeUi(state) {
     pidsFrom: null,
     fcFrom: null,
     roomGame: null,
-    cardSubject: null,
-    lastCardKey: null,
-    newTrackOpen: false,
-    guided: false,
     firstRun: false,
-    openingBoardCourse: false,
     ratesNotice: null,
     cursor: 0,
     rowOffset: 0,
     lobbyCard: null,
     dropEl: null,
-    share: null,
-    boardCourses: [],
     padPickPhase: null,
     padPickReason: null,
-    boardNote: new FakeElement('p'),
-    localNote: new FakeElement('p'),
     fcMenu: new FakeElement('div'),
     roomBarView: { act: recorder('roomBarView.act') },
     rows: [],
     items() { return this.rows; },
     show: recorder('show', function show(s) { this.screen = s; }),
     renderMenu: recorder('renderMenu'),
-    renderCourseCards: recorder('renderCourseCards'),
     setCursor: recorder('setCursor', function setCursor(i) { this.cursor = i; }),
-    subjectCard: recorder('subjectCard', function subjectCard() { return this.card || null; }),
-    cardCursor: recorder('cardCursor', 3),
     leaveFc: recorder('leaveFc'),
-    seatLocal: recorder('seatLocal', (id) => id === 'trk-local0001'),
-    seatCloud: recorder('seatCloud', (t, then) => then()),
-    seatCraftForCourse: recorder('seatCraftForCourse'),
-    play: recorder('play'),
     openSwap: recorder('openSwap'),
     openCraftRow: recorder('openCraftRow'),
     openHangar: recorder('openHangar', (id, then) => then()),
@@ -263,10 +241,6 @@ function makeUi(state) {
     focusNumber: recorder('focusNumber'),
     adjust: recorder('adjust'),
     closeDrop: recorder('closeDrop'),
-    loadLocalCourses: recorder('loadLocalCourses'),
-    loadCloudCourses: recorder('loadCloudCourses'),
-    editCloudCopy: recorder('editCloudCopy'),
-    setShare: recorder('setShare'),
     writeSettings: recorder('writeSettings'),
     askForm: recorder('askForm', (o) => Promise.resolve(dialogAnswer === 'yes' ? { name: `${o.fields[0].value} 2` } : null)),
     askConfirm: recorder('askConfirm', () => Promise.resolve(dialogAnswer === 'yes')),
@@ -274,9 +248,6 @@ function makeUi(state) {
     onAction: recorder('onAction'),
     onSettings: recorder('onSettings'),
     onUiSound: recorder('onUiSound'),
-    onBuild: recorder('onBuild', () => (state.buildFails ? Promise.reject(new Error('gone')) : Promise.resolve())),
-    onBoardCourse: recorder('onBoardCourse', () => (state.board === 'throws' ? Promise.reject(new Error('timeout')) : Promise.resolve(state.board !== 'refuses'))),
-    onTrackChosen: recorder('onTrackChosen', Boolean(state.trackChosen)),
     onLobbyBack: recorder('onLobbyBack'),
     onFriends: recorder('onFriends'),
     onFcOpen: recorder('onFcOpen'),
@@ -294,8 +265,6 @@ function snapshot(ui) {
   for (const k of STATE_KEYS) out[k] = plain(ui[k]);
   for (const k of SETTINGS_KEYS) out[`settings.${k}`] = ui.settings[k];
   for (const k of FC_KEYS) out[`fc.${k}`] = ui.fc[k];
-  out.boardNote = ui.boardNote.textContent;
-  out.localNote = ui.localNote.textContent;
   out.fcMenuScroll = ui.fcMenu.scrollTop;
   for (const [k, v] of store) {
     const fields = jsonObject(v);
@@ -351,20 +320,10 @@ const flush = async () => { for (let i = 0; i < 4; i += 1) await new Promise((r)
 
 /* ---- states ---- */
 
-const localCard = { course: { kind: 'local', track: { id: 'trk-local0001', name: 'My ring', map: 'swiss2' } } };
-const boardCard = { course: { kind: 'board', track: { id: 'trk-board0001', name: 'Board ring', map: 'swiss2', board: 'https://board.test' } } };
-const cloudCard = { course: { kind: 'cloud', track: { id: 'cld-1', name: 'Cloud ring', map: 'swiss2' } } };
 
-/* Storage before the press. A seated race track is a share import with
- * gates; the library holds the pilot's own ring. */
+/* Storage before the press. */
 function seedStore(state) {
   store.clear();
-  if (state.seat === 'track') {
-    writeShareImport({ id: 'trk-board0001', name: 'Board ring', board: 'https://board.test', document: boardDoc });
-  }
-  if (state.library !== false) {
-    saveTrack(structuredClone(localDoc));
-  }
   if (state.preset) {
     saveRatePreset('Mine', structuredClone(DEFAULTS.rates));
   }
@@ -379,37 +338,24 @@ const STATES = {
   'gate-hub-club': { screen: 'title', craftGate: true, mode: null, hub: 'club' },
   'gate-hub-hangar': { screen: 'title', craftGate: true, mode: null, hub: 'hangar', lobbyCard: 'way-freestyle-wing1000' },
   'gate-visitor': { screen: 'title', craftGate: true, mode: null, visitor: true },
-  'title-race': { screen: 'title', craftGate: false, mode: 'race', settings: { map: 'track', airframeAsked: true }, seat: 'track' },
+  'title-race': { screen: 'title', craftGate: false, mode: 'race', settings: { map: 'track', airframeAsked: true } },
   'title-race-noseat': { screen: 'title', craftGate: false, mode: 'race', settings: { map: 'track', airframeAsked: true } },
   'title-freestyle': { screen: 'title', craftGate: false, mode: 'freestyle', settings: { map: 'swiss2', freestyleMap: 'swiss2', airframe: 'bramor2300', cameraAngle: 45 } },
   'title-freestyle-itaipu': { screen: 'title', craftGate: false, mode: 'freestyle', settings: { map: 'itaipu', freestyleMap: 'itaipu' } },
   'title-freestyle-noseat': { screen: 'title', craftGate: false, mode: 'freestyle', settings: { map: 'track', freestyleMap: 'alps' } },
-  'title-firstrun': { screen: 'title', craftGate: false, mode: 'race', firstRun: true, settings: { map: 'track' }, seat: 'track' },
-  paused: { screen: 'paused', craftGate: false, mode: 'race', returnTo: 'paused', settings: { map: 'track' }, seat: 'track' },
+  'title-firstrun': { screen: 'title', craftGate: false, mode: 'race', firstRun: true, settings: { map: 'track' } },
+  paused: { screen: 'paused', craftGate: false, mode: 'race', returnTo: 'paused', settings: { map: 'track' } },
   'paused-freestyle': { screen: 'paused', craftGate: false, mode: 'freestyle', returnTo: 'paused', settings: { map: 'swiss2', freestyleMap: 'swiss2' } },
   /* Paused by Escape in flight: nothing set returnTo on the way in. */
-  'paused-by-escape': { screen: 'paused', craftGate: false, mode: 'race', returnTo: 'title', settings: { map: 'track' }, seat: 'track' },
-  quick: { screen: 'quick', craftGate: false, mode: 'race', returnTo: 'paused', settings: { map: 'track' }, seat: 'track' },
+  'paused-by-escape': { screen: 'paused', craftGate: false, mode: 'race', returnTo: 'title', settings: { map: 'track' } },
+  quick: { screen: 'quick', craftGate: false, mode: 'race', returnTo: 'paused', settings: { map: 'track' } },
   'rates-from-quick': { screen: 'rates', mode: 'race', craftGate: false, returnTo: 'paused', ratesFrom: 'quick' },
   'pids-from-quick': { screen: 'pids', mode: 'race', craftGate: false, returnTo: 'paused', pidsFrom: 'quick' },
-  courses: { screen: 'courses', mode: 'race', craftGate: false, settings: { map: 'track' } },
-  'courses-local': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'local:trk-local0001', card: localCard, settings: { map: 'track' } },
-  'courses-local-chosen': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'local:trk-local0001', card: localCard, trackChosen: true },
-  'courses-local-no': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'local:trk-local0001', card: localCard, answer: 'no' },
-  'courses-local-seated': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'local:trk-local0001', card: localCard, seatLocalId: 'trk-local0001' },
-  'courses-board': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'board:trk-board0001', card: boardCard, boardCourses: [boardCard.course.track] },
-  'courses-board-refused': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'board:trk-board0001', card: boardCard, boardCourses: [boardCard.course.track], board: 'refuses', boardDown: true },
-  'courses-board-throws': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'board:trk-board0001', card: boardCard, boardCourses: [boardCard.course.track], board: 'throws' },
-  'courses-board-nohook': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'board:trk-board0001', card: boardCard, boardCourses: [boardCard.course.track], without: ['onBoardCourse'] },
-  'courses-cloud': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'cloud:cld-1', card: cloudCard },
-  'courses-local-buildfails': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'local:trk-local0001', card: localCard, buildFails: true },
-  'courses-stale': { screen: 'courses', mode: 'race', craftGate: false, cardSubject: 'local:gone', card: null, buildFails: true },
   freestyle: { screen: 'freestyle', mode: 'freestyle', craftGate: false, settings: { map: 'swiss2' } },
   'friends-out': { screen: 'friends', mode: 'freestyle', craftGate: false },
   'friends-room': { screen: 'friends', mode: 'freestyle', craftGate: false, inRoom: true },
   'friends-lobby': { screen: 'friends', mode: 'freestyle', craftGate: false, inRoom: true, inLobby: true },
   'friends-room-paused': { screen: 'friends', mode: 'freestyle', craftGate: false, inRoom: true, returnTo: 'paused' },
-  'friends-from-courses': { screen: 'friends', mode: 'race', craftGate: false, roomFrom: 'courses' },
   rooms: { screen: 'rooms', mode: 'freestyle', craftGate: false },
   roomnew: { screen: 'roomnew', mode: 'freestyle', craftGate: false },
   'fc-clean': { screen: 'fc', mode: 'race', craftGate: false, fcFrom: 'quad' },
@@ -429,11 +375,10 @@ const STATES = {
   'padpick-menu': { screen: 'padpick', padPickPhase: 'ask', padPickReason: 'menu' },
   'padpick-boot': { screen: 'padpick', padPickPhase: 'ask', padPickReason: 'boot' },
   credits: { screen: 'credits', mode: 'race', craftGate: false },
-  results: { screen: 'results', mode: 'race', craftGate: false, settings: { map: 'track' }, seat: 'track' },
+  results: { screen: 'results', mode: 'race', craftGate: false, settings: { map: 'track' } },
   flight: { screen: 'flight', mode: 'race', craftGate: false },
   calibrate: { screen: 'calibrate', mode: 'race', craftGate: false },
   howto: { screen: 'howto', mode: 'race', craftGate: false },
-  launch: { screen: 'launch', mode: 'race', craftGate: false, settings: { map: 'track' }, seat: 'track' },
   tricks: { screen: 'tricks', mode: 'freestyle', craftGate: false },
   'drop-open': { screen: 'pilot', mode: 'race', craftGate: false, dropEl: 'drop' },
   'controller-from-pilot': { screen: 'controller', mode: 'race', craftGate: false, controllerFrom: 'pilot' },
@@ -447,8 +392,8 @@ function setUp(name) {
   seedStore(state);
   boardDown = Boolean(state.boardDown);
   const ui = makeUi(state);
-  for (const k of ['screen', 'craftGate', 'mode', 'hub', 'returnTo', 'roomFrom', 'ratesFrom', 'pidsFrom', 'fcFrom', 'controllerFrom', 'cardSubject', 'card',
-    'firstRun', 'boardCourses', 'padPickPhase', 'padPickReason', 'lobbyCard', 'dropEl']) {
+  for (const k of ['screen', 'craftGate', 'mode', 'hub', 'returnTo', 'roomFrom', 'ratesFrom', 'pidsFrom', 'fcFrom', 'controllerFrom',
+    'firstRun', 'padPickPhase', 'padPickReason', 'lobbyCard', 'dropEl']) {
     if (k in state) ui[k] = state[k];
   }
   Object.assign(ui.settings, state.settings || {});
@@ -456,7 +401,6 @@ function setUp(name) {
   if (state.fcRun) ui.fc.runActive = true;
   if (state.fcSearch) ui.fc.search = state.fcSearch;
   if (state.fcConfirm) ui.fc.confirm = state.fcConfirm;
-  if (state.seat === 'track') ui.share = { board: 'https://board.test' };
   return ui;
 }
 
@@ -465,17 +409,15 @@ function setUp(name) {
 /* Every action name a row, a card, a button or the shell dispatches, with
  * one example of each prefixed family. */
 const ACTIONS = [
-  'update-reload', 'room-bar', 'hotswap', 'hangar-aircraft', 'customise', 'leaderboard', 'reportbug', 'feel', 'firstflight',
-  'card-back', 'card-standings', 'card-board', 'card-fly', 'card-edit', 'card-duplicate', 'card-rename', 'card-delete', 'card-editcopy',
-  'standings', 'standings-fly', 'standings-ghost', 'cloud-more', 'newtrack', 'newtrack-back', 'newtrack:swiss2', 'casualtrack:alps',
+  'update-reload', 'room-bar', 'hotswap', 'hangar-aircraft', 'customise', 'leaderboard', 'reportbug', 'feel',
   ...WAYS.map((w) => w.action),
   'friends-leave', 'friends-join', 'lobby:rooms', 'lobby:roomnew', 'rooms', 'roomnew',
-  'howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'tricks', 'friends',
-  'fly', 'launch-go', 'rates', 'pids', 'fc', 'fc-save', 'fc-save-exit', 'fc-save-restart', 'fc-wait', 'fc-motors-stop', 'fc-preset:bf',
+  'howto', 'pilot', 'quad', 'freestyle', 'credits', 'tricks', 'friends',
+  'fly', 'rates', 'pids', 'fc', 'fc-save', 'fc-save-exit', 'fc-save-restart', 'fc-wait', 'fc-motors-stop', 'fc-preset:bf',
   'fc-keep-editing', 'fc-discard-leave', 'fc-discard', 'fc-export', 'fc-back', 'pids-default', 'rates-default', 'rates-save', 'rates-delete',
-  'map:alps', 'map:track', 'back', 'mode-gate', 'mytracks', 'title', 'paused', 'quick',
+  'map:alps', 'back', 'mode-gate', 'title', 'paused', 'quick',
   'pause', 'restart', 'resume', 'postrun', 'posttime', 'noop', 'setname', 'choosepad', 'downloadflightlog', 'exportkey', 'importkey',
-  'trackbuilder', 'remix', 'editown', 'race', 'calibrate', 'calibrate-cancel', 'calibrate-save', 'padpick-yes', 'padpick-no', 'padpick-cancel',
+  'calibrate', 'calibrate-cancel', 'calibrate-save', 'padpick-yes', 'padpick-no', 'padpick-cancel',
   'padpick-skip', 'accountsignin', 'accountsignout', 'hub-club', 'hub-hangar', 'nosuchaction',
   'controller', 'controller-builtin', 'controls', 'flywith:radio', 'flywith:skip',
 ];
@@ -549,7 +491,6 @@ const ROWS = [
   { label: 'Segmented', options: [{ label: 'a' }, { label: 'b' }], action: 'noop' },
   { label: 'Stepper', step: 1, action: 'noop' },
   { label: 'Adjustable', adjust: true, action: 'noop' },
-  { label: 'Track card', course: localCard.course, card: 'local:trk-local0001', action: 'card-fly' },
   { label: 'Hub card', card: 'hub-club', hub: 'club', action: 'hub-club' },
   { label: 'Way card', card: 'way-freestyle-wing1000', action: 'way-freestyle-wing1000' },
   { label: 'Hangar card', card: 'hangar-sticks', action: 'calibrate' },
@@ -559,7 +500,7 @@ const ROWS = [
 
 async function selectSweep() {
   const out = {};
-  for (const name of ['gate-home', 'gate-hub-club', 'title-race', 'courses', 'courses-local', 'pilot']) {
+  for (const name of ['gate-home', 'gate-hub-club', 'title-race', 'pilot']) {
     out[name] = {};
     for (let i = 0; i < ROWS.length; i += 1) {
       const ui = setUp(name);
@@ -627,15 +568,13 @@ async function helpersSweep() {
     out[`${name} seatMatchesMode`] = { value: ui.seatMatchesMode(), calls: ui.calls.splice(0) };
     const ui2 = setUp(name);
     out[`${name} flown`] = await press(ui2, () => ui2.flown());
-    for (const [id, opts] of [['alps', {}], ['itaipu', { stay: true }], ['track', {}], ['nosuchmap', {}]]) {
+    for (const [id, opts] of [['alps', {}], ['itaipu', { stay: true }], ['nosuchmap', {}]]) {
       const ui3 = setUp(name);
       out[`${name} seatMap ${id}${opts.stay ? ' stay' : ''}`] = await press(ui3, () => ui3.seatMap(id, opts));
     }
     const ui4 = setUp(name);
     ui4.rows = [{ label: 'a', action: 'x' }, { section: true }, { label: 'b', action: 'hub-club', card: 'hub-club' }];
     out[`${name} openHub`] = await press(ui4, () => ui4.openHub('club'));
-    const ui5 = setUp(name);
-    out[`${name} openBuilder nohook`] = await press(ui5, () => { ui5.onBuild = null; ui5.openBuilder({ map: 'alps' }); });
   }
   return out;
 }

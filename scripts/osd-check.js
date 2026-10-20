@@ -1,14 +1,15 @@
 /*
  * osd-check.js: the FPV OSD, flown in the real shell and read back.
  *
- * Flies a five inch quad and a Timber on the Alps, and a quad round a built
- * ring in Track mode, in the FPV view, and asserts that each OSD element
- * shows the live value it claims to: the pack falls under load and the
- * warnings come up on a low pack, the timers count, the horizon follows
- * the attitude, a plane's altitude, speeds and home distance match
- * window.__craftState, the race clock and gates are there, the HUD style
+ * Flies a five inch quad and a Timber on the Alps, in the FPV view, and
+ * asserts that each OSD element shows the live value it claims to: the
+ * pack falls under load and the warnings come up on a low pack, the
+ * timers count, the horizon follows the attitude, a plane's altitude,
+ * speeds and home distance match window.__craftState, the HUD style
  * setting switches the OSD off and survives a reload, and chase view has
- * none. It also resizes the page to 1280x720, 1920x1080, 1280x720 at twice
+ * none. The quad round a built ring in Track mode, with the race clock
+ * and gates, left with the track builder and the race (the combat-only
+ * cut, 2026-10-20). It also resizes the page to 1280x720, 1920x1080, 1280x720 at twice
  * the pixels, a phone held both ways and 4:3, and on each checks that the
  * type is no taller than the music player's song title (the owner's
  * yardstick), that both grids fit, and that every readout is on the
@@ -44,7 +45,6 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
-import { frames } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 
@@ -111,6 +111,10 @@ async function shot(page, name) {
  * than any fixed sleep. Three, because the first may already be running
  * and the shell's own callback may come after ours in the second.
  */
+/* Wait for n of the page's own frames: the shell applies the sticks in
+ * its frame, so a reading taken after frames is a reading of its answer,
+ * however slow the machine. */
+const frames = (page, n) => page.evaluate(`new Promise((done) => { let k = ${n}; const f = () => { k -= 1; if (k <= 0) { done(true); } else { requestAnimationFrame(f); } }; requestAnimationFrame(f); })`);
 const settle = (page) => frames(page, 3);
 const osd = (page) => page.evaluate('window.__fpvOsd()');
 const craft = (page) => page.evaluate('window.__craftState()');
@@ -603,74 +607,6 @@ async function glow() {
   }
 }
 
-/*
- * A race needs a built track now that the race field is gone: the ring in
- * tests/fixtures/map-track-v4.json (three gates on the Swiss valley) goes
- * in the library, and Track mode plays it the way a pilot does, through
- * My tracks, the card and the launch card, as scripts/track-mode-check.js
- * walks it.
- */
-const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
-
-async function choose(page, action) {
-  const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)})`);
-  if (at < 0) {
-    throw new Error(`no row ${action} on ${await page.evaluate('window.__ui.screen')}`);
-  }
-  await page.evaluate(`(() => { window.__ui.setCursor(${at}); window.__ui.select(); return true; })()`);
-}
-
-async function race() {
-  console.log('\nrace: five inch round a built ring on the Swiss valley');
-  const track = JSON.parse(await readFile(join(root, 'tests/fixtures/map-track-v4.json'), 'utf8'));
-  const n = track.sequence.length;
-  const page = await openPage({
-    root,
-    width: 1280,
-    height: 720,
-    url: '/index.html',
-    seed: seed({ ...seatFor('interceptor', 'track'), fpsCap: 0 },
-      [`try { localStorage.setItem(${JSON.stringify(LIBRARY_KEY)}, ${JSON.stringify(JSON.stringify({ [track.id]: track }))}); } catch (e) { /* refused */ }`]),
-  });
-  try {
-    await page.until('!!window.__shellReady', 300000);
-    await page.until('window.__map && window.__map().ready', 400000);
-    await page.until('window.__ui.onGate()', 60000);
-    /* My tracks, the race card's list, since the race card left. */
-    await page.evaluate("(() => { window.__ui.act('mytracks'); return true; })()");
-    await page.until("window.__ui.screen === 'courses'", 20000);
-    const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.course && it.course.track.id === ${JSON.stringify(track.id)})`);
-    await page.evaluate(`(() => { window.__ui.setCursor(${at}); window.__ui.select(); return true; })()`);
-    await page.until(`window.__ui.cardSubject && window.__ui.cardSubject.endsWith(${JSON.stringify(`:${track.id}`)})`, 5000);
-    await choose(page, 'card-fly');
-    await page.until(`window.__ui.screen === 'launch' && window.__map().ready && window.__map().id === ${JSON.stringify(track.map)} && window.__race().gates.length === ${n}`, 600000);
-    await choose(page, 'launch-go');
-    await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
-    await page.until('window.__fpvOsd().on', 120000);
-    await settle(page);
-    const o = await osd(page);
-    say(/^LAP /.test(o.values.clock) && o.values.gate === `GATE 1/${n}` && rowsHave(o, o.values.gate) && rowsHave(o, 'LAP'),
-      `the race: "${o.values.clock}", "${o.values.gate}"${o.values.cue ? `, cue "${o.values.cue}"` : ''}`);
-    /* The ring's start gate hangs in the air, so the run starts with the
-     * countdown: the one banner the OSD draws two rows tall. */
-    const count = await banner(page);
-    const big = count.box && near(count.box.h, 2 * count.cell.ch, 0.5) && near(count.box.w, 2 * count.cell.cw, 0.5);
-    say(osdCarries(count) && /^[123]$/.test(count.html) && big,
-      `the air start's countdown is the OSD's, two rows tall: "${count.html}"${count.box ? `, ${f1(count.box.w)}x${f1(count.box.h)} px on ${f1(count.cell.cw)}x${f1(count.cell.ch)} cells` : ''}, the element ${count.display}`);
-    /* Lit for 2.8 s of wall clock, as a crossing lights it. */
-    await page.evaluate('window.__ghostGapShow(-340, false)');
-    let g = await osd(page);
-    for (let i = 0; i < 20 && !rowsHave(g, 'GHOST -0.34'); i += 1) {
-      await frames(page, 1);
-      g = await osd(page);
-    }
-    say(rowsHave(g, 'GHOST -0.34'), 'the ghost gap, lit: GHOST -0.34');
-    await shot(page, 'race-1-start');
-  } finally {
-    await page.close();
-  }
-}
-
 if (shotsDir) {
   await mkdir(shotsDir, { recursive: true });
 }
@@ -682,8 +618,8 @@ try {
     await plane();
     await glow();
   }
-  if (!only || only === 'race') {
-    await race();
+  if (only === 'race') {
+    console.log('race: the race left with the track builder (the combat-only cut, 2026-10-20)');
   }
 } catch (e) {
   failed += 1;

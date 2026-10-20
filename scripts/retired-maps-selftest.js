@@ -9,7 +9,7 @@
  *      freestyle world each load as the Swiss valley, silently, through
  *      the real loadSettings over a stand in for localStorage.
  *   2. The registry: none of them is a world, and mapById answers each
- *      with the Track seat, so a track or a room on one is never read as
+ *      with the first world, so a track or a room on one is never read as
  *      a world that loads.
  *   3. A signed in pilot's synced data: no synced section carries a map
  *      id, so a blob from a computer that last flew Yellowstone, with the
@@ -86,8 +86,8 @@ check('a world this build has is kept as it was', kept.map === 'itaipu' && kept.
 console.log('2. the registry');
 for (const id of RETIRED) {
   check(`${id} is retired to the Swiss valley`, retiredMap(id) && retiredMap(id).to === 'swiss2');
-  check(`${id} is not a world, and mapById answers it with the Track seat`,
-    !MAPS.some((m) => m.id === id) && mapById(id).id === 'track');
+  check(`${id} is not a world, and mapById answers it with the first world`,
+    !MAPS.some((m) => m.id === id) && mapById(id).id === MAPS[0].id);
 }
 check('the worlds are the Alps, the Swiss valley, Itaipu and the Interior',
   MAPS.filter((m) => m.load).map((m) => m.id).join() === 'alps,swiss2,itaipu,interior',

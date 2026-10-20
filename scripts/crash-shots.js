@@ -49,7 +49,6 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
-import { standGate } from './lib/standgate.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -81,34 +80,6 @@ const CROWN = `
       };`;
 
 const SCENARIOS = [
-  {
-    id: 'quad-gate',
-    what: 'the interceptor clipping a gate post at 22 m/s: props off',
-    /* One gate of a built track on the Swiss valley's grass (standGate);
-     * the race field's gates until the field went. */
-    airframe: 'interceptor',
-    map: 'swiss2',
-    standGate: true,
-    throw: `
-      const s = window.__craftState();
-      const posts = window.__crashSolids(s.worldX, s.worldZ, 400, 'gate')
-        .filter((c) => !c.box && Math.abs(c.a[0] - c.b[0]) < 0.01 && Math.abs(c.a[2] - c.b[2]) < 0.01);
-      const p = posts[0];
-      const x = p.a[0], z = p.a[2], y = Math.min(p.a[1], p.b[1]) + 1.0;
-      /* Fly past the post so an arm and its prop catch it, not the frame. */
-      const ax = 1, az = 0.35;
-      const n = Math.hypot(ax, az);
-      const dx = ax / n, dz = az / n;
-      const off = p.r + 0.12;
-      /* Thrown up a little, so it arrives at arm height rather than on the
-       * grass in front of the post. */
-      const sx = x - dx * 12 - dz * off, sz = z - dz * 12 + dx * off;
-      return {
-        at: [x + dx * 0.6, y - 0.5, z + dz * 0.6],
-        cam: [x - dz * 2.2 - dx * 0.8, y + 0.2, z + dx * 2.2 - dz * 0.8],
-        throw: { x: sx, y: y + 0.4, z: sz, yaw: Math.atan2(-dx, -dz) * 180 / Math.PI, pitch: -20, vx: dx * 22, vy: 2.6, vz: dz * 22 },
-      };`,
-  },
   {
     id: 'quad-wall',
     what: 'the interceptor into the face of a wall at 25 m/s: an arm breaks',
@@ -219,10 +190,9 @@ const SCENARIOS = [
     what: 'the FPV picture when the camera is knocked askew, then the antenna torn off, then the pack ejected',
     airframe: 'interceptor',
     map: 'swiss2',
-    standGate: true,
     throw: `
-      /* Sat on the grass at the start, looking at the gate, so the
-       * failures are the only thing that changes in the picture. */
+      /* Sat on the grass at the start, so the failures are the only thing
+       * that changes in the picture. */
       const s = window.__craftState();
       window.__placeCraft(s.worldX, s.worldY + 1, s.worldZ);
       window.__seatCraft('flat');
@@ -284,9 +254,6 @@ async function run(sc) {
   const log = [];
   try {
     await page.until('window.__shellReady && window.__map && window.__map().ready', 120000);
-    if (sc.standGate) {
-      await standGate(page, sc.map);
-    }
     await page.sleep(1500);
     const mapNow = await page.evaluate('window.__map().id');
     if (mapNow !== sc.map) {

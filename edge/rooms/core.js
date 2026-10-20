@@ -69,7 +69,6 @@ import { onFoot } from './foot.js';
  * ownership in fdfpv-loop/multiplayer/COORD.md). */
 const EVENTS = {
   crash: wrecks.onCrash,
-  whack: wrecks.onWhack,
 };
 
 export const TICK_MS = 1000 / 30;

@@ -19,10 +19,6 @@
  *      aircraft's entry, on a merge and on a plain read.
  *   4. An id this build never had falls back to DEFAULT_AIRFRAME, which is
  *      the interceptor, on purpose rather than as the table's first row.
- *   5. A track drawn for the RaceGOW room the whoop flew: no aircraft flies
- *      it, so it keeps its class through a read and a write, a lap on it is
- *      refused by the board's own check, and the refusal is said in English
- *      and Spanish.
  *
  * A room seat on either is scripts/rooms-selftest.js's, and a replay or a
  * crash cam clip naming either is scripts/crashcam-selftest.js's.
@@ -63,11 +59,6 @@ const { combatChoice } = await import('../configs/combat.js');
 const { FC_DUMP_AIRFRAME_KEY } = await import('../src/fc/dump.js');
 const { normaliseBuilds, buildsBlob } = await import('../src/ui/builds.js');
 const { cleanBlob, mergeBlobs } = await import('../src/share/progressmerge.js');
-const { normalize, toPlain } = await import('../src/trackbuilder/model.js');
-const { noAircraftFlies } = await import('../src/trackbuilder/elements.js');
-const { checkLap } = await import('../src/game/verify.js');
-const en = (await import('../src/strings/en.js')).default;
-const es = (await import('../src/strings/es.js')).default;
 
 let failed = 0;
 let passed = 0;
@@ -186,15 +177,6 @@ check('what the server sends back loads on this computer as the same build',
 check('and the merge is stable: merged again it is the same', JSON.stringify(mergeBlobs(merged, merged).data.builds) === JSON.stringify(mb));
 check('a build blob written now names no retired aircraft',
   Object.values(buildsBlob(builds)).every((b) => !retiredAirframe(b.airframe)));
-
-console.log('4. a RaceGOW room');
-const room = { schemaVersion: 3, id: 'trk-0ld0r00m', name: 'Old room', trackClass: 'micro', field: { width: 10, depth: 12, gridSize: 0.0254 }, elements: [], sequence: [] };
-check('no aircraft flies it', noAircraftFlies(room) && !noAircraftFlies({ trackClass: 'full' }) && !noAircraftFlies({}));
-const back = toPlain(normalize(room).doc);
-check('read and written it is still a RaceGOW room, never a field track', back.trackClass === 'micro' && noAircraftFlies(back), back.trackClass);
-const lap = checkLap(room, new Uint8Array(0), 2000);
-check('a lap on it is refused, by the board\'s own check', lap && lap.ok === false && /no aircraft flies this track/.test(lap.reason), lap && lap.reason);
-check('the refusal is said in English and Spanish', Boolean(en['track.no_aircraft']) && Boolean(es['track.no_aircraft']) && en['track.no_aircraft'] !== es['track.no_aircraft']);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -29,7 +29,7 @@ import {
   BESTS, BEST_MARGIN, BEST_XP, awardBest, awardBests, bestsOf,
   COUNTED, countOf, foldEvents, freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
-  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, BEST_GLIDE, CASUAL_LAP_M, LANDING_STREAK, PLACE_XP,
+  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, BEST_GLIDE, LANDING_STREAK, PLACE_XP,
   aircraftChallengesOf, awardAircraftChallenge, awardAircraftChallenges, awardPlace, challengeAmounts,
   awardFlight, challengeRun, challengesOn,
 } from '../src/game/progress.js';
@@ -747,12 +747,10 @@ console.log('discovery (src/game/discovery.js, PROGRESSION.md section 6)');
 
 console.log('the aircraft challenges (PROGRESSION.md section 5)');
 {
-  const { CASUAL } = await import('../src/builder/course.js');
   const { LESSONS } = await import('../src/game/training.js');
   const families = AIRFRAMES.filter((a) => a.id === liveryKey(a.id));
   check('every aircraft has its three, from its class', families.every((a) => challengeAmounts(a.id) !== null), families.filter((a) => !challengeAmounts(a.id)).map((a) => a.id).join());
   check('a float plane\'s are its land plane\'s; an unknown id has none', same(challengeAmounts('cub1400f'), challengeAmounts('cub1400')) && challengeAmounts('notaplane') === null);
-  check('the casual tracks\' lengths are the builder\'s', CASUAL_LAP_M.quad === CASUAL.gates * CASUAL.quad.spacing && CASUAL_LAP_M.plane === CASUAL.gates * CASUAL.plane.spacing);
   check('the landing streak is the approaches lesson\'s', LANDING_STREAK === LESSONS.find((l) => l.id === 'wing_approaches').steps.length && LANDING_STREAK === 3);
   check('every glider has its best glide; a multirotor\'s lap is 360 m at 13 m/s, 28 s',
     AIRFRAMES.filter((a) => a.class === 'glider').every((a) => Number.isFinite(BEST_GLIDE[a.id])) && challengeAmounts('interceptor').lapMs === 28000);

@@ -9,7 +9,7 @@
  * The methods are called off Ui.prototype on a stand-in Ui, so the same
  * script reads the class before the split and the installed module after
  * it. Every collaborator outside the range (the row controls, the cursor
- * painter, the card painters, the course loaders, the chips) is
+ * painter, the card painters, the chips) is
  * a stub that writes a line to a log, and a small stand-in document records
  * what each method builds, the attributes it sets, the scroll it keeps, the
  * events a row answers and the URL it rewrites. Each scenario keeps its log,
@@ -182,7 +182,7 @@ function tree(node) {
   return out;
 }
 
-const { Ui, courseCardKey } = await import('../src/ui/ui.js');
+const { Ui } = await import('../src/ui/ui.js');
 const { useLocale } = await import('../src/strings/index.js');
 
 function named(tag, name, cls = '') {
@@ -192,7 +192,7 @@ function named(tag, name, cls = '') {
   return n;
 }
 
-const MENU_SCREENS = ['title', 'howto', 'credits', 'courses', 'freestyle', 'pilot', 'friends', 'quad', 'launch',
+const MENU_SCREENS = ['title', 'howto', 'credits', 'freestyle', 'pilot', 'friends', 'quad',
   'rates', 'pids', 'fc', 'paused', 'results'];
 
 /* The frame, the title's hint line and one menu host per screen, named so
@@ -205,7 +205,7 @@ function frameNodes() {
   const nodes = {
     root: named('div', 'root'), frameTop: named('div', 'frameTop'), frameBot: named('div', 'frameBot'),
     crumb: named('div', 'crumb'), frameContext: named('div', 'frameContext'), frameLegend: named('div', 'frameLegend'),
-    framePrimary: named('button', 'framePrimary'), osd: named('div', 'osd'), titleHint: hint, launchLede: named('p', 'launchLede'),
+    framePrimary: named('button', 'framePrimary'), osd: named('div', 'osd'), titleHint: hint,
     screens: {}, roomPages: {},
   };
   for (const s of MENU_SCREENS) {
@@ -231,20 +231,19 @@ function makeUi(extra = {}) {
     settings: { map: 'alps', airframe: 'quad' }, mode: 'race', craftGate: false, hub: null, firstRun: false,
     lastInput: 'keys', lists: {}, numberFocusWanted: null, inRoom: null, carousel: null, hangar: null,
     ratesFrom: null, pidsFrom: null, fcFrom: null, roomFrom: null, ratesNotice: null, padRearm: false, swapPadPrev: {},
-    mapCards: 'x', courseCards: 'x', courseCardKey: 'x', cardSubject: null, lastCardKey: null, newTrackOpen: true,
+    mapCards: 'x',
   });
   ui.items = () => ui.lists[ui.screen] || [];
-  const quiet = ['syncChips', 'closeDrop', 'renderMapCards', 'renderCourseCards', 'renderTitleCards',
+  const quiet = ['syncChips', 'closeDrop', 'renderMapCards', 'renderTitleCards',
     'renderTitleRooms', 'hoverCursor', 'syncCursor', 'select', 'focusNumber', 'restoreFocusRow', 'syncRates', 'syncPids', 'syncFcChrome',
-    'loadLocalCourses', 'loadBoardCourses', 'loadCloudCourses', 'renderHowto',
-    'act', 'back'];
+    'renderHowto', 'act', 'back'];
   for (const n of quiet) ui[n] = (...a) => say(n, ...a);
   ui.setCursor = (i, pointer) => { say('setCursor', i, pointer ?? ''); ui.cursor = i; };
   for (const n of ['makeSliderControl', 'makeNumber', 'makeSearch', 'makeSwitch', 'makeSegments', 'makeDrop', 'makeStepper']) {
     ui[n] = (it, i) => { say(n, it.id || it.label, i); return named('span', `${n}:${it.id || it.label}`, 'row-control'); };
   }
   ui.onGate = () => ui.screen === 'title' && (ui.craftGate || !ui.mode);
-  ui.cardScreen = () => ui.screen === 'courses' || ui.screen === 'freestyle' || ui.onGate();
+  ui.cardScreen = () => ui.screen === 'freestyle' || ui.onGate();
   ui.gateLabel = () => 'GATE-LABEL';
   ui.titleStop = () => { say('titleStop'); return ui.firstStop(ui.items()); };
   ui.onScreenChange = (s) => say('onScreenChange', s);
@@ -257,7 +256,7 @@ function state(ui) {
     screen: ui.screen, cursor: ui.cursor, rowOffset: ui.rowOffset, focusId: ui.focusId, returnTo: ui.returnTo,
     cursorMemory: ui.cursorMemory, padRearm: ui.padRearm, swapPadPrev: ui.swapPadPrev, numberFocusWanted: ui.numberFocusWanted,
     ratesFrom: ui.ratesFrom, pidsFrom: ui.pidsFrom, fcFrom: ui.fcFrom, roomFrom: ui.roomFrom, ratesNotice: ui.ratesNotice,
-    cards: [ui.mapCards, ui.courseCards, ui.courseCardKey, ui.cardSubject, ui.lastCardKey, ui.newTrackOpen],
+    cards: [ui.mapCards],
     menuRows: ui.menuRows.map((r) => show(r)),
     url: location.href,
   };
@@ -350,22 +349,20 @@ const scenarios = {
 
   cards() {
     const out = {};
-    const ui = makeUi({ screen: 'courses' });
-    ui.lists.courses = [
-      { id: 'm1', label: 'Alps', map: {} }, { id: 'c1', label: 'Track', course: { kind: 'map', track: { id: 't1' } } }, { id: 'k', label: 'Card', card: true },
-      { id: 'l', label: 'Lobby', lobby: {} }, { id: 'bar', label: 'Barred', bar: true }, { section: true, label: 'Tracks' },
-      { id: 'new', label: 'New track' }, { id: 'back', label: 'Back' },
+    const ui = makeUi({ screen: 'freestyle' });
+    ui.lists.freestyle = [
+      { id: 'm1', label: 'Alps', map: {} }, { id: 'k', label: 'Card', card: true },
+      { id: 'l', label: 'Lobby', lobby: {} }, { id: 'bar', label: 'Barred', bar: true }, { section: true, label: 'Worlds' },
+      { id: 'back', label: 'Back' },
     ];
     ui.cursor = 1;
     ui.renderMenu();
-    out.courses = { menu: tree(ui.coursesMenu), state: state(ui), legend: tree(ui.frameLegend) };
-    ui.screen = 'freestyle';
-    ui.lists.freestyle = ui.lists.courses;
-    ui.cursor = 7;
+    out.freestyle = { menu: tree(ui.freestyleMenu), state: state(ui), legend: tree(ui.frameLegend) };
+    ui.cursor = 5;
     ui.renderMenu();
-    out.freestyle = { menu: tree(ui.freestyleMenu), state: state(ui) };
+    out.freestyleLast = { menu: tree(ui.freestyleMenu), state: state(ui) };
     ui.screen = 'quad';
-    ui.lists.quad = ui.lists.courses;
+    ui.lists.quad = ui.lists.freestyle;
     ui.renderMenu();
     out.notCards = { menu: tree(ui.quadMenu), state: state(ui) };
     return out;
@@ -380,7 +377,7 @@ const scenarios = {
     ui.hub = 'club';
     ui.renderMenu();
     out.hub = { frame: frame(ui), hint: tree(ui.titleHint) };
-    ui.mode = 'race';
+    ui.mode = 'freestyle';
     ui.hub = null;
     ui.firstRun = false;
     ui.renderMenu();
@@ -412,21 +409,6 @@ const scenarios = {
     return out;
   },
 
-  lede() {
-    const out = {};
-    const ui = makeUi({ screen: 'launch' });
-    ui.lists.launch = [{ id: 'radio', label: 'Radio link', options: [{ label: 'x' }], adjust: () => {} }, { id: 'fly', label: 'Fly', primary: true }];
-    ui.renderMenu();
-    out.alps = { lede: ui.launchLede.textContent, state: state(ui), frame: frame(ui) };
-    ui.settings.map = 'nowhere';
-    ui.renderMenu();
-    out.unknownMap = ui.launchLede.textContent;
-    ui.launchLede = null;
-    ui.renderMenu();
-    out.noLede = state(ui);
-    return out;
-  },
-
   show() {
     const out = {};
     const ui = makeUi({ screen: 'quad', cursor: 1 });
@@ -434,7 +416,6 @@ const scenarios = {
     ui.lists.rates = [{ id: 'r1', label: 'Roll' }, { id: 'r2', label: 'Pitch' }];
     ui.lists.pids = [{ id: 'p1', label: 'P' }];
     ui.lists.fc = [{ id: 'f1', label: 'Setup' }];
-    ui.lists.courses = [{ id: 'c1', label: 'Track', course: { kind: 'map', track: { id: 'c1' } } }, { id: 'back', label: 'Back' }];
     ui.lists.title = [{ id: 'fly', label: 'Fly', primary: true }];
     ui.lists.credits = [{ id: 'back', label: 'Back' }];
     ui.lists.paused = [{ section: true, label: 'Paused' }, { id: 'resume', label: 'Resume', primary: true }];
@@ -461,10 +442,8 @@ const scenarios = {
     ui.show('quad');
     snap('pidsLeft');
     ui.roomFrom = 'freestyle';
-    ui.show('courses');
-    snap('courses');
     ui.show('freestyle');
-    snap('leftCourses');
+    snap('freestyleFromRoom');
     ui.show('title');
     snap('title');
     ui.fcFrom = 'paused';
@@ -613,33 +592,14 @@ const scenarios = {
     return out;
   },
 
-  cardCursor() {
-    const out = {};
-    const ui = makeUi({ screen: 'courses' });
-    const card = (id, kind) => ({ id, label: id, course: { kind, track: { id } } });
-    ui.lists.courses = [{ id: 'm', label: 'Alps', map: {} }, card('t1', 'map'), card('t2', 'board'), { id: 'back', label: 'Back' }];
-    out.noSubject = ui.subjectCard();
-    out.noLast = ui.cardCursor();
-    ui.cardSubject = courseCardKey(ui.lists.courses[2]);
-    ui.lastCardKey = courseCardKey(ui.lists.courses[1]);
-    out.subject = ui.subjectCard() && ui.subjectCard().id;
-    out.last = ui.cardCursor();
-    ui.cardSubject = 'nope';
-    ui.lastCardKey = 'nope';
-    out.subjectGone = ui.subjectCard();
-    out.lastGone = ui.cardCursor();
-    return out;
-  },
-
   legend() {
     const out = {};
     const ui = makeUi();
     ui.lists.quad = ROWS;
     ui.lists.title = [{ id: 'fly', label: 'Fly' }];
-    ui.lists.courses = [{ id: 'c', label: 'c', course: { kind: 'map', track: { id: 'c' } } }];
     const cases = {
       quadAction: { screen: 'quad', cursor: 2 }, quadValue: { screen: 'quad', cursor: 4 }, quadOff: { screen: 'quad', cursor: 99 },
-      cards: { screen: 'courses', cursor: 0 }, titleMenu: { screen: 'title', mode: 'race', hub: null },
+      cards: { screen: 'freestyle', cursor: 0 }, titleMenu: { screen: 'title', mode: 'race', hub: null },
       titleGate: { screen: 'title', mode: null, hub: null }, titleHub: { screen: 'title', mode: null, hub: 'club' },
       flight: { screen: 'flight' }, bench: { screen: 'fc' },
     };

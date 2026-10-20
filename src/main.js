@@ -63,11 +63,10 @@ import { pullIn } from './render/chasearm.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
-import { courseKind, lockOf } from './game/progress.js';
+import { lockOf } from './game/progress.js';
 import { STRIPS, applyLesson, bankOf, glidePoints, headingOf, heldSettings, heldTrack, lateralG, restoreSettings } from './game/training.js';
 import { PRACTICE_ID } from './share/war/missions/itaipu-practice.js';
 import { createGlidePath } from './render/glidepath.js';
-import { medalFor, publishMedals } from './game/medals.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
@@ -79,28 +78,23 @@ import { SKIP_KINDS as FOOT_SKIP, createWalker, depthInside, findClear, step as 
 import { BODY_RADIUS, EYE_HEIGHT, STATURE, STEP_UP } from './game/human.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
 import { ControlRecorder, controlRecName, keepLast } from './share/controlrec.js';
-import { PLANE_REACH, Race } from './game/race.js';
-import { planesFor } from './game/verify.js';
-import { floatStart } from './builder/course.js';
-import { createRoute, fromRace, replayState, withBests } from './game/debrief.js';
+import { createRoute, replayState } from './game/debrief.js';
 import { formatRunClock, lengthText } from './ui/format.js';
-import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
+import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe, chosenTime } from './ui/ui.js';
+import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, seatAirframe, chosenTime } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager, thermalMode } from './avionics/sensors.js';
 import { createPerception } from './avionics/perception.js';
 import { createTrackManager } from './avionics/tracks.js';
 import { hudStateOf } from './avionics/hudstate.js';
-import { adoptShareFromLocation, fetchTrackDocument } from './share/board.js';
-import { inspectCourse, layoutFingerprint, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
 import {
   addFlight, createFlightClock, deviceId, flightTotals, mergeFlightTime, stepsAreFlight,
 } from './share/flighttime.js';
 import { addFlightCount, mergePilotCounts } from './share/pilotcounts.js';
-import { nameRules, readAccount, readPilotName, writePilotName } from './share/pilot.js';
+import { readAccount } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import {
   createRoomLink, devAccount, figurePick, namePick, ownName, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
@@ -115,7 +109,7 @@ import {
 } from './share/modes.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
-  FLAG_SPAWNING, FOOT_HANGAR, FOOT_ON, checkCrashTable, checkWhack, decodeFootRelay, decodePartsRelay, encodePose, normaliseCode,
+  FLAG_SPAWNING, FOOT_HANGAR, FOOT_ON, checkCrashTable, decodeFootRelay, decodePartsRelay, encodePose, normaliseCode,
   pilotRoomName,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
@@ -181,27 +175,15 @@ import { roleOf } from './share/ops/roles.js';
 import { filmMs } from './share/war/film.js';
 import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
-import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
 import {
   checkSession, fetchBlocks, heldBlocks, needSignIn, setBlocked,
 } from './share/account.js';
 
-/* The pilot's key for signing saved tracks, made on first use and kept in
- * this browser. See src/share/identity.js. */
+/* The pilot's key, made on first use and kept in this browser: the
+ * account's sign in carries it (src/share/account.js), and Settings
+ * exports and imports it. See src/share/identity.js. */
 const identity = createIdentity();
-/* Saved tracks go online with that key (src/share/cloud.js), from boot on,
- * whether or not the builder is ever opened this visit. */
-startTrackSync(identity);
-import {
-  clearShareImport,
-  readBind,
-  readEditKey,
-  readShareImport,
-  writeShareImport,
-} from './share/trackseat.js';
-import { isMapTrack } from './trackbuilder/model.js';
-import { loadMapTrack } from './trackbuilder/storage.js';
 import { createShowcase } from './render/showcase.js';
 import { createCarouselStage } from './render/carousel3d.js';
 import { createRoomView, PHOTO_FRAMES } from './render/hangarroomview.js';
@@ -309,7 +291,6 @@ import { KINDS, TURNED } from './game/collide.js';
 import {
   conditionOf, createDamageLink, damagedPart, isPowered, isWreck, PART_STATE_DOUBLES, STATE,
 } from './game/damage.js';
-import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
 import { collectTrees, groundSurface, kindMaterial, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt, turnedBoxPose } from './game/crashworld.js';
 import {
   DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, PART_KINDS, SURFACE, SURFACES, TREES_MAX, WIRES_MAX, partLabel,
@@ -1794,7 +1775,6 @@ export async function boot({
     /* Stand the campaign's world up now, in place of the title's own (as
      * a war's room does): the film's shots are that map's metres. */
     titleWorld = null;
-    buildWorld = null;
     paintBest();
     syncWorld();
   }
@@ -2359,8 +2339,7 @@ export async function boot({
     } else if (input.touchSource && input.touchSource.active()) {
       how = 'touch';
     }
-    const seat = ui.settings.map;
-    return { craft: ui.settings.airframe, map: seat === 'track' ? 'custom' : seat, input: how };
+    return { craft: ui.settings.airframe, map: ui.settings.map, input: how };
   }
   /*
    * What is still counted goes when the page does. pagehide fires where
@@ -2463,7 +2442,7 @@ export async function boot({
       const id = modeOfWire(st.welcome.mode);
       return modeById(id) ? id : 'free';
     }
-    return view && view.mode === 'race' ? 'race' : 'free';
+    return 'free';
   }
 
   const gpuInfo = readGpuInfo(shell.renderer);
@@ -2751,78 +2730,24 @@ export async function boot({
    * instant today.
    */
   let titleWorld = titleMap;
-  /*
-   * THE WORLD THE BUILDER IS OPEN IN, when My tracks opened it on a track
-   * (Edit) or on a map (New track), or null. While it is set the world is
-   * that one with no track seated on it, whatever the seat holds, because
-   * what is standing in it is the track being built. Leaving the builder for
-   * My tracks clears it, and the next Play seats its track on the world
-   * already built when it is the same one.
-   */
-  let buildWorld = null;
-  /*
-   * THE TRACK THE PILOT'S SEAT HOLDS, or null.
-   *
-   * "Track" (map:track) means "fly the seated track", and My tracks, a board
-   * link and a publish all seat one the same way. A track is flown in the
-   * world it names (schemaVersion 4, src/builder/), with its gates seated on
-   * that world's view by the in-sim builder (seatMapCourse below), so the
-   * seat decides the world. Only a world this build can build in counts.
-   */
-  function seatedMapTrack() {
-    if (titleWorld || buildWorld) {
-      return null;
-    }
-    return seatShare();
-  }
-  /* The map track the Track seat holds, whatever the title or the builder
-   * is showing, or null. */
-  function seatShare() {
-    if (ui.settings.map !== 'track') {
-      return null;
-    }
-    let share = null;
-    try {
-      share = readShareImport();
-    } catch (e) {
-      return null;
-    }
-    const doc = share && share.document;
-    if (!doc || !isMapTrack(doc)) {
-      return null;
-    }
-    const entry = mapById(doc.map);
-    return entry.id === doc.map && entry.build ? share : null;
-  }
-  /* The world to build: the title's, the builder's, the seated track's, the
-   * Track seat's home when no track is seated, or the map the pilot chose. */
+  /* The world to build: the title's, or the map the pilot chose. */
   function worldId() {
-    if (titleWorld || buildWorld) {
-      return titleWorld || buildWorld;
-    }
-    const seat = mapById(ui.settings.map);
-    if (seat.load) {
-      return seat.id;
-    }
-    const seated = seatedMapTrack();
-    return seated ? seated.document.map : seat.home;
+    return titleWorld || mapById(ui.settings.map).id;
   }
-  /* The record line. While the title shows its own world the seat's course
-   * is unbuilt, and an undefined record and mode tell the Ui exactly that. */
+  /* The strapline and the record line. While the title shows its own world
+   * the seat is unbuilt, and an undefined record and mode tell the Ui so. A
+   * world flown free has no record: nothing is timed. */
   function paintBest() {
     const built = !titleWorld;
-    ui.setBest(built ? race.bestMs : undefined, built ? view.mode : undefined);
+    ui.setBest(built ? null : undefined, built ? view.mode : undefined);
   }
   /*
-   * The flight controller's bytes are fetched now, beside the board, not
-   * after it. dist/sim.wasm needs nothing from the address, the board or
-   * the settings, and the board can be a sleeping host a minute from
-   * waking; in series, the board's round trips sat in front of the wasm
-   * (1519 ms against a local board). scripts/boot-check.js holds the order.
+   * The flight controller's bytes are fetched now, as early as the boot
+   * can: dist/sim.wasm needs nothing from the address or the settings.
    *
    * Progress shows only once the sim stage is the live one. The loading
    * screen opens whatever stage reports, so an early report would claim
-   * "Flight controller" while the board is the real wait; the latest
+   * "Flight controller" while another stage is the real wait; the latest
    * reading is kept and shown when the stage opens.
    */
   let simProgress = null;
@@ -2835,63 +2760,9 @@ export async function boot({
     }
   });
   /* A failure is reported where the bytes are awaited, by the sim stage.
-   * This only keeps the browser from calling the rejection unhandled while
-   * the board is still being asked. */
+   * This only keeps the browser from calling the rejection unhandled
+   * before then. */
   simBytes.catch(() => {});
-  /*
-   * A published track's link (?share=id) is fetched before any world is
-   * built, so the world built is the one it stands in. It is a stage of its
-   * own because the board can be asleep, and a pilot told "Renderer" while
-   * it wakes would look for the wrong problem.
-   */
-  loading.start('board');
-  loading.system('online', 'loading');
-  try {
-    const linked = await adoptShareFromLocation();
-    /* Without a link boot asks the board nothing, and the row says so. */
-    loading.system('online', linked ? 'ready' : 'na');
-    if (linked) {
-      seatLinkedTrack(linked);
-    }
-  } catch (e) {
-    loading.system('online', 'fail');
-    ui.setBanner(str('main.could_not_open_that_published_track', { v1: e.message ?? e }), true);
-  }
-  /* Whichever way it went, so the stage has a duration and the bar fills
-   * the share it was given. */
-  loading.done('board');
-  /*
-   * The linked track takes the Track seat, after the aircraft question:
-   * ui.seatCraftForDoc moves the pilot onto an aircraft that may race it
-   * (any quad, a plane that fits every gate, else the five inch) and says
-   * whether that moved the track from the planes' seat to the quads', in
-   * which case a stale copy of it in the planes' seat goes and it is written
-   * to the quads'. Done before anything reads a seat; applySettings, run
-   * once below, swaps the plant to match.
-   */
-  function seatLinkedTrack(linked) {
-    if (ui.seatCraftForDoc(linked.document)) {
-      const planeSeat = readShareImport('wing');
-      if (planeSeat && planeSeat.id === linked.id) {
-        clearShareImport('wing');
-      }
-      writeShareImport(linked);
-    }
-    ui.settings.map = 'track';
-    ui.renderMenu();
-  }
-  /*
-   * A handle changed since this browser last published is sent to the
-   * board, so the author line and the times posted under the old one catch
-   * up. A changed layout is not: that clears times, so it is asked first.
-   * Nothing waits on this, and a board that is down catches up the next
-   * time the name is saved.
-   */
-  (async () => {
-    const own = inspectCourse();
-    await pushOwnedListing(own && own.doc ? own.doc : null);
-  })().catch(() => {});
-
   let view = null;
   /*
    * THE FIRST CRASH USED TO LINK ITS SHADERS MID FLIGHT. The pilot's own
@@ -3217,7 +3088,6 @@ export async function boot({
       floor: mapById(FLOOR_WORLD).name,
     }), true);
   }
-  ui.setShare(view.share || null);
   /*
    * The address named a world that has been retired, and boot.js seated the
    * one that replaced it. Asked in a dialog rather than said on the banner:
@@ -3470,11 +3340,7 @@ export async function boot({
 
   /*
    * Where this run starts. The view's spawn, except for an aircraft on
-   * floats on a map with water: flown free it starts on the water's own
-   * spawn, and on a course built in the world (a start from src/builder/
-   * course.js startFor, which carries `lift` or `air`) at the course's own
-   * start, on the water when that is on the lake and in the air when it is
-   * on land (floatStart).
+   * floats on a map with water, which starts on the water's own spawn.
    */
   function runSpawn() {
     return roomSlotSpawn(mapSpawn());
@@ -3487,16 +3353,12 @@ export async function boot({
    * A map with more than one start (Itaipu: the crest road for the planes
    * and the quads, the reservoir and the river for the floats, and
    * one in the air) answers spawnFor(spawn, kind, wish) with the one for
-   * this aircraft, given the view's spawn, which it hands back when that
-   * is a course's start rather than its own. `wish` is the page's ?spawn=,
+   * this aircraft, given the view's spawn. `wish` is the page's ?spawn=,
    * the one way a pilot picks among them until the shell has a row for it.
    */
   const spawnWish = new URLSearchParams(window.location.search).get('spawn');
   function mapSpawn() {
     const sp = view.spawn;
-    if (sp && sp.lift && floatsOnWater()) {
-      return floatStart(sp, (x, z) => Boolean(waterAt(x, z)));
-    }
     if (sp && view.spawnFor) {
       const kind = floatsOnWater() ? 'float' : airframeById(runAirframe).fixedWing ? 'plane' : 'quad';
       return view.spawnFor(sp, kind, spawnWish);
@@ -3508,14 +3370,14 @@ export async function boot({
   }
   /*
    * In a room of friends, each pilot starts at their own seat's slot
-   * (src/game/slots.js) on a gateless world, so the room's pilots line up
-   * side by side rather than in one another. A track's start is the
-   * track's. -1 out of a room, and slot 0 is the spawn itself, so a flight
+   * (src/game/slots.js), so the room's pilots line up side by side
+   * rather than in one another. -1 out of a room, and slot 0 is the spawn
+   * itself, so a flight
    * alone starts exactly where it always did.
    */
   let roomSlot = -1;
   function roomSlotSpawn(sp) {
-    return roomSlot > 0 && race.freestyle ? slotSpawn(sp, roomSlot) : sp;
+    return roomSlot > 0 ? slotSpawn(sp, roomSlot) : sp;
   }
   /* Whether this run starts afloat, which is where it rests. */
   function startsAfloat() {
@@ -3580,28 +3442,20 @@ export async function boot({
     pilotSpot.fromY = Infinity;
   }
 
-  /* Gates, laps and the best lap. A freestyle map gets one too, empty, so
-   * the code that asks it questions never has to ask whether it exists. */
-  let race = new Race(view.gates, 'full');
-  /* Where this race's rows begin in the run's log (Progress.runEvents):
-   * a course taken off or put back mid run (seatSwapCourse) is a new
-   * race in the same run, and its debrief reads only its own laps. */
-  let raceLogAt = 0;
-  /* A lap voided, logged with why (src/game/events.js lap_void) when
-   * race.js kept a row for it: a lap was open, on a course. */
-  function voidRaceLap(reason, key, wallMs) {
-    const rows = race.log.length;
-    race.voidLap(str(key), wallMs);
-    if (race.log.length > rows) {
-      ui.progress.lapVoid(null, reason);
-    }
+  /*
+   * THE FLIGHT'S FLASH: one line over the flight for FLASH_MS, saying what
+   * just happened to the craft (Crashed, Wrecked, a change that voids a
+   * lap), or null. It was the race referee's banner (src/game/race.js,
+   * which left with the race), and keeps its words and its timing.
+   */
+  const FLASH_MS = 1800;
+  let flash = null;
+  function flashSay(text, wallMs) {
+    flash = { text, untilMs: wallMs + FLASH_MS };
   }
-  /* The in-sim builder, once a world it can build in is seated. Declared up
-   * here because the run's code below asks whether a run is its test
-   * flight. See buildHost. */
-  let build = null;
-  const racePrev = new THREE.Vector3();
-  let raceHasPrev = false;
+  function flashText(wallMs) {
+    return flash && wallMs < flash.untilMs ? flash.text : null;
+  }
 
   /*
    * FLY WITH FRIENDS: a private room on the rooms Worker (edge/rooms/),
@@ -4109,15 +3963,14 @@ export async function boot({
   function clockTimeFrame() {
     /*
      * A WAR ROOM'S WORLD IS THE ROOM'S (docs/FLOW-AUDIT.md rules 2 and 3):
-     * the title's world and the builder's end on entering one, by any way
+     * the title's world ends on entering one, by any way
      * in (Play, a link, Rooms, a reload), and the room's world is built
      * under its lobby. The title's Swiss valley used to stay up through
      * the lobby, so syncWorld rebuilt it at the mission's time and the
      * briefing's film flew over Switzerland (the owner, 2026-10-04).
      */
-    if ((lobbyGame() === 'war' || roomWar.view().state !== 'lobby') && (titleWorld || buildWorld)) {
+    if ((lobbyGame() === 'war' || roomWar.view().state !== 'lobby') && titleWorld) {
       titleWorld = null;
-      buildWorld = null;
       paintBest();
       syncWorld();
     }
@@ -4341,7 +4194,7 @@ export async function boot({
   /* The room's world standing, in free flight: where a war, an ops
    * mission or a match is played. */
   function roomWorldReady(map) {
-    return Boolean(view) && view.id === map && race.freestyle && mapReady && !swapInFlight && worldMatchesSettings();
+    return Boolean(view) && view.id === map && mapReady && !swapInFlight && worldMatchesSettings();
   }
 
   /* The teammate to watch this frame, stepped by `step` through the ones
@@ -6435,8 +6288,7 @@ export async function boot({
    * arrives as its part table, then its pieces' world poses; the peer's
    * wreck is cut from its drawn aircraft and kept with the peer, rebuilt
    * with the aircraft when that is. Sparks and dust are this screen's own,
-   * thrown where the peer is when the news arrives. A whack on a jelly
-   * piece wobbles the same piece here, when both fly the same course.
+   * thrown where the peer is when the news arrives.
    */
   let roomWreckSender = null;
   let roomFootSender = null;
@@ -6502,19 +6354,6 @@ export async function boot({
       }
       return;
     }
-    if (ev.kind === 'whack') {
-      const w = checkWhack(ev);
-      if (w && build && view && w.map === view.id && w.course === String(view.courseKey ?? '')) {
-        build.jiggle(w.i, new THREE.Vector3(w.n[0], w.n[1], w.n[2]), w.square);
-      }
-    }
-  }
-  /* A whack this pilot's plane gave a jelly piece, for the others. */
-  function roomWhack(i, n, square) {
-    if (roomLinkState.state().phase !== 'open' || !view) {
-      return;
-    }
-    roomLinkState.sendEvent({ kind: 'whack', map: view.id, course: String(view.courseKey ?? ''), i, n: [n.x, n.y, n.z], square });
   }
   /* The peer's wreck on its current drawing, cut again when that changes. */
   function roomPeerWreck(peer, scene) {
@@ -6714,13 +6553,9 @@ export async function boot({
     return { world: w.map };
   }
 
-  /* The world this pilot's seat builds, the title's and the builder's aside. */
+  /* The world this pilot's seat builds, the title's aside. */
   function seatWorld() {
-    if (ui.settings.map !== 'track') {
-      return mapById(ui.settings.map).id;
-    }
-    const seated = seatShare();
-    return seated ? seated.document.map : mapById('track').home;
+    return mapById(ui.settings.map).id;
   }
   function roomInPlace(target) {
     return seatWorld() === target.world && ui.settings.map === target.world;
@@ -6771,24 +6606,21 @@ export async function boot({
   /*
    * A seat this pilot chose that is not the room's. The host's world is
    * asked of the room, and put back if the room has not taken it in
-   * ROOM_ASK_MS; anybody else's, and a track of one's own (a room flies
-   * worlds), is put back at once. Not while the seat is being changed, or
-   * while the builder is open, whose world is its own.
+   * ROOM_ASK_MS; anybody else's is put back at once. Not while the seat is
+   * being changed.
    */
   function roomDrift(w, wallMs) {
-    if (roomSummon || swapInFlight || !mapReady || (build && build.active && !build.racing) || !MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')
+    if (roomSummon || swapInFlight || !mapReady || !MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')
       || roomFailedWorld === w.map) {
       return;
     }
     const world = seatWorld();
-    const offWorld = world !== w.map;
-    const onTrack = ui.settings.map === 'track';
-    if (!offWorld && !onTrack) {
+    if (world === w.map) {
       return;
     }
     /* A public room is listed under its world, so its host cannot move
      * it. */
-    if (roomHost(w) && offWorld && !onTrack && !w.public) {
+    if (roomHost(w) && !w.public) {
       if (roomAsked.map !== world) {
         roomAsked = { map: world, at: wallMs };
         roomLinkState.sendWorld(world);
@@ -6855,13 +6687,6 @@ export async function boot({
       roomSummon = null;
       return;
     }
-    /* The builder saves as it goes and again on the way out. A seated map
-     * track is the builder's too (build.racing), and stays. */
-    if (build && build.active && !build.racing) {
-      ui.show('title');
-      ui.onAction('title');
-      return;
-    }
     if (!MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
       /* A world this build does not have (a newer build's room): nothing
        * to seat, and the others name this pilot as elsewhere. */
@@ -6886,7 +6711,6 @@ export async function boot({
       return;
     }
     titleWorld = null;
-    buildWorld = null;
     if (!worldMatchesSettings()) {
       syncWorld();
       roomTellProfile();
@@ -6905,13 +6729,12 @@ export async function boot({
   }
 
   /* This pilot's seat moved to the room's target, which stands its world
-   * (syncWorld: the course alone on the world already up, else the
-   * loading screen) and lands on the title, to be flown from there. A
-   * pilot not to be flown keeps the title's world until their Fly. */
+   * (syncWorld, under the loading screen) and lands on the title, to be
+   * flown from there. A pilot not to be flown keeps the title's world
+   * until their Fly. */
   function roomSeat(target, fly) {
     if (fly) {
       titleWorld = null;
-      buildWorld = null;
     }
     ui.mode = 'freestyle';
     seatMapOwn(target.world, { stay: true });
@@ -8256,57 +8079,6 @@ export async function boot({
 
 
 
-  /* The course a run's laps are kept under (progressCourse): a seated
-   * track is its own course, with a plane's laps kept apart from a quad's;
-   * a world flown free is keyed by the world. */
-  function runCourseKey() {
-    const track = loadedCourseKey(view);
-    if (!track) {
-      return view.id;
-    }
-    return lapCraft() ? `custom:${track}#wing` : `custom:${track}`;
-  }
-
-  /*
-   * The plane a lap flown now is filed under, or '': a fixed wing's lap on
-   * a map track is a plane's (src/game/verify.js planesFor) and every other
-   * lap is where it always was, so a plane's laps are never a quad's.
-   */
-  function lapCraft() {
-    if (!view.courseKey) {
-      return '';
-    }
-    const seated = seatedMapTrack();
-    return seated ? lapCraftOf(seated.document, runAirframe) : '';
-  }
-
-  /*
-   * The localStorage key a best lap is kept under, which is a storage
-   * format: changing any part of it hides every pilot's bests. A record is
-   * only comparable on the same machine, so the key names the config text
-   * (a 32 bit djb2 variant, xor form), the pack voltage, the flight style
-   * (arcade only; expert has no suffix), the airframe and the gravity
-   * multiple. The empty suffixes are the oldest records' (expert, gravity
-   * exactly 1.0), which keep their keys even where nothing can reach them
-   * now, like the five inch's.
-   */
-  function recordKey() {
-    let hash = 5381;
-    for (let at = 0; at < configText.length; at += 1) {
-      hash = (Math.imul(hash, 33) ^ configText.charCodeAt(at)) >>> 0;
-    }
-    const parts = [
-      'webfpv.best',
-      hash.toString(16),
-      runVoltage.toFixed(2) + (runStyle === 'arcade' ? '.arcade' : ''),
-      runAirframe,
-    ];
-    if (runGravityScale !== 1) {
-      parts.push(`g${Math.round(runGravityScale * 100)}`);
-    }
-    return parts.join('.');
-  }
-
   let mode = 'title'; /* title, flight, paused, results, replay */
   /* The crash cam (src/replay/crashcam.js), made once the shell is. */
   let crashCam = null;
@@ -9186,10 +8958,6 @@ export async function boot({
    * Settings, the Controller screen, or the title (the Hangar's card and
    * the new pilot's controller question both open it from there). */
   let calibrateReturn = 'pilot';
-  /* The laps this run lasts, fixed at its start: settings.laps can change
-   * from pause and must not end a run early. */
-  let runLaps = ui.settings.laps;
-  race.setRecordKey(recordKey());
   paintBest();
 
   /*
@@ -10386,11 +10154,6 @@ export async function boot({
    * check that reads what broke, when and how hard (window.__crashLog).
    * Bounded, the oldest kept: a crash's story is how it started. */
   const crashLog = [];
-  /* The jelly's whacks this run, newest last, for window.__jelly(), and
-   * the jelly pass's own state (jellyPass): reset with the crash log. */
-  const jellyLog = [];
-  let jellyHasPrev = false;
-  let jellyArmed = true;
   const CRASH_LOG_MAX = 400;
   let crashTreesDeclared = 0;
   let crashWiresDeclared = 0;
@@ -10543,9 +10306,6 @@ export async function boot({
     crashFlags = 0;
     lastParts = null;
     crashLog.length = 0;
-    jellyLog.length = 0;
-    jellyHasPrev = false;
-    jellyArmed = true;
     wreckRig.reset();
     debris.clear();
     fpvFail.clear();
@@ -10883,8 +10643,6 @@ export async function boot({
    * flight. */
   function declareCrashSolids(must = -1) {
     const col = view.colliders;
-    /* A plane's soft pieces are not the plant's (jellyPass). */
-    col.softKinds = softKindsFor();
     clearSolidPass();
     for (const i of crashKnownList) {
       crashKnown[i] = 0;
@@ -11296,8 +11054,7 @@ export async function boot({
   }
 
   /*
-   * THE RULES OF A WRECK. The lap it happened in is over (race.voidLap,
-   * the same bookkeeping a weight change mid lap gets). Nothing is moved
+   * THE RULES OF A WRECK. The flash says so (flashSay). Nothing is moved
    * and nothing is disarmed: the wreck lies where the physics left it,
    * and a quad with three props and airmode on
    * thrashes on the grass the way a real one does until its pilot lets go
@@ -11312,8 +11069,7 @@ export async function boot({
     }
     setCrashflip(false);
     turtleRecover = false;
-    voidRaceLap('wreck', 'main.wrecked_lap_over', nowWall);
-    view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+    flashSay(str('main.wrecked_lap_over'), nowWall);
   }
 
   /* The pack is in: the receiver, the controller and the servos work. */
@@ -11469,7 +11225,6 @@ export async function boot({
     forgetContacts();
     parkAtSpawn();
     rearmSticks(keepSticks);
-    breakTrails();
     statePrev = readState();
     stateCurr = statePrev;
     ui.progress.startFlight(simTimeMs, () => roomLinkState.roomNow());
@@ -11533,8 +11288,8 @@ export async function boot({
     const welcome = roomLinkState.state().welcome;
     offerRoomWeather(ui.settings);
     offerRoomDaytime(ui.settings);
-    /* Free flight only: a race map's records, a war and a mission are
-     * flown in still air, the same for everyone who ever flew them. */
+    /* Free flight only: a war and a mission are flown in still air, the
+     * same for everyone who ever flew them. */
     const free = view.mode === 'freestyle' && !roomWar.on() && !roomOps.on();
     const pick = !free ? null : (welcome ? welcome.weather : { preset: ui.settings.weather, seed: soloSeed });
     /* A room's air is from the network, and may name what this build does
@@ -11784,7 +11539,6 @@ export async function boot({
     bounceAtSimMs = -Infinity;
     groundBounceAtWall = 0;
     releasePress();
-    raceHasPrev = false;
     groundHasPrev = false;
   }
 
@@ -11823,12 +11577,6 @@ export async function boot({
     input.holdThrottleLow(TAKEOFF_RELEASE);
   }
 
-  /* The craft jumped, so the segment across the jump is not a flight path:
-   * the race interpolates gate crossings from prevSimMs. */
-  function breakTrails() {
-    race.prevSimMs = null;
-  }
-
   /*
    * The glitch catch (clip-through, thrash, plant fault): the craft is held
    * where it is, frozen, for CLIP_CRASH_HOLD_MS so the pilot can read
@@ -11846,12 +11594,11 @@ export async function boot({
     stateCurr = readState();
     statePrev = stateCurr;
     acc = 0;
-    race.recover(str('ui.crashed'), nowWall);
+    flashSay(str('ui.crashed'), nowWall);
     flightStats.noteCrash();
     if (crashCam) {
       crashCam.noteCrash('clip');
     }
-    view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     /* Inside the takeoff window this is a launch stand's leftover overlap,
      * not a crash, and the cue is the loudest sound in the mix. */
     if (typeof audio.event === 'function' && nowWall >= takeoffUntil) {
@@ -11913,7 +11660,7 @@ export async function boot({
    * The recovery in place. A glitch is our bug, not the pilot's, so it must
    * not cost the run (owner: "register this state and just reset the quad
    * in place"): the craft goes to the nearest clear air, upright on its own
-   * heading, and the race, its clock and its laps carry on.
+   * heading, and the run and its clock carry on.
    *
    * Clear air is the whole job: put back inside what it was stuck in, the
    * craft trips the same catch next frame and the pilot is in a loop. The
@@ -12015,11 +11762,8 @@ export async function boot({
     runAirMs = 0;
     runRoute.reset();
     resetCraft(null);
-    race.reset();
-    raceLogAt = 0;
-    runLaps = ui.settings.laps;
+    flash = null;
     progressKey = '';
-    view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     /* A run whose spawn is in the air starts flying, except under the
      * title, where the craft is only parked behind a menu. */
     const sp = runSpawn();
@@ -12066,23 +11810,14 @@ export async function boot({
     const air = weather ? airSim : { x: 0, y: 0 };
     return Math.hypot(stateCurr[4] - air.x, stateCurr[5] - air.y, stateCurr[6] - (weather ? airOut.up : 0));
   }
-  /* The track a lap closed on: a built track (seated, or the casual sky
-   * track's test flight), or the world's own. A built track is keyed by
-   * its id alone, so saving an edit is not a new track's first lap. */
-  function progressCourse() {
-    const seated = seatedMapTrack();
-    const id = build && build.testing ? build.docId : (seated && seated.document ? seated.document.id : null);
-    return { key: id ? `track:${id}` : runCourseKey(), kind: courseKind(id, ui.settings.progress) };
-  }
-
   /*
-   * AN AIR START, for a spawn that names a height: the in-sim builder's test
-   * flight through a start gate hung in the air (src/builder/course.js
-   * startFor). The craft is put at that height over the spawn point,
-   * level on the spawn's heading, a quad at rest and a fixed wing at its
-   * air start speed along its nose (configs/airframes.js airStartSpeed), and
-   * held there for AIR_START_MS of the flight screen while the banner
-   * counts down, so the pilot has the sticks before it flies.
+   * AN AIR START, for a spawn that names a height (Itaipu's air spawn,
+   * src/maps/itaipu/spawns.js). The craft is put at that height over the
+   * spawn point, level on the spawn's heading, a quad at rest and a fixed
+   * wing at its air start speed along its nose (configs/airframes.js
+   * airStartSpeed), and held there for AIR_START_MS of the flight screen
+   * while the banner counts down, so the pilot has the sticks before it
+   * flies.
    */
   const AIR_START_MS = 3000;
   const AIR_GO_MS = 700;
@@ -12128,11 +11863,8 @@ export async function boot({
    * THE HOT SWAP: another aircraft, now, where this one is.
    *
    * Everything else about the airframe waits for the next run (applySettings'
-   * between runs block), and for a reason that still holds for a lap: a lap
-   * flown on two aircraft is not a lap on either. The owner asked to change
-   * aircraft whenever they want, so this pays that cost where it belongs
-   * instead of refusing: a lap it lands in is voided (race.voidLap, the rule
-   * a weight change already follows), and nothing else about the run stops.
+   * between runs block). The owner asked to change aircraft whenever they
+   * want, so this does it in flight, and nothing else about the run stops.
    *
    * THE RULES, in the order a pilot meets them:
    *   - Same place, same heading. The new aircraft is level on the old one's
@@ -12151,10 +11883,6 @@ export async function boot({
    *     over or dropped stays with it.
    *   - The new aircraft's own tune, the one it was last flown on or its
    *     default (seatAirframe), its pack, its camera and its sound.
-   *   - The world is never rebuilt under a run (worldHold), and the track on
-   *     it is raced only by an aircraft of its class (swapCourseFits): one
-   *     that does not fit flies the world without it and is told, the rule
-   *     #93 made for a plane seated on a map track.
    */
   const SWAP_AIR_ABOVE = 3;
   const swapAt = new THREE.Vector3();
@@ -12166,21 +11894,6 @@ export async function boot({
   const swapTunes = new Map();
   let swapBusy = false;
   let lastSwap = null;
-  /*
-   * THE WORLD A RUN THAT HAS CHANGED AIRCRAFT KEEPS. The seats are one per
-   * track class (src/share/trackseat.js), so the moment the aircraft moves
-   * class, every read of "the seated track" answers for the new one and the
-   * world no longer matches the settings: the next applySettings, a volume
-   * nudge on the pause menu, would rebuild the world and drop the pilot on
-   * the title. So the world is held while the run lasts, as long as the map
-   * and the graphics setting are the ones it was built for, and let go on
-   * the title (releaseWorldHold), where the world follows the seat again as
-   * it does for a choice made there. `track` is the map track seated on it
-   * when the hold began, and `courseOff` whether that track is off the
-   * world because the aircraft flying does not fit it.
-   */
-  let worldHold = null;
-
   async function swapTuneText(id) {
     if (id === 'custom') {
       const text = readFcDump();
@@ -12220,7 +11933,6 @@ export async function boot({
         return false;
       }
       seatSwap(to, next, text, at);
-      await seatSwapCourse(to);
       return true;
     } finally {
       swapBusy = false;
@@ -12265,19 +11977,9 @@ export async function boot({
     }
     const from = runAirframe;
     const quadBefore = shell.quad;
-    const midLap = race.currentLapMs(simTimeMs) != null;
     const onWater = Boolean(waterAt(swapAt.x, swapAt.z));
     const inAir = wasFlying || Boolean(to.floats) !== onWater;
     const s = ui.settings;
-    if (!worldHold) {
-      const track = seatedMapTrack();
-      worldHold = {
-        map: s.map,
-        graphics: normalizeGraphics(s.graphics),
-        track,
-        courseOff: Boolean(track) && !(build && build.racing),
-      };
-    }
 
     /* The seat, then the plant: the mode first, then the config, which
      * sim_init re-reads for that plant and which zeroes the dynamic state
@@ -12325,10 +12027,6 @@ export async function boot({
     introMs = -1;
     seatRestHeight(to, !inAir && onWater);
 
-    if (midLap) {
-      voidRaceLap('swap', 'carousel.lap_void', performance.now());
-    }
-
     /* The craft, parked at the spot on its heading, which is also a fresh
      * physics state and a fresh crash state. */
     resetCraft({ x: swapAt.x, z: swapAt.z, y: swapAt.y, yaw }, inAir);
@@ -12354,7 +12052,6 @@ export async function boot({
       takingOff = false;
       flownThisRun = true;
       obsHasPrev = false;
-      raceHasPrev = false;
       simClockPrevMs = simTimeMs;
       adoptSimClock();
       stateCurr = readState();
@@ -12372,7 +12069,6 @@ export async function boot({
       modelSwapped: shell.quad !== quadBefore,
       rule: !inAir ? 'ground' : wasFlying ? 'air' : 'air-forced',
       onWater,
-      voided: midLap,
       tune: configId,
       /* The power system the swap seated, and the pack's cells. */
       power: readPower(),
@@ -12402,68 +12098,6 @@ export async function boot({
   }
 
   /*
-   * WHO MAY RACE THE TRACK A SWAP LANDS ON: every quad, and every plane that
-   * fits its gates (src/game/verify.js planesFor), as #93 made it. The
-   * builder's own test flight is the builder's to judge, and a world with
-   * nothing seated has nothing to fit.
-   */
-  function swapCourseFits(af) {
-    if (build && build.testing) {
-      return true;
-    }
-    const track = worldHold && worldHold.track;
-    if (!track) {
-      return true;
-    }
-    return !af.fixedWing || planesFor(track.document).includes(af.id);
-  }
-
-  /* Take the track off the world, or put it back, when the aircraft now
-   * flying changed whether it fits. A track that stays is left alone, so
-   * the run's laps stay with it; its seat follows the aircraft so a lap
-   * goes to that aircraft's board. */
-  async function seatSwapCourse(to) {
-    if (build && build.testing) {
-      return;
-    }
-    const fits = swapCourseFits(to);
-    const track = worldHold.track;
-    if (!track) {
-      return;
-    }
-    if (fits) {
-      writeShareImport(track);
-    }
-    if (fits === !worldHold.courseOff) {
-      return;
-    }
-    worldHold.courseOff = !fits;
-    /* The builder puts the track's gates on the view, or takes them off it;
-     * the race is made from the view, as adoptLoadedView makes it. */
-    await seatMapCourse();
-    race = new Race(view.gates, 'full', raceOpts(view.recordSuffix ?? ''));
-    raceLogAt = ui.progress.runEvents().length;
-    if (!fits) {
-      notice = {
-        text: str('main.the_craft_does_not_fit_through_every_gate', { craft: to.short }),
-        untilMs: performance.now() + 4000,
-      };
-    }
-    race.setRecordKey(recordKey());
-    paintBest();
-    view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
-    ui.setShare(view.share || null);
-  }
-
-  /* The run is over: the world follows the seat again. */
-  function releaseWorldHold() {
-    worldHold = null;
-    if (!worldMatchesSettings()) {
-      syncWorld();
-    }
-  }
-
-  /*
    * A world swap has two flags because it has two questions. mapReady: may
    * the frame loop touch the world this frame? The loop never stops during
    * a swap (that would drop the accumulator), it skips. swapInFlight: is a
@@ -12476,16 +12110,9 @@ export async function boot({
   let swapInFlight = false;
   let finishLoadingOnFrame = true;
 
-  /* A race's options for the aircraft seated: a plane's course is scored
-   * with a reach round every gate (src/game/race.js PLANE_REACH), a quad's
-   * threaded. */
-  function raceOpts(recordSuffix) {
-    return { recordSuffix, reach: airframeById(runAirframe).fixedWing ? PLANE_REACH : 0 };
-  }
-
   /*
    * The world in `view` has just been built and becomes the one flown. With
-   * keepPlace it is the same world and course rebuilt for a new look, so
+   * keepPlace it is the same world rebuilt for a new look, so
    * the run carries on, paused, where it stood. Otherwise everything tied to
    * the old world starts again on this one, from the title.
    */
@@ -12493,9 +12120,6 @@ export async function boot({
     prewarm([...FX_ROOTS, shell.quad]);
     attractCam = makeAttractCamera(view);
     if (keepPlace) {
-      /* The new gate meshes need the current next-gate highlight. */
-      view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
-      ui.setShare(view.share || null);
       paintBest();
       mode = stayMode === 'flight' ? 'paused' : stayMode;
       /* Only if the pilot is still on it: a war lobby builds its mission's
@@ -12506,14 +12130,8 @@ export async function boot({
         ui.show(stayScreen);
       }
     } else {
-      /* A world adopted fresh is the seat's, whatever a swap held before,
-       * and a map track's records are its own (seatMapCourse). */
-      worldHold = null;
-      race = new Race(view.gates, 'full', raceOpts(view.recordSuffix ?? ''));
-      race.setRecordKey(recordKey());
       paintBest();
       adoptSpawn();
-      ui.setShare(view.share || null);
       reset();
       mode = 'title';
       /* Back to the room screen only if the pilot is still on it: one who
@@ -12526,100 +12144,14 @@ export async function boot({
     mapReady = true;
   }
 
-  /* A world is one id and many tracks: one world, and a track that is
-   * either seated on it or not, so the world's key alone cannot say which. */
-  function wantedCourseKey(mapId) {
-    const seated = seatedMapTrack();
-    if (!seated || seated.document.map !== mapId) {
-      return '';
-    }
-    /* A plane that does not fit the course's gates has the world without
-     * the course, and a key that says so, so choosing a plane that does
-     * fit seats it again. */
-    return seatedFits(seated) ? seatedCourseKey() : `${seatedCourseKey()}#nofit`;
-  }
-
-  /*
-   * WHO MAY RACE A TRACK: every quad, and every fixed wing that fits every
-   * gate by the builder's own rule (src/game/verify.js planesFor). The
-   * seated aircraft, not the one the last run was flown on, because this
-   * decides what the next run is.
-   */
-  function seatedFits(seated) {
-    const af = airframeById(ui.settings.airframe);
-    return !af.fixedWing || planesFor(seated.document).includes(af.id);
-  }
-
-  function loadedCourseKey(map) {
-    return (map && map.courseKey) || '';
-  }
-
-  /* The builder module, fetched if it is not yet, for a map track to be
-   * seated before the world is shown. Null on a world it cannot build in. */
-  async function ensureBuild() {
-    loadBuild();
-    if (buildLoading) {
-      await buildLoading;
-    }
-    return build;
-  }
-
-  /*
-   * Seat the pilot's track on the world just built, or take one off it, so
-   * that the view's course is the one wantedCourseKey asks for. The builder
-   * builds the gates, makes them solid and swaps them in as the view's
-   * course (buildmode.js race); the view is stamped here with the course
-   * key, the listing the menus read (none for one of the pilot's own, which
-   * is on no board), and the record suffix that keeps this track's best laps
-   * its own.
-   */
-  async function seatMapCourse() {
-    if (build && build.racing) {
-      build.exit(false);
-    }
-    delete view.courseKey;
-    view.share = null;
-    view.recordSuffix = '';
-    const seated = seatedMapTrack();
-    if (!seated || seated.document.map !== view.id) {
-      return;
-    }
-    if (!seatedFits(seated)) {
-      view.courseKey = wantedCourseKey(view.id);
-      notice = {
-        text: str('main.the_craft_does_not_fit_through_every_gate', { craft: airframeById(ui.settings.airframe).short }),
-        untilMs: performance.now() + 4000,
-      };
-      return;
-    }
-    const b = await ensureBuild();
-    const course = b ? b.race(seated.document) : null;
-    if (!course) {
-      notice = { text: str('main.that_track_has_no_gate_to_race'), untilMs: performance.now() + 3600 };
-      return;
-    }
-    view.courseKey = seatedCourseKey();
-    view.share = seated.local
-      ? null
-      : { id: seated.id, name: seated.name || seated.document.name, author: seated.author, board: seated.board };
-    view.recordSuffix = `.map.${seated.document.id}`;
-  }
-
   /* Whether the standing world is the one the settings name: its id, its
-   * graphics level, the course seated on it and the time it was built at. */
+   * graphics level and the time it was built at. */
   function worldMatchesSettings() {
-    const quality = normalizeGraphics(ui.settings.graphics);
-    /* A run that has changed aircraft keeps its world: see worldHold. */
-    if (worldHold && view && ui.settings.map === worldHold.map && quality === worldHold.graphics) {
-      return true;
-    }
     if (!view) {
       return false;
     }
-    const id = worldId();
-    return id === view.id
-      && quality === view.graphics
-      && wantedCourseKey(id) === loadedCourseKey(view)
+    return worldId() === view.id
+      && normalizeGraphics(ui.settings.graphics) === view.graphics
       && worldTimeMatches();
   }
 
@@ -12672,38 +12204,17 @@ export async function boot({
   }
 
   async function syncWorldNow() {
-    /* Resolved, not raw: worldId turns the Track seat into a world and an
-     * unknown id (a stale bookmark's ?map=, which boot.js takes verbatim)
-     * into the seat's, so the tail check below cannot chase a mismatch
-     * that never clears. */
+    /* Resolved, not raw: worldId turns an unknown id (a stale bookmark's
+     * ?map=, which boot.js takes verbatim) into the registry's first world
+     * (mapById), so the tail check below cannot chase a mismatch that
+     * never clears. */
     const wantId = worldId();
     const wantQ = normalizeGraphics(ui.settings.graphics);
     if (swapInFlight || (mapReady && worldMatchesSettings())) {
       return;
     }
-    /*
-     * THE SAME WORLD, ANOTHER COURSE. A map track seated or taken off a
-     * world already built is a set of gates, not a world: swiss2 takes most
-     * of a minute to build and a course a few milliseconds, so the world
-     * stays and only the course and the run change. Anything else is a swap.
-     */
-    if (mapReady && wantId === view.id && wantQ === view.graphics && worldTimeMatches()) {
-      swapInFlight = true;
-      mapReady = false;
-      try {
-        await seatMapCourse();
-        adoptLoadedView(false, 'title', null);
-      } finally {
-        mapReady = true;
-        swapInFlight = false;
-      }
-      if (!worldMatchesSettings()) {
-        await syncWorldNow();
-      }
-      return;
-    }
-    /* Only the graphics level moved: the same world and course, rebuilt. */
-    const keepPlace = mapReady && wantId === view.id && wantedCourseKey(wantId) === loadedCourseKey(view);
+    /* Only the graphics level moved: the same world, rebuilt. */
+    const keepPlace = mapReady && wantId === view.id;
     /*
      * The screens a swap hands back to the pilot when it is done, rather
      * than the title: every page a settings change can be made from. 'rates'
@@ -12712,7 +12223,7 @@ export async function boot({
      * its own world on the room screen (ui.js, the card's world wins), and
      * the swap should end back there (adoptLoadedView).
      */
-    const stayScreens = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits', 'friends'];
+    const stayScreens = ['pilot', 'quad', 'rates', 'paused', 'title', 'credits', 'friends'];
     const stayScreen = stayScreens.includes(ui.screen) ? ui.screen : null;
     const stayMode = keepPlace ? mode : 'title';
     swapInFlight = true;
@@ -12737,9 +12248,6 @@ export async function boot({
      * screen is given a frame to be composited first. */
     await yieldToPaint();
     const before = { id: view.id, graphics: view.graphics };
-    if (build) {
-      build.exit(false);
-    }
     try {
       view.dispose();
     } catch (e) {
@@ -12754,7 +12262,6 @@ export async function boot({
       const timeOptions = worldTimeOptions();
       await loadWorldInto(wantId, wantQ, timeOptions);
       worldTime = timeOf(timeOptions);
-      await seatMapCourse();
       loading.start('frame');
       adoptLoadedView(keepPlace, stayMode, stayScreen);
     } catch (e) {
@@ -12922,8 +12429,6 @@ export async function boot({
     takingOff = true;
     takeoffUntil = nowMs + TAKEOFF_WINDOW_MS;
     flownThisRun = true;
-    racePrev.copy(shell.quad.position);
-    raceHasPrev = true;
     lcGoUntil = nowMs + 900;
     lcAcroUntil = nowMs + 480;
     if (typeof audio.event === 'function') {
@@ -13053,7 +12558,6 @@ export async function boot({
     }
     applyAirSettings(s);
     offerRoomWeather(s);
-    race.setRecordKey(recordKey());
     paintBest();
     if (!worldMatchesSettings()) {
       syncWorld();
@@ -13190,12 +12694,8 @@ export async function boot({
       ui.paintAir();
       return;
     }
-    const midLap = race.currentLapMs(simTimeMs) != null;
     runWeight = weight;
     runGravityScale = scale;
-    if (midLap) {
-      voidRaceLap('weight', 'main.weight_changed_lap_voided', performance.now());
-    }
   }
 
   /*
@@ -13245,7 +12745,6 @@ export async function boot({
     if (taken) {
       ratesText = nextRates;
       configText = nextText;
-      race.setRecordKey(recordKey());
       paintBest();
     }
     if (taken || sim.init(configText) === SIM_OK) {
@@ -13276,7 +12775,6 @@ export async function boot({
       adoptSimClock();
       sim.setCellVoltage(runVoltage);
       if (taken) {
-        race.setRecordKey(recordKey());
         paintBest();
       }
       reset();
@@ -13374,7 +12872,6 @@ export async function boot({
     pidsText = pids;
     adoptSimClock();
     sim.setCellVoltage(runVoltage);
-    race.setRecordKey(recordKey());
     paintBest();
     publishPids();
     /* In a war the tune follows the aircraft the war seated, which it
@@ -13384,84 +12881,6 @@ export async function boot({
       flashNotice(str('main.flying', { name: entry.name }), 2400);
     }
     reset();
-  }
-
-  /*
-   * P in the in-sim builder: put the track being built on the public board.
-   *
-   * The dialog asks for the track's name and the pilot's board name; then
-   * publishCurrentCourse, the edit key and the bind, so a track published
-   * here is owned by this browser and republishing it updates the listing. The board reads it as the
-   * schemaVersion 4 document the builder writes, naming its world.
-   *
-   * Returns { doc, text }: the track as published, which is a new id when
-   * the board already held this one from another browser, and the line the
-   * builder shows, because the flight's own notice is hidden while building.
-   */
-  /* The builder's best test lap, on the layout it was flown on: the gold
-   * time the course is published with (src/game/medals.js). */
-  let builderBest = null;
-  function noteBuilderLap(ms) {
-    const doc = build.doc;
-    if (!doc || !Number.isFinite(ms)) {
-      return;
-    }
-    const layout = layoutFingerprint(doc);
-    const wing = Boolean(airframeById(runAirframe).fixedWing);
-    if (!builderBest || builderBest.docId !== doc.id || builderBest.layout !== layout || builderBest.wing !== wing || ms < builderBest.ms) {
-      builderBest = { docId: doc.id, layout, ms, wing };
-    }
-  }
-
-  async function publishBuiltTrack(doc) {
-    const owned = Boolean(readEditKey(doc.id));
-    const values = await ui.askForm({
-      title: owned ? str('ui.update_this_track') : str('ui.publish_this_track'),
-      detail: str('main.a_track_built_in_a_world_is', { world: mapById(doc.map).name }),
-      confirmLabel: owned ? str('main.update_the_board') : str('app.publish'),
-      fields: [
-        {
-          key: 'course',
-          label: str('main.track_name'),
-          value: doc.name,
-          maxLength: 80,
-          placeholder: str('main.track_name'),
-        },
-        {
-          key: 'author',
-          label: str('ui.your_name'),
-          value: readPilotName() || '',
-          maxLength: 24,
-          placeholder: str('ui.name'),
-          autocomplete: 'nickname',
-          rules: nameRules(),
-          save: writePilotName,
-        },
-      ],
-    });
-    if (!values) {
-      return null;
-    }
-    const layout = layoutFingerprint(doc);
-    const medals = publishMedals(doc.medals, layout, (readBind(doc.id) || {}).layoutFingerprint, builderBest && builderBest.docId === doc.id ? builderBest : null);
-    const sent = { ...doc };
-    delete sent.medals;
-    if (medals) {
-      sent.medals = medals;
-    }
-    try {
-      const result = await publishCurrentCourse({
-        doc: sent,
-        author: values.author,
-        origin: (readBind(doc.id) || {}).board,
-        courseName: values.course,
-      });
-      const cleared = result.posted.timesCleared ? str('main.old_times_were_cleared_because_the') : '';
-      const forked = result.forked ? str('main.published_as_a_new_track') : '';
-      return { doc: result.doc, text: str('main.published', { name: result.posted.name, forked, cleared }) };
-    } catch (e) {
-      return { doc: null, text: str('main.could_not_publish_that_track', { v1: e.message ?? e }) };
-    }
   }
 
   ui.onFcOpen = (page) => {
@@ -13505,7 +12924,6 @@ export async function boot({
     pidsText = '';
     adoptSimClock();
     sim.setCellVoltage(runVoltage);
-    race.setRecordKey(recordKey());
     paintBest();
     reset();
     publishPids();
@@ -13542,9 +12960,8 @@ export async function boot({
     sim.motorOverride(motor, duty);
   };
   ui.onSettings = applySettings;
-  /* The aircraft swap in place, and what it will cost the lap. */
+  /* The aircraft swap in place. */
   ui.onHotSwap = hotSwap;
-  ui.swapWarning = () => (race.currentLapMs(simTimeMs) != null ? str('carousel.swap_voids_lap') : '');
   /*
    * THE HANGAR'S HOOKS (src/ui/hangar.js through Ui.openHangar).
    *
@@ -13683,105 +13100,6 @@ export async function boot({
     };
   };
   ui.hangarPower = hangarPower;
-  ui.hangarWarning = (id) => (liveryKey(id) === liveryKey(runAirframe) && race.currentLapMs(simTimeMs) != null
-    && hangarPower(id) ? str('hangar.power_voids_lap') : '');
-  /*
-   * THE FIRST RUN'S COACHING: three lines, each moved on by the pilot
-   * reaching the next gate rather than by a clock, so a slow first lap is
-   * never cut off and a quick one never nagged. Once a lap is posted or
-   * three gates are behind them the lap splits say more, so it retires for
-   * good (ui.guided goes false and the frame loop stops asking).
-   *
-   * The lines name the controls of whatever the pilot is holding: a thumb
-   * pilot in landscape has no arrow key and no Escape. The device is read
-   * on every call, since a radio can be plugged in between two lines.
-   */
-  const guidedControls = () => {
-    if (input.isTouchPrimary()) {
-      return { nose: str('main.push_the_right_plate_up_then'), again: str('main.pause_then_restart_puts_you_back') };
-    }
-    const again = str('main.r_puts_you_back_on_the');
-    return input.firstGamepad()
-      ? { nose: str('main.ease_the_right_stick_forward_then'), again }
-      : { nose: str('main.tip_forward_with_the_up_arrow'), again };
-  };
-  const guidedPrompt = (race) => {
-    const coaching = !race.freestyle && race.lastLapMs == null && race.next < 3;
-    if (!coaching) {
-      ui.guided = false;
-      return '';
-    }
-    const { nose, again } = guidedControls();
-    switch (race.next) {
-      case 0: return str('main.the_green_gate_starts_your_lap', { nose });
-      case 1: return str('main.through_the_next_gate_turns_green');
-      default: return str('main.gate_by_gate', { again });
-    }
-  };
-  /*
-   * A published track picked from My tracks seats the way a ?share= link
-   * does at boot, without the navigation: fetch it, write the share seat,
-   * and tell the shell which track it holds. The world builds around it
-   * from there.
-   */
-  ui.onBoardCourse = async (track) => {
-    const fetched = await fetchTrackDocument(track.id, track.board);
-    /* A board answers with the document inside its listing, or bare. */
-    const doc = fetched.document || fetched;
-    const share = {
-      id: fetched.id || track.id,
-      name: fetched.name || track.name || doc.name,
-      author: fetched.author || track.author || '',
-      board: track.board,
-      document: doc,
-    };
-    if (!writeShareImport(share)) {
-      throw new Error('This browser would not store that track.');
-    }
-    ui.setShare(share);
-    return true;
-  };
-  /*
-   * THE BUILDER, FROM MY TRACKS: Edit opens it on one of the pilot's own
-   * tracks (`id`), New track on an empty one in a world (`map`). The world
-   * is built if it is not the one standing, with nothing seated on it
-   * (buildWorld), the aircraft is parked at the world's spawn, and the
-   * builder takes the view. Escape out of the builder lands back on My
-   * tracks (buildHost.leave). A world that will not build leaves the pilot
-   * on My tracks with syncWorld's own notice.
-   */
-  ui.onBuild = async ({ map, id, casual = false }) => {
-    if (needSignIn(() => ui.onBuild({ map, id, casual }))) {
-      return;
-    }
-    const entry = mapById(map);
-    const doc = id ? loadMapTrack(id) : null;
-    if (entry.id !== map || !entry.build || (id && !doc)) {
-      throw new Error(`the builder cannot open ${id || 'a new track'} in ${map}`);
-    }
-    titleWorld = null;
-    buildWorld = map;
-    if (!worldMatchesSettings()) {
-      await syncWorld();
-    }
-    const b = view.id === map ? await ensureBuild() : null;
-    if (!b) {
-      buildWorld = null;
-      ui.show('courses');
-      return;
-    }
-    whenConfigReady(() => {
-      reset();
-      mode = 'flight';
-      ui.show('flight');
-      b.open(doc, { casual });
-      /* The generator marks nothing in the document, whose format is
-       * shared with the board; progression keeps the id instead. */
-      if (casual && b.docId) {
-        ui.progress.markCasual(b.docId);
-      }
-    });
-  };
   /* The menu's own clicks and ticks. The audio module ships on its own
    * schedule, so a build without ui() stays silent rather than throwing. */
   ui.onUiSound = (kind) => {
@@ -13904,10 +13222,10 @@ export async function boot({
       reset();
       mode = 'flight';
       /* Fly from the title: reset() ran with the title still up, where it
-       * parks the craft rather than air start it, so a published map
-       * track whose start gate hangs in the air started on the ground
-       * under it. A restart from the pause menu has already had its air
-       * start, and its countdown is running. */
+       * parks the craft rather than air start it, so a spawn that hangs in
+       * the air (Itaipu's) started on the ground under it. A restart from
+       * the pause menu has already had its air start, and its countdown is
+       * running. */
       const sp = runSpawn();
       if (sp && sp.air && !(airHoldMs > 0)) {
         airStart(sp.air.y);
@@ -13939,13 +13257,6 @@ export async function boot({
   }
 
   function quitToTitle() {
-    /* A builder session ends with the run: its test course comes off the
-     * view, and the world goes back to following the seat. A seated
-     * track's race (build.racing) is the seat's and stays. */
-    if (build && build.active && !build.racing) {
-      build.exit(false);
-    }
-    buildWorld = null;
     mode = 'title';
     /* Not while a world swap is in flight: the old world is already
      * disposed (syncWorldNow), its terrain gone under adoptSpawn, and the
@@ -13953,11 +13264,6 @@ export async function boot({
      * at once now, so a Leave during a swap reached this. */
     if (!swapInFlight) {
       reset();
-    }
-    /* Now, not on the next frame: a choice made on the title before a
-     * frame has run must meet the world as the seat has it. */
-    if (worldHold) {
-      releaseWorldHold();
     }
   }
 
@@ -14076,24 +13382,12 @@ export async function boot({
     flashNotice(str('main.control_recording_saved_s', { secs }), 3600);
   }
 
-  async function renamePilot() {
-    const name = await ui.askName({
+  /* The dialog keeps the name (share/pilot.js writePilotName). */
+  function renamePilot() {
+    ui.askName({
       title: str('ui.your_name'),
-      detail: str('ui.posted_times_and_published_tracks_carry'),
+      detail: str('ui.the_name_this_computer_flies_under'),
     });
-    if (!name) {
-      return;
-    }
-    /* The name is already kept here; this only carries it to the boards
-     * the pilot has posted on, and says so when one took it. */
-    try {
-      const sync = await syncOwnedIdentity();
-      if (Array.isArray(sync.results) && sync.results.some((r) => r.ok)) {
-        flashNotice(str('main.name_on_the_board_is_now', { name }), 3200);
-      }
-    } catch (e) {
-      flashNotice(str('main.name_saved_here_the_board_could', { v1: e.message ?? e }), 3600);
-    }
   }
 
   async function exportPilotKey() {
@@ -14204,32 +13498,10 @@ export async function boot({
     if (accountUi.handle(action)) {
       return;
     }
-    /* No flight without an account (src/share/account.js): Fly, Play
-     * and Restart wait for the sign in, and then go. Resume is only ever
-     * a flight already under way. */
-    if ((action === 'fly' || action === 'play' || action === 'restart') && needSignIn(() => ui.onAction(action))) {
-      return;
-    }
-    /*
-     * PLAY, FROM MY TRACKS: the seat holds the track, so build its world if
-     * it is not the one standing, seat its gates, and open the launch card
-     * the way Fly does. The title's world and the builder's end here, as
-     * they end at the first Fly.
-     */
-    if (action === 'play') {
-      titleWorld = null;
-      buildWorld = null;
-      paintBest();
-      const launch = () => {
-        if (worldMatchesSettings()) {
-          ui.act('fly');
-        }
-      };
-      if (worldMatchesSettings()) {
-        launch();
-      } else {
-        syncWorld().then(launch);
-      }
+    /* No flight without an account (src/share/account.js): Fly and
+     * Restart wait for the sign in, and then go. Resume is only ever a
+     * flight already under way. */
+    if ((action === 'fly' || action === 'restart') && needSignIn(() => ui.onAction(action))) {
       return;
     }
     if (action === 'fly' && titleWorld) {
@@ -14373,53 +13645,6 @@ export async function boot({
   }
 
   /*
-   * THE IN-SIM BUILDER (src/builder/buildmode.js). B in a flight on a world
-   * the registry marks `build` parks the aircraft and flies a free camera
-   * that places gates against the world itself; B again flies the track on
-   * the race's own scoring. The module is fetched the first time such a
-   * world is seated, so no other map pays for it, and all it does to the run
-   * goes through this host: the menu's own pause, resume and restart, and a
-   * new Race over the gates it hands in.
-   */
-  let buildLoading = null;
-  const buildHost = {
-    shell,
-    input,
-    ui,
-    view: () => view,
-    mode: () => mode,
-    canBuild: () => mapReady && mode === 'flight' && ui.screen === 'flight' && !walker && Boolean(mapById(view.id).build),
-    onFlightScreen: () => ui.screen === 'flight',
-    heightAt: (x, z) => view.height(x, z, Infinity),
-    hold: () => ui.onAction('pause'),
-    resume: () => ui.onAction('resume'),
-    fly: () => ui.onAction('restart'),
-    setCourse(gates, recordSuffix) {
-      race = new Race(gates, 'full', raceOpts(recordSuffix));
-      race.setRecordKey(recordKey());
-      paintBest();
-      view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
-    },
-    publish: (doc) => publishBuiltTrack(doc),
-    /* Out of a builder My tracks opened, back to My tracks. */
-    leave: () => ui.act('mytracks'),
-  };
-  function loadBuild() {
-    if (build || buildLoading || !mapById(view.id).build) {
-      return;
-    }
-    buildLoading = import('./builder/buildmode.js')
-      .then((m) => {
-        build = m.createBuildMode(buildHost);
-      })
-      .catch((e) => {
-        /* Loud, once, and not retried every frame after: a builder that
-         * failed to load is a missing B key, not a broken flight. */
-        logError('ui', 'build mode failed to load', e);
-      });
-  }
-
-  /*
    * THE PILOT ON FOOT (docs/ON-FOOT.md). In free flight, landed and
    * stopped, the foot key (keybinds.js `foot`), a held B on a pad or
    * the thumbs' chip steps the pilot out onto the pilot's spot facing the
@@ -14454,11 +13679,10 @@ export async function boot({
   let footPadFired = false;
 
   /* A free flight, flown here and now by this pilot, not a war, a
-   * mission, a watcher's seat or the builder. */
+   * mission or a watcher's seat. */
   function footAllowedHere() {
     const m = modeById(flightActivity());
-    return Boolean(m && m.onFoot) && !roomWar.on() && !roomOps.on() && !roomWatching() && !warSpectating()
-      && !(build && build.active);
+    return Boolean(m && m.onFoot) && !roomWar.on() && !roomOps.on() && !roomWatching() && !warSpectating();
   }
 
   function canStepOut() {
@@ -14658,10 +13882,10 @@ export async function boot({
   const MOUSE_ESC_GUARD_MS = 300;
   const mouseLocked = () => document.pointerLockElement === shell.canvas;
   /* Mouse flight's in the air, the walk's on foot (a thumb looks on a
-   * touch screen), the builder's own in build mode. */
+   * touch screen). */
   function mouseWantsLock() {
     return (input.mouseEnabled || (walker !== null && !(touch && touch.active()))) && mode === 'flight' && ui.screen === 'flight'
-      && !(build && build.active && !build.racing) && !debrief.isOpen;
+      && !debrief.isOpen;
   }
   function askMouseLock() {
     mouseLockAsks += 1;
@@ -14792,9 +14016,6 @@ export async function boot({
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
-      return;
-    }
-    if (build && build.onKey(code, repeat)) {
       return;
     }
     if (crashCam && crashCam.onKey(code, repeat)) {
@@ -15387,82 +14608,6 @@ export async function boot({
     pressHeldMs = 0;
     pressIdleMs = 0;
   }
-  /*
-   * THE SOFT PIECES, FOR A PLANE (src/game/jelly.js): a pylon and a sky
-   * hoop's rim are jelly to a fixed wing. The sweep and the crash world
-   * pass through them (softKinds, set here for the aircraft seated) and
-   * this pass, on the obstacle pass's own sim cadence, whacks the plane
-   * instead: a speed loss into the piece and a kick on its rates, written
-   * onto the plant, once per meeting. It re-arms once the plane is clear
-   * of every soft piece by JELLY_REARM. The builder wobbles the piece
-   * (buildmode.js jiggle). Returns the state, read again after a whack.
-   */
-  const JELLY_REARM = 2;
-  const jellyA = new THREE.Vector3();
-  const jellyB = new THREE.Vector3();
-  const jellyQ = new THREE.Quaternion();
-  const jellyV = new THREE.Vector3();
-  const jellyRight = new THREE.Vector3();
-  const jellyUp = new THREE.Vector3();
-  const jellyVSim = { x: 0, y: 0, z: 0 };
-  const jellyHit = { i: -1, gap: 0, n: null };
-  function softKindsFor() {
-    return airframeById(runAirframe).fixedWing ? JELLY_MASK : 0;
-  }
-  function jellyPass(st) {
-    const col = view.colliders;
-    if (col) {
-      col.softKinds = softKindsFor();
-    }
-    if (!col || !col.softKinds || mode !== 'flight' || crashed || poseLock || launchStaging) {
-      jellyHasPrev = false;
-      return st;
-    }
-    poseFromState(st, jellyB);
-    if (!jellyHasPrev) {
-      jellyA.copy(jellyB);
-      jellyHasPrev = true;
-      return st;
-    }
-    const af = airframeById(runAirframe);
-    const reach = REACH_OF_SPAN * 2 * (af.dims.arm + (af.dims.hullR ?? af.dims.propR));
-    const i = jellyNear(col, jellyA, jellyB, reach + JELLY_REARM, jellyHit);
-    jellyA.copy(jellyB);
-    if (i < 0) {
-      jellyArmed = true;
-      return st;
-    }
-    if (!jellyArmed || jellyHit.gap > reach) {
-      return st;
-    }
-    simPosToThree(st[4], st[5], st[6], jellyV).applyQuaternion(qSpawn);
-    simQuatToThree(st[7], st[8], st[9], st[10], jellyQ);
-    jellyQ.premultiply(qSpawn);
-    jellyRight.set(1, 0, 0).applyQuaternion(jellyQ);
-    jellyUp.set(0, 1, 0).applyQuaternion(jellyQ);
-    const w = whack(jellyV, jellyHit.n, jellyRight, jellyUp);
-    if (!w) {
-      return st;
-    }
-    jellyArmed = false;
-    worldDirToSim(w.v.x, w.v.y, w.v.z, jellyVSim);
-    if (sim.e.sim_set_velocity(jellyVSim.x, jellyVSim.y, jellyVSim.z, st[11] + w.roll, st[12] + w.pitch, st[13]) !== SIM_OK) {
-      throw new Error('sim_set_velocity refused a whack');
-    }
-    jellyLog.push({
-      t: st[0], kind: col.kindName(col.fkind[i]), speed: jellyV.length(), after: Math.hypot(w.v.x, w.v.y, w.v.z),
-      loss: w.loss, roll: w.roll, pitch: w.pitch, square: w.square,
-    });
-    if (jellyLog.length > 32) {
-      jellyLog.shift();
-    }
-    if (build) {
-      build.jiggle(i, jellyHit.n, w.square);
-    }
-    roomWhack(i, jellyHit.n, w.square);
-    return readState();
-  }
-
   /* `atMs` is the traffic's clock (trafficMs) at the end of the step just
    * taken, the clock the town's traffic runs on (view.updateAnim). */
   /*
@@ -15857,125 +15002,6 @@ export async function boot({
   const camLookAt = new THREE.Vector3();
 
   /*
-   * THE TARGET MARK: the next gate's bracket when it is in frame, a chevron
-   * on the frame's rim pointing at it when it is not (index.html .lock,
-   * drawn by ui.setTargetLock). The view decides which gate and from which
-   * side, the same call that colours the gate; the shell only projects it,
-   * because the canvas is the shell's.
-   *
-   * The mark keeps clear of the OSD: in from the sides by `side`, below the
-   * lap clock stack by `top`, and above whatever owns the bottom band. That
-   * is the two corner instruments for a radio pilot (`bottom`), and the
-   * stick ghost or the touch sticks for anyone else, which stand taller
-   * (`bottomSticks`: the plate's 18 px offset, its 88 px clamp ceiling, a
-   * caption and the same 8 px of air). A gate below the frame is every
-   * climb and every takeoff, so the band is where the chevron goes most.
-   */
-  const MARK_INSET = {
-    side: 54, top: 100, bottom: 108, bottomSticks: 130,
-  };
-  /* Range, m, over which the in-frame mark fades out as the pilot closes:
-   * at 13 m a 1.75 m opening is a tenth of the frame and a bracket still
-   * says something, at 6 m it is a fifth and a bracket is clutter. A mark
-   * on the rim never fades, since that is when the range matters most. */
-  const MARK_FADE_FROM = 13;
-  const MARK_FADE_TO = 6;
-  /* The bracket stands this far outside the opening so the ring the pilot
-   * aims through stays visible, and never smaller than MARK_MIN_PX or
-   * taller than MARK_MAX_SHARE of the frame. */
-  const MARK_BRACKET = 1.45;
-  const MARK_MIN_PX = 34;
-  const MARK_MAX_SHARE = 0.62;
-  const markNdc = new THREE.Vector3();
-  const markFwd = new THREE.Vector3();
-  const markRel = new THREE.Vector3();
-  const LOCK_OFF = { show: false };
-  /* Refilled every frame: the mark is up for a whole race and must not
-   * allocate. */
-  const markOut = {
-    show: true, x: 0, y: 0, size: 0, angle: 0, edge: false, wrong: false, distance: 0, fade: 1,
-  };
-
-  function updateTargetLock() {
-    const aim = crashflipOn || turtleRecover || !view.targetAim ? null : view.targetAim();
-    ui.setTargetLock(aim && aim.active && placeTargetMark(aim) ? markOut : LOCK_OFF);
-  }
-
-  /*
-   * Fill markOut for `aim`, in CSS pixels (the mark is a DOM layer, and the
-   * drawing buffer differs from the layout size on any high density
-   * display). False when there is nothing to draw.
-   */
-  function placeTargetMark(aim) {
-    const canvas = shell.renderer.domElement;
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    if (w < 2 || h < 2) {
-      return false;
-    }
-    const cam = shell.camera;
-    const midX = w * 0.5;
-    const midY = h * 0.5;
-    markNdc.copy(aim.centre).project(cam);
-    /*
-     * A point behind the lens projects through a negative w, which mirrors
-     * it through the frame's centre to a place that looks believable. The
-     * mirror undone gives its true bearing, and it is then thrown well past
-     * the rim so it always reads as a chevron. Dead behind has no bearing
-     * at all; that one points up, since either way round will do.
-     */
-    const behind = Math.abs(markNdc.z) >= 1;
-    const flip = behind ? -1 : 1;
-    let px = (flip * markNdc.x * 0.5 + 0.5) * w;
-    let py = (0.5 - flip * markNdc.y * 0.5) * h;
-    if (behind) {
-      const len = Math.hypot(px - midX, py - midY);
-      if (len > 1) {
-        px = midX + ((px - midX) * w) / len;
-        py = midY + ((py - midY) * w) / len;
-      } else {
-        px = midX;
-        py = midY - h;
-      }
-    }
-    const sticksUp = input.isKeyboardPrimary() || input.isTouchPrimary() || input.isMousePrimary();
-    const left = MARK_INSET.side;
-    const right = w - MARK_INSET.side;
-    const top = MARK_INSET.top;
-    const bottom = h - (sticksUp ? MARK_INSET.bottomSticks : MARK_INSET.bottom);
-    const edge = behind || px < left || px > right || py < top || py > bottom;
-    /* A flag or a cone is lit on its own pole; the in-frame bracket would
-     * be the scoring square the owner asked not to see. Off frame the
-     * chevron still points the way. */
-    if (aim.virtual && !edge) {
-      return false;
-    }
-    const fade = edge
-      ? 1
-      : THREE.MathUtils.clamp((aim.distance - MARK_FADE_TO) / (MARK_FADE_FROM - MARK_FADE_TO), 0, 1);
-    if (fade < 0.02) {
-      return false;
-    }
-    /* Sized by the depth along the lens rather than the straight range,
-     * because that is what a projection scales with: off axis the range
-     * would overstate the opening by up to half again. */
-    markFwd.set(0, 0, -1).applyQuaternion(cam.quaternion);
-    const depth = markRel.subVectors(aim.centre, cam.position).dot(markFwd);
-    const focal = h / (2 * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2));
-    const opening = depth > 0.2 ? (focal * aim.clearH * MARK_BRACKET) / depth : 0;
-    markOut.edge = edge;
-    markOut.wrong = !aim.correct;
-    markOut.distance = aim.distance;
-    markOut.fade = fade;
-    markOut.size = Math.max(MARK_MIN_PX, Math.min(h * MARK_MAX_SHARE, opening));
-    markOut.x = Math.min(right, Math.max(left, px));
-    markOut.y = Math.min(bottom, Math.max(top, py));
-    /* Degrees clockwise from up, the way the chevron is drawn. */
-    markOut.angle = edge ? THREE.MathUtils.radToDeg(Math.atan2(px - midX, midY - py)) : 0;
-    return true;
-  }
-
-  /*
    * The town's clock. Everything that moves in a world and can be hit is a
    * closed form of a whole number of 1 ms steps. In a run that number is
    * simTimeMs, so a crossing boom meets a recorded flight at the same step
@@ -16060,8 +15086,8 @@ export async function boot({
     steps: 0, faulted: false,
     /* The hardest ground contact across this frame's steps. */
     groundClosing: 0, groundSpeed: 0, groundHit: false,
-    /* The frame's interpolation weight and the sim clock it reads at. */
-    a: 0, simNow: 0, simStepMs: 0,
+    /* The frame's interpolation weight and the sim time it stepped. */
+    a: 0, simStepMs: 0,
     /* What the solid world reported, read once per frame in readContacts. */
     leftover: false, interior: 0, roof: false,
     /* Screen state the later phases share. */
@@ -16116,7 +15142,7 @@ export async function boot({
     advancePlant();
     composePose();
     readContacts();
-    raceFrame();
+    routeFrame();
     dressWorld();
     placeLens();
     walkFrame();
@@ -16195,7 +15221,6 @@ export async function boot({
     flightStats.tick(nowWall, {
       started: flownThisRun,
       flying: flownThisRun && !landed && !crashed && !wrecked && !turtleWait && !turtleRecover,
-      laps: race.laps.length,
     });
     /* The pilot's own flight time is written when enough is held, or when
      * the last frame's steps were not flight; advancePlant sets the flag
@@ -16221,15 +15246,11 @@ export async function boot({
   function readPilot() {
     const nowWall = fr.wall;
     input.poll(nowWall);
-    /* A gamepad's swap buttons act in flight only, and not while the
-     * builder is building on the same screen, where Y carries a gate. */
-    if (ui.screen === 'flight' && mode !== 'replay' && !(build && build.cameraLive)) {
+    /* A gamepad's swap buttons act in flight only. */
+    if (ui.screen === 'flight' && mode !== 'replay') {
       ui.pollFlightPad(input.padSwapButtons());
       /* The menus poll the pad only while one is up, so Start is read here. */
       ui.pollStart(input.padStartButton());
-    }
-    if (worldHold && mode === 'title') {
-      releaseWorldHold();
     }
     pollManualFlip();
     fr.launch = syncLaunchControl(nowWall);
@@ -16596,7 +15617,6 @@ export async function boot({
       obsPhase += 1;
       if (obsPhase >= OBSTACLE_STEP) {
         obsPhase = 0;
-        st = jellyPass(st);
         stateCurr = st;
         st = obstacleContactPass(st, trafficMs(simTimeMs + (i + 1) * MS_PER_STEP));
         if (obsResolved) {
@@ -16801,7 +15821,6 @@ export async function boot({
         bounceCount += 1;
         feelImpact(obsImpulse, obsImpulseKind);
         bounceAtSimMs = simTimeMs;
-        view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
       }
       lastImpulse = obsImpulse;
     } else if (simTimeMs - bounceAtSimMs > BOUNCE_COOLDOWN_MS) {
@@ -16882,99 +15901,17 @@ export async function boot({
   }
 
   /*
-   * The race runs on the drawn position, timed on the sim clock at that
-   * state, with gate crossings swept over the frame's travel so speed
-   * cannot tunnel a gate. The frame's end becomes the seed of a lap that
-   * starts on the next one.
+   * The run's route on the drawn position, timed on the sim clock at that
+   * state, and the airtime the OSD shows.
    */
-  function raceFrame() {
-    const nowWall = fr.wall;
+  function routeFrame() {
     const simNow = simTimeMs > 0 ? simTimeMs - 1 + fr.a : 0;
-    fr.simNow = simNow;
     if (mode === 'flight' && !launchStaging && !crashed) {
-      if (raceHasPrev) {
-        scoreTravel(simNow, nowWall);
-      }
-      racePrev.copy(pCurr);
-      raceHasPrev = true;
       runRoute.add(simNow, pCurr.x, pCurr.y, pCurr.z);
     }
     /* Airtime for the freestyle display is the sim clock since the run
      * began: a frame hitch must not spend a pilot's battery. */
     airtimeMs = simTimeMs;
-  }
-
-  function scoreTravel(simNow, nowWall) {
-    const lapsBefore = race.laps.length;
-    const allowPass = shouldScorePass(racePrev, pCurr, {
-      upz: lastUpz,
-      clearance: lastClearance,
-      hits: lastGroundHits,
-      heightAt: (x, z, y) => view.height(x, z, y - SURFACE_BIAS),
-    });
-    const res = race.update(racePrev, pCurr, simNow, nowWall, allowPass);
-    const passed = res.passed != null;
-    if (passed) {
-      view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
-      if (typeof audio.event === 'function') {
-        audio.event('gate');
-      }
-    }
-    if (!race.freestyle && build && build.testing && race.laps.length > lapsBefore) {
-      noteBuilderLap(race.lastLapMs);
-      /* Progress counts none off a casual track; the debrief still reads
-       * it from the log (src/game/events.js lap_void). */
-      if (!ui.progress.isCasual(build.docId)) {
-        ui.progress.lapVoid(race.lastLapMs, 'test');
-      }
-    }
-    if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {
-      if (passed) {
-        ui.progress.gatePass();
-      }
-      if (race.laps.length > lapsBefore) {
-        const seated = seatedMapTrack();
-        const medals = seated && seated.document && seated.document.medals;
-        ui.progress.lap(progressCourse(), {
-          ms: race.laps[race.laps.length - 1],
-          medal: medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing),
-          n: race.lap,
-          of: runLaps,
-        });
-      }
-    }
-    if (!race.freestyle && race.lap >= runLaps) {
-      finishRun();
-    }
-  }
-
-  /* The run is over: a turtle in progress is played out, the motors let
-   * go, and the results shown. */
-  function finishRun() {
-    mode = 'results';
-    if (turtleWait || turtleFlip.active) {
-      if (turtleWait && !turtleFlip.active) {
-        beginTurtleFlip();
-      }
-      finishTurtleFlip();
-    }
-    setCrashflip(false);
-    turtleRecover = false;
-    turtleOnSupport = false;
-    setTurtleParkMotors(false);
-    poseLock = false;
-    paintBest();
-    ui.showResults(race.log, race.bestMs, race.recordAtStart, withBests(fromRace({
-      aircraft: runAirframe,
-      fixedWing: Boolean(airframeById(runAirframe).fixedWing),
-      events: ui.progress.runEvents().slice(raceLogAt),
-      recordAtStart: race.recordAtStart,
-      flightMs: runAirMs,
-      totalS: aircraftSecondsNow(),
-      route: runRoute.snapshot(),
-      replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
-      condition: conditionOf(crashFlags, airframeById(runAirframe).fixedWing),
-    }), ui.progress.runBests()));
   }
 
   /*
@@ -17046,7 +15983,7 @@ export async function boot({
   };
 
   function dressWorld() {
-    fr.attractOn = mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
+    fr.attractOn = mode === 'title' && ui.screen === 'title';
     fr.pickerOn = ui.carousel.isOpen || ui.hangar.isOpen;
     /* A replay the TV opened draws the world in the room's place. */
     fr.walkOn = ui.screen === 'walk' && Boolean(ui.walk) && !crashCam.live;
@@ -17057,7 +15994,6 @@ export async function boot({
       || mode === 'paused'
       || mode === 'replay'
       || mode === 'results'
-      || ui.screen === 'courses'
       || fr.attractOn
       || fr.pickerOn
       || fr.walkOn
@@ -17241,11 +16177,6 @@ export async function boot({
     }
     if (!(mode === 'title' && !camOverride && !warIntro) && shell.camera.view && shell.camera.view.enabled) {
       shell.camera.clearViewOffset();
-    }
-    if (build) {
-      build.frame(dt);
-    } else if (mapReady) {
-      loadBuild();
     }
     if (warIntro) {
       if (mode === 'replay') {
@@ -17590,7 +16521,7 @@ export async function boot({
     if (view.audioSources) {
       view.audioSources(worldAudio.traffic(animMs));
     }
-    const focus = camOverride || warIntro || (build && build.cameraLive) || mode === 'replay'
+    const focus = camOverride || warIntro || mode === 'replay'
       ? shell.camera.position
       : (mode === 'title' ? shell.quad.position : pCurr);
     view.updateShadowFocus(focus);
@@ -17839,7 +16770,6 @@ export async function boot({
       if (mode !== 'paused') {
         ui.setStickOverlay({ show: false, roll: 0, pitch: 0, yaw: 0, throttle: 0 });
         ui.setAirSlider(false);
-        ui.setTargetLock(LOCK_OFF);
       }
       hudChrome();
       return;
@@ -17901,7 +16831,6 @@ export async function boot({
      * alike, so it is up whenever there is a quad in the air to try it on;
      * its first run hint is raised in there too. */
     ui.setAirSlider(true, inAir);
-    updateTargetLock();
     hudChrome();
   }
 
@@ -17921,14 +16850,15 @@ export async function boot({
    * The readout. Altitude is measured against the surface UNDER the craft
    * through the same biased query every contact test uses, so a pilot over
    * a roof reads their height over that roof and the deck the quad is
-   * under is not taken for the floor (SURFACE_BIAS). The freestyle clock
-   * is the run's, read off the scorer, which decides when the run ends.
+   * under is not taken for the floor (SURFACE_BIAS). The clock is the
+   * run's airtime. Nothing is timed against a course any more, so the
+   * overlay's lap and gate fields (src/ui/overlay.js setOsd) are handed
+   * the values a flight with no gates always gave them.
    */
   function readoutNow(nowWall) {
     const st = stateCurr;
     const af = airframeById(runAirframe);
     const p = shell.quad.position;
-    const nextGt = view.gates && view.gates[race.nextSceneIndex()];
     const gearNow = af.retracts && typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : null;
     const flightMode = flightModeNow();
     /* Native launch state 3 latches until the L switch drops; the GO flash
@@ -17938,12 +16868,12 @@ export async function boot({
       : (fr.launch === 3 && nowWall >= lcGoUntil ? 0 : fr.launch);
     return {
       mode: view.mode,
-      lapMs: race.freestyle ? airtimeMs : race.currentLapMs(fr.simNow),
-      gate: race.next + 1,
-      gateCount: race.gates.length,
-      gateCue: race.reach > 0 ? str('osd.score', { n: race.runScore }) : (nextGt && nextGt.cue ? nextGt.cue : ''),
+      lapMs: airtimeMs,
+      gate: 1,
+      gateCount: 0,
+      gateCue: '',
       volts: st[18],
-      lastLapMs: race.lastLapMs,
+      lastLapMs: null,
       packFrac: (st[18] - PACK_EMPTY_PER_CELL * runCells) / ((PACK_FULL_PER_CELL - PACK_EMPTY_PER_CELL) * runCells),
       altitude: p.y - view.height(p.x, p.z, p.y - SURFACE_BIAS),
       speedKph: speedNow * 3.6,
@@ -18056,15 +16986,13 @@ export async function boot({
    * calibration wizard own their screens outright; after them the crash,
    * a watched war, the wreck, the turtle, the start counts, a notice, any
    * other screen (which owns the frame and wants no flight message over
-   * it), the throttle wait, launch control, the takeoff prompt, the guide
-   * and the lap flash, in that order.
+   * it), the throttle wait, launch control, the takeoff prompt and the
+   * flight's flash (flashSay), in that order.
    */
   function bannerFrame() {
     const nowWall = fr.wall;
     const cal = input.calibrationView();
-    const lapFlash = race.flashText(nowWall);
-    /* Read once: guidedPrompt retires the guided flag as a side effect. */
-    const guidedText = (ui.guided && !crashflipOn && !turtleRecover && lastUpz >= 0) ? guidedPrompt(race) : '';
+    const flashLine = flashText(nowWall);
     ui.setPadInfo(input.padSummary());
     padLossFrame();
     const queuedPick = input.takePadPickQueue();
@@ -18087,7 +17015,7 @@ export async function boot({
       }
       ui.setBanner('');
     } else {
-      const claim = bannerClaim(nowWall, lapFlash, guidedText);
+      const claim = bannerClaim(nowWall, flashLine);
       ui.setBanner(claim[0], claim[1]);
     }
     /* How to fly and Rates draw the gimbals from the same channels the
@@ -18151,7 +17079,7 @@ export async function boot({
 
   const NO_BANNER = ['', false];
 
-  function bannerClaim(nowWall, lapFlash, guidedText) {
+  function bannerClaim(nowWall, flashLine) {
     const inFlight = ui.screen === 'flight';
     const launch = fr.launch;
     if (crashed && inFlight) {
@@ -18206,11 +17134,8 @@ export async function boot({
     if (!flownThisRun) {
       return [takeoffPrompt(), false];
     }
-    if (guidedText) {
-      return [guidedText, false];
-    }
-    if (lapFlash) {
-      return [lapFlash, wrecked ? 'edge' : false];
+    if (flashLine) {
+      return [flashLine, wrecked ? 'edge' : false];
     }
     return NO_BANNER;
   }
@@ -18226,10 +17151,8 @@ export async function boot({
   }
 
   /*
-   * The takeoff prompt, by how this aircraft leaves the ground, and then
-   * what starts: the lap on the green gate, or in freestyle the scored
-   * run's two minutes. Scoring off promises nothing, because nothing
-   * starts; free flight has no clock and no gates and says so.
+   * The takeoff prompt, by how this aircraft leaves the ground. Nothing is
+   * timed, so it promises nothing after.
    */
   function takeoffPrompt() {
     const af = airframeById(runAirframe);
@@ -18255,8 +17178,7 @@ export async function boot({
     } else {
       start = str('main.throttle_up_to_take_off');
     }
-    const second = race.freestyle ? '' : str('main.the_green_gate_starts_your_lap_2');
-    return `${start}${second}`;
+    return start;
   }
 
   /*
@@ -18396,11 +17318,9 @@ export async function boot({
     return { geometries: memory.geometries, textures: memory.textures, programs: programs ? programs.length : 0 };
   };
 
-  /* Live handles. __race is a getter because a map swap replaces the race
-   * object; the others live as long as the page. */
+  /* Live handles: they live as long as the page. */
   devHooks.__ui = ui;
   devHooks.__input = input;
-  devHooks.__race = () => race;
   devHooks.__audio = audio;
 
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
@@ -18545,14 +17465,12 @@ export async function boot({
   /* The mode the plant is in, not the one the menu shows: angle cannot loop. */
   window.__flightMode = () => (angleModeOn ? 'angle' : 'acro');
 
-  /* Gravity as the menu, this run and the module each hold it, and the
-   * record key built from the run's value. */
+  /* Gravity as the menu, this run and the module each hold it. */
   window.__air = () => ({
     setting: ui.settings.weight,
     run: runWeight,
     scale: runGravityScale,
     module: wasm('sim_gravity', null),
-    key: recordKey(),
   });
 
   /* The contact pass's counters: whether a wall was seen at all (bounces),
@@ -18808,9 +17726,6 @@ export async function boot({
         craftDownTrue: CRAFT_V_DOWN,
         worldScale: WORLD_SCALE,
       },
-      lap: race.lap,
-      bestLapMs: race.bestLapMs ? race.bestLapMs() : null,
-      bestThreeMs: race.bestThreeMs ? race.bestThreeMs() : null,
     };
   };
 
@@ -18956,13 +17871,11 @@ export async function boot({
     ui.progress.startFlight(simTimeMs, () => roomLinkState.roomNow());
     drawPlantPose();
     if (fromX == null) {
-      racePrev.copy(pCurr);
+      groundPrev.copy(pCurr);
     } else {
-      racePrev.set(fromX, fromY, fromZ);
+      groundPrev.set(fromX, fromY, fromZ);
     }
-    raceHasPrev = true;
     groundHasPrev = true;
-    groundPrev.copy(racePrev);
     return window.__craftState();
   };
   devHooks.__releasePose = () => {
@@ -18980,9 +17893,6 @@ export async function boot({
    * scenario that starts damaged. All of it goes through the module's ABI.
    */
   window.__crash = () => crashSummary();
-  /* The jelly's whacks this run (jellyPass), and whether the seated
-   * aircraft meets the soft pieces as jelly. */
-  window.__jelly = () => ({ soft: softKindsFor() !== 0, whacks: jellyLog.map((w) => ({ ...w })) });
   devHooks.__crashThrow = (o) => {
     crashCamShowsCraft = o.showCraft !== false;
     /* `fresh` puts the plant back to its first step first, as R does, so
@@ -19001,7 +17911,6 @@ export async function boot({
     if (o.clockMs != null) {
       simTimeMs = o.clockMs;
       simClockPrevMs = simTimeMs;
-      race.prevSimMs = null;
     }
     const placed = window.__placeCraft(o.x, o.y, o.z);
     if (!placed || placed.ok === false) {
@@ -19027,9 +17936,6 @@ export async function boot({
     contactLog.length = 0;
     obstacleLog.length = 0;
     crashLog.length = 0;
-    jellyLog.length = 0;
-    jellyHasPrev = false;
-    jellyArmed = true;
     contactLogOn = true;
     stepTrace.on = true;
     stepTrace.n = 0;
@@ -19227,120 +18133,14 @@ export async function boot({
   });
 
   /*
-   * Where a world point lands in the PNG a capture writes: drawing buffer
-   * pixels (CSS pixels times the pixel ratio), origin top left. A point
-   * behind the camera projects mirrored through the centre and would look
-   * plausible, so `inFront` travels with every position.
-   */
-  function probeScreen(point) {
-    const canvas = shell.renderer.domElement;
-    const ndc = point.clone().project(shell.camera);
-    const inFront = ndc.z > -1 && ndc.z < 1;
-    return {
-      x: (ndc.x * 0.5 + 0.5) * canvas.width,
-      y: (1 - (ndc.y * 0.5 + 0.5)) * canvas.height,
-      ndcZ: ndc.z,
-      inFront,
-      mirrored: !inFront,
-    };
-  }
-
-  /*
-   * The next three gates the race wants and where each sits on screen, so
-   * a capture that claims something about the target measures the right
-   * gate (a parked camera often frames a later one). A map with no gates
-   * answers gateless: true, which shots.js accepts only from the page
-   * itself, so a race map can never opt out of the rule.
-   *
-   * aperturePx is the vertical chord of the opening on screen, and only
-   * when both its ends are in front of the camera; a yawed gate is an
-   * ellipse whose width this is not. depth is camera space depth, which a
-   * projected size scales with (the straight distance overstates it off
-   * axis). centreInFrame is one point test with no occlusion, not "the
-   * pilot can see it".
+   * The gates ahead of a capture's camera: none. Every world flies without
+   * gates since the race and the builder left (the combat-only cut,
+   * 2026-10-20), and scripts/shots.js accepts gateless only from the page
+   * itself.
    */
   window.__nextGate = () => {
     const canvas = shell.renderer.domElement;
-    const head = { viewport: { w: canvas.width, h: canvas.height }, mapId: view.id, mapMode: view.mode };
-    if (view.gates.length === 0) {
-      return { ...head, gateless: true, gates: [] };
-    }
-    const ahead = [0, 1, 2].map((step) => {
-      const sceneIndex = race.gates[(race.next + step) % race.gates.length].idx;
-      const gate = view.gates[sceneIndex];
-      const hole = gate.aperture;
-      const centre = new THREE.Vector3(gate.position.x, gate.position.y + hole.centreY, gate.position.z);
-      const half = hole.clearH * 0.5;
-      const onScreen = probeScreen(centre);
-      const topScreen = probeScreen(new THREE.Vector3(centre.x, centre.y + half, centre.z));
-      const bottomScreen = probeScreen(new THREE.Vector3(centre.x, centre.y - half, centre.z));
-      const chordValid = topScreen.inFront && bottomScreen.inFront;
-      return {
-        step,
-        sceneIndex,
-        flyOrder: gate.flyOrder,
-        /* Sampled this frame from a glow that pulses on the wall clock. */
-        glowGainSampled: gate.glowMat.uniforms.uGain.value,
-        aperture: hole,
-        world: { x: centre.x, y: centre.y, z: centre.z },
-        distance: shell.camera.position.distanceTo(centre),
-        depth: -centre.clone().applyMatrix4(shell.camera.matrixWorldInverse).z,
-        screen: onScreen,
-        aperturePx: chordValid ? Math.abs(bottomScreen.y - topScreen.y) : null,
-        aperturePxAxis: str('main.vertical_chord_only_not_the_width'),
-        centreInFrame: onScreen.inFront && onScreen.x >= 0 && onScreen.x < canvas.width
-          && onScreen.y >= 0 && onScreen.y < canvas.height,
-      };
-    });
-    return {
-      ...head,
-      gateless: false,
-      raceNext: race.next,
-      nextSceneIndex: race.nextSceneIndex(),
-      lap: race.lap,
-      gates: ahead,
-    };
-  };
-  /*
-   * Which side of its gate a point is on, as the renderer colours it. The
-   * scorer in race.js decides the same thing in its own frame, and a check
-   * sweeps a grid comparing the two: they once disagreed, and a pilot met a
-   * dive gate lit red on the correct approach before any check did.
-   */
-  window.__aimProbe = (x, y, z) => (view.approachSide ? view.approachSide(x, y, z) : null);
-  /*
-   * The tier every gate is dressed in, read off its materials and meshes
-   * rather than off what the shell meant to hand out, so "only the next
-   * gate is lit, one more is on the middle tier, the rest are dark" is a
-   * check (and a stacked structure lights only its named opening).
-   */
-  window.__gateTiers = () => {
-    const aim = view.targetAim ? view.targetAim() : null;
-    const tierOf = (gate) => {
-      if (!gate.ringMat.visible) {
-        return 'dark';
-      }
-      return gate.glowMat.visible ? 'target' : 'follow';
-    };
-    return {
-      next: race.freestyle ? -1 : race.nextSceneIndex(),
-      follow: race.freestyle ? -1 : race.followSceneIndex(),
-      aim: aim ? { active: aim.active, correct: aim.correct, distance: aim.distance } : null,
-      gates: view.gates.map((gate, sceneIndex) => ({
-        sceneIndex,
-        flyOrder: gate.flyOrder,
-        virtual: Boolean(gate.virtual),
-        tier: tierOf(gate),
-        ring: `#${gate.ringMat.color.getHexString()}`,
-        haloOn: gate.haloMat.visible,
-        glowOn: gate.glowMat.visible,
-        litOpenings: gate.ringMeshes
-          ? gate.ringMeshes.flatMap((mesh, k) => (mesh.visible ? [k] : []))
-          : null,
-        cueOn: Boolean(gate.cueGroup && gate.cueGroup.visible),
-        wrong: gate.fillMat ? gate.fillMat.uniforms.uWrong.value : null,
-      })),
-    };
+    return { viewport: { w: canvas.width, h: canvas.height }, mapId: view.id, mapMode: view.mode, gateless: true, gates: [] };
   };
 
   /*
@@ -19732,8 +18532,6 @@ export async function boot({
     obsHasPrev = false;
     obsPhase = 0;
     poseFromState(back, pCurr);
-    racePrev.copy(pCurr);
-    raceHasPrev = true;
     groundPrev.copy(pCurr);
     groundHasPrev = true;
     if (runDamage) {
@@ -19755,8 +18553,7 @@ export async function boot({
       crashWorldPhase = 0;
       refreshCrashWorld(back);
     }
-    voidRaceLap('replay', 'replay.lap_void', nowWall);
-    view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+    flashSay(str('replay.lap_void'), nowWall);
     mode = 'flight';
     ui.show('flight');
     return { ok: true, match, t: back[0] };
@@ -19930,12 +18727,6 @@ export async function boot({
     exportSurface: setExportSurface,
   };
   requestAnimationFrame(frame);
-  /* A map track seated before this page loaded (a board link, or the Track
-   * room last visit) is flown in a world boot has just built bare: the
-   * course goes on it now, before anyone presses Fly. */
-  if (!titleWorld && wantedCourseKey(view.id) !== loadedCourseKey(view)) {
-    syncWorld();
-  }
 }
 
 /*

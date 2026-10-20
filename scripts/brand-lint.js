@@ -53,7 +53,7 @@ const ALLOWED_KEYS = new Map([
 /* Exact text in a served page that may name the firmware, and why. */
 const ALLOWED_HTML = [];
 
-const PAGES = ['index.html', 'terms.html', 'privacy.html', 'src/trackbuilder/index.html'];
+const PAGES = ['index.html', 'terms.html', 'privacy.html'];
 
 /* A tune id, a path or an enum key names nothing on screen. No dot, so a
  * download name such as x.diff is still read as copy. */

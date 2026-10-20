@@ -13,8 +13,9 @@
  * and on the Alps with the craft thrown to a fixed point and held there
  * (__crashThrow with hold), so the pose and everything derived from it is
  * the same on every run, then on the Swiss valley the two seats that freeze
- * the pose (__seatCraft cameraDown and invertedHold), and the Track seat,
- * the one with gates, for the race probes (__nextGate, __gateTiers).
+ * the pose (__seatCraft cameraDown and invertedHold). The Track seat, the
+ * one with gates, and the race probes left with the track builder and the
+ * race (the combat-only cut, 2026-10-20).
  *
  * Some answers move between two runs of the same code (frame times, fps,
  * the wall clock, anything rendered at whatever moment the probe lands).
@@ -64,9 +65,9 @@ const recording = process.argv.includes('--record');
 const READERS = [
   '__renderStats', '__dynres', '__gpuMemory', '__lastSwap', '__hangarRev', '__craft', '__ground',
   '__intro', '__score', '__obstacles', '__flightMode', '__air', '__contacts', '__colliders',
-  '__celCount', '__flightLog', '__ghost', '__craftState', '__crash', '__jelly', '__crashLog',
+  '__celCount', '__flightLog', '__ghost', '__craftState', '__crash', '__crashLog',
   '__crashPosts', '__crashWater', '__stepTrace', '__tune', '__pids', '__touch', '__stickPath',
-  '__boot', '__nextGate', '__gateTiers', '__quadScreen', '__map', '__maps', '__mapFlows',
+  '__boot', '__nextGate', '__quadScreen', '__map', '__maps', '__mapFlows',
   '__mapReplayWater', '__animMs', '__gateScale', '__traffic', '__roofs', '__camGround',
   '__wreckAudit', '__colliderShapes',
 ];
@@ -84,19 +85,10 @@ const PARAMETRIC = [
   ['__colliderBoxes', 'sx, sz, 60'],
   ['__colliderShapes', '{ x: sx, z: sz, r: 60 }'],
   ['__cover', 'sx, sy + 2, sz'],
-  ['__aimProbe', 'sx + 10, sy + 2, sz + 10'],
   ['__roofTop', '0, sx, sz'],
   ['__crashSolids', 'sx, sz, 40'],
   ['__hit', 'sx, sy + 2, sz, sx + 30, sy + 2, sz + 30'],
 ];
-
-/* The Track seat flies a track built in a world; this one is the v4
- * fixture, seated the way a published track's link seats it (see
- * scripts/shots.js --course). */
-const TRACK_DOC = JSON.parse(readFileSync(join(root, 'tests', 'fixtures', 'map-track-v4.json'), 'utf8'));
-const TRACK_SEAT = `localStorage.setItem('webfpv.share.import.v1', ${JSON.stringify(JSON.stringify({
-  id: TRACK_DOC.id, name: TRACK_DOC.name, author: '', board: '', document: TRACK_DOC, local: true,
-}))});`;
 
 function seed(map) {
   const settings = {
@@ -114,7 +106,6 @@ function seed(map) {
     Object.assign(s, ${JSON.stringify(settings)});
     localStorage.setItem(k, JSON.stringify(s));
     localStorage.setItem('webfpv.airhint.v2', '1');
-    ${map === 'track' ? TRACK_SEAT : ''}
   } catch (e) { /* Storage refused; the run boots on defaults and the record says so. */ }`];
 }
 
@@ -193,7 +184,7 @@ const THROW = (m) => `JSON.stringify(window.__crashThrow({
 
 async function sample() {
   const out = {};
-  for (const map of ['swiss2', 'alps', 'track']) {
+  for (const map of ['swiss2', 'alps']) {
     const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${map}`, seed: seed(map) });
     try {
       await page.until('window.__shellReady && window.__map && window.__map().ready', WAIT);

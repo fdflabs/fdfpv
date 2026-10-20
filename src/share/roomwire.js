@@ -404,7 +404,7 @@ export function decodeBatch(bytes) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Phase 2, shared wrecks: types 0x30 to 0x3F, event kinds crash, whack. */
+/* Phase 2, shared wrecks: types 0x30 to 0x3F, event kind crash. */
 
 /*
  * PARTS, 0x30, client to room, 10 Hz while any broken piece moves and once
@@ -515,23 +515,6 @@ export function checkCrashTable(table) {
     out.push({ kind: p.kind, parent: p.parent, cg: p.cg.slice(), boxMin: p.boxMin.slice(), boxMax: p.boxMax.slice() });
   }
   return out;
-}
-
-/* A whack on a jelly pylon or hoop: { type: 'event', kind: 'whack', map,
- * course, i, n: [x, y, z], square }, i the soft piece's collider index in
- * that world and course, n the jelly's normal toward the plane. */
-export function checkWhack(m) {
-  const id = /^[a-z0-9_]{1,32}$/;
-  if (!m || !id.test(String(m.map)) || typeof m.course !== 'string' || m.course.length > 200) {
-    return null;
-  }
-  if (!Number.isInteger(m.i) || m.i < 0 || m.i > 1e6 || !(m.square >= 0 && m.square <= 1)) {
-    return null;
-  }
-  if (!Array.isArray(m.n) || m.n.length !== 3 || !m.n.every((x) => typeof x === 'number' && Math.abs(x) <= 1.001)) {
-    return null;
-  }
-  return { map: m.map, course: m.course, i: m.i, n: m.n.slice(), square: m.square };
 }
 
 /* ------------------------------------------------------------------ */

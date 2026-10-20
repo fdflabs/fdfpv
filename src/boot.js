@@ -85,33 +85,28 @@ function rendererLabel() {
   return `three.js r${parts.join('.')}`;
 }
 
-/* The map the page's address asks for, or null for the title's own world.
- * A board link names its track as ?share=, which always means the Track
- * seat. */
+/* The map the page's address asks for, or null for the title's own world. */
 function linkedMap() {
-  let query;
   try {
-    query = new URLSearchParams(window.location.search);
+    return new URLSearchParams(window.location.search).get('map') || null;
   } catch (e) {
     return null;
   }
-  if (query.get('share')) {
-    return 'track';
-  }
-  return query.get('map') || null;
 }
 
 /* Where a linked map actually lands. A retired world goes to its
  * replacement, and the caller tells main.js so it can say why. Anything
  * else no map answers to (a typo, a stale bookmark, the old race field ids
- * 'field' and 'custom') is the Track seat, so the Map row never names a
- * world that is not there. MAP_BUILD_MS is keyed by every map id and is
- * already a boot import, unlike the map registry and its loaders. */
+ * 'field' and 'custom', the Track seat 'track' and a board link's ?share=
+ * since the track builder left, the combat-only cut, 2026-10-20) is no
+ * link: the title's own world, so the Map row never names a world that is
+ * not there. MAP_BUILD_MS is keyed by every map id and is already a boot
+ * import, unlike the map registry and its loaders. */
 function resolveLink(asked) {
   const retired = retiredMap(asked);
   const landed = retired ? retired.to : asked;
   return {
-    mapId: landed && !Object.hasOwn(MAP_BUILD_MS, landed) ? 'track' : landed,
+    mapId: landed && Object.hasOwn(MAP_BUILD_MS, landed) ? landed : null,
     retiredFrom: retired ? asked : null,
   };
 }
@@ -151,10 +146,8 @@ async function launch() {
 
   const { mapId, retiredFrom } = resolveLink(linkedMap());
   const titleMap = mapId ? null : TITLE_WORLD;
-  /* The Track seat's world is only known once the seat is read, and it is one
-   * of the valleys, so it is budgeted as the Swiss one, the slower build. */
-  const worldMs = MAP_BUILD_MS[mapId ?? titleMap] ?? MAP_BUILD_MS.swiss2;
-  loading.run(planStages(['three', 'board', 'sim', 'module', 'world', 'frame'], worldMs));
+  const worldMs = MAP_BUILD_MS[mapId ?? titleMap];
+  loading.run(planStages(['three', 'sim', 'module', 'world', 'frame'], worldMs));
 
   /*
    * The renderer stage shows its name and the release but no byte count, on

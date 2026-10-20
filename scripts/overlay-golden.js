@@ -10,9 +10,9 @@
  * Every method is called through Ui.prototype on a stand-in Ui, so the
  * same script reads the old class body and the moved modules alike. The
  * stand-in document logs every write a node takes (text, class, style,
- * hidden, disabled, value), and the per-frame methods (setOsd, setBanner,
- * setTargetLock) are called twice with the same values so the record
- * holds the fact that a frame with nothing new writes nothing. Storage,
+ * hidden, disabled, value), and the per-frame methods (setOsd and
+ * setBanner) are called twice with the same values so the record holds
+ * the fact that a frame with nothing new writes nothing. Storage,
  * timers and the calls out to the rest of the Ui (show, renderMenu,
  * writeSettings and so on) are logged too. Recorded in English and Spanish.
  *
@@ -152,19 +152,17 @@ function take(node) {
 const { Ui } = await import('../src/ui/ui.js');
 const { el, makeGimbal, makeWeightSlider } = await import('../src/ui/widgets.js');
 const { DEFAULTS, SETTINGS_KEY, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK } = await import('../src/ui/settings.js');
-const { writeShareImport, writeEditKey, writeBind } = await import('../src/share/trackseat.js');
 const { MAPS } = await import('../src/maps/registry.js');
 const { currentLocale, useLocale } = await import('../src/strings/index.js');
 const { StickRef } = await import('../src/ui/stickref.js');
 const { COLUMNS } = await import('../src/share/controlrec.js');
 
 const FREESTYLE_MAP = MAPS.find((m) => m.mode === 'freestyle').id;
-const RACE_MAP = MAPS.find((m) => m.mode !== 'freestyle').id;
 
-const SPIES = ['show', 'renderMenu', 'renderHowto', 'maybeOfferFeel', 'writeSettings', 'onSettings'];
+const SPIES = ['show', 'renderMenu', 'renderHowto', 'writeSettings', 'onSettings'];
 const FIELDS = [
   'calCanSave', 'calCanSkip', 'calCanReverse', 'calCanZeroThrottle', 'calMoving', 'calOnConfirm', 'padPickPhase',
-  'padPickReason', 'roomResults', 'resultsFastest', 'lastBestMs', 'osdMode',
+  'padPickReason', 'roomResults', 'osdMode',
   'stickModeDrawn', 'airHintDone', 'bannerText', 'padInfo', 'gpuInfo', 'everyoneFlightS', 'everyoneFlightAsked',
 ];
 
@@ -175,9 +173,8 @@ function stubUi() {
   for (const name of SPIES) ui[name] = (...args) => note(`call.${name}`, JSON.stringify(args.length ? args[0] : null));
   /* onSettings is handed the whole profile; its weight is the range's part. */
   ui.onSettings = (s) => note('call.onSettings', JSON.stringify({ weight: s.weight, same: s === ui.settings }));
-  ui.settings = { ...DEFAULTS, map: RACE_MAP, stickMode: 2, weight: WEIGHT_STOCK };
+  ui.settings = { ...DEFAULTS, map: FREESTYLE_MAP, stickMode: 2, weight: WEIGHT_STOCK };
   ui.screen = 'flight';
-  ui.share = null;
   for (const k of ['brandSub', 'titleBest', 'osdBest', 'resultsBody', 'resultsFacts', 'resultsNote', 'resultsKicker', 'resultsHead',
     'resultsHeroCap', 'resultsHeroTime', 'resultsHeroMeta', 'announcer', 'osdTopBlock',
     'osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdPackBar', 'osdSpeed', 'osdFlight',
@@ -261,17 +258,12 @@ async function snapshot() {
 
   out.best = await scenario((ui, step) => {
     const n = () => ({ brandSub: ui.brandSub, titleBest: ui.titleBest, osdBest: ui.osdBest });
-    call(ui, 'setBest', 61234, 'race'); step('record', n());
-    call(ui, 'setBest', null); step('no record', n());
+    call(ui, 'setBest'); step('world', n());
     call(ui, 'refreshBest'); step('refresh', n());
-    call(ui, 'setBest', undefined); step('unbuilt race seat', n());
-    ui.settings.map = FREESTYLE_MAP;
-    call(ui, 'setBest', undefined); step('unbuilt freestyle seat', n());
-    call(ui, 'setBest', 5000, 'freestyle'); step('freestyle', n());
+    ui.settings.map = 'nowhere';
+    call(ui, 'setBest'); step('unknown world', n());
     ui.screen = 'paused';
-    call(ui, 'refreshBest'); step('freestyle paused', n());
-    ui.settings.map = 'track';
-    call(ui, 'setBest', 4000, 'race'); step('track seat', n());
+    call(ui, 'refreshBest'); step('paused', n());
     const bare = stubUi();
     bare.titleBest = null;
     out.bestNoTitle = call(bare, 'refreshBest');
@@ -281,45 +273,6 @@ async function snapshot() {
     screen: ui.screens.results, kicker: ui.resultsKicker, head: ui.resultsHead, cap: ui.resultsHeroCap,
     time: ui.resultsHeroTime, meta: ui.resultsHeroMeta, facts: ui.resultsFacts, body: ui.resultsBody, note: ui.resultsNote,
   });
-  out.results = await scenario((ui, step) => {
-    call(ui, 'showResults', [], null, null); step('empty', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 42000 }], 42000, null); step('first lap, first record', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 42000 }, { n: 2, ms: null, reason: 'Missed\nGATE 3' }, { n: 3, ms: 39000 }], 39000, 41000);
-    step('record beaten, void lap', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 41000 }, { n: 2, ms: 43000 }], 41000, 41000); step('matched', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 39000 }], 39000, 41000, {
-      activity: 'race', aircraft: 'whoop65', fixedWing: false, result: { kind: 'record', landed: null }, route: null,
-      time: { flightMs: 64000, runMs: 39000 }, accuracy: [{ what: 'debrief.clean_laps', n: 1, of: 2 }],
-      records: [{ what: 'debrief.track_record', now: 39000, before: 41000, improved: true },
-        { what: 'debrief.aircraft_time', now: 7380, before: 7316, improved: null }],
-      replay: { ok: true, why: null }, next: ['again', 'replay', 'aircraft', 'title'],
-    });
-    step('debrief facts', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 45500 }, { n: 2, ms: 44000 }, { n: 3, ms: 50000 }], 40000, 40000); step('off the record', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 30000, score: 120 }, { n: 2, ms: 31000, score: 80 }, { n: 3, ms: null }], 29000, 29000);
-    step('scored plane laps', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: null, reason: 'Cut' }], 30000, 30000); step('only a void lap', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 0 }], null, NaN); step('zero lap, NaN record', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 4000 }, { n: 2, ms: 60000 }], 4000, 5000); step('short lap floors its bar', resultNodes(ui));
-  });
-  const doc = (name) => ({ schemaVersion: 4, name, map: 'alps', elements: [] });
-  out.resultsTrack = await scenario((ui, step) => {
-    ui.settings.map = 'track';
-    call(ui, 'showResults', [{ n: 1, ms: 50000 }], 50000, null); step('track, nothing seated', resultNodes(ui));
-    ui.share = { id: 'abc', name: 'Valley', author: 'Rita' };
-    call(ui, 'showResults', [{ n: 1, ms: 50000 }], 50000, null); step('share with author', resultNodes(ui));
-    ui.share = { id: 'abc' };
-    call(ui, 'showResults', [{ n: 1, ms: 50000 }], 50000, null); step('share without name', resultNodes(ui));
-    ui.share = null;
-    const local = writeShareImport({ id: 'loc1', name: 'Mine', document: doc('Mine'), local: true });
-    call(ui, 'showResults', [{ n: 1, ms: 52000 }], 52000, null); step(`local seat ${local}`, resultNodes(ui));
-    const comm = writeShareImport({ id: 'pub1', name: 'Public', document: doc('Public'), author: 'Ana' });
-    call(ui, 'showResults', [{ n: 1, ms: 53000 }], 53000, 60000); step(`community seat ${comm}`, resultNodes(ui));
-    writeEditKey('pub1', 'k');
-    writeBind('pub1', { board: 'b', author: 'Ana', nameOnBoard: 'Public', layoutFingerprint: 'different' });
-    call(ui, 'showResults', [{ n: 1, ms: 54000 }], 54000, 60000); step('owned with drift', resultNodes(ui));
-  });
-
   out.room = await scenario((ui, step) => {
     ui.screen = 'flight';
     const v = { kicker: 'Room 7', head: 'You won', heroCap: 'Place', heroTime: '1st', heroMeta: 'of 3', win: true,
@@ -345,21 +298,6 @@ async function snapshot() {
     call(ui, 'announce', 7); call(ui, 'announce', '7'); call(ui, 'announce', null); step('announce', n());
     ui.announcer = null;
     out.announceNoNode = call(ui, 'announce', 'x');
-  });
-
-  out.lock = await scenario((ui, step) => {
-    out.lockBeforeBuild = call(ui, 'setTargetLock', { show: true, x: 1, y: 1, size: 10, angle: 0, edge: false, wrong: false, distance: 5, fade: 1 });
-    const node = Ui.prototype.buildTargetLock.call(ui);
-    const n = () => ({ lock: node });
-    step('built', n());
-    const base = { show: true, x: 100.04, y: 200.06, size: 80.4, angle: 12.34, edge: false, wrong: false, distance: 24.6, fade: 1 };
-    call(ui, 'setTargetLock', base); step('in frame', n());
-    call(ui, 'setTargetLock', base); step('same again', n());
-    call(ui, 'setTargetLock', { ...base, x: 100.01, distance: 24.7 }); step('sub rounding move', n());
-    call(ui, 'setTargetLock', { ...base, edge: true, wrong: true, angle: -45.06, fade: 0.5 }); step('edge, wrong, faded', n());
-    call(ui, 'setTargetLock', { ...base, fade: 0.996, size: 30 }); step('back in frame', n());
-    call(ui, 'setTargetLock', { show: false }); step('off', n());
-    call(ui, 'setTargetLock', { show: false }); step('off again', n());
   });
 
   const osdNodes = (ui) => Object.fromEntries(['osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast',

@@ -21,7 +21,6 @@ run by CI. Adding a kind is a row in the script's `ROWS` and a row here.
 | worlds | `src/maps/` | `src/maps/registry.js` | a module a `MAPS` row's `load` imports | `registry:selftest` |
 | worlds | `src/maps/<id>/` | `src/maps/registry.js` | a folder named for a `MAPS` id (`terrain/` is the shared engine) | |
 | worlds | `assets/posters/` | `src/maps/registry.js` | a `MAPS` row's `poster` (npm run gen:posters) | |
-| tracks | `docs/itaipu-courses/` | `scripts/itaipu-courses.js` | a `COURSES` row; the script writes the builder document | `itaipu:courses`, `track:golden`, `world:spawns` |
 | missions | `src/share/war/missions/` | `src/share/war/missions/index.js` | a file imported into `MISSIONS`; a planned one is a `PLANNED` row | `campaign:selftest`, `war:stages` |
 | missions | `src/share/interior/missions/` | `src/share/ops/missions.js` | a file in `MISSIONS` and its row in src/share/ops/rows.js | `campaign:selftest` |
 | films | `src/share/war/films/` | `src/share/war/films/index.js` | a file imported into `FILMS` | `films:lint` |
@@ -48,8 +47,8 @@ string keys nothing reads, since keys are built at run time too
 
 | Content | Owned by | Kept in | Follows the pilot by |
 | --- | --- | --- | --- |
-| Tracks filed online | the pilot key (`tracks.owner`, tracks-api/migrations/0001) | the tracks server | the account carrying the key (src/share/cloud.js) |
-| Tracks in the builder | the browser | localStorage (src/trackbuilder/storage.js) | filing them online |
+| Tracks filed online | the pilot key (`tracks.owner`, tracks-api/migrations/0001) | the tracks server's `tracks` table, kept; its routes answer 404 since the combat-only cut | nothing: no client reads them |
+| Tracks built before the cut | the browser | localStorage `webfpv.trackbuilder.library.v1`, left in place and read by nothing | nothing: never deleted, never synced |
 | Times on the board | the pilot key, which signs each (src/share/identity.js) | the board | the key, exported or carried by the account |
 | Saved liveries | the browser, by the name typed (`MAX_SAVED`) | the settings | the account's synced settings (src/share/progressmerge.js) |
 | Published liveries | the account (`gallery.account_id`, tracks-api/migrations/0006) | the tracks server | the account |
@@ -65,5 +64,4 @@ pilot key between computers; the pilot is a name and that key
 edge/rooms) seats pilots by a per tab token and is the party (item 77); a
 round, a mission or a free flight runs inside a room or solo. The words
 are fixed by docs/SPANISH-GLOSSARY.md "The game's nouns" (item 83) and held
-by `lint:nouns`; "session" for the track seat was renamed: it is
-src/share/trackseat.js.
+by `lint:nouns`.

@@ -35,7 +35,6 @@ import { ACCOUNT_WRITE_LIMIT, BLOCKS_PER_ACCOUNT, SIGNIN_LIMIT } from './limits.
 import {
   createIdentity, keyLinkMessage, memoryStorage,
 } from '../src/share/identity.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import {
   blobRefusal, cleanBlob, mergeBlobs, pickSynced, stampChanges,
 } from '../src/share/progressmerge.js';
@@ -528,7 +527,7 @@ const laptopKey = await laptop.publicKey();
 /* A track the laptop saved before the tracks routes retired (the
  * combat-only cut, 2026-10-20): the table and its rows stay, so a
  * computer that signs in still hands its stored tracks to the account. */
-const lapTrack = mapTrackDocument({ id: 'trk-0000c001', name: 'Laptop loop', gates: 3 });
+const lapTrack = { schemaVersion: 4, id: 'trk-0000c001', name: 'Laptop loop', map: 'swiss2', elements: [] };
 await env.DB.prepare(
   'INSERT INTO tracks (id, owner, name, author, map, gates, planes, document, created_utc, updated_utc, signed_ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
 ).bind(lapTrack.id, laptopKey, lapTrack.name, 'Maverick', lapTrack.map, 3, '[]', JSON.stringify(lapTrack), '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z', 5).run();

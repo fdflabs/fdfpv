@@ -43,7 +43,6 @@ import {
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { HOOKS, LOCAL_HOST, devOpen } from '../src/share/devhooks.js';
 
@@ -60,21 +59,10 @@ const LIBRARY_GLOBALS = new Set(['__THREE__']);
 const BASELINE_PATH = join(ROOT, 'tests', 'shell-baseline.json');
 
 const SCREENS = [
-  'title', 'courses', 'freestyle', 'quad', 'pilot', 'launch', 'rates', 'pids', 'fc', 'paused',
+  'title', 'freestyle', 'quad', 'pilot', 'rates', 'pids', 'fc', 'paused',
   'results', 'howto', 'credits',
 ];
 const FC_TABS = ['setup', 'configuration', 'pid', 'receiver', 'motors'];
-
-/* Owned by src/trackbuilder/storage.js and src/share/trackseat.js, neither of
- * which exports its key. */
-const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
-const IMPORT_KEY = 'webfpv.share.import.v1';
-
-const LIBRARY_DOCS = [0, 1].map((i) => ({
-  ...mapTrackDocument({ id: `trk-5e1f00${i}0`, name: `Ring ${i + 1} (mine)` }),
-  modifiedUtc: `2026-0${i + 1}-01T00:00:00.000Z`,
-}));
-const LIBRARY = Object.fromEntries(LIBRARY_DOCS.map((doc) => [doc.id, doc]));
 
 const BASELINE_NOTE = "Today's overflow, in CSS pixels, at the window below. Not a target: a screen may already overflow. The check fails when a screen gets worse than this.";
 
@@ -267,7 +255,7 @@ function idsProbe(ui, { screens }) {
   })]));
 }
 
-function behaviourProbe(ui, { screens, tabs, importKey }) {
+function behaviourProbe(ui, { screens, tabs }) {
   const out = {};
   const items = () => ui.items();
   const indexOf = (pred) => items().findIndex(pred);
@@ -601,7 +589,7 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
       ui.show(room);
     };
     const result = {};
-    for (const room of ['freestyle', 'launch', 'pilot']) {
+    for (const room of ['freestyle', 'pilot']) {
       reset(room);
       if (!go(`${room}:a-quad`)) {
         result[room] = { missing: true };
@@ -867,7 +855,6 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     return result;
   });
 
-  /* One try for both, so a throw anywhere leaves mine absent. */
   const gate = caught(() => {
     const saved = { mode: ui.mode, firstRun: ui.firstRun, craftGate: ui.craftGate };
     const cards = () => [...document.querySelectorAll('.screen-title .gate-card')].map((card) => {
@@ -906,35 +893,7 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
         .filter((n) => n.getBoundingClientRect().height > 0).length,
     };
 
-    ui.craftGate = true;
-    ui.mode = null;
-    ui.show('title');
-
-    ui.show('courses');
-    const isLocal = (r) => r.course && r.course.kind === 'local';
-    const localCards = items().filter(isLocal);
-    const picked = (localCards[0] && localCards[0].course.track) || null;
-    const seatedOk = picked ? ui.seatLocal(picked.id) : false;
-    let seat = null;
-    try {
-      seat = JSON.parse(localStorage.getItem(importKey));
-    } catch (e) {
-      /* An unreadable seat is judged the same as no seat. */
-      seat = null;
-    }
-    const mine = {
-      count: localCards.length,
-      names: labels(localCards),
-      pickedId: picked ? picked.id : null,
-      seatedOk,
-      seat: seat ? { id: seat.id, local: seat.local, map: seat.document && seat.document.map } : null,
-      listedAfter: items().filter(isLocal).length,
-    };
-
     ui.craftGate = false;
-    ui.mode = 'race';
-    ui.show('title');
-    const race = labels(items());
     ui.mode = 'freestyle';
     const free = labels(items());
     ui.mode = saved.mode;
@@ -955,19 +914,12 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
       modeSetGate,
       gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 2
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
-      race,
       free,
-      raceNamesTrack: race.includes('Track') && !race.includes('Race') && !race.includes('Freestyle'),
       freeNamesMap: free.includes('The world') && !free.includes('Race') && !free.includes('Freestyle'),
     };
-    return { mine, modeGate };
+    return { modeGate };
   });
-  if (gate.error) {
-    out.modeGate = gate;
-  } else {
-    out.mine = gate.mine;
-    out.modeGate = gate.modeGate;
-  }
+  out.modeGate = gate.error ? gate : gate.modeGate;
 
   return out;
 }
@@ -1129,25 +1081,6 @@ const BEHAVIOUR = [
       }
     }
   }],
-  ['mine', null, (r, fail) => {
-    if (!r) {
-      fail('My tracks: the library seat probe returned nothing');
-      return;
-    }
-    const n = LIBRARY_DOCS.length;
-    if (r.count !== n) {
-      fail(`My tracks lists ${r.count} of the pilot's own ${n} saved track(s): ${or(r.names, 'none')}`);
-    }
-    if (!r.pickedId || !(r.pickedId in LIBRARY)) {
-      fail(`My tracks offered ${r.pickedId || 'no'} saved track, which the seeded library does not carry`);
-    }
-    if (!r.seatedOk || !r.seat || r.seat.id !== r.pickedId || r.seat.local !== true) {
-      fail(`choosing a saved track seated ${JSON.stringify(r.seat)}, not ${r.pickedId} as the pilot's own`);
-    }
-    if (r.listedAfter !== n) {
-      fail(`with one saved track seated My tracks lists ${r.listedAfter}, not ${n}`);
-    }
-  }],
   ['modeGate', 'the gate', (r, fail) => {
     const m = r.modeSetGate;
     const checks = [
@@ -1155,7 +1088,6 @@ const BEHAVIOUR = [
       [r.asksWays, `Flight Club opens on ${or(r.gate, 'nothing')}, not on the two ways in`],
       [r.asCards, `the gate: ${r.cards.length} card(s) drawn as ${JSON.stringify(r.cards)}, so a card is a row again or has lost its picture or its plan`],
       [r.gateWithMode, `the gate: with the mode already answered it drew ${m.cards.length} card(s), ${m.cards.filter((c) => c.wide).length} of them visible, is-gate ${m.isGate}, ${m.keepNote} menu note(s) still showing`],
-      [r.raceNamesTrack, `the title in Race names ${r.race.join(', ')}, which is not a Track row without a mode beside it`],
       [r.freeNamesMap, `the title in Freestyle names ${r.free.join(', ')}, which is not a The world row without a mode beside it`],
     ];
     for (const [ok, said] of checks) {
@@ -1234,7 +1166,7 @@ const BEHAVIOUR = [
     }
   }],
   ['roomReturn', 'room return', (r, fail) => {
-    for (const room of ['freestyle', 'launch', 'pilot']) {
+    for (const room of ['freestyle', 'pilot']) {
       const it = r[room];
       if (!it || it.missing) {
         fail(`room return: ${room} has no door into Quad, so nothing was exercised`);
@@ -1498,12 +1430,9 @@ async function main() {
     s.graphicsAuto = false;
     localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s));
   } catch (e) { /* storage refused: the run goes on with defaults */ }`;
-  const librarySeed = `try {
-    localStorage.setItem(${JSON.stringify(LIBRARY_KEY)}, ${JSON.stringify(JSON.stringify(LIBRARY))});
-  } catch (e) { /* storage refused: My tracks will say so */ }`;
 
   const page = await openPage({
-    root: ROOT, width: opts.w, height: opts.h, seed: [settingsSeed, librarySeed],
+    root: ROOT, width: opts.w, height: opts.h, seed: [settingsSeed],
   });
   const results = {};
   try {
@@ -1512,9 +1441,7 @@ async function main() {
     results.walk = await runProbe(page, walkProbe, { screens: SCREENS });
     results.escape = await runProbe(page, escapeProbe, { screens: SCREENS });
     results.fcTabs = await runProbe(page, fcTabsProbe, { tabs: FC_TABS });
-    results.behaviour = await runProbe(page, behaviourProbe, {
-      screens: SCREENS, tabs: FC_TABS, importKey: IMPORT_KEY,
-    });
+    results.behaviour = await runProbe(page, behaviourProbe, { screens: SCREENS, tabs: FC_TABS });
     results.ids = await runProbe(page, idsProbe, { screens: SCREENS });
     results.devHelp = await page.evaluate('window.__dev ? window.__dev.help().map((h) => h.name) : null');
     await page.evaluate('window.__ui.show("title")');

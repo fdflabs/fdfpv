@@ -324,7 +324,14 @@ console.log('the envelope round trips');
 console.log('reset settings and reset progress each keep the other half');
 {
   const { freshProgress } = await import('../src/game/progress.js');
-  const good = FIXTURE['v3-profile'];
+  /* The fixture's profile flies the Swiss valley, which the new profile's
+   * default seat became when the Track seat left (the combat-only cut,
+   * 2026-10-20): seated on Itaipu here, so the reset still has a world
+   * choice to undo. */
+  const good = {
+    ...FIXTURE['v3-profile'],
+    [SETTINGS_KEY]: JSON.stringify({ ...JSON.parse(FIXTURE['v3-profile'][SETTINGS_KEY]), map: 'itaipu' }),
+  };
   const blob = JSON.parse(good[SETTINGS_KEY]);
   const was = readAll(new Storage(good));
   const defaults = readAll(new Storage({})).settings;
@@ -381,7 +388,6 @@ console.log('each save point writes its key, and nothing else writes');
   const { EventLog } = await import('../src/game/events.js');
   const { freshProgress } = await import('../src/game/progress.js');
   const { createCampaignStore, emptyCampaign, cleanCampaign } = await import('../src/game/campaign.js');
-  const { Race } = await import('../src/game/race.js');
   const { saveSettings } = await import('../src/ui/settings.js');
   const { saveBuilds } = await import('../src/ui/builds.js');
   const { saveStickMap, forgetStickMap, savePadChoice } = await import('../src/input/stickstore.js');
@@ -401,9 +407,6 @@ console.log('each save point writes its key, and nothing else writes');
     const before = store.dump();
     store.writes = 0;
     await fn(store);
-    /* The best lap is written when the page is idle (race.js saveRecord),
-     * a timer in Node. */
-    await new Promise((r) => { setTimeout(r, 5); });
     return { keys: changed(before, store.dump()), writes: store.writes, store };
   }
   const covered = new Set();
@@ -460,13 +463,19 @@ console.log('each save point writes its key, and nothing else writes');
     point('Unlock all', got, [SETTINGS_KEY]);
   }
   {
-    /* The profile without its hoops_10, so ten gates in a row pay it. */
+    /* The profile without its hoops_10, so ten gates in a row pay it. The
+     * gate events are logged and folded as the race's gatePass did; the
+     * race left with the combat-only cut (2026-10-20), and the challenge
+     * stays until its own PR. */
     const blob = JSON.parse(good[SETTINGS_KEY]);
     delete blob.progress.challenges.hoops_10;
     const undone = { ...good, [SETTINGS_KEY]: JSON.stringify(blob) };
     const gates = (p, n) => {
       p.startRun({ airframe: 'interceptor', fixedWing: false, power: 'electric' });
-      for (let i = 0; i < n; i += 1) p.gatePass();
+      for (let i = 0; i < n; i += 1) {
+        p.event('gate');
+        p.foldFlight();
+      }
     };
     none('nine gates in a row', await written(() => { gates(progress(), 9); }, undone));
     point('a challenge done (hoops_10)', await written((store) => {
@@ -578,16 +587,9 @@ console.log('each save point writes its key, and nothing else writes');
     covered.add('fdfpv.voice');
   }
 
-  /* records: a new best lap, and only a new best. */
-  const race = (bestMs) => {
-    const r = Object.create(Race.prototype);
-    Object.assign(r, { key: 'webfpv.best.w43', bestMs, lapPoints: 0, splits: [], log: [], laps: [], lap: 0 });
-    return r;
-  };
-  point('a new best lap', await written(() => { race(50000).closeLap(41000, false, 0); }), ['webfpv.best.w43']);
-  point('a first lap on a course', await written(() => { race(null).closeLap(52000, false, 0); }), ['webfpv.best.w43']);
-  none('a slower lap', await written(() => { race(41000).closeLap(45000, false, 0); }));
-  none('an equal lap', await written(() => { race(41000).closeLap(41000, false, 0); }));
+  /* records: a better one from the account, and only a better one. The
+   * race that wrote a new best lap left with the combat-only cut
+   * (2026-10-20); the laps it kept stay and sync. */
   none('a record from the account no better than this one', await written(() => {
     keepRecords({ 'webfpv.best.a1b2c3.4.2.interceptor': '45000' });
   }));

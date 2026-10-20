@@ -3,13 +3,7 @@
  * (docs/ITAIPU-PLAN.md sections 10, 11 and 14, row H).
  *
  *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/itaipu-spawns-check.js
- *       [--only=spawns,rooms,attract,courses] [--course=NAME] [--shots=DIR]
- *
- * In Node:
- *
- *   documents   docs/itaipu-courses/*.json are what scripts/itaipu-
- *               courses.js writes, so the courses flown below are the ones
- *               shipped.
+ *       [--only=spawns,rooms,attract] [--shots=DIR]
  *
  * In headless Chromium (tests/lib/page.js), the map built by the shell with
  * each class's default aircraft seated (src/ui/ui.js FIRST_AIRFRAME for
@@ -27,14 +21,8 @@
  *   attract     the title's flight is 30 m clear of the ground, the water,
  *               every roof, the forest's canopy and every collider round
  *               it, all the way round, and has the dam in its lens for a
- *               share of the loop that is printed;
- *   courses     each course loads in the builder with the seated class's
- *               default aircraft and the builder lists no racing line
- *               warning; its test flight is flown by a pilot in the page
- *               along the builder's own line, and one lap closes clean on
- *               the race's sim clock with no damage.
+ *               share of the loop that is printed.
  *
- * --course=NAME flies only the course whose file starts with NAME.
  * --shots=DIR (default ~/Desktop/fdfpv-loop/itaipu/h-spawns) takes a
  * picture of each spawn and of the title's flight. Pictures are evidence
  * for one look, never committed.
@@ -63,16 +51,14 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
-import { key } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, FIRST_AIRFRAME, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { slotSpawn, SLOT_RIGHT_M } from '../src/game/slots.js';
 import { CREST_SPAWN, AIR_SPAWN } from '../src/maps/itaipu/spawns.js';
-import { COURSES, courseDocument } from './itaipu-courses.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
-const opts = { only: 'spawns,rooms,attract,courses', course: '', shots: join(homedir(), 'Desktop', 'fdfpv-loop', 'itaipu', 'h-spawns') };
+const opts = { only: 'spawns,rooms,attract', shots: join(homedir(), 'Desktop', 'fdfpv-loop', 'itaipu', 'h-spawns') };
 for (const a of process.argv.slice(2)) {
   const m = a.match(/^--([a-z]+)=(.*)$/);
   if (!m || !(m[1] in opts)) {
@@ -95,9 +81,6 @@ const LENS_HALF = (22 * Math.PI) / 180;
 /* What the title shows as the dam: the main dam's crest, the powerhouse
  * and the spillway's gates (docs/ITAIPU-PLAN.md section 2). */
 const DAM_POINTS = [[59, 225, -1672], [58, 148, -1600], [-982, 215, -1028]];
-/* The longest a lap may take on the plant's clock before it counts as not
- * flown, s. */
-const LAP_LIMIT_S = 600;
 
 const PLANE = FIRST_AIRFRAME;
 const QUAD = 'interceptor';
@@ -113,13 +96,7 @@ const f2 = (v) => Number(v).toFixed(2);
 
 /* -------------------------------------------------------------- Node */
 
-for (const c of COURSES) {
-  const want = `${JSON.stringify(courseDocument(c), null, 2)}\n`;
-  const had = await readFile(join(root, 'docs', 'itaipu-courses', c.file), 'utf8').catch(() => '');
-  check(`document ${c.file}`, had === want, had === want ? `${c.gates.length} gates, as scripts/itaipu-courses.js writes it` : 'differs from scripts/itaipu-courses.js; run it');
-}
 const water = JSON.parse(await readFile(join(DATA, 'water.json'), 'utf8'));
-const LIBRARY = Object.fromEntries(COURSES.map((c) => [c.id, courseDocument(c)]));
 
 /* ----------------------------------------------------------- Browser */
 
@@ -150,7 +127,6 @@ async function open(airframe, query = '') {
       localStorage.setItem(k, JSON.stringify(s));
       localStorage.setItem('webfpv.airhint.v2', '1');
       localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
-      localStorage.setItem('webfpv.trackbuilder.library.v1', ${JSON.stringify(JSON.stringify(LIBRARY))});
     } catch (e) { /* Storage refused; the checks below say so. */ }
     navigator.getGamepads = () => [];`],
   });
@@ -439,175 +415,11 @@ async function attract(page) {
   await page.evaluate('window.__setCam()');
 }
 
-/*
- * THE PILOTS, once a frame on the plant's clock, each following the
- * builder's own racing line (__build.linePoints): the nearest point of it
- * at or after the last one, searched a little way ahead so the lap is
- * flown in order, and an aim point `look` metres further on.
- *
- * The plane's is scripts/map-plane-check.js planePilot's: L1 guidance
- * (Park, Deyst and How, 2004) to a bank hold on the roll stick, the
- * line's height on a pitch hold, the throttle on the speed.
- *
- * The quad's flies the five inch on the angle loop with its heading held:
- * the velocity it wants is toward the aim point at `speed`, the stick
- * tilts it toward that in the heading's frame, and the throttle holds the
- * vertical part round a hover it learns.
- */
-function pilot(kind, path, { speed, look }) {
-  return `(() => {
-    const P = ${JSON.stringify(path)};
-    const N = P.length;
-    const cl = (v, a, b) => Math.max(a, Math.min(b, v));
-    let k = 0;
-    let lift = 0;
-    window.__pilot = true;
-    const step = () => {
-      if (!window.__pilot) { window.__stick(); return; }
-      const c = window.__craftState();
-      if (!c || c.mode !== 'flight' || !c.fwd || !c.up) { requestAnimationFrame(step); return; }
-      const pos = [c.worldX, c.worldY, c.worldZ];
-      let best = k;
-      let bestD = Infinity;
-      for (let j = k; j < Math.min(N, k + 80); j += 1) {
-        const d = Math.hypot(P[j][0] - pos[0], P[j][1] - pos[1], P[j][2] - pos[2]);
-        if (d < bestD) { bestD = d; best = j; }
-      }
-      k = best;
-      let a = k;
-      while (a < N - 1 && Math.hypot(P[a][0] - pos[0], P[a][1] - pos[1], P[a][2] - pos[2]) < ${look}) { a += 1; }
-      const aim = P[a];
-      const v = c.vel || { x: 0, y: 0, z: 0 };
-      window.__pilotAt = k;
-      if (${JSON.stringify(kind)} === 'plane') {
-        const pitch = Math.asin(cl(c.fwd.y, -1, 1));
-        const right = { x: c.fwd.y * c.up.z - c.fwd.z * c.up.y, y: c.fwd.z * c.up.x - c.fwd.x * c.up.z, z: c.fwd.x * c.up.y - c.fwd.y * c.up.x };
-        const bank = Math.asin(cl(-right.y, -1, 1));
-        const p = c.rates ? c.rates.p : 0;
-        const q = c.rates ? c.rates.q : 0;
-        const vh = Math.hypot(v.x, v.z) || 1;
-        const dx = aim[0] - pos[0];
-        const dz = aim[2] - pos[2];
-        const dl = Math.hypot(dx, dz) || 1;
-        const eta = Math.atan2((v.x * dz - v.z * dx) / (vh * dl), (v.x * dx + v.z * dz) / (vh * dl));
-        const acc = 2 * vh * vh * Math.sin(cl(eta, -Math.PI / 2, Math.PI / 2)) / Math.max(dl, 5);
-        const bankT = cl(Math.atan(acc / 9.81), -0.9, 0.9);
-        const hT = P[k][1];
-        const pitchT = cl(0.03 + 0.05 * (hT - pos[1]) - 0.08 * v.y + 0.12 * Math.abs(bank), -0.3, 0.35);
-        const thr = cl(0.55 + 0.12 * (${speed} - c.speed) + 0.06 * (hT - pos[1]) + 0.25 * Math.abs(bank), 0.1, 1);
-        window.__stick(cl(2.5 * (bankT - bank) - 0.15 * p, -1, 1), cl(3 * (pitchT - pitch) + 0.3 * q, -1, 1), 0, thr);
-      } else {
-        /* Along the line at speed, and back onto it: the velocity it
-         * wants is the line's own direction here plus the way back to
-         * its nearest point, and the tilt is the acceleration that
-         * closes the gap, through the angle loop's 55 degree stick. */
-        const near = P[k];
-        const nx = P[Math.min(N - 1, k + 3)];
-        const tl = Math.hypot(nx[0] - near[0], nx[1] - near[1], nx[2] - near[2]) || 1;
-        /* Slower into a bend: by how far the line turns in the next 15
-         * m, down to a third of the speed for a right angle or more. */
-        const far = P[Math.min(N - 1, k + 15)];
-        const far2 = P[Math.min(N - 1, k + 18)];
-        const fl = Math.hypot(far2[0] - far[0], far2[1] - far[1], far2[2] - far[2]) || 1;
-        const bend = Math.acos(cl(((nx[0] - near[0]) * (far2[0] - far[0]) + (nx[1] - near[1]) * (far2[1] - far[1]) + (nx[2] - near[2]) * (far2[2] - far[2])) / (tl * fl), -1, 1));
-        const pace = ${speed} * cl(1 - bend / 2.4, 0.35, 1);
-        const want = [0, 1, 2].map((i) => ((nx[i] - near[i]) / tl) * pace + cl(2 * (near[i] - pos[i]), -3, 3));
-        const f = [c.fwd.x, c.fwd.z];
-        const fn = Math.hypot(f[0], f[1]) || 1;
-        const fx = f[0] / fn;
-        const fz = f[1] / fn;
-        const ax = 2 * (want[0] - v.x);
-        const az = 2 * (want[2] - v.z);
-        const along = ax * fx + az * fz;
-        const side = ax * -fz + az * fx;
-        const dy = want[1] - v.y;
-        lift = cl(lift + 0.004 * dy, -0.25, 0.25);
-        const tilt = (a) => Math.atan(a / 9.81) / 0.96;
-        window.__trace = window.__trace || [];
-        const simT = window.__crash().simT;
-        if (!(simT < (window.__traceAt || 0) + 0.25)) {
-          window.__traceAt = simT;
-          window.__trace.push([+simT.toFixed(2), k, ...pos.map((q) => +q.toFixed(2)), ...near.map((q) => +q.toFixed(2)), window.__race().next]);
-        }
-        window.__stick(cl(tilt(side), -0.6, 0.6), cl(-tilt(along), -0.6, 0.6), 0, cl(0.37 + lift + 0.12 * dy, 0.05, 0.95));
-      }
-      requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-    return true;
-  })()`;
-}
-
-/* One course: into the builder on it, its warnings, its test flight. */
-async function course(airframe, cls, c) {
-  const page = await open(airframe);
-  try {
-    await page.until('!!window.__build', 60000);
-    await page.evaluate(`window.__ui.onBuild({ map: 'itaipu', id: ${JSON.stringify(c.id)} }).then(() => { window.__opened = true; }, (e) => { window.__opened = String(e); }); true`);
-    await page.until(`window.__opened && window.__build.state().state === 'building' && window.__build.state().doc && window.__build.state().doc.id === ${JSON.stringify(c.id)}`, 120000);
-    await page.until('window.__build.state().line.samples > 0', 60000);
-    const st = await page.evaluate('window.__build.state()');
-    check(`course ${c.name}: loads in the builder`, st.map === 'itaipu' && st.gates.length === c.gates.length,
-      `${st.gates.length} gates, the line worked out for the ${st.line.craft}`);
-    check(`course ${c.name}: no racing line warning for the ${st.line.craft}`, st.line.craft === airframe && st.warnings.length === 0,
-      st.warnings.length ? JSON.stringify(st.warnings.slice(0, 4)) : `${st.line.samples} samples, slowest corner ${f1(st.line.slowest)} m/s`);
-    const line = await page.evaluate('window.__build.linePoints(1)');
-    let len = 0;
-    for (let i = 0; i < line.length; i += 1) {
-      const a = line[i];
-      const b = line[(i + 1) % line.length];
-      len += Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
-    }
-    console.log(`  ${c.name}: racing line ${f1(len / 1000)} km`);
-    /* From the start behind the start gate, round the lap, and on past
-     * the start gate again. */
-    const g0 = st.gates[0];
-    const back = [];
-    for (let s = 40; s > 0; s -= 1) {
-      back.push(g0.centre.map((v, i) => v - g0.travel[i] * s));
-    }
-    const path = [...back, ...line.map((p) => p.slice(0, 3)), ...line.slice(0, 200).map((p) => p.slice(0, 3))];
-
-    await key(page, 'KeyB');
-    await page.until("window.__build.state().state === 'testing' && window.__craftState().mode === 'flight'", 60000);
-    await shoot(page, `course-${c.file.replace('.json', '')}-start`);
-    const a = await state(page);
-    await page.evaluate(pilot(cls, path, cls === 'plane' ? { speed: 18, look: 40 } : { speed: 6, look: 5 }));
-    await page.evaluate('window.__drawOff(true)');
-    await page.until(`window.__race().laps.length >= 1 || window.__crash().wrecked || window.__crash().events > ${a.events}
-      || window.__crash().simT - ${a.simT} > ${LAP_LIMIT_S}`, 3600000).catch(() => {});
-    await page.evaluate('window.__drawOff(false)');
-    await page.evaluate('window.__pilot = false');
-    const r = await page.evaluate('({ laps: window.__race().laps.slice(), next: window.__race().next, at: window.__pilotAt, trace: window.__trace || [] })');
-    if (!r.laps.length && r.trace.length) {
-      const file = join(resolve(process.env.TMPDIR || '/tmp'), `itaipu-${cls}-trace.json`);
-      await writeFile(file, JSON.stringify(r.trace));
-      console.log(`  the flight every quarter second, [simT, line point, x, y, z, line x, y, z, next gate]: ${file}`);
-    }
-    const b = await state(page);
-    const damage = b.events - a.events;
-    check(`course ${c.name}: a clean lap with the ${airframe} on the sim clock`, r.laps.length >= 1 && damage === 0 && !b.wrecked,
-      r.laps.length ? `lap ${f2(r.laps[0] / 1000)} s, damage events ${damage}`
-        : `no lap: next gate ${r.next}, line point ${r.at} of ${path.length}, at (${f1(b.x)}, ${f1(b.y)}, ${f1(b.z)}) ${f1(b.speed)} m/s, damage events ${damage} ${b.flags}, ${f1(b.simT - a.simT)} s flown`);
-    const errors = page.errors.filter((e) => !/net::ERR_|Failed to load resource/.test(e));
-    check(`course ${c.name}: no page error`, errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
-  } finally {
-    await page.close();
-  }
-}
-
 async function main() {
   if (ONLY.has('spawns') || ONLY.has('rooms') || ONLY.has('attract')) {
     await spawnsFor(PLANE, 'plane');
     await spawnsFor(QUAD, 'quad');
     await spawnsFor(FLOAT, 'float');
-  }
-  if (ONLY.has('courses')) {
-    for (const [airframe, cls, c] of [[PLANE, 'plane', COURSES[0]], [QUAD, 'quad', COURSES[1]]]) {
-      if (!opts.course || c.file.startsWith(opts.course)) {
-        await course(airframe, cls, c);
-      }
-    }
   }
 }
 

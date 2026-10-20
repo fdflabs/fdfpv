@@ -4,12 +4,11 @@
  * in Settings, all over src/game/progress.js, which is the arithmetic.
  *
  * The shell (src/main.js) tells a Progress what happens in a run, through
- * startRun, gatePass, touch, lap and tick; Progress logs each as the
- * flight's events (src/game/events.js), pays what the log earned through
- * the one fold (progress.js awardFlight), keeps the pilot's progress in
+ * startRun, touch and tick; Progress logs each as the flight's events
+ * (src/game/events.js), pays what the log earned through the one fold
+ * (progress.js awardFlight), keeps the pilot's progress in
  * settings.progress, stores it on every change, and says what it earned
- * in a toast: a lap's XP, a challenge done, a level, and
- * each thing that level opens. The toasts are the one thing here drawn in
+ * in a toast: a challenge done, a level, and each thing that level opens. The toasts are the one thing here drawn in
  * flight, so they take no pointer and sit clear of the OSD's corners.
  *
  * Nothing here imports three.js: scripts import src/ui/ui.js in Node.
@@ -309,17 +308,6 @@ export class Progress {
     return lockOf(this.state, kind, id, airframe);
   }
 
-  /* A casual sky track just made (src/main.js onBuild): its id is how its
-   * laps are known as the casual track's from now on. */
-  markCasual(id) {
-    this.state.casual[id] = true;
-    this.save();
-  }
-
-  isCasual(id) {
-    return Boolean(id) && Boolean(this.state.casual[id]);
-  }
-
   setUnlockAll(on) {
     this.state.unlockAll = Boolean(on);
     this.save();
@@ -578,30 +566,9 @@ export class Progress {
     this.lessonStep = w.step;
   }
 
-  gatePass() {
-    this.event('gate');
-    this.foldFlight();
-  }
-
   /* Folded with the next fold: a touch pays nothing by itself. */
   touch(kind) {
     this.event('touch', { kind });
-  }
-
-  /* A lap closed on `course`, { key, kind }; `ms` its time and `medal`
-   * the one it reached on a course with medals (src/game/medals.js), each
-   * null when there is none; `n` and `of` the lap's place in a run and the
-   * run's laps, so a run's best is read from the log (progress.js bestsOf). */
-  lap(course, { ms = null, medal = null, n = null, of = null } = {}) {
-    this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });
-    this.foldFlight();
-  }
-
-  /* A row of the race's log that pays nothing (src/game/events.js
-   * lap_void): a lap voided, `ms` null and `reason` why, or a test
-   * flight's lap off a casual track, its time and 'test'. */
-  lapVoid(ms, reason) {
-    this.event('lap_void', { ms, reason });
   }
 
   tick(state) {

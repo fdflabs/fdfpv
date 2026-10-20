@@ -65,7 +65,6 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 import { floatDigDeg } from '../tests/crash/scenarios.js';
-import { standGate } from './lib/standgate.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -269,52 +268,6 @@ const SCENARIOS = [
       const a = ${floatDigDeg('cubf')} * Math.PI / 180;
       return { throw: { x, y, z, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: -${floatDigDeg('cubf')}, vx: fx * 15 * Math.cos(a), vy: -15 * Math.sin(a), vz: fz * 15 * Math.cos(a) }, dir: [fx, fz], what: 'the lake, surface y ' + w.surfaceY.toFixed(2) };`,
   },
-  /* A five inch clipping a race gate's post from inside the opening, the
-   * reference's clip (docs/CRASH-REFERENCES.md, q5-gate-15 and -30): the
-   * struck arm and prop meet the bare PVC upright. The sleeve panel hangs
-   * outboard of each upright, so a pass on the outside meets the panel's
-   * face, not the post; that one is kept as its own scenario. The gate is
-   * a built track's, standing on the grass of the Swiss valley's strip
-   * (standGate); it was a gate of the race field's until the field went,
-   * built by the same builder at the same scale. */
-  ...[[15, 'inside'], [30, 'inside'], [15, 'outside']].map(([v, side]) => ({
-    id: side === 'inside' ? `quad-gate-${v}` : `quad-gate-sleeve-${v}`,
-    item: 6,
-    what: side === 'inside'
-      ? `the interceptor clipping a gate post from inside the opening at ${v} m/s with an arm`
-      : `the interceptor passing outside a gate post at ${v} m/s, into the sleeve panel's face`,
-    airframe: 'interceptor',
-    map: 'swiss2',
-    standGate: true,
-    chase: 'script',
-    plan: `
-      const s = window.__craftState();
-      const posts = window.__crashSolids(s.worldX, s.worldZ, 400, 'gate')
-        .filter((c) => !c.box && Math.abs(c.a[0] - c.b[0]) < 0.01 && Math.abs(c.a[2] - c.b[2]) < 0.01);
-      const p = posts[0];
-      /* Its partner across the opening: the other upright of the same gate,
-       * a MultiGP opening (1.52 m, drawn 1.15 times) away. The opening is
-       * the side of this post that faces it. */
-      const mate = posts.slice(1).map((c) => ({ c, d: Math.hypot(c.a[0] - p.a[0], c.a[2] - p.a[2]) }))
-        .filter((m) => m.d > 1.2 && m.d < 2.4).sort((u, w) => u.d - w.d)[0];
-      if (!mate) {
-        return null;
-      }
-      const x = p.a[0], z = p.a[2], y = Math.min(p.a[1], p.b[1]) + 1.0;
-      const ax = 1, az = 0.35;
-      const n = Math.hypot(ax, az);
-      const dx = ax / n, dz = az / n;
-      /* Across the track, (-dz, dx): toward the opening or away from it. */
-      const toMate = (mate.c.a[0] - x) * -dz + (mate.c.a[2] - z) * dx;
-      const sign = (toMate > 0 ? 1 : -1) * (${JSON.stringify(side)} === 'inside' ? 1 : -1);
-      /* The centre passes 7 cm clear of the post: an arm and its prop are
-       * across it however the quad is turned. */
-      const off = sign * (p.r + 0.07);
-      const sx = x - dx * 8 - dz * off, sz = z - dz * 8 + dx * off;
-      /* Thrown up a little so it arrives at arm height, not on the grass. */
-      const t = 8 / ${v};
-      return { throw: { x: sx, y: y + 0.4, z: sz, yaw: Math.atan2(-dx, -dz) * 180 / Math.PI, pitch: -20, vx: dx * ${v}, vy: 9.81 * t / 2 - 0.4 / t, vz: dz * ${v} }, dir: [dx, dz], at: p.a, stick: [0, 0, 0, 0.3], what: 'gate post radius ' + p.r.toFixed(3) + ' m, ${side} the opening, props turning at a third of the throttle' };`,
-  })),
   {
     id: 'quad-wall',
     item: 6,
@@ -472,14 +425,11 @@ function seeds(airframe, map) {
   } catch (e) { /* Storage refused; the run boots on its defaults. */ }`];
 }
 
-async function open(airframe, map, gate) {
+async function open(airframe, map) {
   const page = await openPage({
     root, width: W, height: H, url: `/index.html?map=${map}`, seed: seeds(airframe, map),
   });
   await page.until('window.__shellReady && window.__map && window.__map().ready', 240000);
-  if (gate) {
-    await standGate(page, map);
-  }
   await page.sleep(1500);
   const seated = await page.evaluate('JSON.stringify([window.__map().id, window.__craft().run])').then(JSON.parse);
   if (seated[0] !== map || seated[1] !== airframe) {
@@ -1001,7 +951,7 @@ const list = SCENARIOS.filter((sc) => !want || want.has(sc.id));
 /* One page per aircraft and map, the scenarios on it run in turn. */
 const groups = new Map();
 for (const sc of list) {
-  const key = `${sc.airframe} ${sc.map} ${sc.standGate ? 'gate' : ''}`;
+  const key = `${sc.airframe} ${sc.map}`;
   groups.set(key, [...(groups.get(key) ?? []), sc]);
 }
 const sheets = [];
@@ -1009,7 +959,7 @@ const reruns = [];
 for (const scs of groups.values()) {
   let page = null;
   try {
-    page = await open(scs[0].airframe, scs[0].map, Boolean(scs[0].standGate));
+    page = await open(scs[0].airframe, scs[0].map);
   } catch (e) {
     failed += scs.length;
     console.log(`\n${scs.map((s) => s.id).join(', ')}: FAILED to open: ${e.message}`);
