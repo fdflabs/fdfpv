@@ -1,6 +1,11 @@
 /*
  * paper.js: the combat streamers, in the crash cam's recording.
  *
+ * Streamer Combat and Catch the Ace left the game in the combat-only cut
+ * (2026-10-20), so a recording made since carries a war's explosions here
+ * and nothing else; the paper and the crowns are read, and drawn, for the
+ * clips in My clips from before it.
+ *
  * The owner: "in the replays I'm not seeing the paper trail." Combat
  * (docs/COMBAT-PLAN.md) draws every pilot's toilet paper through one layer
  * (src/render/streamers.js): a ribbon per chain, this pilot's and every
@@ -20,8 +25,8 @@
  * src/render/acecrown.js) and each coin (how loud). And a war's
  * explosions (src/render/explosion.js): where each went off and how big.
  *
- * THE NODES ARE PACKED as the room packs them for the wire
- * (src/share/roomwire.js encodeStreamer): the head as float32, then each
+ * THE NODES ARE PACKED as the room packed them for the wire while the game
+ * was in it (src/share/roomwire.js encodeStreamer, until 2026-10-20): the head as float32, then each
  * link as a direction in two octahedral bytes and a length in one, each
  * steered from where the reader will have put the node before it, so the
  * rounding never adds up along the paper. A link is about a metre, so a
@@ -57,7 +62,12 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { STREAMER_PIECES, STREAMER_SEGS } from '../share/roomwire.js';
+/* A recorded chain's links at most, and the pieces a cut or a tear sent
+ * falling beside a pilot's streamer: the room's wire limits when the clips
+ * were made (src/share/roomwire.js STREAMER_SEGS and STREAMER_PIECES until
+ * the combat-only cut, 2026-10-20), and so what a recorded row holds. */
+export const STREAMER_SEGS = 100;
+export const STREAMER_PIECES = 4;
 
 /* What one row can hold: every seat of a public room, each with its
  * streamer and its falling pieces, each at most the layer's MAXN nodes. */

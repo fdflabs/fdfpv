@@ -319,7 +319,7 @@ try {
     await b.evaluate("window.__rooms().phase === 'idle' && window.__ui.onGate()") && gate.some((r) => r.action === `lobby:${action}` && r.value === 'Free flight · 2 in lobby'),
     gate.map((r) => `${r.label}=${r.value}`).join(' | '));
   await shot(b, '5-title-after-leave');
-  await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");
+  await b.evaluate("(() => { window.__ui.act('lobby:rooms'); return true; })()");
   await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(action)} && it.value === '2 of 16')`, 20000).catch(() => {});
   const after = await b.evaluate(ROWS);
   check('and Rooms lists it with two, and no room of B\'s on top',

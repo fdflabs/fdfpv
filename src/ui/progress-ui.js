@@ -400,18 +400,6 @@ export class Progress {
     return this.bests.slice();
   }
 
-  /* A Streamer Combat round or a Catch the Ace! match this pilot had a
-   * seat in, ended by the room, on world `world` (src/main.js): logged,
-   * folded, and its first paid now rather than at the next flight time.
-   * `more.points` is this pilot's in the room's final standings, which a
-   * best is read from; a best of this game's last round is forgotten
-   * first, so a debrief says only this round's. */
-  roundFinished(game, world, more = {}) {
-    this.bests = this.bests.filter((b) => bestKind(b.key) !== game);
-    this.event('round', { game, world, ...more });
-    this.foldFlight();
-  }
-
   /* Attackers the room credited to this pilot's warhead (src/share/roomwar.js
    * dead `kills`) in war mission `mission`, each a `kill` on the seated
    * aircraft, then folded. */
@@ -1056,19 +1044,11 @@ const MISSION_KEYS = new Map([
   ...INTERIOR.map((m) => [m.id, `ops.campaign.interior.m.${m.key}`]),
 ]);
 
-/* The words for a room game's first (progress.js PLAYED_GAMES, WORLDS):
- * each game's card name and each world's registry name. */
-const GAME_NAMES = { combat: 'combat.card', tag: 'roomtag.section' };
-const WORLD_NAMES = { alps: 'registry.the_alps', swiss2: 'registry.swiss2', itaipu: 'registry.itaipu', interior: 'registry.interior' };
-
 /* A first's words, from its key (progress.js firstsOf). */
 export function firstTitle(key) {
   const [what, id, part] = key.split(':');
   if (what === 'lesson') {
     return str('progress.first.lesson', { lesson: str(`training.lesson.${id}`) });
-  }
-  if (what === 'game') {
-    return str('progress.first.game', { game: str(GAME_NAMES[id]), world: str(WORLD_NAMES[part]) });
   }
   if (what === 'mission') {
     const mission = str(MISSION_KEYS.get(id) ?? id);

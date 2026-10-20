@@ -16,8 +16,8 @@
  *             (AGENTS, 0xA0), because the room steers it at the pilots
  *   warheads  a defender detonates when any part box of it comes within
  *             its fuze radius of an attacker's centre: src/game/midair.js
- *             within, tag's bubble, with the attacker as the Ace. The
- *             radius is the seat's airframe and warhead's
+ *             within, Catch the Ace's bubble rule, with the attacker as
+ *             the Ace. The radius is the seat's airframe and warhead's
  *             (src/share/war/fuze.js fuzeM, blastOf). It kills the
  *             attacker, the defender, and every other attacker within
  *             the same radius of that attacker's centre then. A hunter
@@ -70,7 +70,8 @@
  *             rack and rackMax are the airframes the match's pilots have
  *             left this round and could have
  *
- * ONE TIMELINE, JUDGED IN ORDER: tag's (edge/rooms/tag.js). Everything is
+ * ONE TIMELINE, JUDGED IN ORDER: as Catch the Ace's was (edge/rooms/tag.js,
+ * in git history since the combat-only cut, 2026-10-20). Everything is
  * decided on the room clock over the span every seat heard from in the
  * last WAIT_MS has covered, or LATE_MS behind the room clock, whichever is
  * later: the frontier f. The earliest event wins: a detonation (a tie to

@@ -29,7 +29,7 @@ import { EventLog } from '../src/game/events.js';
 import { ACT1, INTERIOR } from '../src/game/campaign.js';
 import { COUNTED, foldEvents, freshProgress } from '../src/game/progress.js';
 import { createOpsCampaignScreen, matchOf } from '../src/ui/opscampaign.js';
-import { CONDITIONS, createRoute, fromOps, fromRace, fromRoom, missionEndActions, missionEpilogue, nextActions, replayState, ROUTE_MAX, withBests } from '../src/game/debrief.js';
+import { CONDITIONS, createRoute, fromOps, fromRace, missionEndActions, missionEpilogue, nextActions, replayState, ROUTE_MAX, withBests } from '../src/game/debrief.js';
 import { factLines } from '../src/ui/factlines.js';
 import { useLocale } from '../src/strings/index.js';
 import en from '../src/strings/en.js';
@@ -147,9 +147,6 @@ const rt = (events) => JSON.parse(JSON.stringify(events));
   const base = { aircraft: 'whoop65', events: raceRun([{ ms: 40000 }]), recordAtStart: null, flightMs: 1, totalS: 1, replay: ok };
   check('condition: the three words', JSON.stringify(CONDITIONS) === '["operational","impaired","destroyed"]');
   check('condition: race carries each word', CONDITIONS.every((c) => fromRace({ ...base, condition: c }).condition === c));
-  const room = { activity: 'tag', aircraft: 'whoop65', place: 2, of: 3, final: true, flightMs: 1, totalS: 1, replay: ok };
-  check('condition: a room carries each word', CONDITIONS.every((c) => fromRoom({ ...room, condition: c }).condition === c));
-  check('condition: a room pilot who did not fly has none', fromRoom(room).condition === null);
   const flight = { aircraft: 'bramor2300', fixedWing: true, flightMs: 1, totalS: 1, replay: ok };
   const mission = { events: [{ seq: 0, type: 'mission_end', simMs: 1, roomMs: null, mission: 'm', match: 'u', won: true, state: 'won', stars: 0, earned: 0, paid: true, airframe: 'x' }], match: 'u', items: [], starsOf: 0 };
   check('condition: an ops flight carries each word', CONDITIONS.every((c) => fromOps({ ...mission, flight: { ...flight, condition: c } }).condition === c));
@@ -176,42 +173,6 @@ const rt = (events) => JSON.parse(JSON.stringify(events));
   check('race: no lap is ended, no record line', e.result.kind === 'ended' && e.records.length === 1 && e.accuracy.length === 0);
   const f = fromRace({ aircraft: 'whoop65', events: raceRun([{ ms: 40000 }]), recordAtStart: null, flightMs: 1, totalS: 1, replay: ok });
   check('race: first lap on a track is a record', f.result.kind === 'record' && f.records[0].improved === true && f.records[0].before === null);
-}
-
-/* Flight Club rooms. */
-{
-  const won = fromRoom({ activity: 'combat', aircraft: 'whoop65', place: 1, of: 4, final: true, flightMs: 90000, totalS: 100, replay: ok });
-  check('room: first when called is won', won.result.kind === 'won' && won.accuracy[0].what === 'debrief.place' && won.accuracy[0].n === 1 && won.accuracy[0].of === 4);
-  const wait = fromRoom({ activity: 'combat', aircraft: 'whoop65', place: 1, of: 4, final: false, flightMs: 90000, totalS: 100, replay: ok });
-  check('room: first while others finish is not yet won', wait.result.kind === 'complete');
-  const tagLog = (points) => [{ seq: 0, type: 'spawned', simMs: 0, roomMs: null }, { seq: 1, type: 'round', simMs: 1, roomMs: null, game: 'tag', world: 'alps', points }];
-  const lost = fromRoom({ activity: 'tag', aircraft: 'cub1400', fixedWing: true, place: 3, of: 3, final: true, events: tagLog(7), flightMs: 1, totalS: 1, replay: ok });
-  check('room: a later place when called is lost, points counted', lost.result.kind === 'lost' && lost.accuracy[1].what === 'debrief.points' && lost.accuracy[1].n === 7 && lost.accuracy[1].of === null);
-  const none = fromRoom({ activity: 'combat', aircraft: 'x', place: null, of: 0, final: true, flightMs: 1, totalS: NaN, replay: ok });
-  check('room: no standing, no place line, no time line', none.accuracy.length === 0 && none.records.length === 0 && none.result.kind === 'complete');
-  check('room: the room rows lead, then the replay and Change aircraft (COMPLETENESS 76)', JSON.stringify(won.next) === '["room","replay","aircraft","title"]');
-}
-
-/*
- * FROM THE LOG (COMPLETENESS.md item 26): a fact the flight's log holds is
- * read from it, so the debrief rebuilt from the saved log (JSON, as a
- * log is) is the one shown. Recorded as src/ui/progress-ui.js logs it.
- */
-{
-  const log = new EventLog();
-  log.append('spawned', 0);
-  log.append('seated', 0, { airframe: 'cub1400', fixedWing: true, power: 'electric', smallestPack: false, crashed: false });
-  log.append('round', 61000, { game: 'tag', world: 'alps', points: 3 });
-  log.append('crash', 70000, { airframe: 'cub1400' });
-  log.append('round', 181000, { game: 'tag', world: 'alps', points: 9 });
-  log.append('round', 190000, { game: 'race', world: 'alps', pilots: 4 });
-  const side = { aircraft: 'cub1400', fixedWing: true, place: 1, of: 3, final: true, flightMs: 175000, totalS: 900, route: null, replay: ok, condition: 'operational' };
-  const shown = fromRoom({ activity: 'tag', ...side, events: log.events });
-  const saved = JSON.parse(JSON.stringify(log.events));
-  check('log: a tag debrief rebuilt from the saved log is the one shown', JSON.stringify(fromRoom({ activity: 'tag', ...side, events: saved })) === JSON.stringify(shown));
-  check('log: its points are the last tag round\'s, not an earlier one\'s or another game\'s', shown.accuracy[1].what === 'debrief.points' && shown.accuracy[1].n === 9);
-  check('log: no round of the game in the log, no points line', fromRoom({ activity: 'combat', ...side, events: saved }).accuracy.length === 1
-    && fromRoom({ activity: 'tag', ...side }).accuracy.length === 1);
 }
 
 /*
@@ -391,26 +352,20 @@ const pick = (list) => list[Math.floor(rand() * list.length)];
     { type: 'best', key: 'tag:alps', now: 5, before: null, xp: 40 },
   ];
   const d = withBests(race, bests);
-  check('bests: a race shows its lap and run bests first, a tag best is not its', d.records.length === race.records.length + 2
+  check('bests: a race shows its lap and run bests first, a Catch the Ace! best from an old log is not its', d.records.length === race.records.length + 2
     && d.records[0].what === 'debrief.best_lap' && d.records[1].what === 'debrief.best_run' && d.records[2].what === 'debrief.track_record', JSON.stringify(d.records.map((r) => r.what)));
   check('bests: a key bettered twice in a run is one line, from the best held before it to the last', d.records[0].before === 42000 && d.records[0].now === 41000 && d.records[0].improved === true);
   check('bests: a first best has no old value', d.records[1].before === null && d.records[1].now === 41000);
   check('bests: none set leaves the record as it was', withBests(race, []) === race && withBests(race, null) === race);
   check('bests: pure, the record it was given is unchanged', race.records[0].what === 'debrief.track_record');
-  const tag = withBests(fromRoom({ activity: 'tag', aircraft: 'cub1400', place: 1, of: 2, final: true, events: [{ seq: 0, type: 'round', simMs: 1, roomMs: null, game: 'tag', world: 'alps', points: 5 }], flightMs: 1, totalS: 1, replay: ok }), bests);
-  check('bests: a tag match shows its points best only', tag.records.length === 2 && tag.records[0].what === 'debrief.best_score' && tag.records[0].kind === 'tag' && tag.records[0].now === 5);
   check('bests: JSON safe', JSON.stringify(JSON.parse(JSON.stringify(d))) === JSON.stringify(d));
-  for (const [lang, label, scoreLabel, first, beat] of [['en', 'New best lap', 'New best score', '41.00, your first', '41.00, was 42.00'], ['es', 'Nueva mejor vuelta', 'Nueva mejor puntuación', '41.00, tu primera marca', '41.00, antes 42.00']]) {
+  for (const [lang, label, first, beat] of [['en', 'New best lap', '41.00, your first', '41.00, was 42.00'], ['es', 'Nueva mejor vuelta', '41.00, tu primera marca', '41.00, antes 42.00']]) {
     await useLocale(lang);
     const lines = factLines(d);
     const row = lines.find((l) => l[0] === label);
     check(`bests: the "New best" row in ${lang}, old and new, a gain`, Boolean(row) && row[1] === beat && row[2] === 'gain', JSON.stringify(row));
     const fresh = factLines(withBests(race, [{ key: 'lap:plane:track:t9', now: 41000, before: null }])).find((l) => l[0] === label);
     check(`bests: a first best in ${lang}`, Boolean(fresh) && fresh[1] === first, JSON.stringify(fresh));
-    const score = factLines(tag).find((l) => l[0] === scoreLabel);
-    const was = factLines(withBests(tag, [{ key: 'tag:alps', now: 7, before: 5 }])).find((l) => l[0] === scoreLabel);
-    check(`bests: a score best in ${lang} is points, not a time`, Boolean(score) && score[1] === first.replace('41.00', '5') && score[2] === 'gain'
-      && Boolean(was) && was[1] === beat.replace('41.00', '7').replace('42.00', '5'), JSON.stringify([score, was]));
   }
   await useLocale('en');
 
@@ -420,12 +375,10 @@ const pick = (list) => list[Math.floor(rand() * list.length)];
   const did = [...bests, { key: 'challenge:cub1400:landings', airframe: 'cub1400', id: 'landings' }];
   const withDid = withBests(race, did);
   check('challenge: a race says it after its bests', withDid.records.map((r) => r.what).slice(0, 4).join() === 'debrief.best_lap,debrief.best_run,debrief.challenge_done,debrief.track_record');
-  const room = withBests(fromRoom({ activity: 'combat', aircraft: 'cub1400', fixedWing: true, place: 1, of: 2, final: true, flightMs: 1, totalS: 1, replay: ok }), did);
-  check('challenge: a room game says it, and no race best', room.records[0].what === 'debrief.challenge_done' && !room.records.some((r) => r.kind === 'lap'));
   check('challenge: an entry without its aircraft or id is no line', withBests(race, [{ key: 'challenge:cub1400:lap' }]) === race);
   for (const [lang, label, value] of [['en', 'Challenge complete', '3 landings in one flight'], ['es', 'Desafío completado', '3 aterrizajes en un vuelo']]) {
     await useLocale(lang);
-    const row = factLines(room).find((l) => l[0] === label);
+    const row = factLines(withDid).find((l) => l[0] === label);
     check(`challenge: the row in ${lang}, a gain`, Boolean(row) && row[1] === value && row[2] === 'gain', JSON.stringify(row));
   }
   await useLocale('en');
@@ -438,12 +391,6 @@ check('replay: no span does not', replayState(null).why === 'debrief.replay_shor
 check('replay: already open does not', replayState([0, 900, 10, 40], true).why === 'debrief.replay_open');
 check('next: unknown activity is again then title', JSON.stringify(nextActions('nope')) === '["again","title"]');
 check('next: a copy', nextActions('race') !== nextActions('race'));
-/* COMPLETENESS 76: a room's results offer another aircraft for its next
- * round, after the replay (src/ui/items.js resultsRows). */
-check('next: every room game\'s results have Change aircraft after the replay', ['tag', 'combat'].every((a) => {
-  const n = nextActions(a);
-  return n.indexOf('aircraft') === n.indexOf('replay') + 1;
-}));
 
 /* A mission's end, the host's one press (COMPLETENESS 76). */
 const ends = (o) => JSON.stringify(missionEndActions(o));

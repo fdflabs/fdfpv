@@ -136,14 +136,6 @@ const GROUPS = [
     ui.setBanner('A boxed line in the middle of the frame', true);
     cap('banner-panel', '.banner');
     ui.setBanner('', false);
-    /* The room standings, as main.js mounts them. */
-    const { RoomRaceHud } = await import('/src/ui/roomhud.js');
-    const rr = new RoomRaceHud(R);
-    rr.update({ title: 'Race, lap 2 of 3', chip: 'Boost ready', rows: [{ place: 1, name: 'Tester', value: '1:02.31', me: true }, { place: 2, name: 'A pilot with a long name', value: '+0.82', me: false }] });
-    cap('room-race', rr.root);
-    rr.update(null);
-    cap('room-race-off', rr.root);
-    rr.root.remove();
     /* The thumb sticks, as main.js mounts and shows them, one plate held. */
     const { mountTouchSticks } = await import('/src/input/touchsticks.js');
     const touch = mountTouchSticks({});
@@ -803,7 +795,6 @@ const NOTES = {
   "sticks": "The stick ghosts and the air slider (src/ui/widgets.js makeGimbal, makeWeightSlider) as setStickOverlay, setAirSlider and paintAir in src/ui/overlay.js leave them.",
   "lock": "The target mark (buildTargetLock, setTargetLock in src/ui/overlay.js).",
   "banner": "The banner line under the OSD block (setBanner in src/ui/overlay.js).",
-  "room": "The room standings (src/ui/roomhud.js RoomRaceHud), mounted on #ui as src/main.js mounts it.",
   "touch": "The thumb sticks (src/input/touchsticks.js mountTouchSticks), with #ui's classes as src/main.js toggles them in flight.",
   "friends": "The room screen in a room (refreshFriends in src/ui/session.js) and the war lobby over it (setWarLobby, drawLobby in src/ui/session.js).",
   "calibrate": "The calibration screen (src/ui/page.js calibrateScreen) as setCalibration and setCalAxes in src/ui/overlay.js paint it.",

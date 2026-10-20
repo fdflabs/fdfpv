@@ -99,13 +99,9 @@ export function nextTickDue(lastDue, now) {
 }
 
 export class RoomHost {
-  /* options.modeById is the mode registry's entry by id (src/share/modes.js
-   * modeById), handed on to the core: a check's own registry stands in for
-   * a build that no longer has a game (rooms:selftest). */
-  constructor(ctx, env, options = {}) {
+  constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
-    this.modeById = options.modeById ?? modeById;
     this.core = null;
     this.timer = null;
     this.tickDue = null; /* wall ms the tick last timed was due, nextTickDue */
@@ -125,7 +121,7 @@ export class RoomHost {
      * code was given out for. meta.mode is only ever null or a registry id
      * (front.js create, core.js setup), so an id the registry does not know
      * is a game since removed (the combat-only cut, 2026-10-18). */
-    if (meta.mode != null && !this.modeById(meta.mode)) {
+    if (meta.mode != null && !modeById(meta.mode)) {
       await this.ctx.storage.deleteAll();
       return null;
     }
@@ -143,7 +139,7 @@ export class RoomHost {
      * env.DEV_MISSIONS is node.js's, for a check's own server. */
     this.core = new RoomCore(meta, {
       turn: this.env.TURN || null, devMissions: this.env.DEV_MISSIONS === true, devAccounts: devAccountsOf(this.env.DEV_ACCOUNTS),
-      publicRooms: this.env.PUBLIC_ROOMS === 'on', modeById: this.modeById,
+      publicRooms: this.env.PUBLIC_ROOMS === 'on',
     });
     /* Every key a { store } action wrote is the name of the core's part
      * that keeps it (core.tag for 'tag'), restored before the seats. A

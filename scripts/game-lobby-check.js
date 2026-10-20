@@ -6,8 +6,8 @@
  * click will take you to the lobby for it, ready to go either single or
  * multi"):
  *
- *   SIM_GPU=1 node scripts/game-lobby-check.js --game=combat [outdir]
- *   (--game= combat, tag, war or free; npm run game:lobby -- --game=tag)
+ *   SIM_GPU=1 node scripts/game-lobby-check.js --game=war [outdir]
+ *   (--game= war or free; npm run game:lobby -- --game=free)
  *
  *   A clicks the card, one click, and is in the lobby of a public room
  *   made for the game, named for A. Escape from it is the title's cards,
@@ -15,9 +15,7 @@
  *   it went to the free flight menu); a click on it again is a lobby
  *   again. A alone presses R: the five seconds,
  *   then the round, A in it. Its end (the room's own: a combat round run
- *   out, a tag match ended, a war lost) puts A back in the lobby,
- *   combat's through its results screen, the host's Combat again under
- *   the cursor. Free
+ *   out, a war lost) puts A back in the lobby. Free
  *   flight's round never ends; A leaves it for the title instead and
  *   clicks the card again into a room of its own.
  *
@@ -82,7 +80,7 @@ import { openPage } from '../tests/lib/page.js';
 import { ACT1 } from '../src/game/campaign.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const GAME = (process.argv.find((a) => a.startsWith('--game=')) || '--game=combat').slice('--game='.length);
+const GAME = (process.argv.find((a) => a.startsWith('--game=')) || '--game=war').slice('--game='.length);
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', `game-lobby-${GAME}`);
 
 /* Each game: its title card, its world, the panel's word for it, what a
@@ -91,24 +89,6 @@ const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(ro
  * start takes to put a pilot in the air (the war's briefing is its 70 s
  * intro, src/share/war/intro.js, then its countdown). */
 const GAMES = {
-  combat: {
-    card: 'combat', world: 'swiss2', chip: 'Combat', upMs: 60000,
-    on: "['countdown', 'on'].includes(window.__combat ? window.__combat().round.state : '')",
-    results: 'window.__combat().results',
-    /* Run out, from its countdown as well: on, then over. */
-    end: (core, now) => {
-      const t = Math.ceil(core.roomMs(now));
-      core.combat.round.startsAt = Math.min(core.combat.round.startsAt, t);
-      core.combat.round.endsAt = t;
-      return [...core.combat.tick(core, now + 1), ...core.combat.tick(core, now + 2)];
-    },
-  },
-  tag: {
-    card: 'ace', world: 'swiss2', chip: 'Catch the Ace', upMs: 60000,
-    on: "['countdown', 'live'].includes(window.__roomTag().view.state)",
-    results: 'window.__roomTag().results',
-    end: (core, now) => core.tag.abandon(core, now),
-  },
   war: {
     card: 'campaign', world: 'itaipu', chip: 'War 1', upMs: 150000,
     on: "['briefing', 'countdown', 'live'].includes(window.__war().view.state)",
@@ -503,15 +483,6 @@ try {
     JSON.stringify({ on: await a.evaluate(G.on), flying: await a.evaluate('window.__craftState().mode'), screen: await a.evaluate('window.__ui.screen') }));
   if (G.end) {
     endRound(code);
-    /* Combat's end has a screen of its own before the lobby, as the
-     * others' (COMPLETENESS 76): the results, the host's Combat again
-     * under the cursor. */
-    if (GAME === 'combat') {
-      await a.until(G.results, 15000).catch(() => {});
-      const res = await a.evaluate("(() => { const it = window.__ui.items(); return { results: window.__combat().results, here: (it[window.__ui.cursor] || {}).action || null, rows: it.map((x) => x.action || x.label) }; })()");
-      check('combat\'s end: its results screen first, the host\'s Combat again under the cursor, Change aircraft among its rows', res.results && res.here === 'friends-lobby-start'
-        && res.rows.includes('restart') && res.rows.includes('hangar-aircraft'), JSON.stringify(res));
-    }
     await a.until(IN_LOBBY, 30000).catch(() => {});
     const back = await a.evaluate(LOBBY);
     check('its end puts A back in the lobby, not ready', back.shown && back.flying !== 'flight' && people(back.pilots).length === 1 && people(back.pilots).every((p) => !p.ready),
@@ -622,23 +593,26 @@ try {
        * war's world; A moves the room to another game and back, and B's
        * lobby follows each time without a click. */
       const ACT = "(() => { const it = window.__ui.items().find((x) => x.label === 'Activity'); return it ? { value: it.current, options: it.options.map((o) => o.value) } : null; })()";
-      const other = GAME === 'combat' ? 'tag' : 'combat';
       const actA = await a.evaluate(ACT);
       const actB = await b.evaluate(ACT);
+      /* Another game the room may be moved to, as the registry's id; on
+       * the wire free flight is null (src/share/modes.js wireMode). */
+      const other = actA ? actA.options.find((o) => o !== GAME) : undefined;
+      const wire = (id) => (id === 'free' ? null : id);
       const pickAct = (v) => a.evaluate(`(() => { window.__ui.items().find((x) => x.label === 'Activity').pick(${JSON.stringify(v)}); return true; })()`);
       await pickAct(other);
-      await b.until(`window.__rooms().mode === ${JSON.stringify(other)} && ${IN_LOBBY}`, 15000).catch(() => {});
+      await b.until(`window.__rooms().mode === ${JSON.stringify(wire(other))} && ${IN_LOBBY}`, 15000).catch(() => {});
       await b.sleep(800);
       const moved = await b.evaluate(LOBBY);
       check(`A's Activity row (B has none, and the war is not offered off its world): A picks ${other}, and B's lobby is ${other}'s, in the same room, without a click`,
         Boolean(actA) && actA.value === GAME && actA.options.includes(other) && !actA.options.includes('war') && actB === null
-        && moved.mode === other && moved.code === code && moved.shown && moved.title === 'LOBBY' && people(moved.pilots).length === 2,
+        && moved.mode === wire(other) && moved.code === code && moved.shown && moved.title === 'LOBBY' && people(moved.pilots).length === 2,
         JSON.stringify({ actA, actB, moved: { mode: moved.mode, code: moved.code, shown: moved.shown, line: moved.line } }));
       await pickAct(GAME);
-      await b.until(`window.__rooms().mode === ${JSON.stringify(GAME)} && ${IN_LOBBY}`, 15000).catch(() => {});
+      await b.until(`window.__rooms().mode === ${JSON.stringify(wire(GAME))} && ${IN_LOBBY}`, 15000).catch(() => {});
       await b.sleep(800);
       const home = await b.evaluate(LOBBY);
-      check(`and back to ${GAME}: B's lobby is ${GAME}'s again`, home.mode === GAME && home.code === code && home.shown, JSON.stringify({ mode: home.mode, line: home.line }));
+      check(`and back to ${GAME}: B's lobby is ${GAME}'s again`, home.mode === wire(GAME) && home.code === code && home.shown, JSON.stringify({ mode: home.mode, line: home.line }));
       await pickHere('public');
       await b.until('window.__rooms().public === true', 15000).catch(() => {});
       await a.until('window.__rooms().public === true', 15000).catch(() => {});

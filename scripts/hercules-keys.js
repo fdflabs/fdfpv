@@ -3,17 +3,13 @@
  * (docs/HERCULES-CONTRACT.md). On swiss2 in a gusty sky, the Hercules in
  * Manual takes off and climbs to 60 m over the field, then:
  *
- *   K1 P with the ramp shut drops nothing, and the HUD says to open it;
  *   K2 O opens the ramp: the plant's door reaches open in its 4 s;
- *   K3 two presses of P drop two loads off the lip, each falling the path
- *      src/game/paradrop.js gives its record (fallen again in the page
- *      from the record alone, the same rest to the bit), in the gusty air;
  *   K4 O again shuts it;
  *   K5 on the Bramor, P is still its recovery chute, and O opens no door.
  *
- * With an output folder it leaves a still every 0.25 s of the plant's
- * clock from the first drop until both lie, for the lane's pictures and
- * film. Run with npm run hercules:keys [-- <outdir>].
+ * K1 and K3, P dropping a load off the ramp, left with the paradrop in the
+ * combat-only cut (2026-10-20). With an output folder it leaves stills of
+ * the ramp shut and open. Run with npm run hercules:keys [-- <outdir>].
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -106,37 +102,12 @@ try {
   await waitSim(3);
   await shot('hercules-flying-ramp-shut.png');
 
-  await page.tap('KeyP');
-  await page.sleep(300);
-  const k1 = await page.evaluate("({ n: window.__paradrops().length })");
-  say(k1.n === 0, `K1 P with the ramp shut drops nothing (${k1.n} drops)`);
-
   await page.tap('KeyO');
   const s0 = await simS();
   await page.until('window.__wingDoor().door >= 1', 120000).catch(() => {});
   const openS = (await simS()) - s0;
   say(openS > 3.5 && openS < 4.6, `K2 O opens the ramp in its 4 s: open after ${openS.toFixed(2)} s of the plant's clock`);
   await shot('hercules-ramp-open.png');
-
-  await page.tap('KeyP');
-  const tDrop = await simS();
-  await waitSim(1.0);
-  await page.tap('KeyP');
-  let frame = 0;
-  while ((await simS()) - tDrop < 40) {
-    if (out && frame < 400) await shot(`drop-${String(frame).padStart(4, '0')}.png`);
-    frame += 1;
-    await waitSim(0.25);
-  }
-  const k3 = await page.evaluate(`(() => {
-    const recs = window.__paradrops();
-    const again = window.__paradropRefall();
-    return recs.map((r, i) => ({ same: again[i].every((v, k) => Object.is(v, r.rest[k])), rest: r.rest.map((v) => +v.toFixed(2)), wet: r.wet, p: r.p.map((v) => +v.toFixed(2)), air: r.air }));
-  })()`).catch((e) => ({ error: String(e) }));
-  const left = await page.evaluate('window.__hold()');
-  const ok3 = Array.isArray(k3) && k3.length === 2 && k3.every((d) => d.same) && k3.every((d) => d.air && d.air.preset === 'gusty') && left === 6;
-  say(ok3, `K3 two presses drop two loads, 6 left in the hold (${left}), that lie where their records say: ${JSON.stringify(k3).slice(0, 400)}`);
-  await shot('hercules-drops-down.png');
 
   await page.tap('KeyO');
   await waitSim(4.5);
@@ -167,9 +138,9 @@ try {
   await bram.tap('KeyO');
   await bram.tap('KeyP');
   await bram.sleep(1500);
-  const k5 = await bram.evaluate('({ ...window.__wingDoor(), drops: window.__paradrops().length })');
-  say(seated === 'bramor2300' && k5.chute > 0 && k5.door === 0 && k5.drops === 0,
-    `K5 on the ${seated} P pulls the chute (${k5.chute}) and O opens no door (${k5.door}), no drop (${k5.drops})`);
+  const k5 = await bram.evaluate('window.__wingDoor()');
+  say(seated === 'bramor2300' && k5.chute > 0 && k5.door === 0,
+    `K5 on the ${seated} P pulls the chute (${k5.chute}) and O opens no door (${k5.door})`);
 } finally {
   await bram.close();
 }

@@ -5,9 +5,12 @@
  * flutter Carruthers and Filippone measured on a streamer of aspect ratio
  * 30; and a burst of paper where a cut happens.
  *
- * Render only. The physics is src/game/streamer.js, the nodes come from it
- * or from an owner's frames; nothing here feeds back, so the trigonometry
- * the look needs is free to use.
+ * Render only, and only of a recording since the combat-only cut
+ * (2026-10-20) took Streamer Combat out of the game: a clip in My clips
+ * from before it carries its paper (src/replay/paper.js), and its replay
+ * draws that here (src/replay/paperscene.js). The physics was
+ * src/game/streamer.js; nothing here feeds back, so the trigonometry the
+ * look needs is free to use.
  *
  * NO WORK ON A QUIET FRAME beyond the ribbons that are out: one buffer
  * update each, and nothing allocated after a ribbon is first built.
@@ -38,7 +41,18 @@
  */
 
 import * as THREE from 'three';
-import { STREAMER_SEGS, streamerColour } from '../share/roomwire.js';
+import { STREAMER_SEGS } from '../replay/paper.js';
+
+/* Sixteen toilet paper colours, one per seat (a seat is unique in its
+ * room, so the colours are too), far enough apart to tell in the air. */
+export const STREAMER_COLOURS = [
+  '#e8352e', '#2f6fe0', '#f5c518', '#2fb04a', '#ff8a1f', '#8e44d6', '#ff5fa2', '#1fc6d6',
+  '#f4f1ea', '#a4d619', '#111111', '#8b5a2b', '#00897b', '#c2185b', '#7fa7ff', '#ffd9a0',
+];
+
+export function streamerColour(seat) {
+  return STREAMER_COLOURS[(Math.max(1, seat) - 1) % STREAMER_COLOURS.length];
+}
 
 const HALF_W = 0.0508;
 const MAXN = STREAMER_SEGS + 1;

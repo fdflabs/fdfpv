@@ -130,11 +130,11 @@ function ordered(v, n) {
 const SIZES = [[1920, 1080, true, 8], [2560, 1080, true, 8], [1280, 720, true, 4], [390, 844, false, 5], [360, 640, false, 2], [844, 390, false, 3]];
 /* 32 letters each, the most a room's name may have, and a mix of games. */
 const ROOMS = [
-  { map: 'swiss2', mode: 'combat' }, { map: 'swiss2', mode: 'tag' }, { map: 'swiss2', mode: 'race' }, { map: 'alps', mode: null },
-  { map: 'swiss2', mode: null }, { map: 'swiss2', mode: 'combat' }, { map: 'alps', mode: null }, { map: 'swiss2', mode: 'tag' },
+  { map: 'swiss2', mode: null }, { map: 'alps', mode: null }, { map: 'swiss2', mode: 'race' }, { map: 'alps', mode: null },
+  { map: 'swiss2', mode: null }, { map: 'alps', mode: null }, { map: 'alps', mode: null }, { map: 'swiss2', mode: null },
 ].map((r, i) => ({ ...r, name: `Long Afternoon Valley Session ${i + 1}!` }));
 /* The words a room's line names its game by (roombrowser.chip_*). */
-const GAMES = /^Join[^·]*· (Combat|Catch the Ace|Race|Free flight) · \d+ (in lobby|flying)/;
+const GAMES = /^Join[^·]*· (Race|Free flight) · \d+ (in lobby|flying)/;
 
 const server = await roomsServer(process.argv[2], 'home-rooms');
 console.log(`home's rooms, rooms at ${server.url}`);

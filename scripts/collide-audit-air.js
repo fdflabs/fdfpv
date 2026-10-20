@@ -43,12 +43,12 @@
  *           offsets across both hulls. A miss is a
  *           truth overlap of 5 cm or more left unjudged; a false hit a
  *           hit where the truth never touched.
- *   bubble  src/game/midair.js within at 6 m, the Catch the Ace tag and
- *           the war's warhead (edge/rooms/war.js, the attacker a point on
- *           its 20 ms grid), passes 5.5 to 6.5 m from the centre.
- *   orb     edge/rooms/tag.js catchOrb, the free orb at 6 m, the same.
- *   cut     src/game/cut.js judgeCut, the 3 m paper cut, a static
- *           streamer on 10 Hz frames, passes 2.7 to 3.3 m from the line.
+ *   bubble  src/game/midair.js within at 6 m, the war's warhead
+ *           (edge/rooms/war.js, the attacker a point on its 20 ms grid),
+ *           passes 5.5 to 6.5 m from the centre. Catch the Ace's tag and
+ *           orb, and Streamer Combat's paper cut, were audited here until
+ *           the combat-only cut (2026-10-20); the seeds that flew the tag
+ *           are passed over, so the warhead's rows are the ones before.
  *   damage  the plant (dist/sim.wasm) with crash damage off refuses the
  *           both break rule's sim_part_break, which the shell's hit calls,
  *           so every room whose referee judges a mid air must fly its
@@ -56,7 +56,7 @@
  *           which src/main.js crashDamageWanted reads).
  *
  * Each row prints miss and false rates. A row is flagged when a rule
- * misses a truth contact 5 cm (15 cm for the bubbles and the cut) inside
+ * misses a truth contact 5 cm (15 cm for the bubble) inside
  * its line, or judges one that stayed 5 cm outside it, in more than 1
  * percent of runs. Exit 1 when anything is flagged: an audit's findings
  * stay loud.
@@ -89,14 +89,11 @@ import { HULLS } from '../configs/hulls.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { FLAG_AIRBORNE, FLAG_QUAD, decodePose, encodePose } from '../src/share/roomwire.js';
 import { Referee } from '../edge/rooms/referee.js';
-import { RoomTag } from '../edge/rooms/tag.js';
 import { SAMPLE_MS as WAR_SAMPLE_MS } from '../edge/rooms/war.js';
-import { BUBBLE_M } from '../src/share/roomtag.js';
 import { BLAST_M } from '../src/share/war/routes.js';
 import {
   GAP_MS, Track, hullDistance, hullFor, judge, roomForcesDamage, within,
 } from '../src/game/midair.js';
-import { REACH_M, StreamerTrack, judgeCut } from '../src/game/cut.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const arg = (name, dflt) => {
@@ -104,7 +101,7 @@ const arg = (name, dflt) => {
   return hit ? hit.slice(name.length + 3) : dflt;
 };
 const SEEDS = Number(arg('seeds', 24));
-const ONLY = arg('only', 'hulls,midair,bubble,orb,cut,damage').split(',');
+const ONLY = arg('only', 'hulls,midair,bubble,damage').split(',');
 const THREE_DIR = arg('three', null);
 const CLIENT = arg('client', 'plant');
 if (!['plant', 'frame'].includes(CLIENT)) {
@@ -571,7 +568,7 @@ function truthMin(h, f, point, t0 = T0 - WINDOW_MS, t1 = T0 + WINDOW_MS) {
 }
 
 function auditBubbles() {
-  console.log(`\nbubble: within() at ${BUBBLE_M} m (tag) and ${BLAST_M} m (warhead), miss = truth ${BUBBLE_BAND_M * 100} cm inside unjudged, false = judged with truth ${BUBBLE_BAND_M * 100} cm outside`);
+  console.log(`\nbubble: within() at ${BLAST_M} m (warhead), miss = truth ${BUBBLE_BAND_M * 100} cm inside unjudged, false = judged with truth ${BUBBLE_BAND_M * 100} cm outside`);
   const ids = ['interceptor', '7inch', 'f16878', 'sky1800'];
   const speeds = [10, 40, 80];
   const rows = new Map();
@@ -584,11 +581,13 @@ function auditBubbles() {
           const mk = bubblePass(h, id, v, r() * 360, curved, r);
           const lateral = 4 + r() * 4;
           const f = mk(lateral);
-          /* The Ace (tag) or the attacker (war): a point, for the war on
-           * its 20 ms grid at 40 m/s straight, for the tag a pilot at the
-           * same frame rate as the hunter, hovering. */
+          /* The attacker (war): a point on its 20 ms grid at 40 m/s
+           * straight. An odd seed flew Catch the Ace's hovering Ace. */
           const war = seed % 2 === 0;
-          const cv = war ? 40 : 0;
+          if (!war) {
+            continue;
+          }
+          const cv = 40;
           const cdir = unit([r() - 0.5, 0, r() - 0.5]);
           const centre = (t) => add([0, 100, 0], mul(cdir, (cv * (t - T0)) / 1000));
           const cpose = (t) => {
@@ -596,19 +595,17 @@ function auditBubbles() {
             return { px: c[0], py: c[1], pz: c[2], qx: 0, qy: 0, qz: 0, qw: 1, vx: cdir[0] * cv, vy: cdir[1] * cv, vz: cdir[2] * cv };
           };
           const reachTruth = truthMin(h, f, centre);
-          const inside = reachTruth <= BUBBLE_M - BUBBLE_BAND_M;
-          const outside = reachTruth > BUBBLE_M + BUBBLE_BAND_M;
+          const inside = reachTruth <= BLAST_M - BUBBLE_BAND_M;
+          const outside = reachTruth > BLAST_M + BUBBLE_BAND_M;
           for (const fps of FPS) {
             const hunter = sampledTrack(f, sendTimes(fps, r() * (1000 / fps), T0 - WINDOW_MS, T0 + WINDOW_MS), 0, flagsFor(id));
-            const ctimes = war
-              ? Array.from({ length: Math.floor((2 * WINDOW_MS) / WAR_SAMPLE_MS) + 1 }, (_, k) => T0 - WINDOW_MS + k * WAR_SAMPLE_MS)
-              : sendTimes(fps, r() * (1000 / fps), T0 - WINDOW_MS, T0 + WINDOW_MS);
+            const ctimes = Array.from({ length: Math.floor((2 * WINDOW_MS) / WAR_SAMPLE_MS) + 1 }, (_, k) => T0 - WINDOW_MS + k * WAR_SAMPLE_MS);
             const ct = new Track(1e9);
             for (const t of ctimes) {
-              ct.push(war ? { ...cpose(t), t, flags: FLAG_AIRBORNE } : decodePose(encodePose({ ...cpose(t), t, flags: FLAG_AIRBORNE | FLAG_QUAD, seq: 0, wx: 0, wy: 0, wz: 0 })));
+              ct.push({ ...cpose(t), t, flags: FLAG_AIRBORNE });
             }
-            const c = within(war ? { id: 'point' } : hullFor('interceptor'), h, ct, hunter, T0 - WINDOW_MS, T0 + WINDOW_MS, war ? BLAST_M : BUBBLE_M);
-            const key = `${war ? 'warhead' : 'tag'}|${v}|${fps}`;
+            const c = within({ id: 'point' }, h, ct, hunter, T0 - WINDOW_MS, T0 + WINDOW_MS, BLAST_M);
+            const key = `warhead|${v}|${fps}`;
             const row = rows.get(key) ?? { n: 0, inside: 0, outside: 0, miss: 0, fals: 0 };
             row.n += 1;
             row.inside += inside ? 1 : 0;
@@ -621,7 +618,7 @@ function auditBubbles() {
       }
     }
   }
-  for (const kind of ['tag', 'warhead']) {
+  for (const kind of ['warhead']) {
     for (const v of speeds) {
       for (const fps of FPS) {
         const row = rows.get(`${kind}|${v}|${fps}`);
@@ -631,126 +628,6 @@ function auditBubbles() {
     }
   }
 }
-
-function auditOrb() {
-  console.log(`\norb: catchOrb at ${BUBBLE_M} m round a still orb, the same bands`);
-  const ids = ['interceptor', 'f16878'];
-  const speeds = [10, 40, 80];
-  for (const id of ids) {
-    const h = hullFor(id);
-    for (const v of speeds) {
-      for (const fps of FPS) {
-        const row = { n: 0, inside: 0, outside: 0, miss: 0, fals: 0 };
-        for (let seed = 1; seed <= SEEDS; seed += 1) {
-          for (const curved of [false, true]) {
-            const r = rng(seed * 15485863 + v + fps * 1009 + (curved ? 3 : 0) + ids.indexOf(id));
-            const f = bubblePass(h, id, v, r() * 360, curved, r)(4 + r() * 4);
-            const orb = [0, 100, 0];
-            const reachTruth = truthMin(h, f, () => orb);
-            const inside = reachTruth <= BUBBLE_M - BUBBLE_BAND_M;
-            const outside = reachTruth > BUBBLE_M + BUBBLE_BAND_M;
-            const track = sampledTrack(f, sendTimes(fps, r() * (1000 / fps), T0 - WINDOW_MS, T0 + WINDOW_MS), 0, flagsFor(id));
-            const tag = new RoomTag();
-            tag.match = { orb: { px: orb[0], py: orb[1], pz: orb[2] } };
-            const c = tag.catchOrb([{ seat: 1, hull: h, track }], T0 - WINDOW_MS, T0 + WINDOW_MS);
-            row.n += 1;
-            row.inside += inside ? 1 : 0;
-            row.outside += outside ? 1 : 0;
-            row.miss += inside && !c ? 1 : 0;
-            row.fals += outside && c ? 1 : 0;
-          }
-        }
-        flag(row.miss > FLAG_RATE * Math.max(1, row.inside) || row.fals > FLAG_RATE * Math.max(1, row.outside),
-          `${id.padEnd(8)} ${String(v).padStart(3)} m/s ${String(fps).padStart(2)} fps  n ${row.n}: miss ${pct(row.miss, row.inside)} of ${row.inside} inside, false ${pct(row.fals, row.outside)} of ${row.outside} outside`);
-      }
-    }
-  }
-}
-
-/* -------------------------------------------------------------- the cut */
-
-function auditCut() {
-  console.log(`\ncut: judgeCut at ${REACH_M} m from a still streamer on 10 Hz frames, the same bands`);
-  const ids = ['interceptor', 'f16878'];
-  const speeds = [10, 40, 80];
-  /* 40 links of 0.5 m along x at y 100, towed by a still owner. */
-  const LINKS = 40;
-  const nodes = new Float64Array((LINKS + 1) * 3);
-  for (let i = 0; i <= LINKS; i += 1) {
-    nodes[i * 3] = -10 + i * 0.5;
-    nodes[i * 3 + 1] = 100;
-    nodes[i * 3 + 2] = 0;
-  }
-  const owner = (t) => ({
-    t, px: -10.5, py: 100, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, vx: 0, vy: 0, vz: 0, flags: FLAG_AIRBORNE | FLAG_QUAD,
-  });
-  const frames = (step) => {
-    const s = new StreamerTrack();
-    for (let t = T0 - WINDOW_MS; t <= T0 + WINDOW_MS; t += step) {
-      s.push(t, LINKS + 1, nodes);
-    }
-    return s;
-  };
-  for (const id of ids) {
-    const h = hullFor(id);
-    for (const v of speeds) {
-      for (const fps of FPS) {
-        const row = { n: 0, inside: 0, outside: 0, miss: 0, fals: 0 };
-        for (let seed = 1; seed <= SEEDS; seed += 1) {
-          for (const curved of [false, true]) {
-            const r = rng(seed * 32452843 + v + fps * 1013 + (curved ? 7 : 0) + ids.indexOf(id));
-            /* Across the line in the horizontal plane, passing over or
-             * under it by 2.4 to 3.6 m. */
-            const th = (0.25 + r() * 0.5) * Math.PI;
-            const dir = [Math.cos(th), 0, Math.sin(th)];
-            const lift = (r() < 0.5 ? -1 : 1) * (2.4 + r() * 1.2);
-            const f = path({
-              at: [0, 100 + lift, 0], dir, speed: v, g: curved ? 6 : 0, side: [0, Math.sign(lift), 0], roll0: r() * 6.28, rollRate: curved ? 2 * Math.PI : 0,
-            });
-            /* The truth: judgeCut on the fine clock, at 3 m less and more
-             * the band, so a row counts only the clear answers. A
-             * StreamerTrack keeps KEEP_MS of frames, so the fine window is
-             * judged in chunks, each with its own frames. */
-            const fine = fineTrack(f, flagsFor(id));
-            const fo = new Track(1e9);
-            for (let t = (T0 - WINDOW_MS) * FINE; t <= (T0 + WINDOW_MS) * FINE; t += 100) {
-              fo.push(owner(t));
-            }
-            const fineCut = (reach) => {
-              for (let a = (T0 - WINDOW_MS) * FINE; a < (T0 + WINDOW_MS) * FINE; a += 1000) {
-                const fr = new StreamerTrack();
-                for (let t = a - 100; t <= a + 1100; t += 100) {
-                  fr.push(t, LINKS + 1, nodes);
-                }
-                if (judgeCut(h, fine, fo, fr, a, a + 1000, LINKS, reach)) {
-                  return true;
-                }
-              }
-              return false;
-            };
-            const inside = fineCut(REACH_M - BUBBLE_BAND_M);
-            const outside = !fineCut(REACH_M + BUBBLE_BAND_M);
-            const cutter = sampledTrack(f, sendTimes(fps, r() * (1000 / fps), T0 - WINDOW_MS, T0 + WINDOW_MS), 0, flagsFor(id));
-            const ot = new Track(1e9);
-            for (const t of sendTimes(60, 0, T0 - WINDOW_MS, T0 + WINDOW_MS)) {
-              ot.push(owner(Math.round(t)));
-            }
-            const c = judgeCut(h, cutter, ot, frames(100), T0 - WINDOW_MS, T0 + WINDOW_MS, LINKS);
-            row.n += 1;
-            row.inside += inside ? 1 : 0;
-            row.outside += outside ? 1 : 0;
-            row.miss += inside && !c ? 1 : 0;
-            row.fals += outside && c ? 1 : 0;
-          }
-        }
-        flag(row.miss > FLAG_RATE * Math.max(1, row.inside) || row.fals > FLAG_RATE * Math.max(1, row.outside),
-          `${id.padEnd(8)} ${String(v).padStart(3)} m/s ${String(fps).padStart(2)} fps  n ${row.n}: miss ${pct(row.miss, row.inside)} of ${row.inside} inside, false ${pct(row.fals, row.outside)} of ${row.outside} outside`);
-      }
-    }
-  }
-}
-
-/* ------------------------------------------------------------ damage off */
 
 async function auditDamage() {
   console.log('\ndamage: the both break rule on a plant with crash damage off, and the rooms that could fly one into a mid air');
@@ -801,12 +678,6 @@ if (ONLY.includes('midair')) {
 }
 if (ONLY.includes('bubble')) {
   auditBubbles();
-}
-if (ONLY.includes('orb')) {
-  auditOrb();
-}
-if (ONLY.includes('cut')) {
-  auditCut();
 }
 if (ONLY.includes('damage')) {
   await auditDamage();

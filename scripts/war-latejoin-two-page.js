@@ -190,7 +190,7 @@ async function playFromCampaign() {
 /* --listed, B: Rooms, A's room's row, the consent on arrival, Continue. */
 async function joinFromRooms(code) {
   const row = `friends-room-${code}`;
-  await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");
+  await b.evaluate("(() => { window.__ui.act('lobby:rooms'); return true; })()");
   await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(row)})`, 30000);
   const listed = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(row)}) || {}).note || ''`);
   check('B finds A\'s room in Rooms, set up for Defend the Paraná, mission 1, while the war is on', /Defend the Paraná, mission 1/.test(listed), listed);

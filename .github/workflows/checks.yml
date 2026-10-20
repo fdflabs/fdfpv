@@ -208,9 +208,8 @@ jobs:
       # The livery gallery against a local tracks server: list, like, sort,
       # report, wear, publish and remove, by real pointer (docs/LIVERY-GALLERY.md).
       - run: npm run gallery:check
-      # 32 pilots in one room through free flight, a race and a combat
-      # round, 5 s each, about a minute: the plan's rooms:load at 32 a
-      # room. Its checks are about function; the speed numbers it prints
+      # 32 pilots in one room through free flight, 5 s, about half a
+      # minute: the plan's rooms:load at 32 a room. Its checks are about function; the speed numbers it prints
       # are for a person (docs/MULTIPLAYER-PLAN.md section 12, Phase 6).
       - run: npm run rooms:load -- --quick
       - run: npm run tigermoth:gates
@@ -435,8 +434,6 @@ jobs:
       - run: npm run hoist:check
       - run: npm run damage:check
       - run: npm run marks:selftest
-      - run: npm run combat:harness
-      - run: npm run combat:restart
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact
@@ -601,7 +598,6 @@ jobs:
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
       - run: npm run catalog-rules:selftest
-      - run: npm run streamer:selftest
       # A rooms server draining on SIGUSR2 while a second one serves new
       # rooms, two processes from this tree (docs/ROOMS-DRAIN.md).
       - run: npm run rooms:drain
@@ -631,9 +627,6 @@ jobs:
       # changed folder and a changed C each fail (scripts/aircraft-ctable.js).
       - run: npm run aircraft:ctable -- --check
       - run: npm run midair:plant
-      # Catch the Ace under lag: the full grid (12 seeds, 16 link sets) is
-      # half a minute on 20 cores, by hand; four and six here keep every row.
-      - run: npm run tag:harness -- --seeds=4 --runs=6
       - run: npm run war:harness -- --seeds=3 --runs=6
       - run: npm run war:routes
       - run: npm run registry:selftest

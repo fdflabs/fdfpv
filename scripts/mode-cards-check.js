@@ -1,7 +1,7 @@
 /*
  * mode-cards-check.js: the home's three hubs and Flight Club's
- * cards, and the two room game cards driven through the real shell the way
- * a pilot drives them, against a local rooms server (never the live one):
+ * cards driven through the real shell the way a pilot drives them,
+ * against a local rooms server (never the live one):
  *
  *   SIM_GPU=1 npm run modes:card                       starts its own on a free port
  *   SIM_GPU=1 npm run modes:card -- http://127.0.0.1:8797 [outdir]
@@ -10,25 +10,12 @@
  * the Hangar (docs/redesign/PLAN.md 2.2), each with a picture, a plan and
  * its activities as links, inside the window at 1280x720, 1920x1080,
  * 2560x1080, 390x844, 360x640 and 844x390. Enter on Flight Club opens
- * its four cards, laid out the same way with the rooms panel, the
- * breadcrumb naming the hub; Fly with friends is not one of them (the
- * owner, 2026-10-02). The arrows walk the row. Enter on Streamer Combat
- * is the one press into a combat lobby, a public room made for combat:
- * Ready under the cursor, no Fly, no other games. Page B clicks Streamer
- * Combat's link on home, one click, and is in A's lobby. Both ready: the
- * round counts down on both pages and A is in the air.
- *
- * CONTINUE (docs/redesign/COMPLETENESS.md item 57): none on a fresh
- * profile; after the flight A and B leave and A reloads, and home's Flight
- * Club shows Continue in Streamer Combat's link, its links no higher than
- * with that card's label and the hubs inside the window at every size
- * above; one click on it is Streamer Combat's press, into a public combat
- * lobby.
- *
- * Page C clicks Catch the Ace's link on home, one click, into its lobby;
- * page D, a phone held upright, opens Flight Club, walks the stacked cards
- * with ArrowDown and taps Catch the Ace into C's. Both ready, and both
- * pages count down to the go.
+ * its cards, laid out the same way with the rooms panel, the breadcrumb
+ * naming the hub; Fly with friends is not one of them (the owner,
+ * 2026-10-02). The arrows walk the row. A fresh profile has no Continue
+ * (docs/redesign/COMPLETENESS.md item 57). Streamer Combat's and Catch
+ * the Ace's cards, their lobbies and the Continue that stood in Streamer
+ * Combat's link left with the games (the combat-only cut, 2026-10-20).
  *
  * THE ROOMS PANEL (the owner, 2026-09-30: "prominent place to choose rooms
  * right at the main page") is laid out with the cards at every size: in
@@ -52,8 +39,8 @@
  * same way and Enter on it reloads.
  *
  * Page H, in Spanish (?lang=es), which runs longer (docs/redesign/
- * COMPLETENESS.md item 39): home's hubs, Flight Club's cards and Streamer
- * Combat's lobby with the command bar, at 1280 by 720, 390 by 844, 360 by
+ * COMPLETENESS.md item 39): home's hubs, Flight Club's cards and Free
+ * Flight's lobby with the command bar, at 1280 by 720, 390 by 844, 360 by
  * 640 and 844 by 390, and no word of theirs is cut: text running past the
  * box that clips it, an ellipsis included (scripts/device-check.js
  * cutIn). A word cut on purpose must be found first.
@@ -111,7 +98,7 @@ async function shot(page, name) {
 
 const HUBS = 'Flight Club,Operations,Hangar';
 /* Flight Club's cards in the registry's order. */
-const NAMES = 'Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
+const NAMES = 'Free Flight,Learn to fly';
 const N_CARDS = NAMES.split(',').length;
 /* Each hub's links, in order, as home draws them. */
 /* Operations: the war's campaign and The Interior beside it
@@ -206,29 +193,13 @@ async function toClub(page) {
 
 const HERE = '(() => { const it = window.__ui.items()[window.__ui.cursor]; return it ? [it.action, it.label] : []; })()';
 
-/* A game room's lobby as drawn: its panel, the rows under it, the room. */
+/* A room's lobby as drawn. */
 const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
-const LOBBY_OF = `(() => {
-  const box = document.querySelector('.war-lobby');
-  const ui = window.__ui;
-  const here = ui.items()[ui.cursor] || {};
-  const r = window.__rooms();
-  return {
-    title: box ? (box.querySelector('.war-lobby-title') || {}).textContent || '' : '',
-    line: box ? (box.querySelector('.war-lobby-mission') || {}).textContent || '' : '',
-    rows: ui.items().map((it) => it.action || it.label),
-    here: here.action || here.label || null,
-    code: r.code, public: r.public, mode: r.mode,
-  };
-})()`;
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
-console.log(`the room game cards, rooms at ${rooms}`);
+console.log(`the hubs and Flight Club's cards, rooms at ${rooms}`);
 const a = await openPage({ root, url, width: 1280, height: 720 });
-const b = await openPage({ root, url, width: 1280, height: 720 });
-const c = await openPage({ root, url, width: 1280, height: 720 });
-const d = await openPage({ root, url, width: 390, height: 844 });
-const pages = [a, b, c, d];
+const pages = [a];
 try {
   for (const p of pages) {
     await p.until('window.__shellReady === true', 300000);
@@ -269,7 +240,7 @@ try {
   /* INTO FLIGHT CLUB, by the keyboard: its cards at every size. */
   await a.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'club')); return true; })()");
   await a.tap('Enter');
-  await a.until(`window.__ui.hub === 'club' && ${LAYOUT}.cards.length === 5 && ${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
+  await a.until(`window.__ui.hub === 'club' && ${LAYOUT}.cards.length === ${N_CARDS} && ${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
   const first = await a.evaluate(LAYOUT);
   check(`Enter on Flight Club opens its ${N_CARDS} cards, in order, no Fly with friends (the owner, 2026-10-02)`, first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
@@ -293,134 +264,13 @@ try {
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  for (let i = 0; i < N_CARDS - 2; i += 1) {
+  for (let i = 0; i < N_CARDS - 1; i += 1) {
     await a.tap('ArrowLeft');
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  const back = NAMES.split(',').slice(1, -1).reverse();
-  check(`Right walks all ${N_CARDS} cards and Left steps back to Streamer Combat`, walk.join('>') === `${NAMES.split(',').join('>')}>${back.join('>')}`, walk.join(' > '));
-
-  /* STREAMER COMBAT: A's one press, the keyboard's. */
-  await a.tap('Enter');
-  await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
-  await a.sleep(800);
-  const la = await a.evaluate(LOBBY_OF);
-  const code = la.code;
-  check('Enter on it, one press: A is in the LOBBY of a public room made for combat, Ready under the cursor',
-    la.title === 'LOBBY' && la.public && la.mode === 'combat' && /Streamer Combat/.test(la.line) && la.here === 'friends-lobby-ready', JSON.stringify(la));
-  check('and no free flight, no other game: no Fly, no world, no race, tag or war rows',
-    !la.rows.some((r) => r === 'fly' || /^friends-(tag|race|war|combat)-/.test(r || '')), la.rows.join());
-  await shot(a, 'combat-lobby');
-
-  /* B: Streamer Combat's link on home, one click, into A's lobby. */
-  const bClicks = b.clicks;
-  await b.click('.gate-card-combat');
-  await b.until(`window.__rooms().code === ${JSON.stringify(code)} && ${IN_LOBBY}`, 60000).catch(() => {});
-  check(`B clicks its link on home (${b.clicks - bClicks} click) and is in A's lobby`, b.clicks - bClicks === 1 && (await b.evaluate('window.__rooms().code')) === code,
-    String(await b.evaluate('window.__rooms().code')));
-  await shot(b, 'combat-lobby-b');
-
-  await a.tap('KeyR');
-  await b.tap('KeyR');
-  for (const p of [a, b]) {
-    await p.until("['countdown', 'on'].includes(window.__combat().round.state)", 20000).catch(() => {});
-  }
-  const rounds = await Promise.all([a, b].map((p) => p.evaluate('window.__combat().round.state')));
-  check('both ready: the round counts down on both pages', rounds.every((st) => st === 'countdown' || st === 'on'), rounds.join(' '));
-  await a.until("window.__craftState().mode === 'flight'", 400000).catch(() => {});
-  check('and A goes up with it', await a.evaluate("window.__craftState().mode === 'flight'"));
-  await a.sleep(1500);
-  await shot(a, 'combat-countdown');
-
-  /* CONTINUE (docs/redesign/PLAN.md phase 27): A and B leave the room
-   * after the flight, so no room is listed and none is mid round, and A
-   * reloads; Continue stands in Streamer Combat's link on home, every hub
-   * as high as it was, and is that card's press, into a public combat
-   * lobby. */
-  for (const p of [a, b]) {
-    await p.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
-    await p.until('window.__rooms().code === null', 20000).catch(() => {});
-  }
-  await a.evaluate('(() => { window.__beforeReload = true; return true; })()');
-  await a.cdp.send('Page.navigate', { url: `${a.origin}${url}` }, a.sessionId);
-  await a.until('window.__beforeReload !== true && window.__shellReady === true', 300000);
-  await a.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000).catch(() => {});
-  const cont = await a.evaluate(LAYOUT);
-  check('after the flight and a reload: home\'s Flight Club shows Continue in Streamer Combat\'s place, no other hub any',
-    cont.cards[0].links.join() === NAMES.replace('Streamer Combat', 'Continue') && cont.cards.slice(1).every((x) => !x.links.includes('Continue')),
-    cont.cards.map((x) => x.links.join()).join('|'));
-  /* Flight Club's links as high with Continue as with the label it
-   * stands in for, put back for the measure. */
-  const LINKS_TALL = `(() => {
-    const links = document.querySelector('.gate-card-hub-club .gate-links');
-    const link = links.querySelector('.gate-card-continue');
-    const tall = () => Math.round(links.getBoundingClientRect().height);
-    const with_ = tall();
-    link.textContent = 'Streamer Combat';
-    const own = tall();
-    link.textContent = 'Continue';
-    return [with_, own];
-  })()`;
-  for (const [w, h, row] of SIZES) {
-    await resize(a, w, h);
-    const v = await a.evaluate(LAYOUT);
-    const [withIt, own] = await a.evaluate(LINKS_TALL);
-    check(`${w} by ${h}, with Continue: Flight Club's links no higher than with Streamer Combat's label, home's hubs ${row ? 'in a row' : 'stacked'}, inside the window, links clear of the bar, the rooms panel above them`,
-      withIt <= own && laidOut(v, 3) && shapeOf(v, row) && panelLaidOut(v),
-      `links ${withIt} vs ${own} ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw} panel ${JSON.stringify(v.panel)}`);
-    await shot(a, `continue-home-${w}x${h}`);
-  }
-  await resize(a, 1280, 720);
-  await a.click('.gate-card-continue');
-  await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
-  await a.sleep(800);
-  const lcont = await a.evaluate(LOBBY_OF);
-  check('Continue, one click: A is in the LOBBY of a public room made for combat, Ready under the cursor',
-    lcont.title === 'LOBBY' && lcont.public && lcont.mode === 'combat' && /Streamer Combat/.test(lcont.line) && lcont.here === 'friends-lobby-ready', JSON.stringify(lcont));
-
-  /* CATCH THE ACE: C's click; D, a phone, the same card. */
-  await c.click('.gate-card-ace');
-  await c.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
-  await c.sleep(800);
-  const lc = await c.evaluate(LOBBY_OF);
-  check('C clicks Catch the Ace\'s link on home, one click, into the LOBBY of a public room made for it', lc.title === 'LOBBY' && lc.public && lc.mode === 'tag'
-    && /Catch the Ace/.test(lc.line) && lc.here === 'friends-lobby-ready', JSON.stringify(lc));
-  await shot(c, 'ace-lobby');
-
-  /* D, upright: down the stacked hubs to Flight Club, Enter, then down
-   * its stacked cards. */
-  await d.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
-  for (let i = 0; i < 3 && (await onCard(d)) !== 'Flight Club'; i += 1) {
-    await d.tap('ArrowDown');
-    await d.sleep(150);
-  }
-  await d.tap('Enter');
-  await d.until("window.__ui.hub === 'club'", 10000).catch(() => {});
-  await d.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
-  const phone = [await onCard(d)];
-  for (let i = 0; i < NAMES.split(',').indexOf('Catch the Ace!'); i += 1) {
-    await d.tap('ArrowDown');
-    await d.sleep(150);
-    phone.push(await onCard(d));
-  }
-  check('on the upright phone ArrowDown walks down the stack to Catch the Ace!', phone[phone.length - 1] === 'Catch the Ace!', phone.join(' > '));
-  await d.click('.gate-card-ace');
-  await d.until(`window.__rooms().code === ${JSON.stringify(lc.code)} && ${IN_LOBBY}`, 60000).catch(() => {});
-  const dRoom = await d.evaluate('window.__rooms()');
-  /* Not seat 2: the room's AI pilots sit between C and D (a567f50a5). */
-  check('D taps the card into C\'s lobby', dRoom.phase === 'open' && dRoom.code === lc.code && dRoom.seat > 1, `${dRoom.phase} ${dRoom.code} ${dRoom.seat}`);
-  await shot(d, 'ace-lobby-phone');
-
-  await c.tap('KeyR');
-  await d.tap('KeyR');
-  for (const p of [c, d]) {
-    await p.until("['countdown', 'ace', 'hunter'].includes(window.__roomTag().role)", 60000).catch(() => {});
-  }
-  const roles = await Promise.all([c, d].map((p) => p.evaluate('window.__roomTag().role')));
-  check('both ready: both pages count down to the go', roles.every((r) => ['countdown', 'ace', 'hunter'].includes(r)), roles.join(' '));
-  await c.sleep(1500);
-  await shot(c, 'ace-countdown');
+  const back = NAMES.split(',').slice(0, -1).reverse();
+  check(`Right walks all ${N_CARDS} cards and Left steps back to the first`, walk.join('>') === `${NAMES.split(',').join('>')}>${back.join('>')}`, walk.join(' > '));
 
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on any page', errs.length === 0, errs.slice(0, 3).join(' | '));
@@ -431,9 +281,8 @@ try {
 }
 
 /* The server as the VM's: its valve (edge/rooms/health.js) refuses a new
- * public room while the process is busy, and four pages with the AI
- * pilots of Catch the Ace keep it busy. They are closed; the rooms panel
- * needs it calm again, which the valve says after 30 s of quiet. */
+ * public room while the process is busy. The page is closed; the rooms
+ * panel needs it calm, which the valve says after 30 s of quiet. */
 let calm = false;
 for (let i = 0; i < 120 && !calm; i += 1) {
   calm = (await (await fetch(`${rooms}/v2/public`)).json()).busy === false;
@@ -441,7 +290,7 @@ for (let i = 0; i < 120 && !calm; i += 1) {
     await new Promise((r) => setTimeout(r, 1000));
   }
 }
-check('the rooms server is calm again once A to D have left', calm);
+check('the rooms server is calm once A has left', calm);
 
 /* THE ROOMS PANEL, driven. A public room with a name to find. */
 const OPEN = `Open Club ${100 + Math.floor(Math.random() * 900)}`;
@@ -750,11 +599,11 @@ try {
     await shot(h, `es-club-${w}x${hh}`);
   }
   await resize(h, 1280, 720);
-  const combat = await h.evaluate("window.__ui.items().findIndex((it) => it.card === 'combat')");
-  await h.evaluate(`(() => { window.__ui.setCursor(${combat}); return true; })()`);
+  const free = await h.evaluate("window.__ui.items().findIndex((it) => it.card === 'freestyle-wing1000')");
+  await h.evaluate(`(() => { window.__ui.setCursor(${free}); return true; })()`);
   await h.tap('Enter');
   await h.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
-  check('H is in Streamer Combat\'s lobby', await h.evaluate(IN_LOBBY), String(combat));
+  check('H is in Free Flight\'s lobby', await h.evaluate(IN_LOBBY), String(free));
   for (const [w, hh] of ES_SIZES) {
     await resize(h, w, hh);
     const cut = await h.evaluate(CUT_IN('.screen-friends, .frame-bot'));

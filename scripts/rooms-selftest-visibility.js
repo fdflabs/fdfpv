@@ -61,7 +61,7 @@ export function visibilitySection(check) {
   }, options);
 
   {
-    const room = roomOf({ cap: PRIVATE_CAP, public: false, mode: 'combat' });
+    const room = roomOf({ cap: PRIVATE_CAP, public: false, mode: null });
     const host = sock('host');
     const b = sock('bb');
     hello(room, host);
@@ -86,7 +86,7 @@ export function visibilitySection(check) {
   }
 
   {
-    const room = roomOf({ cap: PRIVATE_CAP, public: false, mode: 'combat' }, {});
+    const room = roomOf({ cap: PRIVATE_CAP, public: false, mode: null }, {});
     const host = sock('host');
     hello(room, host);
     say(room, host, { type: 'public', on: true });
@@ -134,7 +134,7 @@ export function visibilitySection(check) {
   }
 
   {
-    const room = roomOf({ cap: PUBLIC_CAP, public: true, mode: 'combat' });
+    const room = roomOf({ cap: PUBLIC_CAP, public: true, mode: null });
     const socks = [];
     for (let i = 0; i <= PRIVATE_CAP; i += 1) {
       socks.push(sock(`p${i}`));
@@ -159,7 +159,7 @@ export function visibilitySection(check) {
       },
     };
     const book = new LobbyBook();
-    const room = roomOf({ cap: PUBLIC_CAP, public: true, mode: 'combat' });
+    const room = roomOf({ cap: PUBLIC_CAP, public: true, mode: null });
     const host = sock('host');
     const b = sock('bb');
     hello(room, host);

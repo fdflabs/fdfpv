@@ -1,11 +1,11 @@
 /*
- * midair-ace-two-page.js: every mid air counts, in free flight and in a
- * Catch the Ace match (the owner, 2026-09-29: "ok keep collisions for ace,
- * kill anti ramming rule"). Two headless pages of the real shell, one room
- * on the Swiss valley. By hand, against a running rooms server:
+ * midair-repeat-two-page.js: every mid air counts, however many come in a
+ * row (the owner, 2026-09-29: "ok keep collisions for ace, kill anti
+ * ramming rule"). Two headless pages of the real shell, one room on the
+ * Swiss valley. By hand, against a running rooms server:
  *
  *   PORT=8893 ROOMS_DB=/some/scratch/rooms.db node edge/rooms/node.js
- *   SIM_GPU=1 node scripts/midair-ace-two-page.js http://127.0.0.1:8893
+ *   SIM_GPU=1 node scripts/midair-repeat-two-page.js http://127.0.0.1:8893
  *
  * SIM_GPU=1, as for scripts/midair-two-page.js: on the software
  * rasteriser two pages fly well under real time, and a pass that should
@@ -17,10 +17,9 @@
  * at 15 m/s, held through the room's spawn protection and let go together.
  * Every one of the six must be a hit on both pages that each applies and
  * breaks on, so a fourth mid air in five minutes is no different from the
- * first (the ramming bench would have made it nothing). Then A starts a
- * match and the two are flown into each other the same way: the hunter
- * must take the crown on its way through the Ace's bubble, and then the
- * two must collide, one hit on both pages, both broken.
+ * first (the ramming bench would have made it nothing). Catch the Ace's
+ * half (a hunter through the Ace's bubble, then the crash) left with the
+ * game in the combat-only cut, 2026-10-20.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -44,7 +43,6 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
-import { PROTECT_MS } from '../src/share/roomtag.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const rooms = process.argv[2] || 'http://127.0.0.1:8893';
@@ -89,7 +87,7 @@ function seedFor(colour) {
 }
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
-console.log(`every mid air counts, free flight and Catch the Ace, rooms at ${rooms}`);
+console.log(`every mid air counts, rooms at ${rooms}`);
 const a = await openPage({ root, url, width: 960, height: 540, seed: seedFor('#d8432f') });
 const b = await openPage({ root, url, width: 960, height: 540, seed: seedFor('#2f6fd6') });
 const pages = [a, b];
@@ -147,7 +145,6 @@ try {
   for (const p of pages) {
     await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1 && window.__rooms().roomNow != null", 30000);
   }
-  const seats = [await a.evaluate('window.__rooms().seat'), await b.evaluate('window.__rooms().seat')];
   for (const p of pages) {
     await p.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   }
@@ -175,29 +172,6 @@ try {
   const last = await a.evaluate('window.__rooms().roomNow');
   check(`all ${FREE_PASSES} inside five minutes`, last - first < 5 * 60 * 1000, `${((last - first) / 1000).toFixed(0)} s`);
 
-  console.log('Catch the Ace');
-  await a.evaluate("window.__roomTagDo('tag-start', 60)");
-  for (const p of pages) {
-    await p.until("['ace', 'hunter'].includes(window.__roomTag().role)", 30000);
-  }
-  const go = await a.evaluate('window.__roomTag()');
-  const aceIdx = seats.indexOf(go.view.ace);
-  const hunterSeat = seats[1 - aceIdx];
-  console.log(`  info  seats A ${seats[0]}, B ${seats[1]}; the draw made ${aceIdx ? 'B' : 'A'} the Ace`);
-  /* The go's own protection is long over by the time a pass flies. */
-  await a.sleep(PROTECT_MS);
-  const [ta, tb] = await pass(m, a, b, FREE_PASSES + 1);
-  const views = await Promise.all(pages.map((p) => p.evaluate('window.__roomTag()')));
-  const crown = views[0].view.crowns.at(-1);
-  const hit = ta.hit;
-  check('the hunter takes the crown flying into the Ace\'s bubble, on both pages',
-    crown && crown.why === 'tag' && crown.seat === hunterSeat && views.every((v) => v.view.ace === hunterSeat),
-    crown ? JSON.stringify(crown) : 'no crown');
-  check('and the two collide: one hit on both pages, each applied and broke',
-    ta.hits.length === FREE_PASSES + 1 && tb.hits.length === FREE_PASSES + 1 && hit && tb.hit && hit.id === tb.hit.id
-    && hit.applied && tb.hit.applied && hit.applied.rc === 0 && tb.hit.applied.rc === 0 && ta.breaks.length > 0 && tb.breaks.length > 0,
-    `${ta.hits.length} and ${tb.hits.length} hits; A broke ${ta.breaks.join(' ') || 'nothing'}, B ${tb.breaks.join(' ') || 'nothing'}`);
-  check('the tag first, the crash after it', crown && hit && crown.t < hit.tc, crown && hit ? `${Math.round(hit.tc - crown.t)} ms apart` : '');
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

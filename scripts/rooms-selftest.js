@@ -56,7 +56,6 @@ import { TELEPORT_SPEED } from '../src/game/verify.js';
 import { SYNC_GAP_MS } from '../src/share/roomclock.js';
 import { UNDO_MS, createRoomSafety } from '../src/share/roomsafety.js';
 import { str } from '../src/strings/index.js';
-import { combatSection } from './rooms-selftest-combat.js';
 import { browserSection } from './rooms-selftest-browser.js';
 import { blocksSection } from './rooms-selftest-blocks.js';
 import { scaleSection } from './rooms-selftest-scale.js';
@@ -65,7 +64,6 @@ import { weatherSection } from './rooms-selftest-weather.js';
 import { stockSurfacesSection } from './rooms-selftest-surfaces.js';
 import { visibilitySection } from './rooms-selftest-visibility.js';
 import { setupSection } from './rooms-selftest-setup.js';
-import { dropsSection } from './rooms-selftest-drops.js';
 import { footSection } from './rooms-selftest-foot.js';
 import { watchSection, watchStateSection } from './rooms-selftest-watch.js';
 import { warSection } from './rooms-selftest-war.js';
@@ -73,12 +71,7 @@ import { opsSection } from './rooms-selftest-ops.js';
 import {
   emptyRoomSection, gameLobbySection, loadFailSection, lobbyReadySection, sessionStatesSection, warLobbySection,
 } from './rooms-selftest-gamelobby.js';
-import { RoomTag } from '../edge/rooms/tag.js';
-import { Track, hullFor as tagHullFor } from '../src/game/midair.js';
 import { RoomHost } from '../edge/rooms/host.js';
-import {
-  BUBBLE_M, GOALS, GOAL_MAX, GOAL_MIN, PROTECT_MS, createRoomTag, goalOf,
-} from '../src/share/roomtag.js';
 
 let failed = 0;
 let passed = 0;
@@ -1173,505 +1166,6 @@ for (const [lang, table] of [['en', en], ['es', es]]) {
 }
 check('every chat, emote and report reason has its words in English and Spanish', gaps.length === 0, gaps.join(' '));
 
-/* ---------------------------------------------------------------------
- * Catch the Ace (docs/TAG-PLAN.md): the room's tag match, edge/rooms/tag.js,
- * through the core as do.js drives it, with three Cubs flown on scripted
- * paths on the whole millisecond and sampled at 30 Hz, and two clients of
- * src/share/roomtag.js reading what the room sent. The randomized grid
- * under lag is scripts/tag-harness.js.
- * ------------------------------------------------------------------- */
-console.log('catch the ace: starting a match');
-{
-  const cub = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
-  const Y = 80;
-  /* Level at Y heading +x at 15 m/s, z metres to the side: the Three.js
-   * body's nose is -z, turned a quarter about y, so the span is along z. */
-  const level = (z, x0 = 0) => (t) => ({
-    px: x0 + 15 * t / 1000, py: Y, pz: z, vx: 15, qy: -Math.SQRT1_2, qw: Math.SQRT1_2, flags: FLAG_AIRBORNE,
-  });
-  /* Seat i + 1 of room env flies from where it is at t0 straight to
-   * `to` at 20 m/s and holds there with `flags`: flown, not thrown, so
-   * the room does not make it spawning. Returns when it gets there. */
-  const flyTo = (env, i, t0, to, flags = FLAG_AIRBORNE) => {
-    const p0 = env.paths[i](t0);
-    const d = Math.hypot(to.px - p0.px, to.py - p0.py, to.pz - p0.pz);
-    const ms = Math.max(1, (d / 20) * 1000);
-    env.paths[i] = (t) => {
-      const u = Math.max(0, Math.min(1, (t - t0) / ms));
-      const k = u < 1 && d > 0 ? 20 / d : 0;
-      return {
-        ...p0, px: p0.px + (to.px - p0.px) * u, py: p0.py + (to.py - p0.py) * u, pz: p0.pz + (to.pz - p0.pz) * u,
-        vx: (to.px - p0.px) * k, vy: (to.py - p0.py) * k, vz: (to.pz - p0.pz) * k, flags,
-      };
-    };
-    return t0 + ms;
-  };
-  /*
-   * A room of n Cubs, seat i + 1 flying paths[i](t) (room ms), sampled
-   * every 33 ms on a phase of its own, its samples lag[i] ms late. The
-   * first sample is at room ms 0, so Phase 5's spawn protection is over
-   * before a match's go. room.tag.random is `pick` (seat 2 of three).
-   */
-  const tagRoom = ({ n = 3, lag = [], pub = false, pick = 0.5 } = {}) => {
-    const r = new RoomCore({
-      code: 'K7PZ2M', cap: pub ? PUBLIC_CAP : PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: 0, public: pub,
-    });
-    r.tag.random = () => pick;
-    const env = { r, socks: [], paths: [], clock: 0, due: [], stored: null, hits: 0 };
-    env.apply = (actions) => {
-      for (const x of actions) {
-        if (x.send) {
-          const m = typeof x.data === 'string' ? JSON.parse(x.data) : x.data;
-          x.send.got.push(m);
-          env.hits += m && m.type === 'hit' ? 1 : 0;
-        } else if (x.store === 'tag') {
-          env.stored = JSON.parse(JSON.stringify(x.value));
-        }
-      }
-    };
-    for (let i = 0; i < n; i += 1) {
-      const so = sock(`tag${i}`, `10.4.0.${i + 1}`);
-      env.socks.push(so);
-      env.paths.push(level(40 * i));
-      env.apply(r.open(so, 0));
-      env.apply(r.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], profile: cub }), 0, so.address, newToken));
-    }
-    env.say = (i, obj) => env.apply(env.r.message(env.socks[i], JSON.stringify(obj), env.clock, env.socks[i].address));
-    /* Fly everybody to room ms `until`, a millisecond at a time. */
-    env.fly = (until) => {
-      for (let t = env.clock + 1; t <= until; t += 1) {
-        env.clock = t;
-        for (let i = 0; i < env.socks.length; i += 1) {
-          if (env.paths[i] && (t + 7 * i) % 33 === 0) {
-            const p = env.paths[i](t);
-            env.due.push([t + (lag[i] || 0), i, encodePose({
-              qx: 0, qy: 0, qz: 0, qw: 1, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0, c0: 0, c1: 0, c2: 0, c3: 0, motor: 0, flaps: 0, seq: 1, ...p, t,
-            })]);
-          }
-        }
-        env.due.sort((x, y) => x[0] - y[0]);
-        while (env.due.length && env.due[0][0] <= t) {
-          const [, i, bytes] = env.due.shift();
-          if (env.r.seats.has(env.socks[i])) {
-            env.apply(env.r.message(env.socks[i], bytes, t));
-          }
-        }
-        if (t % 33 === 0) {
-          env.apply(env.r.tick(t));
-        }
-      }
-    };
-    env.views = (i) => texts(env.socks[i], 'tag').filter((m) => m.tag).map((m) => m.tag);
-    env.view = (i) => env.views(i).at(-1);
-    env.errors = (i) => texts(env.socks[i], 'tag').filter((m) => m.error).map((m) => m.error);
-    return env;
-  };
-
-  const e = tagRoom();
-  e.fly(1000);
-  e.say(1, { type: 'tag', op: 'start', goal: 5 });
-  check('only the host starts a match, and a pilot who is not is told so', e.r.tag.match === null
-    && texts(e.socks[1], 'refused').map((m) => m.why).join() === 'host');
-  e.say(0, { type: 'tag', op: 'start', goal: GOAL_MAX + 5 });
-  e.say(0, { type: 'tag', op: 'start', goal: 2.5 });
-  check('a goal out of range or not a whole number is refused', e.r.tag.match === null && e.errors(0).join() === 'goal,goal');
-  const pubRoom = tagRoom({ pub: true });
-  pubRoom.say(1, { type: 'tag', op: 'start', goal: 5 });
-  check('in a public room too, only the host starts a match', pubRoom.r.tag.match === null);
-  pubRoom.say(0, { type: 'tag', op: 'start', goal: 5 });
-  check('and a public room\'s host does', pubRoom.r.tag.match && pubRoom.r.tag.match.state === 'countdown');
-  const alone = tagRoom({ n: 1 });
-  alone.say(0, { type: 'tag', op: 'start', goal: 5 });
-  check('nor does a pilot alone', alone.r.tag.match === null && alone.errors(0).join() === 'alone');
-  check(`the presets are the plan's, and a custom goal is clamped to ${GOAL_MIN} to ${GOAL_MAX} in fives`,
-    GOALS.map((g) => g.goal).join() === '90,240,600' && goalOf('epic') === 600 && goalOf(3) === GOAL_MIN && goalOf(12) === 10 && goalOf(2000) === GOAL_MAX);
-
-  e.say(0, { type: 'tag', op: 'start', goal: 5 });
-  const cd = e.view(0);
-  check('the host starts one: a countdown to a go every seat is told', cd && cd.state === 'countdown' && cd.goAt === 1000 + COUNTDOWN_MS
-    && [1, 2].every((i) => JSON.stringify(e.view(i)) === JSON.stringify(cd)));
-  check('everybody in the room is a player, with nothing', cd.scores.length === 3 && cd.scores.every((r) => r.ms === 0));
-  check('and the match is kept for a hibernation', e.stored && e.stored.match && e.stored.match.id === cd.id);
-  check('no token and no address in what every seat is sent', !JSON.stringify(e.views(0)).match(/[0-9a-f]{32}|10\.4\./));
-
-  console.log('catch the ace: the crown');
-  e.fly(cd.goAt + 200);
-  const live = e.view(0);
-  check('at the go a pilot is drawn the Ace (here seat 2), and every seat is told the same', live.state === 'live' && live.ace === 2
-    && live.crowns.length === 1 && live.crowns[0].why === 'start' && live.crowns[0].t === cd.goAt
-    && [1, 2].every((i) => e.view(i).ace === 2));
-  /* A flies over into B's lane and sits 0.5 m off its wingtip, from 1 s
-   * before the Ace's protection ends: deep in the bubble, and the tag
-   * waits for the protection. */
-  const B = level(40);
-  const meet = cd.goAt + PROTECT_MS - 1000;
-  const CUB_SPAN = 1.4;
-  const from = e.clock;
-  e.paths[0] = (t) => ({ ...B(t), pz: Math.min(1, (t - from) / (meet - from)) * (40 - (CUB_SPAN + 0.5)) });
-  e.fly(cd.goAt + PROTECT_MS + 600);
-  const tagged = e.r.tag.log.find((c) => c.why === 'tag');
-  check('the Ace is not touched while it is protected', tagged && tagged.t > cd.goAt + PROTECT_MS, tagged ? `${tagged.t - cd.goAt} ms after the go` : 'no tag');
-  check('and the first millisecond after, the hunter already in the bubble takes the crown',
-    tagged && tagged.t === cd.goAt + PROTECT_MS + 1 && tagged.seat === 1 && tagged.from === 2, tagged ? JSON.stringify(tagged) : '');
-  check('every seat is told who and when, the same', [0, 1, 2].every((i) => JSON.stringify(e.view(i).crowns) === JSON.stringify(e.view(0).crowns))
-    && e.view(0).ace === 1);
-  check('a tag is not a crash: 0.5 m off the Ace\'s wing is inside the bubble and touches nothing, so no mid air hit was sent', e.hits === 0);
-  /* B keeps station 0.5 m off A's wing: the tag back waits out A's three
-   * seconds too. */
-  e.fly(tagged.t + PROTECT_MS + 400);
-  const back = e.r.tag.log.filter((c) => c.why === 'tag')[1];
-  check('the old Ace takes it straight back only once the new Ace\'s protection is over', back && back.seat === 2 && back.t === tagged.t + PROTECT_MS + 1,
-    back ? `${back.t - tagged.t} ms after` : 'none');
-
-  console.log('catch the ace: points and the end');
-  const v = e.view(0);
-  const sum = v.scores.reduce((n, r) => n + r.ms, 0);
-  check('the points add up to the time the room has judged since the go', sum === v.f - cd.goAt, `${sum} and ${v.f - cd.goAt}`);
-  check('each Ace scored its own reign', v.scores.find((r) => r.seat === 2).ms === (tagged.t - cd.goAt) + (v.f - back.t)
-    && v.scores.find((r) => r.seat === 1).ms === back.t - tagged.t, JSON.stringify(v.scores));
-  check('the points are sent as they tick: one view a second at most, besides the crowns',
-    e.views(2).length <= 2 + Math.ceil((v.f - cd.goAt) / 1000) + e.r.tag.log.length, `${e.views(2).length} views`);
-  /* Everybody apart again; B, the Ace, scores on to the goal. */
-  e.paths[0] = level(0);
-  e.fly(cd.goAt + 5000 * 3);
-  const end = e.view(0);
-  const win = end.scores.find((r) => r.seat === end.winner);
-  check('the match ends by itself the instant the first pilot reaches the goal', end.state === 'results' && end.winner === 2 && win.ms === 5 * 1000,
-    `${end.state} winner ${end.winner} ${win && win.ms}`);
-  check('at that millisecond: every millisecond since the go belongs to somebody, and nobody else is at the goal',
-    end.scores.reduce((n, r) => n + r.ms, 0) === end.endAt - cd.goAt && end.scores.every((r) => r.seat === 2 || r.ms < 5000));
-  check('every seat has the same results', [1, 2].every((i) => JSON.stringify(e.view(i)) === JSON.stringify(end)));
-  check('and the room runs no game again', !e.r.tag.on() && e.r.game() === null);
-
-  /*
-   * A collision in a match is a mid air crash (the owner, 2026-09-29:
-   * "keep collisions for ace"). A flies across into B's lane and on into
-   * B itself: it enters the bubble first and takes the crown, then the two
-   * hulls meet and the referee sends the hit, to every seat. Both are then
-   * wrecks, as their clients make them, and the tag rules for a wreck
-   * apply: the new Ace scores nothing and drops the crown (the owner,
-   * 2026-09-29: "when a person crashes, their orb just stays in that spot,
-   * nobody is ace"), and the old Ace, a wreck inside that orb, takes
-   * nothing back.
-   */
-  console.log('catch the ace: a collision is a crash');
-  {
-    const k = tagRoom();
-    k.fly(1000);
-    k.say(0, { type: 'tag', op: 'start', goal: 60 });
-    const kgo = k.view(0).goAt;
-    k.fly(kgo + PROTECT_MS + 200);
-    check('seat 2, B, is the Ace', k.view(0).ace === 2);
-    const kB = level(40);
-    const kFrom = k.clock;
-    k.paths[0] = (t) => ({ ...kB(t), pz: Math.min(1, (t - kFrom) / 2000) * 40, vz: t < kFrom + 2000 ? 20 : 0 });
-    const hitsOf = (i) => texts(k.socks[i], 'hit');
-    while (!hitsOf(0).length && k.clock < kFrom + 4000) {
-      k.fly(k.clock + 33);
-    }
-    const kTag = k.r.tag.log.find((c) => c.why === 'tag');
-    const kHit = hitsOf(0)[0];
-    check('A enters the Ace\'s bubble and takes the crown', kTag && kTag.seat === 1 && kTag.from === 2, kTag ? JSON.stringify(kTag) : 'no tag');
-    check('then A and B collide: a mid air hit between them, the same on all three seats', kHit && [kHit.a, kHit.b].join() === '1,2'
-      && [1, 2].every((i) => JSON.stringify(hitsOf(i)) === JSON.stringify(hitsOf(0))), kHit ? `hit at ${kHit.tc}` : 'no hit');
-    check('the tag came first, the crash after it, as the two closed', kTag && kHit && kTag.t < kHit.tc, kTag && kHit ? `${kHit.tc - kTag.t} ms apart` : '');
-    check('a crash like any other: at 20 m/s across, parts break on both', kHit && checkHit(kHit) && kHit.A.brk > 0 && kHit.B.brk > 0);
-    const wreckAt = k.clock;
-    for (const i of [0, 1]) {
-      const was = k.paths[i](wreckAt);
-      k.paths[i] = () => ({ ...was, vx: 0, flags: FLAG_CRASHED });
-    }
-    k.fly(wreckAt + PROTECT_MS + 1000);
-    const kv = k.view(0);
-    /* The room's own count, not the view's, which is sent on whole
-     * points: A scored its reign up to the wreck and nothing after. */
-    const kAce = k.r.tag.match.players[1].ms;
-    const kDrop = k.r.tag.drops[0];
-    check('the new Ace, a wreck, scores nothing after it and drops the crown: nobody is the Ace, the orb is free', kv.ace === null && kv.orb && kDrop
-      && Math.abs(kAce - (kDrop.t - kTag.t)) <= 40 && kDrop.from === 1 && Math.abs(kDrop.t - wreckAt) <= 40,
-    kDrop ? `${kAce} ms for a reign of ${kDrop.t - kTag.t} ms, dropped ${kDrop.t - wreckAt} ms after the wreck` : 'not dropped');
-    check('and the old Ace, a wreck inside that orb, takes nothing back', k.r.tag.log.length === 2 && k.r.tag.match.ace === null);
-  }
-
-  /*
-   * A crashed Ace (the owner, 2026-09-29: "ok when a person crashes,
-   * their orb just stays in that spot, nobody is ace, and whoever goes and
-   * catches it, is the new ace"): the millisecond the Ace is a wreck the
-   * crown drops, nobody is the Ace or scores, and its orb stays where it
-   * went down, for the first pilot flying (not crashed, not spawning, off
-   * the ground) into it. Seat 2 is the Ace at z 40 and crashes at `at`;
-   * seats 1 and 3 fly on at z 0 and z 80, 40 m off.
-   */
-  console.log('catch the ace: a crashed Ace');
-  const downRoom = () => {
-    const d = tagRoom();
-    d.fly(1000);
-    d.say(0, { type: 'tag', op: 'start', goal: 60 });
-    d.fly(d.view(0).goAt + PROTECT_MS + 1000);
-    const at = d.clock;
-    const was = d.paths[1](at);
-    d.paths[1] = (t) => (t < at ? level(40)(t) : { ...was, vx: 0, flags: FLAG_CRASHED });
-    d.fly(at + 500);
-    return { d, at, was };
-  };
-  /* Seat i + 1 flies in to `dz` beside the orb from now, with `flags`;
-   * returns when it is there. */
-  const into = (d, i, orb, flags, dz = 3) => flyTo(d, i, d.clock, { px: orb.px, py: orb.py, pz: orb.pz + dz }, flags);
-  const total = (d) => Object.values(d.r.tag.match.players).reduce((n, p) => n + p.ms, 0);
-  {
-    const { d, at, was } = downRoom();
-    const v = d.view(0);
-    const dr = d.r.tag.drops[0];
-    check('the Ace crashes: the crown drops at once, nobody is the Ace on any screen, the orb is free where it went down',
-      dr && dr.from === 2 && Math.abs(dr.t - at) <= 40 && [0, 1, 2].every((i) => d.view(i).ace === null && d.view(i).orb && d.view(i).orb.t === dr.t)
-      && Math.hypot(v.orb.px - was.px, v.orb.py - was.py, v.orb.pz - was.pz) < 0.5 && d.r.tag.log.length === 1,
-    dr ? `${dr.t - at} ms after the crash, ${Math.hypot(v.orb.px - was.px, v.orb.pz - was.pz).toFixed(2)} m from the wreck` : 'none');
-    const n0 = total(d);
-    d.fly(d.clock + 2000);
-    check('and nobody scores while the orb is free, and nobody far from it catches it', total(d) === n0 && d.r.tag.match.ace === null, `${total(d) - n0} ms scored`);
-    const inAt = d.clock;
-    d.fly(into(d, 2, v.orb, FLAG_AIRBORNE) + 200);
-    const c = d.r.tag.log.at(-1);
-    /* The Cub's nearest part is inside 6 m of the orb's centre within 6.8 m
-     * of its own: the catch is as it passes 6.8 m, flying in at 20 m/s. */
-    const due = inAt + ((Math.hypot(80 - 40, d.paths[2](inAt - 1).px - v.orb.px) - 6.8) / 20) * 1000;
-    check('a pilot flying into the orb catches the crown, with protection', c.why === 'catch' && c.seat === 3 && c.from === 2 && c.t > inAt && c.t <= due + 100
-      && [0, 1, 2].every((i) => d.view(i).ace === 3 && d.view(i).orb === null) && d.view(0).protectUntil === c.t + PROTECT_MS,
-    `${c.why} by ${c.seat}, ${c.t - inAt} ms after it went in`);
-  }
-  {
-    const { d, was } = downRoom();
-    const orb = d.view(0).orb;
-    for (const [what, flags] of [['crashed', FLAG_CRASHED], ['spawning', FLAG_AIRBORNE | FLAG_SPAWNING], ['on the ground', 0]]) {
-      d.fly(into(d, 2, orb, flags) + 1000);
-      check(`a pilot ${what} inside the orb does not catch it`, d.r.tag.match.ace === null && d.r.tag.log.length === 1);
-    }
-    /* The crashed Ace itself, respawned: spawning, then flying. */
-    const sat = d.paths[2](d.clock);
-    d.paths[2] = () => ({ ...sat, flags: FLAG_CRASHED });
-    d.paths[1] = () => ({ ...was, flags: FLAG_AIRBORNE | FLAG_SPAWNING });
-    d.fly(d.clock + 1000);
-    check('nor the crashed Ace, respawned but still spawning', d.r.tag.match.ace === null);
-    d.paths[1] = () => ({ ...was, flags: FLAG_AIRBORNE });
-    const upAt = d.clock;
-    d.fly(upAt + 500);
-    const c = d.r.tag.log.at(-1);
-    check('and it catches its own orb once its protection is over', c.why === 'catch' && c.seat === 2 && c.from === 2 && c.t > upAt && c.t <= upAt + 40,
-      `${c.why} by ${c.seat}, ${c.t - upAt} ms after`);
-  }
-  {
-    /* Two pilots into the orb on the same millisecond, sampled on the
-     * same clock: the lower seat has it, whichever order they come in. */
-    const t = new RoomTag();
-    const orb = { px: 0, py: 80, pz: 0 };
-    t.match = { orb: { t: 0, from: 2, ...orb } };
-    const hull = tagHullFor('cub1400');
-    const pilot = (seat) => {
-      const track = new Track();
-      for (let ms = 0; ms <= 400; ms += 33) {
-        track.push({
-          t: ms, px: 0, py: 80, pz: ms < 200 ? 30 : 3, vx: 0, vy: 0, vz: 0, qx: 0, qy: -Math.SQRT1_2, qz: 0, qw: Math.SQRT1_2, flags: FLAG_AIRBORNE,
-        });
-      }
-      return { seat, hull, track };
-    };
-    const a = t.catchOrb([pilot(3), pilot(5)], 0, 400);
-    const b = t.catchOrb([pilot(5), pilot(3)], 0, 400);
-    check('two pilots into the orb on the same millisecond: the lower seat catches it', a && b && a.seat === 3 && b.seat === 3 && a.tc === b.tc,
-      `${JSON.stringify(a)} ${JSON.stringify(b)}`);
-  }
-
-  console.log('catch the ace: two clients');
-  const ca = createRoomTag(() => {});
-  const cb = createRoomTag(() => {});
-  ca.onWelcome({ ...texts(e.socks[0], 'welcome')[0], tag: { state: 'lobby' } });
-  cb.onWelcome({ ...texts(e.socks[1], 'welcome')[0], tag: { state: 'lobby' } });
-  const seen = [];
-  for (const m of texts(e.socks[0], 'tag')) {
-    ca.onMessage(m);
-    cb.onMessage(m);
-    if (m.tag && m.tag.state === 'live' && m.tag.ace === 2 && !seen.length) {
-      ca.takeCrown();
-    }
-    if (m.tag && m.tag.state === 'live' && m.tag.ace === 1 && !seen.length) {
-      seen.push(ca.role(m.tag.f), cb.role(m.tag.f), ca.takeCrown(), ca.takeCrown());
-    }
-  }
-  check('the toucher\'s client says Ace and the others\' hunter, once per crown', seen[0] === 'ace' && seen[1] === 'hunter' && seen[2] && seen[2].seat === 1 && seen[3] === null,
-    JSON.stringify(seen.slice(0, 3)));
-  check('both show the room\'s order and the room\'s points', JSON.stringify(ca.standings()) === JSON.stringify(cb.standings())
-    && ca.standings()[0].seat === 2 && ca.standings()[0].points === 5);
-  check('and the results once', ca.takeResults() && ca.takeResults() === null && ca.role(0) === 'results');
-
-  console.log('catch the ace: a rematch, a drop, a leave, a hibernation');
-  e.say(0, { type: 'tag', op: 'start', goal: 10 });
-  const re = e.view(0);
-  check('the host starts again from the results: a new match, everybody at nothing', re.state === 'countdown' && re.id === end.id + 1 && re.scores.every((r) => r.ms === 0));
-  e.fly(re.goAt + 1000);
-  /* The Ace (seat 2 again) goes quiet from here, a tab on a menu: it
-   * scores nothing and, with no timeout any more (the owner, 2026-09-29),
-   * keeps the crown. Then it crashes: the orb is free where it went down
-   * ('a crashed Ace', below, has the rest). */
-  const crashAt = e.clock;
-  const lastSeen = level(40)(crashAt);
-  e.paths[1] = null;
-  e.fly(crashAt + 12000);
-  const quiet = e.view(0);
-  const wrecked = quiet.scores.find((r) => r.seat === 2).ms;
-  check('an Ace nobody can see for 12 s keeps the crown, scoring nothing, and nobody is handed it', quiet.ace === 2 && !quiet.orb && e.r.tag.drops.length === 0
-    && Math.abs(wrecked - (crashAt - re.goAt)) <= 40, `${wrecked} ms for ${crashAt - re.goAt} flown`);
-  const downAt = e.clock;
-  e.paths[1] = () => ({ ...lastSeen, vx: 0, flags: FLAG_CRASHED });
-  e.fly(downAt + 500);
-  const drop = e.r.tag.drops[0];
-  check('seen again as a wreck, it drops the crown where it lies', drop && drop.from === 2 && e.view(0).ace === null && e.view(0).orb
-    && Math.hypot(drop.px - lastSeen.px, drop.pz - lastSeen.pz) < 0.5, drop ? JSON.stringify(drop) : 'none');
-  e.paths[1] = level(40);
-  /* Seat 3 flies to 3 m beside the free orb: it is the Ace. */
-  e.fly(flyTo(e, 2, e.clock, { ...lastSeen, pz: lastSeen.pz + 3 }) + 200);
-  const caught = e.r.tag.log.at(-1);
-  check('and the pilot that flies into it catches it', caught.why === 'catch' && caught.seat === 3 && caught.from === 2 && e.view(0).ace === 3 && e.view(0).orb === null,
-    JSON.stringify(caught));
-  e.paths[2] = level(80);
-  const saved = e.stored;
-  const ace = e.view(0).ace;
-  e.apply(e.r.close(e.socks[ace - 1], e.clock));
-  e.fly(e.clock + 100);
-  const left = e.r.tag.log.at(-1);
-  const other = [0, 1, 2].find((i) => i !== ace - 1);
-  check('the Ace leaving passes the crown on at once', left.why === 'leave' && left.from === ace && e.view(other).ace !== ace
-    && e.view(other).scores.find((r) => r.seat === ace).gone);
-  const late = sock('tag-late', '10.4.0.9');
-  e.socks.push(late);
-  e.paths.push(level(120));
-  e.apply(e.r.open(late, e.clock));
-  e.apply(e.r.message(late, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [5, 5, 55], profile: cub }), e.clock, late.address, newToken));
-  const lateSeat = texts(late, 'welcome')[0].seat;
-  check('a joiner mid match is told the match in its welcome', texts(late, 'welcome')[0].tag.state === 'live');
-  e.fly(e.clock + 1200);
-  check('and hunts from nothing once it flies', e.view(0).scores.some((r) => r.seat === lateSeat && r.ms === 0) && e.view(0).ace !== lateSeat);
-  const slept = new RoomCore(e.r.meta);
-  slept.restore(e.socks.filter((so) => e.r.seats.has(so)).map((so) => ({ conn: so, attachment: so.attachment })));
-  slept.tag.restore(saved);
-  check('a room that slept keeps its match: goal, crown and points', slept.tag.match && slept.tag.match.goal === 10 && slept.tag.on()
-    && slept.tag.view(slept).ace === saved.match.ace);
-  /* And through the hosts' generic path (edge/rooms/host.js): every stored
-   * key goes to core[key].restore() on load, so 'tag' needs no adapter. */
-  const kept = new Map([['meta', e.r.meta], ['tag', saved]]);
-  const host = new RoomHost({ storage: { get: async (k) => kept.get(k), list: async () => kept, getAlarm: async () => null }, getWebSockets: () => [] }, {});
-  const loaded = await host.load();
-  check('and a host that loads the room from storage hands the match back to core.tag', loaded.tag.on() && loaded.tag.match.goal === 10
-    && loaded.tag.match.ace === saved.match.ace);
-  e.say(0, { type: 'tag', op: 'end' });
-  const early = e.view(other);
-  check('the host can end it early: results as they stand, no winner', early.state === 'results' && early.winner === null);
-
-  console.log('catch the ace: lag does not decide');
-  const timeline = (lag) => {
-    const x = tagRoom({ lag });
-    x.fly(1000);
-    x.say(0, { type: 'tag', op: 'start', goal: 5 });
-    const go = x.view(0).goAt;
-    x.paths[0] = (t) => (t < go + 2000 ? level(0)(t) : { ...B(t), pz: Math.min(1, (t - (go + 2000)) / 1500) * (40 - 1.2) });
-    x.paths[2] = (t) => (t < go + 2000 ? level(80)(t) : { ...B(t), pz: 80 - Math.min(1, (t - (go + 2000)) / 1400) * (80 - 41.2) });
-    x.fly(go + 20000);
-    /* The hunters hold station with a wing through the Ace's, so the
-     * referee crashes them over and over (collisions count in a match):
-     * the mid airs up to the end are lag's to decide no more than the
-     * crowns are. The flight goes on past the end, where a last hit may
-     * still be undecided when the run stops. */
-    const end = x.view(1).endAt;
-    /* Which pair a lagging seat lets the referee decide first is lag's,
-     * so the hits are compared in order of contact, not of sending. */
-    const hits = texts(x.socks[0], 'hit').filter((h) => h.tc <= end).map((h) => [h.tc, h.a, h.b]).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
-    return JSON.stringify({ crowns: x.r.tag.log.map((c) => [c.t, c.seat, c.why]), scores: x.view(1).scores, end, hits });
-  };
-  const zero = timeline([]);
-  check('two hunters closing on the Ace from both sides: the same crowns, points, end and mid airs with 0, 60, 150 and 300 ms of lag',
-    [[150, 0, 300], [0, 300, 150], [60, 60, 60]].every((lag) => timeline(lag) === zero), zero);
-  check(`and a seat later than LATE_MS (${LATE_MS} ms) is not waited for: the match still ends`, JSON.parse(timeline([0, 0, LATE_MS + 200])).end != null);
-
-  console.log('catch the ace: the bubble');
-  check(`every view of a live match says the bubble the room judges by, ${BUBBLE_M} m`, live.bubble === BUBBLE_M
-    && [0, 1, 2].every((i) => e.views(i).filter((x) => x.state === 'live').every((x) => x.bubble === BUBBLE_M)));
-  /* How far a Cub flying level beside the Ace (level() above) is from the
-   * Ace's centre: its nearest part box, the referee's own measure. */
-  const cubHull = hullFor('cub1400');
-  const reachAt = (dz) => hullDistance(cubHull, {
-    ...level(dz)(0), qx: 0, qz: 0,
-  }, 0, Y, 0);
-  /* The lateral offset at which that is d, by bisection: it only grows. */
-  const offsetFor = (d) => {
-    let lo = 0;
-    let hi = 20;
-    while (hi - lo > 1e-9) {
-      const mid = (lo + hi) / 2;
-      if (reachAt(mid) < d) {
-        lo = mid;
-      } else {
-        hi = mid;
-      }
-    }
-    return hi;
-  };
-  const bubbleRoom = () => {
-    const x = tagRoom();
-    x.fly(1000);
-    x.say(0, { type: 'tag', op: 'start', goal: 60 });
-    return x;
-  };
-  /* Across from z0 to z1 beside the Ace's lane over `ms` from `at`,
-   * linear in time on the way, so the room's 30 Hz samples interpolate it
-   * exactly. */
-  const slide = (z0, z1, at, ms) => (t) => ({ ...level(40)(t), pz: z0 + (z1 - z0) * Math.max(0, Math.min(1, (t - at) / ms)) });
-  const outside = offsetFor(6.5);
-  const inside = offsetFor(5.5);
-  const b1 = bubbleRoom();
-  const go = b1.view(0).goAt;
-  b1.paths[0] = slide(0, 40 - outside, go + 200, 1000);
-  b1.fly(go + PROTECT_MS + 3000);
-  check(`a hunter holding 6.5 m from the Ace's centre (${outside.toFixed(2)} m centre to centre) never takes the crown`,
-    b1.r.tag.log.every((c) => c.why !== 'tag') && b1.view(0).ace === 2, b1.r.tag.log.map((c) => c.why).join(','));
-  const enterAt = b1.clock + 500;
-  const moving = slide(40 - outside, 40 - inside, enterAt, 1000);
-  b1.paths[0] = moving;
-  b1.fly(enterAt + 1500);
-  const bubbleTag = b1.r.tag.log.find((c) => c.why === 'tag');
-  /* The truth: the first whole millisecond the scripted path is inside. */
-  let crossed = null;
-  for (let t = enterAt; t <= enterAt + 1000 && crossed == null; t += 1) {
-    crossed = reachAt(40 - moving(t).pz) <= BUBBLE_M ? t : null;
-  }
-  const tagReach = bubbleTag ? reachAt(40 - moving(bubbleTag.t).pz) : NaN;
-  check('flying on in to 5.5 m, it takes the crown the first millisecond any part of it is inside the bubble',
-    bubbleTag && bubbleTag.seat === 1 && bubbleTag.from === 2 && bubbleTag.t === crossed,
-    bubbleTag ? `tag at ${bubbleTag.t}, truth ${crossed}, ${tagReach.toFixed(4)} m from the centre` : 'no tag');
-  /* The Ace's own hull reaches cubHull.hull.reach from its centre, so
-   * the two were never nearer than the difference: no touch. */
-  const apart = BUBBLE_M - cubHull.hull.reach;
-  check(`without touching: at the tag the two Cubs were over ${apart.toFixed(1)} m apart, and no mid air hit was sent`,
-    tagReach > BUBBLE_M - 0.05 && apart > 4 && b1.hits === 0, `${tagReach.toFixed(3)} m from the centre`);
-  /* Two hunters into the bubble on mirror paths, seats 1 and 3, sampled
-   * on phases of their own: one millisecond, one crown, to the lower
-   * seat, as a touch was. Alone, seat 3 enters at that same millisecond,
-   * so the tie was one. */
-  const pincer = (both) => {
-    const x = bubbleRoom();
-    const at = x.view(0).goAt + PROTECT_MS + 500;
-    const mirror = slide(0, 40 - inside, at, 1500);
-    x.paths[0] = both ? mirror : level(0);
-    x.paths[2] = (t) => ({ ...mirror(t), pz: 80 - mirror(t).pz });
-    x.fly(at + 2000);
-    return x.r.tag.log.filter((c) => c.why === 'tag');
-  };
-  const two = pincer(true);
-  const lone = pincer(false);
-  check('two hunters into the bubble the same millisecond: the lower seat takes the crown',
-    two.length >= 1 && two[0].seat === 1 && lone.length >= 1 && lone[0].seat === 3 && lone[0].t === two[0].t,
-    `both: ${JSON.stringify(two[0])}, seat 3 alone: ${JSON.stringify(lone[0])}`);
-}
-
-combatSection(check);
 warSection(check);
 opsSection(check);
 warLobbySection(check);
@@ -1685,7 +1179,6 @@ weatherSection(check);
 stockSurfacesSection(check);
 visibilitySection(check);
 setupSection(check);
-dropsSection(check);
 footSection(check);
 watchSection(check);
 watchStateSection(check);
@@ -1694,14 +1187,19 @@ await blocksSection(check);
 await scaleSection(check);
 
 /* ---------------------------------------------------------------------
- * Stale games and the host: a game a restart restores whether or not its
- * players come back must never hold the room, a refused host action says
- * why, and the host is the same pilot across a restart.
+ * Stale games and the host: a refused host action says why, and the host
+ * is the same pilot across a restart. A game a restart restored with its
+ * players gone for good was ended here on Catch the Ace and Streamer
+ * Combat, whose players were fixed at their start, until both left in
+ * the combat-only cut (2026-10-20). The war enlists whoever comes
+ * (war.js join), so a war a restart restored is its newcomers'; one whose
+ * pilots cannot fly it is ended by the room (rooms-selftest-gamelobby.js,
+ * a load failure counted out).
  * ------------------------------------------------------------------- */
 console.log('stale games and the host');
 {
-  const cub = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
-  const smeta = { code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: 0 };
+  const quad = { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null };
+  const smeta = { code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: 0 };
   let clock = 1000;
   /* A room as host.js loads it from `kept` (storage), its sockets `socks`. */
   const load = async (kept, socks = []) => {
@@ -1723,74 +1221,25 @@ console.log('stale games and the host');
   };
   const join = (r, so, kept, extra = {}) => {
     apply(kept)(r.open(so, clock));
-    return apply(kept)(r.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [2, 3, 30], profile: cub, ...extra }), clock, so.address, newToken));
+    return apply(kept)(r.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 't', name: [2, 3, 30], profile: quad, ...extra }), clock, so.address, newToken));
   };
   const say = (r, so, obj, kept) => apply(kept)(r.message(so, JSON.stringify(obj), clock, so.address));
   const refusals = (so) => texts(so, 'refused').map((m) => m.why);
+  const WAR_START = { type: 'war', op: 'start', mission: 'itaipu-1' };
 
-  /* A live match of three pilots, stored, the three gone for good. */
-  const kept = new Map([['meta', smeta]]);
-  const r0 = new RoomCore(smeta);
-  const olds = [0, 1, 2].map((i) => sock(`old${i}`, `10.7.0.${i + 1}`));
-  for (const so of olds) {
-    join(r0, so, kept);
-  }
-  say(r0, olds[0], { type: 'tag', op: 'start', goal: 90 }, kept);
-  clock += 7000;
-  apply(kept)(r0.tick(clock));
-  check('a live match is stored with its players', kept.get('tag').match.state === 'live' && Object.keys(kept.get('tag').match.players).length === 3);
-
-  /* A restart: the room comes back from storage, and two new pilots join
-   * into the seats the old players held. */
-  const r1 = await load(kept);
-  check('it comes back live', r1.tag.on());
-  const n1 = sock('new1', '10.7.1.1');
-  const n2 = sock('new2', '10.7.1.2');
-  join(r1, n1, kept);
-  join(r1, n2, kept);
-  check('newcomers in the old players\' seats are not its players, so it holds nothing', r1.game() === null
-    && texts(n1, 'welcome')[0].seat === 1);
-  clock += ABANDON_MS + 100;
-  apply(kept)(r1.tick(clock));
-  check(`and after ${ABANDON_MS / 1000} s the room ends it: results, no winner`, r1.tag.match.state === 'results' && r1.tag.match.winner === null
-    && texts(n1, 'tag').at(-1).tag.state === 'results');
-  const host1 = r1.host();
-  const hostSock = texts(n1, 'welcome')[0].seat === host1 ? n1 : n2;
-  say(r1, hostSock, { type: 'combat', op: 'start', minutes: 5 }, kept);
-  check('and the host starts a combat round after it', r1.combat.on() && r1.game() === 'combat', r1.game());
-
-  /* The same restore, but the host presses Start at once: the stale match
-   * is ended there and then, not refused. */
-  kept.set('tag', JSON.parse(JSON.stringify(kept.get('tag'))));
-  kept.get('tag').match.state = 'live';
-  kept.delete('combat');
-  const r2 = await load(kept);
-  const m1 = sock('now1', '10.7.2.1');
-  const m2 = sock('now2', '10.7.2.2');
-  join(r2, m1, null);
-  join(r2, m2, null);
-  const hs = r2.host() === texts(m1, 'welcome')[0].seat ? m1 : m2;
-  say(r2, hs, { type: 'combat', op: 'start', minutes: 3 }, null);
-  check('a start right after a restore ends the stale match first', r2.tag.match.state === 'results' && r2.combat.on() && refusals(hs).length === 0);
-
-  /* A match its players are in is not stale: a combat start is refused,
-   * with the reason, and so is a pilot who is not the host. */
+  /* A war its players are in holds the room: another game's start is
+   * refused, with the reason, and so is a pilot who is not the host. */
   const r3 = new RoomCore(smeta);
   const p3 = [0, 1].map((i) => sock(`p3${i}`, `10.7.3.${i + 1}`));
   for (const so of p3) {
     join(r3, so, null);
   }
-  say(r3, p3[0], { type: 'tag', op: 'start', goal: 90 }, null);
-  say(r3, p3[0], { type: 'combat', op: 'start', minutes: 5 }, null);
-  say(r3, p3[1], { type: 'combat', op: 'start', minutes: 5 }, null);
-  say(r3, p3[1], { type: 'tag', op: 'end' }, null);
-  check('a start under a running match is refused: "tag", to the host', !r3.combat.on() && refusals(p3[0]).join() === 'tag');
-  check('a host action from a pilot who is not the host is refused: "host"', refusals(p3[1]).join() === 'host,host' && r3.tag.on());
-  /* One of the two leaves for good: after the grace the match ends. */
-  apply(null)(r3.close(p3[1], clock));
-  clock += ABANDON_MS + 100;
-  apply(null)(r3.tick(clock));
-  check('a match left with one pilot ends by itself', r3.tag.match.state === 'results' && r3.game() === null);
+  say(r3, p3[0], WAR_START, null);
+  say(r3, p3[0], { type: 'ops', op: 'start', mission: 'interior-1' }, null);
+  say(r3, p3[1], WAR_START, null);
+  say(r3, p3[1], { type: 'war', op: 'end' }, null);
+  check('a start under a running war is refused: "war", to the host', r3.war.on() && !r3.ops.on() && refusals(p3[0]).join() === 'war', refusals(p3[0]).join());
+  check('a host action from a pilot who is not the host is refused: "host"', refusals(p3[1]).join() === 'host,host' && r3.war.on());
 
   /* The host across a restart: A made the room, B joined; the server
    * restarts and B reconnects first. B acts for A until A is back, then A
@@ -1813,8 +1262,8 @@ console.log('stale games and the host');
   join(r5, A2, hk, { token: wA.token, seat: wA.seat });
   check('A back: the host again, in A\'s welcome', r5.host() === wA.seat && texts(A2, 'welcome')[0].host === wA.seat);
   check('and B is told the host changed', texts(B2, 'host').at(-1).seat === wA.seat);
-  say(r5, B2, { type: 'combat', op: 'start', minutes: 5 }, hk);
-  check('so B\'s start is refused as not the host', refusals(B2).join() === 'host' && !r5.combat.on());
+  say(r5, B2, WAR_START, hk);
+  check('so B\'s start is refused as not the host', refusals(B2).join() === 'host' && !r5.war.on());
   /* A leaves and does not come back: B acts at once, and the room is B's
    * for good once RESEAT_MS has gone by. */
   apply(hk)(r5.close(A2, clock));
@@ -1838,9 +1287,9 @@ console.log('stale games and the host');
   say(r6, H, { type: 'handhost', seat: wG.seat }, hh);
   check('the host hands it over: everybody is told, and it is stored', r6.host() === wG.seat && hh.get('hosting').token === wG.token
     && texts(H, 'host').at(-1).seat === wG.seat && texts(G, 'host').at(-1).seat === wG.seat);
-  say(r6, H, { type: 'combat', op: 'start', minutes: 5 }, hh);
-  say(r6, G, { type: 'combat', op: 'start', minutes: 5 }, hh);
-  check('then the old host\'s start is refused and the new host\'s runs', refusals(H).at(-1) === 'host' && r6.combat.on());
+  say(r6, H, WAR_START, hh);
+  say(r6, G, WAR_START, hh);
+  check('then the old host\'s start is refused and the new host\'s runs', refusals(H).at(-1) === 'host' && r6.war.on());
 
   /* A room made before the host was stored: the first pilot back after a
    * restart holds it, and is stored, so the next restart keeps it. */

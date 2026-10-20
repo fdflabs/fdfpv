@@ -273,9 +273,9 @@
          grass and tarmac alike, which is how a video OSD stays legible. */
       .osd { position: absolute; inset: 0; }
       .osd.dim { opacity: 0.4; }
-      .osd-launch.is-off, .room-race.is-off { display: none; }
+      .osd-launch.is-off { display: none; }
       .osd-top, .osd-corner { text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
-      .osd-label, .room-race-title {
+      .osd-label {
         margin-bottom: 2px; color: var(--slate);
         font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
       }
@@ -325,28 +325,6 @@
       @keyframes launch-blink {
         50% { opacity: 0.2; }
       }
-
-      /* A ROOM'S STANDINGS (src/ui/roomhud.js), in the left column under
-         the link readout. The column's other user, the freestyle score, is
-         never up during a race. */
-      .room-race {
-        position: absolute; top: calc(var(--bar-top) + 96px); left: 16px;
-        min-width: 180px; max-width: 42vw; padding: 6px 10px; border-radius: 4px;
-        pointer-events: none; background: rgba(16, 22, 17, 0.62);
-        font-size: 13px; line-height: 1.45; text-shadow: 0 1px 3px rgba(0,0,0,0.85);
-      }
-      /* A tag for something only this pilot has right now, such as Catch
-         the Ace's chase boost. */
-      .room-race-chip {
-        display: inline-block; margin: 1px 0 3px; padding: 0 6px; border-radius: 3px;
-        background: var(--amber); color: #1b1405;
-        font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-      }
-      .room-race-row { display: flex; gap: 8px; white-space: nowrap; }
-      .room-race-row.is-me { color: var(--amber); }
-      .room-race-place { width: 1.2em; text-align: right; }
-      .room-race-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-      .room-race-value { font-variant-numeric: tabular-nums; }
 
       /* THE STICK GHOST: two Mode 2 gimbals (yaw and throttle left, roll
          and pitch right) with the air slider between them, bottom centre.

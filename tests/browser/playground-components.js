@@ -238,8 +238,8 @@ export const COMPONENTS = [
     source: 'src/ui/ui.js renderTitleCards',
     context: ['screen screen-title is-gate', 'gate-cards'],
     states: [
-      ['rest', gateCard('', 'assets/gate/combat.jpg', str('combat.card'), str('combat.card_blurb'), [str('combat.card_cut'), str('combat.card_rounds'), str('friends.card_code')])],
-      ['cursor', gateCard('on', 'assets/gate/ace.jpg', str('roomtag.section'), str('roomtag.card_blurb'), [str('friends.card_code')])],
+      ['rest', gateCard('', 'assets/posters/itaipu.jpg', str('campaign.card'), str('campaign.card_blurb'), [str('campaign.card_act'), str('campaign.card_missions'), str('campaign.card_shop')])],
+      ['cursor', gateCard('on', 'assets/gate/flight.jpg', str('ui.free_flight_card'), str('ui.card_line_flight'), [str('ui.every_plane')])],
     ],
   },
   {
@@ -324,7 +324,7 @@ export const COMPONENTS = [
     context: ['screen screen-title is-gate', 'gate-rooms', 'gate-rooms-list'],
     states: [
       ['rest', h('div', 'gate-room', h('span', 'gate-room-name', 'Fernando'), h('span', 'gate-room-value', str('roombrowser.title')))],
-      ['live', h('div', 'gate-room is-live', h('span', 'gate-room-name', 'Fernando'), h('span', 'gate-room-value', h('span', 'gate-room-join', str('combat.card'))))],
+      ['live', h('div', 'gate-room is-live', h('span', 'gate-room-name', 'Fernando'), h('span', 'gate-room-value', h('span', 'gate-room-join', str('war.card'))))],
       ['cursor', h('div', 'gate-room gate-room-make on', h('span', 'gate-room-name', str('roombrowser.new')))],
     ],
   },

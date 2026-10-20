@@ -208,16 +208,17 @@ const roster = await first.until((x) => x.got.filter((m) => m.type === 'join').l
 check('none of them was ever seated beside the pilots', roster && roster.got.filter((m) => m.type === 'join').length === 1,
   JSON.stringify(roster && roster.got.filter((m) => m.type === 'join')));
 
-console.log('a war, combat and tag room the same');
-for (const room of [{ map: 'itaipu', mode: 'war' }, { map: 'swiss2', mode: 'combat' }, { map: 'swiss2', mode: 'tag' }]) {
+console.log('a war room and a free flight room the same');
+for (const room of [{ map: 'itaipu', mode: 'war' }, { map: 'swiss2', mode: null }]) {
   const at = await makeRoom(room);
   const war = room.mode === 'war' ? { war: WAR_JOIN } : {};
   const oldOne = await seat(at, war);
   const unsigned = await seat(at, { ...war, ...NEW, name: [4, 5, 21] });
   const pilotOne = await seat(at, { ...war, ...NEW, name: [5, 6, 22], session });
-  check(`${room.mode}: a build from before is sent to reload`, closedWith(oldOne, CLOSE.update), JSON.stringify(oldOne.welcome));
-  check(`${room.mode}: an unsigned seat is refused, to sign in`, closedWith(unsigned, SIGNIN), JSON.stringify(unsigned.welcome));
-  check(`${room.mode}: a signed in pilot is seated, as the room's game`, pilotOne.welcome.seat === 1 && pilotOne.welcome.mode === room.mode,
+  const label = room.mode ?? 'free flight';
+  check(`${label}: a build from before is sent to reload`, closedWith(oldOne, CLOSE.update), JSON.stringify(oldOne.welcome));
+  check(`${label}: an unsigned seat is refused, to sign in`, closedWith(unsigned, SIGNIN), JSON.stringify(unsigned.welcome));
+  check(`${label}: a signed in pilot is seated, as the room's game`, pilotOne.welcome.seat === 1 && pilotOne.welcome.mode === room.mode,
     JSON.stringify(pilotOne.welcome && { seat: pilotOne.welcome.seat, mode: pilotOne.welcome.mode, closed: pilotOne.welcome.closed }));
   pilotOne.ws.close(1000);
 }
