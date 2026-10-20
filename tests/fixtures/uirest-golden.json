@@ -1,98 +1,5 @@
 {
  "en": {
-  "bylines": [
-   "",
-   "",
-   "",
-   "by ann",
-   "by dee",
-   "by dee",
-   "by ann",
-   ""
-  ],
-  "worlds": {
-   "track": null,
-   "alps": "alps",
-   "swiss2": "swiss2",
-   "itaipu": "itaipu",
-   "interior": null,
-   "nope": null,
-   "": null,
-   "undefined": null
-  },
-  "seats": {
-   "empty": {
-    "listing": null,
-    "race": {
-     "track": false,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": false
-    }
-   },
-   "nogates": {
-    "listing": {
-     "kind": "community",
-     "gates": 0,
-     "name": "Seat"
-    },
-    "race": {
-     "track": false,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": false
-    }
-   },
-   "waypoints": {
-    "listing": {
-     "kind": "community",
-     "gates": 0,
-     "name": "Seat"
-    },
-    "race": {
-     "track": false,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": false
-    }
-   },
-   "gates": {
-    "listing": {
-     "kind": "community",
-     "gates": 2,
-     "name": "Seat"
-    },
-    "race": {
-     "track": true,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": true
-    }
-   },
-   "local": {
-    "listing": {
-     "kind": "local",
-     "gates": 3,
-     "name": "Seat"
-    },
-    "race": {
-     "track": true,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": true
-    }
-   }
-  },
   "trouble": {
    "100000": "Your radio has no buttons this browser can see",
    "100001": "This browser is guessing your stick order",
@@ -3730,25 +3637,6 @@
    "striker2500:unfitted": null
   },
   "methods": {
-   "play": {
-    "log": [
-     [
-      "onAction",
-      "play",
-      null
-     ]
-    ],
-    "map": "track",
-    "mode": "race",
-    "returnTo": "title",
-    "stored": "track"
-   },
-   "playQuiet": {
-    "log": [],
-    "map": "track",
-    "mode": "race",
-    "returnTo": "title"
-   },
    "howto": {
     "radio": {
      "source": "radio",
@@ -4320,99 +4208,6 @@
   }
  },
  "es": {
-  "bylines": [
-   "",
-   "",
-   "",
-   "por ann",
-   "por dee",
-   "por dee",
-   "por ann",
-   ""
-  ],
-  "worlds": {
-   "track": null,
-   "alps": "alps",
-   "swiss2": "swiss2",
-   "itaipu": "itaipu",
-   "interior": null,
-   "nope": null,
-   "": null,
-   "undefined": null
-  },
-  "seats": {
-   "empty": {
-    "listing": null,
-    "race": {
-     "track": false,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": false
-    }
-   },
-   "nogates": {
-    "listing": {
-     "kind": "community",
-     "gates": 0,
-     "name": "Seat"
-    },
-    "race": {
-     "track": false,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": false
-    }
-   },
-   "waypoints": {
-    "listing": {
-     "kind": "community",
-     "gates": 0,
-     "name": "Seat"
-    },
-    "race": {
-     "track": false,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": false
-    }
-   },
-   "gates": {
-    "listing": {
-     "kind": "community",
-     "gates": 2,
-     "name": "Seat"
-    },
-    "race": {
-     "track": true,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": true
-    }
-   },
-   "local": {
-    "listing": {
-     "kind": "local",
-     "gates": 3,
-     "name": "Seat"
-    },
-    "race": {
-     "track": true,
-     "alps": false,
-     "swiss2": false,
-     "itaipu": false,
-     "interior": false,
-     "nope": true
-    }
-   }
-  },
   "trouble": {
    "100000": "Tu radio no tiene botones que este navegador pueda ver",
    "100001": "Este navegador está adivinando el orden de tus sticks",
@@ -8050,25 +7845,6 @@
    "striker2500:unfitted": null
   },
   "methods": {
-   "play": {
-    "log": [
-     [
-      "onAction",
-      "play",
-      null
-     ]
-    ],
-    "map": "track",
-    "mode": "race",
-    "returnTo": "title",
-    "stored": "track"
-   },
-   "playQuiet": {
-    "log": [],
-    "map": "track",
-    "mode": "race",
-    "returnTo": "title"
-   },
    "howto": {
     "radio": {
      "source": "radio",

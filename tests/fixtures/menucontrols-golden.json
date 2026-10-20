@@ -1911,14 +1911,14 @@
     "title": "<titleHelp>",
     "howto": "<howtoHelp>",
     "credits": "<creditsHelp>",
-    "courses": "<coursesHelp>",
+    "courses": "null",
     "freestyle": "<freestyleHelp>",
     "pilot": "<pilotHelp>",
     "friends": "<friendsHelp>",
     "rooms": "null",
     "roomnew": "null",
     "quad": "<quadHelp>",
-    "launch": "<launchHelp>",
+    "launch": "null",
     "rates": "<ratesHelp>",
     "pids": "<pidsHelp>",
     "fc": "<fcHelp>",
@@ -2302,7 +2302,7 @@
       null,
       null
      ],
-     "lastCardKey": "mine:t9",
+     "lastCardKey": null,
      "settings": {
       "rates": {
        "r": 1
@@ -2313,7 +2313,6 @@
      },
      "active": "<body>"
     },
-    "noCourse": "mine:t9",
     "end": {
      "cursor": 1,
      "focusId": "b",
@@ -2331,7 +2330,7 @@
       null,
       null
      ],
-     "lastCardKey": "mine:t9",
+     "lastCardKey": null,
      "settings": {
       "rates": {
        "r": 1
@@ -5795,14 +5794,14 @@
     "title": "<titleHelp>",
     "howto": "<howtoHelp>",
     "credits": "<creditsHelp>",
-    "courses": "<coursesHelp>",
+    "courses": "null",
     "freestyle": "<freestyleHelp>",
     "pilot": "<pilotHelp>",
     "friends": "<friendsHelp>",
     "rooms": "null",
     "roomnew": "null",
     "quad": "<quadHelp>",
-    "launch": "<launchHelp>",
+    "launch": "null",
     "rates": "<ratesHelp>",
     "pids": "<pidsHelp>",
     "fc": "<fcHelp>",
@@ -6186,7 +6185,7 @@
       null,
       null
      ],
-     "lastCardKey": "mine:t9",
+     "lastCardKey": null,
      "settings": {
       "rates": {
        "r": 1
@@ -6197,7 +6196,6 @@
      },
      "active": "<body>"
     },
-    "noCourse": "mine:t9",
     "end": {
      "cursor": 1,
      "focusId": "b",
@@ -6215,7 +6213,7 @@
       null,
       null
      ],
-     "lastCardKey": "mine:t9",
+     "lastCardKey": null,
      "settings": {
       "rates": {
        "r": 1

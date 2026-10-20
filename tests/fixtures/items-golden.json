@@ -517,11 +517,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Track",
-     "value": "Choose one",
-     "note": "No track is seated yet. Your own tracks, every track the board is offering, and the builder, are in here.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "The world",
+     "value": "Swiss valley, photoreal",
+     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -557,130 +557,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
-     "action": "mode-gate",
-     "drives": {}
-    }
-   ]
-  },
-  "title-race-seated": {
-   "screen": "title",
-   "items": [
-    {
-     "id": "title:a-calibrate",
-     "label": "This browser is guessing your stick order",
-     "note": "The axis it thinks is your throttle is sitting at the middle, and a real throttle rests at one end because it has no centring spring. So the guess is probably wrong, and a wrong guess means taking off at half power on a stick that springs back. Calibrating takes about a minute and fixes it for good.",
-     "action": "calibrate",
-     "rowClass": "row-warn",
-     "drives": {}
-    },
-    {
-     "id": "title:a-fly",
-     "label": "Fly",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-courses",
-     "label": "Track",
-     "value": "Saved before creative mode",
-     "note": "Saved before creative mode, and every other track. Gated, against the clock.",
-     "action": "courses",
-     "drives": {}
-    },
-    {
-     "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "The machine. Tune, PIDs, camera angle, field of view, flight mode and the firmware bench, which is every firmware key the module compiles.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "title:a-pilot",
-     "label": "Settings",
-     "value": "Not set",
-     "note": "You and your radio. Your name, choosing a joystick, Calibrate sticks, rates, graphics, sound and the flight log.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "title:a-howto",
-     "label": "How to fly",
-     "note": "The sticks, live, and what the keys do.",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-credits",
-     "label": "Credits",
-     "note": "Who made this, who flew it, and whose work it stands on.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "title:a-mode-gate",
-     "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
-     "action": "mode-gate",
-     "drives": {}
-    }
-   ]
-  },
-  "title-race-first-flight": {
-   "screen": "title",
-   "items": [
-    {
-     "id": "title:a-firstflight",
-     "label": "First flight",
-     "note": "Saved before creative mode, levelled off, with the sticks drawn on screen and a prompt at each step.",
-     "action": "firstflight",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-courses",
-     "label": "Track",
-     "value": "Saved before creative mode",
-     "note": "Saved before creative mode, and every other track. Gated, against the clock.",
-     "action": "courses",
-     "drives": {}
-    },
-    {
-     "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "The machine. Tune, PIDs, camera angle, field of view, flight mode and the firmware bench, which is every firmware key the module compiles.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "title:a-pilot",
-     "label": "Settings",
-     "value": "Not set",
-     "note": "You and your radio. Your name, choosing a joystick, Calibrate sticks, rates, graphics, sound and the flight log.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "title:a-howto",
-     "label": "How to fly",
-     "note": "The sticks, live, and what the keys do.",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-credits",
-     "label": "Credits",
-     "note": "Who made this, who flew it, and whose work it stands on.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "title:a-mode-gate",
-     "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
+     "note": "The home screen's cards. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -697,11 +574,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Track",
-     "value": "Choose one",
-     "note": "No track is seated yet. Your own tracks, every track the board is offering, and the builder, are in here.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "The world",
+     "value": "Swiss valley, photoreal",
+     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -737,7 +614,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
+     "note": "The home screen's cards. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -754,11 +631,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Track",
-     "value": "Saved before creative mode",
-     "note": "Saved before creative mode, and every other track. Gated, against the clock.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "The world",
+     "value": "Swiss valley, photoreal",
+     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -802,7 +679,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
+     "note": "The home screen's cards. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -859,7 +736,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
+     "note": "The home screen's cards. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -916,7 +793,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
+     "note": "The home screen's cards. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -933,11 +810,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Track",
-     "value": "Choose one",
-     "note": "No track is seated yet. Your own tracks, every track the board is offering, and the builder, are in here.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "The world",
+     "value": "Swiss valley, photoreal",
+     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -973,7 +850,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
+     "note": "The home screen's cards. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -990,11 +867,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Track",
-     "value": "Choose one",
-     "note": "No track is seated yet. Your own tracks, every track the board is offering, and the builder, are in here.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "The world",
+     "value": "Swiss valley, photoreal",
+     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -1030,7 +907,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
+     "note": "The home screen's cards. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     },
@@ -1074,11 +951,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Track",
-     "value": "Choose one",
-     "note": "No track is seated yet. Your own tracks, every track the board is offering, and the builder, are in here.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "The world",
+     "value": "Swiss valley, photoreal",
+     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -1114,7 +991,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
+     "note": "The home screen's cards. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     },
@@ -1173,11 +1050,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Track",
-     "value": "Choose one",
-     "note": "No track is seated yet. Your own tracks, every track the board is offering, and the builder, are in here.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "The world",
+     "value": "Swiss valley, photoreal",
+     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock. Your quad and the physics model are in here.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -1213,7 +1090,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "What to fly",
-     "note": "The three cards: Track Day, freestyle or fixed wing. Changing your mind about any of it starts here.",
+     "note": "The home screen's cards. Changing your mind about any of it starts here.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -2068,713 +1945,6 @@
      "drives": {}
     }
    ]
-  },
-  "courses-empty": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-newtrack",
-     "label": "New track",
-     "note": "Build one: choose the world, then place the gates where you want them.",
-     "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track here is yours to race on a quad. Change the aircraft under Quad to fly one on a plane."
-  },
-  "courses-lists": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Yours, in The Alps. 6 gates.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Yours, in Swiss valley, photoreal. 1 gate.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Yours, in Swiss valley, photoreal. 0 gates.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-1",
-     "label": "Valley run",
-     "note": "In Swiss valley, photoreal, by Bea.",
-     "action": "cloud:cloud-1",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-2",
-     "label": "Nameless",
-     "note": "In Swiss valley, photoreal, by a pilot.",
-     "action": "cloud:cloud-2",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-3",
-     "label": "Old world",
-     "note": "Its world was retired, so it cannot be flown",
-     "action": "cloud:cloud-3",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-1",
-     "label": "Hung track",
-     "note": "Hung in The Alps by Dee. Choosing it flies it there.",
-     "action": "board:board-1",
-     "course": {
-      "kind": "board",
-      "id": "board-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-2",
-     "label": "No author",
-     "note": "Hung in The Alps by a pilot. Choosing it flies it there.",
-     "action": "board:board-2",
-     "course": {
-      "kind": "board",
-      "id": "board-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack",
-     "label": "New track",
-     "note": "Build one: choose the world, then place the gates where you want them.",
-     "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud-more",
-     "label": "More tracks",
-     "note": "The next tracks everybody saved, older ones.",
-     "action": "cloud-more",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track here is yours to race on a quad. Change the aircraft under Quad to fly one on a plane."
-  },
-  "courses-plane": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Yours, in The Alps. 6 gates. Too tight for the Piper Cub, so it flies on the interceptor.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Yours, in Swiss valley, photoreal. 1 gate.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Yours, in Swiss valley, photoreal. 0 gates.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-1",
-     "label": "Valley run",
-     "note": "In Swiss valley, photoreal, by Bea.",
-     "action": "cloud:cloud-1",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-2",
-     "label": "Nameless",
-     "note": "In Swiss valley, photoreal, by a pilot. Too tight for the Piper Cub, so it flies on the interceptor.",
-     "action": "cloud:cloud-2",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-3",
-     "label": "Old world",
-     "note": "Its world was retired, so it cannot be flown",
-     "action": "cloud:cloud-3",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-1",
-     "label": "Hung track",
-     "note": "Hung in The Alps by Dee. Choosing it flies it there.",
-     "action": "board:board-1",
-     "course": {
-      "kind": "board",
-      "id": "board-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-2",
-     "label": "No author",
-     "note": "Hung in The Alps by a pilot. Choosing it flies it there.",
-     "action": "board:board-2",
-     "course": {
-      "kind": "board",
-      "id": "board-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack",
-     "label": "New track",
-     "note": "Build one: choose the world, then place the gates where you want them.",
-     "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track is listed, and one the Piper Cub does not fit through every gate of flies on the interceptor. The board's published tracks are only the ones it fits. Change the aircraft under Quad or Plane."
-  },
-  "courses-chosen-local": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Yours, in The Alps. 6 gates.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Yours, in Swiss valley, photoreal. 1 gate.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Yours, in Swiss valley, photoreal. 0 gates.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-barn-loop",
-     "label": "Barn loop",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-fly",
-     "label": "Play",
-     "note": "Race Barn loop in The Alps: the gates and the lap clock.",
-     "action": "card-fly",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-edit",
-     "label": "Edit",
-     "note": "Open Barn loop in the builder, in The Alps. B flies it, Escape comes back here.",
-     "action": "card-edit",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-rename",
-     "label": "Rename",
-     "note": "Give Barn loop a name you will know it by.",
-     "action": "card-rename",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-duplicate",
-     "label": "Duplicate",
-     "note": "A copy of Barn loop to change without touching the original.",
-     "action": "card-duplicate",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-delete",
-     "label": "Delete",
-     "note": "Take Barn loop out of this browser. It asks first.",
-     "action": "card-delete",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-back",
-     "label": "Back to the list",
-     "action": "card-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track here is yours to race on a quad. Change the aircraft under Quad to fly one on a plane."
-  },
-  "courses-chosen-cloud": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-cloud:cloud-1",
-     "label": "Valley run",
-     "note": "In Swiss valley, photoreal, by Bea.",
-     "action": "cloud:cloud-1",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-2",
-     "label": "Nameless",
-     "note": "In Swiss valley, photoreal, by a pilot.",
-     "action": "cloud:cloud-2",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-3",
-     "label": "Old world",
-     "note": "Its world was retired, so it cannot be flown",
-     "action": "cloud:cloud-3",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-valley-run",
-     "label": "Valley run",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-fly",
-     "label": "Play",
-     "note": "Race Valley run in Swiss valley, photoreal: the gates and the lap clock.",
-     "action": "card-fly",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-editcopy",
-     "label": "Edit a copy",
-     "note": "A copy of Valley run that is yours, open in the builder. The original stays as it is.",
-     "action": "card-editcopy",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-back",
-     "label": "Back to the list",
-     "action": "card-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track here is yours to race on a quad. Change the aircraft under Quad to fly one on a plane."
-  },
-  "courses-chosen-cloud-retired": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-cloud:cloud-1",
-     "label": "Valley run",
-     "note": "In Swiss valley, photoreal, by Bea.",
-     "action": "cloud:cloud-1",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-2",
-     "label": "Nameless",
-     "note": "In Swiss valley, photoreal, by a pilot.",
-     "action": "cloud:cloud-2",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-3",
-     "label": "Old world",
-     "note": "Its world was retired, so it cannot be flown",
-     "action": "cloud:cloud-3",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-old-world",
-     "label": "Old world",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:s-its-world-was-retired-so-it-cannot-be-flown",
-     "label": "Its world was retired, so it cannot be flown",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-back",
-     "label": "Back to the list",
-     "action": "card-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track here is yours to race on a quad. Change the aircraft under Quad to fly one on a plane."
-  },
-  "courses-chosen-board": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-board:board-1",
-     "label": "Hung track",
-     "note": "Hung in The Alps by Dee. Choosing it flies it there.",
-     "action": "board:board-1",
-     "course": {
-      "kind": "board",
-      "id": "board-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-2",
-     "label": "No author",
-     "note": "Hung in The Alps by a pilot. Choosing it flies it there.",
-     "action": "board:board-2",
-     "course": {
-      "kind": "board",
-      "id": "board-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-no-author",
-     "label": "No author",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-fly",
-     "label": "Play",
-     "note": "Load No author from the board and fly it here.",
-     "action": "card-fly",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-duplicate",
-     "label": "Duplicate",
-     "note": "Copy No author into My tracks, to change and build on as your own.",
-     "action": "card-duplicate",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-back",
-     "label": "Back to the list",
-     "action": "card-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track here is yours to race on a quad. Change the aircraft under Quad to fly one on a plane."
-  },
-  "courses-chosen-gone": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Yours, in The Alps. 6 gates.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Yours, in Swiss valley, photoreal. 1 gate.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Yours, in Swiss valley, photoreal. 0 gates.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack",
-     "label": "New track",
-     "note": "Build one: choose the world, then place the gates where you want them.",
-     "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track here is yours to race on a quad. Change the aircraft under Quad to fly one on a plane."
-  },
-  "courses-new-track": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Yours, in The Alps. 6 gates.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Yours, in Swiss valley, photoreal. 1 gate.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Yours, in Swiss valley, photoreal. 0 gates.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-new-track-in-which-world",
-     "label": "New track: in which world?",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:alps",
-     "label": "The Alps",
-     "note": "An empty track in the builder, in The Alps. Place the gates, B flies it, Escape comes back here.",
-     "action": "newtrack:alps",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:swiss2",
-     "label": "Swiss valley, photoreal",
-     "note": "An empty track in the builder, in Swiss valley, photoreal. Place the gates, B flies it, Escape comes back here.",
-     "action": "newtrack:swiss2",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:itaipu",
-     "label": "Itaipu",
-     "note": "An empty track in the builder, in Itaipu. Place the gates, B flies it, Escape comes back here.",
-     "action": "newtrack:itaipu",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:alps",
-     "label": "Casual sky track, The Alps",
-     "note": "Eight quad hoops round a loop in the sky over The Alps, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
-     "action": "casualtrack:alps",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:swiss2",
-     "label": "Casual sky track, Swiss valley, photoreal",
-     "note": "Eight quad hoops round a loop in the sky over Swiss valley, photoreal, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
-     "action": "casualtrack:swiss2",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:itaipu",
-     "label": "Casual sky track, Itaipu",
-     "note": "Eight quad hoops round a loop in the sky over Itaipu, 45 m apart and 10 m up. One click and you are flying it: you do not have to be good at this.",
-     "action": "casualtrack:itaipu",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack-back",
-     "label": "Back to the list",
-     "action": "newtrack-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track here is yours to race on a quad. Change the aircraft under Quad to fly one on a plane."
-  },
-  "courses-new-track-plane": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:s-new-track-in-which-world",
-     "label": "New track: in which world?",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:alps",
-     "label": "The Alps",
-     "note": "An empty track in the builder, in The Alps. Place the gates, B flies it, Escape comes back here.",
-     "action": "newtrack:alps",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:swiss2",
-     "label": "Swiss valley, photoreal",
-     "note": "An empty track in the builder, in Swiss valley, photoreal. Place the gates, B flies it, Escape comes back here.",
-     "action": "newtrack:swiss2",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:itaipu",
-     "label": "Itaipu",
-     "note": "An empty track in the builder, in Itaipu. Place the gates, B flies it, Escape comes back here.",
-     "action": "newtrack:itaipu",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:alps",
-     "label": "Casual sky track, The Alps",
-     "note": "Eight big hoops round a wide loop in the sky over The Alps, 400 m apart. One click and you are flying it: you do not have to be good at this.",
-     "action": "casualtrack:alps",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:swiss2",
-     "label": "Casual sky track, Swiss valley, photoreal",
-     "note": "Eight big hoops round a wide loop in the sky over Swiss valley, photoreal, 400 m apart. One click and you are flying it: you do not have to be good at this.",
-     "action": "casualtrack:swiss2",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:itaipu",
-     "label": "Casual sky track, Itaipu",
-     "note": "Eight big hoops round a wide loop in the sky over Itaipu, 400 m apart. One click and you are flying it: you do not have to be good at this.",
-     "action": "casualtrack:itaipu",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack-back",
-     "label": "Back to the list",
-     "action": "newtrack-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Every track is listed, and one the Piper Cub does not fit through every gate of flies on the interceptor. The board's published tracks are only the ones it fits. Change the aircraft under Quad or Plane."
   },
   "freestyle-off": {
    "screen": "freestyle",
@@ -8260,7 +7430,7 @@
      "id": "pilot:a-setname",
      "label": "Your name",
      "value": "Not set",
-     "note": "Needed to publish a track or post a time. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
+     "note": "The name this computer flies under. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
      "action": "setname",
      "drives": {}
     },
@@ -9323,7 +8493,7 @@
      "id": "pilot:a-setname",
      "label": "Your name",
      "value": "Ace Pilot",
-     "note": "Posted times and published tracks carry this name. Changing it updates the board for tracks you published from this browser.",
+     "note": "The name this computer flies under.",
      "action": "setname",
      "drives": {}
     },
@@ -10386,7 +9556,7 @@
      "id": "pilot:a-setname",
      "label": "Your name",
      "value": "Not set",
-     "note": "Needed to publish a track or post a time. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
+     "note": "The name this computer flies under. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
      "action": "setname",
      "drives": {}
     },
@@ -13553,7 +12723,7 @@
      "id": "pilot:a-setname",
      "label": "Your name",
      "value": "Not set",
-     "note": "Needed to publish a track or post a time. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
+     "note": "The name this computer flies under. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
      "action": "setname",
      "drives": {}
     },
@@ -14612,7 +13782,7 @@
      "id": "pilot:a-setname",
      "label": "Your name",
      "value": "Not set",
-     "note": "Needed to publish a track or post a time. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
+     "note": "The name this computer flies under. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
      "action": "setname",
      "drives": {}
     },
@@ -15643,7 +14813,7 @@
      "id": "pilot:a-setname",
      "label": "Your name",
      "value": "Not set",
-     "note": "Needed to publish a track or post a time. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
+     "note": "The name this computer flies under. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
      "action": "setname",
      "drives": {}
     },
@@ -18091,1201 +17261,6 @@
     }
    ]
   },
-  "launch-no-seat": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:track",
-     "label": "Track",
-     "value": "Track",
-     "note": "This is what your time will be measured on.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "The tune, the PIDs, the camera and the firmware. Opens Quad. Whatever is loaded there is what this run flies, and it goes to the board with the time.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-what-this-run-counts-as",
-     "label": "What this run counts as",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:laps",
-     "label": "Laps",
-     "value": "3",
-     "note": "How many laps a run lasts before the result screen. Latched when you launch, so changing it mid-run does nothing until the next one.",
-     "current": 3,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 5
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 1
-       }
-      },
-      "pick(\"5\")": {
-       "settings": {
-        "laps": 5
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:pack-charge",
-     "label": "Pack charge",
-     "value": "4.20 volts per cell",
-     "note": "A tired pack sags harder and gives less punch. Best laps are kept per charge level, so a time set on a fresh pack and a time set on a tired one are two different records.",
-     "current": 4.2,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 volts per cell"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 volts per cell"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 volts per cell"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"3.8\")": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:flight-model",
-     "label": "Flight model",
-     "value": "Expert",
-     "note": "Expert: the full physics, propwash, gyro noise and build tolerance included, which is what every board time is flown on. Arcade turns the imperfections off for a friendlier machine.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Expert"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:crash-damage",
-     "label": "Crash damage",
-     "value": "On",
-     "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:radio-link",
-     "label": "Radio link",
-     "value": "Perfect (no radio)",
-     "note": "A perfect link is sharper than any real radio: every frame arrives, exactly on time. Times set on it are marked on the board.",
-     "current": "perfect",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfect (no radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "crossfire"
-       }
-      },
-      "pick(\"elrs500\")": {
-       "settings": {
-        "link": "elrs500"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Fly",
-     "note": "Your best on Track is filed under exactly this: Expert physics, 4.20 V per cell, 3 laps, the Factory default tune. Change any part of it and you are on a different board. This run is on a perfect link.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "launch-seated": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:track",
-     "label": "Track",
-     "value": "Saved before creative mode",
-     "note": "4 gates. This is what your time will be measured on.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "The tune, the PIDs, the camera and the firmware. Opens Quad. Whatever is loaded there is what this run flies, and it goes to the board with the time.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-what-this-run-counts-as",
-     "label": "What this run counts as",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:laps",
-     "label": "Laps",
-     "value": "3",
-     "note": "How many laps a run lasts before the result screen. Latched when you launch, so changing it mid-run does nothing until the next one.",
-     "current": 3,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 5
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 1
-       }
-      },
-      "pick(\"5\")": {
-       "settings": {
-        "laps": 5
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:pack-charge",
-     "label": "Pack charge",
-     "value": "4.20 volts per cell",
-     "note": "A tired pack sags harder and gives less punch. Best laps are kept per charge level, so a time set on a fresh pack and a time set on a tired one are two different records.",
-     "current": 4.2,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 volts per cell"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 volts per cell"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 volts per cell"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"3.8\")": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:flight-model",
-     "label": "Flight model",
-     "value": "Expert",
-     "note": "Expert: the full physics, propwash, gyro noise and build tolerance included, which is what every board time is flown on. Arcade turns the imperfections off for a friendlier machine.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Expert"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:crash-damage",
-     "label": "Crash damage",
-     "value": "On",
-     "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:radio-link",
-     "label": "Radio link",
-     "value": "Perfect (no radio)",
-     "note": "A perfect link is sharper than any real radio: every frame arrives, exactly on time. Times set on it are marked on the board.",
-     "current": "perfect",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfect (no radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "crossfire"
-       }
-      },
-      "pick(\"elrs500\")": {
-       "settings": {
-        "link": "elrs500"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Fly",
-     "note": "Your best on Saved before creative mode is filed under exactly this: Expert physics, 4.20 V per cell, 3 laps, the Factory default tune. Change any part of it and you are on a different board. This run is on a perfect link.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "launch-arcade-weight": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:track",
-     "label": "Track",
-     "value": "Saved before creative mode",
-     "note": "4 gates. This is what your time will be measured on.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "The tune, the PIDs, the camera and the firmware. Opens Quad. Whatever is loaded there is what this run flies, and it goes to the board with the time.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-what-this-run-counts-as",
-     "label": "What this run counts as",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:laps",
-     "label": "Laps",
-     "value": "1",
-     "note": "How many laps a run lasts before the result screen. Latched when you launch, so changing it mid-run does nothing until the next one.",
-     "current": 1,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 5
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "laps": 3
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:pack-charge",
-     "label": "Pack charge",
-     "value": "3.70 volts per cell",
-     "note": "A tired pack sags harder and gives less punch. Best laps are kept per charge level, so a time set on a fresh pack and a time set on a tired one are two different records.",
-     "current": 3.7,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 volts per cell"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 volts per cell"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 volts per cell"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"4.2\")": {
-       "settings": {
-        "packVoltage": 4.2
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:flight-model",
-     "label": "Flight model",
-     "value": "Arcade",
-     "note": "Arcade: the ideal quad. No propwash shake, no gyro noise, no build asymmetry, so any tune flies glass smooth. Times flown here stay off the public board.",
-     "current": "arcade",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Expert"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      },
-      "pick(\"expert\")": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:crash-damage",
-     "label": "Crash damage",
-     "value": "Off",
-     "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "crashDamage": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "crashDamage": true
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:radio-link",
-     "label": "Radio link",
-     "value": "ELRS 250 Hz",
-     "note": "250 Hz, 4 ms delay, 0.8 ms jitter.",
-     "current": "elrs250",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfect (no radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs150"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "pick(\"elrs150\")": {
-       "settings": {
-        "link": "elrs150"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Fly",
-     "note": "Your best on Saved before creative mode is filed under exactly this: Arcade physics, weight at 120 percent, 3.70 V per cell, 1 lap, the Factory default tune. Change any part of it and you are on a different board. Arcade times stay off the public board, so this run will not count there.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "launch-weight-perfect": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:track",
-     "label": "Track",
-     "value": "Saved before creative mode",
-     "note": "4 gates. This is what your time will be measured on.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "The tune, the PIDs, the camera and the firmware. Opens Quad. Whatever is loaded there is what this run flies, and it goes to the board with the time.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-what-this-run-counts-as",
-     "label": "What this run counts as",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:laps",
-     "label": "Laps",
-     "value": "5",
-     "note": "How many laps a run lasts before the result screen. Latched when you launch, so changing it mid-run does nothing until the next one.",
-     "current": 5,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 1
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 3
-       }
-      },
-      "pick(\"1\")": {
-       "settings": {
-        "laps": 1
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:pack-charge",
-     "label": "Pack charge",
-     "value": "4.20 volts per cell",
-     "note": "A tired pack sags harder and gives less punch. Best laps are kept per charge level, so a time set on a fresh pack and a time set on a tired one are two different records.",
-     "current": 4.2,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 volts per cell"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 volts per cell"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 volts per cell"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"3.8\")": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:flight-model",
-     "label": "Flight model",
-     "value": "Expert",
-     "note": "Expert: the full physics, propwash, gyro noise and build tolerance included, which is what every board time is flown on. Arcade turns the imperfections off for a friendlier machine.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Expert"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:crash-damage",
-     "label": "Crash damage",
-     "value": "On",
-     "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:radio-link",
-     "label": "Radio link",
-     "value": "Perfect (no radio)",
-     "note": "A perfect link is sharper than any real radio: every frame arrives, exactly on time. Times set on it are marked on the board.",
-     "current": "perfect",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfect (no radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "crossfire"
-       }
-      },
-      "pick(\"elrs500\")": {
-       "settings": {
-        "link": "elrs500"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Fly",
-     "note": "Your best on Saved before creative mode is filed under exactly this: Expert physics, weight at 80 percent, 4.20 V per cell, 5 laps, the Factory default tune. Change any part of it and you are on a different board. Times flown at a weight that is not 100 percent stay off the public board, so this run will not count there.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "launch-plane": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:track",
-     "label": "Track",
-     "value": "The Alps",
-     "note": "This is what your time will be measured on.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Plane",
-     "value": "Cub, Stabilised",
-     "note": "The tune, the PIDs, the camera and the firmware. Opens Quad. Whatever is loaded there is what this run flies, and it goes to the board with the time.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-what-this-run-counts-as",
-     "label": "What this run counts as",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:laps",
-     "label": "Laps",
-     "value": "3",
-     "note": "How many laps a run lasts before the result screen. Latched when you launch, so changing it mid-run does nothing until the next one.",
-     "current": 3,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 5
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 1
-       }
-      },
-      "pick(\"5\")": {
-       "settings": {
-        "laps": 5
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:pack-charge",
-     "label": "Pack charge",
-     "value": "4.20 volts per cell",
-     "note": "A tired pack sags harder and gives less punch. Best laps are kept per charge level, so a time set on a fresh pack and a time set on a tired one are two different records.",
-     "current": 4.2,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 volts per cell"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 volts per cell"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 volts per cell"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"3.8\")": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:flight-model",
-     "label": "Flight model",
-     "value": "Expert",
-     "note": "Expert: the full physics, propwash, gyro noise and build tolerance included, which is what every board time is flown on. Arcade turns the imperfections off for a friendlier machine.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Expert"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:crash-damage",
-     "label": "Crash damage",
-     "value": "On",
-     "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:radio-link",
-     "label": "Radio link",
-     "value": "Perfect (no radio)",
-     "note": "A perfect link is sharper than any real radio: every frame arrives, exactly on time. Times set on it are marked on the board.",
-     "current": "perfect",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfect (no radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "crossfire"
-       }
-      },
-      "pick(\"elrs500\")": {
-       "settings": {
-        "link": "elrs500"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Fly",
-     "note": "Your best on The Alps is filed under exactly this: Expert physics, 4.20 V per cell, 3 laps, the Stabilised tune. Change any part of it and you are on a different board. This run is on a perfect link.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Back",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
   "paused": {
    "screen": "paused",
    "items": [
@@ -19323,13 +17298,6 @@
      "label": "Settings",
      "note": "Your radio and keys, screen, sound, language, and help.",
      "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
      "drives": {}
     },
     {
@@ -19443,13 +17411,6 @@
      "drives": {}
     },
     {
-     "id": "paused:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
      "id": "paused:a-friends-leave",
      "label": "Leave the room",
      "note": "Back to flying on your own.",
@@ -19474,7 +17435,6 @@
     }
    ],
    "lit": [
-    "|",
     "|",
     "|",
     "|",
@@ -20198,31 +18158,6 @@
     }
    ]
   },
-  "results-freestyle-nothing": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
   "results-free-world": {
    "screen": "results",
    "items": [
@@ -20263,134 +18198,6 @@
      "label": "Flight feel",
      "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
      "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-local-seat": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-no-lap": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-lap": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Back to title",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-moved": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Fly again",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
      "drives": {}
     },
     {
@@ -26424,11 +24231,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Pista",
-     "value": "Elige uno",
-     "note": "Ninguna pista está montada todavía. Tus propias pistas, cada pista que ofrece el tablero, y el constructor, están aquí dentro.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "El mundo",
+     "value": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -26464,130 +24271,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
-     "action": "mode-gate",
-     "drives": {}
-    }
-   ]
-  },
-  "title-race-seated": {
-   "screen": "title",
-   "items": [
-    {
-     "id": "title:a-calibrate",
-     "label": "Este navegador está adivinando el orden de tus sticks",
-     "note": "El eje que cree que es tu throttle está quieto en el medio, y un throttle de verdad descansa en un extremo porque no tiene resorte de centrado. Así que la suposición es probablemente equivocado, y una suposición errada significa despegar a media potencia en un stick que vuelve al centro por resorte. Calibrar toma más o menos un minuto y lo arregla para siempre.",
-     "action": "calibrate",
-     "rowClass": "row-warn",
-     "drives": {}
-    },
-    {
-     "id": "title:a-fly",
-     "label": "Volar",
-     "action": "fly",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-courses",
-     "label": "Pista",
-     "value": "Saved before creative mode",
-     "note": "Saved before creative mode, y todas las demás pistas. Con puertas, contra el reloj.",
-     "action": "courses",
-     "drives": {}
-    },
-    {
-     "id": "title:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "title:a-pilot",
-     "label": "Ajustes",
-     "value": "Sin definir",
-     "note": "Tú y tu radio. Tu nombre, elegir un joystick, Calibrar sticks, rates, gráficos, sonido y el registro de vuelo.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "title:a-howto",
-     "label": "Cómo volar",
-     "note": "Los sticks, en vivo, y qué hacen las teclas.",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-credits",
-     "label": "Créditos",
-     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "title:a-mode-gate",
-     "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
-     "action": "mode-gate",
-     "drives": {}
-    }
-   ]
-  },
-  "title-race-first-flight": {
-   "screen": "title",
-   "items": [
-    {
-     "id": "title:a-firstflight",
-     "label": "Primer vuelo",
-     "note": "Saved before creative mode, nivelado, con los sticks dibujados en pantalla y una indicación en cada paso.",
-     "action": "firstflight",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "title:a-courses",
-     "label": "Pista",
-     "value": "Saved before creative mode",
-     "note": "Saved before creative mode, y todas las demás pistas. Con puertas, contra el reloj.",
-     "action": "courses",
-     "drives": {}
-    },
-    {
-     "id": "title:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "title:a-pilot",
-     "label": "Ajustes",
-     "value": "Sin definir",
-     "note": "Tú y tu radio. Tu nombre, elegir un joystick, Calibrar sticks, rates, gráficos, sonido y el registro de vuelo.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "title:a-howto",
-     "label": "Cómo volar",
-     "note": "Los sticks, en vivo, y qué hacen las teclas.",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "title:a-credits",
-     "label": "Créditos",
-     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "title:a-mode-gate",
-     "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -26604,11 +24288,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Pista",
-     "value": "Elige uno",
-     "note": "Ninguna pista está montada todavía. Tus propias pistas, cada pista que ofrece el tablero, y el constructor, están aquí dentro.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "El mundo",
+     "value": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -26644,7 +24328,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -26661,11 +24345,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Pista",
-     "value": "Saved before creative mode",
-     "note": "Saved before creative mode, y todas las demás pistas. Con puertas, contra el reloj.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "El mundo",
+     "value": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -26709,7 +24393,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -26766,7 +24450,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -26823,7 +24507,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -26840,11 +24524,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Pista",
-     "value": "Elige uno",
-     "note": "Ninguna pista está montada todavía. Tus propias pistas, cada pista que ofrece el tablero, y el constructor, están aquí dentro.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "El mundo",
+     "value": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -26880,7 +24564,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -26897,11 +24581,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Pista",
-     "value": "Elige uno",
-     "note": "Ninguna pista está montada todavía. Tus propias pistas, cada pista que ofrece el tablero, y el constructor, están aquí dentro.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "El mundo",
+     "value": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -26937,7 +24621,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     },
@@ -26981,11 +24665,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Pista",
-     "value": "Elige uno",
-     "note": "Ninguna pista está montada todavía. Tus propias pistas, cada pista que ofrece el tablero, y el constructor, están aquí dentro.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "El mundo",
+     "value": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -27021,7 +24705,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     },
@@ -27080,11 +24764,11 @@
      "drives": {}
     },
     {
-     "id": "title:a-courses",
-     "label": "Pista",
-     "value": "Elige uno",
-     "note": "Ninguna pista está montada todavía. Tus propias pistas, cada pista que ofrece el tablero, y el constructor, están aquí dentro.",
-     "action": "courses",
+     "id": "title:a-freestyle",
+     "label": "El mundo",
+     "value": "Valle suizo, fotorrealista",
+     "note": "El valle de los Alpes dibujado para parecer una fotografía: prado, roca, madera y pizarra fotografiados, el cielo real iluminándolo y bruma en las crestas lejanas. Más exigente con la tarjeta gráfica que los Alpes. Sin puertas, sin reloj. Tu quad y el modelo de física están aquí.",
+     "action": "freestyle",
      "drives": {}
     },
     {
@@ -27120,7 +24804,7 @@
     {
      "id": "title:a-mode-gate",
      "label": "Qué volar",
-     "note": "Las tres tarjetas: Día de pista, estilo libre o ala fija. Cambiar de idea sobre cualquiera empieza aquí.",
+     "note": "Las tarjetas de la pantalla de inicio. Cambiar de idea sobre cualquiera empieza aquí.",
      "action": "mode-gate",
      "drives": {}
     }
@@ -27975,713 +25659,6 @@
      "drives": {}
     }
    ]
-  },
-  "courses-empty": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-newtrack",
-     "label": "Pista nueva",
-     "note": "Construye una: elige el mundo y luego coloca las puertas donde quieras.",
-     "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ],
-   "lede": "Todas las pistas de aquí se pueden correr con un quad. Cambia la aeronave en Quad para volar una con un avión."
-  },
-  "courses-lists": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Tuya, en Los Alpes. 6 puertas.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-1",
-     "label": "Valley run",
-     "note": "En Valle suizo, fotorrealista, de Bea.",
-     "action": "cloud:cloud-1",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-2",
-     "label": "Nameless",
-     "note": "En Valle suizo, fotorrealista, de un piloto.",
-     "action": "cloud:cloud-2",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-3",
-     "label": "Old world",
-     "note": "Su mundo fue retirado, así que no se puede volar",
-     "action": "cloud:cloud-3",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-1",
-     "label": "Hung track",
-     "note": "Colgada en Los Alpes por Dee. Elegirla te lleva a volarla allí.",
-     "action": "board:board-1",
-     "course": {
-      "kind": "board",
-      "id": "board-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-2",
-     "label": "No author",
-     "note": "Colgada en Los Alpes por un piloto. Elegirla te lleva a volarla allí.",
-     "action": "board:board-2",
-     "course": {
-      "kind": "board",
-      "id": "board-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack",
-     "label": "Pista nueva",
-     "note": "Construye una: elige el mundo y luego coloca las puertas donde quieras.",
-     "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud-more",
-     "label": "Más pistas",
-     "note": "Las siguientes pistas que guardaron todos, las más antiguas.",
-     "action": "cloud-more",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ],
-   "lede": "Todas las pistas de aquí se pueden correr con un quad. Cambia la aeronave en Quad para volar una con un avión."
-  },
-  "courses-plane": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Tuya, en Los Alpes. 6 puertas. Muy estrecha para el Piper Cub, así que se vuela con el interceptor.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-1",
-     "label": "Valley run",
-     "note": "En Valle suizo, fotorrealista, de Bea.",
-     "action": "cloud:cloud-1",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-2",
-     "label": "Nameless",
-     "note": "En Valle suizo, fotorrealista, de un piloto. Muy estrecha para el Piper Cub, así que se vuela con el interceptor.",
-     "action": "cloud:cloud-2",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-3",
-     "label": "Old world",
-     "note": "Su mundo fue retirado, así que no se puede volar",
-     "action": "cloud:cloud-3",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-1",
-     "label": "Hung track",
-     "note": "Colgada en Los Alpes por Dee. Elegirla te lleva a volarla allí.",
-     "action": "board:board-1",
-     "course": {
-      "kind": "board",
-      "id": "board-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-2",
-     "label": "No author",
-     "note": "Colgada en Los Alpes por un piloto. Elegirla te lleva a volarla allí.",
-     "action": "board:board-2",
-     "course": {
-      "kind": "board",
-      "id": "board-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack",
-     "label": "Pista nueva",
-     "note": "Construye una: elige el mundo y luego coloca las puertas donde quieras.",
-     "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ],
-   "lede": "Se listan todas las pistas, y una por cuyas puertas no pasa el Piper Cub se vuela con el interceptor. Las pistas publicadas del tablero son solo las que puede pasar. Cambia la aeronave en Quad o Avión."
-  },
-  "courses-chosen-local": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Tuya, en Los Alpes. 6 puertas.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-barn-loop",
-     "label": "Barn loop",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-fly",
-     "label": "Jugar",
-     "note": "Corre Barn loop en Los Alpes: las puertas y el reloj de vuelta.",
-     "action": "card-fly",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-edit",
-     "label": "Editar",
-     "note": "Abre Barn loop en el constructor, en Los Alpes. B la vuela, Escape vuelve aquí.",
-     "action": "card-edit",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-rename",
-     "label": "Renombrar",
-     "note": "Ponle a Barn loop un nombre por el que la reconozcas.",
-     "action": "card-rename",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-duplicate",
-     "label": "Duplicar",
-     "note": "Una copia de Barn loop para cambiar sin tocar la original.",
-     "action": "card-duplicate",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-delete",
-     "label": "Borrar",
-     "note": "Quita Barn loop de este navegador. Pregunta antes.",
-     "action": "card-delete",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-back",
-     "label": "Volver a la lista",
-     "action": "card-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Todas las pistas de aquí se pueden correr con un quad. Cambia la aeronave en Quad para volar una con un avión."
-  },
-  "courses-chosen-cloud": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-cloud:cloud-1",
-     "label": "Valley run",
-     "note": "En Valle suizo, fotorrealista, de Bea.",
-     "action": "cloud:cloud-1",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-2",
-     "label": "Nameless",
-     "note": "En Valle suizo, fotorrealista, de un piloto.",
-     "action": "cloud:cloud-2",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-3",
-     "label": "Old world",
-     "note": "Su mundo fue retirado, así que no se puede volar",
-     "action": "cloud:cloud-3",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-valley-run",
-     "label": "Valley run",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-fly",
-     "label": "Jugar",
-     "note": "Corre Valley run en Valle suizo, fotorrealista: las puertas y el reloj de vuelta.",
-     "action": "card-fly",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-editcopy",
-     "label": "Editar una copia",
-     "note": "Una copia de Valley run que es tuya, abierta en el constructor. La original queda como está.",
-     "action": "card-editcopy",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-back",
-     "label": "Volver a la lista",
-     "action": "card-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Todas las pistas de aquí se pueden correr con un quad. Cambia la aeronave en Quad para volar una con un avión."
-  },
-  "courses-chosen-cloud-retired": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-cloud:cloud-1",
-     "label": "Valley run",
-     "note": "En Valle suizo, fotorrealista, de Bea.",
-     "action": "cloud:cloud-1",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-2",
-     "label": "Nameless",
-     "note": "En Valle suizo, fotorrealista, de un piloto.",
-     "action": "cloud:cloud-2",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-cloud:cloud-3",
-     "label": "Old world",
-     "note": "Su mundo fue retirado, así que no se puede volar",
-     "action": "cloud:cloud-3",
-     "course": {
-      "kind": "cloud",
-      "id": "cloud-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-old-world",
-     "label": "Old world",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:s-su-mundo-fue-retirado-as-que-no-se-puede-volar",
-     "label": "Su mundo fue retirado, así que no se puede volar",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-back",
-     "label": "Volver a la lista",
-     "action": "card-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Todas las pistas de aquí se pueden correr con un quad. Cambia la aeronave en Quad para volar una con un avión."
-  },
-  "courses-chosen-board": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-board:board-1",
-     "label": "Hung track",
-     "note": "Colgada en Los Alpes por Dee. Elegirla te lleva a volarla allí.",
-     "action": "board:board-1",
-     "course": {
-      "kind": "board",
-      "id": "board-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-board:board-2",
-     "label": "No author",
-     "note": "Colgada en Los Alpes por un piloto. Elegirla te lleva a volarla allí.",
-     "action": "board:board-2",
-     "course": {
-      "kind": "board",
-      "id": "board-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-no-author",
-     "label": "No author",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-fly",
-     "label": "Jugar",
-     "note": "Carga No author desde el tablero y vuélala aquí.",
-     "action": "card-fly",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-duplicate",
-     "label": "Duplicar",
-     "note": "Copia No author en Mis pistas, para cambiarla y construir sobre ella como tuya.",
-     "action": "card-duplicate",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-card-back",
-     "label": "Volver a la lista",
-     "action": "card-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Todas las pistas de aquí se pueden correr con un quad. Cambia la aeronave en Quad para volar una con un avión."
-  },
-  "courses-chosen-gone": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Tuya, en Los Alpes. 6 puertas.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack",
-     "label": "Pista nueva",
-     "note": "Construye una: elige el mundo y luego coloca las puertas donde quieras.",
-     "action": "newtrack",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ],
-   "lede": "Todas las pistas de aquí se pueden correr con un quad. Cambia la aeronave en Quad para volar una con un avión."
-  },
-  "courses-new-track": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:a-local:own-1",
-     "label": "Barn loop",
-     "note": "Tuya, en Los Alpes. 6 puertas.",
-     "action": "local:own-1",
-     "course": {
-      "kind": "local",
-      "id": "own-1"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-2",
-     "label": "One gate",
-     "note": "Tuya, en Valle suizo, fotorrealista. 1 puerta.",
-     "action": "local:own-2",
-     "course": {
-      "kind": "local",
-      "id": "own-2"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:a-local:own-3",
-     "label": "Empty field",
-     "note": "Tuya, en Valle suizo, fotorrealista. 0 puertas.",
-     "action": "local:own-3",
-     "course": {
-      "kind": "local",
-      "id": "own-3"
-     },
-     "drives": {}
-    },
-    {
-     "id": "courses:s-pista-nueva-en-qu-mundo",
-     "label": "Pista nueva: ¿en qué mundo?",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:alps",
-     "label": "Los Alpes",
-     "note": "Una pista vacía en el constructor, en Los Alpes. Coloca las puertas, B la vuela, Escape vuelve aquí.",
-     "action": "newtrack:alps",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:swiss2",
-     "label": "Valle suizo, fotorrealista",
-     "note": "Una pista vacía en el constructor, en Valle suizo, fotorrealista. Coloca las puertas, B la vuela, Escape vuelve aquí.",
-     "action": "newtrack:swiss2",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:itaipu",
-     "label": "Itaipú",
-     "note": "Una pista vacía en el constructor, en Itaipú. Coloca las puertas, B la vuela, Escape vuelve aquí.",
-     "action": "newtrack:itaipu",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:alps",
-     "label": "Pista casual en el cielo, Los Alpes",
-     "note": "Ocho aros de quad en un circuito en el cielo sobre Los Alpes, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
-     "action": "casualtrack:alps",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:swiss2",
-     "label": "Pista casual en el cielo, Valle suizo, fotorrealista",
-     "note": "Ocho aros de quad en un circuito en el cielo sobre Valle suizo, fotorrealista, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
-     "action": "casualtrack:swiss2",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:itaipu",
-     "label": "Pista casual en el cielo, Itaipú",
-     "note": "Ocho aros de quad en un circuito en el cielo sobre Itaipú, a 45 m entre sí y a 10 m de altura. Un clic y ya la estás volando: no hace falta ser bueno.",
-     "action": "casualtrack:itaipu",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack-back",
-     "label": "Volver a la lista",
-     "action": "newtrack-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Todas las pistas de aquí se pueden correr con un quad. Cambia la aeronave en Quad para volar una con un avión."
-  },
-  "courses-new-track-plane": {
-   "screen": "courses",
-   "items": [
-    {
-     "id": "courses:s-pista-nueva-en-qu-mundo",
-     "label": "Pista nueva: ¿en qué mundo?",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:alps",
-     "label": "Los Alpes",
-     "note": "Una pista vacía en el constructor, en Los Alpes. Coloca las puertas, B la vuela, Escape vuelve aquí.",
-     "action": "newtrack:alps",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:swiss2",
-     "label": "Valle suizo, fotorrealista",
-     "note": "Una pista vacía en el constructor, en Valle suizo, fotorrealista. Coloca las puertas, B la vuela, Escape vuelve aquí.",
-     "action": "newtrack:swiss2",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack:itaipu",
-     "label": "Itaipú",
-     "note": "Una pista vacía en el constructor, en Itaipú. Coloca las puertas, B la vuela, Escape vuelve aquí.",
-     "action": "newtrack:itaipu",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:alps",
-     "label": "Pista casual en el cielo, Los Alpes",
-     "note": "Ocho aros grandes en un circuito amplio en el cielo sobre Los Alpes, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
-     "action": "casualtrack:alps",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:swiss2",
-     "label": "Pista casual en el cielo, Valle suizo, fotorrealista",
-     "note": "Ocho aros grandes en un circuito amplio en el cielo sobre Valle suizo, fotorrealista, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
-     "action": "casualtrack:swiss2",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-casualtrack:itaipu",
-     "label": "Pista casual en el cielo, Itaipú",
-     "note": "Ocho aros grandes en un circuito amplio en el cielo sobre Itaipú, a 400 m entre sí. Un clic y ya la estás volando: no hace falta ser bueno.",
-     "action": "casualtrack:itaipu",
-     "drives": {}
-    },
-    {
-     "id": "courses:a-newtrack-back",
-     "label": "Volver a la lista",
-     "action": "newtrack-back",
-     "drives": {}
-    }
-   ],
-   "lede": "Se listan todas las pistas, y una por cuyas puertas no pasa el Piper Cub se vuela con el interceptor. Las pistas publicadas del tablero son solo las que puede pasar. Cambia la aeronave en Quad o Avión."
   },
   "freestyle-off": {
    "screen": "freestyle",
@@ -34167,7 +31144,7 @@
      "id": "pilot:a-setname",
      "label": "Tu nombre",
      "value": "Sin definir",
-     "note": "Necesario para publicar una pista o subir un tiempo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
+     "note": "El nombre con el que vuela este equipo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
      "action": "setname",
      "drives": {}
     },
@@ -35230,7 +32207,7 @@
      "id": "pilot:a-setname",
      "label": "Tu nombre",
      "value": "Ace Pilot",
-     "note": "Los tiempos publicados y las pistas publicadas llevan este nombre. Cambiarlo actualiza el tablero para las pistas que publicaste desde este navegador.",
+     "note": "El nombre con el que vuela este equipo.",
      "action": "setname",
      "drives": {}
     },
@@ -36293,7 +33270,7 @@
      "id": "pilot:a-setname",
      "label": "Tu nombre",
      "value": "Sin definir",
-     "note": "Necesario para publicar una pista o subir un tiempo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
+     "note": "El nombre con el que vuela este equipo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
      "action": "setname",
      "drives": {}
     },
@@ -39460,7 +36437,7 @@
      "id": "pilot:a-setname",
      "label": "Tu nombre",
      "value": "Sin definir",
-     "note": "Necesario para publicar una pista o subir un tiempo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
+     "note": "El nombre con el que vuela este equipo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
      "action": "setname",
      "drives": {}
     },
@@ -40519,7 +37496,7 @@
      "id": "pilot:a-setname",
      "label": "Tu nombre",
      "value": "Sin definir",
-     "note": "Necesario para publicar una pista o subir un tiempo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
+     "note": "El nombre con el que vuela este equipo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
      "action": "setname",
      "drives": {}
     },
@@ -41550,7 +38527,7 @@
      "id": "pilot:a-setname",
      "label": "Tu nombre",
      "value": "Sin definir",
-     "note": "Necesario para publicar una pista o subir un tiempo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
+     "note": "El nombre con el que vuela este equipo. De dos a veinticuatro letras, números, espacios, puntos, guiones bajos o guiones.",
      "action": "setname",
      "drives": {}
     },
@@ -43998,1201 +40975,6 @@
     }
    ]
   },
-  "launch-no-seat": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:pista",
-     "label": "Pista",
-     "value": "Pista",
-     "note": "Sobre esto se medirá tu tiempo.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-como-qu-cuenta-esta-sesi-n",
-     "label": "Como qué cuenta esta sesión",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:vueltas",
-     "label": "Vueltas",
-     "value": "3",
-     "note": "Cuántas vueltas dura una sesión antes de la pantalla de resultados. Se fija al salir, así que cambiarlo a mitad de sesión no hace nada hasta la siguiente.",
-     "current": 3,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 5
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 1
-       }
-      },
-      "pick(\"5\")": {
-       "settings": {
-        "laps": 5
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:carga-de-la-bater-a",
-     "label": "Carga de la batería",
-     "value": "4.20 voltios por celda",
-     "note": "Una batería cansada cae más de voltaje y da menos punch. Las mejores vueltas se guardan por nivel de carga, así que un tiempo hecho con una batería fresca y uno hecho con una cansada son dos récords distintos.",
-     "current": 4.2,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 voltios por celda"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 voltios por celda"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 voltios por celda"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"3.8\")": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:modelo-de-vuelo",
-     "label": "Modelo de vuelo",
-     "value": "Experto",
-     "note": "Experto: la física completa, con propwash, ruido de gyro y tolerancia de armado incluidos, que es con lo que se vuela cada tiempo del tablero. Arcade apaga las imperfecciones para una máquina más amigable.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Experto"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:da-os-en-choques",
-     "label": "Daños en choques",
-     "value": "Sí",
-     "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:enlace-de-radio",
-     "label": "Enlace de radio",
-     "value": "Perfecto (sin radio)",
-     "note": "Un enlace perfecto es más preciso que cualquier radio real: cada trama llega, justo a tiempo. Los tiempos hechos con él quedan marcados en el tablero.",
-     "current": "perfect",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfecto (sin radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "crossfire"
-       }
-      },
-      "pick(\"elrs500\")": {
-       "settings": {
-        "link": "elrs500"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Volar",
-     "note": "Tu mejor en Pista está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "launch-seated": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:pista",
-     "label": "Pista",
-     "value": "Saved before creative mode",
-     "note": "4 puertas. Sobre esto se medirá tu tiempo.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-como-qu-cuenta-esta-sesi-n",
-     "label": "Como qué cuenta esta sesión",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:vueltas",
-     "label": "Vueltas",
-     "value": "3",
-     "note": "Cuántas vueltas dura una sesión antes de la pantalla de resultados. Se fija al salir, así que cambiarlo a mitad de sesión no hace nada hasta la siguiente.",
-     "current": 3,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 5
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 1
-       }
-      },
-      "pick(\"5\")": {
-       "settings": {
-        "laps": 5
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:carga-de-la-bater-a",
-     "label": "Carga de la batería",
-     "value": "4.20 voltios por celda",
-     "note": "Una batería cansada cae más de voltaje y da menos punch. Las mejores vueltas se guardan por nivel de carga, así que un tiempo hecho con una batería fresca y uno hecho con una cansada son dos récords distintos.",
-     "current": 4.2,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 voltios por celda"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 voltios por celda"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 voltios por celda"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"3.8\")": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:modelo-de-vuelo",
-     "label": "Modelo de vuelo",
-     "value": "Experto",
-     "note": "Experto: la física completa, con propwash, ruido de gyro y tolerancia de armado incluidos, que es con lo que se vuela cada tiempo del tablero. Arcade apaga las imperfecciones para una máquina más amigable.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Experto"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:da-os-en-choques",
-     "label": "Daños en choques",
-     "value": "Sí",
-     "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:enlace-de-radio",
-     "label": "Enlace de radio",
-     "value": "Perfecto (sin radio)",
-     "note": "Un enlace perfecto es más preciso que cualquier radio real: cada trama llega, justo a tiempo. Los tiempos hechos con él quedan marcados en el tablero.",
-     "current": "perfect",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfecto (sin radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "crossfire"
-       }
-      },
-      "pick(\"elrs500\")": {
-       "settings": {
-        "link": "elrs500"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Volar",
-     "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "launch-arcade-weight": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:pista",
-     "label": "Pista",
-     "value": "Saved before creative mode",
-     "note": "4 puertas. Sobre esto se medirá tu tiempo.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-como-qu-cuenta-esta-sesi-n",
-     "label": "Como qué cuenta esta sesión",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:vueltas",
-     "label": "Vueltas",
-     "value": "1",
-     "note": "Cuántas vueltas dura una sesión antes de la pantalla de resultados. Se fija al salir, así que cambiarlo a mitad de sesión no hace nada hasta la siguiente.",
-     "current": 1,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 3
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 5
-       }
-      },
-      "pick(\"3\")": {
-       "settings": {
-        "laps": 3
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:carga-de-la-bater-a",
-     "label": "Carga de la batería",
-     "value": "3.70 voltios por celda",
-     "note": "Una batería cansada cae más de voltaje y da menos punch. Las mejores vueltas se guardan por nivel de carga, así que un tiempo hecho con una batería fresca y uno hecho con una cansada son dos récords distintos.",
-     "current": 3.7,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 voltios por celda"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 voltios por celda"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 voltios por celda"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"4.2\")": {
-       "settings": {
-        "packVoltage": 4.2
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:modelo-de-vuelo",
-     "label": "Modelo de vuelo",
-     "value": "Arcade",
-     "note": "Arcade: el quad ideal. Sin sacudidas de propwash, sin ruido de gyro, sin asimetría de armado, así que cualquier tune vuela suave como vidrio. Los tiempos volados aquí quedan fuera del tablero público.",
-     "current": "arcade",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Experto"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      },
-      "pick(\"expert\")": {
-       "settings": {
-        "flightStyle": "expert"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:da-os-en-choques",
-     "label": "Daños en choques",
-     "value": "No",
-     "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "crashDamage": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "crashDamage": true
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:enlace-de-radio",
-     "label": "Enlace de radio",
-     "value": "ELRS 250 Hz",
-     "note": "250 Hz, 4 ms de retardo, 0.8 ms de jitter.",
-     "current": "elrs250",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfecto (sin radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs150"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "pick(\"elrs150\")": {
-       "settings": {
-        "link": "elrs150"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Volar",
-     "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Arcade physics, peso al 120 por ciento, 3.70 V por celda, 1 lap, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Los tiempos en arcade quedan fuera del tablero público, así que esta sesión no contará ahí.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "launch-weight-perfect": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:pista",
-     "label": "Pista",
-     "value": "Saved before creative mode",
-     "note": "4 puertas. Sobre esto se medirá tu tiempo.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-como-qu-cuenta-esta-sesi-n",
-     "label": "Como qué cuenta esta sesión",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:vueltas",
-     "label": "Vueltas",
-     "value": "5",
-     "note": "Cuántas vueltas dura una sesión antes de la pantalla de resultados. Se fija al salir, así que cambiarlo a mitad de sesión no hace nada hasta la siguiente.",
-     "current": 5,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 1
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 3
-       }
-      },
-      "pick(\"1\")": {
-       "settings": {
-        "laps": 1
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:carga-de-la-bater-a",
-     "label": "Carga de la batería",
-     "value": "4.20 voltios por celda",
-     "note": "Una batería cansada cae más de voltaje y da menos punch. Las mejores vueltas se guardan por nivel de carga, así que un tiempo hecho con una batería fresca y uno hecho con una cansada son dos récords distintos.",
-     "current": 4.2,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 voltios por celda"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 voltios por celda"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 voltios por celda"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"3.8\")": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:modelo-de-vuelo",
-     "label": "Modelo de vuelo",
-     "value": "Experto",
-     "note": "Experto: la física completa, con propwash, ruido de gyro y tolerancia de armado incluidos, que es con lo que se vuela cada tiempo del tablero. Arcade apaga las imperfecciones para una máquina más amigable.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Experto"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:da-os-en-choques",
-     "label": "Daños en choques",
-     "value": "Sí",
-     "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:enlace-de-radio",
-     "label": "Enlace de radio",
-     "value": "Perfecto (sin radio)",
-     "note": "Un enlace perfecto es más preciso que cualquier radio real: cada trama llega, justo a tiempo. Los tiempos hechos con él quedan marcados en el tablero.",
-     "current": "perfect",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfecto (sin radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "crossfire"
-       }
-      },
-      "pick(\"elrs500\")": {
-       "settings": {
-        "link": "elrs500"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Volar",
-     "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Experto physics, peso al 80 por ciento, 4.20 V por celda, 5 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Los tiempos volados con un peso distinto de 100 por ciento quedan fuera del tablero público, así que esta sesión no contará ahí.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
-  "launch-plane": {
-   "screen": "launch",
-   "items": [
-    {
-     "id": "launch:pista",
-     "label": "Pista",
-     "value": "Los Alpes",
-     "note": "Sobre esto se medirá tu tiempo.",
-     "info": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-quad",
-     "label": "Avión",
-     "value": "Cub, Estabilizado",
-     "note": "El tune, los PIDs, la cámara y el firmware. Abre Dron. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "launch:s-como-qu-cuenta-esta-sesi-n",
-     "label": "Como qué cuenta esta sesión",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:vueltas",
-     "label": "Vueltas",
-     "value": "3",
-     "note": "Cuántas vueltas dura una sesión antes de la pantalla de resultados. Se fija al salir, así que cambiarlo a mitad de sesión no hace nada hasta la siguiente.",
-     "current": 3,
-     "options": [
-      {
-       "value": 1,
-       "label": "1"
-      },
-      {
-       "value": 3,
-       "label": "3"
-      },
-      {
-       "value": 5,
-       "label": "5"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "laps": 5
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "laps": 1
-       }
-      },
-      "pick(\"5\")": {
-       "settings": {
-        "laps": 5
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:carga-de-la-bater-a",
-     "label": "Carga de la batería",
-     "value": "4.20 voltios por celda",
-     "note": "Una batería cansada cae más de voltaje y da menos punch. Las mejores vueltas se guardan por nivel de carga, así que un tiempo hecho con una batería fresca y uno hecho con una cansada son dos récords distintos.",
-     "current": 4.2,
-     "options": [
-      {
-       "value": 4.2,
-       "label": "4.20 voltios por celda"
-      },
-      {
-       "value": 3.8,
-       "label": "3.80 voltios por celda"
-      },
-      {
-       "value": 3.5,
-       "label": "3.50 voltios por celda"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "packVoltage": 3.5
-       }
-      },
-      "pick(\"3.8\")": {
-       "settings": {
-        "packVoltage": 3.8
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:modelo-de-vuelo",
-     "label": "Modelo de vuelo",
-     "value": "Experto",
-     "note": "Experto: la física completa, con propwash, ruido de gyro y tolerancia de armado incluidos, que es con lo que se vuela cada tiempo del tablero. Arcade apaga las imperfecciones para una máquina más amigable.",
-     "current": "expert",
-     "options": [
-      {
-       "value": "expert",
-       "label": "Experto"
-      },
-      {
-       "value": "arcade",
-       "label": "Arcade"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      },
-      "pick(\"arcade\")": {
-       "settings": {
-        "flightStyle": "arcade"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:da-os-en-choques",
-     "label": "Daños en choques",
-     "value": "Sí",
-     "note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
-     "sw": true,
-     "on": true,
-     "current": true,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {},
-      "adjust(-1)": {
-       "settings": {
-        "crashDamage": false
-       }
-      },
-      "flip()": {
-       "settings": {
-        "crashDamage": false
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:enlace-de-radio",
-     "label": "Enlace de radio",
-     "value": "Perfecto (sin radio)",
-     "note": "Un enlace perfecto es más preciso que cualquier radio real: cada trama llega, justo a tiempo. Los tiempos hechos con él quedan marcados en el tablero.",
-     "current": "perfect",
-     "options": [
-      {
-       "value": "perfect",
-       "label": "Perfecto (sin radio)"
-      },
-      {
-       "value": "elrs500",
-       "label": "ELRS 500 Hz"
-      },
-      {
-       "value": "elrs250",
-       "label": "ELRS 250 Hz"
-      },
-      {
-       "value": "elrs150",
-       "label": "ELRS 150 Hz"
-      },
-      {
-       "value": "crossfire",
-       "label": "Crossfire 150 Hz"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "link": "elrs500"
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "link": "crossfire"
-       }
-      },
-      "pick(\"elrs500\")": {
-       "settings": {
-        "link": "elrs500"
-       }
-      }
-     }
-    },
-    {
-     "id": "launch:a-launch-go",
-     "label": "Volar",
-     "note": "Tu mejor en Los Alpes está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune Estabilizado. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
-     "action": "launch-go",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "launch:a-back",
-     "label": "Volver",
-     "action": "back",
-     "drives": {}
-    }
-   ]
-  },
   "paused": {
    "screen": "paused",
    "items": [
@@ -45230,13 +41012,6 @@
      "label": "Ajustes",
      "note": "Tu radio y teclas, pantalla, sonido, idioma y ayuda.",
      "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
      "drives": {}
     },
     {
@@ -45350,13 +41125,6 @@
      "drives": {}
     },
     {
-     "id": "paused:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
      "id": "paused:a-friends-leave",
      "label": "Salir de la sala",
      "note": "De vuelta a volar solo.",
@@ -45381,7 +41149,6 @@
     }
    ],
    "lit": [
-    "|",
     "|",
     "|",
     "|",
@@ -46105,31 +41872,6 @@
     }
    ]
   },
-  "results-freestyle-nothing": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
   "results-free-world": {
    "screen": "results",
    "items": [
@@ -46170,134 +41912,6 @@
      "label": "Sensación de vuelo",
      "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
      "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-local-seat": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-no-lap": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-lap": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "results:a-title",
-     "label": "Volver al título",
-     "action": "title",
-     "drives": {}
-    }
-   ]
-  },
-  "results-board-moved": {
-   "screen": "results",
-   "items": [
-    {
-     "id": "results:a-restart",
-     "label": "Volar de nuevo",
-     "action": "restart",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "results:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "results:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
      "drives": {}
     },
     {
