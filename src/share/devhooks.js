@@ -62,7 +62,6 @@ export const devHooks = DEV ? window : Object.create(null);
 /* [name, what it changes]; null: reads only, ungated. */
 export const HOOKS = [
   ['__accountSync', 'sends the account\'s settings and progress to the accounts server now'],
-  ['__aids', null],
   ['__air', null],
   ['__airFlown', null],
   ['__animMs', null],
