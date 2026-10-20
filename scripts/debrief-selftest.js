@@ -180,9 +180,9 @@ const rt = (events) => JSON.parse(JSON.stringify(events));
 
 /* Flight Club rooms. */
 {
-  const won = fromRoom({ activity: 'roomrace', aircraft: 'whoop65', place: 1, of: 4, final: true, flightMs: 90000, totalS: 100, replay: ok });
+  const won = fromRoom({ activity: 'combat', aircraft: 'whoop65', place: 1, of: 4, final: true, flightMs: 90000, totalS: 100, replay: ok });
   check('room: first when called is won', won.result.kind === 'won' && won.accuracy[0].what === 'debrief.place' && won.accuracy[0].n === 1 && won.accuracy[0].of === 4);
-  const wait = fromRoom({ activity: 'roomrace', aircraft: 'whoop65', place: 1, of: 4, final: false, flightMs: 90000, totalS: 100, replay: ok });
+  const wait = fromRoom({ activity: 'combat', aircraft: 'whoop65', place: 1, of: 4, final: false, flightMs: 90000, totalS: 100, replay: ok });
   check('room: first while others finish is not yet won', wait.result.kind === 'complete');
   const tagLog = (points) => [{ seq: 0, type: 'spawned', simMs: 0, roomMs: null }, { seq: 1, type: 'round', simMs: 1, roomMs: null, game: 'tag', world: 'alps', points }];
   const lost = fromRoom({ activity: 'tag', aircraft: 'cub1400', fixedWing: true, place: 3, of: 3, final: true, events: tagLog(7), flightMs: 1, totalS: 1, replay: ok });
@@ -210,8 +210,6 @@ const rt = (events) => JSON.parse(JSON.stringify(events));
   const saved = JSON.parse(JSON.stringify(log.events));
   check('log: a tag debrief rebuilt from the saved log is the one shown', JSON.stringify(fromRoom({ activity: 'tag', ...side, events: saved })) === JSON.stringify(shown));
   check('log: its points are the last tag round\'s, not an earlier one\'s or another game\'s', shown.accuracy[1].what === 'debrief.points' && shown.accuracy[1].n === 9);
-  const race = fromRoom({ activity: 'roomrace', ...side, events: saved });
-  check('log: a room race\'s round carries its grid, not points: no points line', race.accuracy.length === 1 && race.accuracy[0].what === 'debrief.place');
   check('log: no round of the game in the log, no points line', fromRoom({ activity: 'combat', ...side, events: saved }).accuracy.length === 1
     && fromRoom({ activity: 'tag', ...side }).accuracy.length === 1);
 }
@@ -401,7 +399,6 @@ const pick = (list) => list[Math.floor(rand() * list.length)];
   check('bests: pure, the record it was given is unchanged', race.records[0].what === 'debrief.track_record');
   const tag = withBests(fromRoom({ activity: 'tag', aircraft: 'cub1400', place: 1, of: 2, final: true, events: [{ seq: 0, type: 'round', simMs: 1, roomMs: null, game: 'tag', world: 'alps', points: 5 }], flightMs: 1, totalS: 1, replay: ok }), bests);
   check('bests: a tag match shows its points best only', tag.records.length === 2 && tag.records[0].what === 'debrief.best_score' && tag.records[0].kind === 'tag' && tag.records[0].now === 5);
-  check('bests: a room race shows its lap best, never a run (a room has no solo run)', withBests({ ...race, activity: 'roomrace' }, bests).records.filter((r) => r.kind).map((r) => r.kind).join() === 'lap');
   check('bests: JSON safe', JSON.stringify(JSON.parse(JSON.stringify(d))) === JSON.stringify(d));
   for (const [lang, label, scoreLabel, first, beat] of [['en', 'New best lap', 'New best score', '41.00, your first', '41.00, was 42.00'], ['es', 'Nueva mejor vuelta', 'Nueva mejor puntuación', '41.00, tu primera marca', '41.00, antes 42.00']]) {
     await useLocale(lang);
@@ -443,7 +440,7 @@ check('next: unknown activity is again then title', JSON.stringify(nextActions('
 check('next: a copy', nextActions('race') !== nextActions('race'));
 /* COMPLETENESS 76: a room's results offer another aircraft for its next
  * round, after the replay (src/ui/items.js resultsRows). */
-check('next: every room game\'s results have Change aircraft after the replay', ['roomrace', 'tag', 'combat'].every((a) => {
+check('next: every room game\'s results have Change aircraft after the replay', ['tag', 'combat'].every((a) => {
   const n = nextActions(a);
   return n.indexOf('aircraft') === n.indexOf('replay') + 1;
 }));
