@@ -17,7 +17,7 @@
  * the run mode and screen, the craft's flags, the step trace (count, the
  * last state hash and the last stick frame stamped into the plant), the
  * camera, the intro shot's clock, and what the loop handed ui.setOsd,
- * ui.setBanner, ui.setStickOverlay, ui.setScore and audio.update. Each
+ * ui.setBanner, ui.setStickOverlay and audio.update. Each
  * field's stream over the scenario is digested; the record keeps the
  * digest and every 20th frame's value for the diagnostic.
  *
@@ -193,7 +193,7 @@ const PAGES = [
     scenarios: [{ id: 'fly', start: { dy: 0.3 }, program: 'fly', frames: 500 }],
   },
   {
-    id: 'alps-scored', map: 'alps', settings: { freestyleScoring: 'scored' },
+    id: 'alps-scored', map: 'alps', settings: {},
     scenarios: [{ id: 'tricks', start: { dy: 0.3 }, program: 'tricks', frames: 600 }],
   },
   {
@@ -239,7 +239,6 @@ const SPIES = `(() => {
   wrap(window.__ui, 'setBanner');
   wrap(window.__ui, 'setOsd');
   wrap(window.__ui, 'setStickOverlay');
-  wrap(window.__ui, 'setScore');
   wrap(window.__audio, 'update');
   return true;
 })()`;
@@ -286,10 +285,9 @@ const RUN = (sc) => `(() => {
       lastStamp: t.inputs.length ? t.inputs[t.inputs.length - 1] : null,
       cam: [cam.x, cam.y, cam.z, cam.quat[0], cam.quat[1], cam.quat[2], cam.quat[3], cam.fov].map(sig),
       intro: window.__intro().ms,
-      osd: osd ? [osd.lapMs, osd.altitude, osd.speedKph, osd.throttle, osd.flightMode, osd.launchState, osd.gate, osd.bounces, osd.volts, osd.runState].map(sig) : null,
+      osd: osd ? [osd.lapMs, osd.altitude, osd.speedKph, osd.throttle, osd.flightMode, osd.launchState, osd.gate, osd.bounces, osd.volts].map(sig) : null,
       stick: st ? [st.show, st.roll, st.pitch, st.yaw, st.throttle] : null,
       audio: au ? [au[0] ? Array.from(au[0]).map(sig) : null, sig(au[1])] : null,
-      score: spy.setScore ? spy.setScore[0].total : null,
     };
   };
   return JSON.stringify(window.__vt.advance(${sc.frames}, ${JSON.stringify(DTS)}, (i) => {

@@ -43,7 +43,6 @@ import {
   formatRate, fullStickDeg, hoverStickPercent, normaliseRates, profileForType, rateField, ratesAreDefault,
 } from '../../configs/rates.js';
 import { CUSTOM_TUNE, tuneById } from '../../configs/registry.js';
-import { formatScore } from '../game/score.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { LINK_PRESETS } from '../input/link.js';
 import { MAPS, mapById } from '../maps/registry.js';
@@ -70,10 +69,9 @@ import { MARK_STYLES } from './peermarks.js';
 import { choice, number, stampIds, stepper, toggle } from './rows.js';
 import { CHASE_SMOOTHING, SHAKE_LEVELS, UI_SCALES } from '../render/comfort.js';
 import {
-  AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
+  AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
   PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, keepCamera, tuneChoices,
 } from './settings.js';
-import { trickLevel } from './trickfilm.js';
 import { tuneName } from './tunename.js';
 import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
@@ -83,8 +81,8 @@ import { flyWithRows } from './flywith.js';
  * screen functions, after both modules have run, never at this module's
  * top level. */
 import {
-  FREESTYLE_SCORING_LABEL, SCREEN_TITLES, YAW_TIP_RATE, courseCardKey, courseCardRows, craftItem, lapCraftOf, liveListing,
-  liveWorld, padTroubleItem, scoringNote, seatedFreestyleMap,
+  SCREEN_TITLES, YAW_TIP_RATE, courseCardKey, courseCardRows, craftItem, lapCraftOf, liveListing,
+  liveWorld, padTroubleItem, seatedFreestyleMap,
 } from './ui.js';
 
 /*
@@ -541,17 +539,6 @@ function newTrackRows(af) {
   ];
 }
 
-/* ---- the trick list ---- */
-
-function trickRows(ui) {
-  return ui.trickRows().map((t) => ({
-    label: t.name,
-    value: `${formatScore(t.points)}`,
-    note: `${t.status.tag}. ${trickLevel(t.difficulty)}. ${t.how}` + str('ui.seen', { v1: str(`trickfilm.view.${t.view}`) }),
-    action: 'noop',
-  }));
-}
-
 /* ---- Freestyle ---- */
 
 function freestyleRows(ui, s) {
@@ -562,21 +549,6 @@ function freestyleRows(ui, s) {
     : [];
   return [
     ...cards,
-    {
-      /* Amber while the unfinished scorer is on, and opened rather than
-       * stepped, since the cursor lands here first. */
-      ...choice(
-        str('ui.scoring'),
-        scoringNote(s.freestyleScoring),
-        FREESTYLE_SCORING,
-        s.freestyleScoring,
-        (id) => FREESTYLE_SCORING_LABEL[id],
-        (id) => { s.freestyleScoring = id; },
-      ),
-      rowClass: s.freestyleScoring === 'off' ? undefined : 'row-warn',
-      pickOnly: true,
-    },
-    toggle(str('ui.trick_callouts'), str('ui.trick_callouts_note'), s.trickCallouts, (v) => { s.trickCallouts = Boolean(v); }),
     machineRow(s, str('ui.the_machine_its_tune_row_opens', { pids: SCREEN_TITLES.pids })),
     flightStyleRow(str('ui.physics_model'), str('ui.arcade_the_ideal_quad_no_propwash'), str('ui.expert_the_full_physics_propwash_gyro'), s),
     crashDamageRow(s),
@@ -1019,7 +991,6 @@ function resultsRows(ui, s) {
     return [
       again,
       replayRow(ui.resultsDebrief),
-      postRunRow(ui),
       { label: str('ui.open_tracks_and_statistics'), action: 'leaderboard', note: str('ui.every_published_track_and_the_times') },
       feelRow(),
       titleRow(),
@@ -1059,41 +1030,6 @@ function replayRow(d) {
     action: 'watchreplay',
     disabled: !d.replay.ok,
     note: str(d.replay.ok ? 'debrief.watch_replay_note' : d.replay.why),
-  };
-}
-
-/* Post a freestyle run, or why it cannot be: greyed with the reason on
- * the row, since the results screen has no notice banner to refuse in. */
-function postRunRow(ui) {
-  const posted = ui.runPosted;
-  if (posted) {
-    const stands = posted.improved === false;
-    return {
-      label: stands ? str('ui.your_best_still_stands') : str('ui.run_posted'),
-      action: 'postrun',
-      disabled: true,
-      note: stands
-        ? str('ui.the_board_already_holds_a_better', { formatScore: formatScore(posted.score) })
-        : str('ui.the_board_kept_that_run', { v1: posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '' }),
-    };
-  }
-  const run = ui.freestyleRun;
-  const empty = !run || !(run.total > 0) || !(run.tricks > 0);
-  let note;
-  if (empty) {
-    note = str('ui.a_run_with_no_tricks_in');
-  } else if (run.timed === false) {
-    note = str('ui.free_flight_has_no_clock_so');
-  } else if (run.assisted) {
-    note = str('ui.this_run_used_the_harness_hooks');
-  } else {
-    note = str('ui.from_tricks_one_entry_per_pilot', { formatScore: formatScore(run.total), tricks: run.tricks });
-  }
-  return {
-    label: str('ui.post_this_run'),
-    action: 'postrun',
-    disabled: empty || Boolean(run && run.assisted) || (run && run.timed === false),
-    note,
   };
 }
 
@@ -1344,7 +1280,6 @@ const SCREENS = {
   rooms: roomRows,
   roomnew: roomRows,
   courses: coursesRows,
-  tricks: trickRows,
   freestyle: freestyleRows,
   quad: quadRows,
   pilot: pilotRows,

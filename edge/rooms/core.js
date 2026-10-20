@@ -51,7 +51,6 @@ import { PRESET_IDS } from '../../src/game/weather.js';
 import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
-import { RoomJam } from './jam.js';
 import { RoomSafety } from './safety.js';
 import {
   ROOM_SETUPS, TYPE_FOOT, TYPE_PARTS, TYPE_STREAMER, WAR_JOIN,
@@ -304,7 +303,6 @@ export class RoomCore {
     this.referee = new Referee(meta.friendly);
     this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
-    this.jam = new RoomJam(); /* Trick Battle, edge/rooms/jam.js */
     this.drops = new RoomDrops(); /* the Hercules' paradrops, edge/rooms/drops.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
@@ -376,7 +374,7 @@ export class RoomCore {
     const m = this.war.match;
     const r = this.race.race;
     return Boolean(m && ['won', 'lost', 'ended'].includes(m.state)) || this.ops.finished() || this.combat.round.state === 'over'
-      || Boolean(this.tag.match && this.tag.match.state === 'results') || Boolean(this.jam.match && this.jam.match.state === 'results')
+      || Boolean(this.tag.match && this.tag.match.state === 'results')
       || Boolean(r && r.state === 'results');
   }
 
@@ -499,7 +497,6 @@ export class RoomCore {
     return [
       { id: 'race', on: Boolean(r && r.state === 'on'), players: r ? r.racers : [], min: minPlayersFor('race', this.meta.mode), end: () => this.race.end(this, true) },
       { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: minPlayersFor('tag', this.meta.mode), end: () => this.tag.abandon(this, now, true) },
-      { id: 'jam', on: this.jam.on(), players: this.jam.players(this), min: minPlayersFor('jam', this.meta.mode), end: () => this.jam.abandon(this, now, true) },
       { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: minPlayersFor('combat', this.meta.mode), end: () => this.combat.stop(this, true) },
       { id: 'war', on: this.war.on(), players: this.war.players(this), min: minPlayersFor('war', this.meta.mode), end: () => this.war.abandon(this, now, true) },
       /* No mode registry entry yet: one pilot flies an ops mission alone. */
@@ -513,8 +510,8 @@ export class RoomCore {
     return t.failed != null && t.failed === this.meta.map;
   }
 
-  /* The seats a start counts toward its game's minimum (tag.js and jam.js
-   * start, their 'alone'): on the room's world and not failed, the bots
+  /* The seats a start counts toward its game's minimum (tag.js start,
+   * its 'alone'): on the room's world and not failed, the bots
    * too. Stricter than present(), which a round already on keeps: a
    * pilot still building the world, or one whose world would not build,
    * is not yet a second pilot, and a round started on one would be
@@ -567,7 +564,7 @@ export class RoomCore {
    * counts down, and nothing else would move it on until one flies. */
   waiting() {
     return this.people().length > 0 && (this.bots.flying(this) || this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting()
-      || this.war.on() || this.ops.on() || this.gameLobby.waiting(this) || this.jam.on()
+      || this.war.on() || this.ops.on() || this.gameLobby.waiting(this)
       || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on()))
       || this.race.pending.length > 0);
   }
@@ -596,12 +593,11 @@ export class RoomCore {
    */
   hostCheck(conn, s, msg, now) {
     const start = (msg.type === 'tag' && msg.op === 'start') ? 'tag'
-      : (msg.type === 'jam' && msg.op === 'start') ? 'jam'
       : (msg.type === 'combat' && msg.op === 'start') ? 'combat'
         : (msg.type === 'war' && msg.op === 'start') ? 'war'
           : (msg.type === 'ops' && msg.op === 'start') ? 'ops'
           : (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start')) ? 'race' : null;
-    const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end') || (msg.type === 'jam' && msg.op === 'end')
+    const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end')
       || (msg.type === 'race' && msg.op === 'end') || (msg.type === 'combat' && msg.op === 'stop') || (msg.type === 'war' && (msg.op === 'end' || msg.op === 'skipIntro'))
       || (msg.type === 'ops' && (msg.op === 'end' || msg.op === 'lock' || msg.op === 'skipIntro'));
     if (!hostOnly) {
@@ -654,9 +650,6 @@ export class RoomCore {
     const m = this.tag.match;
     if (this.tag.on()) {
       return { game: 'tag', state: m.state === 'live' ? 'on' : 'countdown' };
-    }
-    if (this.jam.on()) {
-      return { game: 'jam', state: this.jam.match.state === 'turn' && this.jam.match.round === 1 && this.jam.match.turn === 0 ? 'countdown' : 'on', round: this.jam.match.round };
     }
     if (this.combat.on()) {
       /* Its round's number, for "In round n". */
@@ -836,7 +829,7 @@ export class RoomCore {
    * THE WATCH SEAT (docs/FLIGHTCLUB-PROGRESSION.md section 3): a hello
    * with watch: true. The watcher gets the room's welcome with seat 0 and
    * its pilots, then their poses, the roster's news (roster()) and every
-   * game's state as it changes (everyone()): the race's, tag's, jam's,
+   * game's state as it changes (everyone()): the race's, tag's,
    * combat's, the war's and the ops' (with no result, viewed()) and the
    * lobby's, and nothing else: no seat, no token a pilot's tab could take
    * over, no game join, no role, no say in the clock, the host or ready,
@@ -886,7 +879,6 @@ export class RoomCore {
            * ops' with no result (watchedView). */
           ...this.race.welcome(this),
           ...this.tag.welcome(this),
-          ...this.jam.welcome(this),
           war: watchedView(this.war.view(this)),
           ops: watchedView(this.ops.view(this)),
           ...this.gameLobby.welcome(this),
@@ -1053,7 +1045,6 @@ export class RoomCore {
         peers: this.peerList(conn),
         ...this.race.welcome(this),
         ...this.tag.welcome(this),
-        ...this.jam.welcome(this),
         ...this.war.welcome(this, s),
         ...this.ops.welcome(this, s),
         ...this.gameLobby.welcome(this),
@@ -1068,7 +1059,7 @@ export class RoomCore {
     /* A newcomer to a running round flies in where its game allows it
      * (modes.js allowDropIn), every game reading the one field: the race
      * takes it onto its grid, the war enlists it, combat gives it paper,
-     * the Ace makes it a hunter, the jam adds it to the turns. Elsewhere it
+     * the Ace makes it a hunter. Elsewhere it
      * waits for the next round, a war's told the attackers as a watcher
      * is. A player back from a drop is always back. */
     const running = this.game();
@@ -1077,7 +1068,6 @@ export class RoomCore {
     this.combat.arrive(seat, profile.airframe, dropIn);
     actions.push(...this.combat.join(this, conn));
     actions.push(...this.tag.join(this, s, dropIn));
-    actions.push(...this.jam.join(this, s, dropIn));
     actions.push(...(dropIn ? this.war.join(this, conn) : this.war.watch(conn)));
     actions.push(...this.ops.join(this, conn, now));
     actions.push(...this.gameLobby.join(this, now));
@@ -1240,11 +1230,6 @@ export class RoomCore {
     }
     if (msg.type === 'tag') {
       return [...first, ...this.tag.message(this, conn, s, msg, now)];
-    }
-    /* The jam's clock runs on the room's tick: its runs start and end on
-     * time with nobody posting, the watchers held on the ground. */
-    if (msg.type === 'jam') {
-      return [...first, ...this.jam.message(this, conn, s, msg, now), ...this.wake()];
     }
     /* Started by the room's host (Phase 4), in a public room as in a
      * private one since the room browser gave public rooms a host. */
@@ -1666,7 +1651,7 @@ export class RoomCore {
     this.now = now;
     this.referee.tick(this.roomMs(now));
     this.tickNo += 1;
-    const out = [...this.bots.tick(this, now), ...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.jam.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.ops.tick(this, now), ...this.gameLobby.tick(this, now)];
+    const out = [...this.bots.tick(this, now), ...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.ops.tick(this, now), ...this.gameLobby.tick(this, now)];
     out.push(...this.settleHost(now), ...this.settleGames(now));
     const flying = [...this.seats.values()].filter((f) => f.pose);
     const at = new Map(flying.map((f) => [f, poseAt(f.pose)]));

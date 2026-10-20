@@ -53,7 +53,6 @@ const FC_RETURNS_TO = new Set(['paused', 'quad', 'pids']);
 const HELP_FIELD = {
   title: 'titleHelp',
   howto: 'howtoHelp',
-  tricks: 'trickHelp',
   credits: 'creditsHelp',
   courses: 'coursesHelp',
   freestyle: 'freestyleHelp',
@@ -518,14 +517,10 @@ export const menuControlMethods = {
     if (this.screen === 'courses' && item && item.course) {
       this.lastCardKey = courseCardKey(item);
     }
-    /* Cards and the trick film are lit by the cursor, and a cursor move does
-     * not rebuild the menu, so they are repainted here or they stay on the
-     * first card and the first trick. */
+    /* Cards are lit by the cursor, and a cursor move does not rebuild the
+     * menu, so they are repainted here or they stay on the first card. */
     if (this.cardScreen()) {
       this.markCards();
-    }
-    if (this.screen === 'tricks') {
-      this.renderTricks();
     }
     this.syncCursor(!pointer);
     if (!pointer && this.onUiSound) {

@@ -74,7 +74,7 @@
  */
 
 import { str } from '../strings/index.js';
-import { formatTime, formatRunClock } from './ui.js';
+import { formatTime } from './ui.js';
 
 /* The instruments' grid, the PAL one. */
 export const OSD_COLS = 30;
@@ -1450,15 +1450,7 @@ export class FpvOsd {
     const fit = (s) => (s.length > RACE_WIDE ? s.slice(0, RACE_WIDE) : s);
     let clock;
     if (v.mode === 'freestyle') {
-      if (v.runScored === false) {
-        clock = str('osd.air', { t: v.lapMs != null && Number.isFinite(v.lapMs) ? formatTime(v.lapMs) : '0.00' });
-      } else if (v.runTimed === false) {
-        clock = str('osd.free');
-      } else {
-        const ready = v.runState !== 'flying' && v.runState !== 'over';
-        clock = str('osd.run', { t: ready ? '2:00' : formatRunClock(Number.isFinite(v.runRemainMs) ? v.runRemainMs : 0) });
-      }
-      clock = fit(up(clock));
+      clock = fit(up(str('osd.air', { t: v.lapMs != null && Number.isFinite(v.lapMs) ? formatTime(v.lapMs) : '0.00' })));
       this.values.clock = clock;
       return this.readout('race', 'c', 't', [clock]);
     }

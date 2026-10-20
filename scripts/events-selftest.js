@@ -568,19 +568,12 @@ console.log('the shell\'s producers');
   check('a builder\'s test flight lap off a casual track, which Progress does not count, is logged with its time',
     main.includes("noteBuilderLap(race.lastLapMs);\n      /* Progress counts none off a casual track; the debrief still reads\n       * it from the log (src/game/events.js lap_void). */\n      if (!ui.progress.isCasual(build.docId)) {\n        ui.progress.lapVoid(race.lastLapMs, 'test');")
     && main.includes("if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {"));
-  check('every bail the scorer counts is logged, with its cause: a crash, a wreck, a hard bounce',
-    main.includes('function scoreCrash(cause) {\n    score.crash();\n    ui.progress.bail(cause);')
-    && ['crash', 'wreck', 'bounce'].every((c) => main.includes(`scoreCrash('${c}');`)) && !main.includes('scoreCrash();'));
-  check('a trick the scorer took is logged with its name and points, one it refused is not',
-    main.includes('const took = score.land(trick);\n    if (took) {\n      ui.progress.trick(took.name, took.net);')
-    && (main.match(/score\.land\(/g) || []).length === 1);
-  check('and none of the three is folded or pays: Progress only logs them',
-    ui.includes("lapVoid(ms, reason) {\n    this.event('lap_void', { ms, reason });\n  }") && ui.includes("bail(cause) {\n    this.event('bail', { cause });\n  }")
-    && ui.includes("trick(id, score) {\n    this.event('trick', { id, score });\n  }"));
+  check('and a voided lap is not folded and pays nothing: Progress only logs it',
+    ui.includes("lapVoid(ms, reason) {\n    this.event('lap_void', { ms, reason });\n  }"));
   check('an Interior match\'s result is logged before its debrief shows, and the debrief reads the run\'s log',
     /interiorScreen\.record\(match, v\);\n\s*debrief\.show\(\{[\s\S]{0,400}?events: ui\.progress\.runEvents\(\),\n\s*match: matchOf\(match, v\),/.test(main));
-  check('so do a race\'s and a freestyle run\'s',
-    main.includes('events: ui.progress.runEvents().slice(raceLogAt),') && main.includes('summary,\n      events: ui.progress.runEvents(),'));
+  check('so does a race\'s',
+    main.includes('events: ui.progress.runEvents().slice(raceLogAt),'));
   check('the avionics camera\'s primary track is told every perception frame, and none without the Avionics HUD',
     src('src/main.js').includes('ui.progress.contact(heldTrack(tracks.snapshot));') && src('src/main.js').includes("avionicsHud.tick(false, paused, nowWall, null);\n      ui.progress.contact(null);"));
 }

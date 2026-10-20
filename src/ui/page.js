@@ -42,9 +42,7 @@ import { WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP } from './settings.js';
 import {
   btn, el, hintWithKeys, makeGimbal, makeWeightSlider, wordmark,
 } from './widgets.js';
-import { ScoreHud } from './scorehud.js';
 import { StickRef } from './stickref.js';
-import { TrickFilmPlayer } from './trickfilm.js';
 import { fillCredits } from './credits.js';
 import { mountRatesPanel } from './ratespanel.js';
 import { mountPidsPanel } from './pidspanel.js';
@@ -98,7 +96,7 @@ function actionButton(shell, className, label, action) {
   return b;
 }
 
-/* The flight overlay, the score beside it and nothing else in flight. */
+/* The flight overlay and nothing else in flight. */
 export function buildFlightOverlay(shell) {
   const root = shell.root;
   root.textContent = '';
@@ -175,9 +173,6 @@ export function buildFlightOverlay(shell) {
 
   shell.osd.append(head, left, right, sticks, launch, shell.buildTargetLock());
   root.append(shell.osd);
-  /* A sibling of the overlay, not a child: the overlay is hidden off
-   * flight and the score has to outlive it into results. */
-  shell.scoreHud = new ScoreHud(root);
 }
 
 /*
@@ -285,19 +280,6 @@ function howtoRig(shell) {
   return body;
 }
 
-/* The trick list's film and the words beside it, over the list itself. */
-function trickStage(shell) {
-  const side = el('div', 'trick-side');
-  side.append(
-    keep(shell, 'trickName', 'div', 'trick-name', ''),
-    keep(shell, 'trickMeta', 'div', 'trick-meta', ''),
-    keep(shell, 'trickHow', 'p', 'trick-how', ''),
-    keep(shell, 'trickView', 'div', 'trick-view', ''),
-  );
-  const stage = el('div', 'trick-stage');
-  stage.append(keep(shell, 'trickCanvas', 'canvas', 'trick-film'), side);
-  return stage;
-}
 
 /*
  * My tracks' strip: the pilot's track cards first, the board's after, and
@@ -356,21 +338,6 @@ const PAGES = {
     then: (shell) => {
       shell.howtoSource = touchWanted() ? 'touch' : (shell.settings.mouseFlight ? 'mouse' : 'keyboard');
       shell.renderHowto();
-    },
-  },
-  /* The catalogue's own patterns, so nothing listed is a trick the scorer
-   * would not score. See src/ui/trickfilm.js. */
-  tricks: {
-    classes: 'screen-page screen-tricks',
-    title: 'ui.trick_list',
-    lede: ['rates-lede', 'ui.every_trick_the_scorer_is_known'],
-    body: (shell) => [trickStage(shell)],
-    menu: 'trick',
-    scroll: true,
-    hint: [['Esc'], 'ui.goes_back_arrow_keys_move_through'],
-    then: (shell) => {
-      shell.trickPlayer = new TrickFilmPlayer(shell.trickCanvas);
-      shell.trickShown = '';
     },
   },
   credits: {
@@ -811,7 +778,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
+  ...['howto', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,

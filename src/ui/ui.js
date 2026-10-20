@@ -112,7 +112,6 @@ import {
 import {
   boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
 } from '../share/board.js';
-import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
 import { crashRecord, logError } from '../share/crashrecord.js';
@@ -165,9 +164,7 @@ import {
   cameraTiltRad,
   clampCameraAngle,
 } from '../render/lens.js';
-import { ScoreHud } from './scorehud.js';
 import { MARK_STYLES } from './peermarks.js';
-import { formatScore } from '../game/score.js';
 import { fillCredits } from './credits.js';
 import { mountRatesPanel } from './ratespanel.js';
 import { mountPidsPanel } from './pidspanel.js';
@@ -188,7 +185,7 @@ import {
 import {
   SETTINGS_KEY, FLIGHT_MODES, PACK_VOLTAGES, LAP_COUNTS, RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES,
   hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor,
-  FREESTYLE_SCORING, AVX_INSETS, AVX_LEVELS, AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats,
+  AVX_INSETS, AVX_LEVELS, AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats,
   seatAirframe, DEFAULTS, saveSettings, airHintSeen, markAirHintSeen, detectFirstRun, tuneChoices, chosenTime, toggleFavourite,
 } from './settings.js';
 import {
@@ -201,7 +198,6 @@ import { formatDay, formatDelta, formatRunClock, formatTime } from './format.js'
 import {
   btn, el, hintWithKeys, keyHowtoRows, makeGimbal, makePadCard, makeWeightSlider, placeNub, placeSticks, thrNote, wordmark,
 } from './widgets.js';
-import { scoreableTricks, trickStatus } from './trickslist.js';
 /* scripts/modes-selftest.js reads the table from here, and the HUDs and
  * main.js read the clock formats. */
 export { WAYS, formatRunClock, formatTime };
@@ -213,7 +209,7 @@ export { WAYS, formatRunClock, formatTime };
  */
 export const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'planerates', 'pids', 'fc',
-  'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
+  'howto', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
   'calibrate', 'friends', 'rooms', 'roomnew', 'controls', 'controller',
 ]);
 
@@ -243,7 +239,6 @@ export const SCREEN_TITLES = {
   quick: str('pause.flight'),
   results: str('ui.run_complete'),
   howto: str('ui.how_to_fly'),
-  tricks: str('ui.trick_list'),
   credits: str('ui.credits'),
   friends: str('friends.title'),
   rooms: str('roombrowser.title'),
@@ -264,31 +259,9 @@ export function seatedFreestyleMap(s) {
 export {
   SETTINGS_KEY, FLIGHT_MODES, CAMERA_FOVS, CAMERA_FOV_DEFAULT, CAMERA_ANGLE_MIN, CAMERA_ANGLE_MAX, CAMERA_ANGLE_DEFAULT, PACK_VOLTAGES,
   LAP_COUNTS, RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES, hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN,
-  WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor, FREESTYLE_SCORING, AVX_INSETS, AVX_LEVELS,
+  WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor, AVX_INSETS, AVX_LEVELS,
   AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats, seatAirframe, chosenTime,
 };
-
-export const FREESTYLE_SCORING_LABEL = { off: str('ui.off'), free: str('ui.free_flight'), scored: str('ui.scored_run') };
-
-/*
- * Scoring is unfinished, so whenever it is switched on the row's note opens
- * with that caveat before describing the modes (see DEFAULTS.freestyleScoring).
- */
-const SCORING_WARNING = str('ui.this_is_an_unfinished_feature_and')
-  + str('ui.the_recogniser_misses_tricks_it_should')
-  + str('ui.the_ones_it_catches_so_read')
-  + str('ui.on_your_flying');
-
-const SCORING_HOW = str('ui.off_no_overlay_no_names_and')
-  + str('ui.free_flight_tricks_are_named_and')
-  + str('ui.board_and_the_run_never_ends')
-  + str('ui.scored_run_two_minutes_on_the')
-  + str('ui.score_board');
-
-export function scoringNote(mode) {
-  const parts = mode === 'off' ? [SCORING_HOW] : [SCORING_WARNING, SCORING_HOW];
-  return parts.join(' ');
-}
 
 /*
  * The one name a track card credits. The board's `author` is whoever
@@ -751,10 +724,6 @@ export class Ui {
     this.onUiSound = null;   /* (kind) => void: 'move', 'adjust', 'select', 'back' */
     this.share = null;       /* published course this run is flying, or null */
     this.timePosted = null;  /* last successful post on the results screen */
-    /* The freestyle run the results screen shows and whether it was sent;
-     * resetScore clears both on every restart. */
-    this.freestyleRun = null;
-    this.runPosted = null;
     this.resultsFastest = null;
     /* The flight's debrief record (src/game/debrief.js), or null. */
     this.resultsDebrief = null;
@@ -851,8 +820,7 @@ export class Ui {
   }
 
   /* Write guards for the overlay: setOsd runs every flight frame over the
-   * WebGL canvas, and unguarded writes cost 17 mutation records a frame
-   * (scorehud.js guards the same way). */
+   * WebGL canvas, and unguarded writes cost 17 mutation records a frame. */
   static text(el, value) {
     writeChanged(el, '__lastText', asText(value), (node, text) => { node.textContent = text; });
   }

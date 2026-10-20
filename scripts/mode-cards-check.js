@@ -110,9 +110,8 @@ async function shot(page, name) {
 }
 
 const HUBS = 'Flight Club,Operations,Hangar';
-/* Flight Club's cards in the registry's order, Trick Battle since
- * 9da784b30. */
-const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Trick Battle,Learn to fly';
+/* Flight Club's cards in the registry's order. */
+const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
 const N_CARDS = NAMES.split(',').length;
 /* Each hub's links, in order, as home draws them. */
 /* Operations: the war's campaign and The Interior beside it

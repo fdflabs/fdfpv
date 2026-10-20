@@ -164,9 +164,6 @@ jobs:
       # recorded from each module before its track U rewrite
       # (tests/browser/render-golden/).
       - run: npm run render:golden
-      # The scoring chain end to end, the real aircraft flying the tricks
-      # (a powerloop round a rail by a closed loop pilot) included.
-      - run: npm run score:selftest
       # Every aircraft's own gates and stabiliser checks run here, not only
       # the ones a branch happened to add: these six were in package.json and
       # never in CI, so their regressions went unseen (2026-10-11). About
@@ -264,15 +261,8 @@ jobs:
       # tests/gen/gen-baseline.js still writes the committed
       # tests/inputs/baseline.rec byte for byte and refuses to overwrite it.
       - run: npm run genbaseline:selftest
-      - run: npm run score:golden
-      - run: npm run scorehud:golden
       - run: npm run debrief:selftest
-      - run: npm run tricks:golden
-      - run: npm run tricks:gen -- --check
-      - run: npm run trick:golden
-      - run: npm run trickfilm:golden
       - run: npm run loading:golden
-      - run: npm run obstacles:golden
       - run: npm run track:golden
       - run: npm run guide:golden
       - run: npm run trackdoc:golden
@@ -362,10 +352,6 @@ jobs:
       # A plane's Rates row is its own throws, and a pick flies at once
       # (docs/PLANE-RATES.md).
       - run: npm run planerates:check
-      # The trick callouts on the flight screen, en and es, desktop and
-      # phone, clear of the attitude cues (scripts/callouts-check.js,
-      # docs/TRICKS-CATALOG.md).
-      - run: npm run callouts:check
       # Flight Club's pilot stats read off the screen in en and es, a sync
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
@@ -481,7 +467,6 @@ jobs:
       # A solo race's debrief in the real page: the facts, Watch the replay
       # reached by a pointer and back, Fly again (scripts/debrief-race-check.js).
       - run: npm run debrief:race
-      - run: npm run debrief:free
       # The race results' lap table ends above the menu at 1280x720
       # (scripts/results-layout-check.js).
       - run: npm run results:layout
@@ -551,7 +536,6 @@ jobs:
       - run: npm run ways:golden
       - run: npm run format:golden
       - run: npm run widgets:golden
-      - run: npm run trickslist:golden
       - run: npm run keys:golden
       - run: npm run keybinds:selftest
       - run: npm run menucontrols:golden
@@ -615,7 +599,6 @@ jobs:
           npm run world:layer -- --three="$RUNNER_TEMP/package"
         env:
           FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
-      - run: npm run jam:selftest
       - run: npm run figures:selftest
       - run: npm run personpilot:selftest
       # The first AI pilot behind a ghost on the plant, judged by race.js.

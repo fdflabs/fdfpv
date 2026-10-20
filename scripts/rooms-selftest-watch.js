@@ -33,7 +33,6 @@ import { checkRoomLine } from '../src/share/roomlist.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { createRoomRace } from '../src/share/roomrace.js';
 import { createRoomTag } from '../src/share/roomtag.js';
-import { createRoomJam } from '../src/share/roomjam.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { createRoomOps } from '../src/share/roomops.js';
 
@@ -49,7 +48,6 @@ const GAMES = [
     start: [{ type: 'track', doc: trackDoc }, { all: { type: 'race', op: 'ready', ready: true, track: trackDoc.id } }, { type: 'race', op: 'start', laps: 1 }],
   },
   { label: 'tag', mode: 'tag', start: [{ type: 'tag', op: 'start', goal: 5 }] },
-  { label: 'jam', mode: 'jam', start: [{ type: 'jam', op: 'start', seconds: 60 }] },
   { label: 'combat', mode: 'combat', start: [{ type: 'combat', op: 'start', minutes: 5 }] },
   { label: 'war', mode: 'war', map: 'itaipu', mission: 'itaipu-drill', start: [{ type: 'war', op: 'start', mission: 'itaipu-drill' }] },
 ];
@@ -64,11 +62,6 @@ const WORDS = [
   { type: 'event', kind: 'gate', race: 1, lap: 1, gate: 1, t: 1000 },
   { type: 'tag', op: 'start', goal: 5 },
   { type: 'tag', op: 'end' },
-  { type: 'jam', op: 'start', seconds: 60 },
-  {
-    type: 'jam', op: 'score', total: 900, tricks: 3, unique: 3, crashes: 0, last: { name: 'Powerloop', execution: 'CLEAN', points: 300 },
-  },
-  { type: 'jam', op: 'end' },
   { type: 'combat', op: 'start', minutes: 5 },
   { type: 'combat', op: 'respawn' },
   { type: 'combat', op: 'stop' },
@@ -138,7 +131,6 @@ export function watchSection(check) {
     people: room.people().map((p) => [p.seat, p.profile.airframe]),
     race: [room.race.track && room.race.track.id, room.race.race],
     tag: room.tag.match,
-    jam: room.jam.match,
     combat: room.combat.round,
     war: room.war.welcome(room),
     ops: room.ops.welcome(room),
@@ -398,16 +390,6 @@ export function watchStateSection(check) {
       welcomed: (ww) => ww.tag && ww.tag.state === 'live',
     },
     {
-      label: 'jam',
-      mode: 'jam',
-      type: 'jam',
-      start: [{ type: 'jam', op: 'start', seconds: 60 }],
-      play: [[0, { type: 'jam', op: 'end' }]],
-      on: (m) => m.jam.state === 'turn' || m.jam.state === 'run',
-      over: (m) => m.jam.state === 'results' && m.jam.order.length === 2,
-      welcomed: (ww) => ww.jam && ww.jam.state !== 'lobby',
-    },
-    {
       label: 'combat',
       mode: 'combat',
       type: 'combat',
@@ -425,7 +407,7 @@ export function watchStateSection(check) {
     const alone = play(g, null);
     const seen = ofType(before.w, g.type).filter((m) => !m.error);
     check(`${g.label}: a watcher there from the start gets the game's state, on and then over`, seen.some(g.on) && g.over(seen.at(-1)),
-      JSON.stringify(seen.map((m) => (m.race ?? m.tag ?? m.jam ?? m).state)));
+      JSON.stringify(seen.map((m) => (m.race ?? m.tag ?? m).state)));
     const told = ofType(before.pilots[0], g.type).filter((m) => !m.error);
     check(`${g.label}: the same state messages its pilots get`, JSON.stringify(seen) === JSON.stringify(told), `${seen.length} vs ${told.length}`);
     /* The one difference allowed: a welcome's count of watchers. */
@@ -440,7 +422,7 @@ export function watchStateSection(check) {
     const after = play(g, 'after');
     const ww = after.w.got.find((m) => m.type === 'welcome');
     check(`${g.label}: a watcher who comes after the start is welcomed into the game as it stands`, Boolean(ww) && ww.seat === 0 && g.welcomed(ww, after.w),
-      JSON.stringify(ww && { race: ww.race?.state, tag: ww.tag?.state, jam: ww.jam?.state }));
+      JSON.stringify(ww && { race: ww.race?.state, tag: ww.tag?.state }));
     check(`${g.label}: and sees it end`, g.over(lastOf(after.w, g.type)));
   }
   /* The page's half: each game's module fed what the watcher was sent
@@ -474,16 +456,6 @@ export function watchStateSection(check) {
     check('tag page: the watcher is watching, no chase boost, no slot, no results screen',
       ft.roles.includes('watching') && !ft.roles.some((r) => r === 'ace' || r === 'hunter' || r === 'countdown') && ft.took === null && ft.results === null
       && rt.boost((tag.room.tag.match?.goAt ?? 0) + 500) === 1 && sent.length === 0, JSON.stringify({ roles: [...new Set(ft.roles)], results: Boolean(ft.results) }));
-    const jam = play(STATE[2], 'before');
-    const rj = createRoomJam(send);
-    for (const m of texts(jam.w)) {
-      if (m.type === 'welcome') {
-        rj.onWelcome(m);
-      } else {
-        rj.onMessage(m);
-      }
-    }
-    check('jam page: the watcher has no run and no results screen', rj.watcher() && !rj.mine() && rj.takeResults() === null && rj.view().state === 'results');
     /* The negative control: a pilot's page fed the same takes them. */
     const pr = createRoomTag(() => {});
     texts(tag.pilots[0]).forEach((m) => (m.type === 'welcome' ? pr.onWelcome(m) : pr.onMessage(m)));

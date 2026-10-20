@@ -50,8 +50,6 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { CUSTOM_TUNE, TUNES } from '../configs/registry.js';
-import { TRICKS } from '../src/game/tricks-sheet.js';
-import { PATTERNS } from '../src/game/trickdetect.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 
@@ -71,9 +69,6 @@ const SHARED = new Set([
   /* The stick axes, which docs/SPANISH-GLOSSARY.md keeps in English. */
   'Throttle', 'Roll', 'Pitch', 'Yaw',
   ...AIRFRAMES.flatMap((a) => [a.short, a.name]),
-  /* Freestyle trick names are the sport's English jargon in Spanish too. */
-  ...TRICKS.map((t) => t.name),
-  ...PATTERNS.map((p) => p.name),
 ]);
 /* A value made only of shared words ("Cub, Acro"), or a duration. */
 const sharedValue = (text) => text.split(', ').every((part) => SHARED.has(part)) || /^\d+ (h|min)( \d+ min)?$/.test(text);

@@ -40,7 +40,7 @@ import { boardFlightSeconds } from '../share/stats.js';
 import { str } from '../strings/index.js';
 import { controllerKey } from './controller.js';
 import { cursorOnLit } from './flywith.js';
-import { formatRunClock, formatTime } from './format.js';
+import { formatTime } from './format.js';
 import { WEIGHT_STOCK, airHintSeen, clampWeight, markAirHintSeen, saveSettings } from './settings.js';
 import { el, makePadCard, placeNub, placeSticks } from './widgets.js';
 /* A cycle (ui.js installs these methods), so only read inside methods. */
@@ -50,10 +50,6 @@ import { Ui, padTroubleItem } from './ui.js';
  * untouched, and that counts as read, so it is shown once ever. */
 const AIR_HINT_MS = 10000;
 
-/* The scored freestyle run is two minutes; the clock shows this until the
- * first trick starts it. */
-const RUN_CLOCK_FULL = '2:00';
-const RUN_LATE_MS = 10_000;
 
 /* The comparison's channels this frame, written in place by StickRef.at. */
 const REF_STICKS = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
@@ -99,39 +95,13 @@ function styleOnce(memo, key, node, prop, value) {
 /*
  * The clock slot, top centre. One clock on screen whatever the mode:
  *   race: the lap, dim at 0.00 before the first gate;
- *   freestyle, scoring off: the time in the air, same face;
- *   freestyle, free flight: no clock, and it says so rather than going blank;
- *   freestyle, scored: the run's time LEFT, because the last seconds are
- *   when a pilot decides on the big line. Dim at 2:00 until the first
- *   trick, warm in the last ten seconds.
+ *   freestyle: the time in the air, same face.
  */
-function paintClock(ui, freestyle, lapMs, runScored, runTimed, runState, runRemainMs) {
-  let label;
-  let face;
-  let cls;
-  if (!freestyle || runScored === false) {
-    const timing = Number.isFinite(lapMs);
-    label = freestyle ? str('ui.clock_air') : str('ui.lap_label');
-    face = timing ? formatTime(lapMs) : '0.00';
-    cls = timing ? 'osd-timer' : 'osd-timer waiting';
-  } else if (runTimed === false) {
-    label = str('ui.clock_run');
-    face = str('ui.clock_free');
-    cls = 'osd-timer waiting';
-  } else {
-    const started = runState === 'flying' || runState === 'over';
-    const left = Number.isFinite(runRemainMs) ? runRemainMs : 0;
-    label = str('ui.clock_run');
-    face = started ? formatRunClock(left) : RUN_CLOCK_FULL;
-    if (!started) {
-      cls = 'osd-timer waiting';
-    } else {
-      cls = left <= RUN_LATE_MS ? 'osd-timer is-late' : 'osd-timer';
-    }
-  }
-  Ui.text(ui.osdClockLabel, label);
-  Ui.text(ui.osdTimer, face);
-  Ui.klass(ui.osdTimer, cls);
+function paintClock(ui, freestyle, lapMs) {
+  const timing = Number.isFinite(lapMs);
+  Ui.text(ui.osdClockLabel, freestyle ? str('ui.clock_air') : str('ui.lap_label'));
+  Ui.text(ui.osdTimer, timing ? formatTime(lapMs) : '0.00');
+  Ui.klass(ui.osdTimer, timing ? 'osd-timer' : 'osd-timer waiting');
 }
 
 /* The gap to the ghost, signed so it can never be read as a lap time:
@@ -349,9 +319,9 @@ export const overlayMethods = {
    * above the surface under the craft (the collision query's own), which
    * is the number that means something over a roof.
    */
-  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, gear = null, hold = null, bounces, launchState, launchPitch, ghostGapMs, ghostFinal, runState, runRemainMs, runTimed, runScored }) {
+  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, gear = null, hold = null, bounces, launchState, launchPitch, ghostGapMs, ghostFinal }) {
     const freestyle = mode === 'freestyle';
-    paintClock(this, freestyle, lapMs, runScored, runTimed, runState, runRemainMs);
+    paintClock(this, freestyle, lapMs);
     let gateLine = '';
     if (!freestyle) {
       gateLine = gateCue
@@ -393,39 +363,6 @@ export const overlayMethods = {
         Ui.klass(this.osdHits, 'osd-sub osd-hits');
       }
     }
-  },
-
-  /*
-   * The freestyle score overlay, in four calls because they run at four
-   * rates: visibility on a screen or mode change, the view per frame, the
-   * events when something happened, the reset per run.
-   */
-  syncScoreVisible() {
-    if (!this.scoreHud) {
-      return;
-    }
-    /* Scoring off shows the callouts alone when they are on, never the
-     * total: a zero that can never move reads as a fault. */
-    const flying = this.screen === 'flight' || this.screen === 'paused';
-    const scored = this.settings.freestyleScoring !== 'off';
-    this.scoreHud.setCalloutsOnly(!scored);
-    this.scoreHud.setVisible(this.osdMode === 'freestyle' && (scored || this.settings.trickCallouts) && flying);
-  },
-
-  setScore(view) {
-    this.scoreHud.update(view);
-  },
-
-  scoreEvents(list) {
-    this.scoreHud.events(list);
-  },
-
-  resetScore() {
-    this.scoreHud.reset();
-    /* A new run has posted nothing; without this the second run's results
-     * showed the first one's "Run posted". */
-    this.freestyleRun = null;
-    this.runPosted = null;
   },
 
   /*

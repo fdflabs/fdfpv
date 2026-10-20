@@ -64,7 +64,6 @@ const CRUMBS = {
   paused: ['ui.paused'],
   results: ['ui.run_complete'],
   howto: ['ui.how_to_fly'],
-  tricks: ['ui.freestyle', 'ui.trick_list'],
   credits: ['ui.credits'],
   controls: ['hub.hangar', 'controller.title', 'keybinds.title'],
   controller: ['hub.hangar', 'controller.title'],
@@ -82,7 +81,6 @@ for (const [screen, parts] of Object.entries(CRUMBS)) {
 const MENU_FIELD = {
   title: 'titleMenu',
   howto: 'howtoMenu',
-  tricks: 'trickMenu',
   credits: 'creditsMenu',
   courses: 'coursesMenu',
   freestyle: 'freestyleMenu',
@@ -323,16 +321,6 @@ function arriveAt(ui, screen) {
   if (screen === 'flywith') {
     cursorOnLit(ui);
   }
-  /* The trick film is the one thing asking for frames outside flight: it
-   * runs on exactly one screen. */
-  if (ui.trickPlayer) {
-    if (screen === 'tricks') {
-      ui.trickShown = '';
-      ui.renderTricks();
-    } else {
-      ui.trickPlayer.stop();
-    }
-  }
   if (screen === HASH_SCREEN && hashScreen() !== HASH_SCREEN) {
     writeHash(HASH_SCREEN);
   }
@@ -378,8 +366,6 @@ export const navMethods = {
       this.renderCourseCards();
     } else if (this.screen === 'freestyle') {
       this.renderMapCards();
-    } else if (this.screen === 'tricks') {
-      this.renderTricks();
     } else if (this.screen === 'title') {
       this.renderTitleCards();
       this.renderTitleRooms();
@@ -523,7 +509,6 @@ export const navMethods = {
     const flying = screen === 'flight' || screen === 'paused';
     this.osd.style.display = flying ? '' : 'none';
     this.osd.className = screen === 'paused' ? 'osd dim' : 'osd';
-    this.syncScoreVisible();
     this.renderMenu();
     this.syncChips();
     /* Last, and on every show, including a re-entry: a listener reads a

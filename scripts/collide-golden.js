@@ -21,9 +21,10 @@
  * shapes and identities of returned objects, and the arguments a callback
  * was handed. Internal fields are never read. Inputs are the worlds the
  * node checks build (crash-rules-selftest, build-selftest, grid-check,
- * turned-box-check, buildWorld from wall-check, orbit-check and
- * path-check), the walls src/render/library/roofs.js stands under roofs and the
- * turned boxes src/maps/interior/sink.js makes, seeded worlds of every
+ * turned-box-check, buildWorld from wall-check and the rigs the trick
+ * checks flew before the combat-only cut), the walls
+ * src/render/library/roofs.js stands under roofs and the turned boxes
+ * src/maps/interior/sink.js makes, seeded worlds of every
  * primitive and kind, every airframe in configs/airframes.js, and every
  * fixed wing's part hull as the plant reports it.
  *
@@ -2370,7 +2371,7 @@ function realCases() {
       id: `real-flightrig-${name}`,
       run(s) {
         seat();
-        const { colliders: c } = buildWorld(rig.parts, null, 0);
+        const { colliders: c } = buildWorld(rig.parts);
         sayState(s, 'built', c);
         sayViews(s, 'built', c);
         const r = seeded(1100 + name.length);
