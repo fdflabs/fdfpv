@@ -278,26 +278,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -1401,52 +1381,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -2195,26 +2129,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -3333,52 +3247,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -4127,26 +3995,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -5267,52 +5115,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -6165,31 +5967,6 @@
       ]
      ],
      "changed": {}
-    }
-   },
-   "way-race-5inch": {
-    "calls": [],
-    "changed": {},
-    "parked": true,
-    "resumed": {
-     "calls": [
-      [
-       "onSettings",
-       "object"
-      ],
-      [
-       "show",
-       "courses"
-      ]
-     ],
-     "changed": {
-      "screen": "courses",
-      "mode": "race",
-      "craftGate": false,
-      "settings.airframeAsked": true,
-      "store.webfpv.settings.v3.airframeAsked": "true",
-      "store.webfpv.settings.v3.lastActivity": "\"race\""
-     }
     }
    },
    "way-freestyle-wing1000": {
@@ -7625,62 +7402,6 @@
      }
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [],
-    "changed": {},
-    "parked": true,
-    "resumed": {
-     "calls": [
-      [
-       "onSettings",
-       "object"
-      ],
-      [
-       "show",
-       "courses"
-      ]
-     ],
-     "changed": {
-      "screen": "courses",
-      "mode": "race",
-      "craftGate": false,
-      "settings.airframeAsked": true,
-      "settings.cameraFov": 95,
-      "settings.cameraAngle": 45,
-      "store.webfpv.settings.v3.airframeAsked": "true",
-      "store.webfpv.settings.v3.lastActivity": "\"race\"",
-      "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-      "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-      "store.webfpv.settings.v3.cameraAngle": "45",
-      "store.webfpv.settings.v3.cameraFov": "95"
-     }
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [],
-    "changed": {},
-    "parked": true,
-    "resumed": {
-     "calls": [
-      [
-       "onSettings",
-       "object"
-      ],
-      [
-       "show",
-       "courses"
-      ]
-     ],
-     "changed": {
-      "screen": "courses",
-      "mode": "race",
-      "craftGate": false,
-      "settings.airframeAsked": true,
-      "store.webfpv.settings.v3.airframeAsked": "true",
-      "store.webfpv.settings.v3.lastActivity": "\"race\""
-     }
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [],
     "changed": {},
@@ -8510,23 +8231,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -9635,46 +9339,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -10391,23 +10055,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -11517,46 +11164,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -12273,29 +11880,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.map": "\"swiss2\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.cameraAngle": "45"
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -13422,56 +13006,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframe": "interceptor",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "store.webfpv.settings.v3.map": "\"swiss2\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"bramor2300\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.map": "\"swiss2\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.cameraAngle": "45"
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -14231,27 +13765,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.map": "\"itaipu\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -15380,54 +14893,6 @@
     ],
     "changed": {
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.map": "\"itaipu\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.map": "\"itaipu\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -16206,26 +15671,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.freestyleMap": "\"alps\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -17372,52 +16817,6 @@
     ],
     "changed": {
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.freestyleMap": "\"alps\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.freestyleMap": "\"alps\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -18246,24 +17645,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -19381,48 +18762,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -20155,25 +19494,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -21297,50 +20617,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -22090,28 +21366,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.map": "\"swiss2\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -23241,56 +22495,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.map": "\"swiss2\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.map": "\"swiss2\"",
-     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -24072,24 +23276,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -25217,48 +24403,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -25992,25 +25136,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -27145,50 +26270,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -27938,25 +27019,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -29100,50 +28162,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -29893,25 +28911,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -31055,50 +30054,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -31849,23 +30804,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -32986,46 +31924,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -33643,9 +32541,6 @@
       "trk-local0001"
      ],
      [
-      "onTrackChosen"
-     ],
-     [
       "play"
      ]
     ],
@@ -33839,23 +32734,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -34982,46 +33860,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -35639,7 +34477,7 @@
       "trk-local0001"
      ],
      [
-      "onTrackChosen"
+      "play"
      ]
     ],
     "changed": {
@@ -35832,23 +34670,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -36975,46 +35796,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -37632,9 +36413,6 @@
       "trk-local0001"
      ],
      [
-      "onTrackChosen"
-     ],
-     [
       "play"
      ]
     ],
@@ -37786,23 +36564,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -38926,46 +37687,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -39581,9 +38302,6 @@
       "trk-local0001"
      ],
      [
-      "onTrackChosen"
-     ],
-     [
       "play"
      ]
     ],
@@ -39777,23 +38495,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -40920,46 +39621,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -41581,9 +40242,6 @@
       "Board ring"
      ],
      [
-      "onTrackChosen"
-     ],
-     [
       "play"
      ]
     ],
@@ -41761,23 +40419,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -42904,46 +41545,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -43721,23 +42322,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -44863,46 +43447,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -45700,23 +44244,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -46842,46 +45369,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -47675,23 +46162,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -48817,46 +47287,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -49587,23 +48017,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -50729,46 +49142,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -51386,9 +49759,6 @@
       "trk-local0001"
      ],
      [
-      "onTrackChosen"
-     ],
-     [
       "play"
      ]
     ],
@@ -51624,23 +49994,6 @@
       "gone"
      ]
     ]
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -52767,46 +51120,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -53586,23 +51899,6 @@
      ]
     ]
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -54730,46 +53026,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -55503,26 +53759,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.map": "\"swiss2\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -56644,52 +54880,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.map": "\"swiss2\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.map": "\"swiss2\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -57441,25 +55631,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -58568,50 +56739,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -59324,25 +57451,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -60439,50 +58547,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -61195,25 +59259,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -62313,50 +60358,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -63069,26 +61070,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -64220,52 +62201,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "returnTo": "title",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -64994,25 +62929,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "roomFrom": null,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -66147,50 +64063,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "roomFrom": null,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "roomFrom": null,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -66936,25 +64808,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -68056,50 +65909,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -68820,25 +66629,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -69942,50 +67732,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -70703,24 +68449,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -71838,48 +69566,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -72615,24 +70301,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -73764,48 +71432,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -74539,24 +72165,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -75683,48 +73291,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -76458,24 +74024,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -77608,48 +75156,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -78383,24 +75889,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -79537,48 +77025,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -80312,24 +77758,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -81459,48 +78887,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -82234,25 +79620,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.tune": "\"karate\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -83393,50 +80760,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "settings.tune": "betaflight-interceptor",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"karate\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.tune": "\"karate\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -84183,24 +81506,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -85319,48 +82624,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -86094,24 +83357,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -87227,48 +84472,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -88002,24 +85205,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -89148,48 +86333,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -89923,24 +87066,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -91061,48 +88186,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -91836,24 +88919,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -92972,48 +90037,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -93747,24 +90770,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -94885,48 +91890,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -95685,24 +92648,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -96822,48 +93767,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -97611,24 +94514,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -98748,48 +95633,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -99519,24 +96362,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -100656,48 +97481,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -101434,26 +98217,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -102574,52 +99337,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -103372,26 +100089,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -104512,52 +101209,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -105310,26 +101961,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -106452,52 +103083,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -107247,24 +103832,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -108391,48 +104958,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -109166,24 +105691,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -110306,48 +106813,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -111081,24 +107546,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -112203,48 +108650,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -112981,24 +109386,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -114114,48 +110501,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -114889,24 +111234,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -116026,48 +112353,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -116801,24 +113086,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -117947,48 +114214,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -118722,25 +114947,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -119853,50 +116059,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -120614,24 +116776,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -121752,48 +117896,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -122527,24 +118629,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -123661,48 +119745,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -124436,26 +120478,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -125582,52 +121604,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -126380,24 +122356,6 @@
     ],
     "changed": {}
    },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000": {
     "calls": [
      [
@@ -127512,48 +123470,6 @@
      "store.fdfpv.flywith.v1": "skip"
     }
    },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
-   },
    "way-freestyle-wing1000 picked:cub": {
     "calls": [
      [
@@ -128291,26 +124207,6 @@
      ]
     ],
     "changed": {}
-   },
-   "way-race-5inch": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
-    }
    },
    "way-freestyle-wing1000": {
     "calls": [
@@ -129439,52 +125335,6 @@
     "changed": {
      "screen": "title",
      "store.fdfpv.flywith.v1": "skip"
-    }
-   },
-   "way-race-5inch picked:cub": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "settings.cameraFov": 95,
-     "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\"",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "45",
-     "store.webfpv.settings.v3.cameraFov": "95"
-    }
-   },
-   "way-race-5inch keepWorld": {
-    "calls": [
-     [
-      "onSettings",
-      "object"
-     ],
-     [
-      "show",
-      "courses"
-     ]
-    ],
-    "changed": {
-     "screen": "courses",
-     "mode": "race",
-     "craftGate": false,
-     "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -131320,7 +127170,7 @@
      ],
      [
       "pickForWay",
-      "way-race-5inch"
+      "way-freestyle-wing1000"
      ]
     ],
     "changed": {}
@@ -131508,7 +127358,7 @@
      ],
      [
       "pickForWay",
-      "way-race-5inch"
+      "way-freestyle-wing1000"
      ]
     ],
     "changed": {}
@@ -131689,14 +127539,37 @@
       "object"
      ],
      [
+      "setCursor",
+      1
+     ],
+     [
       "show",
-      "courses"
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
      ]
     ],
     "changed": {
-     "screen": "courses",
+     "mode": "freestyle",
+     "cursor": 1,
+     "settings.airframe": "bramor2300",
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.tune": "\"wing-stab\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
      "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
+     "store.webfpv.settings.v3.lastActivity": "\"free\"",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "Hangar card": {
@@ -131883,14 +127756,39 @@
       "object"
      ],
      [
+      "setCursor",
+      1
+     ],
+     [
       "show",
-      "courses"
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
      ]
     ],
     "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "cursor": 1,
+     "settings.airframe": "bramor2300",
      "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.tune": "\"wing-stab\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
      "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
+     "store.webfpv.settings.v3.lastActivity": "\"free\"",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "Hangar card": {
@@ -132075,14 +127973,39 @@
       "object"
      ],
      [
+      "setCursor",
+      1
+     ],
+     [
       "show",
-      "courses"
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
      ]
     ],
     "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "cursor": 1,
+     "settings.airframe": "bramor2300",
      "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.tune": "\"wing-stab\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
      "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
+     "store.webfpv.settings.v3.lastActivity": "\"free\"",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "Hangar card": {
@@ -132261,16 +128184,39 @@
       "object"
      ],
      [
+      "setCursor",
+      1
+     ],
+     [
       "show",
-      "courses"
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
      ]
     ],
     "changed": {
-     "screen": "courses",
+     "screen": "title",
+     "mode": "freestyle",
+     "cursor": 1,
+     "settings.airframe": "bramor2300",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3.tune": "\"karate\"",
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.tune": "\"wing-stab\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
      "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.lastActivity": "\"race\""
+     "store.webfpv.settings.v3.lastActivity": "\"free\"",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"karate\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "Hangar card": {
@@ -132339,11 +128285,6 @@
      "blurb": "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly.",
      "facts": [],
      "links": [
-      {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
       {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
@@ -132488,11 +128429,6 @@
      "facts": [],
      "links": [
       {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
-      {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
@@ -132620,11 +128556,6 @@
      "blurb": "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly.",
      "facts": [],
      "links": [
-      {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
       {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
@@ -132782,11 +128713,6 @@
      "facts": [],
      "links": [
       {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
-      {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
@@ -132905,7 +128831,6 @@
   },
   "continue combat rooms:true": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -132927,7 +128852,6 @@
   ],
   "continue combat rooms:false": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "training:way-training"
    ],
@@ -132946,7 +128870,6 @@
   ],
   "continue race rooms:true": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -132968,7 +128891,6 @@
   ],
   "continue free rooms:false": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "training:way-training"
    ],
@@ -132987,7 +128909,6 @@
   ],
   "continue war rooms:true": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -133009,7 +128930,6 @@
   ],
   "continue nosuch rooms:true": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -133031,7 +128951,6 @@
   ],
   "continue war campaign:1 next:m1": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -133059,7 +128978,6 @@
   ],
   "continue war campaign:1 next:none": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -133087,7 +129005,6 @@
   ],
   "continue war campaign:0 next:none": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -133110,7 +129027,6 @@
   "continue war campaign:0 next:none press": [],
   "continue interior campaign:1 next:o1": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -133138,7 +129054,6 @@
   ],
   "continue interior campaign:1 next:none": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -133166,7 +129081,6 @@
   ],
   "continue interior campaign:0 next:none": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",
@@ -133189,7 +129103,6 @@
   "continue interior campaign:0 next:none press": [],
   "continue interior campaign:none next:none": [
    [
-    "race-5inch:way-race-5inch",
     "freestyle-wing1000:way-freestyle-wing1000",
     "combat:way-combat",
     "ace:way-ace",

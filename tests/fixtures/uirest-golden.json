@@ -3871,7 +3871,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -3881,7 +3881,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -3891,7 +3891,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -3911,7 +3911,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -3921,7 +3921,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -3931,7 +3931,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -3951,7 +3951,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -3961,7 +3961,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -3971,7 +3971,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -3991,7 +3991,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -4001,7 +4001,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -4011,7 +4011,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -4031,7 +4031,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -4041,7 +4041,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -4051,7 +4051,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -4071,7 +4071,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -4081,7 +4081,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -4091,7 +4091,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -4116,7 +4116,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -4126,7 +4126,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -4151,7 +4151,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -4161,7 +4161,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -4186,7 +4186,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -4196,7 +4196,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -4211,18 +4211,18 @@
      ]
     },
     "true:club:null:all": {
-     "at": 4,
-     "action": "way-race-5inch",
+     "at": 5,
+     "action": "way-friends",
      "log": []
     },
     "true:club:null:nohubs": {
-     "at": 1,
-     "action": "way-race-5inch",
+     "at": 2,
+     "action": "way-friends",
      "log": []
     },
     "true:club:null:nofirst": {
-     "at": 3,
-     "action": "way-race-5inch",
+     "at": 4,
+     "action": "way-friends",
      "log": []
     },
     "true:club:null:empty": {
@@ -4236,18 +4236,18 @@
      ]
     },
     "true:club:race:all": {
-     "at": 4,
-     "action": "way-race-5inch",
+     "at": 5,
+     "action": "way-friends",
      "log": []
     },
     "true:club:race:nohubs": {
-     "at": 1,
-     "action": "way-race-5inch",
+     "at": 2,
+     "action": "way-friends",
      "log": []
     },
     "true:club:race:nofirst": {
-     "at": 3,
-     "action": "way-race-5inch",
+     "at": 4,
+     "action": "way-friends",
      "log": []
     },
     "true:club:race:empty": {
@@ -4261,17 +4261,17 @@
      ]
     },
     "true:club:freestyle:all": {
-     "at": 6,
+     "at": 5,
      "action": "way-friends",
      "log": []
     },
     "true:club:freestyle:nohubs": {
-     "at": 3,
+     "at": 2,
      "action": "way-friends",
      "log": []
     },
     "true:club:freestyle:nofirst": {
-     "at": 5,
+     "at": 4,
      "action": "way-friends",
      "log": []
     },
@@ -8191,7 +8191,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -8201,7 +8201,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -8211,7 +8211,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -8231,7 +8231,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -8241,7 +8241,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -8251,7 +8251,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -8271,7 +8271,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -8281,7 +8281,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -8291,7 +8291,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -8311,7 +8311,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -8321,7 +8321,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -8331,7 +8331,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -8351,7 +8351,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -8361,7 +8361,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -8371,7 +8371,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -8391,7 +8391,7 @@
      "log": [
       [
        "firstStop",
-       13
+       12
       ]
      ]
     },
@@ -8401,7 +8401,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -8411,7 +8411,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -8436,7 +8436,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -8446,7 +8446,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -8471,7 +8471,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -8481,7 +8481,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -8506,7 +8506,7 @@
      "log": [
       [
        "firstStop",
-       10
+       9
       ]
      ]
     },
@@ -8516,7 +8516,7 @@
      "log": [
       [
        "firstStop",
-       12
+       11
       ]
      ]
     },
@@ -8531,18 +8531,18 @@
      ]
     },
     "true:club:null:all": {
-     "at": 4,
-     "action": "way-race-5inch",
+     "at": 5,
+     "action": "way-friends",
      "log": []
     },
     "true:club:null:nohubs": {
-     "at": 1,
-     "action": "way-race-5inch",
+     "at": 2,
+     "action": "way-friends",
      "log": []
     },
     "true:club:null:nofirst": {
-     "at": 3,
-     "action": "way-race-5inch",
+     "at": 4,
+     "action": "way-friends",
      "log": []
     },
     "true:club:null:empty": {
@@ -8556,18 +8556,18 @@
      ]
     },
     "true:club:race:all": {
-     "at": 4,
-     "action": "way-race-5inch",
+     "at": 5,
+     "action": "way-friends",
      "log": []
     },
     "true:club:race:nohubs": {
-     "at": 1,
-     "action": "way-race-5inch",
+     "at": 2,
+     "action": "way-friends",
      "log": []
     },
     "true:club:race:nofirst": {
-     "at": 3,
-     "action": "way-race-5inch",
+     "at": 4,
+     "action": "way-friends",
      "log": []
     },
     "true:club:race:empty": {
@@ -8581,17 +8581,17 @@
      ]
     },
     "true:club:freestyle:all": {
-     "at": 6,
+     "at": 5,
      "action": "way-friends",
      "log": []
     },
     "true:club:freestyle:nohubs": {
-     "at": 3,
+     "at": 2,
      "action": "way-friends",
      "log": []
     },
     "true:club:freestyle:nofirst": {
-     "at": 5,
+     "at": 4,
      "action": "way-friends",
      "log": []
     },

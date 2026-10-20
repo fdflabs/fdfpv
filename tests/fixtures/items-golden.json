@@ -15,11 +15,6 @@
      "svg": "<svg 1448 chars>",
      "links": [
       {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
-      {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
@@ -116,11 +111,6 @@
      "facts": [],
      "svg": "<svg 1448 chars>",
      "links": [
-      {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
       {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
@@ -230,21 +220,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-way-race-5inch",
-     "label": "Track Day",
-     "action": "way-race-5inch",
-     "card": "race-5inch",
-     "art": "assets/gate/race.jpg",
-     "blurb": "Gates against the clock, on your own track or one from the board.",
-     "facts": [
-      "Gates",
-      "The clock",
-      "The board"
-     ],
-     "svg": "<svg 1448 chars>",
-     "drives": {}
-    },
-    {
      "id": "title:a-way-freestyle-wing1000",
      "label": "Free Flight",
      "action": "way-freestyle-wing1000",
@@ -294,7 +269,7 @@
      "action": "way-training",
      "card": "training",
      "art": "assets/posters/swiss2.jpg",
-     "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
+     "blurb": "Lessons from the first takeoff to defending the dam, one step at a time.",
      "facts": [
       "Short lessons, in order",
       "Stabilised first, then Acro",
@@ -488,11 +463,6 @@
      "facts": [],
      "svg": "<svg 623 chars>",
      "links": [
-      {
-       "label": "Track Day",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
       {
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
@@ -26722,11 +26692,6 @@
      "svg": "<svg 1448 chars>",
      "links": [
       {
-       "label": "Día de pista",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
-      {
        "label": "Vuelo Libre",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
@@ -26823,11 +26788,6 @@
      "facts": [],
      "svg": "<svg 1448 chars>",
      "links": [
-      {
-       "label": "Día de pista",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
       {
        "label": "Vuelo Libre",
        "action": "way-freestyle-wing1000",
@@ -26937,21 +26897,6 @@
    "screen": "title",
    "items": [
     {
-     "id": "title:a-way-race-5inch",
-     "label": "Día de pista",
-     "action": "way-race-5inch",
-     "card": "race-5inch",
-     "art": "assets/gate/race.jpg",
-     "blurb": "Puertas contra el reloj, en tu propia pista o en una del tablero.",
-     "facts": [
-      "Puertas",
-      "El reloj",
-      "El tablero"
-     ],
-     "svg": "<svg 1448 chars>",
-     "drives": {}
-    },
-    {
      "id": "title:a-way-freestyle-wing1000",
      "label": "Vuelo Libre",
      "action": "way-freestyle-wing1000",
@@ -27001,7 +26946,7 @@
      "action": "way-training",
      "card": "training",
      "art": "assets/posters/swiss2.jpg",
-     "blurb": "Lecciones desde el primer despegue hasta ganarle a tu fantasma, paso a paso.",
+     "blurb": "Lecciones desde el primer despegue hasta defender la represa, paso a paso.",
      "facts": [
       "Lecciones cortas, en orden",
       "Primero Stabilised, después Acro",
@@ -27195,11 +27140,6 @@
      "facts": [],
      "svg": "<svg 623 chars>",
      "links": [
-      {
-       "label": "Día de pista",
-       "action": "way-race-5inch",
-       "key": "race-5inch"
-      },
       {
        "label": "Vuelo Libre",
        "action": "way-freestyle-wing1000",

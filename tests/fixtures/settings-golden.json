@@ -171,47 +171,6 @@
    "SETTINGS_KEY": "webfpv.settings.v3",
    "WAYS": [
     {
-     "action": "way-race-5inch",
-     "airframes": [
-      "interceptor",
-      "7inch",
-      "10inch",
-      "sky1800",
-      "cub1400",
-      "radian2000",
-      "bramor2300",
-      "slowstick1180",
-      "timber1500",
-      "timber1500f",
-      "cub1400f",
-      "bombshell1118",
-      "kadet1981",
-      "uglystik1567",
-      "tigermoth1803",
-      "extra3d1308",
-      "nighttimber1200",
-      "hercules3077",
-      "cap1702",
-      "slick2680",
-      "p51d1450",
-      "f16878",
-      "zagi1219",
-      "nrj1490",
-      "striker2500"
-     ],
-     "art": "assets/gate/race.jpg",
-     "blurb": "Gates against the clock, on your own track or one from the board.",
-     "facts": [
-      "Gates",
-      "The clock",
-      "The board"
-     ],
-     "id": "race-5inch",
-     "label": "Track Day",
-     "lobby": "race",
-     "mode": "race"
-    },
-    {
      "action": "way-freestyle-wing1000",
      "airframes": [
       "bramor2300",
@@ -498,7 +457,7 @@
       "timber1500"
      ],
      "art": "assets/posters/swiss2.jpg",
-     "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
+     "blurb": "Lessons from the first takeoff to defending the dam, one step at a time.",
      "category": "flightclub",
      "facts": [
       "Short lessons, in order",
