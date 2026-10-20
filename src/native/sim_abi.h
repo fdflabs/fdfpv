@@ -1000,7 +1000,8 @@ int sim_wing_tune(double *out);
  *
  * Additive, version unchanged: nothing seated, no step reads any of it,
  * and seated at ones and zeros (the holds one) every trace is bit
- * identical (scripts/surfaces-gates.js). The block grew from 6 doubles to
+ * identical (scripts/surfaces-gates.js, in git at b420b0e51; it left with
+ * the aircraft that flew it on 2026-10-20). The block grew from 6 doubles to
  * 9 on 2026-10-12 (the holds, servo blow back): the module and its
  * callers ship together, and the crash cam's journal, which copies the
  * block, lives in memory only, so no saved recording carries the old

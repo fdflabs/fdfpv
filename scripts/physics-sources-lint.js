@@ -81,7 +81,7 @@ export const JS_FILES = [
   'configs/combat.js',
   'configs/hangar-parts.js',
 ];
-export const PINNED_JS_COUNT = 1041;
+export const PINNED_JS_COUNT = 966;
 /* Every aircraft/<id>/aircraft.js, read at run time: the sections that
  * state the aircraft's physics, its airframe row (mass, size, stall, the
  * camera), its tuning (CG, throws) and its power and props. Not the kit,

@@ -56,18 +56,11 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 
-const AIRFRAMES = [
-  ['5in', 0], ['wing1000', 2], ['sky1800', 3], ['cub1400', 4], ['slowstick1180', 5],
-  ['radian2000', 6], ['timber1500', 7], ['bramor2300', 8], ['timber1500f', 9], ['cub1400f', 10],
-  ['bombshell1118', 11], ['kadet1981', 12], ['p51d1450', 15], ['f16878', 16], ['zagi1219', 17],
-  ['uglystik1567', 19], ['nrj1490', 21], ['tigermoth1803', 23], ['extra3d1308', 29], ['nighttimber1200', 30], ['hercules3077', 31],
-  ['cap1702', 32],
-  ['slick2680', 33],
-];
-const MASS = { 0: 0.71, 2: 0.65, 3: 2.10, 4: 1.32, 5: 0.42, 6: 0.98, 7: 1.70, 8: 4.5, 9: 1.934, 10: 1.532, 11: 0.5599, 12: 2.7216, 15: 2.35, 16: 2.116, 17: 0.7229, 19: 2.7216, 21: 0.213, 23: 4.6493, 29: 1.51, 30: 1.698, 31: 6.728, 32: 3.6287, 33: 12.474 };
+const AIRFRAMES = [['5in', 0], ['wing1000', 2], ['bramor2300', 8]];
+const MASS = { 0: 0.71, 2: 0.65, 8: 4.5 };
 /* Removed, each id reserved (sim_abi.h): the whoop on 2026-10-03, the
- * planes on 2026-09-29. */
-const RESERVED_IDS = [1, 13, 14, 18, 20, 22];
+ * planes on 2026-09-29, the recreational fixed wings on 2026-10-20. */
+const RESERVED_IDS = [1, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 29, 30, 31, 32, 33];
 
 let failed = 0;
 let passed = 0;
@@ -116,7 +109,7 @@ for (const [name, id] of AIRFRAMES) {
   check(`${name}: parents precede children, every kind named, hulls and joints present`, order && kinds && hulls && joints);
 }
 
-/* The ids of the aircraft removed on 2026-09-29 stay reserved (sim_abi.h):
+/* The ids of the aircraft removed stay reserved (sim_abi.h):
  * the module refuses them rather than seating another aircraft on them. */
 {
   const sim = await loadSim(wasmBytes);

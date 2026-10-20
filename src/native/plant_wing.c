@@ -883,7 +883,9 @@ static double fan_spool(const FixedWingParams *fw, double throttle, double de, i
 #define PROP_K_M (0.85 / 0.15)
 /* A free electric rotor's friction over the prop's static torque. The
  * Extra's motor class, E-flite's Power 32, draws 2.4 A at no load
- * (scripts/extra-derive.js), at its Kt of 60 / (2 pi 910) 0.025 N m, of
+ * (docs/EXTRA-STAGE1.md; scripts/extra-derive.js, which derived it, left
+ * with the Extra on 2026-10-20, in git at b420b0e51), at its Kt of
+ * 60 / (2 pi 910) 0.025 N m, of
  * the prop's 0.651 N m at full. FITTED: no other table has its motor's
  * no load current, so every electric rotor takes the Extra's share. It
  * stops a coasting prop in seconds on the ground, as a real one stops. */

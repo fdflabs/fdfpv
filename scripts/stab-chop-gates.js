@@ -11,7 +11,8 @@
  * settle on the glide it trims at by itself: never at the stall's alpha,
  * and the mean sink of the last 10 s within the band about the derived
  * sink. The band is the Bombshell's S21, its S3 glide band in proportion
- * (tests/bombshell-thresholds.json): the derived sink over 1.12 to over
+ * (tests/bombshell-thresholds.json, in git at b420b0e51; it left with the
+ * Bombshell on 2026-10-20): the derived sink over 1.12 to over
  * 0.89. Bands are never widened here: a plant outside one is a finding
  * for the derivation. Run with npm run stab:chop.
  *
