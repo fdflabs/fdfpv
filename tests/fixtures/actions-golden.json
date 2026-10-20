@@ -227,19 +227,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -1290,19 +1279,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -1533,19 +1511,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -2610,19 +2577,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -2853,19 +2809,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -3932,19 +3877,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -4224,19 +4158,8 @@
      "changed": {
       "mode": "freestyle",
       "craftGate": false,
-      "settings.airframe": "timber1500",
       "settings.airframeAsked": true,
-      "settings.cameraFov": 100,
-      "settings.cameraAngle": 5,
-      "settings.tune": "timber-acro",
-      "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-      "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-      "store.webfpv.settings.v3.airframeAsked": "true",
-      "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-      "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-      "store.webfpv.settings.v3.cameraAngle": "5",
-      "store.webfpv.settings.v3.cameraFov": "100",
-      "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+      "store.webfpv.settings.v3.airframeAsked": "true"
      }
     }
    },
@@ -5587,19 +5510,8 @@
      "changed": {
       "mode": "freestyle",
       "craftGate": false,
-      "settings.airframe": "timber1500",
       "settings.airframeAsked": true,
-      "settings.cameraFov": 100,
-      "settings.cameraAngle": 5,
-      "settings.tune": "timber-acro",
-      "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-      "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-      "store.webfpv.settings.v3.airframeAsked": "true",
-      "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-      "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-      "store.webfpv.settings.v3.cameraAngle": "5",
-      "store.webfpv.settings.v3.cameraFov": "100",
-      "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+      "store.webfpv.settings.v3.airframeAsked": "true"
      }
     }
    }
@@ -5827,19 +5739,8 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -6869,19 +6770,8 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -7108,19 +6998,8 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -8150,19 +8029,8 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -8373,20 +8241,11 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
      "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"bramor2300\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.cameraAngle": "45"
     }
    },
    "friends-leave": {
@@ -9441,20 +9300,11 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
      "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"bramor2300\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.cameraAngle": "45"
     }
    }
   },
@@ -9679,21 +9529,10 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"itaipu\"",
      "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -10761,21 +10600,10 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"itaipu\"",
      "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -11017,22 +10845,11 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
      "settings.map": "alps",
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"alps\"",
      "store.webfpv.settings.v3.freestyleMap": "\"alps\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -12143,22 +11960,11 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
      "settings.map": "alps",
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"alps\"",
      "store.webfpv.settings.v3.freestyleMap": "\"alps\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -12389,20 +12195,9 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -13440,20 +13235,9 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -13690,20 +13474,9 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -14752,20 +14525,9 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -14993,20 +14755,9 @@
     ],
     "changed": {
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -16073,20 +15824,9 @@
     ],
     "changed": {
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -16318,20 +16058,9 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -17379,20 +17108,9 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -17629,20 +17347,9 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -18700,20 +18407,9 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -18944,19 +18640,8 @@
     "changed": {
      "mode": "freestyle",
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -20039,19 +19724,8 @@
     "changed": {
      "mode": "freestyle",
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -20282,19 +19956,8 @@
     "changed": {
      "mode": "freestyle",
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -21377,19 +21040,8 @@
     "changed": {
      "mode": "freestyle",
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -21610,19 +21262,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -22677,19 +22318,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -22908,19 +22538,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -23968,19 +23587,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -24199,19 +23807,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -25247,19 +24844,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -25478,19 +25064,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -26529,19 +26104,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -26765,19 +26329,8 @@
     ],
     "changed": {
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -27847,19 +27400,8 @@
     ],
     "changed": {
      "returnTo": "title",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -28080,19 +27622,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -29135,19 +28666,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -29368,19 +28888,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -30423,19 +29932,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -30661,19 +30159,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -31733,19 +31220,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -31971,19 +31447,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -33055,19 +32520,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -33293,19 +32747,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -34372,19 +33815,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -34610,19 +34042,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -35695,19 +35116,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -35933,19 +35343,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -37022,19 +36421,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -37260,19 +36648,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -38341,19 +37718,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -38581,19 +37947,9 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"karate\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.tune": "\"karate\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -39674,19 +39030,9 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"karate\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.tune": "\"karate\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -39912,19 +39258,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -40983,19 +40318,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -41221,19 +40545,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -42289,19 +41602,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -42527,19 +41829,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -43608,19 +42899,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -43846,19 +43126,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -44919,19 +44188,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -45157,19 +44415,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -46228,19 +45475,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -46466,19 +45702,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -47539,19 +46764,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -47782,19 +46996,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -48861,19 +48064,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -49104,19 +48296,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -50183,19 +49364,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -50426,19 +49596,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -51505,19 +50664,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -51743,19 +50891,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -52822,19 +51959,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -53066,20 +52192,9 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -54124,20 +53239,9 @@
     "changed": {
      "screen": "freestyle",
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
      "store.webfpv.settings.v3.map": "\"track\"",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -54363,19 +53467,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -55422,19 +54515,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -55660,19 +54742,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -56729,19 +55800,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -56967,19 +56027,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -58039,19 +57088,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -58272,19 +57310,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -59335,19 +58362,8 @@
      ]
     ],
     "changed": {
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -59573,19 +58589,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -60645,19 +59650,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -60883,19 +59877,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -61952,19 +60935,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -62195,19 +61167,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -63279,19 +62240,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -63517,19 +62467,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -64585,19 +63524,8 @@
     ],
     "changed": {
      "mode": "freestyle",
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   },
@@ -64828,19 +63756,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "friends-leave": {
@@ -65909,19 +64826,8 @@
     "changed": {
      "mode": "freestyle",
      "craftGate": false,
-     "settings.airframe": "timber1500",
      "settings.airframeAsked": true,
-     "settings.cameraFov": 100,
-     "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
-     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
-     "store.webfpv.settings.v3.airframeAsked": "true",
-     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
-     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
-     "store.webfpv.settings.v3.cameraAngle": "5",
-     "store.webfpv.settings.v3.cameraFov": "100",
-     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    }
   }
@@ -67479,11 +66385,6 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
-      },
-      {
-       "label": "Learn to fly",
-       "action": "way-training",
-       "key": "training"
       }
      ],
      "action": "hub-club"
@@ -67506,6 +66407,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Defence training",
+       "action": "way-training",
+       "key": "training"
       },
       {
        "label": "Field hangar",
@@ -67612,11 +66518,6 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
-      },
-      {
-       "label": "Learn to fly",
-       "action": "way-training",
-       "key": "training"
       }
      ],
      "action": "hub-club"
@@ -67634,6 +66535,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Defence training",
+       "action": "way-training",
+       "key": "training"
       },
       {
        "label": "Field hangar",
@@ -67740,11 +66646,6 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
-      },
-      {
-       "label": "Learn to fly",
-       "action": "way-training",
-       "key": "training"
       }
      ],
      "action": "hub-club"
@@ -67767,6 +66668,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Defence training",
+       "action": "way-training",
+       "key": "training"
       },
       {
        "label": "Field hangar",
@@ -67886,11 +66792,6 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
-      },
-      {
-       "label": "Learn to fly",
-       "action": "way-training",
-       "key": "training"
       }
      ],
      "action": "hub-club"
@@ -67908,6 +66809,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Defence training",
+       "action": "way-training",
+       "key": "training"
       },
       {
        "label": "Field hangar",
@@ -68001,12 +66907,12 @@
   },
   "continue combat rooms:true": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68020,11 +66926,11 @@
   ],
   "continue combat rooms:false": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68038,12 +66944,12 @@
   ],
   "continue race rooms:true": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68057,11 +66963,11 @@
   ],
   "continue free rooms:false": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68075,12 +66981,12 @@
   ],
   "continue war rooms:true": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68094,12 +67000,12 @@
   ],
   "continue nosuch rooms:true": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68113,12 +67019,12 @@
   ],
   "continue war campaign:1 next:m1": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:continue-mission:First",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68138,12 +67044,12 @@
   ],
   "continue war campaign:1 next:none": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68163,12 +67069,12 @@
   ],
   "continue war campaign:0 next:none": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68183,12 +67089,12 @@
   "continue war campaign:0 next:none press": [],
   "continue interior campaign:1 next:o1": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:continue-mission:Old",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68208,12 +67114,12 @@
   ],
   "continue interior campaign:1 next:none": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68233,12 +67139,12 @@
   ],
   "continue interior campaign:0 next:none": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
@@ -68253,12 +67159,12 @@
   "continue interior campaign:0 next:none press": [],
   "continue interior campaign:none next:none": [
    [
-    "freestyle-wing1000:way-freestyle-wing1000",
-    "training:way-training"
+    "freestyle-wing1000:way-freestyle-wing1000"
    ],
    [
     "campaign:way-campaign",
     "interior:way-interior",
+    "training:way-training",
     "ops-field:field-walk"
    ],
    [
