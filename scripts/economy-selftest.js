@@ -23,11 +23,11 @@ import {
   CHALLENGE_TOKENS, FIRST_TOKENS, ITEMS, KIT_PRICE, earnedFrom, kitItem, grantCeiling, grantsFrom, itemById,
 } from '../src/game/economy.js';
 import { KITS, slotsFor } from '../configs/kits.js';
-import { CHALLENGES, everyFirst, unlockables } from '../src/game/progress.js';
+import { CHALLENGES, everyFirst, freshProgress, unlockables } from '../src/game/progress.js';
 import {
   DECAL_KINDS, FINISHES, SHOP_DECALS, SHOP_FINISHES, newDecal,
 } from '../configs/paint.js';
-import { UPGRADES } from '../src/game/campaign.js';
+import { ACT1, INTERIOR, UPGRADES, released } from '../src/game/campaign.js';
 import { LESSONS } from '../src/game/training.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { addFlight } from '../src/share/flighttime.js';
@@ -103,8 +103,26 @@ check('kitItem finds a sold option and nothing for a free one', kitItem('7inch',
 console.log('the shop');
 check('every item is sold or earned, never both', ITEMS.every((it) => Number.isInteger(it.price) !== Boolean(it.earn)));
 check('flying everything once buys the whole shop', ITEMS.filter((it) => it.price).reduce((n, it) => n + it.price, 0) <= grantCeiling());
-check('the gold finish is earned with all seven challenges, the ribbon with three stars', earnedFrom(everything).filter((id) => !id.startsWith('kit:')).sort().join() === 'decal:ribbon,finish:gold'
+check('the gold finish is earned with every released mission won, the ribbon with three stars', earnedFrom(everything).filter((id) => !id.startsWith('kit:')).sort().join() === 'decal:ribbon,finish:gold'
   && earnedFrom({ data: { campaign: { missions: { 'itaipu-1': { stars: 2, won: true } } } } }).length === 0);
+/*
+ * THE GOLD FINISH IS NEVER EVERY ACCOUNT'S (the combat-only cut,
+ * 2026-10-20): its feat was every challenge done, and with the challenges
+ * gone that read 0 === 0, which the next sync would have granted to every
+ * account. No record that has not won every released mission earns it:
+ * none, a fresh one, and one from before the cut that holds every
+ * challenge and lesson there was.
+ */
+const RELEASED = [...ACT1, ...INTERIOR].filter((m) => released(m.id)).map((m) => m.id);
+const wonAll = (ids) => ({ v: 1, data: { campaign: { v: 1, missions: Object.fromEntries(ids.map((id) => [id, { stars: 1, won: true, credits: 0 }])) } } });
+const PRE_CUT = ['first_course', 'timber_clean', 'hoops_10', 'slowstick_three', 'kadet_small_tank', 'deadstick', 'bombshell_glide'];
+const preCut = { v: 1, data: { progress: { ...freshProgress(false), challenges: Object.fromEntries(PRE_CUT.map((id) => [id, true])),
+  lessons: { first_sticks: 1, wing_eight: 1, glider_land: 1, quad_acro: 1 }, lessonsFlown: { first_sticks: true, wing_eight: true }, played: { 'tag:swiss2': true } } } };
+const gold = (blob) => earnedFrom(blob).includes('finish:gold');
+check('no gold for no record, an empty one or a fresh one', !gold(null) && !gold({}) && !gold({ v: 1, data: {} }) && !gold({ v: 1, data: { progress: freshProgress(false) } }));
+check('no gold for a pre-cut record holding every challenge and lessons', !gold(preCut));
+check('no gold with one released mission still to win, gold with all of them', RELEASED.length > 1
+  && RELEASED.every((id) => !gold(wonAll(RELEASED.filter((x) => x !== id)))) && gold(wonAll(RELEASED)), RELEASED.join());
 check('itemById knows each and nothing else', ITEMS.every((it) => itemById(it.id) === it) && itemById('finish:chrome') === null);
 
 check('every item\'s paint exists, and the shop lists are exactly the items', PAINTED.every((it) => (it.kind === 'finish' ? FINISHES.includes(it.paint) : Boolean(DECAL_KINDS[it.paint])))

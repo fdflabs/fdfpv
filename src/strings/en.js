@@ -2268,7 +2268,7 @@ export default {
   "shop.owned_decal": "Owned: add it in Colours, Decals.",
   "shop.decal_where": "A decal goes where you put it, in Colours, Decals.",
   "shop.no_preview_quad": "Combat drones wear their own finishes; try this on a plane.",
-  "shop.earn_challenges": "Earned by finishing all seven challenges.",
+  "shop.earn_campaigns": "Earned by winning every mission of both campaigns.",
   "shop.earn_three_stars": "Earned by three stars on any campaign mission.",
   "shop.refused_short": "Not enough tokens for that yet.",
   "shop.refused_owned": "You already own that.",

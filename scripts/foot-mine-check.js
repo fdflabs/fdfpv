@@ -50,7 +50,8 @@ import { startAccounts, seedSignedIn } from '../tests/lib/account.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { BUILDS_KEY, buildsBlob } from '../src/ui/builds.js';
 import { ROOM_BUDGET, TIER_LEVELS } from '../src/game/hangarroom.js';
-import { CHALLENGES, LEVEL_XP, everyFirst } from '../src/game/progress.js';
+import { LEVEL_XP, everyFirst } from '../src/game/progress.js';
+import { ACT1, INTERIOR, released } from '../src/game/campaign.js';
 import { itemById } from '../src/game/economy.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -88,8 +89,8 @@ const build = (id, name, airframe, scheme, at) => ({
  * bays) once the shell has paid her mission's firsts, one build, a
  * mission flown to three stars (the ribbon decal, earned). Kite: level 8 with Unlock all (the airfield hangar,
  * three bays, the newest plane of all on one), two builds,
- * every challenge done (the gold finish, earned, and the 350 tokens that
- * buy the satin, 300).
+ * every released mission won with a star each (the gold finish, earned,
+ * and the tokens their firsts pay buy the satin).
  */
 const WREN = {
   callsign: 'Wren',
@@ -104,14 +105,22 @@ const KITE = {
   callsign: 'Kite',
   seated: 'striker2500',
   graphics: 'medium',
-  progress: progress(LEVEL_XP[7], 6, Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), true),
-  campaign: null,
+  progress: progress(LEVEL_XP[7], 6, {}, true),
+  campaign: {
+    v: 1, missions: Object.fromEntries([...ACT1, ...INTERIOR].filter((m) => released(m.id)).map((m) => [m.id, { stars: 1, won: true, credits: 0 }])),
+    earned: 0, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {},
+  },
   builds: [
     build('kitetimber', 'Kite Timber', 'timber1500', 'timber_x', 1760000000000),
     build('kitebramor', 'Kite Bramor', 'bramor2300', 'hivis', 1760000500000),
   ],
   buy: ['finish:satin'],
 };
+
+/* The trophy wall's slots (src/render/hangarroomview.js TROPHY_ROWS 3 by
+ * TROPHY_COLS 6): it stands as many firsts as it has slots. Kite's
+ * campaign wins pay more firsts than that. */
+const WALL_SLOTS = 18;
 
 const accounts = await startAccounts();
 
@@ -272,7 +281,7 @@ try {
     check('Kite: his builds on the bays, the last saved first, then the newest plane Unlock all opened',
       same(s.mine.bays, want) && same(s.view.bayAirframes, want.map((b) => b.airframe)), `${JSON.stringify(s.mine.bays)}, drawn ${JSON.stringify(s.view.bayAirframes)}`);
     check('Kite: the chart hangs his wallet, the satin and the gold', same(s.mine.chart, { finishes: ['satin', 'gold'], decals: [] }) && s.view.chart === 2, `${JSON.stringify(s.mine.chart)}, ${s.view.chart} chip(s)`);
-    check('Kite: the trophy wall holds his own firsts and medals', s.view.trophies === me.firsts + me.medals && s.view.trophies >= 6, `${s.view.trophies} cups, ${me.firsts} firsts, ${me.medals} medals`);
+    check(`Kite: the trophy wall full, ${WALL_SLOTS} of his own firsts and medals`, me.firsts + me.medals > WALL_SLOTS && s.view.trophies === WALL_SLOTS, `${s.view.trophies} cups, ${me.firsts} firsts, ${me.medals} medals`);
     check('Kite: nothing of Wren\'s in his room', !JSON.stringify(s.mine).includes('wren'), JSON.stringify(s.mine));
     await page.sleep(1500);
     const v = (await page.evaluate('window.__walkStats()')).view;

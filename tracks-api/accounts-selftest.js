@@ -46,6 +46,7 @@ import {
 } from '../src/share/flighttime.js';
 import { ITEMS, grantsFrom, itemById } from '../src/game/economy.js';
 import { CHALLENGES } from '../src/game/progress.js';
+import { ACT1, INTERIOR, released } from '../src/game/campaign.js';
 import {
   addFlightCount, addGameResult, countTotals, mergePilotCounts,
 } from '../src/share/pilotcounts.js';
@@ -672,8 +673,12 @@ console.log('the wallet (wallet.js, docs/ECONOMY.md)');
   const more = JSON.parse(JSON.stringify(oldBlob));
   more.data.progress.challenges = { ...more.data.progress.challenges, ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])) };
   r = await call('PUT', '/api/account/progress', { progress: more }, bob);
-  check('a sync with new challenges pays only those, and the gold finish is earned with all seven', r.body.wallet.balance === paid + (CHALLENGES.length - 2) * 50
-    && r.body.wallet.owned['finish:gold'] === 'earned', JSON.stringify(r.body.wallet));
+  check('a sync with new challenges pays only those, and earns no gold: every challenge done has not earned it since the combat-only cut',
+    r.body.wallet.balance === paid + (CHALLENGES.length - 2) * 50 && !r.body.wallet.owned['finish:gold'], JSON.stringify(r.body.wallet));
+  const won = JSON.parse(JSON.stringify(more));
+  won.data.campaign.missions = Object.fromEntries([...ACT1, ...INTERIOR].filter((m) => released(m.id)).map((m) => [m.id, { stars: 1, won: true, credits: 0 }]));
+  r = await call('PUT', '/api/account/progress', { progress: won }, bob);
+  check('a sync with every released mission won earns the gold finish', r.status === 200 && r.body.wallet.owned['finish:gold'] === 'earned', JSON.stringify(r.body.wallet));
   const before = r.body.wallet.balance;
   r = await call('POST', '/api/account/wallet/buy', { item: 'finish:gold' }, bob);
   check('an earned item is not for sale', r.status === 409 && r.body.why === 'earned');

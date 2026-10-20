@@ -40,7 +40,7 @@
  */
 
 import { CHALLENGES, everyFirst, firstsOf } from './progress.js';
-import { MAX_STARS, cleanCampaign } from './campaign.js';
+import { ACT1, INTERIOR, MAX_STARS, cleanCampaign, released } from './campaign.js';
 import { flightTotals } from '../share/flighttime.js';
 import { KITS } from '../../configs/kits.js';
 
@@ -65,7 +65,7 @@ export const ITEMS = [
   { id: 'finish:satin', kind: 'finish', paint: 'satin', price: 300 },
   { id: 'finish:pearl', kind: 'finish', paint: 'pearl', price: 500 },
   { id: 'finish:candy', kind: 'finish', paint: 'candy', price: 600 },
-  { id: 'finish:gold', kind: 'finish', paint: 'gold', earn: 'challenges' },
+  { id: 'finish:gold', kind: 'finish', paint: 'gold', earn: 'campaigns' },
   { id: 'finish:flake', kind: 'finish', paint: 'flake', price: 500 },
   { id: 'finish:brushed', kind: 'finish', paint: 'brushed', price: 400 },
   { id: 'decal:ribbon', kind: 'decal', paint: 'ribbon', earn: 'three_stars' },
@@ -146,11 +146,25 @@ export function grantsFrom(blob) {
   ];
 }
 
+/*
+ * The gold finish's feat: every mission of both campaigns a pilot may fly
+ * today won. It was every challenge done until the combat-only cut
+ * (2026-10-20) took the challenges, all recreational, with it; a pilot who
+ * earned it then keeps it (tracks-api/wallet.js never takes an owned item
+ * back). Read at load, so a mission released later joins the feat for
+ * whoever has not earned it yet. Never empty: an empty list would make
+ * every() true and grant gold to every account (economy:selftest).
+ */
+const CAMPAIGN_FEAT = [...ACT1, ...INTERIOR].filter((m) => released(m.id)).map((m) => m.id);
+if (!CAMPAIGN_FEAT.length) {
+  throw new Error('economy.js: no released mission, so the gold finish would be every account\'s');
+}
+
 /* The earned items the record shows: their ids. */
 export function earnedFrom(blob) {
   const f = factsOf(blob);
   const feats = {
-    challenges: f.challenges.length === CHALLENGES.length,
+    campaigns: CAMPAIGN_FEAT.every((id) => f.campaign.missions[id]?.won === true),
     three_stars: Object.values(f.campaign.missions).some((m) => m.stars >= MAX_STARS),
   };
   for (const [id, secs] of Object.entries(f.seconds)) {

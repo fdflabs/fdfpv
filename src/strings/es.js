@@ -2273,7 +2273,7 @@ export default {
   "shop.owned_decal": "Tuyo: agrégala en Colores, Calcas.",
   "shop.decal_where": "Una calca va donde la pongas, en Colores, Calcas.",
   "shop.no_preview_quad": "Los drones de combate llevan sus propios acabados; pruébalo en un avión.",
-  "shop.earn_challenges": "Se gana completando los siete desafíos.",
+  "shop.earn_campaigns": "Se gana ganando todas las misiones de las dos campañas.",
   "shop.earn_three_stars": "Se gana con tres estrellas en cualquier misión de campaña.",
   "shop.refused_short": "Todavía no te alcanzan las fichas.",
   "shop.refused_owned": "Ya es tuyo.",

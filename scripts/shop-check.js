@@ -1,8 +1,8 @@
 /*
  * shop-check.js: the hangar's Shop tab in a real page against a real
  * tracks server (docs/ECONOMY.md section 9). A signed in account whose
- * held record shows a three star war win, an hour on the Cub and all seven
- * challenges opens the Shop on the Cub with a real pointer, sees its
+ * held record shows a three star war win, every other released mission
+ * won and an hour on the Cub opens the Shop on the Cub with a real pointer, sees its
  * tokens, tries the pearl finish on the plane by pointing at it, buys it,
  * wears it and saves; the earned gold shows as owned and wearable, the
  * candy as too dear; the Colours tab offers the pearl and not the candy.
@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { seedSignedIn, startAccounts } from '../tests/lib/account.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
-import { CHALLENGES } from '../src/game/progress.js';
+import { ACT1, INTERIOR, released } from '../src/game/campaign.js';
 import { addFlight } from '../src/share/flighttime.js';
 import { grantsFrom, itemById } from '../src/game/economy.js';
 
@@ -55,8 +55,12 @@ const acc = await accounts.signUp(`shopper-${process.pid}`, 'Shopper');
 const blob = {
   v: 1,
   data: {
-    progress: { v: 2, xp: 2000, courses: {}, challenges: Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), seen: {}, casual: {}, firsts: {}, unlockAll: true },
-    campaign: { v: 1, missions: { 'itaipu-1': { stars: 3, won: true, credits: 400 } }, earned: 400, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {} },
+    progress: { v: 2, xp: 2000, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, unlockAll: true },
+    campaign: {
+      v: 1,
+      missions: { ...Object.fromEntries([...ACT1, ...INTERIOR].filter((m) => released(m.id)).map((m) => [m.id, { stars: 0, won: true, credits: 0 }])), 'itaipu-1': { stars: 3, won: true, credits: 400 } },
+      earned: 400, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {},
+    },
     flightTime: addFlight({}, 'shopdevice01', 'cub1400', 'free', 3700, '2026-10-01'),
   },
   stamps: {},
