@@ -75,7 +75,11 @@ import { transcript } from './lib/transcript.js';
 /* Re-pinned 2026-10-20: the wrapper's method list, its one line that
  * differs, lost setHeading with the AS3X's sim_wing_set_heading; every
  * record after it is the same (was 70180b9d0ee6abc8). */
-const PINNED = 'c2e2eb7d4492f48b742a3a2c3ed1a52523434e619acf6c1bc2b601d8df0f2932';
+/* Re-pinned 2026-10-21: the surface tiers left the module. Two lines
+ * differ, the wrapper's export list (TIER_DOUBLES) and its method list
+ * (setTiers, clearTiers, tiers); every record after them is the same
+ * (was c2e2eb7d4492f48b). */
+const PINNED = '9e635d6ed0d84bf16b8e1d67b77d842d3a40600afd3b2dc4b60848071b1575f6';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = readFileSync(join(root, 'dist/sim.wasm'));

@@ -302,8 +302,6 @@ jobs:
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
-      # The control surface tiers: derived numbers (docs/SURFACES-STAGE1.md).
-      - run: npm run surfaces:derive
 
   shard-3:
     runs-on: ubuntu-latest

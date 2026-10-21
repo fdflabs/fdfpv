@@ -70,18 +70,17 @@ export const PINNED_ELEMENT_COUNT = 489;
  * that hand the plant physics (each derive script's inputs, every
  * scripts/*-derive.js, read at run time so a new one is covered). Not the
  * files a script writes (power-estimates.js, motor-estimates.js,
- * hulls.js, surfaces-tiers.js, surfaces-stats.js):
+ * hulls.js):
  * their numbers are outputs, sourced by their generator's inputs here. */
 export const JS_FILES = [
   'configs/airframes.js',
   'configs/power.js',
   'configs/motors.js',
   'configs/tuning.js',
-  'configs/surfaces.js',
   'configs/combat.js',
   'configs/hangar-parts.js',
 ];
-export const PINNED_JS_COUNT = 966;
+export const PINNED_JS_COUNT = 821;
 /* Every aircraft/<id>/aircraft.js, read at run time: the sections that
  * state the aircraft's physics, its airframe row (mass, size, stall, the
  * camera), its tuning (CG, throws) and its power and props. Not the kit,

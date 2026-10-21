@@ -293,7 +293,6 @@
     "stall:probe": "node scripts/stall-probe.js",
     "stab:straight": "node scripts/stab-straight-derive.js --check",
     "air:vertical": "node scripts/air-vertical-selftest.js",
-    "surfaces:derive": "node scripts/surfaces-derive.js --check",
     "servo:derive": "node scripts/servo-derive.js --check",
     "ge:derive": "node scripts/ge-derive.js --check",
     "wing:ge": "node scripts/wing-ge-selftest.js",

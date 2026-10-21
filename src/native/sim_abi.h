@@ -968,60 +968,6 @@ int sim_wing_tune_clear(void);
 int sim_wing_tune(double *out);
 
 /*
- * THE SURFACE TIERS, fixed wings with ailerons, elevator and rudder
- * (FW_MIX_TAIL) or elevator and rudder (FW_MIX_RUDDER): the hangar's
- * bigger control surfaces, configs/surfaces.js and
- * docs/SURFACES-STAGE1.md. A tier moves a surface's hinge line forward on
- * the same wing, stabiliser or fin, so the aircraft's stability terms stay
- * the table's and only its control terms grow; the throws a tier allows
- * go through sim_wing_set_tune, and its servos' mass through
- * sim_set_addons, as before.
- *
- * sim_wing_set_tiers(in): SIM_TIER_DOUBLES below, laid over the power
- * option in force or the table, under the tuning and the add-ons.
- *   K_A  the aileron's terms (Cl delta_a, its adverse yaw, and each
- *        strip's tau) times this, 0.25 to 4
- *   K_E  the elevator's (Cm delta_e, CL delta_e) times this, 0.25 to 4
- *   K_R  the rudder's (Cn, CY and Cl delta_r) times this, 0.25 to 4
- *   CD_A, CD_E, CD_R  the drag each surface adds deflected over the
- *        table's, on the wing's area, per unit of the plain flap shape
- *        (plant_wing.c SURF_DRAG_A, SURF_DRAG_B), 0 to 0.5
- *   HOLD_A, HOLD_E, HOLD_R  each surface's servo hold (the table's
- *        hinge_hold, servo blow back) times this: the tier's servos and
- *        its bigger surface's hinge moment, 0.1 to 100
- * A MODE like the tuning: kept across sim_reset and sim_init, kept by
- * sim_set_power and sim_power_clear, cleared by sim_set_airframe to a
- * different airframe and by sim_wing_tiers_clear. SIM_ERR_BAD_ARG for a
- * null pointer, a value out of range, a flying wing, and K_A or CD_A other
- * than 1 and 0 on an aircraft without ailerons; SIM_ERR_BAD_STATE before
- * sim_init.
- * sim_wing_tiers(out): the block in force, ones and zeros with none (the
- * holds one).
- *
- * Additive, version unchanged: nothing seated, no step reads any of it,
- * and seated at ones and zeros (the holds one) every trace is bit
- * identical (scripts/surfaces-gates.js, in git at b420b0e51; it left with
- * the aircraft that flew it on 2026-10-20). The block grew from 6 doubles to
- * 9 on 2026-10-12 (the holds, servo blow back): the module and its
- * callers ship together, and the crash cam's journal, which copies the
- * block, lives in memory only, so no saved recording carries the old
- * size.
- */
-#define SIM_TIER_K_A 0
-#define SIM_TIER_K_E 1
-#define SIM_TIER_K_R 2
-#define SIM_TIER_CD_A 3
-#define SIM_TIER_CD_E 4
-#define SIM_TIER_CD_R 5
-#define SIM_TIER_HOLD_A 6
-#define SIM_TIER_HOLD_E 7
-#define SIM_TIER_HOLD_R 8
-#define SIM_TIER_DOUBLES 9
-int sim_wing_set_tiers(const double *in);
-int sim_wing_tiers_clear(void);
-int sim_wing_tiers(double *out);
-
-/*
  * WATER, src/native/water.c and docs/FLOATS-STAGE1.md. A host declares the
  * bodies of water in its world, in the plant's frame like the ground
  * plane, and the waves on each; an aircraft on floats floats on them and

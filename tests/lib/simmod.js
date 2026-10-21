@@ -38,8 +38,6 @@ export const SIM_ERR_CONFIG_PARSE = -4;
 export const SIM_ABI_VERSION = 1;
 export const POWER_STATE_DOUBLES = 10;
 export const TUNE_DOUBLES = 12;
-/* sim_wing_set_tiers: K_A, K_E, K_R, CD_A, CD_E, CD_R, HOLD_A, HOLD_E, HOLD_R (sim_abi.h). */
-export const TIER_DOUBLES = 9;
 const ADDONS_STATE_DOUBLES = 8;
 
 export function simErrorName(code) {
@@ -87,7 +85,6 @@ const BLOCKS_IN = [
   ['setAddons', 'sim_set_addons', 'the add-on block'],
   ['setAddonInertia', 'sim_set_addon_inertia', 'the add-on inertia block'],
   ['setTune', 'sim_wing_set_tune', 'the tune block'],
-  ['setTiers', 'sim_wing_set_tiers', 'the surface tier block'],
 ];
 
 /* A block the module writes into, kept for the instance's life and keyed
@@ -243,20 +240,6 @@ export class Sim {
 
   clearTune() {
     return this.e.sim_wing_tune_clear();
-  }
-
-  clearTiers() {
-    return this.e.sim_wing_tiers_clear();
-  }
-
-  /* The surface tiers in force on a fixed wing, TIER_DOUBLES, a copy; null
-   * on a quad or before init. */
-  tiers() {
-    const ptr = this.e.malloc(TIER_DOUBLES * 8);
-    const code = this.e.sim_wing_tiers(ptr);
-    const block = code === SIM_OK ? new Float64Array(this.e.memory.buffer.slice(ptr, ptr + TIER_DOUBLES * 8)) : null;
-    this.e.free(ptr);
-    return block;
   }
 
   /* The tune in force on a fixed wing, SIM_TUNE_DOUBLES, a copy; null on
