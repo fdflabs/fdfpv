@@ -490,12 +490,6 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.weather = { preset: m.preset, seed: m.seed };
         }
         handlers.onWeather?.();
-      } else if (m.type === 'stockSurfaces') {
-        /* The host set the room to stock control surfaces, or back
-         * (edge/rooms/core.js stockSurfaces). */
-        if (welcome && typeof m.on === 'boolean') {
-          welcome.stockSurfaces = m.on;
-        }
       } else if (m.type === 'daytime') {
         /* The room's game clock moved (edge/rooms/core.js daytimeNews). */
         if (welcome) {
@@ -714,11 +708,6 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     /* The host sets the room's air (edge/rooms/core.js weather). */
     sendWeather(preset) {
       sendText({ type: 'weather', preset });
-    },
-    /* The host sets the room to stock control surfaces, or lets each
-     * pilot fly their own (edge/rooms/core.js stockSurfaces). */
-    sendStockSurfaces(on) {
-      sendText({ type: 'stockSurfaces', on: Boolean(on) });
     },
     /* The host sets the room's time of day, a TIME_NAMES name or null
      * (edge/rooms/core.js setDaytime). */

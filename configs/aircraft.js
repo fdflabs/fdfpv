@@ -26,36 +26,11 @@
 
 import a10inch from '../aircraft/10inch/aircraft.js';
 import a7inch from '../aircraft/7inch/aircraft.js';
-import bombshell1118 from '../aircraft/bombshell1118/aircraft.js';
 import bramor2300 from '../aircraft/bramor2300/aircraft.js';
-import cap1702 from '../aircraft/cap1702/aircraft.js';
-import cub1400 from '../aircraft/cub1400/aircraft.js';
-import cub1400f from '../aircraft/cub1400f/aircraft.js';
-import extra3d1308 from '../aircraft/extra3d1308/aircraft.js';
-import f16878 from '../aircraft/f16878/aircraft.js';
-import hercules3077 from '../aircraft/hercules3077/aircraft.js';
 import interceptor from '../aircraft/interceptor/aircraft.js';
-import kadet1981 from '../aircraft/kadet1981/aircraft.js';
-import nighttimber1200 from '../aircraft/nighttimber1200/aircraft.js';
-import nrj1490 from '../aircraft/nrj1490/aircraft.js';
-import p51d1450 from '../aircraft/p51d1450/aircraft.js';
-import radian2000 from '../aircraft/radian2000/aircraft.js';
-import sky1800 from '../aircraft/sky1800/aircraft.js';
-import slick2680 from '../aircraft/slick2680/aircraft.js';
-import slowstick1180 from '../aircraft/slowstick1180/aircraft.js';
 import striker2500 from '../aircraft/striker2500/aircraft.js';
-import tigermoth1803 from '../aircraft/tigermoth1803/aircraft.js';
-import timber1500 from '../aircraft/timber1500/aircraft.js';
-import timber1500f from '../aircraft/timber1500f/aircraft.js';
-import uglystik1567 from '../aircraft/uglystik1567/aircraft.js';
-import zagi1219 from '../aircraft/zagi1219/aircraft.js';
 
-export const FOLDERS = [
-  a10inch, a7inch, bombshell1118, bramor2300, cap1702, cub1400, cub1400f, extra3d1308, f16878,
-  hercules3077, interceptor, kadet1981, nighttimber1200, nrj1490, p51d1450, radian2000, sky1800,
-  slick2680, slowstick1180, striker2500, tigermoth1803, timber1500, timber1500f, uglystik1567,
-  zagi1219,
-];
+export const FOLDERS = [a10inch, a7inch, bramor2300, interceptor, striker2500];
 
 export const SECTIONS = ['id', 'airframe', 'kit', 'tuning', 'power', 'hangar', 'livery', 'tunes', 'progress', 'strings'];
 

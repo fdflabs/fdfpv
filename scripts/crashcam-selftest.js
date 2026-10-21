@@ -187,6 +187,12 @@ import { newDecal } from '../configs/paint.js';
 import { LIVERIES, lookFor } from '../configs/liveries.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { AIRFRAME_IDS, retiredAirframe } from '../configs/airframes.js';
+import { seatPrecutAircraft } from './lib/precut.js';
+
+/* The take over flies the Skyhunter, which left the shell before its plant
+ * leaves the module (2026-10-21): its power row comes back from the
+ * pre-cut fixture. */
+seatPrecutAircraft();
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -1352,7 +1358,7 @@ function smokeColumn() {
     r.smoke(i, f >= 2, noz, vel);
   }
   const c = r.clip({
-    name: 'Smoke', created: 1790000000000, airframe: 'sky1800', livery: null, map: 'swiss2', scale: 1, size: 1.8, duration: 0,
+    name: 'Smoke', created: 1790000000000, airframe: 'bramor2300', livery: null, map: 'swiss2', scale: 1, size: 1.8, duration: 0,
     parts: [], fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
     fit: { entry: { prop: 'stock', addons: ['smoke', 'warp drive'], damage: null }, option: null },
   });
@@ -1419,8 +1425,8 @@ const TABLE = [0, 1, 2].map((i) => ({ kind: i === 0 ? 8 : 9, parent: i - 1, cg: 
 function roomFlight(cap, frames) {
   const r = createRecorder(cap);
   const ring = createPeerRing(cap);
-  const A = fakePeer(2, 'cub1400');
-  const B = fakePeer(3, 'p51d1450');
+  const A = fakePeer(2, 'bramor2300');
+  const B = fakePeer(3, 'striker2500');
   const C = fakePeer(4, 'interceptor');
   A.smoke = true;
   const pp = { x: 0, y: 0, z: 0 };
@@ -1589,7 +1595,7 @@ function peersRecord() {
     const r = createRecorder(cap);
     const room = new Map();
     for (let seat = 2; seat < 2 + PEERS_MAX; seat += 1) {
-      const p = fakePeer(seat, 'cub1400');
+      const p = fakePeer(seat, 'bramor2300');
       p.smoke = true;
       p.crash(TABLE);
       p.pieces(seat);
@@ -1996,7 +2002,7 @@ function paperRecord() {
 function bubbleFlight(cap, frames) {
   const r = createRecorder(cap);
   const ring = createPeerRing(cap);
-  const A = fakePeer(2, 'cub1400');
+  const A = fakePeer(2, 'bramor2300');
   const C = fakePeer(4, 'interceptor');
   const pp = { x: 0, y: 0, z: 0 };
   const qq = { x: 0, y: 0, z: 0, w: 1 };

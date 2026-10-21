@@ -30,28 +30,19 @@
 import { AIRCRAFT } from './aircraft.js';
 
 export const KIT_VERSION = 1;
-/* 2 since the Night Timber X: `factory`, a family's own lights' switch.
- * A v1 entry has no `factory` and reads as `auto`, so it migrates by
- * taking the new number. */
+/* 2 since the Night Timber X added `factory`, its own lights' switch. A
+ * v1 entry migrates by taking the new number. The switch left with the
+ * Night Timber (2026-10-21): a stored one is dropped as an unknown key. */
 export const LIGHTS_VERSION = 2;
-/* The families with lights built in at the factory, which the lights'
- * `factory` switch sets to auto (on at night), on or off
- * (docs/NIGHTTIMBER-STAGE1.md section 5). */
-export const FACTORY_LIGHTS = new Set(['nighttimber1200']);
-export const FACTORY_MODES = ['auto', 'on', 'off'];
 
 const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
 
 /*
  * The planes, each its own list (docs/KITS.md section 3): a slot only
  * where the airframe has the part, an option only where it draws
- * differently from stock inside the stock model's box. A canopy that is a
- * paint region already (the Radian's, the F-16's) has no tint slot, since
- * the Paint page colours it. A plane with an aircraft folder keeps its list
- * there (configs/aircraft.js).
+ * differently from stock inside the stock model's box. A plane with an
+ * aircraft folder keeps its list there (configs/aircraft.js).
  */
-/* The Timber stands on tundra tyres already. */
-const TIMBER = [slot('spinner', 'bullet', 'flat'), slot('canopy', 'smoke', 'gold')];
 const QUAD = [
   slot('arms', 'cutout', 'blade', 'tapered'),
   slot('top', 'vented', 'armoured'),
@@ -61,61 +52,8 @@ const QUAD = [
 /* The interceptor's camera sits in its armoured nose, so no mount slot. */
 const ARMOURED_QUAD = QUAD.filter((s) => s.id !== 'mount');
 
-/* By livery key (configs/liveries.js liveryKey), so a float variant wears
- * its plane's kit. */
+/* By livery key (configs/liveries.js liveryKey). */
 export const KITS = {
-  /*
-   * The Skyhunter is a pusher on booms: no wheels, no cabin glass, its
-   * fins a pair on the booms.
-   */
-  sky1800: AIRCRAFT.KITS.sky1800,
-  cub1400: AIRCRAFT.KITS.cub1400, kadet1981: AIRCRAFT.KITS.kadet1981,
-  slowstick1180: AIRCRAFT.KITS.slowstick1180,
-  uglystik1567: AIRCRAFT.KITS.uglystik1567, timber1500: TIMBER,
-  /*
-   * The Extra's spats are stock, so no wheels slot; side force generators
-   * are the aerobatic tip it is known for.
-   */
-  extra3d1308: AIRCRAFT.KITS.extra3d1308,
-  nighttimber1200: TIMBER,
-  /*
-   * The Hercules' four spinners and its flight deck's glazing; its gear is
-   * in sponsons, so no wheels slot.
-   */
-  hercules3077: AIRCRAFT.KITS.hercules3077,
-  /* The CAP 580's side force generators are stock on its tips, so no
-   * wingtips slot; its spats are stock, so no wheels slot (the Extra's).
-   * The Slick's pants are stock, so no wheels slot, and EF sells side
-   * force generators for its tips. */
-  cap1702: AIRCRAFT.KITS.cap1702,
-  slick2680: AIRCRAFT.KITS.slick2680,
-  p51d1450: AIRCRAFT.KITS.p51d1450,
-  /*
-   * The Tiger Moth's cockpits are open, so no canopy slot.
-   */
-  tigermoth1803: AIRCRAFT.KITS.tigermoth1803,
-  /*
-   * The Bombshell's Cox spinner nut is too small to band, and its glow
-   * engine has no exhaust stacks to change.
-   */
-  bombshell1118: AIRCRAFT.KITS.bombshell1118,
-  /*
-   * The F-16's canopy is already gold tinted and a paint region of its
-   * own, so a tint slot would only repeat the Paint page.
-   */
-  f16878: AIRCRAFT.KITS.f16878,
-  /*
-   * The Radian's canopy is a paint region, so no tint slot; the NRJ is a
-   * throw glider with no canopy and no tips a winglet belongs on.
-   */
-  radian2000: AIRCRAFT.KITS.radian2000,
-  nrj1490: AIRCRAFT.KITS.nrj1490,
-  /*
-   * The Zagi's winglets already set its height and its aftmost point, so a
-   * taller one would grow the box the referee meets: raked and split keep
-   * the stock outline's corners instead.
-   */
-  zagi1219: AIRCRAFT.KITS.zagi1219,
   /*
    * The Bramor's nose is its gimbal ball, the box's front, so no bubble.
    */
@@ -126,11 +64,7 @@ export const KITS = {
 
 /* The families whose builders draw their kit so far (docs/KITS.md section
  * 8); the hangar offers the Kit tab on these only. */
-export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'f16878',
-  'radian2000', 'nrj1490', 'zagi1219', 'bramor2300',
-  'p51d1450', 'tigermoth1803', 'bombshell1118',
-  'sky1800', 'cub1400', 'kadet1981', 'slowstick1180', 'uglystik1567', 'timber1500', 'extra3d1308', 'nighttimber1200',
-  'cap1702', 'slick2680']);
+export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'bramor2300']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];
@@ -141,14 +75,14 @@ export function slotsFor(family) {
   return KITS[family] ?? [];
 }
 
-/* What lights a family has: arm LEDs on a quad, nav lights and strobes on
- * a plane; underglow on a quad and the F-16. */
+/* What lights a family has: arm LEDs and underglow on a quad, nav lights
+ * and strobes on a plane. */
 export function lightsFor(family) {
   if (!KITS[family]) {
-    return { led: false, nav: false, glow: false, factory: false };
+    return { led: false, nav: false, glow: false };
   }
   const quad = QUADS.has(family);
-  return { led: quad, nav: !quad, glow: quad || family === 'f16878', factory: FACTORY_LIGHTS.has(family) };
+  return { led: quad, nav: !quad, glow: quad };
 }
 
 const isRecord = (o) => Boolean(o) && typeof o === 'object' && !Array.isArray(o);
@@ -217,16 +151,8 @@ export function checkLights(family, lights) {
   take('strobe', (v) => has.nav && typeof v === 'boolean');
   take('glow', (v) => has.glow && typeof v === 'string' && HEX.test(v));
   take('glowPattern', (v) => has.glow && GLOW_PATTERNS.includes(v));
-  /* auto is the default, so it is not kept: absent means auto. */
-  if (lights.factory !== undefined) {
-    if (!has.factory || !FACTORY_MODES.includes(lights.factory)) {
-      dropped += 1;
-    } else if (lights.factory !== 'auto') {
-      out.factory = lights.factory;
-    }
-  }
   for (const key of Object.keys(lights)) {
-    if (!['v', 'led', 'pattern', 'nav', 'strobe', 'glow', 'glowPattern', 'factory'].includes(key)) {
+    if (!['v', 'led', 'pattern', 'nav', 'strobe', 'glow', 'glowPattern'].includes(key)) {
       dropped += 1;
     }
   }

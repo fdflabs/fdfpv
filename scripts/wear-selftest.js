@@ -43,6 +43,7 @@ import { TestStand } from '../src/game/teststand.js';
 import { POWER, TABLE, powerBlock, powerParams, SIM_POWER } from '../configs/power.js';
 import { MOTORS, SIM_MOTORS, SIM_PROP_PACK, motorsBlock, propPackBlock, quadChoices } from '../configs/motors.js';
 import { airframeById } from '../configs/airframes.js';
+import { seatPrecutAircraft } from './lib/precut.js';
 import { PART_KINDS, PART_STATE_DOUBLES, STATE } from '../configs/parts.js';
 import {
   NEW, RETIRED_BELOW, accrue, benchState, chargerState, normalisePacks, normaliseWearRecord, packShelf, packSpec, propulsionHealth, wearRecordOf,
@@ -50,6 +51,10 @@ import {
 } from '../configs/wear.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+/* No plane kept burns fuel, and wornPowerBlock's branch for one stays: the
+ * glow engine's row, the Kadet's, comes from the pre-cut fixture. W1 walks
+ * the pre-cut set with it. */
+seatPrecutAircraft();
 let failed = 0;
 function check(name, ok, detail = '') {
   if (!ok) {
@@ -99,11 +104,11 @@ console.log('W1 nothing worn seats the block it was handed');
 
 console.log('W2 the scales');
 {
-  const id = 'sky1800';
-  const choice = { option: 'stock', pack: '4s5000' };
+  const id = 'bramor2300';
+  const choice = { option: 'stock', pack: '6s10000' };
   const base = powerBlock(id, choice.option, choice.pack);
   const wear = { motor: 500, prop: 800 };
-  const pack = { spec: '4s5000', cycles: 120, health: 400, charge: 'storage' };
+  const pack = { spec: '6s10000', cycles: 120, health: 400, charge: 'storage' };
   const a = wornPowerBlock(id, choice, null, wear, pack);
   const b = wornPowerBlock(id, choice, null, wear, pack);
   check('the same doubles twice', same(a, b));
@@ -121,9 +126,9 @@ console.log('W3 a worn plane on the plant');
 const wasm = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const baseline = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 {
-  const id = 'sky1800';
-  const choice = { option: 'stock', pack: '4s5000' };
-  const worn = wornPowerBlock(id, choice, null, { motor: 300, prop: 600 }, { spec: '4s5000', cycles: 200, health: 300, charge: 'full' });
+  const id = 'bramor2300';
+  const choice = { option: 'stock', pack: '6s10000' };
+  const worn = wornPowerBlock(id, choice, null, { motor: 300, prop: 600 }, { spec: '6s10000', cycles: 200, health: 300, charge: 'full' });
   async function bench(block) {
     const sim = await loadSim(wasm);
     must(sim.init(baseline), 'sim_init');
@@ -207,9 +212,9 @@ const K = (...names) => names.map((n) => PART_KINDS.indexOf(n));
 {
   /* frame, wing, motor, prop, wing */
   const kinds = K('frame', 'wing', 'motor', 'prop', 'wing');
-  const packs = { a: { v: 1, spec: '4s5000', cycles: 3, health: 610, charge: 'full', from: null }, b: { v: 1, spec: '4s5000', cycles: 0, health: NEW, charge: 'full', from: null }, c: { v: 1, spec: '4s5000', cycles: 0, health: 900, charge: 'storage', from: null } };
+  const packs = { a: { v: 1, spec: '6s10000', cycles: 3, health: 610, charge: 'full', from: null }, b: { v: 1, spec: '6s10000', cycles: 0, health: NEW, charge: 'full', from: null }, c: { v: 1, spec: '6s10000', cycles: 0, health: 900, charge: 'storage', from: null } };
   const record = { v: 1, parts: { 3: 0.1, 4: 0.02 } };
-  const flight = { airframe: 'sky1800', kinds, packId: 'a', drawnC: 18000, capacityC: 18000, minCellV: 3.1, lvcV: 3.3, fullThrottleS: 150, impacts: [{ i: 3, energyJ: 4 }, { i: 4, energyJ: 37.6 }, { i: 1, energyJ: 900 }, { i: 99, energyJ: 9 }] };
+  const flight = { airframe: 'bramor2300', kinds, packId: 'a', drawnC: 18000, capacityC: 18000, minCellV: 3.1, lvcV: 3.3, fullThrottleS: 150, impacts: [{ i: 3, energyJ: 4 }, { i: 4, energyJ: 37.6 }, { i: 1, energyJ: 900 }, { i: 99, energyJ: 9 }] };
   const before = JSON.stringify({ packs, record, flight });
   const r1 = accrue(packs, record, flight);
   const r2 = accrue(packs, record, flight);
@@ -229,38 +234,38 @@ const K = (...names) => names.map((n) => PART_KINDS.indexOf(n));
 
 console.log('W6 stored data, packs, repair, hooks');
 {
-  const old = { livery: {}, parts: { sky1800: { prop: 'stock', addons: [], damage: null } } };
+  const old = { livery: {}, parts: { bramor2300: { prop: 'stock', addons: [], damage: null } } };
   check('an old blob loads with no packs', JSON.stringify(normalisePacks(old.packs)) === '{}');
-  check('an old parts entry reads as nothing worn', JSON.stringify(wearRecordOf(old, 'sky1800')) === JSON.stringify({ v: 1, parts: {} }));
+  check('an old parts entry reads as nothing worn', JSON.stringify(wearRecordOf(old, 'bramor2300')) === JSON.stringify({ v: 1, parts: {} }));
   const odd = normaliseWearRecord({ v: 1, parts: { 4: 0.3, 24: 0.5, '-1': 0.5, x: 0.5, 6: 0, 7: 1.2, 8: '0.3', 9: 0.0004, 10: 0.1234 } });
   check('a record: index 1..23, w above 0 to 1, rounded to 0.001', JSON.stringify(odd) === JSON.stringify({ v: 1, parts: { 4: 0.3, 10: 0.123 } }), JSON.stringify(odd));
   check('nothing worn is no record', normaliseWearRecord({ v: 1, parts: {} }) === null && normaliseWearRecord(null) === null);
-  const junk = normalisePacks({ 'BAD ID': { spec: '4s5000' }, ok: { spec: '4s5000', health: 1200, cycles: -1, charge: 'warm' }, nospec: { health: 5 } });
+  const junk = normalisePacks({ 'BAD ID': { spec: '6s10000' }, ok: { spec: '6s10000', health: 1200, cycles: -1, charge: 'warm' }, nospec: { health: 5 } });
   check('pack garbage dropped or clamped', Object.keys(junk).join() === 'ok' && junk.ok.health === NEW && junk.ok.cycles === 0 && junk.ok.charge === 'full');
-  check('pack specs', packSpec('sky1800', '4s5000') === '4s5000' && packSpec('7inch', 'stock') === '6s4200li' && packSpec('kadet1981', 'x') === null);
-  const s1 = seedPacks({}, 'sky1800', '4s5000');
-  const s2 = seedPacks(s1, 'sky1800', '4s5000');
-  const s3 = seedPacks(s2, 'sky1800', '4s6000');
-  check('two starter packs a spec, once, ids from the airframe and spec', Object.keys(s1).join() === 'sky1800-4s5000-1,sky1800-4s5000-2' && Object.keys(s2).length === 2 && Object.keys(s3).length === 4);
-  const flat = { ...s1, x: { ...s1['sky1800-4s5000-1'], charge: 'flat' }, y: { ...s1['sky1800-4s5000-1'], charge: 'flat' }, z: { ...s1['sky1800-4s5000-1'], charge: 'flat' } };
+  check('pack specs', packSpec('bramor2300', '6s10000') === '6s10000' && packSpec('7inch', 'stock') === '6s4200li' && packSpec('kadet1981', 'x') === null);
+  const s1 = seedPacks({}, 'bramor2300', '6s10000');
+  const s2 = seedPacks(s1, 'bramor2300', '6s10000');
+  const s3 = seedPacks(s2, '7inch', 'stock');
+  check('two starter packs a spec, once, ids from the airframe and spec', Object.keys(s1).join() === 'bramor2300-6s10000-1,bramor2300-6s10000-2' && Object.keys(s2).length === 2 && Object.keys(s3).length === 4);
+  const flat = { ...s1, x: { ...s1['bramor2300-6s10000-1'], charge: 'flat' }, y: { ...s1['bramor2300-6s10000-1'], charge: 'flat' }, z: { ...s1['bramor2300-6s10000-1'], charge: 'flat' } };
   const t = turnaround(flat, 'storage');
   check('a turnaround charges two flat packs by id', t.x.charge === 'storage' && t.y.charge === 'storage' && t.z.charge === 'flat');
   check('pickPack: charged first, healthiest', pickPack({ p: { spec: 'a', health: 900, charge: 'full' }, q: { spec: 'a', health: 990, charge: 'full' }, r: { spec: 'a', health: NEW, charge: 'flat' } }, 'a') === 'q' && pickPack({ r: { spec: 'a', health: NEW, charge: 'flat' } }, 'a') === null);
   const rec = { v: 1, parts: { 2: 0.5, 4: 0.3 } };
   check('repair one part, or all', JSON.stringify(repair(rec, 2)) === JSON.stringify({ v: 1, parts: { 4: 0.3 } }) && JSON.stringify(repair(rec)) === JSON.stringify({ v: 1, parts: {} }) && rec.parts[2] === 0.5);
-  const st = startSortie({ parts: { sky1800: { wear: rec } }, packs: { 'sky1800-4s5000-1': { spec: '4s5000', health: 900, charge: 'flat' }, 'sky1800-4s5000-2': { spec: '4s5000', health: 800, charge: 'flat' } } }, 'sky1800', { option: 'stock', pack: '4s5000' });
-  check('a sortie: the charger turns both flat packs around, the healthier flies, the record read', st.packId === 'sky1800-4s5000-1' && st.packs['sky1800-4s5000-2'].charge === 'full' && st.record.parts[2] === 0.5);
+  const st = startSortie({ parts: { bramor2300: { wear: rec } }, packs: { 'bramor2300-6s10000-1': { spec: '6s10000', health: 900, charge: 'flat' }, 'bramor2300-6s10000-2': { spec: '6s10000', health: 800, charge: 'flat' } } }, 'bramor2300', { option: 'stock', pack: '6s10000' });
+  check('a sortie: the charger turns both flat packs around, the healthier flies, the record read', st.packId === 'bramor2300-6s10000-1' && st.packs['bramor2300-6s10000-2'].charge === 'full' && st.record.parts[2] === 0.5);
   const view = new Float64Array(4 * PART_STATE_DOUBLES);
   view[1 * PART_STATE_DOUBLES + STATE.damage] = 0.4;
   view[1 * PART_STATE_DOUBLES + STATE.energy] = 12;
   view[3 * PART_STATE_DOUBLES + STATE.damage] = 1;
   view[3 * PART_STATE_DOUBLES + STATE.energy] = 3;
   check('impacts from the parts state', JSON.stringify(impactsFrom(view, 4)) === JSON.stringify([{ i: 1, energyJ: 12 }, { i: 3, energyJ: 3 }]) && impactsFrom(null, 4).length === 0);
-  const settings = { packs: { ...t, w: { spec: '4s5000', cycles: 300, health: RETIRED_BELOW - 1, charge: 'full' } }, parts: { sky1800: { wear: rec } } };
+  const settings = { packs: { ...t, w: { spec: '6s10000', cycles: 300, health: RETIRED_BELOW - 1, charge: 'full' } }, parts: { bramor2300: { wear: rec } } };
   const shelf = packShelf(settings);
   check('the shelf hook', shelf.length === 6 && shelf.find((p) => p.id === 'w').retired === true);
   check('the charger hook', JSON.stringify(chargerState(settings)) === JSON.stringify({ channels: 2, next: ['z'], waiting: [] }));
-  const bench = benchState(settings, 'sky1800', K('frame', 'wing', 'motor', 'prop', 'wing'));
+  const bench = benchState(settings, 'bramor2300', K('frame', 'wing', 'motor', 'prop', 'wing'));
   check('the bench hook', JSON.stringify(bench) === JSON.stringify([{ i: 2, w: 0.5, part: 'motor' }, { i: 4, w: 0.3, part: 'structure' }]), JSON.stringify(bench));
 }
 

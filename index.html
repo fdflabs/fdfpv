@@ -4125,7 +4125,6 @@
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
       }
       .hangar-strip-bar { flex: 1; }
-      .hangar-strip-bar.film, .hangar-dot.film { opacity: 0.8; }
       .hangar-scheme-tag {
         font: 700 10px/1 var(--ui-font); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mint);
       }
@@ -4161,13 +4160,6 @@
         background: var(--swatch);
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), inset 0 10px 14px -10px rgba(255, 255, 255, 0.35);
         transition: transform 220ms var(--hg-spring), box-shadow 160ms;
-      }
-      /* A see through film over the ribs of a wing, lit from behind: the
-       * swatch shows the film's colour with the wood through it. */
-      .hangar-swatch.film, .hangar-colour-chip.film {
-        background:
-          linear-gradient(color-mix(in srgb, var(--swatch) 76%, transparent), color-mix(in srgb, var(--swatch) 76%, transparent)),
-          repeating-linear-gradient(90deg, #6b5334 0 3px, #fff7e2 3px 11px);
       }
       .hangar-swatch:hover, .hangar-swatch:focus-visible {
         transform: scale(1.18); z-index: 1;
@@ -4331,9 +4323,6 @@
         content: ""; width: 14px; height: 14px; border-radius: 50%; flex: none;
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
         background: radial-gradient(circle at 34% 30%, #fff8 0 18%, transparent 19%), #b9a88a;
-      }
-      .paint-finish .paint-finish-film::before {
-        background: repeating-linear-gradient(90deg, #6b533488 0 2px, #ffdb1a99 2px 5px);
       }
       .paint-finish .paint-finish-gloss::before {
         background: radial-gradient(circle at 34% 30%, #fff 0 16%, #d5271f 17% 60%, #7a120d 100%);

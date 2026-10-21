@@ -51,7 +51,7 @@
 
 import { airframeById } from '../../configs/airframes.js';
 import {
-  coloursFor, liveryKey, lookFor, normaliseEntry, normaliseSwatches, paletteColour, paletteFor, regionsFor, schemesFor,
+  coloursFor, liveryKey, lookFor, normaliseEntry, normaliseSwatches, PALETTE, paletteColour, regionsFor, schemesFor,
   toggleSwatch,
 } from '../../configs/liveries.js';
 import { currentLocale, str } from '../strings/index.js';
@@ -567,7 +567,7 @@ export class Hangar {
    * `suggest` the name a new build is offered, `full` when there is no
    * room for one; a save as a new build hands onSave `asNew: { name }`.
    */
-  open({ airframe, livery = null, power = null, floats = null, mine = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onSwatches = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
+  open({ airframe, livery = null, power = null, mine = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onSwatches = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
     this.buildTabs();
     this.closeMine(false);
     this.mine = mine;
@@ -642,26 +642,6 @@ export class Hangar {
       pips.append(pip);
     }
     this.factsEl.append(pips);
-    /* A plane with a float version has the Floats toggle beside its span and
-     * weight (`floats`: { on, set(on) }, src/ui/ui.js openHangar). Flipping
-     * it opens the hangar again on the other version, so an unsaved change
-     * here would be lost: it asks for a save first instead. */
-    if (floats) {
-      const b = button(`hangar-floats${floats.on ? ' on' : ''}`, str('hangar.floats'));
-      b.dataset.key = 'floats';
-      b.setAttribute('role', 'switch');
-      b.setAttribute('aria-checked', String(floats.on));
-      b.addEventListener('click', () => {
-        if (this.dirty()) {
-          this.warnEl.textContent = str('hangar.floats_save_first');
-          this.warnEl.hidden = false;
-          return;
-        }
-        this.sound('select');
-        floats.set(!floats.on);
-      });
-      this.factsEl.append(b);
-    }
     this.warnEl.textContent = warn || '';
     this.warnEl.hidden = !warn;
     this.root.hidden = false;
@@ -752,16 +732,16 @@ export class Hangar {
     return { ...this.entry, regions: { ...(this.entry.regions ?? {}), [h.region]: h.hex } };
   }
 
-  /* Painting the underside of the region on show: not a film's. */
+  /* Painting the underside of the region on show. */
   underSide() {
     return this.sidePainted() === 'under';
   }
 
   /* What a swatch paints on the region on show: 'top', 'under' or
-   * 'pattern' (its pattern's second colour). A film region is all top. */
+   * 'pattern' (its pattern's second colour). */
   sidePainted() {
     const r = this.regions.find((x) => x.id === this.region);
-    if (!r || r.film) {
+    if (!r) {
       return 'top';
     }
     if (this.paintSide === 'pattern') {
@@ -1468,7 +1448,7 @@ export class Hangar {
       b.setAttribute('aria-pressed', String(on));
       const strip = el('span', 'hangar-strip');
       for (const [id, hex] of Object.entries(coloursFor(this.id, { scheme: sc.id }))) {
-        const bar = el('span', `hangar-strip-bar${this.filmRegion(id) ? ' film' : ''}`);
+        const bar = el('span', 'hangar-strip-bar');
         bar.style.background = hex;
         strip.append(bar);
       }
@@ -1495,7 +1475,7 @@ export class Hangar {
       b.dataset.key = `region-${r.id}`;
       b.dataset.focus = r.id;
       b.setAttribute('aria-pressed', String(on));
-      const dot = el('span', `hangar-dot${r.film ? ' film' : ''}`);
+      const dot = el('span', 'hangar-dot');
       dot.style.background = colours[r.id];
       b.append(dot, el('span', 'hangar-region-name', str(`livery.region.${r.id}`)));
       b.addEventListener('pointerenter', () => {
@@ -1507,7 +1487,7 @@ export class Hangar {
     box.append(list);
 
     const region = this.regions.find((r) => r.id === this.region);
-    if (region && !region.film) {
+    if (region) {
       const sides = el('div', 'hangar-sides');
       for (const side of ['top', 'under']) {
         const on = this.paintSide === side;
@@ -1544,7 +1524,7 @@ export class Hangar {
       const kit = side !== 'top' ? colours[region.id] : coloursFor(this.id, { scheme: this.entry.scheme })[region.id];
       const named = paletteColour(hex);
       const nameBox = el('div', 'hangar-colour');
-      const chip = el('span', `hangar-colour-chip${region.film ? ' film' : ''}`);
+      const chip = el('span', 'hangar-colour-chip');
       chip.style.setProperty('--swatch', hex);
       const words = el('span', 'hangar-colour-words');
       const brand = named ? named.brand : str(hex === kit ? 'hangar.kit_colour' : 'hangar.custom');
@@ -1555,13 +1535,13 @@ export class Hangar {
       nameBox.append(chip, words);
       box.append(nameBox);
       const pal = el('div', 'hangar-palette');
-      const swatches = paletteFor(region);
+      const swatches = [...PALETTE];
       if (!swatches.some((c) => c.hex === kit)) {
-        swatches.unshift({ brand: str('hangar.kit_colour'), name: kit, hex: kit, film: region.film });
+        swatches.unshift({ brand: str('hangar.kit_colour'), name: kit, hex: kit });
       }
       swatches.forEach((c, i) => {
         const on = c.hex === hex;
-        const b = button(`hangar-swatch${c.film ? ' film' : ''}${on ? ' on' : ''}`);
+        const b = button(`hangar-swatch${on ? ' on' : ''}`);
         b.dataset.key = `colour-${c.hex}`;
         b.style.setProperty('--swatch', c.hex);
         b.style.setProperty('--i', String(i));
@@ -1585,9 +1565,6 @@ export class Hangar {
       pal.append(custom);
       box.append(pal);
       box.append(this.swatchRow(region, hex, side));
-      if (region.film) {
-        box.append(el('p', 'hangar-source', str('hangar.film_note')));
-      }
       box.append(this.shop.finishRow(region));
     }
     box.append(this.wearRow());
@@ -1640,11 +1617,6 @@ export class Hangar {
     }
     this.entry = e;
     this.changed(focusKey, 'adjust');
-  }
-
-  filmRegion(id) {
-    const r = this.regions.find((x) => x.id === id);
-    return Boolean(r && r.film);
   }
 
   /* The controls the cursor walks: every enabled button showing, and My
@@ -2021,14 +1993,12 @@ export class Hangar {
    * beside it, and on a click choose them and put the last colour on. */
   aimedPaint(hit) {
     const r = hit && hit.region ? this.regions.find((x) => x.id === hit.region) : null;
-    const side = r && !r.film && hit.under ? 'under' : 'top';
+    const side = r && hit.under ? 'under' : 'top';
     this.paintHit = r ? { region: r.id, side } : null;
     this.hoverLabel.hidden = !r || !this.paintAim;
     if (r && this.paintAim) {
       const box = this.stage.getBoundingClientRect();
-      this.hoverLabel.textContent = r.film
-        ? str(`livery.region.${r.id}`)
-        : str('hangar.hover_region', { region: str(`livery.region.${r.id}`), side: str(`hangar.side_${side}`) });
+      this.hoverLabel.textContent = str('hangar.hover_region', { region: str(`livery.region.${r.id}`), side: str(`hangar.side_${side}`) });
       this.hoverLabel.style.transform = `translate(${this.paintAim.x - box.left + 14}px, ${this.paintAim.y - box.top + 14}px)`;
     }
     if (!this.paintClick) {

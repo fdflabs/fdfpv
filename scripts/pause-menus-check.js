@@ -50,10 +50,10 @@ if (!outDir) {
 const CASES = [
   { id: 'quad-en', airframe: 'interceptor', lang: 'en' },
   { id: 'quad-es', airframe: 'interceptor', lang: 'es' },
-  { id: 'plane-en', airframe: 'extra3d1308', lang: 'en' },
-  { id: 'plane-es', airframe: 'extra3d1308', lang: 'es' },
+  { id: 'plane-en', airframe: 'bramor2300', lang: 'en' },
+  { id: 'plane-es', airframe: 'bramor2300', lang: 'es' },
   { id: 'pad-en', airframe: 'interceptor', lang: 'en', pad: true },
-  { id: 'phone-es', airframe: 'extra3d1308', lang: 'es', touch: true, width: 390, height: 844 },
+  { id: 'phone-es', airframe: 'bramor2300', lang: 'es', touch: true, width: 390, height: 844 },
 ];
 
 let failed = 0;

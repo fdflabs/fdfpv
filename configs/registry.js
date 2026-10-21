@@ -45,8 +45,9 @@ import { AIRCRAFT } from './aircraft.js';
  * be easy to hover, in acro mode...i didnt want all this as3x stuff
  * really", and "honestly id like as3x hid and unselected". Every fixed
  * wing defaults to Acro again, as before a0caaed59, except the Bramor and
- * the Striker, on their autopilot's Stabilised, and the Skyhunter, whose
- * Acro is INAV's. AS3X (plant_wing.c mode 3) has no row: the plant keeps
+ * the Striker, on their autopilot's Stabilised; since the recreational
+ * planes left (2026-10-21) those two are the only fixed wings. AS3X
+ * (plant_wing.c mode 3) has no row: the plant keeps
  * it and its checks (npm run as3x:*), so it can come back as a row, and
  * a stored AS3X tune loads as the plane's default (src/ui/settings.js, a
  * tune the aircraft does not offer; scripts/save-selftest.js holds it).
@@ -65,38 +66,6 @@ export const TUNES = [
    */
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'bramor2300'),
   /*
-   * The Skyhunter is a kit, and the flight controller its builders fit is
-   * INAV, whose ACRO this Acro is: rates at INAV's defaults, roll_rate and
-   * pitch_rate 20 (200 deg/s), above anything its surfaces reach, so a
-   * full stick is never capped (docs/CONTROLLERS.md). Stabilised is INAV's
-   * ANGLE.
-   *
-   * Its tunes are its folder's, aircraft/sky1800/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'sky1800'),
-  /*
-   * The Cub's: Acro is the default (OWNER 2026-10-16, below), Manual the
-   * sticks on the surfaces, Stabilised the beginner's levelling. On its
-   * wheels every mode flies as Manual.
-   *
-   * Its tunes are its folder's, aircraft/cub1400/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'cub1400'),
-  /*
-   * The Radian Pro (PKZ5475): Acro is the default. The throttle folds the
-   * prop in every mode.
-   *
-   * Its tunes are its folder's, aircraft/radian2000/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'radian2000'),
-  /*
-   * The NRJ, an F3K glider: Acro is the default. There is no throttle to
-   * close; the stick up throws it.
-   *
-   * Its tunes are its folder's, aircraft/nrj1490/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'nrj1490'),
-  /*
    * The quads' (docs/COMBAT-DRONES.md): stock 4.5.1, on their own plants,
    * with the build's motor kV, pack size and Li-ion cell limits written
    * in.
@@ -112,107 +81,6 @@ export const TUNES = [
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === '7inch'),
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === '10inch'),
   ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'interceptor'),
-  /*
-   * The Slow Stick, a GWS kit: Acro is the default. It has no ailerons, so
-   * Acro's and Stabilised's roll loops work the rudder. On its wheels
-   * every mode flies as Manual.
-   *
-   * Its tunes are its folder's, aircraft/slowstick1180/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'slowstick1180'),
-  /*
-   * The Timber's: Acro is the default, Stabilised the beginner's
-   * levelling the first lessons fly. On its wheels every mode flies as
-   * Manual; the flaps are a switch on top of every mode, F.
-   *
-   * Its tunes are its folder's, aircraft/timber1500/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'timber1500'),
-  /*
-   * The Bombshell, a balsa kit on a Cox .049: Acro is the default. No
-   * ailerons, so Acro's and Stabilised's roll loops work the rudder. On
-   * its wheels every mode flies as Manual.
-   *
-   * Its tunes are its folder's, aircraft/bombshell1118/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'bombshell1118'),
-  /*
-   * The Kadet Senior, a SIG kit: Acro is the default. No ailerons, so the
-   * roll loops work the rudder. On its wheels every mode flies as Manual.
-   *
-   * Its tunes are its folder's, aircraft/kadet1981/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'kadet1981'),
-  /*
-   * The Ugly Stik, RCM's kit: Acro is the default. On its wheels every
-   * mode flies as Manual, the rudder steering the nose wheel.
-   *
-   * Its tunes are its folder's, aircraft/uglystik1567/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'uglystik1567'),
-  /*
-   * The Tiger Moth, Great Planes' GPMA1330 ARF on a glow two stroke: Acro
-   * is the default. On its wheels every mode flies as Manual.
-   *
-   * Its tunes are its folder's, aircraft/tigermoth1803/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'tigermoth1803'),
-  /*
-   * The Extra's three: Acro, the default, whose centred sticks hold the
-   * attitude, a hover included; Manual, the receiver without the gyro;
-   * Stabilised, "bank and pitch limitations" and "automatic
-   * self-leveling" (the manual p. 4), which cannot hover by design. On its
-   * wheels every mode flies as Manual.
-   *
-   * Its tunes are its folder's, aircraft/extra3d1308/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'extra3d1308'),
-  /*
-   * The Night Timber's three, as the Extra's: Acro the default, Manual
-   * without the gyro, Stabilised the beginner's levelling. The flaps on F
-   * in every mode; on its wheels every mode flies as Manual.
-   *
-   * Its tunes are its folder's, aircraft/nighttimber1200/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'nighttimber1200'),
-  /*
-   * The Hercules is a kit and ships with no electronics: Acro is its
-   * default, Manual the sticks on the surfaces, Stabilised the self
-   * levelling. On its wheels every mode flies as Manual.
-   *
-   * Its tunes are its folder's, aircraft/hercules3077/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'hercules3077'),
-  /* The CAP 580 is an ARF and ships with no electronics, as the
-   * Hercules: Acro is its default, Manual the sticks on the surfaces as an
-   * IMAC pilot flies it, Stabilised the self levelling. On its wheels
-   * every mode flies as Manual. docs/CAP580-STAGE1.md. Its tunes are its
-   * folder's, aircraft/cap1702/aircraft.js. */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'cap1702'),
-  /* The Slick is an ARF that ships with no electronics. Its default is
-   * the Extra's, Acro; Manual is the receiver without a gyro; Stabilised
-   * the self levelling. On its wheels every mode flies as Manual. Its
-   * tunes are its folder's, aircraft/slick2680/aircraft.js. */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'slick2680'),
-  /* The P-51, FMS's V8 PNP: Acro is the default. G works the retracts,
-   * F the flaps, in every mode;
-   * on its wheels every mode flies as Manual. Its tunes are its folder's,
-   * aircraft/p51d1450/aircraft.js. */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'p51d1450'),
-  /*
-   * The F-16, Freewing's PNP: Acro is the default. The fan is the pilot's
-   * in every mode.
-   *
-   * Its tunes are its folder's, aircraft/f16878/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'f16878'),
-  /*
-   * The Zagi HP, a kit wing: Acro is the default. No rudder, so the yaw
-   * stick does nothing.
-   *
-   * Its tunes are its folder's, aircraft/zagi1219/aircraft.js.
-   */
-  ...AIRCRAFT.TUNES.filter((tune) => tune.airframe === 'zagi1219'),
   /*
    * The Striker flies what a one way attack drone flies, an autopilot's
    * stabilised mode, its default; Manual is the sticks on the surfaces.

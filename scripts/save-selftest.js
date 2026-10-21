@@ -552,7 +552,7 @@ console.log('each save point writes its key, and nothing else writes');
   const shell = () => Object.assign(Object.create(Ui.prototype), { settings: loadSettings(), buildList: loadBuilds() });
   {
     point('a build saved', await written(() => {
-      const id = shell().addBuild('W43', 'timber1500', {}).id;
+      const id = shell().addBuild('W43', 'bramor2300', {}).id;
       check('and it reads back', loadBuilds().some((b) => b.id === id && b.name === 'W43'));
     }), [BUILDS_KEY]);
     /* The profile's own build, b1. */
@@ -599,28 +599,43 @@ console.log('each save point writes its key, and nothing else writes');
   check('nothing saves on beforeunload', !src('src/main.js').includes('beforeunload'));
 }
 
-/* The owner hid AS3X on 2026-10-16 and put the fixed wings back on Acro:
- * a profile that stored an AS3X tune, seated or remembered for a plane,
- * flies that plane's default, Acro, by the rule for a tune the aircraft
- * no longer offers (settings.js). */
-console.log('a stored AS3X tune loads as the plane\'s Acro');
+/* A profile that stored a tune the plane no longer offers, seated or
+ * remembered for it, flies that plane's default, by the rule for a tune
+ * the aircraft no longer offers (settings.js). The owner hid AS3X on
+ * 2026-10-16 by this rule; the planes that had an AS3X tune left the
+ * shell on 2026-10-21, so the kept wings stand for it with an AS3X id
+ * of their own name that they never offered. */
+console.log('a stored tune the plane does not offer loads as its default');
 {
   const { seatAirframe } = await import('../src/ui/settings.js');
   const { airframeById } = await import('../configs/airframes.js');
-  const AS3X = {
-    cub1400: 'cub', cub1400f: 'cub', radian2000: 'radian', slowstick1180: 'slowstick', timber1500: 'timber',
-    timber1500f: 'timber', bombshell1118: 'bombshell', kadet1981: 'kadet', uglystik1567: 'uglystik',
-    tigermoth1803: 'tigermoth', extra3d1308: 'extra', nighttimber1200: 'nighttimber', hercules3077: 'hercules',
-    cap1702: 'cap', slick2680: 'slick', p51d1450: 'p51', f16878: 'f16', zagi1219: 'zagi',
-  };
-  for (const [airframe, p] of Object.entries(AS3X)) {
-    const got = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe, tune: `${p}-as3x` }) })).settings;
-    check(`${airframe}: ${p}-as3x loads as ${p}-acro, its default`,
-      got.airframe === airframe && got.tune === `${p}-acro` && airframeById(airframe).defaultTune === `${p}-acro`, `${got.airframe} ${got.tune}`);
+  const GONE = { bramor2300: 'wing-as3x', striker2500: 'striker-as3x' };
+  for (const [airframe, tune] of Object.entries(GONE)) {
+    const want = airframeById(airframe).defaultTune;
+    const got = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe, tune }) })).settings;
+    check(`${airframe}: ${tune} loads as ${want}, its default`, got.airframe === airframe && got.tune === want, `${got.airframe} ${got.tune}`);
   }
-  const s = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe: 'interceptor', tuneFor: { extra3d1308: 'extra-as3x' } }) })).settings;
-  seatAirframe(s, 'extra3d1308');
-  check('a remembered extra-as3x seats the Extra on extra-acro', s.tune === 'extra-acro', s.tune);
+  const s = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe: 'interceptor', tuneFor: { bramor2300: 'wing-as3x' } }) })).settings;
+  seatAirframe(s, 'bramor2300');
+  check('a remembered wing-as3x seats the Bramor on its default', s.tune === airframeById('bramor2300').defaultTune, s.tune);
+}
+
+/* settings.buildFits keeps its shape, { build, airframe, stock: { [airframe
+ * id]: fit } }, after the float planes, which shared their land plane's
+ * entry, left (src/ui/builds.js): a kept plane's worn build reads back as
+ * it was stored, and a float family's entry, on planes this build lacks,
+ * is dropped. */
+console.log('a worn build stored before the float planes left still reads');
+{
+  const { normaliseFit } = await import('../src/ui/builds.js');
+  const fit = { livery: { scheme: 'ppx' } };
+  const stored = {
+    bramor2300: { build: 'b1', airframe: 'bramor2300', stock: { bramor2300: fit } },
+    timber1500: { build: 'b2', airframe: 'timber1500f', stock: { timber1500: {}, timber1500f: {} } },
+  };
+  const got = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe: 'bramor2300', buildFits: stored }) })).settings.buildFits;
+  check('the Bramor\'s entry reads back whole', show(got.bramor2300) === show({ build: 'b1', airframe: 'bramor2300', stock: { bramor2300: normaliseFit('bramor2300', fit) } }), show(got.bramor2300));
+  check('the float Timber\'s family entry is dropped', !('timber1500' in got), show(Object.keys(got)));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

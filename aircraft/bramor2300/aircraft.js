@@ -326,7 +326,7 @@ export default {
     }
   ],
   "progress": {
-    "level": 6
+    "level": null
   },
   "strings": {
     "en": {

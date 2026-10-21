@@ -4,8 +4,7 @@
  * The owner, 2026-10-01: after choosing a plane and customising it, store
  * the model in "My Hangar", "that way I could even have 2 or 3 of the same
  * plane, for different purposes". A BUILD is a name, the airframe it is
- * built on (a float version is its own airframe, so the floats are in it)
- * and a FIT: everything the hangar's Customise changes,
+ * built on and a FIT: everything the hangar's Customise changes,
  *
  *   livery   the paint entry, configs/liveries.js normaliseEntry
  *   power    the motor or engine and the pack or tank, configs/power.js
@@ -25,8 +24,9 @@
  * the seat, the swap and the wire carry on unchanged, and nothing a pilot
  * customised before My Hangar existed moves.
  *
- * settings.buildFits, by land plane id (one fit per family, as the paint
- * is one per family): { build, airframe, stock: { [airframe id]: fit } }.
+ * settings.buildFits, by airframe id: { build, airframe, stock: { [airframe
+ * id]: fit } }. `stock` is keyed by airframe because a float plane once
+ * shared its land plane's entry; the shape is kept so stored entries load.
  * The builds themselves are under their own localStorage key, BUILDS_KEY,
  * and a signed in pilot's follow the account (buildsBlob, below). Which
  * build a family wears is this computer's and does not.
@@ -50,13 +50,12 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AIRFRAMES, airframeById, landPlaneOf } from '../../configs/airframes.js';
+import { airframeById } from '../../configs/airframes.js';
 import { liveryKey, normaliseEntry, paintable } from '../../configs/liveries.js';
 import { choosesPower, powerChoice } from '../../configs/power.js';
 import { hasMotors } from '../../configs/motors.js';
 import { normalizeEntry, setupFor, tuningFor } from '../../configs/tuning.js';
 import { normalisePlane } from '../../configs/hangar-parts.js';
-import { SURFACES, isStock as tiersStock, normaliseTiers } from '../../configs/surfaces.js';
 import { cleanName } from '../../configs/paint.js';
 import { combatChoice } from '../../configs/combat.js';
 import { badWordIn } from '../../tracks-api/words.js';
@@ -93,14 +92,12 @@ export function normaliseFit(id, fit) {
     ? normalizeEntry(id, f.tuning, setupFor(id, powerChoice(id, power ? { [id]: power } : {})).limits)
     : null;
   const combat = airframeById(id).combat && isRecord(f.combat) ? combatChoice(airframeById(id), f.combat) : null;
-  const surfaces = SURFACES[id] && !tiersStock(f.surfaces, id) ? normaliseTiers(f.surfaces, id) : null;
   return {
     livery: normaliseEntry(liveryKey(id), f.livery) ?? null,
     power,
     parts: plane ? { prop: plane.prop, addons: plane.addons } : null,
     tuning: tuning ?? null,
     combat,
-    surfaces,
   };
 }
 
@@ -112,7 +109,6 @@ export function fitOf(s, id) {
     parts: s.parts && s.parts[id],
     tuning: s.tuning && s.tuning[id],
     combat: s.combat && s.combat[id],
-    surfaces: s.surfaces && s.surfaces[id],
   });
 }
 
@@ -142,28 +138,20 @@ export function putFit(s, id, fit) {
   if (airframeById(id).combat) {
     s.combat = withEntry(s.combat, id, fit.combat);
   }
-  if (SURFACES[id]) {
-    s.surfaces = withEntry(s.surfaces, id, fit.surfaces ?? null);
-  }
   return s;
-}
-
-function familyOf(land) {
-  return AIRFRAMES.filter((a) => landPlaneOf(a.id) === land).map((a) => a.id);
 }
 
 /* The pilot's own customisation back in the slots of a family wearing a
  * build. Whether anything moved. */
 export function unfitFamily(s, id) {
-  const land = landPlaneOf(id);
-  const e = isRecord(s.buildFits) ? s.buildFits[land] : null;
+  const e = isRecord(s.buildFits) ? s.buildFits[id] : null;
   if (!e) {
     return false;
   }
   for (const [af, fit] of Object.entries(e.stock)) {
     putFit(s, af, fit);
   }
-  s.buildFits = withEntry(s.buildFits, land, null);
+  s.buildFits = withEntry(s.buildFits, id, null);
   return true;
 }
 
@@ -171,39 +159,37 @@ export function unfitFamily(s, id) {
  * kept to come back. */
 export function fitBuild(s, build) {
   unfitFamily(s, build.airframe);
-  const land = landPlaneOf(build.airframe);
-  const stock = Object.fromEntries(familyOf(land).map((af) => [af, fitOf(s, af)]));
+  const stock = { [build.airframe]: fitOf(s, build.airframe) };
   putFit(s, build.airframe, build.fit);
-  s.buildFits = withEntry(s.buildFits, land, { build: build.id, airframe: build.airframe, stock });
+  s.buildFits = withEntry(s.buildFits, build.airframe, { build: build.id, airframe: build.airframe, stock });
   return s;
 }
 
 /* The build an airframe is wearing, or null. */
 export function fittedBuild(s, id) {
-  const e = isRecord(s.buildFits) ? s.buildFits[landPlaneOf(id)] : null;
+  const e = isRecord(s.buildFits) ? s.buildFits[id] : null;
   return e && e.airframe === id ? e.build : null;
 }
 
-/* Whether the family wears a build at all, on whichever version. */
+/* Whether the aircraft wears a build at all. */
 export function familyFitted(s, id) {
-  return Boolean(isRecord(s.buildFits) && s.buildFits[landPlaneOf(id)]);
+  return Boolean(isRecord(s.buildFits) && s.buildFits[id]);
 }
 
 /* The stock aircraft's customisation, wherever it is kept now. */
 export function stockFit(s, id) {
-  const e = isRecord(s.buildFits) ? s.buildFits[landPlaneOf(id)] : null;
+  const e = isRecord(s.buildFits) ? s.buildFits[id] : null;
   return e && e.stock[id] ? e.stock[id] : fitOf(s, id);
 }
 
 /* And written there. */
 export function setStockFit(s, id, fit) {
-  const land = landPlaneOf(id);
-  const e = isRecord(s.buildFits) ? s.buildFits[land] : null;
+  const e = isRecord(s.buildFits) ? s.buildFits[id] : null;
   if (!e) {
     putFit(s, id, fit);
     return;
   }
-  s.buildFits = withEntry(s.buildFits, land, { ...e, stock: { ...e.stock, [id]: fit } });
+  s.buildFits = withEntry(s.buildFits, id, { ...e, stock: { ...e.stock, [id]: fit } });
 }
 
 /*
@@ -225,18 +211,12 @@ export function normaliseBuildFits(raw) {
   if (!isRecord(raw)) {
     return out;
   }
-  for (const [land, e] of Object.entries(raw)) {
-    if (!buildable(land) || landPlaneOf(land) !== land || !isRecord(e) || typeof e.build !== 'string'
-      || !buildable(e.airframe) || landPlaneOf(e.airframe) !== land || !isRecord(e.stock)) {
+  for (const [id, e] of Object.entries(raw)) {
+    if (!buildable(id) || !isRecord(e) || typeof e.build !== 'string' || e.airframe !== id || !isRecord(e.stock)) {
       continue;
     }
-    const stock = {};
-    for (const af of familyOf(land)) {
-      if (isRecord(e.stock[af])) {
-        stock[af] = normaliseFit(af, e.stock[af]);
-      }
-    }
-    out[land] = { build: e.build.slice(0, 40), airframe: e.airframe, stock };
+    const stock = isRecord(e.stock[id]) ? { [id]: normaliseFit(id, e.stock[id]) } : {};
+    out[id] = { build: e.build.slice(0, 40), airframe: e.airframe, stock };
   }
   return out;
 }
@@ -271,8 +251,8 @@ function normaliseBuild(raw) {
 
 /* The stored list, made safe: a build on a retired airframe is moved to
  * its successor at stock (progressmerge.js currentBuild), one on an
- * airframe this version does not know, or a name the filter refuses, is
- * dropped, one id once. */
+ * airframe that went to another game, or that this version does not know,
+ * or with a name the filter refuses, is dropped, one id once. */
 export function normaliseBuilds(raw) {
   const list = isRecord(raw) && Array.isArray(raw.builds) ? raw.builds : [];
   const out = [];

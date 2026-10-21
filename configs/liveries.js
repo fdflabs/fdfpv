@@ -10,16 +10,11 @@
  * builds every plane and holds the two to each other.
  *
  * The colours offered are real covering, by the makers' own names: Top
- * Flite MonoKote, Oracover and Solarfilm, opaque, and the transparent
- * films for a model built to be see through (the Kadet). The hex beside a
- * name is an approximation of the film for the screen, never the maker's
+ * Flite MonoKote, Oracover and Solarfilm. The hex beside a name is an
+ * approximation of the film for the screen, never the maker's
  * specification. The PRESET SCHEMES are the real kits' box art, the makers'
  * own colourways, or the full size liveries a scale model wears, each with
  * where it was seen; a scheme names only the regions it changes.
- *
- * A float plane is its land plane on floats and wears the land plane's
- * paint: `liveryKey` names the one entry both are stored under, and the
- * `floats` region is offered only on the floats.
  *
  * An entry also carries the paint shop's finishes and decals, and a plane
  * has a list of liveries saved by name; their data, their limits and the
@@ -44,7 +39,6 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { airframeById } from './airframes.js';
 import { AIRCRAFT } from './aircraft.js';
 import { CODE_PREFIX, MAX_SAVED, PATTERNS, checkPaint, cleanName, decodeLivery, fromBase64Url } from './paint.js';
 import { KIT_VERSION, LIGHTS_VERSION, checkKit, checkLights, kitParts } from './kits.js';
@@ -55,11 +49,9 @@ import { KIT_VERSION, LIGHTS_VERSION, checkKit, checkLights, kitParts } from './
  * dealer's product photograph (Horizon Hobby's MonoKote pages, Sussex
  * Model Centre's Oracover pages, Solarfilm's own chart) or, for the
  * transparent MonoKote, off Top Flite's colour chart: an approximation,
- * not the maker's specification. `film` is a see through film, offered on
- * a model built to be see through; that model's own kits use opaque white
- * and black trim, so those are offered there too.
+ * not the maker's specification.
  */
-const c = (brand, name, hex, film = false) => ({ brand, name, hex, film });
+const c = (brand, name, hex) => ({ brand, name, hex });
 export const PALETTE = [
   c('MonoKote', 'Jet White', '#f2f2f2'),
   c('Oracover', 'White 10', '#dfdcd8'),
@@ -86,37 +78,21 @@ export const PALETTE = [
   c('MonoKote', 'Flat Olive Drab', '#5e614c'),
   c('Oracover', 'Black 71', '#1a1a1a'),
   c('MonoKote', 'Black', '#0e1213'),
-  c('MonoKote', 'Transparent Red', '#e46f63', true),
-  c('Oracover', 'Transparent Red 29', '#b21527', true),
-  c('MonoKote', 'Transparent Orange', '#f8c300', true),
-  c('MonoKote', 'Transparent Yellow', '#ffeb54', true),
-  c('MonoKote', 'Transparent Green', '#34a17b', true),
-  c('MonoKote', 'Transparent Blue', '#0097d4', true),
-  c('Oracover', 'Transparent Blue 59', '#335a9a', true),
-  c('MonoKote', 'Jet White', '#f2f2f2', true),
-  c('MonoKote', 'Black', '#0e1213', true),
 ];
 
 /*
  * THE PLANES, by liveryKey. `regions` in the order the hangar lists them,
- * each with the colour its builder draws it in; `film` a region of see
- * through film (it offers the transparent colours), `floats` one only the
- * float plane has. `schemes` stock first, each with where it was seen
+ * each with the colour its builder draws it in. `schemes` stock first, each with where it was seen
  * (`source`, a label and an address) and only the regions it changes. No
- * plane's scheme is listed without a source: the Skyhunter and the Slow
- * Stick have none found yet, so they offer their stock look and the
- * palette. The combat aircraft are the exception, because they are no
- * maker's model: generic and unmarked (docs/WARFARE-PLAN.md section 3),
- * they wear generic service and test colours, with no source to cite and
- * no insignia (THE COMBAT AIRCRAFT, next). A row in LIVERIES that is not
- * written here is its folder's livery (aircraft/<id>/aircraft.js); the Cub's
- * and the Kadet's schemes share a source object and the quads' rows share
- * their regions, which a folder's copy would split, so those stay here.
+ * plane's scheme is listed without a source. The combat aircraft are the
+ * exception, because they are no maker's model: generic and unmarked
+ * (docs/WARFARE-PLAN.md section 3), they wear generic service and test
+ * colours, with no source to cite and no insignia (THE COMBAT AIRCRAFT,
+ * next). A row in LIVERIES that is not written here is its folder's livery
+ * (aircraft/<id>/aircraft.js); the quads' rows share their regions, which
+ * a folder's copy would split, so those stay here.
  */
 const r = (id, stock, more = {}) => ({ id, stock, ...more });
-const src = (label, url) => ({ label, url });
-const WIKI_CUB = src('Wikipedia, Piper J-3 Cub', 'https://en.wikipedia.org/wiki/Piper_J-3_Cub');
-const SIG_ARF = src('SIG Kadet Senior Sport ARF', 'https://sigmfg.com/products/sig-kadet-senior-sport-arf');
 const all = (hex, ids) => Object.fromEntries(ids.map((id) => [id, hex]));
 
 /*
@@ -162,88 +138,7 @@ const QUAD_FRAME = [r('frame', CARBON), r('arms', CARBON), r('top', CARBON)];
 const QUAD_KIT = [r('pack', '#18191b'), r('payload', '#4d5130')];
 const QUAD_LONG = [...QUAD_FRAME, r('tape', '#5d6038'), ...QUAD_KIT, r('cage', '#3a3f2a'), r('legs', '#18191b'), r('props', '#232527')];
 export const LIVERIES = {
-  sky1800: AIRCRAFT.LIVERIES.sky1800,
-  cub1400: {
-    regions: [r('wing', '#f0be2a'), r('fuselage', '#f0be2a'), r('tail', '#f0be2a'), r('trim', '#16181a'), r('floats', '#f2f1ec', { floats: true })],
-    schemes: [
-      { id: 'stock', source: src('FMS J-3 Cub 1400 mm V4', 'https://www.fmshobby.com/products/fms-1400mm-55-1-j-3-cub-v4-pnp'), colours: {} },
-      { id: 'l4', source: WIKI_CUB, colours: all('#5a5434', ['wing', 'fuselage', 'tail', 'trim', 'floats']) },
-      { id: 'flitfire', source: WIKI_CUB, colours: { ...all('#b9bdc0', ['wing', 'fuselage', 'tail', 'floats']), trim: '#032257' } },
-    ],
-  },
-  radian2000: AIRCRAFT.LIVERIES.radian2000,
   bramor2300: AIRCRAFT.LIVERIES.bramor2300,
-  slowstick1180: AIRCRAFT.LIVERIES.slowstick1180,
-  timber1500: AIRCRAFT.LIVERIES.timber1500,
-  bombshell1118: AIRCRAFT.LIVERIES.bombshell1118,
-  kadet1981: {
-    /* The trims are drawn into the same film maps as the wing and the
-     * fuselage, so each wears its main region's finish (`finish: false`). */
-    regions: [r('wing', '#ffdb1a', { film: true }), r('wing_trim', '#d61214', { film: true, finish: false }), r('fuselage', '#d61214', { film: true }), r('fuse_trim', '#ffdb1a', { film: true, finish: false })],
-    schemes: [
-      { id: 'stock', source: null, colours: {} },
-      { id: 'sig_kit', source: src('SIG Kadet Senior kit RC-58', 'https://sigmfg.com/products/kadet-senior-kit'), colours: { wing: '#b21527', wing_trim: '#0e1213', fuselage: '#b21527', fuse_trim: '#0e1213' } },
-      { id: 'sport_red', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#b21527', fuselage: '#b21527', fuse_trim: '#f2f2f2' } },
-      { id: 'sport_blue', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#335a9a', fuselage: '#335a9a', fuse_trim: '#f2f2f2' } },
-    ],
-  },
-  /* RCM's own model as its May 1985 photographs show it: red all over,
-   * the wing's outer panels, a band round the fuselage behind the wing
-   * and the fin white, and black crosses on them, as the plan labels
-   * them "(WHITE)" and "(BLACK CROSS & BANDS)". */
-  uglystik1567: AIRCRAFT.LIVERIES.uglystik1567,
-  /* Great Planes' own covering, Top Flite's Cub Yellow film all over with
-   * the cowl and a stripe black (the manual's cover and its repair
-   * colour, TOPQ0220); and the RAF's post war trainer finish, overall
-   * silver with yellow bands round the rear fuselage and across the
-   * wings, which the Tiger Moth wore to the end of its RAF service. */
-  tigermoth1803: AIRCRAFT.LIVERIES.tigermoth1803,
-  /* E-flite's moulded foam in its own paint: the nose and spats yellow
-   * orange, the wing's top white with grey outer panels (the tail's
-   * grey), its underside in yellow and black squares. */
-  extra3d1308: AIRCRAFT.LIVERIES.extra3d1308,
-  /* Extreme Flight's three schemes for the V3 in their Oracover colours,
-   * the data sheet's codes where it gives them, the hex the swatch's: the
-   * 10th Anniversary's white with red cowl, pants, tail and wing rays and
-   * black trim (356RC); white with orange, sky blue and dark blue (#10,
-   * #60, #53, #52, 356V3BW); cub yellow with red, light grey and black
-   * (#30, #23, #11, #71, 356CYV3). */
-  slick2680: AIRCRAFT.LIVERIES.slick2680,
-  /* E-flite's scheme off its photographs (EFL13875): white foam, the
-   * orange red flashes over the wing and along the fuselage, black
-   * stripes and cowl, grey slashes. */
-  nighttimber1200: AIRCRAFT.LIVERIES.nighttimber1200,
-  /* The USAF airlifter's overall grey, FS 36173, the radome a darker
-   * grey as the dielectric paint weathers, the props black; no
-   * insignia (the non goals). */
-  hercules3077: AIRCRAFT.LIVERIES.hercules3077,
-
-  /* Extreme Flight's two covering schemes for the 67 in CAP 580, the
-   * data sheet's Oracover colours read off its product photographs: the
-   * blue and yellow A464-BY (Dark Blue 52 over the wing's root and the
-   * fuselage, Cub Yellow 30 stripes and spats, Ferrari Red 23 tips, cowl
-   * and flashes) and the green and red A464-GR (May Green 43, White 10,
-   * Ferrari Red 23). */
-  cap1702: AIRCRAFT.LIVERIES.cap1702,
-
-  /* FMS's natural metal P-51 as its manual photographs it: silver all
-   * over, the red of the nose band, the spinner and the fin's top, and
-   * the black of the anti-glare panel and the identification bands. */
-  p51d1450: AIRCRAFT.LIVERIES.p51d1450,
-  /* OA Composites' own colourways, spread tow carbon under a painted
-   * design: the wing's dark carbon, two bands of colour and the nose
-   * cone, the tail bare carbon. Hyperflight's and Lindinger's listings
-   * name them by colour and number. */
-  nrj1490: AIRCRAFT.LIVERIES.nrj1490,
-  /* Painted foam, not film: Freewing's "modern three tone gray US Air
-   * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270
-   * Medium Gray and 36375 Light Ghost Gray, and the canopy's gold tint. */
-  f16878: AIRCRAFT.LIVERIES.f16878,
-  /* Zagi's HP as zagi.com photographs it: orange covering tape all
-   * over, black winglets, the charcoal canopy and tray; and the 5C
-   * combat wing's scheme, yellow with black tape on the leading edge
-   * and black winglets. */
-  zagi1219: AIRCRAFT.LIVERIES.zagi1219,
   striker2500: AIRCRAFT.LIVERIES.striker2500,
   '7inch': quad(QUAD_LONG),
   '10inch': quad(QUAD_LONG),
@@ -251,12 +146,10 @@ export const LIVERIES = {
 };
 
 
-const FAMILY = { timber1500f: 'timber1500', cub1400f: 'cub1400' };
-
-/* The entry an aircraft's paint is stored under: a float plane's is its
- * land plane's. */
+/* The entry an aircraft's paint is stored under: its own id since the
+ * float planes, which wore their land plane's, left on 2026-10-21. */
 export function liveryKey(airframeId) {
-  return FAMILY[airframeId] ?? airframeId;
+  return airframeId;
 }
 
 /* Whether this aircraft can be painted at all: the planes and the combat
@@ -265,14 +158,10 @@ export function paintable(airframeId) {
   return Boolean(LIVERIES[liveryKey(airframeId)]);
 }
 
-/* The regions this aircraft shows: its family's, the floats only on floats. */
+/* The regions this aircraft shows. */
 export function regionsFor(airframeId) {
   const l = LIVERIES[liveryKey(airframeId)];
-  if (!l) {
-    return [];
-  }
-  const floats = Boolean(airframeById(airframeId).floats);
-  return l.regions.filter((r) => floats || !r.floats);
+  return l ? l.regions : [];
 }
 
 export function schemesFor(airframeId) {
@@ -334,13 +223,12 @@ function checkEntry(family, entry) {
     dropped += 1;
   }
   /* `under`: a region's underside in a colour of its own, the faces that
-   * look down in the aircraft's frame (src/render/finish.js). Not on a
-   * film region, whose colour is baked into its film. */
+   * look down in the aircraft's frame (src/render/finish.js). */
   if (entry.under && typeof entry.under === 'object' && !Array.isArray(entry.under)) {
     const under = {};
     for (const r of l.regions) {
       const v = typeof entry.under[r.id] === 'string' ? entry.under[r.id].toLowerCase() : null;
-      if (!r.film && isHex(v)) {
+      if (isHex(v)) {
         under[r.id] = v;
       }
     }
@@ -352,13 +240,13 @@ function checkEntry(family, entry) {
     dropped += 1;
   }
   /* `patterns`: a region's pattern (configs/paint.js PATTERNS) in a
-   * second colour, { p, c }; not on a film region. */
+   * second colour, { p, c }. */
   if (entry.patterns && typeof entry.patterns === 'object' && !Array.isArray(entry.patterns)) {
     const patterns = {};
     for (const r of l.regions) {
       const v = entry.patterns[r.id];
       const c = v && typeof v.c === 'string' ? v.c.toLowerCase() : null;
-      if (!r.film && v && PATTERNS.includes(v.p) && isHex(c)) {
+      if (v && PATTERNS.includes(v.p) && isHex(c)) {
         patterns[r.id] = { p: v.p, c };
       }
     }
@@ -501,12 +389,6 @@ function newerKit(code) {
   } catch {
     return false;
   }
-}
-
-/* The swatches a region offers: the see through films for a film region,
- * the opaque covering for the rest. */
-export function paletteFor(region) {
-  return PALETTE.filter((c) => Boolean(c.film) === Boolean(region.film));
 }
 
 /* The covering a colour is, if it is one on the palette. */

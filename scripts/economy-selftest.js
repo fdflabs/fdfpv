@@ -77,7 +77,7 @@ check('a record\'s stored challenges pay nothing since the challenges left', !al
 check('a made up challenge, lesson, mission or aircraft pays nothing; every known lesson pays', !all.some((g) => /my_own|my_lesson/.test(g.key))
   && LESSONS.every((l) => all.some((g) => g.key === `first:lesson:${l.id}` && g.amount === FIRST_TOKENS.lesson))
   && grantsFrom({ data: { campaign: { missions: { 'my-war-1': { stars: 3, won: true } } }, flightTime: addFlight({}, 'everydevice1', 'notaplane', 'free', 1e6, '2026-10-01') } }).length === 0);
-const twice = { ...everything, data: { ...everything.data, flightTime: addFlight(flight, 'otherdevice2', 'cub1400', 'free', 1e6, '2026-10-02') } };
+const twice = { ...everything, data: { ...everything.data, flightTime: addFlight(flight, 'otherdevice2', 'bramor2300', 'free', 1e6, '2026-10-02') } };
 check('more flying on the same aircraft pays nothing more: repetition never pays', sum(grantsFrom(twice)) === sum(all));
 check('an empty record pays nothing', grantsFrom(null).length === 0 && grantsFrom({}).length === 0);
 check('the amounts are whole and positive', all.every((g) => Number.isInteger(g.amount) && g.amount > 0));
@@ -100,8 +100,8 @@ check('every kit family sells at most two and earns one (lead decision 2026-10-0
   }
   return mine.filter((it) => it.price).length <= 2 && mine.filter((it) => it.earn).length === 1 && mine.find((it) => it.earn).earn === `hour:${f}`;
 }));
-check('a kit option is earned by an hour on that aircraft and not before', earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { sky1800: { free: 3600 } } } } } }).join() === 'kit:sky1800:wingtips:winglet'
-  && earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { sky1800: { free: 3599 } } } } } }).length === 0);
+check('a kit option is earned by an hour on that aircraft and not before', earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { bramor2300: { free: 3600 } } } } } }).join() === 'kit:bramor2300:winglets:split'
+  && earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { bramor2300: { free: 3599 } } } } } }).length === 0);
 check('kitItem finds a sold option and nothing for a free one', kitItem('7inch', 'arms', 'tapered').price === KIT_PRICE && kitItem('7inch', 'arms', 'blade') === null);
 
 console.log('the shop');

@@ -111,7 +111,7 @@ const BAY_MM = 25;
  * common, and past eight the extra weight is the bigger problem. */
 const BALLAST_SHARE = 0.08;
 /* Under this static margin the aircraft is less stable than any kit here
- * is set up (the least are the wing's 0.069 and the Slow Stick's 0.073),
+ * is set up (the least is the wing's 0.069),
  * and the Tuning tab says so whatever range the maker publishes. */
 export const MARGIN_WARN = 0.05;
 
@@ -143,7 +143,7 @@ const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Rad
  *   throws     { high: [a, e, r], low: [a, e, r] } degrees, and their
  *              sources; a 0 is a surface the aircraft does not have
  *   elevons    true for a flying wing, whose elevons are its elevator
- *   flaps      the Timber's: the manual's flap to elevator mix and the
+ *   flaps      a flapped kit's: the manual's flap to elevator mix and the
  *              notches' angles, rad, both restated from plant_wing.c;
  *              null where there are none
  */
@@ -155,50 +155,8 @@ export const TUNING = {
     throws: { high: [25, 12, 0], low: [17.5, 8.4, 0], source: `high: the plant's, docs/WING-STAGE1.md; ${LOW_70}` },
     flaps: null,
   },
-  sky1800: AIRCRAFT.TUNING.sky1800,
-  cub1400: AIRCRAFT.TUNING.cub1400,
-  /* The Radian's `margin` is -cm_alpha / cl_alpha, 1.304 / 5.709: 0.234
-   * was read off the plant past the linear lift, where its curve now
-   * rounds onto CL max. */
-  radian2000: AIRCRAFT.TUNING.radian2000,
   bramor2300: AIRCRAFT.TUNING.bramor2300,
-  slowstick1180: AIRCRAFT.TUNING.slowstick1180,
-  timber1500: AIRCRAFT.TUNING.timber1500,
-  /* The Bombshell's `margin` is the one U2 reads with the wing's own
-   * stall slope and the tail's share on sin cos, 0.2881
-   * (scripts/bombshell-derive.js); linear, 0.287. */
-  bombshell1118: AIRCRAFT.TUNING.bombshell1118,
-  kadet1981: AIRCRAFT.TUNING.kadet1981,
-  uglystik1567: AIRCRAFT.TUNING.uglystik1567,
-  tigermoth1803: AIRCRAFT.TUNING.tigermoth1803,
-  extra3d1308: AIRCRAFT.TUNING.extra3d1308,
-  /* The Night Timber's `margin` is the one U2 reads off the hi_alpha
-   * plant at the zero lift line's 5 deg, 0.0666
-   * (scripts/nighttimber-derive.js); the linear h_n's is 0.068. Its
-   * `expo`: the manual sets none, "after first flights, you may adjust
-   * expo", as FW_NIGHTTIMBER1200 flies. */
-  nighttimber1200: AIRCRAFT.TUNING.nighttimber1200,
-  /* The Hercules' `tail` is the lead inside the tail cone, ahead of its
-   * post. */
-  hercules3077: AIRCRAFT.TUNING.hercules3077,
-  /* The CAP's expo is the data sheet's high rate expo, one figure for all
-   * three, as FW_CAP1702 flies (docs/CAP580-STAGE1.md). The Slick's is the
-   * sheet's 50 to 60 percent on the high rates, as FW_SLICK2680 flies; its
-   * pack is the receiver's two; its lead goes at the firewall or in the aft
-   * fuselage ahead of the stabiliser, where 8 percent of the mass moves the
-   * CG under the plant's 0.1 m. Both rows are their folders'. */
-  cap1702: AIRCRAFT.TUNING.cap1702,
-  slick2680: AIRCRAFT.TUNING.slick2680,
-
-  p51d1450: AIRCRAFT.TUNING.p51d1450,
-  nrj1490: AIRCRAFT.TUNING.nrj1490,
-  f16878: AIRCRAFT.TUNING.f16878,
-  zagi1219: AIRCRAFT.TUNING.zagi1219,
 };
-/* The float planes are their land planes', balanced back to the manual's
- * CG with nose weight as docs/FLOATS-STAGE1.md has it. */
-TUNING.timber1500f = { ...TUNING.timber1500, float: true };
-TUNING.cub1400f = { ...TUNING.cub1400, float: true };
 
 export function tuningFor(airframeId) {
   return TUNING[airframeId] || null;
@@ -225,19 +183,15 @@ export function stockEntry(airframeId) {
 }
 
 /* The throws a rate gives, degrees [a, e, r]. */
-export function throwsFor(airframeId, rate, high = null) {
+export function throwsFor(airframeId, rate) {
   const t = tuningFor(airframeId).throws;
-  /* A bigger surface's own high throws (configs/surfaces.js tierThrowsDeg):
-   * low keeps the manual's share of high. */
-  const hi = high ?? t.high;
-  const low = t.low.map((l, i) => (high ? l * hi[i] / t.high[i] : l));
   if (rate === 'low') {
-    return low.slice();
+    return t.low.slice();
   }
   if (rate === 'mid') {
-    return hi.map((h, i) => (h + low[i]) / 2);
+    return t.high.map((h, i) => (h + t.low[i]) / 2);
   }
-  return hi.slice();
+  return t.high.slice();
 }
 
 /*
@@ -388,14 +342,14 @@ export function isStock(airframeId, entry) {
  * expo); a stock on the manual's first flight rate is a block like any
  * other. massKg and packKg as balance() takes them.
  */
-export function tuneBlock(airframeId, entry, massKg, packKg, high = null) {
-  if (isStock(airframeId, entry) && !high && !tuningFor(airframeId).firstFlight) {
+export function tuneBlock(airframeId, entry, massKg, packKg) {
+  if (isStock(airframeId, entry) && !tuningFor(airframeId).firstFlight) {
     return null;
   }
   const t = tuningFor(airframeId);
   const e = fullEntry(airframeId, entry);
   const b = balance(airframeId, entry, massKg, packKg);
-  const th = throwsFor(airframeId, e.rate, high);
+  const th = throwsFor(airframeId, e.rate);
   const out = new Float64Array(SIM_TUNE_DOUBLES);
   out[SIM_TUNE.CG_SHIFT] = b.shift;
   out[SIM_TUNE.BALLAST_KG] = b.ballastKg;

@@ -27,37 +27,15 @@
  */
 
 import { CRAFT_ARM, CRAFT_PROP_R, CRAFT_HULL_R } from '../game/collide.js';
-import { buildSkyCraft } from './skycraft.js';
-import { buildCubCraft } from './cubcraft.js';
-import { buildGliderCraft } from './glidercraft.js';
 import { buildBramorCraft } from './bramorcraft.js';
-import { buildSlowStickCraft } from './slowstickcraft.js';
-import { buildBombshellCraft } from './bombshellcraft.js';
-import { buildKadetCraft } from './kadetcraft.js';
-import { buildUglystikCraft } from './uglystikcraft.js';
-import { buildTigermothCraft } from './tigermothcraft.js';
-import { buildExtraCraft } from './extracraft.js';
-import { buildNightTimberCraft } from './nighttimbercraft.js';
-import { buildCapCraft } from './capcraft.js';
-import { buildHerculesCraft } from './herculescraft.js';
-import { buildSlickCraft } from './slickcraft.js';
-import { buildDlgCraft } from './dlgcraft.js';
-import { buildF16Craft } from './f16craft.js';
-import { buildTimberCraft } from './timbercraft.js';
-import { buildP51Craft } from './p51craft.js';
-import { buildZagiCraft } from './zagicraft.js';
 import { buildCombatDrone } from './combatcraft.js';
 import { buildStrikerCraft, buildStrikerLauncher } from './strikercraft.js';
 import { bodyPosToModel } from './frame.js';
 import { AIRFRAMES, DEFAULT_AIRFRAME, airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { combatChoice, combatFor, propulsionOf } from '../../configs/combat.js';
 import { dressLivery, liveryFor } from './livery.js';
-import { surfacesFor } from './surfacesource.js';
 import { dressParts } from './partsfit.js';
 import { addNavLights } from './navlights.js';
-
-/* A builder on floats: the same airframe with the float set for gear. */
-const onFloats = (build) => (opts) => build({ ...opts, floats: true });
 
 /*
  * A combat quad: one builder, the frame by airframe, and the pilot's
@@ -103,27 +81,7 @@ function flownStriker(opts) {
  * builder from here too, so they draw the machine the shell flies.
  */
 const BUILDERS = {
-  sky1800: buildSkyCraft,
-  cub1400: buildCubCraft,
-  radian2000: buildGliderCraft,
   bramor2300: buildBramorCraft,
-  slowstick1180: buildSlowStickCraft,
-  bombshell1118: buildBombshellCraft,
-  f16878: buildF16Craft,
-  kadet1981: buildKadetCraft,
-  uglystik1567: buildUglystikCraft,
-  tigermoth1803: buildTigermothCraft,
-  extra3d1308: buildExtraCraft,
-  nighttimber1200: buildNightTimberCraft,
-  cap1702: buildCapCraft,
-  hercules3077: buildHerculesCraft,
-  slick2680: buildSlickCraft,
-  nrj1490: buildDlgCraft,
-  p51d1450: buildP51Craft,
-  zagi1219: buildZagiCraft,
-  timber1500: buildTimberCraft,
-  timber1500f: onFloats(buildTimberCraft),
-  cub1400f: onFloats(buildCubCraft),
   '7inch': combatQuad('7inch'),
   '10inch': combatQuad('10inch'),
   interceptor: combatQuad('interceptor'),
@@ -185,7 +143,6 @@ export function buildCraft(airframeId = DEFAULT_AIRFRAME, combat = undefined) {
     worldScale: true,
     measure: true,
     combat: combat ?? combatFor(lastBuiltId) ?? undefined,
-    surfaces: surfacesFor(lastBuiltId) ?? undefined,
   });
   return addNavLights(dressParts(dressLivery(built, lastBuiltId, look), lastBuiltId), look && look.lights);
 }

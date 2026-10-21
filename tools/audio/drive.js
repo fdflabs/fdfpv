@@ -51,8 +51,8 @@ const EAR_M = 1.7;
  * near; 'room-32' a full room on a ring from 15 to 320 m, which is what
  * the voice budget is for.
  */
-const PEER_FLIGHTS = ['quad-punch', 'quad-dive', '7inch-punch', 'interceptor-punch', '10inch-punch', 'quad-propwash', 'cub1400-flight', 'f16878-flight'];
-const PEER_AIRFRAME = { 'quad-punch': 'interceptor', 'quad-dive': 'interceptor', '7inch-punch': '7inch', 'interceptor-punch': 'interceptor', '10inch-punch': '10inch', 'quad-propwash': 'interceptor', 'cub1400-flight': 'cub1400', 'f16878-flight': 'f16878' };
+const PEER_FLIGHTS = ['quad-punch', 'quad-dive', '7inch-punch', 'interceptor-punch', '10inch-punch', 'quad-propwash', 'striker-prop-cruise', 'striker-prop-flyby'];
+const PEER_AIRFRAME = { 'quad-punch': 'interceptor', 'quad-dive': 'interceptor', '7inch-punch': '7inch', 'interceptor-punch': 'interceptor', '10inch-punch': '10inch', 'quad-propwash': 'interceptor', 'striker-prop-cruise': 'striker2500', 'striker-prop-flyby': 'striker2500' };
 export const SCENES = {
   'room-4': {
     title: 'Room: four pilots near a hovering five inch',

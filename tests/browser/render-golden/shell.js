@@ -282,9 +282,10 @@ function shellSession(opts) {
   /* A swap with no parent. */
   const loose = shell.swapCraft('interceptor');
   rows.looseSwap = { parent: loose.group.parent === null, handles: handles(shell, loose) };
-  /* Aircraft with the optional handles: surfaces, a folding prop, a
-   * parachute and a launch rail; flaps; retracts. */
-  rows.optionalSwaps = ['bramor2300', 'timber1500', 'p51d1450', 'interceptor'].map((id) => handles(shell, shell.swapCraft(id)));
+  /* An aircraft with the optional handles (surfaces, a folding prop, a
+   * parachute and a launch rail) and one with none. No kept airframe has
+   * flaps or retracts, so setFlaps and setGear read null on both. */
+  rows.optionalSwaps = ['bramor2300', 'interceptor'].map((id) => handles(shell, shell.swapCraft(id)));
   canvas.remove();
   r.dispose();
   return rows;

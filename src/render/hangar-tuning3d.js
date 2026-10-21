@@ -222,8 +222,7 @@ export function dressTuning(craft, tab, dt) {
   /* A folding prop opens with the motor and folds when it stops, on the
    * stand only, so the other pages leave it as it stood. */
   if (craft.setProp && tab.section === 'stand') {
-    /* setProp takes the motor's rate in rad/s (glidercraft.js); the
-     * Extra's blur disc reads it as a share of full. */
+    /* setProp takes the motor's rate in rad/s (bramorcraft.js). */
     craft.setProp(rpm * Math.PI / 30);
   }
 }

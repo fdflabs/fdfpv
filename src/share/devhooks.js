@@ -76,7 +76,6 @@ export const HOOKS = [
   ['__camGround', null],
   ['__campaign', 'the campaign: progress and its screens'],
   ['__canopyTop', 'puts a flat canopy over the loaded map'],
-  ['__carouselChords', null],
   ['__carouselStats', null],
   ['__celCount', null],
   ['__colliderBoxes', null],

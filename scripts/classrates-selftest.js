@@ -73,29 +73,24 @@ console.log('a quad pilot\'s own rates stay with the multirotors');
   const s = profile('7inch', { rates: QUAD_OWN });
   check('the quad flies its own rates', same(s.rates, QUAD_OWN));
   check('and nothing is kept yet', s.ratesFor === undefined, show(s.ratesFor));
-  seatAirframe(s, 'cub1400');
-  check('the Cub starts on its stock rates, not the quad\'s', same(s.rates, RATE_DEFAULTS), show(s.rates));
+  seatAirframe(s, 'striker2500');
+  check('the Striker starts on its stock rates, not the quad\'s', same(s.rates, RATE_DEFAULTS), show(s.rates));
   check('the quad\'s are kept under multirotor', same(s.ratesFor?.multirotor, QUAD_OWN), show(s.ratesFor));
   s.rates = PLANE_OWN;
-  seatAirframe(s, 'timber1500');
-  check('another plane keeps the plane\'s own rates, as a seat in one class always has', same(s.rates, PLANE_OWN));
+  seatAirframe(s, 'bramor2300');
+  check('another wing keeps the wing\'s own rates, as a seat in one class always has', same(s.rates, PLANE_OWN));
   seatAirframe(s, 'interceptor');
   check('a quad again: the quad\'s own rates are back', same(s.rates, QUAD_OWN), show(s.rates));
-  check('and the plane\'s are kept under plane', same(s.ratesFor?.plane, PLANE_OWN), show(s.ratesFor));
-  seatAirframe(s, 'bramor2300');
-  check('a wing, a class of its own, starts on its stock', same(s.rates, RATE_DEFAULTS), show(s.rates));
-  seatAirframe(s, 'slowstick1180');
-  check('and the plane class gets its own back', same(s.rates, PLANE_OWN), show(s.rates));
-  check('nothing is kept for the wing, which was on stock', !('wing' in (s.ratesFor || {})), show(Object.keys(s.ratesFor || {})));
+  check('and the wing\'s are kept under wing', same(s.ratesFor?.wing, PLANE_OWN), show(s.ratesFor));
 }
 
 console.log('\nrates that are nobody\'s own travel as before');
 {
   const s = profile('7inch');
-  seatAirframe(s, 'cub1400');
-  check('stock to stock: the Cub\'s stock, nothing kept', same(s.rates, RATE_DEFAULTS) && s.ratesFor === undefined, show(s.ratesFor));
+  seatAirframe(s, 'striker2500');
+  check('stock to stock: the Striker\'s stock, nothing kept', same(s.rates, RATE_DEFAULTS) && s.ratesFor === undefined, show(s.ratesFor));
   const t = profile('7inch', { rates: TOUCH_RATE_DEFAULTS });
-  seatAirframe(t, 'timber1500');
+  seatAirframe(t, 'bramor2300');
   check('the touch screen\'s gentler rates go with the pilot to a plane', same(t.rates, TOUCH_RATE_DEFAULTS) && t.ratesFor === undefined, show(t.rates));
 }
 
@@ -103,7 +98,7 @@ console.log('\non a touch screen, and in the air');
 {
   navigator.maxTouchPoints = 5;
   const s = profile('7inch', { rates: QUAD_OWN });
-  seatAirframe(s, 'cub1400');
+  seatAirframe(s, 'striker2500');
   check('a thumb pilot with own quad rates starts a plane on the thumb rates, not 670 deg/s', same(s.rates, TOUCH_RATE_DEFAULTS), show(s.rates.roll));
   navigator.maxTouchPoints = 0;
   /* The hot swap (src/main.js hotSwap) seats a copy and assigns it back. */
@@ -111,14 +106,14 @@ console.log('\non a touch screen, and in the air');
   Object.assign(live, seatAirframe({ ...live }, 'bramor2300'));
   check('a swap that leaves nothing kept clears it on the profile the shell holds', live.ratesFor === undefined, show(live.ratesFor));
   const air = profile('7inch', { rates: QUAD_OWN });
-  Object.assign(air, seatAirframe({ ...air }, 'cub1400'));
+  Object.assign(air, seatAirframe({ ...air }, 'striker2500'));
   check('and one that keeps the quad\'s keeps it there', same(air.ratesFor?.multirotor, QUAD_OWN) && same(air.rates, RATE_DEFAULTS));
 }
 
 console.log('\nthe profile keeps them');
 {
   const s = profile('7inch', { rates: QUAD_OWN });
-  seatAirframe(s, 'cub1400');
+  seatAirframe(s, 'striker2500');
   store.set(SETTINGS_KEY, JSON.stringify(s));
   const back = loadSettings();
   check('a reload keeps the quad\'s rates under multirotor', same(back.ratesFor?.multirotor, QUAD_OWN));

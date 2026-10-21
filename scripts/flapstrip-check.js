@@ -37,7 +37,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
-import { TABLE } from '../configs/power.js';
+import { precutRow } from './lib/precut.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const src = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
@@ -45,7 +45,9 @@ const sim = await loadSim(new Uint8Array(await readFile(join(root, 'dist/sim.was
 must(sim.init(await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8')), 'init');
 const stripPtr = sim.e.malloc(8 * 8);
 
-/* The aircraft with flaps and their table's name in plant_wing.c. */
+/* The aircraft with flaps and their table's name in plant_wing.c. They
+ * left the shell before their plants leave the module (2026-10-21), so
+ * their rows are the pre-cut ones (scripts/lib/precut.js). */
 const FLAPPED = {
   timber1500: 'FW_TIMBER1500',
   p51d1450: 'FW_P51D1450',
@@ -66,7 +68,7 @@ function check(name, ok, detail) {
 /* Each left strip's first separating angle of attack, deg, body raised
  * from 0 to 30 deg, each angle held 300 ms so the strips' lag settles. */
 function onsets(id, notch) {
-  must(sim.e.sim_set_airframe(TABLE[id].simId), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(precutRow(id).simId), 'sim_set_airframe');
   sim.clearPower();
   sim.clearTune();
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');

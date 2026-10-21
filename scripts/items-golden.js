@@ -384,13 +384,13 @@ const SCENARIOS = [
   scenario('title-gate-home-rooms', { fields: { mode: null, craftGate: true, friendsRow: friendsRowOut, titleRooms: (home) => [{ label: `Rooms panel home=${home}`, lobby: 'room', action: 'lobby:owls' }] } }),
   scenario('title-gate-home-pad', { fields: { mode: null, craftGate: true, padInfo: padNoButtons } }),
   scenario('title-gate-hangar', { fields: { mode: null, craftGate: true, hub: 'hangar', padInfo: padNoYaw } }),
-  scenario('title-gate-plane', { settings: { airframe: 'cub1400' }, fields: { mode: null, craftGate: true } }),
+  scenario('title-gate-plane', { settings: { airframe: 'bramor2300' }, fields: { mode: null, craftGate: true } }),
   scenario('title-race-no-seat', { fields: { padInfo: padFine } }),
   scenario('title-race-first-no-seat', { fields: { firstRun: true } }),
   scenario('title-race-named', { seed: () => { store.set('webfpv.pilot.name', 'Ace Pilot'); }, fields: { friendsRow: friendsRowInRoom, inRoom: () => true } }),
   scenario('title-freestyle', { settings: { map: 'interior', freestyleMap: 'interior' }, fields: { mode: 'freestyle', firstRun: true } }),
   scenario('title-freestyle-not-loaded', { settings: { map: 'track' }, fields: { mode: 'freestyle' } }),
-  scenario('title-plane', { settings: { airframe: 'cub1400', tune: 'cub-manual' }, fields: {} }),
+  scenario('title-plane', { settings: { airframe: 'bramor2300', tune: 'wing-manual' }, fields: {} }),
   scenario('title-update-bar', { fields: { updateBar: { hidden: false } } }),
   scenario('title-both-bars', { fields: { updateBar: { hidden: false }, roomBar: { hidden: false }, roomBarView: { button: 'Rejoin', text: 'OWLS is still open.' } } }),
   scenario('title-room-bar-no-button', { fields: { roomBar: { hidden: false }, roomBarView: { button: '', text: 'nothing' } } }),
@@ -427,7 +427,7 @@ const SCENARIOS = [
   scenario('quad-angle-max', { settings: { cameraAngle: 90, cameraFov: 120 }, fields: { screen: 'quad' } }),
   scenario('quad-adjusted', { settings: { pids: { 'betaflight-interceptor': { mode: 'sliders', sliders: { master: 120 } } } }, fields: { screen: 'quad' } }),
   scenario('quad-custom-tune', { seed: () => { store.set('fdfpv.fc.v1', '# dump'); store.set('fdfpv.fc.airframe.v1', 'interceptor'); }, settings: { tune: 'custom' }, fields: { screen: 'quad' } }),
-  scenario('quad-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab' }, fields: { screen: 'quad' } }),
+  scenario('quad-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab' }, fields: { screen: 'quad' } }),
 
   /* Pilot: guest, accounts on, signed in, mouse flight, flight time. */
   scenario('pilot-guest', { fields: { screen: 'pilot' } }),
@@ -448,7 +448,7 @@ const SCENARIOS = [
   scenario('controller-radio', { fields: { screen: 'controller', padInfo: { ...padFine, device: 'radio', profile: 'edgetx-usb', feel: { deadZone: 4, expo: 0 } } } }),
   scenario('controller-gamepad', { fields: { screen: 'controller', padInfo: { ...padFine, using: 'Joystick 1, Xbox', calibrated: false, device: 'gamepad', profile: 'standard', feel: { deadZone: 8, expo: 25 } } } }),
   scenario('controller-unknown', { fields: { screen: 'controller', padInfo: { ...padGuessing, device: 'radio', profile: 'aetr', feel: { deadZone: 0, expo: 0 } } } }),
-  scenario('controller-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab' }, fields: { screen: 'controller', padInfo: { count: 0 } } }),
+  scenario('controller-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab' }, fields: { screen: 'controller', padInfo: { count: 0 } } }),
   scenario('controller-wing', { settings: { airframe: 'striker2500' }, fields: { screen: 'controller', padInfo: { count: 0 } } }),
   scenario('flywith-gamepad', { fields: { screen: 'flywith', padInfo: { ...padFine, device: 'gamepad', profile: 'standard' } } }),
 
@@ -457,12 +457,12 @@ const SCENARIOS = [
   scenario('paused-rows', { settings: { map: 'interior', graphics: 'medium' }, fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowOut } }),
   scenario('paused-in-room', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, roomBar: { hidden: false }, roomBarView: { button: 'Room', text: 'OWLS' } } }),
   scenario('paused-watching', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, watching: () => true } }),
-  scenario('paused-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'interior' }, fields: { screen: 'paused', returnTo: 'paused' } }),
+  scenario('paused-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab', map: 'interior' }, fields: { screen: 'paused', returnTo: 'paused' } }),
   /* The pause menu's Flight panel: a quad, a quad with its rows, planes. */
   scenario('quick', { fields: { screen: 'quick', returnTo: 'paused' } }),
   scenario('quick-rows', { settings: { map: 'interior', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused' } }),
-  scenario('quick-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'interior' }, fields: { screen: 'quick', returnTo: 'paused' } }),
-  scenario('quick-extra', { settings: { airframe: 'extra3d1308', tune: 'extra-acro', map: 'interior' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab', map: 'interior' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-striker', { settings: { airframe: 'striker2500', tune: 'striker-manual', map: 'interior' }, fields: { screen: 'quick', returnTo: 'paused' } }),
 
   /* Results: a room's, a free world, no seat. */
   scenario('results-room', { fields: { screen: 'results', roomResults: true, roomResultsRows: () => [{ label: 'Room results', action: 'friends-results' }, { label: 'Back to title', action: 'title' }], inRoom: () => true } }),
@@ -476,7 +476,7 @@ const SCENARIOS = [
   scenario('rates-preset-loaded', { seed: () => seedPresets([['Bando', RATE_DEFAULTS]]), fields: { screen: 'rates' } }),
   scenario('rates-presets-unmatched', { seed: () => seedPresets([['Bando', { ...clone(RATE_DEFAULTS), roll: { rcRate: 10, srate: 80, expo: 20 } }], ['Smooth', { ...clone(RATE_DEFAULTS), type: 'BETAFLIGHT' }]]), fields: { screen: 'rates' } }),
   scenario('rates-quick-touch', { settings: { rates: normaliseRates({ ...clone(RATE_DEFAULTS), type: 'QUICK' }) }, fields: { screen: 'rates', stickProbe: () => ({ source: 'touch' }) } }),
-  scenario('rates-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab' }, fields: { screen: 'rates' } }),
+  scenario('rates-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab' }, fields: { screen: 'rates' } }),
 
   /* PIDs: loading, sliders, a moved slider, expert, RP sliders, paused. */
   scenario('pids-loading', { fields: { screen: 'pids' } }),

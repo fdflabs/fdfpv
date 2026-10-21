@@ -10,12 +10,9 @@
  *       plant moves every point it samples with the CG, and only the
  *       crash part table's boxes, which name the part a contact struck,
  *       stay where the table has them (sim_abi.h, sim_set_addons)
- *   A4  the prop: each one seats the thrust, pitch speed and current or
- *       rpm prop-estimates.js derives, and flies at the top speed that
- *       follows from them, reported
- *   A5  tundra tyres (the Cub): heavier, more drag, a slower top speed; on
- *       grass they roll further from the same speed; the Cub stands on
- *       them at the pose configs/hangar-parts.js gives
+ *   A5  the plant's tyre and rolling slots, on the Cub's tundra tyres as
+ *       a raw block: heavier, more drag, a slower top speed; on grass
+ *       they roll further from the same speed; the Cub stands higher
  *   A6  the camera pod, every plane: heavier, the CG lower, a slower top
  *       speed
  *   A7  the lights, every plane: heavier, the CG on the centreline, the
@@ -28,9 +25,13 @@
  *       seated in the shell's order: after a part breaks off and the
  *       reset, the flight is the one a fresh seat flies
  *
+ * The shell offers no tyres and no prop other than the stock one since the
+ * recreational planes left (2026-10-21), but the plant still flies the
+ * slots sim_set_addons and sim_set_power carry for them, and the Cub's
+ * plant until the plant cut: A1 and A5 seat them as raw blocks on the Cub,
+ * its rows from the pre-cut fixture (scripts/lib/precut.js).
+ *
  *   node scripts/parts-check.js           the checks
- *   node scripts/parts-check.js --derive  also print the Cub's pose on
- *                                         tundra tyres, for the config
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -54,19 +55,18 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
-import { attitude, must, RC_STEP_MS, wheelLoads } from '../tests/lib/wingpilot.js';
+import { attitude, must, RC_STEP_MS } from '../tests/lib/wingpilot.js';
 import { POWER, SIM_POWER, TABLE, powerBlock } from '../configs/power.js';
 import {
-  ADDONS, PROPS, PARTS_PLANES, SIM_ADDON, SIM_ADDON_DOUBLES, addonParams, addonsFor, normaliseParts,
+  PROPS, PARTS_PLANES, SIM_ADDON, SIM_ADDON_DOUBLES, addonParams, addonsFor, normaliseParts,
   partsPowerBlock, tapeable,
 } from '../configs/hangar-parts.js';
-import { PROP_ESTIMATES } from '../configs/prop-estimates.js';
 import { normalizeEntry, setupFor, tuneBlock } from '../configs/tuning.js';
 import { PART_KINDS } from '../configs/parts.js';
 import { readPartTable } from './lib/crash.js';
+import { seatPrecutAircraft } from './lib/precut.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const derive = process.argv.includes('--derive');
 
 let failed = 0;
 let passed = 0;
@@ -88,6 +88,37 @@ const stockOption = (id) => POWER[id][0];
 const stockBlock = (id) => powerBlock(id, stockOption(id).id, stockOption(id).pack);
 const baseMass = (id) => stockBlock(id)[SIM_POWER.MASS];
 const entry = (over = {}) => ({ prop: 'stock', addons: [], damage: null, ...over });
+
+seatPrecutAircraft();
+/* The Cub's tundra tyres and its 11 x 7E three blade as the shell seated
+ * them at 988b8dfc6 (configs/hangar-parts.js TUNDRA, configs/
+ * prop-estimates.js cub1400.stock['11x7e-3']): 2 x 18 g more wheel at the
+ * axle, 0.001282 m^2 more drag, a 54 mm tyre rolling at 0.805; the prop's
+ * thrust, pitch speed and current. */
+const TUNDRA_BLOCK = Float64Array.from([0.036, 0.075, 0, -0.1327, 0.001282, 0.075, 0, -0.1327, 0.054, 0.805]);
+const CUB_PROP = { thrustN: 15.9571, pitchSpeedMs: 22.7148, currentA: 34.045 };
+function cubPropBlock() {
+  const b = Float64Array.from(stockBlock('cub1400'));
+  b[SIM_POWER.THRUST] = CUB_PROP.thrustN;
+  b[SIM_POWER.PITCH_SPEED] = CUB_PROP.pitchSpeedMs;
+  b[SIM_POWER.CURRENT] = CUB_PROP.currentA;
+  return b;
+}
+/* Seat raw blocks on a full pack: a power block or the table's, an add-on
+ * block or none. */
+function seatRaw(id, power, addons) {
+  must(sim.e.sim_set_airframe(TABLE[id].simId), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.2), 'sim_set_cell_voltage');
+  must(sim.clearAddons(), 'sim_addons_clear');
+  if (power) {
+    must(sim.setPower(power), 'sim_set_power');
+  } else {
+    must(sim.clearPower(), 'sim_power_clear');
+  }
+  if (addons) {
+    must(sim.setAddons(addons), 'sim_set_addons');
+  }
+}
 
 /* Seat a plane on a full pack: the stock option with a prop, and an
  * entry's add-ons, or nothing for the table's own. */
@@ -190,14 +221,12 @@ console.log('A1 the ABI');
   check('an empty block flies bit identical to none', none === empty, `${none} ${empty}`);
   must(sim.clearAddons(), 'sim_addons_clear');
   check('and sim_addons_clear puts the table back', traceHash() === none);
-  const e = entry({ prop: '11x7e-3', addons: ['tundra', 'pod'] });
-  seat('cub1400', e);
-  const blk = addonParams('cub1400', e, stockOption('cub1400'), baseMass('cub1400'));
+  seatRaw('cub1400', cubPropBlock(), TUNDRA_BLOCK);
+  const blk = TUNDRA_BLOCK;
   const st = sim.addonsState();
-  const est = PROP_ESTIMATES.cub1400.stock['11x7e-3'];
   check('sim_addons_state reads back the mass, drag area, CG move, tyre and prop the plant flies',
     st.on && Math.abs(st.massKg - (baseMass('cub1400') + blk[SIM_ADDON.MASS])) < 1e-12 && st.cda === blk[SIM_ADDON.CDA]
-      && st.wheelR === 0.054 && st.thrustN === est.thrustN && Math.abs(st.shift[2] - shiftOf(blk, baseMass('cub1400'))[2]) < 1e-12,
+      && st.wheelR === 0.054 && st.thrustN === CUB_PROP.thrustN && Math.abs(st.shift[2] - shiftOf(blk, baseMass('cub1400'))[2]) < 1e-12,
     `${(st.massKg * 1000).toFixed(1)} g, ${(st.cda * 1e4).toFixed(2)} cm^2, CG z ${(st.shift[2] * 1000).toFixed(2)} mm, tyre ${st.wheelR} m, ${st.thrustN} N`);
   seat('cub1400');
   const clean = sim.addonsState();
@@ -207,8 +236,8 @@ console.log('A1 the ABI');
 console.log('A2 the defaults');
 {
   check('an empty settings map normalises to nothing stored', JSON.stringify(normaliseParts({})) === '{}' && JSON.stringify(normaliseParts(null)) === '{}');
-  const junk = normaliseParts({ cub1400: { prop: 'nope', addons: ['wings', 'tundra', 'tundra'] }, timber1500: { prop: 'stock', addons: ['tundra'] }, '5inch': { prop: 'x' } });
-  check('an unknown prop, add-on or plane is dropped, and an add-on that does not fit', JSON.stringify(junk) === JSON.stringify({ cub1400: { prop: 'stock', addons: ['tundra'], damage: null } }), JSON.stringify(junk));
+  const junk = normaliseParts({ bramor2300: { prop: 'nope', addons: ['wings', 'smoke', 'smoke'] }, notaplane: { prop: 'stock', addons: ['pod'] }, '5inch': { prop: 'x' } });
+  check('an unknown prop, add-on or plane is dropped', JSON.stringify(junk) === JSON.stringify({ bramor2300: { prop: 'stock', addons: ['smoke'], damage: null } }), JSON.stringify(junk));
   let allNull = true;
   let sameBlock = true;
   for (const id of PARTS_PLANES) {
@@ -267,45 +296,26 @@ console.log('A3 the CG, every combination');
     `worst ${(worst.d * 1000).toFixed(1)} mm (${worst.s.map((x) => (x * 1000).toFixed(1)).join(", ")}), ${worst.id} ${worst.prop} ${worst.addons.join('+')}${worst.tape ? ' every part taped' : ''}`);
 }
 
-console.log('A4 the props');
-for (const id of ['timber1500', 'cub1400', 'sky1800', 'slowstick1180', 'bombshell1118', 'kadet1981']) {
-  seat(id, entry());
-  const top0 = topSpeed(id).v;
-  for (const prop of PROPS[id].slice(1)) {
-    const o = stockOption(id);
-    const blk = partsPowerBlock(id, o.id, prop.id, stockBlock(id));
-    const est = PROP_ESTIMATES[id][o.id][prop.id];
-    const seated = blk[SIM_POWER.THRUST] === est.thrustN && blk[SIM_POWER.PITCH_SPEED] === est.pitchSpeedMs
-      && (est.currentA == null || blk[SIM_POWER.CURRENT] === est.currentA) && (est.rpmNoLoad == null || blk[SIM_POWER.RPM] === est.rpmNoLoad);
-    seat(id, entry({ prop: prop.id }));
-    const top = topSpeed(id).v;
-    /* The level top speed sits between the two props' pitch speeds'
-     * order: a prop with the higher pitch speed flies faster flat out. */
-    const faster = est.pitchSpeedMs > o.pitchSpeedMs;
-    check(`${id}: ${prop.apc} (${prop.blades} blades) seats ${est.thrustN} N and ${est.pitchSpeedMs} m/s, and flies ${faster ? 'faster' : 'slower'}`,
-      seated && (faster ? top > top0 : top < top0),
-      `top ${f2(top)} against ${f2(top0)} m/s on the ${o.propIn} x ${o.pitchIn}; ${o.thrustN.toFixed(2)} N ${o.pitchSpeedMs.toFixed(1)} m/s stock`);
-  }
-}
-
 const tops = {};
 function topWith(id, addons) {
   seat(id, entry({ addons }));
   return topSpeed(id);
 }
 
-console.log('A5 tundra tyres, the Cub');
+console.log('A5 tundra tyres, the Cub, as a raw block');
 {
   const id = 'cub1400';
-  const b = addonParams(id, entry({ addons: ['tundra'] }), stockOption(id), baseMass(id));
-  const top0 = topWith(id, []).v;
-  const top1 = topWith(id, ['tundra']).v;
+  const b = TUNDRA_BLOCK;
+  seatRaw(id, null, null);
+  const top0 = topSpeed(id).v;
+  seatRaw(id, null, b);
+  const top1 = topSpeed(id).v;
   check('heavier and more drag, and the top speed falls', b[SIM_ADDON.MASS] > 0 && b[SIM_ADDON.CDA] > 0 && top1 < top0,
     `+${f1(b[SIM_ADDON.MASS] * 1000)} g, +${f2(b[SIM_ADDON.CDA] * 1e4)} cm^2, top ${f2(top1)} against ${f2(top0)} m/s, ${f2(top0 - top1)} slower`);
   /* On the strip: let it stand, then roll it at 6 m/s with the throttle
    * shut and see how far it goes. */
-  const stand = (addons) => {
-    seat(id, addons.length ? entry({ addons }) : null);
+  const stand = (block) => {
+    seatRaw(id, null, block);
     must(sim.reset(), 'sim_reset');
     must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0), 'sim_set_ground');
     const h = 11 * Math.PI / 360;
@@ -316,10 +326,10 @@ console.log('A5 tundra tyres, the Cub');
       must(sim.step(RC_STEP_MS), 'sim_step');
     }
     const s = sim.readState().state;
-    return { s, t, pitch: attitude(s).pitch * 180 / Math.PI, z: s[3], loads: wheelLoads(sim) };
+    return { s, t, pitch: attitude(s).pitch * 180 / Math.PI, z: s[3] };
   };
-  const roll = (addons) => {
-    const r = stand(addons);
+  const roll = (block) => {
+    const r = stand(block);
     const x0 = r.s[1];
     must(sim.e.sim_set_velocity(6, 0, 0, 0, 0, 0), 'sim_set_velocity');
     let t = r.t;
@@ -334,16 +344,10 @@ console.log('A5 tundra tyres, the Cub');
     }
     return { dist: s[1] - x0, rest: r };
   };
-  const kit = roll([]);
-  const tun = roll(['tundra']);
+  const kit = roll(null);
+  const tun = roll(b);
   check('on grass they roll further from 6 m/s with the throttle shut', tun.dist > kit.dist, `${f2(tun.dist)} m against ${f2(kit.dist)} m`);
-  const g = ADDONS.tundra.gear;
   check('the Cub stands higher on them', tun.rest.z > kit.rest.z + 0.01, `CG ${tun.rest.z.toFixed(4)} m, ${f2(tun.rest.pitch)} deg against ${kit.rest.z.toFixed(4)} m, ${f2(kit.rest.pitch)} deg`);
-  if (derive) {
-    console.log(`  derive: gear: { restHeight: ${tun.rest.z.toFixed(4)}, restPitch: ${tun.rest.pitch.toFixed(2)} * Math.PI / 180 }`);
-  }
-  check('at the pose the config gives the shell', g != null && Math.abs(g.restHeight - tun.rest.z) < 0.002 && Math.abs(g.restPitch * 180 / Math.PI - tun.rest.pitch) < 0.2,
-    g ? `config ${g.restHeight} m, ${f2(g.restPitch * 180 / Math.PI)} deg` : 'no pose in the config');
 }
 
 for (const [tag, add, test] of [
@@ -363,7 +367,7 @@ for (const [tag, add, test] of [
 }
 
 console.log('A9 tape on a wing');
-for (const id of ['cub1400', 'timber1500', 'kadet1981']) {
+for (const id of PARTS_PLANES) {
   const tape = taped(id, (p) => PART_KINDS[p.kind] === 'wing' && p.cg[1] > 0);
   const e = entry({ damage: tape });
   const b = addonParams(id, e, stockOption(id), baseMass(id));
@@ -380,15 +384,15 @@ for (const id of ['cub1400', 'timber1500', 'kadet1981']) {
 
 console.log('A10 a crash reset keeps what was seated');
 {
-  const id = 'timber1500';
-  const e = entry({ prop: '11x7e', addons: ['pod', 'smoke'] });
+  const id = 'bramor2300';
+  const e = entry({ addons: ['pod', 'smoke'] });
   seat(id, e);
-  must(sim.setPower(partsPowerBlock(id, '3s', '11x7e', powerBlock(id, '3s', '3s2200'))), 'sim_set_power');
+  must(sim.setPower(powerBlock(id, 'stock', '6s10000')), 'sim_set_power');
   /* The seat order the shell keeps: power, then the tuning, then these. */
-  const set = setupFor(id, { option: '3s', pack: '3s2200' });
+  const set = setupFor(id, { option: 'stock', pack: '6s10000' });
   const tune = tuneBlock(id, normalizeEntry(id, { packMm: 10, ballastG: 20, rate: 'low', trimDeg: 1 }, set.limits), set.massKg, set.packKg);
   must(sim.setTune(tune), 'sim_wing_set_tune');
-  must(sim.setAddons(addonParams(id, e, POWER[id][1], powerBlock(id, '3s', '3s2200')[SIM_POWER.MASS])), 'sim_set_addons');
+  must(sim.setAddons(addonParams(id, e, POWER[id][0], powerBlock(id, 'stock', '6s10000')[SIM_POWER.MASS])), 'sim_set_addons');
   const seated = sim.addonsState();
   const fresh = traceHash();
   must(sim.e.sim_set_damage(1), 'sim_set_damage');

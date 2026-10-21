@@ -110,9 +110,6 @@ function button(cls, text) {
 
 const clamp = (v, [lo, hi]) => Math.min(hi, Math.max(lo, v));
 
-/* The opaque covering, which is what a decal is cut from. */
-const DECAL_COLOURS = PALETTE.filter((c) => !c.film);
-
 /* A small picture of a decal, drawn by the renderer's own art. */
 export function thumb(d, w = 54, h = 34) {
   const c = el('canvas', 'paint-thumb');
@@ -449,14 +446,9 @@ export class PaintShop {
   finishRow(region) {
     const box = el('div', 'paint-finish');
     box.append(el('h3', 'hangar-h', str('hangar.finish')));
-    if (region.finish === false) {
-      box.append(el('p', 'hangar-source', str('hangar.finish_shared')));
-      return box;
-    }
     const current = finishOf(region, this.h.entry);
-    const kit = region.film ? 'film' : 'kit';
     const row = el('div', 'paint-chips');
-    for (const f of [kit, ...FINISHES]) {
+    for (const f of ['kit', ...FINISHES]) {
       const on = f === current;
       const b = button(`paint-chip paint-finish-${f}${on ? ' on' : ''}`, str(`hangar.finish_${f}`));
       b.dataset.key = `finish-${f}`;
@@ -467,15 +459,12 @@ export class PaintShop {
       row.append(b);
     }
     box.append(row);
-    if (region.film && current !== 'film') {
-      box.append(el('p', 'hangar-source', str('hangar.finish_film_off')));
-    }
     return box;
   }
 
   pickFinish(regionId, f) {
     const finishes = { ...(this.h.entry.finishes ?? {}) };
-    if (f === 'kit' || f === 'film') {
+    if (f === 'kit') {
       delete finishes[regionId];
     } else {
       finishes[regionId] = f;
@@ -491,7 +480,7 @@ export class PaintShop {
   /* A finish tried on under the cursor, over the entry. */
   withFinish(entry, regionId, f) {
     const finishes = { ...(entry.finishes ?? {}), [regionId]: f };
-    if (f === 'kit' || f === 'film') {
+    if (f === 'kit') {
       delete finishes[regionId];
     }
     return { ...entry, finishes };
@@ -794,7 +783,7 @@ export class PaintShop {
     }
     box.append(slots);
     const pal = el('div', 'hangar-palette');
-    DECAL_COLOURS.forEach((c, k) => {
+    PALETTE.forEach((c, k) => {
       const on = c.hex === d[this.slot];
       const b = button(`hangar-swatch${on ? ' on' : ''}`);
       b.dataset.key = `dcolour-${c.hex}`;

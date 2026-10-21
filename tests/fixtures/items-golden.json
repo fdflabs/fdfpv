@@ -703,7 +703,7 @@
     {
      "id": "title:a-quad",
      "label": "Plane",
-     "value": "Cub, Manual",
+     "value": "Bramor, Manual",
      "note": "The machine. Tune, PIDs, camera angle, field of view, flight mode and the firmware bench, which is every firmware key the module compiles.",
      "action": "quad",
      "drives": {}
@@ -1136,88 +1136,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -1232,8 +1152,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -1248,10 +1168,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -1338,88 +1258,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -1551,88 +1391,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -1647,8 +1407,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -1663,10 +1423,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -1818,88 +1578,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -1914,8 +1594,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -1930,10 +1610,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -2259,88 +1939,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -2355,8 +1955,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -2371,10 +1971,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -2700,88 +2300,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -2796,7 +2316,7 @@
      "drives": {
       "adjust(+1)": {
        "calls": [
-        "swapTo:sky1800"
+        "swapTo:bramor2300"
        ]
       },
       "adjust(-1)": {
@@ -2804,9 +2324,9 @@
         "swapTo:10inch"
        ]
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "calls": [
-        "swapTo:sky1800"
+        "swapTo:bramor2300"
        ]
       },
       "open()": {
@@ -3129,88 +2649,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -3225,8 +2665,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -3241,10 +2681,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -3574,88 +3014,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -3670,8 +3030,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -3686,10 +3046,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -4015,88 +3375,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -4111,8 +3391,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "rates.yaw.srate": 67,
         "cameraAngle": 5,
@@ -4151,10 +3431,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "rates.yaw.srate": 67,
         "cameraAngle": 5,
@@ -4504,88 +3784,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -4600,8 +3800,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "rates.type": "ACTUAL",
         "cameraAngle": 5,
@@ -4640,10 +3840,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "rates.type": "ACTUAL",
         "cameraAngle": 5,
@@ -4993,88 +4193,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -5089,8 +4209,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -5105,10 +4225,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -5426,88 +4546,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -5522,8 +4562,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -5538,10 +4578,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -5867,88 +4907,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -5963,8 +4923,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "custom",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -5979,10 +4939,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "custom",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -6290,10 +5250,10 @@
     {
      "id": "quad:aircraft",
      "label": "Aircraft",
-     "value": "Piper Cub",
-     "note": "A 1400 mm Piper J-3 Cub on 3S, a taildragger with ailerons, elevator and rudder. Take off from the strip on its wheels and land it back on them. Changing it loads that machine's tune, its pack and its camera, and moves the track builder to the field that machine flies. Your own rates are kept unless they are still the stock ones.",
+     "value": "Bramor C4EYE",
+     "note": "A 2.3 m C-Astral Bramor C4EYE on 6S, a survey flying wing with a camera ball in its nose. Catapult it off the rail, fly it long, bring it down under its parachute. Changing it loads that machine's tune, its pack and its camera, and moves the track builder to the field that machine flies. Your own rates are kept unless they are still the stock ones.",
      "pickOnly": true,
-     "current": "cub1400",
+     "current": "bramor2300",
      "options": [
       {
        "value": "7inch",
@@ -6308,88 +5268,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -6404,27 +5284,27 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "radian-acro",
-        "airframe": "radian2000",
-        "tuneFor.cub1400": "cub-stab",
+        "tune": "striker-stab",
+        "airframe": "striker2500",
+        "tuneFor.bramor2300": "wing-stab",
         "cameraAngle": 5,
         "cameraFov": 100
        }
       },
       "adjust(-1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
-        "tuneFor.cub1400": "cub-stab",
-        "cameraAngle": 5,
-        "cameraFov": 100
+        "tune": "betaflight-interceptor",
+        "airframe": "interceptor",
+        "tuneFor.bramor2300": "wing-stab",
+        "cameraAngle": 45,
+        "cameraFov": 95
        }
       },
-      "pick(\"radian2000\")": {
+      "pick(\"striker2500\")": {
        "settings": {
-        "tune": "radian-acro",
-        "airframe": "radian2000",
-        "tuneFor.cub1400": "cub-stab",
+        "tune": "striker-stab",
+        "airframe": "striker2500",
+        "tuneFor.bramor2300": "wing-stab",
         "cameraAngle": 5,
         "cameraFov": 100
        }
@@ -6440,7 +5320,7 @@
      "id": "quad:a-pids",
      "label": "Tune",
      "value": "Stabilised",
-     "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept.",
+     "note": "A gyro holds the wing, as its autopilot does. Roll stick asks for a bank up to 45 degrees, pitch stick for a pitch up to 20, and centred sticks fly level. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept.",
      "action": "pids",
      "drives": {}
     },
@@ -6469,7 +5349,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 31,
          "fov": 85
         },
@@ -6478,7 +5358,7 @@
       },
       "adjust(-1)": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 29,
          "fov": 85
         },
@@ -6522,7 +5402,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 30,
          "fov": 95
         },
@@ -6531,7 +5411,7 @@
       },
       "adjust(-1)": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 30,
          "fov": 75
         },
@@ -6540,7 +5420,7 @@
       },
       "pick(\"95\")": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 30,
          "fov": 95
         },
@@ -6706,7 +5586,7 @@
     {
      "id": "quad:a-planerates",
      "label": "Rates",
-     "value": "Low, 13.4° 11.2° 11.6°",
+     "value": "High, 10° 6°",
      "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
      "action": "planerates",
      "drives": {}
@@ -7783,32 +6663,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -8983,32 +7837,6 @@
      }
     },
     {
-     "id": "pilot:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
      "id": "pilot:s-diagnostics",
      "label": "Diagnostics",
      "section": true,
@@ -10173,32 +9001,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -11373,32 +10175,6 @@
      }
     },
     {
-     "id": "pilot:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
      "id": "pilot:s-diagnostics",
      "label": "Diagnostics",
      "section": true,
@@ -12548,32 +11324,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -13737,32 +12487,6 @@
      }
     },
     {
-     "id": "pilot:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
      "id": "pilot:s-diagnostics",
      "label": "Diagnostics",
      "section": true,
@@ -14895,32 +13619,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -16098,32 +14796,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:stock-surfaces-only",
-     "label": "Stock surfaces only",
-     "value": "Off",
-     "note": "In a room you host: every pilot flies the control surfaces the plane came with, whatever tiers they have fitted. Each pilot's next run flies it.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -17438,7 +16110,7 @@
     {
      "id": "controller:a-planerates",
      "label": "Rates",
-     "value": "Low, 13.4° 11.2° 11.6°",
+     "value": "High, 10° 6°",
      "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
      "action": "planerates",
      "drives": {}
@@ -17915,7 +16587,7 @@
     {
      "id": "paused:a-quick",
      "label": "Flight",
-     "value": "Cub, Stabilised",
+     "value": "Bramor, Stabilised",
      "note": "What you change between attempts: tune, rates, mode, view and graphics, for the aircraft in the air.",
      "action": "quick",
      "drives": {}
@@ -17923,7 +16595,7 @@
     {
      "id": "paused:a-hotswap",
      "label": "Change aircraft",
-     "value": "Cub",
+     "value": "Bramor",
      "note": "Swap it where it is and fly on. In flight Tab opens this, and [ and ] step through the aircraft.",
      "action": "hotswap",
      "drives": {}
@@ -18257,7 +16929,7 @@
     {
      "id": "quick:a-planerates",
      "label": "Rates",
-     "value": "Low, 13.4° 11.2° 11.6°",
+     "value": "High, 10° 6°",
      "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
      "action": "planerates",
      "drives": {}
@@ -18316,17 +16988,17 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "hudStyleBy.cub1400": "game"
+        "hudStyleBy.bramor2300": "game"
        }
       },
       "adjust(-1)": {
        "settings": {
-        "hudStyleBy.cub1400": "avionics"
+        "hudStyleBy.bramor2300": "avionics"
        }
       },
       "pick(\"game\")": {
        "settings": {
-        "hudStyleBy.cub1400": "game"
+        "hudStyleBy.bramor2300": "game"
        }
       }
      }
@@ -18384,7 +17056,7 @@
     }
    ]
   },
-  "quick-extra": {
+  "quick-striker": {
    "screen": "quick",
    "items": [
     {
@@ -18396,17 +17068,17 @@
     {
      "id": "quick:a-pids",
      "label": "Flight mode",
-     "value": "Acro",
+     "value": "Manual",
      "note": "Opens where the flight mode is chosen, with what each mode does to the sticks.",
      "action": "pids",
      "drives": {}
     },
     {
-     "id": "quick:a-planerates",
+     "id": "quick:a-rates",
      "label": "Rates",
-     "value": "Low, 20.9° 28.6° 35°",
-     "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
-     "action": "planerates",
+     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "note": "How far the sticks go, and the throttle limit. Yours, not the tune's: changing them leaves the quad where it is.",
+     "action": "rates",
      "drives": {}
     },
     {
@@ -18439,9 +17111,9 @@
     {
      "id": "quick:hud-style",
      "label": "HUD style",
-     "value": "FPV OSD",
+     "value": "Avionics",
      "note": "What the first person view draws over the picture. FPV OSD is the flight controller's own on screen display, the white characters it puts in the pilot's goggles: pack, current, timers, horizon, and the lap clock in the same type. Game is this game's own readout. Avionics is a sensor and tracking display: heading, speed and height tapes, the link, navigation and energy panels, the camera and the AI's tracks; H switches AI tracking, J the camera mode, K the zoom, I puts the camera full screen (J then picks thermal) and back, U sizes the camera inset, Y draws more or less (full, standard, minimal), . (period) changes the thermal palette. Each aircraft keeps its own choice, and the combat drones start on Avionics. Chase and line of sight always use the game's.",
-     "current": "osd",
+     "current": "avionics",
      "options": [
       {
        "value": "osd",
@@ -18463,17 +17135,17 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "hudStyleBy.extra3d1308": "game"
+        "hudStyleBy.striker2500": "osd"
        }
       },
       "adjust(-1)": {
        "settings": {
-        "hudStyleBy.extra3d1308": "avionics"
+        "hudStyleBy.striker2500": "game"
        }
       },
-      "pick(\"game\")": {
+      "pick(\"osd\")": {
        "settings": {
-        "hudStyleBy.extra3d1308": "game"
+        "hudStyleBy.striker2500": "osd"
        }
       }
      }
@@ -24833,7 +23505,7 @@
     {
      "id": "title:a-quad",
      "label": "Avión",
-     "value": "Cub, Manual",
+     "value": "Bramor, Manual",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -25266,88 +23938,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -25362,8 +23954,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -25378,10 +23970,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -25468,88 +24060,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -25681,88 +24193,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -25777,8 +24209,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -25793,10 +24225,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -25948,88 +24380,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -26044,8 +24396,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -26060,10 +24412,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -26389,88 +24741,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -26485,8 +24757,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -26501,10 +24773,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -26830,88 +25102,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -26926,7 +25118,7 @@
      "drives": {
       "adjust(+1)": {
        "calls": [
-        "swapTo:sky1800"
+        "swapTo:bramor2300"
        ]
       },
       "adjust(-1)": {
@@ -26934,9 +25126,9 @@
         "swapTo:10inch"
        ]
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "calls": [
-        "swapTo:sky1800"
+        "swapTo:bramor2300"
        ]
       },
       "open()": {
@@ -27259,88 +25451,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -27355,8 +25467,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -27371,10 +25483,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -27704,88 +25816,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -27800,8 +25832,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -27816,10 +25848,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -28145,88 +26177,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -28241,8 +26193,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "rates.yaw.srate": 67,
         "cameraAngle": 5,
@@ -28281,10 +26233,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "rates.yaw.srate": 67,
         "cameraAngle": 5,
@@ -28634,88 +26586,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -28730,8 +26602,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "rates.type": "ACTUAL",
         "cameraAngle": 5,
@@ -28770,10 +26642,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "rates.type": "ACTUAL",
         "cameraAngle": 5,
@@ -29123,88 +26995,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -29219,8 +27011,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -29235,10 +27027,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -29556,88 +27348,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -29652,8 +27364,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -29668,10 +27380,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -29997,88 +27709,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -30093,8 +27725,8 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "custom",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -30109,10 +27741,10 @@
         "cameraFov": 90
        }
       },
-      "pick(\"sky1800\")": {
+      "pick(\"bramor2300\")": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
+        "tune": "wing-stab",
+        "airframe": "bramor2300",
         "tuneFor.interceptor": "custom",
         "cameraAngle": 5,
         "cameraFov": 100
@@ -30420,10 +28052,10 @@
     {
      "id": "quad:aeronave",
      "label": "Aeronave",
-     "value": "Piper Cub",
-     "note": "Un Piper J-3 Cub de 1400 mm en 3S, de rueda de cola, con alerones, timón de profundidad y timón de dirección. Despega de la pista sobre sus ruedas y vuelve a aterrizarlo en ellas. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "value": "Bramor C4EYE",
+     "note": "Un C-Astral Bramor C4EYE de 2,3 m en 6S, un ala volante de relevamiento con una bola de cámara en la nariz. Catapúltalo desde el riel, vuélalo lejos y bájalo con su paracaídas. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "pickOnly": true,
-     "current": "cub1400",
+     "current": "bramor2300",
      "options": [
       {
        "value": "7inch",
@@ -30438,88 +28070,8 @@
        "label": "Interceptor"
       },
       {
-       "value": "sky1800",
-       "label": "Skyhunter"
-      },
-      {
-       "value": "cub1400",
-       "label": "Piper Cub"
-      },
-      {
-       "value": "radian2000",
-       "label": "Radian"
-      },
-      {
        "value": "bramor2300",
        "label": "Bramor C4EYE"
-      },
-      {
-       "value": "slowstick1180",
-       "label": "Slow Stick"
-      },
-      {
-       "value": "timber1500",
-       "label": "Turbo Timber"
-      },
-      {
-       "value": "timber1500f",
-       "label": "Turbo Timber, floats"
-      },
-      {
-       "value": "cub1400f",
-       "label": "Piper Cub, floats"
-      },
-      {
-       "value": "bombshell1118",
-       "label": "Buzzard Bombshell"
-      },
-      {
-       "value": "kadet1981",
-       "label": "Kadet Senior"
-      },
-      {
-       "value": "uglystik1567",
-       "label": "Ugly Stik"
-      },
-      {
-       "value": "tigermoth1803",
-       "label": "Tiger Moth"
-      },
-      {
-       "value": "extra3d1308",
-       "label": "Extra 300 3D"
-      },
-      {
-       "value": "nighttimber1200",
-       "label": "Night Timber X"
-      },
-      {
-       "value": "hercules3077",
-       "label": "C-130 Hercules"
-      },
-      {
-       "value": "cap1702",
-       "label": "CAP 580"
-      },
-      {
-       "value": "slick2680",
-       "label": "Slick 580"
-      },
-      {
-       "value": "p51d1450",
-       "label": "P-51D Mustang"
-      },
-      {
-       "value": "f16878",
-       "label": "F-16 Falcon"
-      },
-      {
-       "value": "zagi1219",
-       "label": "Zagi HP"
-      },
-      {
-       "value": "nrj1490",
-       "label": "NRJ DLG"
       },
       {
        "value": "striker2500",
@@ -30534,27 +28086,27 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "radian-acro",
-        "airframe": "radian2000",
-        "tuneFor.cub1400": "cub-stab",
+        "tune": "striker-stab",
+        "airframe": "striker2500",
+        "tuneFor.bramor2300": "wing-stab",
         "cameraAngle": 5,
         "cameraFov": 100
        }
       },
       "adjust(-1)": {
        "settings": {
-        "tune": "sky-acro",
-        "airframe": "sky1800",
-        "tuneFor.cub1400": "cub-stab",
-        "cameraAngle": 5,
-        "cameraFov": 100
+        "tune": "betaflight-interceptor",
+        "airframe": "interceptor",
+        "tuneFor.bramor2300": "wing-stab",
+        "cameraAngle": 45,
+        "cameraFov": 95
        }
       },
-      "pick(\"radian2000\")": {
+      "pick(\"striker2500\")": {
        "settings": {
-        "tune": "radian-acro",
-        "airframe": "radian2000",
-        "tuneFor.cub1400": "cub-stab",
+        "tune": "striker-stab",
+        "airframe": "striker2500",
+        "tuneFor.bramor2300": "wing-stab",
         "cameraAngle": 5,
         "cameraFov": 100
        }
@@ -30570,7 +28122,7 @@
      "id": "quad:a-pids",
      "label": "Ajuste PID",
      "value": "Estabilizado",
-     "note": "Un gyro sostiene el avión una vez que deja el suelo. El stick de roll pide una inclinación de hasta 60 grados, el de pitch un pitch de hasta 30, con los sticks centrados vuela nivelado, y el timón de dirección se coordina solo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
+     "note": "Un gyro sostiene el ala, como lo hace su piloto automático. El stick de roll pide una inclinación de hasta 45 grados, el de pitch un pitch de hasta 20, y con los sticks centrados vuela nivelado. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
     },
@@ -30599,7 +28151,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 31,
          "fov": 85
         },
@@ -30608,7 +28160,7 @@
       },
       "adjust(-1)": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 29,
          "fov": 85
         },
@@ -30652,7 +28204,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 30,
          "fov": 95
         },
@@ -30661,7 +28213,7 @@
       },
       "adjust(-1)": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 30,
          "fov": 75
         },
@@ -30670,7 +28222,7 @@
       },
       "pick(\"95\")": {
        "settings": {
-        "cameraFor.cub1400": {
+        "cameraFor.bramor2300": {
          "angle": 30,
          "fov": 95
         },
@@ -30836,7 +28388,7 @@
     {
      "id": "quad:a-planerates",
      "label": "Tasas",
-     "value": "Bajo, 13.4° 11.2° 11.6°",
+     "value": "Alto, 10° 6°",
      "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
      "action": "planerates",
      "drives": {}
@@ -31913,32 +29465,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -33113,32 +30639,6 @@
      }
     },
     {
-     "id": "pilot:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
      "id": "pilot:s-diagn-stico",
      "label": "Diagnóstico",
      "section": true,
@@ -34303,32 +31803,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -35503,32 +32977,6 @@
      }
     },
     {
-     "id": "pilot:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
      "id": "pilot:s-diagn-stico",
      "label": "Diagnóstico",
      "section": true,
@@ -36678,32 +34126,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -37867,32 +35289,6 @@
      }
     },
     {
-     "id": "pilot:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      }
-     }
-    },
-    {
      "id": "pilot:s-diagn-stico",
      "label": "Diagnóstico",
      "section": true,
@@ -39025,32 +36421,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -40228,32 +37598,6 @@
       "pick(\"day\")": {
        "settings": {
         "timeOfDay": "day"
-       }
-      }
-     }
-    },
-    {
-     "id": "pilot:solo-superficies-de-f-brica",
-     "label": "Solo superficies de fábrica",
-     "value": "No",
-     "note": "En una sala que organizas: cada piloto vuela con las superficies de control de fábrica, tenga los niveles que tenga. Rige desde la próxima vuelta de cada piloto.",
-     "sw": true,
-     "on": false,
-     "current": false,
-     "fns": [
-      "adjust",
-      "flip"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "roomStockSurfaces": true
-       }
-      },
-      "adjust(-1)": {},
-      "flip()": {
-       "settings": {
-        "roomStockSurfaces": true
        }
       }
      }
@@ -41568,7 +38912,7 @@
     {
      "id": "controller:a-planerates",
      "label": "Tasas",
-     "value": "Bajo, 13.4° 11.2° 11.6°",
+     "value": "Alto, 10° 6°",
      "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
      "action": "planerates",
      "drives": {}
@@ -42045,7 +39389,7 @@
     {
      "id": "paused:a-quick",
      "label": "Vuelo",
-     "value": "Cub, Estabilizado",
+     "value": "Bramor, Estabilizado",
      "note": "Lo que cambias entre intentos: ajuste, tasas, modo, vista y gráficos, para la aeronave en el aire.",
      "action": "quick",
      "drives": {}
@@ -42053,7 +39397,7 @@
     {
      "id": "paused:a-hotswap",
      "label": "Cambiar de aeronave",
-     "value": "Cub",
+     "value": "Bramor",
      "note": "Cámbiala donde está y sigue volando. En vuelo, Tab abre esto, y [ y ] pasan de una aeronave a otra.",
      "action": "hotswap",
      "drives": {}
@@ -42387,7 +39731,7 @@
     {
      "id": "quick:a-planerates",
      "label": "Tasas",
-     "value": "Bajo, 13.4° 11.2° 11.6°",
+     "value": "Alto, 10° 6°",
      "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
      "action": "planerates",
      "drives": {}
@@ -42446,17 +39790,17 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "hudStyleBy.cub1400": "game"
+        "hudStyleBy.bramor2300": "game"
        }
       },
       "adjust(-1)": {
        "settings": {
-        "hudStyleBy.cub1400": "avionics"
+        "hudStyleBy.bramor2300": "avionics"
        }
       },
       "pick(\"game\")": {
        "settings": {
-        "hudStyleBy.cub1400": "game"
+        "hudStyleBy.bramor2300": "game"
        }
       }
      }
@@ -42514,7 +39858,7 @@
     }
    ]
   },
-  "quick-extra": {
+  "quick-striker": {
    "screen": "quick",
    "items": [
     {
@@ -42526,17 +39870,17 @@
     {
      "id": "quick:a-pids",
      "label": "Modo de vuelo",
-     "value": "Acro",
+     "value": "Manual",
      "note": "Abre donde se elige el modo de vuelo, con lo que cada modo hace con los sticks.",
      "action": "pids",
      "drives": {}
     },
     {
-     "id": "quick:a-planerates",
+     "id": "quick:a-rates",
      "label": "Tasas",
-     "value": "Bajo, 20.9° 28.6° 35°",
-     "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
-     "action": "planerates",
+     "value": "Actual, 670 roll y pitch, 670 yaw °/s",
+     "note": "Hasta dónde llegan los sticks, y el límite de throttle. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
+     "action": "rates",
      "drives": {}
     },
     {
@@ -42569,9 +39913,9 @@
     {
      "id": "quick:estilo-del-hud",
      "label": "Estilo del HUD",
-     "value": "OSD FPV",
+     "value": "Aviónica",
      "note": "Lo que la vista en primera persona dibuja sobre la imagen. OSD FPV es la pantalla del propio controlador de vuelo, los caracteres blancos que pone en las gafas del piloto: batería, corriente, tiempos, horizonte y el reloj de vuelta con la misma letra. Juego es la lectura propia de este juego. Aviónica es una pantalla de sensores y seguimiento: cintas de rumbo, velocidad y altura, los paneles de enlace, navegación y energía, la cámara y las pistas de la IA; H activa el seguimiento IA, J cambia el modo de cámara, K el zoom, I pone la cámara a pantalla completa (y J elige la térmica) y la devuelve, U cambia el tamaño del recuadro de cámara, Y dibuja más o menos (completo, estándar, mínimo), . (punto) cambia la paleta térmica. Cada aeronave guarda su propia elección, y los drones de combate empiezan en Aviónica. La cámara de persecución y la vista desde tierra usan siempre la del juego.",
-     "current": "osd",
+     "current": "avionics",
      "options": [
       {
        "value": "osd",
@@ -42593,17 +39937,17 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "hudStyleBy.extra3d1308": "game"
+        "hudStyleBy.striker2500": "osd"
        }
       },
       "adjust(-1)": {
        "settings": {
-        "hudStyleBy.extra3d1308": "avionics"
+        "hudStyleBy.striker2500": "game"
        }
       },
-      "pick(\"game\")": {
+      "pick(\"osd\")": {
        "settings": {
-        "hudStyleBy.extra3d1308": "game"
+        "hudStyleBy.striker2500": "osd"
        }
       }
      }

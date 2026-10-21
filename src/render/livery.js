@@ -20,10 +20,6 @@
  * the default look is the builder's own and not a colour computed back
  * from a ratio.
  *
- * The Kadet's translucent film is baked into maps, not a material colour,
- * and its builder keeps the same `livery` contract with its own setter
- * (src/render/kadetcraft.js).
- *
  * WHICH LIVERY A NEW MODEL WEARS is asked of the source the shell sets
  * (setLiverySource): the flown craft, the picker's and the hangar's models
  * and the title's aircraft are all built through it, and the ghost is not

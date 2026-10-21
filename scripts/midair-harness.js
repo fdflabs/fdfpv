@@ -38,9 +38,8 @@
  *      50 ms links, within a median of 1 m of where the referee had it
  * Rows 5 to 8 are exact on run 1; on run 2 they are reported as a band,
  * the graze depth at which false hits start and misses stop, which is the
- * rule's real resolution against the clock. Every scenario is flown again
- * on the aircraft PDCS seats, on Itaipu (keptScenarios), and held to the
- * same rows on its own.
+ * rule's real resolution against the clock. Every scenario is flown on
+ * the aircraft PDCS seats, on Itaipu (keptScenarios).
  *
  *   node scripts/midair-harness.js [--seeds=20] [--jobs=N] [--run=1|2] [--only=name]
  *
@@ -134,61 +133,19 @@ function turn(at, speed, g) {
 }
 
 const Y = 100;
-const CUB_TIP = 0.7;
-function scenarios() {
-  const out = [
-    { name: 'head on', a: 'cub1400', b: 'p51d1450', A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([0, Y, 0], [-1, 0, 0], 25), deep: true },
-    { name: 'crossing 90', a: 'interceptor', b: 'sky1800', A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [0, 0, 1], 18), deep: true },
-    { name: 'overtaking', a: 'interceptor', b: 'interceptor', A: flight([0, Y, 0], [1, 0, 0], 35), B: flight([0, Y, 0], [1, 0, 0], 20), deep: true },
-    { name: 'turning crossing', a: 'interceptor', b: 'cub1400', A: turn([0, Y, 0], 30, 6), B: flight([0, Y, 0], [0, 0, 1], 20), deep: true },
-    { name: 'formation 1 m', a: 'cub1400', b: 'cub1400', A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([0, Y, 2 * CUB_TIP + 1], [1, 0, 0], 20), clear: true },
-    { name: 'stalled mid pass', a: 'cub1400', b: 'p51d1450', A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([0, Y, 0], [-1, 0, 0], 25), stallA: T0 - 60 },
-    { name: 'reconnect mid pass', a: 'cub1400', b: 'p51d1450', A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([0, Y, 0], [-1, 0, 0], 25), dropA: [T0 - 500, T0 + 900] },
-  ];
-  for (let cm = -20; cm <= 20; cm += 1) {
-    const d = cm / 100;
-    /* Wingtip into wingtip, opposite ways, the tips overlapping by d
-     * across the span. */
-    out.push({
-      name: `graze ${cm} cm`, a: 'cub1400', b: 'cub1400', graze: d, series: 'head on',
-      A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([0, Y, 2 * CUB_TIP - d], [-1, 0, 0], 20),
-    });
-  }
-  /* A crossing graze: B's wing sweeps across A's path just ahead of its
-   * nose. Unlike the head on graze, a clock error moves the answer here,
-   * since each seat's error slides it along its own path (section 6.6,
-   * promise 4). d is how far B's track is moved back from the one where
-   * the truth first touches, along A's path: over 0 they overlap. */
-  const cross = (x) => ({ a: 'cub1400', b: 'cub1400', A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([x, Y, 0], [0, 0, 1], 20) });
-  let lo = 0;
-  let hi = 4;
-  while (hi - lo > 1e-4) {
-    const mid = (lo + hi) / 2;
-    if (truthOf(cross(mid)).touch) {
-      lo = mid;
-    } else {
-      hi = mid;
-    }
-  }
-  for (let cm = -40; cm <= 40; cm += 2) {
-    const d = cm / 100;
-    out.push({ name: `crossing graze ${cm} cm`, graze: d, series: 'crossing', ...cross(lo - d) });
-  }
-  return out;
-}
-
 /*
- * The same on the aircraft PDCS seats, on Itaipu, judged on their own so
- * the rows above stay the record they were: the war's rams (the
- * interceptor and the seven inch into the Striker, head on, crossing, and
- * the interceptor running one down from behind, the job it is named for),
- * the interceptor's 6 g turn across a Striker, two Strikers in formation,
- * the stalled and the reconnecting link, and both grazes between two
- * Strikers. The Striker flies 25 m/s, between its 13.53 m/s stall and its
- * 34.2 m/s top (configs/airframes.js). Its graze edge is found on its own
- * hull (src/game/midair.js hullFor) by bisection on the truth, as the
- * Cub's crossing graze is, where the Cub's head on graze takes its tip,
- * CUB_TIP, as written.
+ * The aircraft PDCS seats, on Itaipu: the war's rams (the interceptor and
+ * the seven inch into the Striker, head on, crossing, and the interceptor
+ * running one down from behind, the job it is named for), two
+ * interceptors overtaking, the interceptor's 6 g turn across a Striker,
+ * two Strikers in formation, the stalled and the reconnecting link, and
+ * both grazes between two Strikers. The Striker flies 25 m/s, between its
+ * 13.53 m/s stall and its 34.2 m/s top (configs/airframes.js). Its graze
+ * edges are found on its own hull (src/game/midair.js hullFor) by
+ * bisection on the truth. The same passes flown by the Cub, the P-51 and
+ * the Skyhunter left with them (2026-10-21): a room seats a retired
+ * aircraft as the Striker (src/share/roomwire.js checkProfile), so no
+ * room can hold one any more.
  */
 function keptScenarios() {
   const S = 'striker2500';
@@ -196,6 +153,7 @@ function keptScenarios() {
     { name: 'kept head on', a: 'interceptor', b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [-1, 0, 0], 25), deep: true },
     { name: 'kept crossing 90', a: '7inch', b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [0, 0, 1], 25), deep: true },
     { name: 'kept overtaking', a: 'interceptor', b: S, A: flight([0, Y, 0], [1, 0, 0], 35), B: flight([0, Y, 0], [1, 0, 0], 25), deep: true },
+    { name: 'overtaking', a: 'interceptor', b: 'interceptor', A: flight([0, Y, 0], [1, 0, 0], 35), B: flight([0, Y, 0], [1, 0, 0], 20), deep: true },
     { name: 'kept turning crossing', a: 'interceptor', b: S, A: turn([0, Y, 0], 30, 6), B: flight([0, Y, 0], [0, 0, 1], 25), deep: true },
     { name: 'kept stalled mid pass', a: 'interceptor', b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [-1, 0, 0], 25), stallA: T0 - 60 },
     { name: 'kept reconnect mid pass', a: 'interceptor', b: S, A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [-1, 0, 0], 25), dropA: [T0 - 500, T0 + 900] },
@@ -228,7 +186,7 @@ function keptScenarios() {
   }
   return out.map((sc) => ({ ...sc, map: 'itaipu' }));
 }
-const allScenarios = () => [...scenarios(), ...keptScenarios()];
+const allScenarios = () => keptScenarios();
 
 /* ------------------------------------------------------------- truth */
 
@@ -568,7 +526,7 @@ const pct = (xs, p) => {
   return s[Math.min(s.length - 1, Math.floor(p * s.length))];
 };
 
-function report(clock, results, tag = '', seriesNames = ['head on', 'crossing'], turningName = 'turning crossing') {
+function report(clock, results, tag, seriesNames, turningName) {
   let failed = 0;
   const row = (name, ok, detail) => {
     console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
@@ -627,7 +585,6 @@ if (!isMainThread) {
   const jobs = Math.max(1, Number(arg('jobs', Math.max(1, Math.floor(availableParallelism() / 2)))));
   const only = arg('only', null);
   const names = allScenarios().map((s) => s.name).filter((n) => !only || n === only);
-  const keptNames = new Set(keptScenarios().map((s) => s.name));
   const started = Date.now();
   console.log(`midair harness: ${names.length} scenarios, ${BASES.length}x${BASES.length} base latencies, ${JITTERS.length} jitters, ${SEEDS} seeds, ${jobs} jobs`);
   let failed = 0;
@@ -639,11 +596,7 @@ if (!isMainThread) {
       w.once('error', reject);
     })));
     const byName = new Map(parts.flat().map((r) => [r.name, r]));
-    failed += report(clock, names.filter((n) => !keptNames.has(n)).map((n) => byName.get(n)));
-    const kept = names.filter((n) => keptNames.has(n));
-    if (kept.length) {
-      failed += report(clock, kept.map((n) => byName.get(n)), ', the aircraft PDCS seats, on itaipu', ['kept head on', 'kept crossing'], 'kept turning crossing');
-    }
+    failed += report(clock, names.map((n) => byName.get(n)), ', the aircraft PDCS seats, on itaipu', ['kept head on', 'kept crossing'], 'kept turning crossing');
   }
   console.log(`\n${failed ? `${failed} FAILED` : 'all passed'} in ${((Date.now() - started) / 1000).toFixed(0)} s`);
   process.exit(failed ? 1 : 0);

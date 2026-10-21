@@ -503,7 +503,7 @@ for (const [id, m] of Object.entries(MOTORS)) {
     const refused = bad(SIM_PROP_PACK.KT, 0) && bad(SIM_PROP_PACK.FM, 1.2) && bad(SIM_PROP_PACK.AXIAL, 0.99) && bad(SIM_PROP_PACK.TORQUE + 3, 2.5);
     must(sim.clearPower(), 'sim_power_clear');
     const cleared = sim.e.sim_bf_debug(10) === t.kt && sim.e.sim_bf_debug(63) === t.rCell && sim.e.sim_bf_debug(76) === t.fm;
-    must(sim.e.sim_set_airframe(airframeById('timber1500').simId), 'sim_set_airframe');
+    must(sim.e.sim_set_airframe(airframeById('striker2500').simId), 'sim_set_airframe');
     const wingRefused = sim.setPropPack(block) === SIM_ERR_BAD_ARG;
     check(`P5 ${id} the prop and pack are kept across sim_reset, refused out of range, off a curve's 1 and on a wing, and cleared`,
       kept && refused && cleared && wingRefused, `${kept} ${refused} ${cleared} ${wingRefused}`);
@@ -538,7 +538,7 @@ for (const [id, m] of Object.entries(MOTORS)) {
     const sim = await fresh(af, { motors: up });
     sim.reset();
     const kept = sim.e.sim_bf_debug(62) === up[SIM_MOTORS.KE];
-    must(sim.e.sim_set_airframe(airframeById('timber1500').simId), 'sim_set_airframe');
+    must(sim.e.sim_set_airframe(airframeById('striker2500').simId), 'sim_set_airframe');
     const wingRefused = sim.setMotors(up) === SIM_ERR_BAD_ARG;
     must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');
     const dropped = sim.e.sim_bf_debug(62) === t.ke;

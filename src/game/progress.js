@@ -60,7 +60,6 @@ import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
-import { tierUnlockables } from '../../configs/surfaces.js';
 import {
   DECAL_KINDS, DECAL_KIND_IDS, FINISHES, SHOP_DECALS, SHOP_FINISHES,
 } from '../../configs/paint.js';
@@ -87,62 +86,13 @@ export const FIRST_LAP_XP = 40;
 export const MEDAL_XP = 40;
 
 /* The planes a new pilot has, and the level each other one opens at.
- * Float planes go with their land plane. Quads are never locked, and nor
- * is the Striker, the war's own fixed wing: it flies there beside the
- * combat quads, open from the start as they are. */
-export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180', 'striker2500'];
-/* The Ugly Stik at 3, with the Skyhunter: the step after the Kadet, as
- * the sport plane has always been the second model after the trainer.
- * The first on the curve with ailerons that does not fly itself (RCM:
- * "no hands off inherent stability like a J-3 Cub", "not a beginner's
- * trainer"), but on RCM's travel limits it rolls at under 100 deg/s,
- * stalls straight and lands on a tricycle at 11 m/s: nothing it does
- * needs the P-51's rudder. The P-51 at 7: it has the heaviest wing
- * loading here but one (65 N/m^2 against the Timber's 46 and the Kadet's
- * 36), it swings on the take off roll until the pilot's rudder holds it,
- * and it drops a wing at the stall; FMS rate it for an intermediate
- * pilot. The F-16 last: the fastest here, the hottest landing, and a fan whose thrust has to be planned ahead of the
- * stick; Motion RC sells the 6S version "for skilled intermediate or
- * advanced pilots with experience flying at least two EDFs", the only
- * kit here whose maker asks for experience on its own kind. The Zagi
- * with the Bombshell: past the trainers and the Skyhunter, because it has
- * no rudder, rolls fast and answers the smallest touch in pitch, but
- * before the Radian's thermals and the heavier machines, because it is
- * light, slow to stall, and slides in on its belly anywhere; Zagi sold it
- * to beginners as much as to combat pilots. The NRJ at 6, beside the
- * Bramor: the Radian at 5 teaches the thermals with a motor to climb back
- * on, and the discus launch glider takes the motor away. It is gentle to
- * fly (docs/DLG-STAGE1.md) and hard to keep up, which is a soaring skill
- * and not a stick one, so it sits after the Radian and ahead of the fast
- * and the aerobatic. Shared rather than slotted in, so no plane a pilot
- * already has goes back behind a lock. The Tiger Moth at 4 with the
- * Bombshell and the Zagi: slow, and its stall drops the nose and no wing, but it asks for the rudder in every turn (its ailerons on
- * the bottom wing alone yaw it the wrong way) and on every take off (a
- * taildragger on a two stroke's torque), and Great Planes say it "does
- * not, however, possess the self-recovery characteristics of a primary
- * R/C trainer". Nothing it does needs the P-51's speed. The Edge 540,
- * the Extra 300, the Pitts S-1S, the Wot 4 and the Quickie 500 held 10,
- * 9, 8, 4 and 7 until they were removed on 2026-09-29 at the owner's
- * request; the F-16 stays at 11 rather than move, since where a plane
- * opens is the owner's call. The Extra 300 3D came back on 2026-10-08
- * (docs/FLIGHTMODEL.md) at its old 9: a hover and a torque roll are
- * skills the P-51 does not teach. The Night Timber X
- * (docs/NIGHTTIMBER-STAGE1.md) opens at 6, the lead's call: the Timber's
- * STOL wing a starter pilot knows, with the 3D the Extra asks for. The
- * Hercules opens at 8 (the lead's decision, 2026-10-08,
- * docs/HERCULES-CONTRACT.md). Extreme Flight's CAP 580
- * (docs/CAP580-STAGE1.md) opens at 10, the lane's call by analogy with
- * the Extra (2026-10-11): the Extra's hover, torque roll and harrier on a
- * balsa IMAC airframe 2.4 times its mass and 1.6 times its wing loading,
- * faster and heavier in every figure, so after the Extra at 9 and before
- * the F-16 at 11. The Slick 580
- * (docs/SLICK-STAGE1.md) opens last, at 12, its lane's call by analogy for the
- * biggest and most advanced: the Extra's hover and torque roll with
- * twelve and a half kilograms of momentum, and its maker asks for
- * experience, "If this is your first aerobatic RC aircraft, it is highly
- * recommended that you recruit an experienced giant scale RC enthusiast"
- * (the 120cc build guide), as Motion RC asks of the F-16's. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, nighttimber1200: 6, p51d1450: 7, extra3d1308: 9, hercules3077: 8, cap1702: 10, f16878: 11, slick2680: 12 };
+ * Quads are never locked, and nor is the Striker, the war's own fixed
+ * wing: it flies there beside the combat quads, open from the start as
+ * they are. The Bramor opened at 6 on the recreational planes' curve; with
+ * those planes gone (2026-10-21) there is no curve to sit on, and it is
+ * open from the start beside the Striker (lead decision, the PDCS cut). */
+export const STARTER_PLANES = ['striker2500', 'bramor2300'];
+export const PLANE_LEVELS = {};
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;
@@ -604,12 +554,6 @@ export function unlockables() {
       });
     }
   }
-  /* The control surface tiers (configs/surfaces.js): Sport, 3D and
-   * Extreme a level, two and three after their plane, earned and never
-   * bought, since they change how it flies. */
-  for (const t of tierUnlockables()) {
-    add({ key: itemKey('surface', t.id, t.airframe), kind: 'surface', id: t.id, airframe: t.airframe, level: planeLevel(t.airframe) + t.step, name: t.name });
-  }
   /* The paint shop's (src/ui/hangar-paint.js), on every plane alike: the
    * first finish and the first few decals are free, so a new pilot can
    * paint a number and a stripe on the first day, and the rest open two a
@@ -878,16 +822,12 @@ export function awardPlace(progress, world, id) {
  *              28 s. A plane's and a wing's is the middle of its own
  *              measured stall and top speed (configs/airframes.js
  *              `stall` and `topSpeed`, each held by its stage's checks),
- *              a brisk cruise. A glider's is its best glide, the speed
- *              its plant trims at (docs/GLIDER-STAGE1.md, the Radian's
- *              7.7 m/s; docs/DLG-STAGE1.md, the NRJ's 5.13 m/s), since a
- *              glider's top speed is a dive or, on the NRJ, the throw: a
- *              lap at best glide asks for lift, which is the glider's
- *              skill. The lane's call on the paces, reversible.
+ *              a brisk cruise. The lane's call on the paces,
+ *              reversible. A glider had its best glide until the gliders
+ *              left (2026-10-21): the class has no row and no amounts.
  *   endurance  one flight of ENDURANCE_S in the air, from the take off to
  *              the landing that ends it, without a crash: half the ten
- *              minute milestone (MILESTONE_S.ten), 300 s, and the whole
- *              of it, 600 s, on a glider, whose flight is soaring.
+ *              minute milestone (MILESTONE_S.ten), 300 s.
  *
  * The brief named a trick too; the event log carries no trick (the
  * detectors land them on the freestyle scorer, src/main.js), so the
@@ -906,13 +846,11 @@ export const LANDING_STREAK = 3;
  * readers of this file do not load). */
 export const CASUAL_LAP_M = { quad: 8 * 45, plane: 8 * 400 };
 export const QUAD_PACE = 13;
-export const BEST_GLIDE = { radian2000: 7.7, nrj1490: 5.13 };
 const midRange = (af) => (af.stall + af.topSpeed) / 2;
 export const CLASS_CHALLENGES = Object.freeze({
   multirotor: { lapM: CASUAL_LAP_M.quad, pace: () => QUAD_PACE, airS: MILESTONE_S.ten / 2 },
   plane: { lapM: CASUAL_LAP_M.plane, pace: midRange, airS: MILESTONE_S.ten / 2 },
   wing: { lapM: CASUAL_LAP_M.plane, pace: midRange, airS: MILESTONE_S.ten / 2 },
-  glider: { lapM: CASUAL_LAP_M.plane, pace: (af) => BEST_GLIDE[af.id], airS: MILESTONE_S.ten },
 });
 
 /* An aircraft's three amounts, { landings, lapMs, airMs }, or null for an

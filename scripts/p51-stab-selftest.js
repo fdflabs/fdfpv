@@ -38,7 +38,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { AIRFRAMES } from '../configs/airframes.js';
+import { PRECUT_AIRFRAMES } from './lib/precut.js';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import {
@@ -473,8 +473,10 @@ console.log('retracts');
   check('an airframe change puts it down and locked', sim.e.sim_wing_gear() === 0);
   /* Which of 13 to 23 are filled depends on which of the new aircraft
    * have landed, so the slots the airframe table names are skipped: every
-   * other one, and past the end, must be refused. */
-  const named = new Set(AIRFRAMES.map((a) => a.simId));
+   * other one, and past the end, must be refused. The table is the one
+   * before the recreational planes left the shell (scripts/lib/precut.js),
+   * since their plants are still in the module. */
+  const named = new Set(PRECUT_AIRFRAMES.map((a) => a.simId));
   const reserved = [13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24].filter((id) => !named.has(id));
   const empty = reserved.filter((id) => sim.e.sim_set_airframe(id) === SIM_OK);
   check('the slots reserved for the other new aircraft, and past the end, are refused while empty', empty.length === 0 && sim.e.sim_airframe() === P51_AIRFRAME, empty.length ? `accepted ${empty.join(' ')}` : `${reserved.length} refused`);

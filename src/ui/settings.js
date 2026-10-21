@@ -32,8 +32,7 @@
  */
 
 import {
-  AIRFRAMES, AIRFRAME_IDS, airframeById, CLASSES, currentAirframeId, DEFAULT_AIRFRAME,
-  floatVersionOf, isFloatVersion, landPlaneOf, retiredAirframe,
+  AIRFRAMES, AIRFRAME_IDS, airframeById, CLASSES, currentAirframeId, DEFAULT_AIRFRAME, retiredAirframe,
 } from '../../configs/airframes.js';
 import { CUSTOM_TUNE, tunesFor } from '../../configs/registry.js';
 import {
@@ -41,11 +40,10 @@ import {
 } from '../../configs/rates.js';
 import { normalisePids } from '../../configs/pids.js';
 import { normalizePower, powerChoice } from '../../configs/power.js';
-import { normalisePlane, normaliseParts } from '../../configs/hangar-parts.js';
+import { normaliseParts } from '../../configs/hangar-parts.js';
 import { normalisePacks } from '../../configs/wear.js';
 import { normaliseCombat } from '../../configs/combat.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
-import { normaliseSurfaces } from '../../configs/surfaces.js';
 import { normaliseLiveries, normaliseSaves, normaliseSwatches } from '../../configs/liveries.js';
 import { FC_DUMP_AIRFRAME_KEY, FC_DUMP_KEY } from '../fc/dump.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
@@ -66,7 +64,7 @@ import { PERF_MODES } from '../render/dynres.js';
 import { detectDefaultGraphics, normalizeGraphics } from '../render/quality.js';
 import { musicIds } from '../render/tracks.js';
 import { MARK_STYLES } from './peermarks.js';
-import { familyFitted, normaliseBuildFits } from './builds.js';
+import { normaliseBuildFits } from './builds.js';
 import { normaliseProgress } from '../game/progress.js';
 import { cleanCampaign } from '../game/campaign.js';
 import { cleanFlightTime } from '../share/flighttime.js';
@@ -168,8 +166,9 @@ export function hudStyleFor(s, airframeId) {
 }
 
 /* A new profile's aircraft, and the one a profile that never answered
- * the aircraft question is moved to. */
-export const FIRST_AIRFRAME = 'timber1500';
+ * the aircraft question is moved to: the default quad since the Timber
+ * left with the recreational planes (2026-10-21, lead decision). */
+export const FIRST_AIRFRAME = DEFAULT_AIRFRAME;
 
 /*
  * Every field of the profile and its default. loadSettings takes a stored
@@ -212,7 +211,7 @@ export const DEFAULTS = {
   liverySaves: {},
   /* The pilot's own colours (configs/liveries.js normaliseSwatches). */
   swatches: { list: [] },
-  /* The aircraft the pilot starred, land plane ids, newest first
+  /* The aircraft the pilot starred, airframe ids, newest first
    * (normaliseFavourites); the picker's Favourites tab. */
   favourites: { list: [] },
   rates: RATE_DEFAULTS,
@@ -238,8 +237,6 @@ export const DEFAULTS = {
   launchControl: false,
   missionGuidance: true,
   crashDamage: true,
-  /* A room this pilot hosts flies stock control surfaces (configs/surfaces.js). */
-  roomStockSurfaces: false,
   /* The air a solo run flies; in a room the host's is the room's. */
   weather: 'calm',
   /* The time of day, likewise (docs/DAYTIME-CONTRACT.md). */
@@ -273,8 +270,6 @@ export const DEFAULTS = {
   packs: {},
   combat: {},
   tuning: {},
-  surfaces: {},
-  floats: {},
   buildFits: {},
   weight: WEIGHT_STOCK,
   sound: true,
@@ -363,27 +358,14 @@ export function tuneChoices(airframe = DEFAULT_AIRFRAME) {
   return ids;
 }
 
-/* Floats per land plane, true when the float version is the one flown.
- * Only booleans for planes that have a float version are kept, and a
- * profile seated on a float version always has its plane's entry on. */
-export function normaliseFloats(stored, airframe) {
-  const floats = {};
-  const valid = stored && typeof stored === 'object' && !Array.isArray(stored);
-  for (const [id, on] of valid ? Object.entries(stored) : []) {
-    if (typeof on === 'boolean' && floatVersionOf(id)) floats[id] = on;
-  }
-  if (isFloatVersion(airframe)) floats[landPlaneOf(airframe)] = true;
-  return floats;
-}
-
 /* The starred aircraft as a profile or a sync may hold them: each a card's
- * id (a retired aircraft's successor, a float version's land plane), known
+ * id (a retired aircraft's successor), known
  * to this build, once each, in the order stored. */
 export function normaliseFavourites(raw) {
   const list = raw && Array.isArray(raw.list) ? raw.list : [];
   const out = [];
   for (const v of list) {
-    const id = typeof v === 'string' ? landPlaneOf(currentAirframeId(v)) : null;
+    const id = typeof v === 'string' ? currentAirframeId(v) : null;
     if (AIRFRAME_IDS.includes(id) && !out.includes(id)) out.push(id);
   }
   return { list: out };
@@ -425,14 +407,6 @@ export function keepCamera(s) {
     cams[af.id] = { angle: s.cameraAngle, fov: s.cameraFov };
   }
   s.cameraFor = normaliseCameraFor(cams);
-}
-
-/* The id actually flown for a picked aircraft: its float version when the
- * profile has floats on for it. */
-export function withFloats(s, id) {
-  const floatId = floatVersionOf(id);
-  if (floatId && s.floats && s.floats[id]) return floatId;
-  return id;
 }
 
 /* The three axes of a rates set compared by curve (type, RC rate, super
@@ -533,31 +507,11 @@ function seedStockPids(s, id) {
  * aircraft's stock values become the new one's: rates still at the old
  * stock curves, the old stock throttle cap, and the lens. Own rates stay
  * within a class: another class brings its own (swapClassRates). The tune
- * comes back to what was last flown on the new aircraft. Moving between a plane
- * and its float version carries the build (power, parts, tuning) across
- * unless the target already has one of its own.
+ * comes back to what was last flown on the new aircraft.
  */
 export function seatAirframe(s, id) {
   const from = airframeById(s.airframe);
   const to = airframeById(id);
-
-  if (floatVersionOf(to.id) || isFloatVersion(to.id)) {
-    const floats = s.floats && typeof s.floats === 'object' ? s.floats : {};
-    s.floats = { ...floats, [landPlaneOf(to.id)]: isFloatVersion(to.id) };
-  }
-
-  const sameFamily = from.id !== to.id && landPlaneOf(from.id) === landPlaneOf(to.id);
-  if (sameFamily && !familyFitted(s, to.id)) {
-    const copyAcross = (byId) => (byId && Object.hasOwn(byId, from.id) ? { ...byId, [to.id]: byId[from.id] } : byId);
-    s.power = normalizePower(copyAcross(s.power));
-    const carried = s.parts && s.parts[from.id];
-    if (carried) {
-      const existing = s.parts[to.id];
-      const plane = normalisePlane(to.id, { ...carried, damage: existing ? existing.damage : null });
-      if (plane) s.parts = { ...s.parts, [to.id]: plane };
-    }
-    s.tuning = normalizeTuning(copyAcross(s.tuning), limitsWith(s.power));
-  }
 
   const lastTunes = { ...(s.tuneFor && typeof s.tuneFor === 'object' ? s.tuneFor : {}), [from.id]: s.tune };
   s.tuneFor = lastTunes;
@@ -654,7 +608,7 @@ const ONE_OF = {
 
 /* Wing tunes that used to be the stock choice and are not any more: a
  * profile still on one moves to the aircraft's current default once. */
-const OLD_WING_STOCK = { bramor2300: 'wing-stab', sky1800: 'sky-stab' };
+const OLD_WING_STOCK = { bramor2300: 'wing-stab' };
 
 const WING_VIEWS = ['fpv', 'chase', 'los', 'pilot', 'ball'];
 
@@ -716,9 +670,7 @@ export function loadSettings() {
   s.parts = normaliseParts(s.parts);
   s.packs = normalisePacks(s.packs);
   s.combat = normaliseCombat(s.combat, airframeById);
-  s.floats = normaliseFloats(s.floats, s.airframe);
   s.tuning = normalizeTuning(s.tuning, limitsWith(s.power));
-  s.surfaces = normaliseSurfaces(s.surfaces);
   s.buildFits = normaliseBuildFits(s.buildFits);
   s.cameraAngle = clampCameraAngle(s.cameraAngle);
   s.cameraFor = normaliseCameraFor(s.cameraFor);

@@ -45,7 +45,7 @@ import { LINK_PRESETS } from '../input/link.js';
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { PERF_MODES } from '../render/dynres.js';
 import { CUSTOM_TUNE, TUNES, tuneById } from '../../configs/registry.js';
-import { AIRFRAME_IDS, airframeById, currentAirframeId, DEFAULT_AIRFRAME, floatVersionOf, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
+import { AIRFRAME_IDS, airframeById, currentAirframeId, DEFAULT_AIRFRAME } from '../../configs/airframes.js';
 import { POWER, powerChoice } from '../../configs/power.js';
 import { PROPS, normaliseParts } from '../../configs/hangar-parts.js';
 import { combatChoice } from '../../configs/combat.js';
@@ -54,7 +54,6 @@ import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts and Surfaces tabs. */
 import './hangar-tuning.js';
 import './hangar-parts.js';
-import './hangar-surfaces.js';
 import './hangar-shop.js';
 import './hangar-combat.js';
 import './hangar-kit.js';
@@ -142,7 +141,7 @@ import { str, plural, LOCALES, LOCALE_NAMES, currentLocale, rememberLocale } fro
 import {
   SETTINGS_KEY, FLIGHT_MODES, PACK_VOLTAGES, RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES,
   hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor,
-  AVX_INSETS, AVX_LEVELS, AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats,
+  AVX_INSETS, AVX_LEVELS, AVX_PALETTES, loadSettings, FIRST_AIRFRAME,
   seatAirframe, DEFAULTS, saveSettings, airHintSeen, markAirHintSeen, detectFirstRun, tuneChoices, chosenTime, toggleFavourite,
 } from './settings.js';
 import {
@@ -213,7 +212,7 @@ export {
   SETTINGS_KEY, FLIGHT_MODES, CAMERA_FOVS, CAMERA_FOV_DEFAULT, CAMERA_ANGLE_MIN, CAMERA_ANGLE_MAX, CAMERA_ANGLE_DEFAULT, PACK_VOLTAGES,
   RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES, hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN,
   WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor, AVX_INSETS, AVX_LEVELS,
-  AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats, seatAirframe, chosenTime,
+  AVX_PALETTES, loadSettings, FIRST_AIRFRAME, seatAirframe, chosenTime,
 };
 
 /*
@@ -616,12 +615,7 @@ export class Ui {
   }
 
   /*
-   * The picker with its Floats switch, which is the hangar's toggle by
-   * another door: the same s.floats, so the two always agree, and Choose
-   * seats it through withFloats. A flip is kept when the picker is put
-   * away without a choice, except on the seated plane (settleFloats).
-   *
-   * And with My Hangar beside the stock aircraft (src/ui/builds.js). A
+   * The picker, with My Hangar beside the stock aircraft (src/ui/builds.js). A
    * choice puts on what was chosen before the opener seats it: a build is
    * fitted, a stock plane gets the pilot's own customisation back. The
    * opener's onChoose is handed the airframe to seat and whether its slots
@@ -639,8 +633,7 @@ export class Ui {
     /*
      * The Engine switch on the seated aircraft: its loadout before the
      * first flip and after the last. A flip seated by Choose is a refit;
-     * one put away is undone, as settleFloats undoes the Floats switch, so
-     * what is flying is what the slots say. Only while nothing else (the
+     * one put away is undone, so what is flying is what the slots say. Only while nothing else (the
      * Loadout tab's Save, through Customise) has changed it since.
      */
     const seat = s.airframe;
@@ -650,13 +643,6 @@ export class Ui {
     this.carousel.open({
       ...opts,
       only: this.craftOnly(),
-      floats: {
-        on: (id) => Boolean(s.floats && s.floats[id]),
-        set: (id, on) => {
-          s.floats = { ...s.floats, [id]: on };
-          this.persistSettings();
-        },
-      },
       engine: {
         of: (id) => this.stockLoadout(id),
         set: (id, propulsion) => {
@@ -678,7 +664,7 @@ export class Ui {
       },
       onCustomise: (id, reopen, build) => this.openHangar(id, reopen, build),
       onChoose: (card, build) => {
-        const id = build ? build.airframe : withFloats(s, card);
+        const id = build ? build.airframe : card;
         const moved = build ? this.wearBuild(build) : unfitFamily(s, id);
         if (moved) {
           this.persistSettings();
@@ -693,7 +679,6 @@ export class Ui {
         opts.onChoose(id, moved);
       },
       onCancel: () => {
-        this.settleFloats();
         if (flipped()) {
           this.setStockLoadout(seat, flip.before);
         }
@@ -719,18 +704,6 @@ export class Ui {
       s.combat = { ...s.combat, [id]: combat };
     }
     this.persistSettings();
-  }
-
-  /* The seated plane's toggle back in step with the seat, as seatAirframe
-   * keeps it, after a picker flip that seated nothing: put away, or a swap
-   * the run refused. Nothing then says floats on a plane on its wheels. */
-  settleFloats() {
-    const s = this.settings;
-    const land = landPlaneOf(s.airframe);
-    if (floatVersionOf(land) && Boolean(s.floats && s.floats[land]) !== isFloatVersion(s.airframe)) {
-      s.floats = { ...s.floats, [land]: isFloatVersion(s.airframe) };
-      this.persistSettings();
-    }
   }
 
   /*
@@ -790,7 +763,7 @@ export class Ui {
     }
     this.buildList = list;
     saveBuilds(list);
-    const e = (this.settings.buildFits || {})[landPlaneOf(build.airframe)];
+    const e = (this.settings.buildFits || {})[build.airframe];
     if (!e || e.build !== build.id) {
       return false;
     }
@@ -815,8 +788,8 @@ export class Ui {
    * own and the next number. */
   buildName(airframe) {
     const taken = new Set(this.myBuilds.map((b) => b.name));
-    const plane = airframeById(landPlaneOf(airframe)).name;
-    let n = this.myBuilds.filter((b) => landPlaneOf(b.airframe) === landPlaneOf(airframe)).length + 1;
+    const plane = airframeById(airframe).name;
+    let n = this.myBuilds.filter((b) => b.airframe === airframe).length + 1;
     while (taken.has(str('mine.default_name', { plane, n }))) {
       n += 1;
     }
@@ -844,11 +817,11 @@ export class Ui {
     }
     this.buildList = this.myBuilds.filter((x) => x.id !== id);
     saveBuilds(this.buildList);
-    const e = (s.buildFits || {})[landPlaneOf(b.airframe)];
+    const e = (s.buildFits || {})[b.airframe];
     if (e && e.build === id) {
       unfitFamily(s, b.airframe);
       this.persistSettings();
-      if (landPlaneOf(s.airframe) === landPlaneOf(b.airframe)) {
+      if (s.airframe === b.airframe) {
         this.refitted(s.airframe);
       }
     }
@@ -959,10 +932,7 @@ export class Ui {
           return;
         }
         if (midRun && this.onHotSwap) {
-          this.swapTo(id).then(() => {
-            this.settleFloats();
-            this.renderMenu();
-          });
+          this.swapTo(id).then(() => this.renderMenu());
           return;
         }
         seatAirframe(s, id);
@@ -1006,10 +976,7 @@ export class Ui {
         } else if (moved) {
           go = this.refitted(id);
         }
-        go.then(() => {
-          this.settleFloats();
-          this.act('resume');
-        });
+        go.then(() => this.act('resume'));
       },
       onCancel: () => {
         if (from === 'flight') {
@@ -1039,9 +1006,8 @@ export class Ui {
    */
   openHangar(card, after = null, build = null, tab = null) {
     const s = this.settings;
-    /* A build opens on the airframe it was built on; a stock plane on the
-     * version its toggle names, whichever of the two it was asked for. */
-    const id = build ? build.airframe : withFloats(s, landPlaneOf(card));
+    /* A build opens on the airframe it was built on. */
+    const id = build ? build.airframe : card;
     if (!customisable(id) || this.hangar.isOpen) {
       return;
     }
@@ -1066,57 +1032,9 @@ export class Ui {
     };
     const offered = this.hangarPower ? this.hangarPower(id) : null;
     const power = offered && !inSlots ? { ...offered, chosen: powerChoice(id, view.power) } : offered;
-    /*
-     * THE FLOATS TOGGLE, beside the span and the weight: remembered for this
-     * plane, and when it is the seated one it seats the other version at
-     * once, in place in a run as the picker's swap does. The hangar then
-     * opens again on the version the toggle names, shut quietly first so
-     * `after` waits for that one. On a build the floats are its airframe,
-     * so the build moves to the other version; the seated plane goes with
-     * it only when it is wearing that build.
-     */
-    const land = landPlaneOf(id);
-    const onFloats = floatVersionOf(land) ? (on) => {
-      const to = on ? floatVersionOf(land) : land;
-      this.hangar.close();
-      preview(null);
-      const moved = build ? { ...build, airframe: to, fit: normaliseFit(to, build.fit), updated: Date.now() } : null;
-      const flown = landPlaneOf(s.airframe) === land && s.airframe !== to
-        && (build ? fittedBuild(s, s.airframe) === build.id : inSlots);
-      if (build) {
-        this.storeBuild(moved);
-      } else {
-        s.floats = { ...s.floats, [land]: on };
-      }
-      const reopen = (ok = true) => this.openHangar(to, after, ok ? moved : build);
-      if (!flown) {
-        this.persistSettings();
-        reopen();
-      } else if (this.returnTo === 'paused' && this.onHotSwap) {
-        /* A swap the run refuses leaves the plane as it was, and the toggle
-         * or the build with it, so the hangar never says floats on a plane
-         * on wheels. */
-        this.swapTo(to).then((ok) => {
-          if (ok !== true) {
-            if (build) {
-              this.storeBuild(build);
-            } else {
-              s.floats = { ...s.floats, [land]: !on };
-            }
-          }
-          this.persistSettings();
-          reopen(ok === true);
-        });
-      } else {
-        seatAirframe(s, to);
-        this.writeSettings();
-        reopen();
-      }
-    } : null;
     this.hangar.open({
       airframe: id,
       tab: tab ?? firstTab,
-      floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: view.livery[family],
       mine: {
         name: build ? build.name : null,
@@ -1164,7 +1082,6 @@ export class Ui {
           parts: res.settings.parts ? res.settings.parts[id] : held.parts,
           tuning: res.settings.tuning ? res.settings.tuning[id] : held.tuning,
           combat: res.settings.combat ? res.settings.combat[id] : held.combat,
-          surfaces: res.settings.surfaces ? res.settings.surfaces[id] : held.surfaces,
         });
         /* A wing taped is the airframe mended, whatever was edited: its
          * damage is the slots'. */
@@ -1251,7 +1168,7 @@ export class Ui {
       return;
     }
     if (this.onHotSwap && this.screen === 'flight') {
-      this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
+      this.swapTo(cycleCraft(this.settings.airframe, dir, this.craftOnly()));
     }
   }
 }

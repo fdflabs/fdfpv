@@ -375,7 +375,7 @@ const scenarios = {
       defaults: {},
       interior: { freestyleMap: 'interior', map: 'interior' },
       unknown: { freestyleMap: 'nowhere', map: 'nowhere' },
-      plane: { airframe: 'cub1400' },
+      plane: { airframe: 'bramor2300' },
     };
     for (const [name, patch] of Object.entries(seats)) {
       for (const inRoom of [true, false]) {

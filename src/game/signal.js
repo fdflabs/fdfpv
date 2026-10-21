@@ -51,7 +51,7 @@ export const RANGE_ZERO_M = 4000;
 export const JAM_FULL_M = 600;
 /* The airframes that carry a relay, and how high over the ground one must
  * be to serve as a second station. */
-export const RELAY_AIRFRAMES = new Set(['bramor2300', 'sky1800', 'radian2000']);
+export const RELAY_AIRFRAMES = new Set(['bramor2300']);
 export const RELAY_MIN_AGL_M = 150;
 
 /* What q does. */

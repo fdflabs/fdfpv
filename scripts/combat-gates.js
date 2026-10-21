@@ -487,7 +487,6 @@ for (const af of quads) {
     ['none with nothing else is standard', warPayload(af, { payload: 'none', accessories: [] }), { payload: 'standard', warhead: 'standard' }],
     ['an unowned warhead flies the equipped one', warPayload(af, { payload: 'emp', accessories: [] }, ['standard', 'penetrator'], 'penetrator'), { payload: 'penetrator', warhead: 'penetrator' }],
     ['an unowned warhead and an unowned fallback fly standard', warPayload(af, { payload: 'emp', accessories: [] }, ['standard'], 'wide'), { payload: 'standard', warhead: 'standard' }],
-    ['a plane has no payload', warPayload(airframeById('cub1400'), { payload: 'wide', accessories: [] }), null],
     /* The kept fixed wing with no combat block, by the id it is seated by:
      * airframeById falls back to the interceptor, which has one. */
     ['the Bramor is seated by its own id', airframeById('bramor2300').id, 'bramor2300'],

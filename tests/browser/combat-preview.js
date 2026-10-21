@@ -37,49 +37,6 @@ import {
 } from '../../src/render/strikercraft.js';
 import { STRIKER_RAIL } from '../../configs/airframes.js';
 import { attackerGeometry, createAttackers } from '../../src/render/attackers.js';
-import { buildSkyCraft } from '../../src/render/skycraft.js';
-import { buildCubCraft } from '../../src/render/cubcraft.js';
-import { buildGliderCraft } from '../../src/render/glidercraft.js';
-import { buildBramorCraft } from '../../src/render/bramorcraft.js';
-import { buildSlowStickCraft } from '../../src/render/slowstickcraft.js';
-import { buildTimberCraft } from '../../src/render/timbercraft.js';
-import { buildBombshellCraft } from '../../src/render/bombshellcraft.js';
-import { buildKadetCraft } from '../../src/render/kadetcraft.js';
-import { buildF16Craft } from '../../src/render/f16craft.js';
-import { buildZagiCraft } from '../../src/render/zagicraft.js';
-import { buildP51Craft } from '../../src/render/p51craft.js';
-import { buildTigermothCraft } from '../../src/render/tigermothcraft.js';
-import { buildExtraCraft } from '../../src/render/extracraft.js';
-import { buildNightTimberCraft } from '../../src/render/nighttimbercraft.js';
-import { buildCapCraft } from '../../src/render/capcraft.js';
-import { buildHerculesCraft } from '../../src/render/herculescraft.js';
-import { buildSlickCraft } from '../../src/render/slickcraft.js';
-import { buildUglystikCraft } from '../../src/render/uglystikcraft.js';
-import { buildDlgCraft } from '../../src/render/dlgcraft.js';
-
-/* The aircraft already shipped, by the id craft.js seats them under. */
-const SHIPPED = {
-  sky1800: buildSkyCraft,
-  cub1400: buildCubCraft,
-  radian2000: buildGliderCraft,
-  bramor2300: buildBramorCraft,
-  slowstick1180: buildSlowStickCraft,
-  timber1500: buildTimberCraft,
-  bombshell1118: buildBombshellCraft,
-  kadet1981: buildKadetCraft,
-  f16878: buildF16Craft,
-  zagi1219: buildZagiCraft,
-  p51d1450: buildP51Craft,
-  tigermoth1803: buildTigermothCraft,
-  extra3d1308: buildExtraCraft,
-  nighttimber1200: buildNightTimberCraft,
-  cap1702: buildCapCraft,
-  hercules3077: buildHerculesCraft,
-  slick2680: buildSlickCraft,
-  uglystik1567: buildUglystikCraft,
-  nrj1490: buildDlgCraft,
-};
-
 const renderer = new THREE.WebGLRenderer({ antialias: false });
 renderer.setPixelRatio(1);
 renderer.setSize(innerWidth, innerHeight);
@@ -288,18 +245,6 @@ window.__combat = {
   /* The accessories each frame offers, in the doc's order. */
   accessories: Object.fromEntries(Object.entries(COMBAT_FRAMES).map(([id, f]) => [id, COMBAT_ACCESSORY_IDS.filter((a) => f.accessories[a])])),
   spec: (frame) => COMBAT_FRAMES[frame],
-  /* What every shipped aircraft costs, full and lite. */
-  reference() {
-    const out = {};
-    for (const [id, build] of Object.entries(SHIPPED)) {
-      const full = build({ name: id, fog: false });
-      const lite = build({ name: id, fog: false, lite: true });
-      out[id] = { full: cost(full.group), lite: cost(lite.group) };
-      release(full.group);
-      release(lite.group);
-    }
-    return out;
-  },
   /* One answer built twice, measured, released. */
   audit(choice) {
     const a = buildCombatDrone({ ...choice, name: 'combat', fog: false });

@@ -62,6 +62,12 @@ import { must, attitude } from '../../tests/lib/wingpilot.js';
 import { TABLE } from '../../configs/power.js';
 import { RATES, normalizeEntry, setupFor, stockEntry, tuneBlock } from '../../configs/tuning.js';
 import { SEAT_FULL, wingSeat } from './propcurve.js';
+import { seatPrecutAircraft } from './precut.js';
+
+/* The AS3X aircraft left the shell before their plants leave the module
+ * (2026-10-21): their power and tuning rows come back from the pre-cut
+ * fixture for as long as the loop flies them. */
+seatPrecutAircraft();
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 

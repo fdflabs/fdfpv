@@ -255,12 +255,6 @@ const crashDamageRow = (s) => toggle(str('ui.crash_damage'), str('ui.crash_damag
   s.crashDamage = Boolean(v);
 });
 
-/* Stock control surfaces only, in a room this pilot hosts: every pilot's
- * next run flies stock surfaces (edge/rooms/core.js stockSurfaces). */
-const stockSurfacesRow = (s) => toggle(str('ui.stock_surfaces'), str('ui.stock_surfaces_note'), s.roomStockSurfaces === true, (v) => {
-  s.roomStockSurfaces = Boolean(v);
-});
-
 /* The air: the preset's own note, and in a room the host's choice is the
  * room's (docs/WEATHER-CONTRACT.md). */
 const weatherRow = (s) => choice(
@@ -471,13 +465,12 @@ function pilotRows(ui, s) {
     { label: str('ui.sound'), section: true },
     ...soundRows(s),
     /* The air and the hour a room this pilot makes flies in (src/main.js
-     * openSession, chosenTime) and its stock surfaces: Freestyle's rows
-     * until that screen left with free flight (the combat-only cut,
-     * 2026-10-20). */
+     * openSession, chosenTime): Freestyle's rows until that screen left
+     * with free flight (the combat-only cut, 2026-10-20). The room's
+     * stock surfaces row left with the surface tiers (2026-10-21). */
     { label: str('ui.the_world'), section: true },
     weatherRow(s),
     daytimeRow(s),
-    stockSurfacesRow(s),
     { label: str('ui.diagnostics'), section: true },
     toggle(str('ui.flight_log'), str('ui.record_the_run_for_download_as'), s.flightLog, (v) => { s.flightLog = v; }),
     { label: str('ui.download_flight_log'), action: 'downloadflightlog', note: str('ui.writes_what_was_recorded_as_blackbox') },

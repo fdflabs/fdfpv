@@ -3,17 +3,17 @@
  *
  *     node scripts/replay-sticks-check.js [OUT_DIR]     (npm run replay:sticks)
  *
- * In headless Chromium, on the Interior, a Timber (flaps, so the flap
- * switch is in the clip too):
+ * In headless Chromium, on the Interior, a Striker (no flaps, so the
+ * clip's flap channel says none all through):
  *
- *  1. Thrown at 80 m and flown through four stick settings, the flaps
- *     taken down a notch on the way. V opens the replay: the clip carries
- *     its sticks (src/replay/sticks.js), each setting found in its rows
- *     exactly as quantised, the flaps' notch with them.
+ *  1. Thrown at 80 m and flown through four stick settings. V opens the
+ *     replay: the clip carries its sticks (src/replay/sticks.js), each
+ *     setting found in its rows exactly as quantised, the flap channel
+ *     -1 (none) with them.
  *  2. Scrubbed into each setting, the replay's two gimbals (the flight
  *     overlay's, src/ui/widgets.js) put their nubs where that setting
  *     puts them in the viewer's stick mode, and the line under them names
- *     the mode and the flaps. A picture of each.
+ *     the mode and no flaps. A picture of each.
  *  3. The Sticks CSV button, pressed with a pointer, hands over a control
  *     recording (src/share/controlrec.js) of the range, one row a clip
  *     row, every setting in it.
@@ -79,7 +79,7 @@ function check(name, ok, detail = '') {
   console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`);
 }
 
-const AIRFRAME = 'timber1500';
+const AIRFRAME = 'striker2500';
 function seed() {
   const settings = {
     ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIRFRAME),
@@ -188,16 +188,13 @@ async function main() {
     await viewport(page, FLIGHT_VIEW);
     await page.tap('ShiftLeft');
 
-    console.log('1. flown through four settings, the flaps down a notch');
+    console.log('1. flown through four settings');
     const pad = await page.evaluate('(() => { const s = window.__craftState(); return { x: s.worldX, z: s.worldZ, g: s.worldY - s.groundClearance }; })()');
     await page.evaluate(`window.__stick(${PROGRAM[0].join(', ')})`);
     const thrown = await page.evaluate(`window.__crashThrow({ fresh: true, x: ${pad.x}, y: ${pad.g + 80}, z: ${pad.z}, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: -16, showCraft: false }).ok`);
     check('thrown at 80 m', thrown);
     for (let i = 0; i < PROGRAM.length; i += 1) {
       await page.evaluate(`window.__stick(${PROGRAM[i].join(', ')})`);
-      if (i === 2) {
-        await page.tap('KeyF');
-      }
       await afterSteps(page, 700);
     }
     await page.tap('KeyV');
@@ -223,10 +220,8 @@ async function main() {
     };
     const found = PROGRAM.map(rowsOf);
     check('every setting is in the rows exactly as quantised', found.every((r) => r.length >= 5), found.map((r) => r.length).join(', '));
-    const notch = (k) => clip.ch[k * 6 + 5];
-    const before = found[1].length ? notch(found[1][found[1].length - 1]) : NaN;
-    const after = found[3].length ? notch(found[3][0]) : NaN;
-    check('the flap switch is kept with them, up before F and a notch down after', before === 0 && after === 1, `${before} then ${after}`);
+    const notches = new Set(found.flat().map((k) => clip.ch[k * 6 + 5]));
+    check('the flap channel is kept with them: -1, no flaps, all through', notches.size === 1 && notches.has(-1), [...notches].join(','));
     const modes = new Set(found.flat().map((k) => clip.ch[k * 6 + 4]));
     check('the flight mode is kept, one all through', modes.size === 1, [...modes].join(','));
 
@@ -247,7 +242,8 @@ async function main() {
       check(`setting ${i + 1}: the nubs stand where the sticks were`, err < 1e-3,
         `${got ? got.map((p) => p.map((x) => x.toFixed(3)).join(' ')).join(' | ') : 'no gimbals'}, ${line}`);
       if (i === 3) {
-        check('the line under them names the mode and the flaps', /flaps half/i.test(line), line);
+        /* The Striker seats on its default tune, striker-stab (aircraft/striker2500/aircraft.js). */
+        check('the line under them names the mode and no flaps', line === 'Stabilised', line);
       }
       await shot(page, `replay-sticks-${i + 1}`);
     }

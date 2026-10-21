@@ -48,11 +48,12 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { FOLDERS } from '../configs/aircraft.js';
+import { retiredAirframe } from '../configs/airframes.js';
 import { LIVERIES, liveryKey } from '../configs/liveries.js';
 import { TUNES, tunePath } from '../configs/registry.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -115,13 +116,22 @@ const INTERIOR_FILM_SUPPORT = {
   'stills.js': 'the photographs the BOARD shows',
 };
 
+/* The recreational aircraft left the shell (2026-10-21) before their
+ * plants leave the module: each folder keeps only its plant.json, which
+ * aircraft:ctable generates plant_wing.c from, until the plant cut deletes
+ * it. Only a retired id moved to Openflight qualifies. */
+const PLANT_ONLY = Object.fromEntries(dirsIn('aircraft')
+  .filter((id) => retiredAirframe(id)?.moved && !existsSync(join(root, 'aircraft', id, 'aircraft.js'))
+    && existsSync(join(root, 'aircraft', id, 'plant.json')))
+  .map((id) => [id, 'a retired aircraft\'s plant table alone, until its plant leaves the module']));
+
 /* Each row's checks: what holds the kind beyond being registered. */
 const ROWS = [
   {
     kind: 'airframes', where: 'aircraft/', owner: 'configs/aircraft.js',
     files: dirsIn('aircraft'),
     entries: FOLDERS.map((f) => f.id),
-    support: {}, complete: true,
+    support: PLANT_ONLY, complete: true,
     checks: ['aircraft:folder', 'airframes:check', 'hulls:check'],
   },
   {
@@ -275,8 +285,8 @@ const copyOf = (where) => {
 };
 const CONTROLS = [
   ['an aircraft folder no registry lists', 'aircraft/', (r) => { r.files.push('harrier900'); }],
-  ['a registered aircraft with no folder', 'aircraft/', (r) => { r.files = r.files.filter((f) => f !== 'cub1400'); }],
-  ['a stray file in an aircraft folder', 'aircraft/<id>/', (r) => { r.files.push('cub1400/notes.txt'); }],
+  ['a registered aircraft with no folder', 'aircraft/', (r) => { r.files = r.files.filter((f) => f !== 'bramor2300'); }],
+  ['a stray file in an aircraft folder', 'aircraft/<id>/', (r) => { r.files.push('bramor2300/notes.txt'); }],
   ['a quad with a plant table', 'aircraft/<id>/', (r) => { r.files.push('7inch/plant.json'); }],
   ['a world module no loader imports', 'src/maps/', (r) => { r.files.push('yellowstone.js'); }],
   ['a world folder for no world', 'src/maps/<id>/', (r) => { r.files.push('yellowstone'); }],

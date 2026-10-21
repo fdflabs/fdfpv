@@ -60,6 +60,7 @@ import { AIRFRAMES } from '../configs/airframes.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
 import { seatStriker } from './lib/strikerpilot.js';
+import { precutRow } from './lib/precut.js';
 import { combatChoice } from '../configs/combat.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -78,6 +79,8 @@ const W_REF = 1;
  * and its servos' slew have answered by then. */
 const HOLD_MS = 150;
 
+/* These left the shell before their plants leave the module (2026-10-21):
+ * their rows are the pre-cut ones (scripts/lib/precut.js). */
 const PLANES = ['extra3d1308', 'cap1702', 'slick2680', 'cub1400', 'timber1500', 'nighttimber1200', 'p51d1450'];
 const STAB_ON = 1;
 /*
@@ -253,7 +256,7 @@ async function judge(id, sim, modes, fullHeading) {
   }
 }
 for (const id of PLANES) {
-  const af = AIRFRAMES.find((a) => a.id === id);
+  const af = precutRow(id);
   const sim = await loadSim(wasmBytes);
   must(sim.init(configText), 'sim_init');
   must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');

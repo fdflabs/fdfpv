@@ -74,28 +74,28 @@ function rawCode(obj) {
 
 const num = newDecal('num', [0.052, 0.018, -0.21], [1, 0, 0], { c: '#f2f2f2', c2: '#0e1213' });
 const stripe = newDecal('stripe', [0.3, 0.06, 0.02], [0, 1, 0]);
-const entry = normaliseEntry('timber1500', {
-  scheme: 'super', regions: { stripe: '#3355aa' }, finishes: { wing: 'chrome', fuselage: 'gloss' }, decals: [num, stripe],
+const entry = normaliseEntry('striker2500', {
+  scheme: 'olive', regions: { nose_band: '#3355aa' }, finishes: { wing: 'chrome', fuselage: 'gloss' }, decals: [num, stripe],
 });
 
 console.log('1. round trip');
 {
-  const code = encodeLivery('timber1500', 'Número 7', entry);
+  const code = encodeLivery('striker2500', 'Número 7', entry);
   const back = readCode(code);
-  check('a Timber livery with a chrome wing, a number and a stripe comes back whole', same(back.entry, entry) && back.family === 'timber1500' && back.name === 'Número 7',
+  check('a Striker livery with a chrome wing, a number and a stripe comes back whole', same(back.entry, entry) && back.family === 'striker2500' && back.name === 'Número 7',
     `${code.length} characters`);
   check('the code is URL safe', /^FPV1-[A-Za-z0-9_-]+$/.test(code));
   const spaced = code.replace(/(.{40})/g, '$1\n  ');
   check('a code broken over lines by a chat window still reads', same(readCode(spaced).entry, entry));
-  const full = normaliseEntry('timber1500', { decals: Array.from({ length: MAX_DECALS }, () => num) });
-  const big = encodeLivery('timber1500', 'x'.repeat(40), full);
+  const full = normaliseEntry('striker2500', { decals: Array.from({ length: MAX_DECALS }, () => num) });
+  const big = encodeLivery('striker2500', 'x'.repeat(40), full);
   check(`${MAX_DECALS} numbers fit a code under CODE_MAX`, big.length <= CODE_MAX && same(readCode(big).entry, full), `${big.length} of ${CODE_MAX}`);
-  check('the stock look is a code too', same(readCode(encodeLivery('kadet1981', 'Stock', {})).entry, {}));
+  check('the stock look is a code too', same(readCode(encodeLivery('bramor2300', 'Stock', {})).entry, {}));
 }
 
 console.log('2. refusals');
 {
-  const base = { v: 1, p: 'timber1500', n: 'x', e: entry };
+  const base = { v: 1, p: 'striker2500', n: 'x', e: entry };
   const cases = [
     ['not a code at all', 'hello', 'not_code'],
     ['the prefix and garbage', `${CODE_PREFIX}!!!`, 'not_code'],
@@ -116,7 +116,6 @@ console.log('2. refusals');
     ['a finish that is not one', rawCode({ ...base, e: { finishes: { wing: 'velvet' } } }), 'bad_value'],
     ['a finish on a region the plane lacks', rawCode({ ...base, e: { finishes: { rotor: 'gloss' } } }), 'bad_value'],
     ['film on a region that is not film', rawCode({ ...base, e: { finishes: { wing: 'film' } } }), 'bad_value'],
-    ['a finish on the Kadet\'s trim', rawCode({ ...base, p: 'kadet1981', e: { finishes: { wing_trim: 'chrome' } } }), 'bad_value'],
     ['a scheme the plane has not got', rawCode({ ...base, e: { scheme: 'nope' } }), 'bad_value'],
     ['a region colour that is not a colour', rawCode({ ...base, e: { regions: { wing: '#12345' } } }), 'bad_value'],
     ['a plane with no paint', rawCode({ ...base, p: '5inch', e: {} }), 'unknown_plane'],
@@ -130,27 +129,27 @@ console.log('2. refusals');
 console.log('3. the settings');
 {
   const stale = normaliseLiveries({
-    timber1500: { scheme: 'super', finishes: { wing: 'velvet', tail: 'matte' }, decals: [num, { k: 'logo' }, stripe] },
-    kadet1981: { finishes: { wing: 'film', fuselage: 'chrome' } },
+    striker2500: { scheme: 'olive', finishes: { wing: 'velvet', fins: 'matte' }, decals: [num, { k: 'logo' }, stripe] },
+    bramor2300: { finishes: { airframe: 'chrome', wing: 'gloss' } },
     nope: { scheme: 'x' },
   });
   check('a stale blob keeps what is safe and drops the rest', same(stale, {
-    timber1500: { scheme: 'super', finishes: { tail: 'matte' }, decals: [num, stripe] },
-    kadet1981: { finishes: { fuselage: 'chrome' } },
+    striker2500: { scheme: 'olive', finishes: { fins: 'matte' }, decals: [num, stripe] },
+    bramor2300: { finishes: { airframe: 'chrome' } },
   }), JSON.stringify(stale));
   const saves = normaliseSaves({
-    timber1500: [{ name: '  Race\tday  ', entry }, { name: '', entry }, { name: 'x'.repeat(50), entry: { finishes: { wing: 'velvet' } } }],
-    kadet1981: Array.from({ length: MAX_SAVED + 5 }, (_, i) => ({ name: `L${i}`, entry: {} })),
+    striker2500: [{ name: '  Race\tday  ', entry }, { name: '', entry }, { name: 'x'.repeat(50), entry: { finishes: { wing: 'velvet' } } }],
+    bramor2300: Array.from({ length: MAX_SAVED + 5 }, (_, i) => ({ name: `L${i}`, entry: {} })),
     nope: [{ name: 'a', entry: {} }],
   });
-  check('saved names are cleaned, empty ones dropped, entries made safe', same(saves.timber1500, [{ name: 'Race day', entry }, { name: 'x'.repeat(32), entry: {} }]));
-  check(`a saved list is at most ${MAX_SAVED}`, saves.kadet1981.length === MAX_SAVED && !saves.nope);
+  check('saved names are cleaned, empty ones dropped, entries made safe', same(saves.striker2500, [{ name: 'Race day', entry }, { name: 'x'.repeat(32), entry: {} }]));
+  check(`a saved list is at most ${MAX_SAVED}`, saves.bramor2300.length === MAX_SAVED && !saves.nope);
 }
 
 console.log('4. the decal kinds');
 {
   const made = DECAL_KIND_IDS.map((k) => newDecal(k, [0, 0.1, 0], [0, 1, 0]));
-  check(`every kind makes a valid decal: ${DECAL_KIND_IDS.join(', ')}`, made.every((d) => normaliseEntry('cub1400', { decals: [d] }).decals.length === 1));
+  check(`every kind makes a valid decal: ${DECAL_KIND_IDS.join(', ')}`, made.every((d) => normaliseEntry('bramor2300', { decals: [d] }).decals.length === 1));
   const text = DECAL_KIND_IDS.filter((k) => DECAL_KINDS[k].text);
   check('only the number and the words read the right way round when mirrored', same(text, ['num', 'text']));
 }
@@ -175,12 +174,11 @@ console.log('5. every region has a name');
 console.log('6. the underside (docs/redesign/WORKSHOP-PAINT.md)');
 {
   const old = { scheme: 'stock', regions: { wing: '#112233' }, wear: 20 };
-  check('an entry from before the underside reads exactly as it did', same(normaliseEntry('timber1500', old), { regions: { wing: '#112233' }, wear: 20 }));
-  const e = normaliseEntry('timber1500', { under: { wing: '#AABBCC', nope: '#000000', tail: 'red' } });
+  check('an entry from before the underside reads exactly as it did', same(normaliseEntry('striker2500', old), { regions: { wing: '#112233' }, wear: 20 }));
+  const e = normaliseEntry('striker2500', { under: { wing: '#AABBCC', nope: '#000000', fins: 'red' } });
   check('a region underside is kept lower case, an unknown region and a bad colour dropped', same(e, { under: { wing: '#aabbcc' } }));
-  check('the dropped parts are counted, so a code carrying them is refused', entryDrops('timber1500', { under: { nope: '#000000' } }) === 1);
-  check('a film region has no underside of its own', normaliseEntry('kadet1981', { under: { wing: '#aabbcc' } }) === null);
-  check('the look carries the underside as numbers', lookFor('timber1500', e).under.wing === 0xaabbcc && Object.keys(lookFor('timber1500', null).under).length === 0);
+  check('the dropped parts are counted, so a code carrying them is refused', entryDrops('striker2500', { under: { nope: '#000000' } }) === 1);
+  check('the look carries the underside as numbers', lookFor('striker2500', e).under.wing === 0xaabbcc && Object.keys(lookFor('striker2500', null).under).length === 0);
 }
 
 console.log('7. layers');
@@ -196,24 +194,24 @@ console.log('7. layers');
   const kinds = DECAL_KIND_IDS.map((k, i) => ({ ...newDecal(k, [0.3 - i * 0.01, 0.06, 0.02 * i], [0.577, 0.577, -0.577]), x: i % 2 ? -15 : 0, o: Math.min(100, 50 + i * 5) })).map((d) => checkDecal(d).decal);
   check('every kind packs and unpacks to itself', kinds.every((d) => same(unpackDecal(packDecal(d)).decal, d)), `${JSON.stringify(packDecal(kinds[0]))}`);
   check('a packed layer is held to the same rules', unpackDecal([...packDecal(layer).slice(0, 7), 900000, ...packDecal(layer).slice(8)]).error === 'bad_value');
-  const full = normaliseEntry('timber1500', {
-    scheme: 'super', finishes: { wing: 'chrome' },
+  const full = normaliseEntry('striker2500', {
+    scheme: 'olive', finishes: { wing: 'chrome' },
     decals: Array.from({ length: MAX_DECALS }, (_, i) => ({ ...newDecal('text', [0.123456, -0.654321, 0.01 * i], [0.577, 0.577, 0.577]), x: -45, o: 55, fi: 'metallic', g: 99, h: true, l: true })),
   });
-  const code = encodeLivery('timber1500', 'x'.repeat(32), full);
+  const code = encodeLivery('striker2500', 'x'.repeat(32), full);
   check(`${MAX_DECALS} full text layers fit a version 2 code`, code.length <= CODE_MAX && same(readCode(code).entry, full), `${code.length} of ${CODE_MAX}`);
-  const profile = checkProfile({ airframe: 'timber1500', map: 'swiss2', figure: 0, livery: packEntry(full), parts: { prop: 'apc_10x7', addons: [] } });
+  const profile = checkProfile({ airframe: 'striker2500', map: 'swiss2', figure: 0, livery: packEntry(full), parts: { prop: 'stock', addons: [] } });
   check(`${MAX_DECALS} full layers, packed, fit a room profile`, Boolean(profile) && same(unpackEntry(profile.livery).entry, full), `${JSON.stringify(packEntry(full)).length} bytes`);
   const asObjects = JSON.stringify(full).length;
   check(`${MAX_DECALS} full layers stored as objects leave 1 kB of a build's 8 kB for the rest of it`, asObjects < 7 * 1024, `${asObjects} characters`);
   /* OLD DATA, as stored before layers: a version 1 code, settings and a
    * saves list holding 16 decals of the old keys only. */
-  const old = { scheme: 'super', regions: { stripe: '#3355aa' }, finishes: { wing: 'chrome' }, decals: Array.from({ length: 16 }, () => num) };
-  const v1 = rawCode({ v: 1, p: 'timber1500', n: 'Old', e: old });
+  const old = { scheme: 'olive', regions: { nose_band: '#3355aa' }, finishes: { wing: 'chrome' }, decals: Array.from({ length: 16 }, () => num) };
+  const v1 = rawCode({ v: 1, p: 'striker2500', n: 'Old', e: old });
   check('a version 1 code from before layers still reads, unchanged', same(readCode(v1).entry, old));
-  check('stored settings from before layers read unchanged', same(normaliseLiveries({ timber1500: old }), { timber1500: old }));
-  check('a saves list from before layers reads unchanged', same(normaliseSaves({ timber1500: [{ name: 'Old', entry: old }] }), { timber1500: [{ name: 'Old', entry: old }] }));
-  check('an old entry\'s look draws the same decals', same(lookFor('timber1500', old).decals, old.decals));
+  check('stored settings from before layers read unchanged', same(normaliseLiveries({ striker2500: old }), { striker2500: old }));
+  check('a saves list from before layers reads unchanged', same(normaliseSaves({ striker2500: [{ name: 'Old', entry: old }] }), { striker2500: [{ name: 'Old', entry: old }] }));
+  check('an old entry\'s look draws the same decals', same(lookFor('striker2500', old).decals, old.decals));
 }
 
 console.log('8. snapping');
@@ -229,19 +227,18 @@ console.log('9. a code carries every field of a livery');
 {
   /* A livery with an underside colour and wear made a code its own paste
    * refused (unknown_field): the reader knew fewer fields than the entry. */
-  const e = normaliseEntry('timber1500', { regions: { wing: '#112233' }, under: { wing: '#aabbcc' }, wear: 20 });
-  const back = readCode(encodeLivery('timber1500', 'Belly', e));
+  const e = normaliseEntry('striker2500', { regions: { wing: '#112233' }, under: { wing: '#aabbcc' }, wear: 20 });
+  const back = readCode(encodeLivery('striker2500', 'Belly', e));
   check(`an underside colour and wear survive a code: ${JSON.stringify(back)}`, !back.error && same(back.entry, e));
 }
 
 console.log('8. patterns');
 {
-  const e = normaliseEntry('timber1500', { patterns: { wing: { p: 'camo', c: '#AA0000' }, tail: { p: 'plaid', c: '#000000' }, nope: { p: 'checks', c: '#000000' } } });
+  const e = normaliseEntry('striker2500', { patterns: { wing: { p: 'camo', c: '#AA0000' }, fins: { p: 'plaid', c: '#000000' }, nope: { p: 'checks', c: '#000000' } } });
   check('a pattern is kept with its colour lower case; an unknown pattern or region is dropped', same(e, { patterns: { wing: { p: 'camo', c: '#aa0000' } } }));
-  check('the dropped ones are counted, so a code carrying them is refused', entryDrops('timber1500', { patterns: { tail: { p: 'plaid', c: '#000000' } } }) === 1);
-  check('a film region takes no pattern', normaliseEntry('kadet1981', { patterns: { wing: { p: 'checks', c: '#000000' } } }) === null);
-  check('the look carries a pattern as its number and colour', same(lookFor('timber1500', e).patterns, { wing: { p: 3, c: 0xaa0000 } }));
-  const back = readCode(encodeLivery('timber1500', 'Camo', e));
+  check('the dropped ones are counted, so a code carrying them is refused', entryDrops('striker2500', { patterns: { fins: { p: 'plaid', c: '#000000' } } }) === 1);
+  check('the look carries a pattern as its number and colour', same(lookFor('striker2500', e).patterns, { wing: { p: 3, c: 0xaa0000 } }));
+  const back = readCode(encodeLivery('striker2500', 'Camo', e));
   check(`a pattern survives a code: ${JSON.stringify(back)}`, !back.error && same(back.entry, e));
 }
 
@@ -261,13 +258,13 @@ console.log('8. the swatch library');
 
 console.log('10. flake and brushed (docs/redesign/MATERIALS.md)');
 {
-  const old = { regions: { wing: '#112233' }, finishes: { wing: 'chrome', fuselage: 'gloss', tail: 'carbon' }, wear: 10 };
-  check('an entry from before flake and brushed reads exactly as it did', same(normaliseEntry('timber1500', old), old));
-  const e = normaliseEntry('timber1500', { finishes: { wing: 'flake', fuselage: 'brushed' } });
+  const old = { regions: { wing: '#112233' }, finishes: { wing: 'chrome', fuselage: 'gloss', fins: 'carbon' }, wear: 10 };
+  check('an entry from before flake and brushed reads exactly as it did', same(normaliseEntry('striker2500', old), old));
+  const e = normaliseEntry('striker2500', { finishes: { wing: 'flake', fuselage: 'brushed' } });
   check('flake and brushed are kept per region', same(e, { finishes: { wing: 'flake', fuselage: 'brushed' } }));
-  const back = readCode(encodeLivery('timber1500', 'Flake', e));
+  const back = readCode(encodeLivery('striker2500', 'Flake', e));
   check('a flake and brushed livery comes back whole through a code', same(back.entry, e), back.error ?? '');
-  check('a finish this client does not know is counted as dropped, as an older client counts flake', entryDrops('timber1500', { finishes: { wing: 'sparkle' } }) === 1);
+  check('a finish this client does not know is counted as dropped, as an older client counts flake', entryDrops('striker2500', { finishes: { wing: 'sparkle' } }) === 1);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

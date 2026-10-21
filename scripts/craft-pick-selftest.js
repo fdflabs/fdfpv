@@ -44,12 +44,12 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { readPartTable } from './lib/crash.js';
-import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } from '../configs/airframes.js';
+import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 import { tunesFor } from '../configs/registry.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 import { cycleCraft, kindOf, pickList, slotOf, slotX } from '../src/ui/carousel.js';
-import { normaliseFloats, seatAirframe, withFloats } from '../src/ui/ui.js';
+import { seatAirframe } from '../src/ui/ui.js';
 import { keepCamera, normaliseFavourites, toggleFavourite } from '../src/ui/settings.js';
 import { blobRefusal, cleanBlob, mergeBlobs, pickSynced } from '../src/share/progressmerge.js';
 
@@ -87,12 +87,10 @@ for (const af of AIRFRAMES) {
 
 console.log('2. the lists and the cycle');
 check('the quads are the quads', pickList('quad').every((id) => !airframeById(id).fixedWing) && pickList('quad').length === 3, pickList('quad').join());
-/* A float version is its land plane's Floats toggle, not a card. */
-const CARDS = AIRFRAMES.filter((a) => !isFloatVersion(a.id));
-check('the float versions are the Timber\'s and the Cub\'s', AIRFRAMES.filter((a) => isFloatVersion(a.id)).map((a) => `${landPlaneOf(a.id)}>${a.id}`).join() === 'timber1500>timber1500f,cub1400>cub1400f');
-check('the planes are the planes, a float version not a card of its own', pickList('plane').every((id) => airframeById(id).fixedWing) && pickList('plane').length === CARDS.filter((a) => a.fixedWing).length && !pickList('plane').some(isFloatVersion), `${pickList('plane').length} of ${CARDS.filter((a) => a.fixedWing).length}`);
+const CARDS = AIRFRAMES;
+check('the planes are the planes', pickList('plane').every((id) => airframeById(id).fixedWing) && pickList('plane').length === CARDS.filter((a) => a.fixedWing).length, `${pickList('plane').length} of ${CARDS.filter((a) => a.fixedWing).length}`);
 check('all is every card, in the table\'s order', pickList('all').join() === CARDS.map((a) => a.id).join());
-check('kindOf agrees', kindOf('interceptor') === 'quad' && kindOf('cub1400f') === 'plane');
+check('kindOf agrees', kindOf('interceptor') === 'quad' && kindOf('bramor2300') === 'plane');
 {
   const seen = [];
   let id = CARDS[0].id;
@@ -101,8 +99,7 @@ check('kindOf agrees', kindOf('interceptor') === 'quad' && kindOf('cub1400f') ==
     seen.push(id);
   }
   check('] visits every card once and comes back to the first', new Set(seen).size === CARDS.length && id === CARDS[0].id, seen.join(' '));
-  check('[ goes the other way', cycleCraft(CARDS[0].id, -1) === CARDS[CARDS.length - 1].id && cycleCraft(cycleCraft('cub1400', 1), -1) === 'cub1400');
-  check('from a float version ] goes on from its land plane', cycleCraft('cub1400f', 1) === cycleCraft('cub1400', 1), cycleCraft('cub1400f', 1));
+  check('[ goes the other way', cycleCraft(CARDS[0].id, -1) === CARDS[CARDS.length - 1].id && cycleCraft(cycleCraft('bramor2300', 1), -1) === 'bramor2300');
 }
 
 console.log('3. the layout');
@@ -115,80 +112,36 @@ console.log('3. the layout');
 
 console.log('4. the tune goes with the aircraft');
 {
-  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'cub1400');
-  const cubTunes = tunesFor('cub1400').map((t) => t.id);
-  const other = cubTunes.find((t) => t !== airframeById('cub1400').defaultTune);
-  check('the Cub gets its default tune the first time', s.tune === airframeById('cub1400').defaultTune, s.tune);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'bramor2300');
+  const wingTunes = tunesFor('bramor2300').map((t) => t.id);
+  const other = wingTunes.find((t) => t !== airframeById('bramor2300').defaultTune);
+  check('the Bramor gets its default tune the first time', s.tune === airframeById('bramor2300').defaultTune, s.tune);
   s.tune = other;
   seatAirframe(s, 'interceptor');
   check('the interceptor gets its own back', s.tune === airframeById('interceptor').defaultTune, s.tune);
-  seatAirframe(s, 'cub1400');
-  check('and the Cub the one it was last flown on', s.tune === other, `${s.tune}, of ${cubTunes.join(', ')}`);
-  s.tuneFor = { ...s.tuneFor, sky1800: 'no-such-tune' };
-  seatAirframe(s, 'sky1800');
-  check('a remembered tune the aircraft no longer offers falls back to its default', s.tune === airframeById('sky1800').defaultTune, s.tune);
-}
-
-console.log('5. the Floats toggle');
-{
-  check('a profile seated on a float version has that plane\'s toggle on', JSON.stringify(normaliseFloats({}, 'timber1500f')) === '{"timber1500":true}');
-  check('a stored toggle is kept for a plane with floats and dropped for one without, or not a boolean',
-    JSON.stringify(normaliseFloats({ cub1400: true, sky1800: true, timber1500: 'yes' }, 'sky1800')) === '{"cub1400":true}');
-  const s = { airframe: 'interceptor', rates: airframeById('interceptor').rates, floats: { cub1400: true }, power: {}, parts: {}, tuning: {} };
-  check('a card with its toggle on seats the float version, one with it off the land plane',
-    withFloats(s, 'cub1400') === 'cub1400f' && withFloats(s, 'timber1500') === 'timber1500' && withFloats(s, 'sky1800') === 'sky1800');
-  seatAirframe(s, 'timber1500');
-  s.power = { timber1500: { option: '3s', pack: '3s2200' } };
-  s.parts = { timber1500: { prop: '11x7e', addons: [], damage: null } };
-  /* High: the Timber's stock is the manual's first flight low rate
-   * (configs/tuning.js THE STOCK RATE), and a setup at stock is no setup. */
-  s.tuning = { timber1500: { rate: 'high' } };
-  const tune = tunesFor('timber1500').map((t) => t.id).find((t) => t !== airframeById('timber1500').defaultTune);
-  s.tune = tune;
-  seatAirframe(s, floatVersionOf('timber1500'));
-  check('the toggle follows the seat', s.airframe === 'timber1500f' && s.floats.timber1500 === true && s.floats.cub1400 === true, JSON.stringify(s.floats));
-  check('the tune, the power, the prop and the bench setup go across to the floats',
-    s.tune === tune && JSON.stringify(s.power.timber1500f) === JSON.stringify(s.power.timber1500)
-      && s.parts.timber1500f && s.parts.timber1500f.prop === '11x7e' && s.tuning.timber1500f && s.tuning.timber1500f.rate === 'high',
-    `${s.tune} ${JSON.stringify(s.power.timber1500f)} ${JSON.stringify(s.parts.timber1500f)} ${JSON.stringify(s.tuning.timber1500f)}`);
-  /* A broken part is an index into the table it broke on: the Timber's 19
-   * parts are not the float Timber's 18, so its damage stays behind. */
-  {
-    const boxes = Array.from({ length: 19 }, () => [[0, 0, 0], [0.1, 0.1, 0.1]]);
-    const parents = boxes.map((b, i) => i - 1);
-    const damage = { boxes, parents, parts: [{ i: 18, kind: 0, cg: [0, 0, 0], mass: 0.01, joint: [0, 0, 0], state: 'broken' }] };
-    const t = { ...s, parts: { timber1500: { prop: '11x7e', addons: [], damage } } };
-    seatAirframe(t, 'timber1500');
-    seatAirframe(t, floatVersionOf('timber1500'));
-    check('a broken part on the wheels is not carried to the floats, the prop is',
-      Boolean(t.parts.timber1500.damage) && t.parts.timber1500f && t.parts.timber1500f.damage === null && t.parts.timber1500f.prop === '11x7e',
-      JSON.stringify(t.parts.timber1500f));
-  }
-  s.power = { ...s.power, timber1500f: { option: 'stock', pack: '4s3200' } };
-  seatAirframe(s, 'timber1500');
-  check('and back to the wheels, the toggle off and the choice made on floats carried back',
-    s.airframe === 'timber1500' && s.floats.timber1500 === false && JSON.stringify(s.power.timber1500) === JSON.stringify(s.power.timber1500f),
-    `${JSON.stringify(s.floats)} ${JSON.stringify(s.power)}`);
-  seatAirframe(s, 'sky1800');
-  check('another plane leaves the toggles as they were', JSON.stringify(s.floats) === '{"cub1400":true,"timber1500":false}', JSON.stringify(s.floats));
+  seatAirframe(s, 'bramor2300');
+  check('and the Bramor the one it was last flown on', s.tune === other, `${s.tune}, of ${wingTunes.join(', ')}`);
+  s.tuneFor = { ...s.tuneFor, striker2500: 'no-such-tune' };
+  seatAirframe(s, 'striker2500');
+  check('a remembered tune the aircraft no longer offers falls back to its default', s.tune === airframeById('striker2500').defaultTune, s.tune);
 }
 
 {
-  console.log('\n6. favourites');
-  const f = normaliseFavourites({ list: ['cub1400f', 'wing1000', 'bogus', 7, 'cub1400', 'interceptor', 'bramor2300'] });
-  check('a float version is its land plane, a retired aircraft its successor, unknown ids and repeats go',
-    f.list.join() === 'cub1400,bramor2300,interceptor', f.list.join());
+  console.log('\n5. favourites');
+  const f = normaliseFavourites({ list: ['wing1000', 'bogus', 7, 'interceptor', 'bramor2300', 'striker2500', 'interceptor'] });
+  check('a retired aircraft is its successor, unknown ids and repeats go',
+    f.list.join() === 'bramor2300,interceptor,striker2500', f.list.join());
   check('a profile with none, or junk, has an empty list',
-    normaliseFavourites(undefined).list.length === 0 && normaliseFavourites({ list: 'cub1400' }).list.length === 0);
-  const on = toggleFavourite({ list: ['cub1400'] }, 'zagi1219');
-  const off = toggleFavourite(on, 'cub1400');
-  check('the star puts an aircraft first and takes it out again', on.list.join() === 'zagi1219,cub1400' && off.list.join() === 'zagi1219',
+    normaliseFavourites(undefined).list.length === 0 && normaliseFavourites({ list: 'bramor2300' }).list.length === 0);
+  const on = toggleFavourite({ list: ['bramor2300'] }, 'striker2500');
+  const off = toggleFavourite(on, 'bramor2300');
+  check('the star puts an aircraft first and takes it out again', on.list.join() === 'striker2500,bramor2300' && off.list.join() === 'striker2500',
     `${on.list.join()} / ${off.list.join()}`);
-  const sent = { v: 1, data: pickSynced({ favourites: { list: ['zagi1219'] }, graphics: 'low' }), stamps: { favourites: 2000 } };
-  check('the list is synced and kept whole', JSON.stringify(cleanBlob(sent).data.favourites) === '{"list":["zagi1219"]}');
-  const held = { v: 1, data: { favourites: { list: ['cub1400', 'p51d1450'] } }, stamps: { favourites: 1000 } };
-  check('the newer side wins a merge', JSON.stringify(mergeBlobs(sent, held).data.favourites) === '{"list":["zagi1219"]}'
-    && JSON.stringify(mergeBlobs({ ...sent, stamps: { favourites: 500 } }, held).data.favourites) === '{"list":["cub1400","p51d1450"]}');
+  const sent = { v: 1, data: pickSynced({ favourites: { list: ['striker2500'] }, graphics: 'low' }), stamps: { favourites: 2000 } };
+  check('the list is synced and kept whole', JSON.stringify(cleanBlob(sent).data.favourites) === '{"list":["striker2500"]}');
+  const held = { v: 1, data: { favourites: { list: ['bramor2300', '7inch'] } }, stamps: { favourites: 1000 } };
+  check('the newer side wins a merge', JSON.stringify(mergeBlobs(sent, held).data.favourites) === '{"list":["striker2500"]}'
+    && JSON.stringify(mergeBlobs({ ...sent, stamps: { favourites: 500 } }, held).data.favourites) === '{"list":["bramor2300","7inch"]}');
   const bad = blobRefusal({ data: { favourites: { list: ['Not an id!'] } } });
   const long = blobRefusal({ data: { favourites: { list: Array.from({ length: 65 }, (_, i) => `a${i}`) } } });
   check('a list that is not ids, or too long, is refused', bad && bad.section === 'favourites' && long && long.section === 'favourites',
@@ -196,7 +149,7 @@ console.log('5. the Floats toggle');
 }
 
 {
-  console.log('\n7. the camera goes with the aircraft');
+  console.log('\n6. the camera goes with the aircraft');
   const same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
   const stock = (id) => ({ angle: airframeById(id).cameraAngle, fov: airframeById(id).cameraFov });
   const cam = (s) => ({ angle: s.cameraAngle, fov: s.cameraFov });
@@ -205,26 +158,26 @@ console.log('5. the Floats toggle');
   s.cameraAngle = 30;
   s.cameraFov = 115;
   keepCamera(s);
-  seatAirframe(s, 'cub1400');
-  check('the Cub gets its own stock, not the quad\'s camera', same(cam(s), stock('cub1400')), JSON.stringify(cam(s)));
+  seatAirframe(s, 'bramor2300');
+  check('the Bramor gets its own stock, not the quad\'s camera', same(cam(s), stock('bramor2300')), JSON.stringify(cam(s)));
   check('and the quad\'s is kept for it', same(s.cameraFor, { interceptor: { angle: 30, fov: 115 } }), JSON.stringify(s.cameraFor));
   s.cameraAngle = 12;
   keepCamera(s);
   seatAirframe(s, 'interceptor');
   check('back on the quad, its camera is the pilot\'s', same(cam(s), { angle: 30, fov: 115 }), JSON.stringify(cam(s)));
-  check('an angle alone on the Cub\'s stock lens is kept too', same(s.cameraFor.cub1400, { angle: 12, fov: stock('cub1400').fov }), JSON.stringify(s.cameraFor));
+  check('an angle alone on the Bramor\'s stock lens is kept too', same(s.cameraFor.bramor2300, { angle: 12, fov: stock('bramor2300').fov }), JSON.stringify(s.cameraFor));
   s.cameraAngle = stock('interceptor').angle;
   s.cameraFov = stock('interceptor').fov;
   keepCamera(s);
   check('a camera put back to stock leaves no entry', !('interceptor' in s.cameraFor), JSON.stringify(s.cameraFor));
-  const fresh = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates, cameraAngle: 30, cameraFov: 85 }, 'cub1400');
+  const fresh = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates, cameraAngle: 30, cameraFov: 85 }, 'bramor2300');
   check('a camera nobody set (the defaults) is not kept at a seat change', same(fresh.cameraFor, {}), JSON.stringify(fresh.cameraFor));
-  s.cameraFor = { ...s.cameraFor, sky1800: { angle: 'x', fov: 115 }, wing1000: { angle: 10, fov: 95 } };
-  seatAirframe(s, 'sky1800');
-  check('a broken entry or one for an aircraft this build lacks is dropped', same(cam(s), stock('sky1800')) && same(Object.keys(s.cameraFor), ['cub1400']), JSON.stringify(s.cameraFor));
-  const sent = { v: 1, data: pickSynced({ cameraFor: { cub1400: { angle: 12, fov: 100 }, whoop65: { angle: 1, fov: 95 } } }), stamps: {} };
-  check('the sync keeps an entry and drops a retired aircraft\'s', same(cleanBlob(sent).data.cameraFor, { cub1400: { angle: 12, fov: 100 } }), JSON.stringify(cleanBlob(sent).data.cameraFor));
-  const bad = blobRefusal({ data: { cameraFor: { cub1400: { angle: 'x', fov: 100 } } } });
+  s.cameraFor = { ...s.cameraFor, striker2500: { angle: 'x', fov: 115 }, wing1000: { angle: 10, fov: 95 } };
+  seatAirframe(s, 'striker2500');
+  check('a broken entry or one for an aircraft this build lacks is dropped', same(cam(s), stock('striker2500')) && same(Object.keys(s.cameraFor), ['bramor2300']), JSON.stringify(s.cameraFor));
+  const sent = { v: 1, data: pickSynced({ cameraFor: { bramor2300: { angle: 12, fov: 100 }, whoop65: { angle: 1, fov: 95 } } }), stamps: {} };
+  check('the sync keeps an entry and drops a retired aircraft\'s', same(cleanBlob(sent).data.cameraFor, { bramor2300: { angle: 12, fov: 100 } }), JSON.stringify(cleanBlob(sent).data.cameraFor));
+  const bad = blobRefusal({ data: { cameraFor: { bramor2300: { angle: 'x', fov: 100 } } } });
   check('an entry without a numeric angle and lens is refused', Boolean(bad) && bad.section === 'cameraFor', JSON.stringify(bad));
 }
 

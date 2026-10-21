@@ -3,7 +3,7 @@
  *
  * dressParts(craft, id, fit) puts on a model what the plane flies with:
  * its prop as the chosen one (blade count, diameter and pitch), the
- * tundra tyres, the camera pod, the light strips and the smoke nozzle, a
+ * camera pod, the light strips and the smoke nozzle, a
  * tape stripe round every taped part and, in the hangar only, a red glow
  * over every part the last crash broke. Everything goes where
  * configs/hangar-parts.js puts its mass. It undoes what it did the last
@@ -35,7 +35,6 @@
 
 import * as THREE from 'three';
 import { celMaterial } from './celmat.js';
-import { CUB_DIMS } from './cubcraft.js';
 import { POWER } from '../../configs/power.js';
 import { ANCHORS, TAPE, partSubtree, propShape, tapeBand } from '../../configs/hangar-parts.js';
 
@@ -85,9 +84,7 @@ export function dressParts(craft, id, fit = partsFor(id), { hangar = false } = {
   }
   const a = ANCHORS[id];
   for (const add of fit.entry.addons) {
-    if (add === 'tundra') {
-      fitTundra(dress);
-    } else if (add === 'pod') {
+    if (add === 'pod') {
       fitPod(a, dress);
     } else if (add === 'lights') {
       fitLights(a, dress);
@@ -264,8 +261,6 @@ const mats = {};
 function mat(name) {
   if (!mats[name]) {
     const m = {
-      tyre: () => celMaterial({ color: 0x1d1f21, rim: 0.22, spec: 0.10, specWidth: 0.012 }),
-      hub: () => celMaterial({ color: 0xc9ccce, rim: 0.30, spec: 0.60, specWidth: 0.020 }),
       pod: () => celMaterial({ color: 0x2b2e31, rim: 0.30, spec: 0.40, specWidth: 0.018, specColor: 0xdfe6ee }),
       glass: () => celMaterial({ color: 0x0d1117, rim: 0.50, spec: 0.90, specWidth: 0.030, specColor: 0xffffff }),
       ring: () => celMaterial({ color: 0xb58a3a, rim: 0.30, spec: 0.70, specWidth: 0.020 }),
@@ -277,67 +272,6 @@ function mat(name) {
     mats[name] = m;
   }
   return mats[name];
-}
-
-/*
- * TUNDRA TYRES: E-flite's 108 mm foam wheels on the Cub's axles, a fat
- * rounded tyre with a row of tread blocks and a grey hub, as the Timber
- * wears them. The kit's 70 mm wheels are inside them.
- */
-function fitTundra(dress) {
-  const r = 0.054;
-  const w = 0.038;
-  for (const side of ['mainLeft', 'mainRight']) {
-    const wheel = CUB_DIMS.wheels[side];
-    const g = new THREE.Group();
-    g.position.set(...wheel.axle);
-    const tyre = new THREE.Mesh(tundraGeometry(r, w), mat('tyre'));
-    tyre.castShadow = true;
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, w + 0.004, 20), mat('hub'));
-    hub.rotation.z = Math.PI / 2;
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, w + 0.010, 12), mat('brass'));
-    cap.rotation.z = Math.PI / 2;
-    g.add(tyre, hub, cap);
-    dress.group.add(g);
-  }
-}
-
-/* A tyre about the x axis: a rounded section swept round, its tread a
- * square wave of blocks 3 mm proud. */
-function tundraGeometry(r, w) {
-  const around = 56;
-  const across = 14;
-  const rIn = 0.021;
-  const pos = [];
-  const idx = [];
-  for (let i = 0; i <= around; i += 1) {
-    const a = (i / around) * Math.PI * 2;
-    const block = Math.floor(i / 2) % 2 === 0 ? 1 : 0;
-    for (let j = 0; j <= across; j += 1) {
-      const u = j / across;
-      /* The section: flat inner band, rounded shoulders, a crowned face. */
-      const x = (u - 0.5) * w;
-      const t = Math.abs(u - 0.5) * 2;
-      const shoulder = Math.sqrt(Math.max(0, 1 - t ** 6));
-      let rr = rIn + (r - 0.003 - rIn) * shoulder;
-      if (t < 0.8) {
-        rr += 0.003 * block;
-      }
-      pos.push(x, rr * Math.cos(a), rr * Math.sin(a));
-    }
-  }
-  for (let i = 0; i < around; i += 1) {
-    for (let j = 0; j < across; j += 1) {
-      const p = i * (across + 1) + j;
-      const q = p + across + 1;
-      idx.push(p, q, p + 1, q, q + 1, p + 1);
-    }
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
 }
 
 /*

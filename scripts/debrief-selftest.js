@@ -160,7 +160,7 @@ const rt = (events) => JSON.parse(JSON.stringify(events));
   check('condition: a fourth word fails loudly', threw);
 }
 {
-  const d = fromRace({ aircraft: 'cub1400', fixedWing: true, events: raceRun([{ ms: 50000 }]), recordAtStart: 49000, flightMs: 60000, totalS: NaN, replay: ok, landed: true });
+  const d = fromRace({ aircraft: 'bramor2300', fixedWing: true, events: raceRun([{ ms: 50000 }]), recordAtStart: 49000, flightMs: 60000, totalS: NaN, replay: ok, landed: true });
   check('race: off the record is complete', d.result.kind === 'complete' && d.records[0].improved === false);
   check('race: a plane reports its landing', d.result.landed === true);
   check('race: no flight time total, no line', d.records.length === 1);
@@ -344,7 +344,7 @@ const pick = (list) => list[Math.floor(rand() * list.length)];
 /* The bests a run set (src/game/progress.js awardBest, PROGRESSION.md
  * section 3): a "New best" line each, the old value and the new. */
 {
-  const race = fromRace({ aircraft: 'timber1500', events: raceRun([{ ms: 41000 }]), recordAtStart: 42000, flightMs: 60000, totalS: 100, replay: ok });
+  const race = fromRace({ aircraft: 'bramor2300', events: raceRun([{ ms: 41000 }]), recordAtStart: 42000, flightMs: 60000, totalS: 100, replay: ok });
   const bests = [
     { type: 'best', key: 'lap:plane:track:t1', now: 41500, before: 42000, xp: 20 },
     { type: 'best', key: 'lap:plane:track:t1', now: 41000, before: 41500, xp: 0 },
@@ -372,10 +372,10 @@ const pick = (list) => list[Math.floor(rand() * list.length)];
   /* An aircraft challenge the run did (progress-ui.js runBests'
    * challenge entries): its line on whichever debrief follows, after the
    * bests, saying which one in the pilot's language. */
-  const did = [...bests, { key: 'challenge:cub1400:landings', airframe: 'cub1400', id: 'landings' }];
+  const did = [...bests, { key: 'challenge:bramor2300:landings', airframe: 'bramor2300', id: 'landings' }];
   const withDid = withBests(race, did);
   check('challenge: a race says it after its bests', withDid.records.map((r) => r.what).slice(0, 4).join() === 'debrief.best_lap,debrief.best_run,debrief.challenge_done,debrief.track_record');
-  check('challenge: an entry without its aircraft or id is no line', withBests(race, [{ key: 'challenge:cub1400:lap' }]) === race);
+  check('challenge: an entry without its aircraft or id is no line', withBests(race, [{ key: 'challenge:bramor2300:lap' }]) === race);
   for (const [lang, label, value] of [['en', 'Challenge complete', '3 landings in one flight'], ['es', 'Desafío completado', '3 aterrizajes en un vuelo']]) {
     await useLocale(lang);
     const row = factLines(withDid).find((l) => l[0] === label);

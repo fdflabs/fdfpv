@@ -226,12 +226,6 @@ for (const from of AIRFRAME_IDS) {
     hashed[`seat:${from}>${to}`] = hash({ there, back: delta(s) });
   }
 }
-/* Seating from a profile carrying power, parts and tuning for the plane,
- * the case that carries them across a float version. */
-for (const [from, to] of [['timber1500', 'timber1500f'], ['timber1500f', 'timber1500'], ['cub1400', 'cub1400f'], ['cub1400f', 'cub1400']]) {
-  const s = loaded({ profile: { airframeAsked: true, airframe: from, tuneFor: { [to]: 'zzz' } } }).settings;
-  full[`seatfloat:${from}>${to}`] = delta(ui.seatAirframe(s, to));
-}
 
 /* Random profiles: a mix of real values from other airframes' loaded
  * profiles and wrong ones, key by key. */
@@ -263,12 +257,6 @@ full.hudStyleFor = AIRFRAME_IDS.map((id) => [id,
   ui.hudStyleFor({ hudStyle: 'osd', hudStyleBy: {} }, id),
   ui.hudStyleFor({ hudStyle: 'game', hudStyleBy: { [id]: 'osd' } }, id),
   ui.hudStyleFor({ hudStyle: 'game' }, id)]);
-const floatInputs = [null, 'x', [], { timber1500: true }, { timber1500: false, cub1400: true }, { cub1400: 1, nope: true, timber1500f: true }];
-full.normaliseFloats = AIRFRAME_IDS.map((id) => [id, floatInputs.map((f) => ui.normaliseFloats(f, id))]);
-full.withFloats = AIRFRAME_IDS.map((id) => [id,
-  ui.withFloats({ floats: { [id]: true } }, id),
-  ui.withFloats({ floats: { [id]: false } }, id),
-  ui.withFloats({}, id)]);
 full.constants = Object.fromEntries(Object.entries(ui).filter(([, v]) => typeof v !== 'function' && typeof v !== 'object' || Array.isArray(v)));
 
 const got = { full: canon(full), hashed };

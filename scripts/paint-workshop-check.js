@@ -11,25 +11,25 @@
  *   4. The underside: on one aircraft of every paint family the Colours
  *      tab's Underside, pressed, rolls it over, and a swatch then paints
  *      the first region's underside only (the model's material carries
- *      it, the top keeps its colour); a picture of each. The Timber's is
+ *      it, the top keeps its colour); a picture of each. The Striker's is
  *      saved, kept in the settings, and after a reload still drawn.
- *   5. Click to paint on the Timber: a colour picked, then the pointer over
+ *   5. Click to paint on the Striker: a colour picked, then the pointer over
  *      the model from the Top view names the region and side beside it
  *      and a click puts the colour on that region's top; from the Bottom
  *      view the label says underside and a click paints the underside.
- *   6. Undo and Redo on the Timber: a top colour, then an underside; the Undo
+ *   6. Undo and Redo on the Striker: a top colour, then an underside; the Undo
  *      button takes the underside off, Z the top colour, and Undo is then
  *      off with the paint as it opened; Redo and Y bring both back, and a
  *      new change after an Undo ends what Redo could bring back.
- *   7. A/B on the Timber (its saved underside on): Stock pressed shows the
+ *   7. A/B on the Striker (its saved underside on): Stock pressed shows the
  *      kit's colours and no underside, pressed again the pilot's paint
  *      back; H the same; a swatch picked while on stock ends it.
  *   8. Patterns on every paint family: a pattern (each family the next
  *      in the list) on the first region that is not film, a swatch then
  *      its second colour; the model's material draws both, and a picture
  *      of each from above.
- *   9. The swatch library: a colour kept on the Timber is stored at once,
- *      offered on the Cub after a reload and paints it, and Forget takes
+ *   9. The swatch library: a colour kept on the Striker is stored at once,
+ *      offered on the Bramor after a reload and paints it, and Forget takes
  *      it out of the library.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
@@ -83,6 +83,14 @@ function say(ok, what) {
 /* One aircraft per paint family: a float version wears its land plane's
  * livery, so it is the same paint. */
 const FAMILIES = (process.env.WORKSHOP_ONLY ? AIRFRAMES.filter((a) => process.env.WORKSHOP_ONLY.split(',').includes(a.id)) : AIRFRAMES).map((a) => a.id).filter((id, i, all) => paintable(id) && all.findIndex((o) => liveryKey(o) === liveryKey(id)) === i);
+
+/* The aircraft steps 2 to 9 work on, a kept fixed wing. Step 4 saves its
+ * underside on its first region that is not film, the fuselage
+ * (aircraft/striker2500/aircraft.js livery), and step 7 reads that one
+ * back. SECOND is the other aircraft step 9 carries a kept colour to. */
+const SUBJECT = 'striker2500';
+const SUBJECT_UNDER = 'fuselage';
+const SECOND = 'bramor2300';
 
 const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};
@@ -176,7 +184,7 @@ async function viewsEach(page) {
 
 async function flipAndViews(page) {
   console.log('2. the Flip button, the views by key and button, R3');
-  await openHangar(page, 'timber1500');
+  await openHangar(page, SUBJECT);
   const clicked = await press(page, '.hangar [data-key="flip"]');
   await page.until(ROLLED(Math.PI), 60000).catch(() => {});
   say(clicked && Math.abs((await cam(page)).roll - Math.PI) < 0.01, 'the Flip button rolls it over');
@@ -226,7 +234,7 @@ async function flipAndViews(page) {
 
 async function closedFlipped(page) {
   console.log('3. flipped and closed, it opens again upright');
-  const id = FAMILIES.includes('timber1500') ? 'timber1500' : FAMILIES[0];
+  const id = SUBJECT;
   await openHangar(page, id);
   await page.tap('KeyV');
   await page.until(ROLLED(Math.PI), 60000).catch(() => {});
@@ -364,18 +372,18 @@ async function underEach(page) {
     const entry = await page.evaluate('window.__ui.hangar.entry');
     say(Boolean(u) && u.under === got.hex && after[got.region] === before[got.region] && entry.under && entry.under[got.region] === got.hex,
       `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}, entry ${JSON.stringify(entry)}${entry.under && entry.under[got.region] === got.hex ? '' : ` log ${await page.evaluate('window.__clickLog.slice(-24).join(" ")')}`}`);
-    if (id === 'timber1500') {
+    if (id === SUBJECT) {
       await press(page, '.hangar [data-key="save"]');
       await page.until('!window.__ui.hangar.isOpen', 10000);
-      const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).livery.timber1500`);
-      say(Boolean(stored) && stored.under && stored.under[got.region] === got.hex, `Save keeps the Timber's underside: ${JSON.stringify(stored)}`);
+      const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).livery[${JSON.stringify(SUBJECT)}]`);
+      say(Boolean(stored) && stored.under && stored.under[got.region] === got.hex, `Save keeps the Striker's underside: ${JSON.stringify(stored)}`);
       await page.cdp.send('Page.reload', {}, page.sessionId);
       await page.until('!!window.__shellReady', 300000);
       await page.until('window.__map && window.__map().ready', 400000);
       await openHangar(page, id);
-      await page.until(`(() => { const l = window.__pickLook('timber1500'); const u = l && l.uniforms[${JSON.stringify(got.region)}]; return Boolean(u) && u.under === ${JSON.stringify(got.hex)}; })()`, 20000).catch(() => {});
+      await page.until(`(() => { const l = window.__pickLook(${JSON.stringify(SUBJECT)}); const u = l && l.uniforms[${JSON.stringify(got.region)}]; return Boolean(u) && u.under === ${JSON.stringify(got.hex)}; })()`, 20000).catch(() => {});
       const kept = await look(page, id);
-      say(kept && kept.uniforms[got.region] && kept.uniforms[got.region].under === got.hex, `after a reload the Timber still wears it: ${JSON.stringify(kept && kept.uniforms[got.region])}`);
+      say(kept && kept.uniforms[got.region] && kept.uniforms[got.region].under === got.hex, `after a reload the Striker still wears it: ${JSON.stringify(kept && kept.uniforms[got.region])}`);
       await closeHangar(page);
     } else {
       await closeHangar(page);
@@ -407,8 +415,8 @@ async function hoverModel(page) {
 }
 
 async function clickToPaint(page) {
-  console.log('5. click to paint on the Timber');
-  await openHangar(page, 'timber1500');
+  console.log('5. click to paint on the Striker');
+  await openHangar(page, SUBJECT);
   await press(page, '.hangar [data-key="tab-colours"]');
   await page.until("window.__ui.hangar.tab === 'colours'", 5000);
   const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
@@ -439,8 +447,8 @@ async function clickToPaint(page) {
 }
 
 async function undoSteps(page) {
-  console.log('6. undo on the Timber');
-  await openHangar(page, 'timber1500');
+  console.log('6. undo on the Striker');
+  await openHangar(page, SUBJECT);
   await press(page, '.hangar [data-key="tab-colours"]');
   await page.until("window.__ui.hangar.tab === 'colours'", 5000);
   const start = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
@@ -484,15 +492,15 @@ async function undoSteps(page) {
 }
 
 async function abStock(page) {
-  console.log('7. A/B against stock on the Timber');
+  console.log('7. A/B against stock on the Striker');
   /* Region order is the builder's, so compare as sorted pairs. */
   const sorted = (o) => JSON.stringify(Object.entries(o || {}).sort());
-  const kit = coloursFor('timber1500', null);
-  const shows = () => page.evaluate("(() => { const l = window.__pickLook('timber1500'); return { paint: window.__pickPaint('timber1500'), under: l.uniforms.wing && l.uniforms.wing.under }; })()");
-  await openHangar(page, 'timber1500');
-  await page.until("(() => { const l = window.__pickLook('timber1500'); return Boolean(l && l.uniforms.wing && l.uniforms.wing.under); })()", 20000).catch(() => {});
+  const kit = coloursFor(SUBJECT, null);
+  const shows = () => page.evaluate(`(() => { const l = window.__pickLook(${JSON.stringify(SUBJECT)}); return { paint: window.__pickPaint(${JSON.stringify(SUBJECT)}), under: l.uniforms[${JSON.stringify(SUBJECT_UNDER)}] && l.uniforms[${JSON.stringify(SUBJECT_UNDER)}].under }; })()`);
+  await openHangar(page, SUBJECT);
+  await page.until(`(() => { const l = window.__pickLook(${JSON.stringify(SUBJECT)}); return Boolean(l && l.uniforms[${JSON.stringify(SUBJECT_UNDER)}] && l.uniforms[${JSON.stringify(SUBJECT_UNDER)}].under); })()`, 20000).catch(() => {});
   const own = await shows();
-  const stockNow = `(() => { const p = window.__pickPaint('timber1500'); const l = window.__pickLook('timber1500'); return JSON.stringify(Object.entries(p).sort()) === ${JSON.stringify(sorted(kit))} && !(l.uniforms.wing && l.uniforms.wing.under); })()`;
+  const stockNow = `(() => { const p = window.__pickPaint(${JSON.stringify(SUBJECT)}); const l = window.__pickLook(${JSON.stringify(SUBJECT)}); return JSON.stringify(Object.entries(p).sort()) === ${JSON.stringify(sorted(kit))} && !(l.uniforms[${JSON.stringify(SUBJECT_UNDER)}] && l.uniforms[${JSON.stringify(SUBJECT_UNDER)}].under); })()`;
   await press(page, '.hangar [data-key="ab"]');
   await page.until(stockNow, 10000).catch(() => {});
   const stock = await shows();
@@ -500,7 +508,7 @@ async function abStock(page) {
     `Stock shows the kit's paint and no underside: ${JSON.stringify(stock)}, the pilot's was ${JSON.stringify(own)}`);
   await shot(page, '7-ab-stock');
   await press(page, '.hangar [data-key="ab"]');
-  await page.until(`(() => { const l = window.__pickLook('timber1500'); return Boolean(l.uniforms.wing && l.uniforms.wing.under); })()`, 10000).catch(() => {});
+  await page.until(`(() => { const l = window.__pickLook(${JSON.stringify(SUBJECT)}); return Boolean(l.uniforms[${JSON.stringify(SUBJECT_UNDER)}] && l.uniforms[${JSON.stringify(SUBJECT_UNDER)}].under); })()`, 10000).catch(() => {});
   const back = await shows();
   say(JSON.stringify(back) === JSON.stringify(own), `pressed again the pilot's paint is back: ${JSON.stringify(back)}`);
   await page.tap('KeyH');
@@ -561,7 +569,7 @@ async function swatchLibrary(page) {
     await press(page, '.hangar [data-key="tab-colours"]');
     await page.until("window.__ui.hangar.tab === 'colours'", 5000);
   };
-  await colours('timber1500');
+  await colours(SUBJECT);
   await press(page, '.hangar [data-key="side-top"]');
   const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
   const hex = keys[12].slice('colour-'.length);
@@ -576,7 +584,7 @@ async function swatchLibrary(page) {
   await page.cdp.send('Page.reload', {}, page.sessionId);
   await page.until('!!window.__shellReady', 300000);
   await page.until('window.__map && window.__map().ready', 400000);
-  await colours('cub1400');
+  await colours(SECOND);
   const region = await page.evaluate('window.__ui.hangar.region');
   await press(page, '.hangar [data-key="side-top"]');
   const offered = await page.evaluate(`Boolean(document.querySelector('.hangar [data-key="mine-colour-${hex}"]'))`);
@@ -585,8 +593,8 @@ async function swatchLibrary(page) {
     await mouse(page, 'mouseMoved', 400, 450);
   }
   await page.until(`(window.__ui.hangar.entry.regions || {})[${JSON.stringify(region)}] === ${JSON.stringify(hex)}`, 5000).catch(() => {});
-  const cub = await page.evaluate('window.__ui.hangar.entry');
-  say(offered && (cub.regions || {})[region] === hex, `after a reload the Cub offers it and it paints the ${region}: ${JSON.stringify(cub)}`);
+  const second = await page.evaluate('window.__ui.hangar.entry');
+  say(offered && (second.regions || {})[region] === hex, `after a reload the Bramor offers it and it paints the ${region}: ${JSON.stringify(second)}`);
   await steady(page, '.hangar [data-key="keep-colour"]');
   const label = await page.evaluate(`document.querySelector('.hangar [data-key="keep-colour"]').textContent`);
   await press(page, '.hangar [data-key="keep-colour"]');
@@ -603,7 +611,7 @@ const STEPS = {
 /* CI runs the check as two npm scripts on two shards, a page each
  * (paint:workshop:views and paint:workshop:paint, WORKSHOP_PART), because
  * the whole set the wall clock of a CI run at 26 minutes. Steps 4 to 7
- * read the Timber's underside that step 4 saved, so they share a part. */
+ * read the Striker's underside that step 4 saved, so they share a part. */
 const PARTS = {
   views: ['viewsEach', 'flipAndViews', 'closedFlipped'],
   paint: ['underEach', 'clickToPaint', 'undoSteps', 'abStock', 'patternsEach', 'swatchLibrary'],

@@ -31,7 +31,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AIRFRAME_IDS, airframeById, landPlaneOf, retiredAirframe } from '../../configs/airframes.js';
+import { AIRFRAME_IDS, airframeById, retiredAirframe } from '../../configs/airframes.js';
 import { cleanCampaign, MAX_STARS, ACT1, INTERIOR } from '../game/campaign.js';
 import { MEDAL_STEPS } from '../game/medals.js';
 import { bestKind, bestsMap, levelInfo } from '../game/progress.js';
@@ -50,9 +50,8 @@ const MODE_TIME = [
   ['free', 'ui.free_flight_card'],
 ];
 
-/* A float version is the land plane with a toggle on (configs/airframes.js
- * THE FLOAT VERSIONS), so its time is the land plane's. A retired id keeps
- * its own name: the pilot flew that aircraft, not its successor. */
+/* A retired id keeps its own name: the pilot flew that aircraft, not its
+ * successor. */
 function planeName(id) {
   if (AIRFRAME_IDS.includes(id)) {
     return airframeById(id).name;
@@ -83,9 +82,8 @@ export function pilotStats(settings, wallet = null) {
   const counts = countTotals(s.pilotCounts);
   const byPlane = {};
   for (const [id, secs] of Object.entries(total.byAirframe)) {
-    const land = landPlaneOf(id);
-    if (secs > 0 && planeName(land)) {
-      byPlane[land] = (byPlane[land] || 0) + secs;
+    if (secs > 0 && planeName(id)) {
+      byPlane[id] = (byPlane[id] || 0) + secs;
     }
   }
   const planes = Object.entries(byPlane).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));

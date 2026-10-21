@@ -57,7 +57,6 @@ import { airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { liveryKey, lookFor, normaliseEntry, paintable } from '../../configs/liveries.js';
 import { unpackEntry } from '../../configs/paint.js';
 import { PROPS, normalisePlane } from '../../configs/hangar-parts.js';
-import { surfaceGrowth } from '../../configs/surfaces.js';
 import { FIGURE_COUNT, FLAG_CHUTE, FLAG_GEAR_DOWN, FLAG_QUAD, FLAG_SMOKE } from '../share/roomwire.js';
 
 /* A suit and a cap each. FIGURE_COUNT of them; the wire checks the index. */
@@ -260,14 +259,11 @@ export function buildPeerCraft(profile, look = null) {
    * so it is read before the build; profileKey already rebuilds on a new
    * livery, which carries it. */
   const paint = paintable(id) ? lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry)) : null;
-  /* And their control surface tiers (configs/surfaces.js), which ride in
-   * their parts and so in profileKey. */
-  const surfaces = surfaceGrowth(id, profile.parts && profile.parts.surfaces);
   /* mergeFixed: a combat quad's parts that never move on a peer drawn as
    * one mesh a material (src/render/combatcraft.js); the other builders
    * have no such option and draw as they always did. */
   const craft = craftBuilderFor(id)({
-    name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined, lights: paint ? paint.lights : undefined, surfaces: surfaces ?? undefined, mergeFixed: true,
+    name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined, lights: paint ? paint.lights : undefined, mergeFixed: true,
   });
   if (paint) {
     /* The colours at once, the layers over the next frames

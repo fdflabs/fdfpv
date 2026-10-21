@@ -429,25 +429,6 @@ export async function flyAll() {
     });
     flights[`${id}-${opts.tag ?? 'flight'}`] = { craft: id, airframe: id, voice: af.voice ?? 'wing', title, ...out };
   };
-  await wingFlight('cub1400', 'Cub (electric): climb, cruise, glide');
-  await wingFlight('kadet1981', 'Kadet Senior (four stroke glow): climb, cruise, idle');
-  await wingFlight('bombshell1118', 'Bombshell (two stroke glow): climb, cruise, idle');
-  await wingFlight('tigermoth1803', 'Tiger Moth (two stroke glow): climb, cruise, idle');
-  await wingFlight('p51d1450', 'P-51 (electric, four blades): gear up, flaps, cruise', {
-    thr: (ms) => (ms < 6000 ? 0.8 : 0.5),
-    actions: [
-      { ms: 1000, act: (sim) => must(sim.e.sim_wing_set_gear(1), 'gear up') },
-      { ms: 7500, act: (sim) => must(sim.e.sim_wing_set_flaps(1), 'flaps') },
-    ],
-  });
-  await wingFlight('f16878', 'F-16 (ducted fan): spool, full, cruise', {
-    thr: (ms) => (ms < 1500 ? 0.3 : ms < 6000 ? 1 : 0.55),
-    hold: () => ({ z: 60 }),
-  });
-  await wingFlight('nrj1490', 'NRJ glider: the air alone', {
-    thr: () => 0, hold: () => ({ v: 9 }), v0: 9,
-  });
-  flights['nrj1490-flight'].glider = true;
   {
     /* The Bramor: off its catapult, then its parachute. */
     const id = 'bramor2300';

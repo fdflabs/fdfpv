@@ -332,12 +332,12 @@ async function crossing(a, b, va, vb) {
   return [await toMeet(a, 0, va), await toMeet(b, Math.PI / 2, vb)];
 }
 
+/* The interceptor's pair alone is left. The Cub, P-51, Slow Stick and
+ * Bombshell left the shell on 2026-10-21, and a room seats a retired
+ * aircraft as the Striker (src/share/roomwire.js checkProfile), so its
+ * referee can no longer judge one. */
 const PAIRS = [
-  ['cub1400', 'cub1400'],
-  ['cub1400', 'p51d1450'],
   ['interceptor', 'interceptor'],
-  ['interceptor', 'cub1400'],
-  ['slowstick1180', 'bombshell1118'],
 ];
 const CLOSINGS = [8, 12, 16, 24, 36, 50];
 
@@ -427,7 +427,6 @@ async function friendly(tag, a, b, map) {
 
 console.log('mid air through the real plant, both sides');
 judge('', await series(PAIRS, 'itaipu'));
-await friendly('', 'cub1400', 'p51d1450', 'itaipu');
 
 /* The aircraft PDCS seats, in the war's and The Interior's pairs, on
  * Itaipu: a war ram (the interceptor and the seven inch into the

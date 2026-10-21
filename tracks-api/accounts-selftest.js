@@ -173,22 +173,22 @@ console.log('the progress merge');
     v: 1,
     data: {
       progress: { v: 1, xp: 300, courses: { a: true }, challenges: { c1: true }, seen: {}, casual: {}, unlockAll: false },
-      liverySaves: { cub1400: [{ name: 'Red', entry: { scheme: 1 } }, { name: 'Blue', entry: { scheme: 2 } }] },
-      tuning: { cub1400: { cg: 1 }, kadet1981: { cg: 2 } },
-      livery: { cub1400: { scheme: 'mine' } },
+      liverySaves: { bramor2300: [{ name: 'Red', entry: { scheme: 1 } }, { name: 'Blue', entry: { scheme: 2 } }] },
+      tuning: { bramor2300: { cg: 1 }, striker2500: { cg: 2 } },
+      livery: { bramor2300: { scheme: 'mine' } },
       rates: { type: 'actual', v: 'here' },
     },
-    stamps: { 'tuning/cub1400': 2000, 'tuning/kadet1981': 1000, rates: 500, 'livery/cub1400': 100 },
+    stamps: { 'tuning/bramor2300': 2000, 'tuning/striker2500': 1000, rates: 500, 'livery/bramor2300': 100 },
   };
   const there = {
     v: 1,
     data: {
       progress: { v: 1, xp: 900, courses: { b: true }, challenges: {}, seen: { s: true }, casual: {}, unlockAll: true },
-      liverySaves: { cub1400: [{ name: 'Blue', entry: { scheme: 9 } }, { name: 'Green', entry: {} }], zagi1219: [{ name: 'Z', entry: {} }] },
-      tuning: { cub1400: { cg: 9 }, kadet1981: { cg: 8 } },
+      liverySaves: { bramor2300: [{ name: 'Blue', entry: { scheme: 9 } }, { name: 'Green', entry: {} }], interceptor: [{ name: 'Z', entry: {} }] },
+      tuning: { bramor2300: { cg: 9 }, striker2500: { cg: 8 } },
       rates: { type: 'actual', v: 'there' },
     },
-    stamps: { 'tuning/cub1400': 1000, 'tuning/kadet1981': 3000, rates: 900, 'livery/cub1400': 200 },
+    stamps: { 'tuning/bramor2300': 1000, 'tuning/striker2500': 3000, rates: 900, 'livery/bramor2300': 200 },
   };
   const m = mergeBlobs(here, there);
   check('the higher XP wins', m.data.progress.xp === 900);
@@ -213,24 +213,24 @@ console.log('the progress merge');
   check('lessons passed merge as the union at the earliest pass time', JSON.stringify(lm.data.progress.lessons) === '{"first_takeoff":1000,"first_turns":5000,"race_lap":3000}', JSON.stringify(lm.data.progress.lessons));
   check('firsts paid are the union, and an older computer cannot lower the version', v2.data.progress.v === 2 && v2.data.progress.firsts['mission:itaipu-1:win'] === true, JSON.stringify(v2.data.progress));
   check('saved liveries are the union, one per name, the incoming first',
-    JSON.stringify(m.data.liverySaves.cub1400.map((x) => x.name)) === '["Red","Blue","Green"]' && m.data.liverySaves.cub1400[1].entry.scheme === 2
-    && m.data.liverySaves.zagi1219.length === 1);
-  check('each plane\'s tuning is the newer of the two', m.data.tuning.cub1400.cg === 1 && m.data.tuning.kadet1981.cg === 8);
+    JSON.stringify(m.data.liverySaves.bramor2300.map((x) => x.name)) === '["Red","Blue","Green"]' && m.data.liverySaves.bramor2300[1].entry.scheme === 2
+    && m.data.liverySaves.interceptor.length === 1);
+  check('each plane\'s tuning is the newer of the two', m.data.tuning.bramor2300.cg === 1 && m.data.tuning.striker2500.cg === 8);
   check('a whole section is the newer of the two', m.data.rates.v === 'there');
-  check('a paint removed later than it was set elsewhere stays removed', !m.data.livery || !m.data.livery.cub1400);
-  check('the stamps are the later of each', m.stamps['tuning/kadet1981'] === 3000 && m.stamps['tuning/cub1400'] === 2000);
+  check('a paint removed later than it was set elsewhere stays removed', !m.data.livery || !m.data.livery.bramor2300);
+  check('the stamps are the later of each', m.stamps['tuning/striker2500'] === 3000 && m.stamps['tuning/bramor2300'] === 2000);
   const again = mergeBlobs(m, there);
   check('merging the result with either side again changes nothing', JSON.stringify(again.data) === JSON.stringify(m.data));
   check('an empty side leaves the other as it was', JSON.stringify(mergeBlobs(here, null).data.tuning) === JSON.stringify(here.data.tuning));
   const junk = cleanBlob({ v: 1, data: { evil: { x: 1 }, tuning: 'nope', tune: 'betaflight-default' }, stamps: { 'evil/x': 5, tune: 7 } });
   check('unknown sections and wrong shapes are dropped', !('evil' in junk.data) && !('tuning' in junk.data) && junk.data.tune === 'betaflight-default' && !('evil/x' in junk.stamps));
   const firstSync = mergeBlobs(
-    { v: 1, data: { rates: { v: 'defaults' }, tuning: { cub1400: { cg: 0 }, zagi1219: { cg: 5 } } }, stamps: {} },
-    { v: 1, data: { rates: { v: 'tuned' }, tuning: { cub1400: { cg: 3 } } }, stamps: {} },
+    { v: 1, data: { rates: { v: 'defaults' }, tuning: { bramor2300: { cg: 0 }, interceptor: { cg: 5 } } }, stamps: {} },
+    { v: 1, data: { rates: { v: 'tuned' }, tuning: { bramor2300: { cg: 3 } } }, stamps: {} },
   );
   check('a computer\'s first sync, stamping nothing, takes the account\'s tunes over its own',
-    firstSync.data.rates.v === 'tuned' && firstSync.data.tuning.cub1400.cg === 3);
-  check('and keeps its own where the account has none', firstSync.data.tuning.zagi1219.cg === 5);
+    firstSync.data.rates.v === 'tuned' && firstSync.data.tuning.bramor2300.cg === 3);
+  check('and keeps its own where the account has none', firstSync.data.tuning.interceptor.cg === 5);
   const stamps = stampChanges({ tuning: { a: 1, b: 2 }, rates: { x: 1 } }, { tuning: { a: 1 }, rates: { x: 0 } }, 77);
   check('a computer stamps exactly the parts it changed', stamps['tuning/b'] === 77 && stamps.rates === 77 && !('tuning/a' in stamps));
 }
@@ -251,9 +251,9 @@ console.log('flight time follows the account, and is never counted twice or lost
   const total = (rec) => flightTotals(rec).seconds;
 
   /* Both start from the account as it was: 100 s on the desk. */
-  const account = flown({}, DESK, 'cub1400', 'free', 100, '2026-09-20');
+  const account = flown({}, DESK, 'bramor2300', 'free', 100, '2026-09-20');
   /* Offline, the desk flies 60 s more and the laptop 45 s, of its own. */
-  const desk = flown(account, DESK, 'cub1400', 'race', 60);
+  const desk = flown(account, DESK, 'bramor2300', 'race', 60);
   const laptop = flown(account, LAPTOP, 'striker2500', 'war', 45, '2026-10-02');
   let m = mergeBlobs(blob(desk), blob(account));
   m = mergeBlobs(blob(laptop), m);
@@ -264,14 +264,14 @@ console.log('flight time follows the account, and is never counted twice or lost
   check('a slot sent again is not counted again', total(twice.data.flightTime) === 205 && JSON.stringify(twice.data.flightTime) === JSON.stringify(m.data.flightTime));
   check('an old copy of a slot does not take time away', total(mergeBlobs(blob(account), m).data.flightTime) === 205);
   const t = flightTotals(m.data.flightTime);
-  check('split by aircraft', t.byAirframe.cub1400 === 160 && t.byAirframe.striker2500 === 45);
+  check('split by aircraft', t.byAirframe.bramor2300 === 160 && t.byAirframe.striker2500 === 45);
   check('split by activity', t.byActivity.free === 100 && t.byActivity.race === 60 && t.byActivity.war === 45);
   check('the first flight is the earliest day on any computer', t.first === '2026-09-20');
 
   /* The round trip: the desk sent 160 s, flew 7 s more while the answer
    * was out, and merges the answer with what it holds now. */
   const answer = mergeBlobs(blob(desk), m).data.flightTime;
-  const deskNow = flown(desk, DESK, 'cub1400', 'race', 7);
+  const deskNow = flown(desk, DESK, 'bramor2300', 'race', 7);
   const applied = mergeFlightTime(deskNow, answer);
   check('the seconds flown during a sync survive its answer', total(applied) === 212, `${total(applied)}`);
   check('put over it, they would not (the trap the merge on apply closes)', total(answer) === 205);
@@ -280,15 +280,15 @@ console.log('flight time follows the account, and is never counted twice or lost
     JSON.stringify(mergeFlightTime(laptop, desk)) === JSON.stringify(mergeFlightTime(desk, laptop)));
 
   const junk = cleanBlob(blob({
-    'BAD ID': { by: { cub1400: { free: 5 } } },
-    okdevice01: { by: { cub1400: { free: -3, race: 1.5, war: 9 }, 'no way': { free: 1 } }, first: 'yesterday' },
+    'BAD ID': { by: { bramor2300: { free: 5 } } },
+    okdevice01: { by: { bramor2300: { free: -3, race: 1.5, war: 9 }, 'no way': { free: 1 } }, first: 'yesterday' },
   }));
   check('wrong shapes are dropped: a bad device, a negative, a fraction, a bad aircraft and a bad day',
-    JSON.stringify(junk.data.flightTime) === JSON.stringify({ okdevice01: { by: { cub1400: { war: 9 } } } }), JSON.stringify(junk.data.flightTime));
+    JSON.stringify(junk.data.flightTime) === JSON.stringify({ okdevice01: { by: { bramor2300: { war: 9 } } } }), JSON.stringify(junk.data.flightTime));
   check('a section that is not a map is refused', blobRefusal(blob([1, 2]))?.why === 'map');
-  const many = Object.fromEntries(Array.from({ length: FLIGHT_DEVICES_MAX + 1 }, (_, i) => [`dev${String(i).padStart(6, '0')}`, { by: { cub1400: { free: 1 } } }]));
+  const many = Object.fromEntries(Array.from({ length: FLIGHT_DEVICES_MAX + 1 }, (_, i) => [`dev${String(i).padStart(6, '0')}`, { by: { bramor2300: { free: 1 } } }]));
   check(`more than ${FLIGHT_DEVICES_MAX} device slots is refused, not trimmed`, blobRefusal(blob(many))?.status === 413);
-  check('flight time is a synced section, read from the settings', pickSynced({ flightTime: account, graphics: 'low' }).flightTime[DESK].by.cub1400.free === 100);
+  check('flight time is a synced section, read from the settings', pickSynced({ flightTime: account, graphics: 'low' }).flightTime[DESK].by.bramor2300.free === 100);
   check('an account that never flew gets no section', !('flightTime' in mergeBlobs({ v: 1, data: {}, stamps: {} }, null).data));
 }
 
@@ -327,7 +327,7 @@ console.log('flights and room game results follow the account');
   check(`more than ${FLIGHT_DEVICES_MAX} slots is refused, not trimmed`, blobRefusal(blob(many))?.status === 413);
   /* MIGRATION: a profile from before the section, with hours but no
    * counts, reads nought and takes the account's counts whole. */
-  const old = { v: 1, data: { flightTime: { deskdevice01: { by: { cub1400: { free: 600 } } } } }, stamps: {} };
+  const old = { v: 1, data: { flightTime: { deskdevice01: { by: { bramor2300: { free: 600 } } } } }, stamps: {} };
   check('an old profile reads no flights and no results', JSON.stringify(countTotals(old.data.pilotCounts)) === JSON.stringify({ flights: 0, tag: { played: 0, won: 0, best: 0 }, jam: { played: 0, won: 0, best: 0 } }));
   check('an old profile merged with the account takes its counts', countTotals(mergeBlobs(old, m).data.pilotCounts).flights === 4 && !('pilotCounts' in mergeBlobs(old, null).data));
 }
@@ -349,7 +349,7 @@ console.log('the voice notice follows the account');
 
 console.log('My Hangar and the loadouts in the merge');
 const build = (id, name, extra = {}) => ({
-  id, name, airframe: 'timber1500', fit: { livery: null, power: null, parts: null, tuning: null, combat: null }, created: 1000, updated: 1000, ...extra,
+  id, name, airframe: 'striker2500', fit: { livery: null, power: null, parts: null, tuning: null, combat: null }, created: 1000, updated: 1000, ...extra,
 });
 {
   const desk = {
@@ -411,7 +411,7 @@ const build = (id, name, extra = {}) => ({
   /* The biggest build a pilot can paint, held to the same judge as the
    * hangar's (normaliseFit): every decal the paint shop allows. */
   const decals = Array.from({ length: MAX_DECALS }, () => newDecal('text', [0.123456, -0.654321, 0.234567], [0.577, 0.577, 0.577]));
-  const painted = normaliseFit('timber1500', { livery: { scheme: 'timber_x', decals, wear: 100 } });
+  const painted = normaliseFit('striker2500', { livery: { scheme: 'black', decals, wear: 100 } });
   const big = JSON.stringify(build('big', 'W'.repeat(32), { fit: painted })).length;
   check('a build with every decal the paint shop allows fits its cap', painted.livery.decals.length === MAX_DECALS && big < BUILD_MAX_CHARS, `${big}`);
 }
@@ -597,8 +597,8 @@ check('a sync with more builds than a computer holds is refused, and says why', 
 {
   /* Two computers' flight time through the server, each sent while the
    * other's was not yet seen, then each sent again. */
-  const deskFlight = addFlight({}, 'deskdevice01', 'cub1400', 'free', 300, '2026-10-01');
-  const laptopFlight = addFlight({}, 'laptopdev002', 'zagi1219', 'race', 120, '2026-10-02');
+  const deskFlight = addFlight({}, 'deskdevice01', 'bramor2300', 'free', 300, '2026-10-01');
+  const laptopFlight = addFlight({}, 'laptopdev002', 'interceptor', 'race', 120, '2026-10-02');
   r = await call('PUT', '/api/account/progress', { progress: { v: 1, data: { flightTime: deskFlight }, stamps: {} } }, alice);
   check('flight time goes up with the progress', r.status === 200 && flightTotals(r.body.progress.data.flightTime).seconds === 300, JSON.stringify(r.body));
   r = await call('PUT', '/api/account/progress', { progress: { v: 1, data: { flightTime: laptopFlight }, stamps: {} } }, aliceLaptop);
@@ -621,12 +621,12 @@ check('a hangar never opened (no hangarVisit in the blob, every blob before it) 
 r = await call('GET', '/api/hangar/Nobody%20Here');
 check('a callsign nobody holds answers the same 404', r.status === 404, String(r.status));
 r = await call('PUT', '/api/account/progress', {
-  progress: { v: 1, data: { hangarVisit: { on: true, airframe: 'cub1400' }, livery: { cub1400: { colours: { wing: '#ff0000' } } } }, stamps: { hangarVisit: Date.now(), livery: Date.now() } },
+  progress: { v: 1, data: { hangarVisit: { on: true, airframe: 'bramor2300' }, livery: { bramor2300: { colours: { wing: '#ff0000' } } } }, stamps: { hangarVisit: Date.now(), livery: Date.now() } },
 }, alice);
 check('the switch syncs as a section', r.status === 200 && r.body.progress.data.hangarVisit.on === true, JSON.stringify(r.body && r.body.progress && r.body.progress.data.hangarVisit));
 r = await call('GET', '/api/hangar/maverick');
 const v = r.body && r.body.visit;
-check('open: anyone reads it, by callsign in any case, without a session', r.status === 200 && v && v.callsign === 'Maverick' && v.airframe === 'cub1400', JSON.stringify(r.body));
+check('open: anyone reads it, by callsign in any case, without a session', r.status === 200 && v && v.callsign === 'Maverick' && v.airframe === 'bramor2300', JSON.stringify(r.body));
 check('with the seated aircraft\'s own paint', v && v.look && v.look.colours && v.look.colours.wing === '#ff0000', JSON.stringify(v && v.look));
 check('and the firsts and tier the progress shows', v && Array.isArray(v.firsts) && ['garage', 'workshop', 'airfield'].includes(v.tier), JSON.stringify(v));
 r = await call('PUT', '/api/account/progress', {
@@ -637,7 +637,7 @@ check('Flight Club medals are trophies too, gold first, before the firsts', r.bo
   JSON.stringify(r.body && r.body.visit && r.body.visit.firsts));
 check('and nothing off the allow list (no courses, flight time, builds, wallet)', v && Object.keys(v).sort().join(',') === 'airframe,callsign,firsts,look,parts,tier', Object.keys(v || {}).join(','));
 r = await call('PUT', '/api/account/progress', {
-  progress: { v: 1, data: { hangarVisit: { on: false, airframe: 'cub1400' } }, stamps: { hangarVisit: Date.now() + 1000 } },
+  progress: { v: 1, data: { hangarVisit: { on: false, airframe: 'bramor2300' } }, stamps: { hangarVisit: Date.now() + 1000 } },
 }, alice);
 r = await call('GET', '/api/hangar/Maverick');
 check('closed again: 404', r.status === 404, String(r.status));
@@ -653,7 +653,7 @@ console.log('the wallet (wallet.js, docs/ECONOMY.md)');
     data: {
       progress: { v: 1, xp: 900, courses: {}, challenges: { deadstick: true, hoops_10: true, made_up: true }, seen: {}, casual: {}, unlockAll: false },
       campaign: { v: 1, missions: { 'itaipu-1': { stars: 3, won: true, credits: 400 } }, earned: 400, owned: { wide: 500 }, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {} },
-      flightTime: addFlight({}, 'olddevice001', 'cub1400', 'free', 3700, '2026-09-01'),
+      flightTime: addFlight({}, 'olddevice001', 'bramor2300', 'free', 3700, '2026-09-01'),
     },
     stamps: {},
   };
@@ -813,28 +813,28 @@ console.log('the livery gallery (gallery.js, docs/LIVERY-GALLERY.md)');
   const fan = await pilot('Fan');
   const shy = await pilot('');
   const text = (t) => ({ ...newDecal('text', [0, 0.1, 0], [0, 1, 0]), t });
-  const red = encodeLivery('timber1500', 'Red Baron', { scheme: 'timber_x' });
+  const red = encodeLivery('striker2500', 'Red Baron', { scheme: 'black' });
   let g = await call('POST', '/api/account/gallery', { code: red });
   check('publishing needs a session', g.status === 401);
   g = await call('POST', '/api/account/gallery', { code: red }, shy);
   check('and a callsign, which the list shows', g.status === 409 && g.body.why === 'callsign', JSON.stringify(g.body));
   g = await call('POST', '/api/account/gallery', { code: red }, owner);
-  check('a paint shop code publishes, named from the code', g.status === 200 && g.body.entry.name === 'Red Baron' && g.body.entry.family === 'timber1500' && g.body.entry.callsign === 'Painter', JSON.stringify(g.body));
+  check('a paint shop code publishes, named from the code', g.status === 200 && g.body.entry.name === 'Red Baron' && g.body.entry.family === 'striker2500' && g.body.entry.callsign === 'Painter', JSON.stringify(g.body));
   const redId = g.body.entry.id;
   g = await call('POST', '/api/account/gallery', { code: red }, owner);
   check('publishing the same code again is the same entry', g.status === 200 && g.body.entry.id === redId);
   g = await call('POST', '/api/account/gallery', { code: 'FPV1-garbage' }, owner);
   check('a code the paint shop cannot read is refused with its reason', g.status === 422 && g.body.why === 'code' && g.body.code === 'not_code', JSON.stringify(g.body));
-  g = await call('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Nazi plane', {}) }, owner);
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('striker2500', 'Nazi plane', {}) }, owner);
   check('a dirty name is refused', g.status === 422 && g.body.why === 'words', JSON.stringify(g.body));
-  g = await call('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Clean', { decals: [text('SHIT')] }) }, owner);
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('striker2500', 'Clean', { decals: [text('SHIT')] }) }, owner);
   check('and so is dirty lettering on a text decal, by the paint shop\'s own check', g.status === 422 && g.body.code === 'rude', JSON.stringify(g.body));
-  g = await call('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Clean', { decals: [text('ACE')] }) }, owner);
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('striker2500', 'Clean', { decals: [text('ACE')] }) }, owner);
   check('clean lettering publishes', g.status === 200, JSON.stringify(g.body));
   const aceId = g.body.entry.id;
-  await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', 'Fan one', {}) }, fan);
+  await call('POST', '/api/account/gallery', { code: encodeLivery('bramor2300', 'Fan one', {}) }, fan);
 
-  g = await call('GET', '/api/gallery?family=timber1500');
+  g = await call('GET', '/api/gallery?family=striker2500');
   check('the list is public and per aircraft, newest first', g.status === 200 && g.body.items.map((x) => x.id).join() === [aceId, redId].join() && g.body.next === null, JSON.stringify(g.body));
   check('an entry carries its code to wear', g.body.items[1].code === red);
   g = await call('GET', '/api/gallery');
@@ -846,7 +846,7 @@ console.log('the livery gallery (gallery.js, docs/LIVERY-GALLERY.md)');
   check('and a second like from the same account does not', g.body.likes === 1);
   g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, owner);
   check('nobody likes their own', g.status === 409 && g.body.why === 'own');
-  g = await call('GET', '/api/gallery?family=timber1500&sort=liked');
+  g = await call('GET', '/api/gallery?family=striker2500&sort=liked');
   check('most liked first', g.body.items[0].id === redId && g.body.items[0].likes === 1, JSON.stringify(g.body.items));
   g = await call('GET', '/api/account/gallery/liked', undefined, fan);
   check('an account reads what it liked', g.status === 200 && g.body.ids.join() === redId);
@@ -864,44 +864,44 @@ console.log('the livery gallery (gallery.js, docs/LIVERY-GALLERY.md)');
   g = await call('POST', `/api/account/gallery/${aceId}/report`, undefined, fan);
   check('a report counts once per account', g.status === 200 && (await call('GET', '/api/admin/gallery', undefined, 'x')).body.items[0].reports === 1);
   await call('POST', `/api/account/gallery/${aceId}/report`, undefined, reporters[1]);
-  g = await call('GET', '/api/gallery?family=timber1500');
+  g = await call('GET', '/api/gallery?family=striker2500');
   check(`${GALLERY_REPORT_HIDE - 1} reports do not hide it`, g.body.items.some((x) => x.id === aceId));
   await call('POST', `/api/account/gallery/${aceId}/report`, undefined, reporters[2]);
-  g = await call('GET', '/api/gallery?family=timber1500');
+  g = await call('GET', '/api/gallery?family=striker2500');
   check(`${GALLERY_REPORT_HIDE} from different accounts do`, !g.body.items.some((x) => x.id === aceId));
   g = await call('GET', '/api/admin/gallery');
   check('the admin list is the admin\'s', g.status === 401);
   g = await call('GET', '/api/admin/gallery', undefined, 'x');
   check('it shows the hidden entry and its reports', g.body.items[0].id === aceId && g.body.items[0].hidden === true && g.body.items[0].reports === 3, JSON.stringify(g.body));
   g = await call('POST', `/api/admin/gallery/${aceId}`, { hidden: false }, 'x');
-  check('the admin shows it again', g.status === 200 && (await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === aceId));
+  check('the admin shows it again', g.status === 200 && (await call('GET', '/api/gallery?family=striker2500')).body.items.some((x) => x.id === aceId));
   await call('POST', `/api/account/gallery/${aceId}/report`, undefined, await pilot('R4'));
-  check('with its reports cleared, one more report does not hide it again', (await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === aceId));
+  check('with its reports cleared, one more report does not hide it again', (await call('GET', '/api/gallery?family=striker2500')).body.items.some((x) => x.id === aceId));
   g = await call('POST', `/api/admin/gallery/${redId}`, { hidden: true }, 'x');
-  check('the admin hides an entry by hand', g.status === 200 && !(await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === redId));
+  check('the admin hides an entry by hand', g.status === 200 && !(await call('GET', '/api/gallery?family=striker2500')).body.items.some((x) => x.id === redId));
   g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, fan);
   check('a hidden entry cannot be liked', g.status === 404);
 
   g = await call('DELETE', `/api/account/gallery/${aceId}`, undefined, owner);
-  check('the publisher removes their own', g.status === 200 && !(await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === aceId));
+  check('the publisher removes their own', g.status === 200 && !(await call('GET', '/api/gallery?family=striker2500')).body.items.some((x) => x.id === aceId));
   ip = '192.0.2.150';
   for (let i = 0; i < GALLERY_PER_ACCOUNT - 1; i += 1) {
     /* eslint-disable-next-line no-await-in-loop */
-    await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', `Cub ${i}`, {}) }, owner);
+    await call('POST', '/api/account/gallery', { code: encodeLivery('bramor2300', `Cub ${i}`, {}) }, owner);
   }
-  g = await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', 'One too many', {}) }, owner);
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('bramor2300', 'One too many', {}) }, owner);
   check(`${GALLERY_PER_ACCOUNT} entries an account, then refused`, g.status === 409 && g.body.why === 'full', JSON.stringify(g.body));
   ip = '192.0.2.151';
   for (let i = 0; i < GALLERY_PAGE - GALLERY_PER_ACCOUNT + 1; i += 1) {
     /* eslint-disable-next-line no-await-in-loop */
-    await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', `Fan cub ${i}`, {}) }, fan);
+    await call('POST', '/api/account/gallery', { code: encodeLivery('bramor2300', `Fan cub ${i}`, {}) }, fan);
   }
-  const first = await call('GET', '/api/gallery?family=cub1400');
-  const second = await call('GET', `/api/gallery?family=cub1400&page=${first.body.next}`);
+  const first = await call('GET', '/api/gallery?family=bramor2300');
+  const second = await call('GET', `/api/gallery?family=bramor2300&page=${first.body.next}`);
   const all = [...first.body.items, ...second.body.items].map((x) => x.id);
   check(`a page is ${GALLERY_PAGE}, the rest on the next, none twice`, first.body.items.length === GALLERY_PAGE && first.body.next === 1 && second.body.items.length === 1 && second.body.next === null && new Set(all).size === all.length, `${first.body.items.length} ${first.body.next} ${second.body.items.length}`);
 
-  await call('PUT', `/api/account/gallery/${(await call('GET', '/api/gallery?family=cub1400')).body.items.find((x) => x.callsign === 'Fan').id}/like`, undefined, owner);
+  await call('PUT', `/api/account/gallery/${(await call('GET', '/api/gallery?family=bramor2300')).body.items.find((x) => x.callsign === 'Fan').id}/like`, undefined, owner);
   g = await call('DELETE', '/api/account', undefined, owner);
   const rows = await env.DB.prepare(
     "SELECT (SELECT COUNT(*) FROM gallery WHERE name LIKE 'Cub %' OR name = 'Red Baron') AS mine, (SELECT likes FROM gallery WHERE name = 'Fan one') AS fanLikes, (SELECT COUNT(*) FROM gallery_reports) AS reports",
@@ -916,7 +916,7 @@ console.log('the livery gallery (gallery.js, docs/LIVERY-GALLERY.md)');
     statuses.push((await call('PUT', '/api/account/gallery/AAAAAAAAAAAA/like', undefined, busy)).status);
   }
   check(`${GALLERY_WRITE_LIMIT} gallery writes from one address, then 429`, statuses.slice(0, GALLERY_WRITE_LIMIT).every((c) => c === 404) && statuses[GALLERY_WRITE_LIMIT] === 429, statuses.slice(-3).join());
-  g = await call('GET', '/api/gallery?family=cub1400');
+  g = await call('GET', '/api/gallery?family=bramor2300');
   check('reading is not counted', g.status === 200);
 }
 

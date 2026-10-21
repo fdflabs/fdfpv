@@ -92,7 +92,6 @@ import { createDebris } from '../render/debris.js';
 import { createSmoke, LIFE_S as SMOKE_LIFE_S } from '../render/smoke.js';
 import { dressParts } from '../render/partsfit.js';
 import { powerOption } from '../../configs/power.js';
-import { surfaceGrowth } from '../../configs/surfaces.js';
 import { simPosToThree, simQuatToThree } from '../render/frame.js';
 import { partLabel, PART_KINDS } from '../../configs/parts.js';
 import { airframeById, retiredAirframe } from '../../configs/airframes.js';
@@ -894,9 +893,7 @@ export function createCrashCam(host) {
 
   function buildScene(clip) {
     const af = clip.meta.airframe;
-    const fitted = clip.meta.fit;
-    const surfaces = fitted && fitted.surfaces ? surfaceGrowth(af, fitted.surfaces) : null;
-    const craft = craftBuilderFor(af)({ name: 'replay-craft', fog: true, worldScale: true, surfaces: surfaces ?? undefined });
+    const craft = craftBuilderFor(af)({ name: 'replay-craft', fog: true, worldScale: true });
     dressLivery(craft, af, { colours: clip.meta.livery ?? {}, ...(clip.meta.paint ?? {}) });
     /* In the hangar parts it flew with: the pod, the nozzle, the prop. */
     const fit = clip.meta.fit;
