@@ -1,4 +1,50 @@
 {
+ "itaipu-quad-pole-refill": {
+  "what": "the interceptor into an Itaipu pole at 15 m/s, the streamed set refilled from step 300, in frames of 100 and 17 ms",
+  "steps": 1500,
+  "pre": "217e4cb6f3cec93aff1fc1bd",
+  "plane": "299bab9f96d2c2a7d478d7d7",
+  "post": "713289ef9c8dc7fb4b4fb26d",
+  "throw": {
+   "x": 568.2018432617188,
+   "y": 227.2,
+   "z": -1614.581787109375,
+   "yaw": -90,
+   "pitch": -20,
+   "vx": 15,
+   "vy": 0,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 64,
+   "contactEvents": 0,
+   "damage": [
+    "battery:crack",
+    "prop front right:chip",
+    "prop front left:chip",
+    "battery:crack",
+    "prop front right:chip",
+    "prop front left:chip",
+    "camera:knock",
+    "frame:crush",
+    "battery:crack",
+    "battery:break",
+    "battery:settle"
+   ],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   },
+   "groundSteps": 0
+  }
+ },
  "itaipu-quad-skate-nodamage": {
   "what": "the interceptor skating along the face of an Itaipu dam block, 4 degrees into it at 10 m/s, rolled into it, crash damage off",
   "steps": 1500,
