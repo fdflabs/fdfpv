@@ -21,6 +21,10 @@
  *
  *   node scripts/contact-golden.js            compare with the record
  *   node scripts/contact-golden.js --record   write the record (old code!)
+ *   node scripts/contact-golden.js --record --add
+ *                                    record only the throws the record does
+ *                                    not have yet, and add them to it: a row
+ *                                    already there is never written again
  *
  * The record is tests/fixtures/contact-golden.json. Browser: run it through
  * ~/.cache/run-check.sh.
@@ -60,6 +64,7 @@ const WAIT = 300000;
 const FRAME_MS = 100;
 const STALL_FRAMES = 20;
 const recording = process.argv.includes('--record');
+const adding = recording && process.argv.includes('--add');
 
 /* Every plan searches from the map's spawn, a constant, never from the
  * craft: after R the craft hovers and drifts for as long as the page takes
@@ -179,8 +184,7 @@ const THROWS = [
  * round the throw, and the swap fell where the host's frames did (the
  * recording runs parted at step 705); a corner on the Interior 7.9 km
  * from its spawn parted at step 101 (2026-10-21). The long skate along a
- * wall left with the Alps: neither kept map has a wall long and clear
- * enough within 6 km of its spawn. */
+ * wall comes back below, on a dam block's face. */
 THROWS.push({
   id: 'itaipu-quad-corner-nodamage',
   what: 'the interceptor into the corner of an Itaipu dam block on the diagonal at 12 m/s, crash damage off',
@@ -221,6 +225,112 @@ THROWS.push({
 for (const th of THROWS.filter((t) => ['itaipu-quad-wall', 'itaipu-quad-wall-glance', 'itaipu-quad-pole'].includes(t.id))) {
   THROWS.push({ ...th, id: `${th.id}-nodamage`, what: `${th.what}, crash damage off`, damage: false });
 }
+
+/*
+ * A skate, a wall and a roof that touch where the throws above do not
+ * (2026-10-21). The wall throw above is planned in the world's frame and
+ * the Itaipu wall it finds is a turned box, so with crash damage off it
+ * runs up the dam's ground beside the wall and meets none; the roof throw
+ * lands on a bridge deck with nothing under it. The skate and the wall
+ * here plan in each box's own frame (collide.js addTurnedBox), and the
+ * roof is a top over walls, all on the dam within MOVE of the spawn, in
+ * the map's tree, as the corner throw is. Appended last, they leave every
+ * page's earlier throws as they were.
+ */
+const FACES_JS = `
+    const s = SPAWN();
+    /* Walls in the map's own tree only: an index under the static count. */
+    const st = window.__colliders().static;
+    const index = new Map(window.__colliderBoxes(s.worldX, s.worldZ, ${MOVE} + 50).map((b) => [[b[0], b[2], b[3], b[5]].join(','), b[6]]));
+    const faces = [];
+    for (const c of window.__crashSolids(s.worldX, s.worldZ, ${MOVE}, 'wall')) {
+      if (!c.box || !(index.get([c.a[0], c.a[2], c.b[0], c.b[2]].join(',')) < st)) continue;
+      const [ux, uz, u0, u1, w0, w1] = c.turned || [1, 0, c.a[0], c.b[0], c.a[2], c.b[2]];
+      const W = (u, w) => [u * ux - w * uz, u * uz + w * ux];
+      /* Each face from the end it starts at, along it (t), its outward
+       * normal (n) on t's left, as the Alps skate had its wall. */
+      faces.push(
+        { c, len: u1 - u0, o: W(u0, w1), t: [ux, uz], n: [-uz, ux] },
+        { c, len: u1 - u0, o: W(u1, w0), t: [-ux, -uz], n: [uz, -ux] },
+        { c, len: w1 - w0, o: W(u1, w1), t: [uz, -ux], n: [ux, uz] },
+        { c, len: w1 - w0, o: W(u0, w0), t: [-uz, ux], n: [-ux, -uz] },
+      );
+    }`;
+THROWS.push({
+  id: 'itaipu-quad-skate-nodamage',
+  what: 'the interceptor skating along the face of an Itaipu dam block, 4 degrees into it at 10 m/s, rolled into it, crash damage off',
+  airframe: 'interceptor',
+  map: 'itaipu',
+  damage: false,
+  plan: `${FACES_JS}
+    const a = 4 * Math.PI / 180;
+    for (const { c, len, o, t, n } of faces) {
+      if (len < 14) continue;
+      const x0 = o[0] + 1.5 * t[0] + n[0], z0 = o[1] + 1.5 * t[1] + n[1];
+      const g = window.__heightAt(x0, z0);
+      if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
+      const y = g + 1.5;
+      let clear = window.__nearSolid(x0, y, z0, 0.9) > 0.5;
+      for (let d = 1; d <= 8 && clear; d += 1) {
+        clear = window.__heightAt(x0 + d * t[0], z0 + d * t[1]) < y - 0.8;
+      }
+      if (!clear) continue;
+      const fx = Math.cos(a) * t[0] - Math.sin(a) * n[0], fz = Math.cos(a) * t[1] - Math.sin(a) * n[1];
+      return { throw: { x: x0, y, z: z0, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: -15, roll: 25, vx: 10 * fx, vy: 0, vz: 10 * fz }, stick: [0.2, 0, 0, 0.55] };
+    }
+    return null;`,
+});
+THROWS.push({
+  id: 'itaipu-quad-wall-face-nodamage',
+  what: 'the interceptor square into the face of an Itaipu dam block at 25 m/s, crash damage off',
+  airframe: 'interceptor',
+  map: 'itaipu',
+  damage: false,
+  plan: `${FACES_JS}
+    for (const { c, len, o, t, n } of faces) {
+      if (len < 4) continue;
+      const at = (d) => [o[0] + t[0] * len / 2 + n[0] * d, o[1] + t[1] * len / 2 + n[1] * d];
+      const g = window.__heightAt(...at(4));
+      if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
+      const y = g + 1.6;
+      let clear = true;
+      for (let d = 0.6; d <= 4.5 && clear; d += 0.6) {
+        const [x, z] = at(d);
+        clear = window.__nearSolid(x, y, z, 0.5) > 0.45 && window.__heightAt(x, z) < y - 1;
+      }
+      if (!clear) continue;
+      const [x, z] = at(4.5);
+      return { throw: { x, y, z, yaw: Math.atan2(n[0], n[1]) * 180 / Math.PI, pitch: -25, vx: -25 * n[0], vy: 0, vz: -25 * n[1] }, stick: [0, 0, 0, 0] };
+    }
+    return null;`,
+});
+/* The roof throw's drop onto a top that stands over walls: the record's
+ * solids, which its cover lets the craft through (roofs.js cover). */
+const ROOF_WALLS = {
+  id: 'itaipu-quad-roof-walls',
+  what: 'the interceptor dropped onto an Itaipu dam top over its walls at 8 m/s, 35 degrees down',
+  airframe: 'interceptor',
+  map: 'itaipu',
+  plan: `
+    const s = SPAWN();
+    const st = window.__colliders().static;
+    const a = 35 * Math.PI / 180;
+    const tops = window.__roofs().map((r, i) => ({ r, i, x: (r.minX + r.maxX) / 2, z: (r.minZ + r.maxZ) / 2 }))
+      .filter(({ r }) => r.solids.length && r.solids.every((j) => j < st))
+      .map((o) => ({ ...o, d: Math.hypot(o.x - s.worldX, o.z - s.worldZ) }))
+      .filter((o) => o.d < ${MOVE})
+      .sort((u, v) => u.d - v.d || u.i - v.i);
+    for (const { i, x, z } of tops) {
+      const top = window.__roofTop(i, x, z);
+      if (!(top === window.__surface(x, z, 1e4))) continue;
+      const x0 = x - 2 * Math.cos(a), y0 = top + 2 * Math.sin(a) + 0.4;
+      if (!(window.__roofTop(i, x0, z) === window.__surface(x0, z, 1e4))) continue;
+      if (!(window.__nearSolid(x0, y0, z, 0.8) > 0.75)) continue;
+      return { throw: { x: x0, y: y0, z, yaw: -90, pitch: -35, vx: 8 * Math.cos(a), vy: -8 * Math.sin(a), vz: 0 }, stick: [0, 0, 0, 0] };
+    }
+    return null;`,
+};
+THROWS.push(ROOF_WALLS, { ...ROOF_WALLS, id: `${ROOF_WALLS.id}-nodamage`, what: `${ROOF_WALLS.what}, crash damage off`, damage: false });
 
 function seed(airframe, map, damage) {
   const settings = {
@@ -300,6 +410,7 @@ async function stage(page, th) {
   await page.evaluate(`window.__stick(${plan.stick.join(',')})`);
   await page.sleep(400);
   const passBefore = await page.evaluate(PASS);
+  const groundBefore = await page.evaluate('window.__ground().contactSteps');
   const FILLS = `(() => { ${TOWN_JS} return s ? s.fills : 0; })()`;
   const fillsBefore = await page.evaluate(FILLS);
   await page.evaluate('window.__releasePose()');
@@ -345,6 +456,9 @@ async function stage(page, th) {
     return { obstacleEvents: c.obstacle.length, contactEvents: c.log.length, damage: window.__crashLog().map((e) => e.part + ':' + e.type) };
   })())`).then(JSON.parse);
   met.pass = Object.fromEntries(PASS_FIELDS.map((f) => [f, passAfter[f] - passBefore[f]]));
+  /* The steps the craft stood on the ground or a roof: a roof is ground
+   * (roofs.js), so this is what a roof throw met. */
+  met.groundSteps = await page.evaluate('window.__ground().contactSteps') - groundBefore;
   await page.evaluate('window.__stick()');
   return {
     n: Math.min(trace.n, STEPS),
@@ -358,7 +472,8 @@ async function stage(page, th) {
 
 /* CONTACT_ONLY=<id>,... stages only those throws, for working on one. */
 const only = process.env.CONTACT_ONLY ? process.env.CONTACT_ONLY.split(',') : null;
-const ACTIVE = THROWS.filter((t) => !only || only.includes(t.id));
+const kept = adding ? JSON.parse(readFileSync(RECORD, 'utf8')) : {};
+const ACTIVE = THROWS.filter((t) => (!only || only.includes(t.id)) && !(t.id in kept));
 
 async function sample() {
   const out = {};
@@ -447,6 +562,18 @@ if (recording) {
   if (bad > 0) {
     console.log('contact-golden: not recorded, the runs disagree');
     process.exit(1);
+  }
+  if (adding) {
+    if (ACTIVE.length === 0) {
+      console.log('contact-golden: every throw has its row already, nothing added');
+      process.exit(0);
+    }
+    /* Spliced in after the opening brace, so every row already there stays
+     * byte for byte what it was. */
+    const rows = JSON.stringify(record, null, 1).slice(2, -2);
+    writeFileSync(RECORD, readFileSync(RECORD, 'utf8').replace(/^\{\n/, `{\n${rows},\n`));
+    console.log(`contact-golden: added ${ACTIVE.map((t) => t.id).join(', ')} to ${RECORD}`);
+    process.exit(0);
   }
   if (only) {
     console.log('contact-golden: a trial of some throws, not written');
