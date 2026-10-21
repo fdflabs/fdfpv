@@ -253,7 +253,6 @@ import {
 } from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
-import { HOLD_LOADS, holdPoints } from './game/hold.js';
 import { createBreakage } from './render/breakage.js';
 import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
@@ -8425,10 +8424,6 @@ export async function boot({
    * TAKEOFF_THROTTLE releases it.
    */
   let landed = true;
-  /* The Hercules' loads aboard (src/game/hold.js): the whole hold, since
-   * the paradrop that let them go left in the combat-only cut
-   * (2026-10-20). applyParts seats them on the plant. */
-  const holdLeft = HOLD_LOADS;
   /* Last frame's landed, for the touchdown edge (input.holdThrottleLow). */
   let landedWas = true;
   /* progressRun's key for the run being judged, and the hangar rev on
@@ -9568,9 +9563,7 @@ export async function boot({
     }
     const { option, pack } = powerChoice(af.id, s.power);
     const parts = partsEntry(s.parts, af.id);
-    /* The Hercules' cargo still aboard rides as add-ons too (THE HOLD). */
-    const cargo = af.ramp ? holdPoints(holdLeft) : [];
-    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS], cargo);
+    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS]);
     const code = block ? sim.setAddons(block) : sim.clearAddons();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(code)}`);
@@ -10710,11 +10703,6 @@ export async function boot({
     const st = roomLinkState.state();
     return st.phase === 'open' && Boolean(st.welcome);
   }
-  /* The ramp's door and the chute, for scripts/hercules-keys.js. */
-  window.__wingDoor = () => ({
-    door: sim.e.sim_wing_door(),
-    chute: typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0,
-  });
 
   /*
    * Once a frame, right after the craft is posed: read the damage, draw
@@ -16424,7 +16412,6 @@ export async function boot({
       throttle: input.channels.throttle,
       flightMode,
       flaps: af.flaps ? flapNotch : null,
-      hold: af.ramp ? str('ui.hold', { n: holdLeft, of: HOLD_LOADS }) : null,
       gear: gearNow != null
         ? (gearNow >= 1 ? 'up' : gearNow <= 0 ? 'down' : 'moving')
         : null,

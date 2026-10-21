@@ -294,8 +294,6 @@
     "stab:straight": "node scripts/stab-straight-derive.js --check",
     "air:vertical": "node scripts/air-vertical-selftest.js",
     "surfaces:derive": "node scripts/surfaces-derive.js --check",
-    "paradrop:selftest": "node scripts/paradrop-selftest.js",
-    "hercules:keys": "node scripts/hercules-keys.js",
     "servo:derive": "node scripts/servo-derive.js --check",
     "ge:derive": "node scripts/ge-derive.js --check",
     "wing:ge": "node scripts/wing-ge-selftest.js",
