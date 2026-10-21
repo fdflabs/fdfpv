@@ -30,6 +30,12 @@ concurrency:
 jobs:
   shard-1:
     runs-on: ubuntu-latest
+    # PDCS boots on Itaipu, so every check that opens the game reads its
+    # map data: its own public repository, at a pinned commit
+    # (tests/lib/server.js serves FDFPV_ITAIPU_DATA as itaipu-data/).
+    # Outside CI the server falls back to ~/Desktop/fdfpv-itaipu-data.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       # lint:catalog reads parameter_names.h out of the Betaflight submodule to
       # prove the catalog covers every firmware key, so the submodule is needed.
@@ -42,6 +48,11 @@ jobs:
       # ws, the one dependency: rooms:server starts the VM's rooms server,
       # edge/rooms/node.js, and speaks to it.
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       # A deploy under an open tab: every module and the wasm at the
       # page's version, the new-version bar held off the flight screen and
       # shown on Paused and the title, its Reload landing on the new deploy
@@ -176,6 +187,9 @@ jobs:
 
   shard-2:
     runs-on: ubuntu-latest
+    # Itaipu's map data, as in shard-1.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       - uses: actions/checkout@v7
         with:
@@ -184,6 +198,11 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       - run: npm run rooms:server
       # The livery gallery against a local tracks server: list, like, sort,
       # report, wear, publish and remove, by real pointer (docs/LIVERY-GALLERY.md).
@@ -305,6 +324,9 @@ jobs:
 
   shard-3:
     runs-on: ubuntu-latest
+    # Itaipu's map data, as in shard-1.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       - uses: actions/checkout@v7
         with:
@@ -313,6 +335,11 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
       # by hand (npm run midair:harness) and its numbers go in the pull
       # request. Two seeds here keep every row and every scenario.
@@ -413,6 +440,9 @@ jobs:
 
   shard-4:
     runs-on: ubuntu-latest
+    # Itaipu's map data, as in shard-1.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       - uses: actions/checkout@v7
         with:
@@ -421,6 +451,11 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       - run: npm run lint:fc
       - run: npm run rates:selftest
       - run: npm run lint:presets
@@ -465,20 +500,8 @@ jobs:
       # The frame's one daytime in the real shell: detection's light and the
       # world's sounds turn with the sky (scripts/daytime-frame-check.js),
       # and two pilots in one room see the room's time (daytime-room-check.js).
-      # Itaipu's map data is its own public repository, not this one; the
-      # daytime checks fly Itaipu, so they read it at a pinned commit
-      # (tests/lib/server.js serves FDFPV_ITAIPU_DATA as itaipu-data/).
-      - uses: actions/checkout@v7
-        with:
-          repository: fdflabs/fdfpv-itaipu-data
-          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
-          path: itaipu-data-ci
       - run: npm run daytime:frame
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
       - run: npm run daytime:room
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
       - run: npm run ratescurve:selftest
@@ -487,13 +510,10 @@ jobs:
       # Each map's shared world data against the page's own terrain
       # modules, which import three: the page loads three from its CDN
       # import map (index.html), so the same version is unpacked here.
-      # Itaipu's ground is read from the data checked out above.
       - run: |
           npm pack three@0.160.0 --pack-destination "$RUNNER_TEMP"
           tar xzf "$RUNNER_TEMP/three-0.160.0.tgz" -C "$RUNNER_TEMP"
           npm run world:layer -- --three="$RUNNER_TEMP/package"
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
       - run: npm run personpilot:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
@@ -548,6 +568,9 @@ jobs:
   # one step of 15 to 26 minutes, the longest of any shard.
   shard-5:
     runs-on: ubuntu-latest
+    # Itaipu's map data, as in shard-1.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       - uses: actions/checkout@v7
         with:
@@ -556,6 +579,11 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       - run: npm run paint:workshop:views
       # The page build() draws, node for node (scripts/shell-dom-golden.js).
       # Outside CI it went red for a day of merged features and hid a moved
@@ -572,16 +600,7 @@ jobs:
       # A world costs nothing until it is chosen and is freed when left
       # (scripts/memory-check.js). Outside CI the alps' boot started fetching
       # the Swiss valley's field unseen. About 40 s.
-      # lint:memory boots every world, Itaipu among them, whose data is its
-      # own public repository (see the daytime steps in shard-4).
-      - uses: actions/checkout@v7
-        with:
-          repository: fdflabs/fdfpv-itaipu-data
-          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
-          path: itaipu-data-ci
       - run: npm run lint:memory
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
       # Every start on every world, room seats and stations included, is
       # above ground, dry, clear of solids and facing a way out, with
       # negative controls per world (scripts/world-spawns-check.js). It
@@ -589,8 +608,6 @@ jobs:
       # locally, on the shard with Itaipu's data and the most headroom
       # (608 s, tools/reshard-timings.json).
       - run: npm run world:spawns
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
 
   # always(): a node skipped because a shard failed would count as passed
   # for a required check, so it runs and fails instead.
