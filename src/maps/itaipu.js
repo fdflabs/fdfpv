@@ -134,10 +134,13 @@ function makeStreamer(colliders, parts, uncover) {
   let fill = null;
   let adds = [];
   let frames = 0;
+  /* A refill asked for whatever the parts want (force). */
+  let forced = false;
   const stats = {
     refills: 0, frames: 0, maxSliceMs: 0, lastSlicesMs: [],
   };
   const begin = (x, z) => {
+    forced = false;
     fill = colliders.streamFill();
     adds = streams.map((s) => s.fill(fill, x, z));
     frames = 0;
@@ -182,7 +185,7 @@ function makeStreamer(colliders, parts, uncover) {
     /* Once a frame, with the pilot. */
     update(x, z) {
       if (!fill) {
-        if (!streams.some((s) => s.wants(x, z))) {
+        if (!forced && !streams.some((s) => s.wants(x, z))) {
           return;
         }
         begin(x, z);
@@ -192,6 +195,11 @@ function makeStreamer(colliders, parts, uncover) {
       const ms = performance.now() - t0;
       stats.lastSlicesMs.push(Math.round(ms * 100) / 100);
       stats.maxSliceMs = Math.max(stats.maxSliceMs, ms);
+    },
+    /* A refill now, round wherever the next one starts: harness only, for
+     * a check that swaps the set at a known point of a flight. */
+    force() {
+      forced = streams.length > 0;
     },
   };
 }
@@ -481,6 +489,8 @@ async function buildItaipu(shell, progress, q, time, toward, hour) {
     roofs: roofs.records,
     roofTop: (i, x, z) => roofs.top(i, x, z),
     coveredAt: (x, z, fromY) => roofs.covered(x, z, fromY),
+    /* Harness only (src/main.js window.__refillAt). */
+    forceRefill: () => streamer.force(),
     roofSlabs: (x, z, fromY, reach, out) => roofs.slabs(x, z, fromY, reach, out),
     surfaceAt: (x, z, y) => (y == null ? null : roofs.materialAt(x, z, y)),
     /* The reservoir and the river in src/game/water.js's lake form, for

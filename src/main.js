@@ -8326,6 +8326,9 @@ export async function boot({
    * fall decides the step they act at; a staging that must give the same
    * steps every run fixes the frame. */
   let harnessFrameMs = 0;
+  /* Harness only (window.__refillAt): the step of a throw's trace before
+   * which the map's streamed set is made to refill, -1 for none. */
+  let refillAtStep = -1;
   /*
    * Per branch counts of the contact pass, read by __contacts, so a hit
    * the game failed to register can be traced to the branch it took. The
@@ -14776,6 +14779,12 @@ export async function boot({
       const vzBefore = st[6];
       const speedBefore = plantSpeed(st);
       raiseGroundFromState(st);
+      if (stepTrace.on && stepTrace.n === refillAtStep) {
+        refillAtStep = -1;
+        if (view.forceRefill) {
+          view.forceRefill();
+        }
+      }
       if (runDamage) {
         crashBeforeStep(st);
       }
@@ -16577,6 +16586,17 @@ export async function boot({
   devHooks.__frameMs = (ms = 0) => {
     harnessFrameMs = Math.max(0, Math.min(FRAME_DT_MAX, Number(ms) || 0));
     return harnessFrameMs;
+  };
+  /* A refill of the map's streamed set before step `n` of the next
+   * throw's trace (window.__stepTrace), on the sim clock, so a check can
+   * swap the set at the same point of a flight on every run; false on a
+   * map that streams nothing. */
+  devHooks.__refillAt = (n) => {
+    if (!view.forceRefill) {
+      return false;
+    }
+    refillAtStep = Math.floor(Number(n));
+    return true;
   };
 
   /* The mode the plant is in, not the one the menu shows: angle cannot loop. */
