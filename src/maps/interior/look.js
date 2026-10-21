@@ -582,7 +582,7 @@ export async function makeLook({
     finish() {
       finishScene(scene, lit);
     },
-    updateShadowFocus(target) {
+    updateShadowFocus(target, drawn = true) {
       const [near, far] = sun.lights;
       if (far && groundAt) {
         const over = camera.position.y - groundAt(camera.position.x, camera.position.z);
@@ -599,7 +599,9 @@ export async function makeLook({
         near.visible = sunDir.y >= 0.3;
       }
       sun.update(target, camera);
-      sky.updateCube(renderer, camera);
+      if (drawn) {
+        sky.updateCube(renderer, camera);
+      }
     },
     compose(shell, map) {
       sunState.at = lit.sun;
