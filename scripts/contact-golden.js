@@ -21,6 +21,10 @@
  *
  *   node scripts/contact-golden.js            compare with the record
  *   node scripts/contact-golden.js --record   write the record (old code!)
+ *   node scripts/contact-golden.js --record --add
+ *                                    record only the throws the record does
+ *                                    not have yet, and add them to it: a row
+ *                                    already there is never written again
  *
  * The record is tests/fixtures/contact-golden.json. Browser: run it through
  * ~/.cache/run-check.sh.
@@ -60,6 +64,7 @@ const WAIT = 300000;
 const FRAME_MS = 100;
 const STALL_FRAMES = 20;
 const recording = process.argv.includes('--record');
+const adding = recording && process.argv.includes('--add');
 
 /* Every plan searches from the map's spawn, a constant, never from the
  * craft: after R the craft hovers and drifts for as long as the page takes
@@ -358,7 +363,8 @@ async function stage(page, th) {
 
 /* CONTACT_ONLY=<id>,... stages only those throws, for working on one. */
 const only = process.env.CONTACT_ONLY ? process.env.CONTACT_ONLY.split(',') : null;
-const ACTIVE = THROWS.filter((t) => !only || only.includes(t.id));
+const kept = adding ? JSON.parse(readFileSync(RECORD, 'utf8')) : {};
+const ACTIVE = THROWS.filter((t) => (!only || only.includes(t.id)) && !(t.id in kept));
 
 async function sample() {
   const out = {};
@@ -447,6 +453,18 @@ if (recording) {
   if (bad > 0) {
     console.log('contact-golden: not recorded, the runs disagree');
     process.exit(1);
+  }
+  if (adding) {
+    if (ACTIVE.length === 0) {
+      console.log('contact-golden: every throw has its row already, nothing added');
+      process.exit(0);
+    }
+    /* Spliced in after the opening brace, so every row already there stays
+     * byte for byte what it was. */
+    const rows = JSON.stringify(record, null, 1).slice(2, -2);
+    writeFileSync(RECORD, readFileSync(RECORD, 'utf8').replace(/^\{\n/, `{\n${rows},\n`));
+    console.log(`contact-golden: added ${ACTIVE.map((t) => t.id).join(', ')} to ${RECORD}`);
+    process.exit(0);
   }
   if (only) {
     console.log('contact-golden: a trial of some throws, not written');
