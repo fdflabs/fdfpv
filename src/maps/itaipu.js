@@ -105,9 +105,26 @@ export const PHASES = ['imagery', 'data', 'heightmaps', ...PARTS.map(([name]) =>
  * in the one streamed set Colliders has (src/game/collide.js
  * streamFill). One set, so one owner: the map starts a refill when any
  * part's stream wants one, every streaming part adds its colliders round
- * the pilot to it, and it advances one slice a frame: a part's fill (a
- * generator) to its next yield, then one StreamFill.step at a time. Until
- * the step that swaps it in, the set before it is the one in force, whole.
+ * the pilot to it, and its work advances one slice a frame: a part's fill
+ * (a generator) to its next yield, then one StreamFill.work at a time.
+ * Until it is swapped in, the set before it is the one in force, whole.
+ *
+ * THE SWAP IS ON THE SIM CLOCK while the craft is flown (`step`, which
+ * src/main.js calls before every plant step, with the plant's pose): a
+ * refill starts at the step the craft is first wanted elsewhere, round
+ * where the plant has it, and is swapped in SWAP_STEPS steps later, its
+ * work finished then if the frames have not done it. A swap renumbers the
+ * set and, with crash damage on, declares the crash world again from the
+ * craft's pose at that step (src/main.js crashBeforeStep), so a swap at
+ * whatever step a frame landed on put a flight's contacts at the frame
+ * rate's mercy (CLAUDE.md: a dropped frame must change nothing about the
+ * trajectory). A teleport makes the set current where the craft lands, at
+ * once (`now`: a throw, a reset, a re-fly), before the first step there,
+ * which meets what it would meet had the craft flown there. With the
+ * craft not what the world is drawn round (the title, a replay, a camera
+ * a check parks) nothing is flown against the set, and the frames start
+ * and swap refills round the camera; one of theirs still in progress when
+ * the clock takes over is swapped in at its first step.
  *
  * A part's stream is { wants(x, z), fill(list, x, z), swapped(offset) }:
  * wants says the pilot has left what the part's set covers, fill adds
@@ -128,38 +145,62 @@ export const PHASES = ['imagery', 'data', 'heightmaps', ...PARTS.map(([name]) =>
  * step at the full slice ran to 2.8 ms in the page while the JIT was
  * cold (scripts/itaipu-canopy-check.js). */
 const STEP_ENTRIES = STREAM_SLICE / 2;
+/*
+ * Plant steps from a refill's start on the sim clock to its swap: the 21
+ * frames the slowest refill took a frame at a time
+ * (tests/collide-audit-itaipu-baseline.json refill.maxFrames, 350 ms at 60
+ * frames a second), with room, so at 43 frames a second and more the frames
+ * have done its work by the swap and the clock only swaps. A refill starts
+ * MOVE from the town's centre with FINE_R - MOVE = 150 m of fine walls left
+ * (town/model.js), and the trees' NEAR_R - NEAR_MOVE = 200 m
+ * (vegetation/plant.js): 500 ms holds that to 300 m/s whatever the frame
+ * rate, four and a half times the fastest kept aircraft's level top speed
+ * (the Striker's 66.3 m/s, aircraft/striker2500/aircraft.js).
+ */
+export const SWAP_STEPS = 500;
 
 function makeStreamer(colliders, parts, uncover) {
   const streams = parts.map((p) => p.stream).filter(Boolean);
   let fill = null;
   let adds = [];
+  /* The refill in progress has all its colliders and is registered. */
+  let ready = false;
   let frames = 0;
+  /* Clock steps until the refill in progress is swapped in: from
+   * SWAP_STEPS when the clock started it, from -1 when a frame did. */
+  let due = -1;
   /* A refill asked for whatever the parts want (force). */
   let forced = false;
   const stats = {
-    refills: 0, frames: 0, maxSliceMs: 0, lastSlicesMs: [],
+    refills: 0, frames: 0, maxSliceMs: 0, lastSlicesMs: [], finishes: 0, maxFinishMs: 0,
   };
-  const begin = (x, z) => {
+  const wanted = (x, z) => forced || streams.some((s) => s.wants(x, z));
+  const begin = (x, z, steps) => {
     forced = false;
     fill = colliders.streamFill();
     adds = streams.map((s) => s.fill(fill, x, z));
+    ready = false;
+    due = steps;
     frames = 0;
     stats.lastSlicesMs = [];
   };
-  /* One slice of the refill in progress; true on the one that swapped
-   * the new set in. */
-  const slice = () => {
-    frames += 1;
+  /* One slice of the refill's work. */
+  const work = () => {
     if (adds.length) {
       if (adds[0].next().done) {
         adds.shift();
       }
-      return false;
+      return;
+    }
+    ready = fill.work(STEP_ENTRIES);
+  };
+  /* The work left, at once, and the set swapped in. */
+  const swap = () => {
+    while (!ready) {
+      work();
     }
     uncover();
-    if (!fill.step(STEP_ENTRIES)) {
-      return false;
-    }
+    fill.step(0);
     fill = null;
     for (const s of streams) {
       if (s.swapped) {
@@ -168,33 +209,60 @@ function makeStreamer(colliders, parts, uncover) {
     }
     stats.refills += 1;
     stats.frames = frames;
-    return true;
   };
   return {
     stats,
-    /* At load, round the spawn, all at once. */
-    fillNow(x, z) {
-      if (!streams.length) {
-        return;
+    /* At load and at a teleport: the set round (x, z) now, if the parts
+     * want it there, after the refill in progress, if any. */
+    now(x, z) {
+      if (fill) {
+        swap();
       }
-      begin(x, z);
-      while (!slice()) {
-        /* Each slice is bounded; the loop ends when the set is in. */
+      if (wanted(x, z)) {
+        begin(x, z, -1);
+        swap();
       }
     },
-    /* Once a frame, with the pilot. */
-    update(x, z) {
+    /* Before every plant step on the sim clock, with the plant's pose. */
+    step(x, z) {
       if (!fill) {
-        if (!forced && !streams.some((s) => s.wants(x, z))) {
+        if (wanted(x, z)) {
+          begin(x, z, SWAP_STEPS);
+        }
+        return;
+      }
+      due -= 1;
+      if (due > 0) {
+        return;
+      }
+      const left = !ready;
+      const t0 = performance.now();
+      swap();
+      if (left) {
+        stats.finishes += 1;
+        stats.maxFinishMs = Math.max(stats.maxFinishMs, performance.now() - t0);
+      }
+    },
+    /* Once a frame, round what the world is drawn round; `clocked` when
+     * that is the flown craft, whose refills `step` starts and swaps. */
+    update(x, z, clocked) {
+      if (!fill) {
+        if (clocked || !wanted(x, z)) {
           return;
         }
-        begin(x, z);
+        begin(x, z, -1);
       }
-      const t0 = performance.now();
-      slice();
-      const ms = performance.now() - t0;
-      stats.lastSlicesMs.push(Math.round(ms * 100) / 100);
-      stats.maxSliceMs = Math.max(stats.maxSliceMs, ms);
+      if (!ready) {
+        const t0 = performance.now();
+        work();
+        frames += 1;
+        const ms = performance.now() - t0;
+        stats.lastSlicesMs.push(Math.round(ms * 100) / 100);
+        stats.maxSliceMs = Math.max(stats.maxSliceMs, ms);
+      }
+      if (ready && !clocked) {
+        swap();
+      }
     },
     /* A refill now, round wherever the next one starts: harness only, for
      * a check that swaps the set at a known point of a flight. */
@@ -390,7 +458,7 @@ async function buildItaipu(shell, progress, q, time, toward, hour) {
   });
   const roofs = makeRoofs(roofRecords);
   const streamer = makeStreamer(colliders, Object.values(parts), () => roofs.cover(colliders, 0, 0, -Infinity));
-  streamer.fillNow(SPAWN.x, SPAWN.z);
+  streamer.now(SPAWN.x, SPAWN.z);
   /* The forest volume (section 9): the highest canopy any part answers
    * for, for the contact pass's canopy call (src/main.js). */
   const canopies = Object.values(parts).map((p) => p.canopyAt).filter(Boolean);
@@ -489,6 +557,10 @@ async function buildItaipu(shell, progress, q, time, toward, hour) {
     roofs: roofs.records,
     roofTop: (i, x, z) => roofs.top(i, x, z),
     coveredAt: (x, z, fromY) => roofs.covered(x, z, fromY),
+    /* The streamed set on the sim clock (makeStreamer): before every
+     * plant step, and at once where a teleport puts the craft. */
+    streamStep: (x, z) => streamer.step(x, z),
+    streamNow: (x, z) => streamer.now(x, z),
     /* Harness only (src/main.js window.__refillAt). */
     forceRefill: () => streamer.force(),
     roofSlabs: (x, z, fromY, reach, out) => roofs.slabs(x, z, fromY, reach, out),
@@ -574,10 +646,10 @@ async function buildItaipu(shell, progress, q, time, toward, hour) {
     /* Once a frame before the draw, with the craft (or the title's quad):
      * the sun's shadow maps round it, and the terrain's selection round it
      * and the camera. */
-    updateShadowFocus(target) {
+    updateShadowFocus(target, clocked) {
       look.updateShadowFocus(target);
       terrain.update(target, camera.position);
-      streamer.update(target.x, target.z);
+      streamer.update(target.x, target.z, clocked);
       for (const p of Object.values(parts)) {
         if (p.view) {
           p.view(target, camera);
