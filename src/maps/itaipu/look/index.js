@@ -510,9 +510,7 @@ export async function makeLook({
         }
       }
       sun.update(target, camera);
-      if (drawn) {
-        sky.updateCube(renderer, camera);
-      }
+      sky.updateCube(renderer, camera, drawn);
       turf.update(camera, groundAt);
     },
     /* The post chain and the photographed craft, onto a built map. */

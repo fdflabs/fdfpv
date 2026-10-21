@@ -599,9 +599,7 @@ export async function makeLook({
         near.visible = sunDir.y >= 0.3;
       }
       sun.update(target, camera);
-      if (drawn) {
-        sky.updateCube(renderer, camera);
-      }
+      sky.updateCube(renderer, camera, drawn);
     },
     compose(shell, map) {
       sunState.at = lit.sun;

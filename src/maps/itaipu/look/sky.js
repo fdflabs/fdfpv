@@ -260,10 +260,11 @@ const STAR_CHANCE = 0.9935;
  *   SKY_CUBE_PX a side, one band of a face a frame (SKY_CUBE_BANDS to a
  *   face), the band drawn longest ago, and all six faces at once when
  *   there is no cube yet or the camera has jumped SKY_CUBE_CUT metres in
- *   a frame; the backdrop reads the cube with five taps a texel apart,
- *   which averages the dither away. A whole face a frame at 768 a side
- *   cost 3 to 6 ms of GPU every frame, enough to slow a loaded frame
- *   (check:avionics-layout's scene); a band at 640 is a sixth of that.
+ *   a frame (in each SKY_CUBE_CUT_DT of a slower one); the backdrop reads
+ *   the cube with five taps a texel apart, which averages the dither
+ *   away. A whole face a frame at 768 a side cost 3 to 6 ms of GPU every
+ *   frame, enough to slow a loaded frame (check:avionics-layout's scene);
+ *   a band at 640 is a sixth of that.
  *   The disc is drawn by the backdrop itself, not the cube. The
  *   backdrop is drawn last of the opaque things, only where nothing else
  *   is.
@@ -341,6 +342,12 @@ const ENV_PX = 256;
 const SKY_CUBE_PX = 1024;
 const SKY_CUBE_BANDS = 8;
 const SKY_CUBE_CUT = 40;
+/* The longest frame the jump is judged over whole, seconds: a slower
+ * frame may move SKY_CUBE_CUT in each of its tenths before it is a jump,
+ * so a jump is the same speed at any frame rate below ten frames a second
+ * and the same distance above it (the shell's FRAME_DT_MAX, src/main.js,
+ * is the same tenth). */
+const SKY_CUBE_CUT_DT = 0.1;
 /* The height the backdrop takes a cloud to stand at when it reads the
  * cube from where the cube was drawn: the deck's lower middle, where most
  * of a cell's light comes from. */
@@ -726,6 +733,7 @@ export function skyBackdrop(sunDir, time) {
   const last = new THREE.Vector3();
   let drawn = false;
   let next = 0;
+  let lastFrame = 0;
   /* The wind's clock, seconds since the sky was made. */
   const born = performance.now() / 1000;
   const shift = new THREE.Vector3();
@@ -780,15 +788,29 @@ export function skyBackdrop(sunDir, time) {
    * jump is measured against the last frame, not against when a cube was
    * drawn: against the cube, a camera moving 40 m in the 48 frames a
    * refresh takes, a plane's cruise, redrew all six faces every frame,
-   * 26 ms of GPU each.) */
-  sky.updateCube = (renderer, camera) => {
+   * 26 ms of GPU each. And a frame longer than SKY_CUBE_CUT_DT is allowed
+   * SKY_CUBE_CUT for each tenth of it: on a software rasteriser the title's
+   * 30 m/s attract line passed 40 m a frame below 0.75 fps, every frame
+   * redrew all six faces, which made the next frame slower still, and
+   * the title sank to 0.13 fps.) `shown` false is a frame that does not
+   * draw the world (src/main.js chooseDraw): it draws nothing here, but
+   * is a frame the next one's length is measured from, so the world
+   * coming back from under the hangar is a jump from where it was last
+   * seen, and a capped frame rate's skipped frames are not a slow one. */
+  sky.updateCube = (renderer, camera, shown = true) => {
+    const now = performance.now() / 1000 - born;
+    const frameDt = now - lastFrame;
+    lastFrame = now;
+    if (!shown) {
+      return;
+    }
     if (eye.coordinateSystem !== renderer.coordinateSystem) {
       eye.coordinateSystem = renderer.coordinateSystem;
       eye.updateCoordinateSystem();
     }
     at.setFromMatrixPosition(camera.matrixWorld);
-    const now = performance.now() / 1000 - born;
-    const cut = !drawn || last.distanceTo(at) > SKY_CUBE_CUT;
+    const jump = SKY_CUBE_CUT * Math.max(1, frameDt / SKY_CUBE_CUT_DT);
+    const cut = !drawn || last.distanceTo(at) > jump;
     last.copy(at);
     drawn = true;
     if (cut) {
