@@ -8326,6 +8326,9 @@ export async function boot({
    * fall decides the step they act at; a staging that must give the same
    * steps every run fixes the frame. */
   let harnessFrameMs = 0;
+  /* Harness only (window.__refillAt): the step of a throw's trace before
+   * which the map's streamed set is made to refill, -1 for none. */
+  let refillAtStep = -1;
   /*
    * Per branch counts of the contact pass, read by __contacts, so a hit
    * the game failed to register can be traced to the branch it took. The
@@ -9645,6 +9648,8 @@ export async function boot({
   const crashAt = new THREE.Vector3();
   const crashNormal = new THREE.Vector3();
   const crashProbe = new THREE.Vector3();
+  /* Where the plant has the craft, for the streamed set (streamToCraft). */
+  const streamProbe = new THREE.Vector3();
   const qKnock = new THREE.Quaternion();
   const knockAxis = new THREE.Vector3();
   const crashSimA = { x: 0, y: 0, z: 0 };
@@ -9955,6 +9960,28 @@ export async function boot({
     if (stepTrace.on && stepTrace.n < TRACE_STEPS) {
       stepTrace.post[stepTrace.n] = traceState(st);
       stepTrace.n += 1;
+    }
+  }
+
+  /*
+   * THE STREAMED SET FOLLOWS THE FLOWN CRAFT ON THE SIM CLOCK
+   * (src/maps/itaipu.js makeStreamer): view.streamStep before every step
+   * in the air and on the launch stand, so a refill swaps in at a step the
+   * flight decides, and crashBeforeStep declares the crash world again
+   * from it before that step. While the world is drawn round something
+   * else (a camera a check parks, a war film, a replay, the title) the
+   * frames refill it round that.
+   */
+  function streamFollowsCraft() {
+    return !(camOverride || warIntro || mode === 'replay' || mode === 'title');
+  }
+
+  /* A teleport: the streamed set where the craft is now, before its first
+   * step there, and before the crash world is declared from the set. */
+  function streamToCraft(st) {
+    if (view.streamNow) {
+      poseFromState(st, streamProbe);
+      view.streamNow(streamProbe.x, streamProbe.z);
     }
   }
 
@@ -10701,6 +10728,7 @@ export async function boot({
     rearmSticks(keepSticks);
     statePrev = readState();
     stateCurr = statePrev;
+    streamToCraft(stateCurr);
     ui.progress.startFlight(simTimeMs, () => roomLinkState.roomNow());
   }
 
@@ -14724,6 +14752,14 @@ export async function boot({
    */
   function stepOnStand(steps, nowWall) {
     const sound = stateCurr;
+    /* Held on the stand the craft is where it was, step after step, so the
+     * set's clock is counted here for all of them at once. */
+    if (view.streamStep && streamFollowsCraft()) {
+      poseFromState(stateCurr, streamProbe);
+      for (let i = 0; i < steps; i += 1) {
+        view.streamStep(streamProbe.x, streamProbe.z);
+      }
+    }
     sim.e.sim_set_ground(0, 0, 0, 1, 0, 0, 0, 0, 0);
     if (steps > 1) {
       sim.step(steps - 1);
@@ -14776,6 +14812,16 @@ export async function boot({
       const vzBefore = st[6];
       const speedBefore = plantSpeed(st);
       raiseGroundFromState(st);
+      if (stepTrace.on && stepTrace.n === refillAtStep) {
+        refillAtStep = -1;
+        if (view.forceRefill) {
+          view.forceRefill();
+        }
+      }
+      if (view.streamStep && streamFollowsCraft()) {
+        poseFromState(st, streamProbe);
+        view.streamStep(streamProbe.x, streamProbe.z);
+      }
       if (runDamage) {
         crashBeforeStep(st);
       }
@@ -15684,7 +15730,7 @@ export async function boot({
     const focus = camOverride || warIntro || mode === 'replay'
       ? shell.camera.position
       : (mode === 'title' ? shell.quad.position : pCurr);
-    view.updateShadowFocus(focus);
+    view.updateShadowFocus(focus, streamFollowsCraft());
     /* Wash drove grass propwash once; the argument stays so every map has
      * one updateWind shape. */
     const meanRpm = (stateCurr[14] + stateCurr[15] + stateCurr[16] + stateCurr[17]) * 0.25;
@@ -16578,6 +16624,17 @@ export async function boot({
     harnessFrameMs = Math.max(0, Math.min(FRAME_DT_MAX, Number(ms) || 0));
     return harnessFrameMs;
   };
+  /* A refill of the map's streamed set before step `n` of the next
+   * throw's trace (window.__stepTrace), on the sim clock, so a check can
+   * swap the set at the same point of a flight on every run; false on a
+   * map that streams nothing. */
+  devHooks.__refillAt = (n) => {
+    if (!view.forceRefill) {
+      return false;
+    }
+    refillAtStep = Math.floor(Number(n));
+    return true;
+  };
 
   /* The mode the plant is in, not the one the menu shows: angle cannot loop. */
   window.__flightMode = () => (angleModeOn ? 'angle' : 'acro');
@@ -16972,6 +17029,7 @@ export async function boot({
     acc = 0;
     stateCurr = readState();
     statePrev = stateCurr;
+    streamToCraft(stateCurr);
     /* Put, not flown: a new flight in the event log, so no lap or run
      * across the placement is a best (src/game/progress.js bestsOf). */
     ui.progress.startFlight(simTimeMs, () => roomLinkState.roomNow());
@@ -17059,7 +17117,9 @@ export async function boot({
      * where the craft was (a quad thrown onto the race field's verandah
      * after one on the pavilion was inside the verandah's roof box, which
      * the pavilion's cover had not taken out). The world is declared
-     * where the throw puts it, before that step. */
+     * where the throw puts it, before that step, from the streamed set
+     * there. */
+    streamToCraft(stateCurr);
     if (runDamage) {
       crashWorldX = NaN;
       crashWorldPhase = 0;
@@ -17616,6 +17676,7 @@ export async function boot({
     poseFromState(back, pCurr);
     groundPrev.copy(pCurr);
     groundHasPrev = true;
+    streamToCraft(back);
     if (runDamage) {
       wreckRig.reset();
       debris.clear();

@@ -91,7 +91,7 @@
     "content:owners": "node scripts/content-owners.js",
     "aircraft:folder": "node scripts/aircraft-folder-selftest.js",
     "aircraft:ctable": "node scripts/aircraft-ctable.js",
-    "check:roof": "node scripts/roof-check.js --map=itaipu && node scripts/roof-check.js --map=interior",
+    "check:roof": "node scripts/roof-check.js --map=itaipu; r=$?; node scripts/roof-check.js --map=interior || r=1; exit $r",
     "check:trees": "node scripts/tree-check.js",
     "check:colliders": "node scripts/collider-audit.js",
     "registry:selftest": "node scripts/registry-selftest.js",

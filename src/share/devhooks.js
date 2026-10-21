@@ -147,6 +147,7 @@ export const HOOKS = [
   ['__placeCraft', 'drops the craft level and airborne at a world point'],
   ['__quadScreen', null],
   ['__rain', null],
+  ['__refillAt', 'refills the streamed set at a step of a throw'],
   ['__releasePose', 'frees a pose held by __seatCraft'],
   ['__renderStats', null],
   ['__respawn', 'resets the craft at a map point'],

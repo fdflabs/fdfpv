@@ -332,6 +332,79 @@ const ROOF_WALLS = {
 };
 THROWS.push(ROOF_WALLS, { ...ROOF_WALLS, id: `${ROOF_WALLS.id}-nodamage`, what: `${ROOF_WALLS.what}, crash damage off`, damage: false });
 
+/*
+ * The pole throw again with the streamed set made to refill at REFILL_AT,
+ * through the map's streamer as a pilot crossing MOVE refills it. With
+ * crash damage on the swap declares the crash world again from where the
+ * craft is (src/main.js crashBeforeStep), so the step the swap lands at
+ * is in the trace. It must land there on the sim clock: flown in frames
+ * of FRAME_MS and of a 60 Hz frame's 17 ms, both must give this record
+ * (CLAUDE.md: a dropped frame must change nothing about the trajectory).
+ * The swap lands SWAP_STEPS (500) after the refill starts
+ * (src/maps/itaipu.js), at step 800, where the crash world it declares
+ * moves the trace (it parts from itaipu-quad-pole there); one refilled
+ * from 200 swaps at 700, which this throw's crash world does not feel, and
+ * would guard nothing. When the swap was a frame's, frames of 100 ms put
+ * it at step 600 and of 17 ms at one this throw does not feel, and the
+ * two parted at step 600 (2026-10-21). Appended last, on the damage on
+ * page.
+ */
+const REFILL_AT = 300;
+THROWS.push({
+  ...THROWS.find((t) => t.id === 'itaipu-quad-pole'),
+  id: 'itaipu-quad-pole-refill',
+  what: `the interceptor into an Itaipu pole at 15 m/s, the streamed set refilled from step ${REFILL_AT}, in frames of ${FRAME_MS} and 17 ms`,
+  refillAt: REFILL_AT,
+  frames: [FRAME_MS, 17],
+});
+
+/*
+ * A fixed wing's roof: the Bramor belly landed on an Itaipu dam top over
+ * its walls, the cover letting it over them, at the manual's best
+ * endurance speed, VBE 16 m/s (tests/bramor-thresholds.json b1_cruise),
+ * gliding in 3 degrees down from 0.6 m over the top, motor off, along a
+ * run of the top 30 m long that its whole span stays over, with both damage
+ * modes. A kept fixed wing on a kept map's roof, which roof-check's flown
+ * scenarios, set on the retired Skyhunter, find none of on Itaipu.
+ */
+const WING = airframeById('bramor2300');
+const WING_ROOF = {
+  id: 'itaipu-bramor-roof-walls',
+  what: 'the Bramor belly landed on an Itaipu dam top over its walls at 16 m/s, 3 degrees down, motor off',
+  airframe: WING.id,
+  map: 'itaipu',
+  plan: `
+    const s = SPAWN();
+    const st = window.__colliders().static;
+    const a = 3 * Math.PI / 180;
+    const half = ${WING.dims.hullR} + 0.15;
+    const tops = window.__roofs().map((r, i) => ({ r, i, x: (r.minX + r.maxX) / 2, z: (r.minZ + r.maxZ) / 2 }))
+      .filter(({ r }) => r.solids.length && r.solids.every((j) => j < st))
+      .map((o) => ({ ...o, d: Math.hypot(o.x - s.worldX, o.z - s.worldZ) }))
+      .filter((o) => o.d < ${MOVE})
+      .sort((u, v) => u.d - v.d || u.i - v.i);
+    for (const { i, x, z } of tops) {
+      const top = window.__roofTop(i, x, z);
+      if (!(top === window.__surface(x, z, 1e4))) continue;
+      for (const [fx, fz] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+        const x0 = x - 12 * fx, z0 = z - 12 * fz;
+        let on = true;
+        for (let d = 0; d <= 30 && on; d += 1) {
+          for (const w of [-half, 0, half]) {
+            const px = x0 + d * fx - w * fz, pz = z0 + d * fz + w * fx;
+            on = on && window.__roofTop(i, px, pz) === top && window.__surface(px, pz, 1e4) === top;
+          }
+          on = on && window.__nearSolid(x0 + d * fx, top + 1, z0 + d * fz, 0.8) > 0.75;
+        }
+        if (!on) continue;
+        return { throw: { x: x0, y: top + 0.6, z: z0, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: 0,
+          vx: 16 * Math.cos(a) * fx, vy: -16 * Math.sin(a), vz: 16 * Math.cos(a) * fz }, stick: [0, 0, 0, 0] };
+      }
+    }
+    return null;`,
+};
+THROWS.push(WING_ROOF, { ...WING_ROOF, id: `${WING_ROOF.id}-nodamage`, what: `${WING_ROOF.what}, crash damage off`, damage: false });
+
 function seed(airframe, map, damage) {
   const settings = {
     ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
@@ -360,6 +433,9 @@ const PASS = `JSON.parse(JSON.stringify(window.__contacts()))`;
 /* Where the town's streamed set stands as `s` (src/maps/itaipu/town/model.js
  * `near`), undefined off Itaipu, and `far(x, z)`: the shell would refill it
  * round a pilot there (the model's wants()). */
+/* The town's own record of where its set was filled, live (the map's
+ * stats hand out a copy). */
+const NEAR = 'window.__mapScene().userData.itaipu.parts.town.stream.near';
 const TOWN_JS = `const m = window.__map(); const s = m.parts && m.parts.town && m.parts.town.stream;
   const far = (x, z) => !(Math.hypot(x - s.x, z - s.z) < ${MOVE});`;
 
@@ -377,6 +453,16 @@ const digest = (xs) => createHash('sha256').update(xs.join(',')).digest('hex').s
 async function stage(page, th) {
   await page.tap('KeyR');
   await page.until('window.__crash().flags === 0 && !window.__crash().wrecked', 30000);
+  if (th.refillAt !== undefined) {
+    /* A refill row's set was refilled round its throw, within MOVE of the
+     * spawn, so R leaves it there: each staging starts from one refilled
+     * round the spawn, made to want it and put there (a put fills the set
+     * where it puts the craft, src/main.js streamToCraft). */
+    await page.until('(() => { const m = window.__map(); const c = window.__craftState(); return Math.hypot(c.worldX - m.spawn.x, c.worldZ - m.spawn.z) < 1; })()', 30000);
+    const fills = await page.evaluate(`${NEAR}.fills`);
+    await page.evaluate(`(() => { ${NEAR}.x = NaN; const s = window.__craftState(); window.__placeCraft(s.worldX, s.worldY, s.worldZ); })()`);
+    await page.until(`${NEAR}.fills !== ${fills}`, 60000);
+  }
   /* A map that streams colliders round the pilot (Itaipu's town walls,
    * src/maps/itaipu.js) holds the set round where the craft was before R
    * until it refills: the shell's spot 1.5 km off the spawn on a page's
@@ -407,6 +493,9 @@ async function stage(page, th) {
     await page.until(`(() => { ${TOWN_JS} const c = window.__craftState(); return !s.pending && !far(c.worldX, c.worldZ); })()`, 60000);
   }
   await throwAt(page, plan);
+  if (th.refillAt !== undefined && !await page.evaluate(`window.__refillAt(${th.refillAt})`)) {
+    throw new Error(`${th.id}: the map streams nothing to refill`);
+  }
   await page.evaluate(`window.__stick(${plan.stick.join(',')})`);
   await page.sleep(400);
   const passBefore = await page.evaluate(PASS);
@@ -444,8 +533,9 @@ async function stage(page, th) {
   }
   const trace = await page.evaluate('JSON.stringify(window.__stepTrace())').then(JSON.parse);
   const fillsAfter = await page.evaluate(FILLS);
-  if (fillsAfter !== fillsBefore) {
-    throw new Error(`${th.id}: the town's set refilled inside the trace (fill ${fillsBefore} to ${fillsAfter}), so the pass walked two orders of statics`);
+  const refills = th.refillAt === undefined ? 0 : 1;
+  if (fillsAfter - fillsBefore !== refills) {
+    throw new Error(`${th.id}: the town's set refilled ${fillsAfter - fillsBefore} times inside the trace, not ${refills} (fill ${fillsBefore} to ${fillsAfter})`);
   }
   /* What the throw met and which branches of the pass it ran (the pass's
    * counters run for the page's life, so the difference over the throw),
@@ -495,6 +585,13 @@ async function sample() {
       await page.evaluate(`window.__frameMs(${FRAME_MS})`);
       for (const th of list) {
         out[th.id] = await stage(page, th);
+        /* The same throw in frames of other lengths, held to the same record. */
+        out[th.id].also = [];
+        for (const ms of (th.frames ?? []).slice(1)) {
+          await page.evaluate(`window.__frameMs(${ms})`);
+          out[th.id].also.push(await stage(page, th));
+          await page.evaluate(`window.__frameMs(${FRAME_MS})`);
+        }
       }
     } finally {
       await page.close();
@@ -531,10 +628,11 @@ if (recording) {
      * step any two runs part at, and the record stops 100 steps short of
      * that: a later run whose frames fell earlier still agrees up to there.
      */
-    let n = Math.min(...runs.map((r) => r[th.id].n));
+    const traces = runs.flatMap((r) => [r[th.id], ...r[th.id].also]);
+    let n = Math.min(...traces.map((t) => t.n));
     let parted = -1;
-    for (const r of runs.slice(1)) {
-      const k = partAt(runs[0][th.id], r[th.id], n);
+    for (const t of traces.slice(1)) {
+      const k = partAt(traces[0], t, n);
       if (k >= 0 && (parted < 0 || k < parted)) {
         parted = k;
       }
@@ -589,22 +687,25 @@ const now = await sample();
 let failed = 0;
 for (const th of ACTIVE) {
   const want = record[th.id];
-  const got = now[th.id];
   const n = want.steps;
-  if (JSON.stringify(got.throw) !== JSON.stringify(want.throw)) {
-    failed += 1;
-    console.log(`  FAIL  ${th.id}: the throw moved (the map changed under the plan, not the pass): ${JSON.stringify(got.throw)}`);
-    continue;
-  }
-  const enough = got.n >= n;
-  const same = enough
-    && digest(got.pre.slice(0, n)) === want.pre
-    && digest(got.plane.slice(0, n)) === want.plane
-    && digest(got.post.slice(0, n)) === want.post;
-  if (!same) {
-    failed += 1;
-  }
-  console.log(`  ${same ? 'pass' : 'FAIL'}  ${th.id}: ${n} steps${enough ? '' : `, only ${got.n} traced`}  (${th.what})`);
+  const frames = th.frames ?? [FRAME_MS];
+  [now[th.id], ...now[th.id].also].forEach((got, k) => {
+    const label = frames.length > 1 ? `${th.id} (${frames[k]} ms frames)` : th.id;
+    if (JSON.stringify(got.throw) !== JSON.stringify(want.throw)) {
+      failed += 1;
+      console.log(`  FAIL  ${label}: the throw moved (the map changed under the plan, not the pass): ${JSON.stringify(got.throw)}`);
+      return;
+    }
+    const enough = got.n >= n;
+    const same = enough
+      && digest(got.pre.slice(0, n)) === want.pre
+      && digest(got.plane.slice(0, n)) === want.plane
+      && digest(got.post.slice(0, n)) === want.post;
+    if (!same) {
+      failed += 1;
+    }
+    console.log(`  ${same ? 'pass' : 'FAIL'}  ${label}: ${n} steps${enough ? '' : `, only ${got.n} traced`}  (${th.what})`);
+  });
 }
 if (failed > 0) {
   console.log(`contact-golden: ${failed} FAILED`);

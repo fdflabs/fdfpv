@@ -2,7 +2,7 @@
  * roof-check.js: a roof is ground you can skid on, and its walls are walls,
  * on every kind of building every map draws.
  *
- *     node scripts/roof-check.js [--map=itaipu] [--airframe=cub1400]
+ *     node scripts/roof-check.js [--map=itaipu] [--airframe=striker2500]
  *                                [--kinds=house,hut,...] [--roof=0]
  *                                [--only=ramp,dive,wall,gable,slope,quad]
  *     node scripts/roof-check.js --map=itaipu --sweep
@@ -44,8 +44,9 @@
  * into, a spire no slope to ramp, a flat roof no gable. The roof flown at
  * is the first of its kind whose approaches are clear of every other
  * building (CLEAR), so what a flight meets is that building's. The first five fly
- * the airframe named (the Skyhunter by default); the last is always the five
- * inch, through the same ground contact. Whether a ramp touch breaks
+ * the airframe named (the Bramor by default: the Skyhunter, whose flights
+ * the speeds and fitted attitudes below were set on, is retired); the last
+ * is always the five inch, through the same ground contact. Whether a ramp touch breaks
  * something is the crash physics' call and depends on the aircraft: a
  * tractor prop level with the roof strikes it, as it strikes the airfield's
  * grass on the same approach. The Skyhunter, a pusher with no gear, is an
@@ -105,7 +106,7 @@ const arg = (name, fallback) => {
   return hit ? hit.slice(name.length + 3) : fallback;
 };
 const MAP = arg('map', 'itaipu');
-const AIRFRAME = arg('airframe', 'sky1800');
+const AIRFRAME = arg('airframe', 'bramor2300');
 const ROOF = Number(arg('roof', 0));
 const SHOTS = arg('shots', null);
 const ONLY = arg('only', 'ramp,skid,dive,wall,gable,slope,quad').split(',');
