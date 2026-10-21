@@ -277,11 +277,11 @@ export async function browserSection(check) {
   oldStore.kept.set('meta', { ...oldStore.kept.get('meta'), map: 'yellowstone' });
   const after = server(old.stores);
   const wakes = await after.join({ code: keptOld.code });
-  check('a room stored on a retired world wakes in the Swiss valley, keeps its code, and stores the move',
-    wakes.welcome && wakes.welcome.map === 'swiss2' && oldStore.kept.get('meta').map === 'swiss2',
+  check('a room stored on a retired world wakes in Itaipu, keeps its code, and stores the move',
+    wakes.welcome && wakes.welcome.map === 'itaipu' && oldStore.kept.get('meta').map === 'itaipu',
     `${wakes.welcome && wakes.welcome.map} ${oldStore.kept.get('meta').map}`);
   await wakes.say({ type: 'world', map: 'yellowstone' });
-  check('and its host cannot move it back there', oldStore.kept.get('meta').map === 'swiss2' && texts(wakes, 'world').length === 0);
+  check('and its host cannot move it back there', oldStore.kept.get('meta').map === 'itaipu' && texts(wakes, 'world').length === 0);
 
   /* The combat-only cut (2026-10-18) takes every room game but the war,
    * and the VM keeps rooms across the restart that brings it. A room

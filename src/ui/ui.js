@@ -913,7 +913,7 @@ export class Ui {
       return;
     }
     if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
-      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'swiss2');
+      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'itaipu');
       return;
     }
     if (way.game === 'war' && this.onWarCard) {

@@ -339,18 +339,18 @@ const STATES = {
   'gate-visitor': { screen: 'title', craftGate: true, mode: null, visitor: true },
   'title-race': { screen: 'title', craftGate: false, mode: 'race', settings: { map: 'track', airframeAsked: true } },
   'title-race-noseat': { screen: 'title', craftGate: false, mode: 'race', settings: { map: 'track', airframeAsked: true } },
-  'title-freestyle': { screen: 'title', craftGate: false, mode: 'freestyle', settings: { map: 'swiss2', freestyleMap: 'swiss2', airframe: 'bramor2300', cameraAngle: 45 } },
+  'title-freestyle': { screen: 'title', craftGate: false, mode: 'freestyle', settings: { map: 'interior', freestyleMap: 'interior', airframe: 'bramor2300', cameraAngle: 45 } },
   'title-freestyle-itaipu': { screen: 'title', craftGate: false, mode: 'freestyle', settings: { map: 'itaipu', freestyleMap: 'itaipu' } },
-  'title-freestyle-noseat': { screen: 'title', craftGate: false, mode: 'freestyle', settings: { map: 'track', freestyleMap: 'alps' } },
+  'title-freestyle-noseat': { screen: 'title', craftGate: false, mode: 'freestyle', settings: { map: 'track', freestyleMap: 'interior' } },
   'title-firstrun': { screen: 'title', craftGate: false, mode: 'race', firstRun: true, settings: { map: 'track' } },
   paused: { screen: 'paused', craftGate: false, mode: 'race', returnTo: 'paused', settings: { map: 'track' } },
-  'paused-freestyle': { screen: 'paused', craftGate: false, mode: 'freestyle', returnTo: 'paused', settings: { map: 'swiss2', freestyleMap: 'swiss2' } },
+  'paused-freestyle': { screen: 'paused', craftGate: false, mode: 'freestyle', returnTo: 'paused', settings: { map: 'interior', freestyleMap: 'interior' } },
   /* Paused by Escape in flight: nothing set returnTo on the way in. */
   'paused-by-escape': { screen: 'paused', craftGate: false, mode: 'race', returnTo: 'title', settings: { map: 'track' } },
   quick: { screen: 'quick', craftGate: false, mode: 'race', returnTo: 'paused', settings: { map: 'track' } },
   'rates-from-quick': { screen: 'rates', mode: 'race', craftGate: false, returnTo: 'paused', ratesFrom: 'quick' },
   'pids-from-quick': { screen: 'pids', mode: 'race', craftGate: false, returnTo: 'paused', pidsFrom: 'quick' },
-  freestyle: { screen: 'freestyle', mode: 'freestyle', craftGate: false, settings: { map: 'swiss2' } },
+  freestyle: { screen: 'freestyle', mode: 'freestyle', craftGate: false, settings: { map: 'interior' } },
   'friends-out': { screen: 'friends', mode: 'freestyle', craftGate: false },
   'friends-room': { screen: 'friends', mode: 'freestyle', craftGate: false, inRoom: true },
   'friends-lobby': { screen: 'friends', mode: 'freestyle', craftGate: false, inRoom: true, inLobby: true },
@@ -414,7 +414,7 @@ const ACTIONS = [
   'howto', 'pilot', 'quad', 'credits', 'tricks', 'friends',
   'fly', 'rates', 'pids', 'fc', 'fc-save', 'fc-save-exit', 'fc-save-restart', 'fc-wait', 'fc-motors-stop', 'fc-preset:bf',
   'fc-keep-editing', 'fc-discard-leave', 'fc-discard', 'fc-export', 'fc-back', 'pids-default', 'rates-default', 'rates-save', 'rates-delete',
-  'map:alps', 'back', 'mode-gate', 'title', 'paused', 'quick',
+  'map:interior', 'back', 'mode-gate', 'title', 'paused', 'quick',
   'pause', 'restart', 'resume', 'postrun', 'posttime', 'noop', 'setname', 'choosepad', 'downloadflightlog', 'exportkey', 'importkey',
   'calibrate', 'calibrate-cancel', 'calibrate-save', 'padpick-yes', 'padpick-no', 'padpick-cancel',
   'padpick-skip', 'accountsignin', 'accountsignout', 'hub-hangar', 'nosuchaction',
@@ -567,7 +567,7 @@ async function helpersSweep() {
     out[`${name} seatMatchesMode`] = { value: ui.seatMatchesMode(), calls: ui.calls.splice(0) };
     const ui2 = setUp(name);
     out[`${name} flown`] = await press(ui2, () => ui2.flown());
-    for (const [id, opts] of [['alps', {}], ['itaipu', { stay: true }], ['nosuchmap', {}]]) {
+    for (const [id, opts] of [['interior', {}], ['itaipu', { stay: true }], ['nosuchmap', {}]]) {
       const ui3 = setUp(name);
       out[`${name} seatMap ${id}${opts.stay ? ' stay' : ''}`] = await press(ui3, () => ui3.seatMap(id, opts));
     }

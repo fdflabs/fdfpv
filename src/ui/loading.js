@@ -141,7 +141,7 @@ const COLOURED_STATES = ['ready', 'loading', 'fail'];
  * names each to its progress callback as it starts. Each phase stands
  * behind one or more rows:
  *
- *   valleys (src/maps/alps.js valleyPhases; swiss2 adds finish)
+ *   the valleys, until they left (2026-10-20)
  *     look        sky, light, materials          ENVIRONMENT
  *     terrain     heightfield and ground         TERRAIN DATA, HEIGHTMAPS
  *     nature      forest, meadow, water          VEGETATION

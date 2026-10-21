@@ -8150,139 +8150,9 @@
     ]
    }
   },
-  "lanpy": {
-   "material": {
-    "ref": "m60",
-    "type": "MeshStandardMaterial",
-    "name": "",
-    "transparent": true,
-    "opacity": 1,
-    "depthWrite": false,
-    "depthTest": true,
-    "side": 0,
-    "fog": true,
-    "blending": 1,
-    "vertexColors": false,
-    "alphaTest": 0,
-    "polygonOffset": true,
-    "polygonOffsetFactor": -1,
-    "polygonOffsetUnits": -4,
-    "colorWrite": true,
-    "toneMapped": true,
-    "flatShading": false,
-    "wireframe": false,
-    "roughness": 0.72,
-    "metalness": 0,
-    "emissiveIntensity": 1,
-    "dithering": false,
-    "premultipliedAlpha": false,
-    "visible": true,
-    "stencilWrite": false,
-    "alphaToCoverage": false,
-    "color": "dadada",
-    "emissive": "000000",
-    "map": {
-     "ref": "t61",
-     "type": "DataTexture",
-     "size": [
-      4,
-      4,
-      null
-     ],
-     "data": "21a49bc5",
-     "wrap": [
-      1001,
-      1001
-     ],
-     "filter": [
-      1003,
-      1003
-     ],
-     "mips": false,
-     "format": 1023,
-     "dataType": 1009,
-     "colorSpace": "",
-     "repeat": [
-      1,
-      1
-     ],
-     "offset": [
-      0,
-      0
-     ],
-     "flipY": false,
-     "anisotropy": 1
-    },
-    "normalMap": "t54",
-    "defines": {
-     "STANDARD": ""
-    },
-    "onBeforeCompile": true,
-    "cacheKey": "s2-mark",
-    "userData": []
-   },
-   "shaders": {
-    "vertex": "81e478e6",
-    "fragment": "0fdb62ca",
-    "added": [
-     [
-      "uS2Sheet",
-      {
-       "ref": "t0",
-       "type": "DataTexture",
-       "size": [
-        2,
-        2,
-        null
-       ],
-       "data": "92a61a75",
-       "wrap": [
-        1001,
-        1001
-       ],
-       "filter": [
-        1003,
-        1003
-       ],
-       "mips": false,
-       "format": 1023,
-       "dataType": 1009,
-       "colorSpace": "",
-       "repeat": [
-        1,
-        1
-       ],
-       "offset": [
-        0,
-        0
-       ],
-       "flipY": false,
-       "anisotropy": 1
-      }
-     ]
-    ],
-    "defines": {
-     "STANDARD": ""
-    },
-    "key": "s2-mark"
-   },
-   "finish": {
-    "group": "mark",
-    "tint": [
-     1,
-     1,
-     1
-    ],
-    "finish": [
-     0,
-     4,
-     1
-    ]
-   }
-  },
   "hangarIn": {
    "material": {
-    "ref": "m62",
+    "ref": "m60",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8337,7 +8207,7 @@
   },
   "steel": {
    "material": {
-    "ref": "m63",
+    "ref": "m61",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8392,7 +8262,7 @@
   },
   "flashing": {
    "material": {
-    "ref": "m64",
+    "ref": "m62",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8447,7 +8317,7 @@
   },
   "lightPanel": {
    "material": {
-    "ref": "m65",
+    "ref": "m63",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8502,7 +8372,7 @@
   },
   "lamp": {
    "material": {
-    "ref": "m66",
+    "ref": "m64",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8557,7 +8427,7 @@
   },
   "joint": {
    "material": {
-    "ref": "m67",
+    "ref": "m65",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8612,7 +8482,7 @@
   },
   "stain": {
    "material": {
-    "ref": "m68",
+    "ref": "m66",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8667,7 +8537,7 @@
   },
   "lineYellow": {
    "material": {
-    "ref": "m69",
+    "ref": "m67",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8722,7 +8592,7 @@
   },
   "asphalt": {
    "material": {
-    "ref": "m70",
+    "ref": "m68",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8752,7 +8622,7 @@
     "color": "ededed",
     "emissive": "000000",
     "map": {
-     "ref": "t71",
+     "ref": "t69",
      "type": "DataTexture",
      "size": [
       2,
@@ -8784,7 +8654,7 @@
      "anisotropy": 1
     },
     "normalMap": {
-     "ref": "t72",
+     "ref": "t70",
      "type": "DataTexture",
      "size": [
       2,
@@ -8816,7 +8686,7 @@
      "anisotropy": 1
     },
     "roughnessMap": {
-     "ref": "t73",
+     "ref": "t71",
      "type": "DataTexture",
      "size": [
       2,
@@ -8847,7 +8717,7 @@
      "flipY": false,
      "anisotropy": 1
     },
-    "aoMap": "t73",
+    "aoMap": "t71",
     "defines": {
      "STANDARD": ""
     },
@@ -8904,7 +8774,7 @@
   },
   "gravel": {
    "material": {
-    "ref": "m74",
+    "ref": "m72",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -8934,7 +8804,7 @@
     "color": "e7eaed",
     "emissive": "000000",
     "map": {
-     "ref": "t75",
+     "ref": "t73",
      "type": "DataTexture",
      "size": [
       2,
@@ -8966,7 +8836,7 @@
      "anisotropy": 1
     },
     "normalMap": {
-     "ref": "t76",
+     "ref": "t74",
      "type": "DataTexture",
      "size": [
       2,
@@ -8998,7 +8868,7 @@
      "anisotropy": 1
     },
     "roughnessMap": {
-     "ref": "t77",
+     "ref": "t75",
      "type": "DataTexture",
      "size": [
       2,
@@ -9029,7 +8899,7 @@
      "flipY": false,
      "anisotropy": 1
     },
-    "aoMap": "t77",
+    "aoMap": "t75",
     "defines": {
      "STANDARD": ""
     },
@@ -9086,7 +8956,7 @@
   },
   "dripEdge": {
    "material": {
-    "ref": "m78",
+    "ref": "m76",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9115,10 +8985,10 @@
     "alphaToCoverage": false,
     "color": "b5b1aa",
     "emissive": "000000",
-    "map": "t75",
-    "normalMap": "t76",
-    "roughnessMap": "t77",
-    "aoMap": "t77",
+    "map": "t73",
+    "normalMap": "t74",
+    "roughnessMap": "t75",
+    "aoMap": "t75",
     "defines": {
      "STANDARD": ""
     },
@@ -9175,7 +9045,7 @@
   },
   "cobble": {
    "material": {
-    "ref": "m79",
+    "ref": "m77",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9205,7 +9075,7 @@
     "color": "ffffff",
     "emissive": "000000",
     "map": {
-     "ref": "t80",
+     "ref": "t78",
      "type": "DataTexture",
      "size": [
       2,
@@ -9237,7 +9107,7 @@
      "anisotropy": 1
     },
     "normalMap": {
-     "ref": "t81",
+     "ref": "t79",
      "type": "DataTexture",
      "size": [
       2,
@@ -9269,7 +9139,7 @@
      "anisotropy": 1
     },
     "roughnessMap": {
-     "ref": "t82",
+     "ref": "t80",
      "type": "DataTexture",
      "size": [
       2,
@@ -9300,7 +9170,7 @@
      "flipY": false,
      "anisotropy": 1
     },
-    "aoMap": "t82",
+    "aoMap": "t80",
     "defines": {
      "STANDARD": ""
     },
@@ -9357,7 +9227,7 @@
   },
   "kerb": {
    "material": {
-    "ref": "m83",
+    "ref": "m81",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9386,10 +9256,10 @@
     "alphaToCoverage": false,
     "color": "cbf6ff",
     "emissive": "000000",
-    "map": "t75",
-    "normalMap": "t76",
-    "roughnessMap": "t77",
-    "aoMap": "t77",
+    "map": "t73",
+    "normalMap": "t74",
+    "roughnessMap": "t75",
+    "aoMap": "t75",
     "defines": {
      "STANDARD": ""
     },
@@ -9446,7 +9316,7 @@
   },
   "concrete": {
    "material": {
-    "ref": "m84",
+    "ref": "m82",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9476,7 +9346,7 @@
     "color": "ffffff",
     "emissive": "000000",
     "map": {
-     "ref": "t85",
+     "ref": "t83",
      "type": "DataTexture",
      "size": [
       2,
@@ -9508,7 +9378,7 @@
      "anisotropy": 1
     },
     "normalMap": {
-     "ref": "t86",
+     "ref": "t84",
      "type": "DataTexture",
      "size": [
       2,
@@ -9540,7 +9410,7 @@
      "anisotropy": 1
     },
     "roughnessMap": {
-     "ref": "t87",
+     "ref": "t85",
      "type": "DataTexture",
      "size": [
       2,
@@ -9571,7 +9441,7 @@
      "flipY": false,
      "anisotropy": 1
     },
-    "aoMap": "t87",
+    "aoMap": "t85",
     "defines": {
      "STANDARD": ""
     },
@@ -9628,7 +9498,7 @@
   },
   "liftConcrete": {
    "material": {
-    "ref": "m88",
+    "ref": "m86",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9717,7 +9587,7 @@
   },
   "geranium": {
    "material": {
-    "ref": "m89",
+    "ref": "m87",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9772,7 +9642,7 @@
   },
   "geraniumPink": {
    "material": {
-    "ref": "m90",
+    "ref": "m88",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9827,7 +9697,7 @@
   },
   "geraniumDeep": {
    "material": {
-    "ref": "m91",
+    "ref": "m89",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9882,7 +9752,7 @@
   },
   "geraniumLight": {
    "material": {
-    "ref": "m92",
+    "ref": "m90",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9937,7 +9807,7 @@
   },
   "geraniumPinkDeep": {
    "material": {
-    "ref": "m93",
+    "ref": "m91",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -9992,7 +9862,7 @@
   },
   "geraniumPinkLight": {
    "material": {
-    "ref": "m94",
+    "ref": "m92",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10047,7 +9917,7 @@
   },
   "leaf": {
    "material": {
-    "ref": "m95",
+    "ref": "m93",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10102,7 +9972,7 @@
   },
   "leafDark": {
    "material": {
-    "ref": "m96",
+    "ref": "m94",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10157,7 +10027,7 @@
   },
   "hedge": {
    "material": {
-    "ref": "m97",
+    "ref": "m95",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10212,7 +10082,7 @@
   },
   "hedgeLight": {
    "material": {
-    "ref": "m98",
+    "ref": "m96",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10267,7 +10137,7 @@
   },
   "hedgeDark": {
    "material": {
-    "ref": "m99",
+    "ref": "m97",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10322,7 +10192,7 @@
   },
   "ivy": {
    "material": {
-    "ref": "m100",
+    "ref": "m98",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10377,7 +10247,7 @@
   },
   "ivyLight": {
    "material": {
-    "ref": "m101",
+    "ref": "m99",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10432,7 +10302,7 @@
   },
   "rose": {
    "material": {
-    "ref": "m102",
+    "ref": "m100",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10487,7 +10357,7 @@
   },
   "roseWhite": {
    "material": {
-    "ref": "m103",
+    "ref": "m101",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10542,7 +10412,7 @@
   },
   "solar": {
    "material": {
-    "ref": "m104",
+    "ref": "m102",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10597,7 +10467,7 @@
   },
   "castIron": {
    "material": {
-    "ref": "m105",
+    "ref": "m103",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10652,7 +10522,7 @@
   },
   "lanternGlass": {
    "material": {
-    "ref": "m106",
+    "ref": "m104",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10707,7 +10577,7 @@
   },
   "flagRed": {
    "material": {
-    "ref": "m107",
+    "ref": "m105",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10762,7 +10632,7 @@
   },
   "canvas": {
    "material": {
-    "ref": "m108",
+    "ref": "m106",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10817,7 +10687,7 @@
   },
   "canvasRed": {
    "material": {
-    "ref": "m109",
+    "ref": "m107",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10872,7 +10742,7 @@
   },
   "clothWhite": {
    "material": {
-    "ref": "m110",
+    "ref": "m108",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10927,7 +10797,7 @@
   },
   "clothBlue": {
    "material": {
-    "ref": "m111",
+    "ref": "m109",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -10982,7 +10852,7 @@
   },
   "clothRose": {
    "material": {
-    "ref": "m112",
+    "ref": "m110",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11037,7 +10907,7 @@
   },
   "clothYellow": {
    "material": {
-    "ref": "m113",
+    "ref": "m111",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11092,7 +10962,7 @@
   },
   "fenceWhite": {
    "material": {
-    "ref": "m114",
+    "ref": "m112",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11181,7 +11051,7 @@
   },
   "hikeYellow": {
    "material": {
-    "ref": "m115",
+    "ref": "m113",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11236,7 +11106,7 @@
   },
   "postYellow": {
    "material": {
-    "ref": "m116",
+    "ref": "m114",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11291,7 +11161,7 @@
   },
   "bikeTeal": {
    "material": {
-    "ref": "m117",
+    "ref": "m115",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11346,7 +11216,7 @@
   },
   "soil": {
    "material": {
-    "ref": "m118",
+    "ref": "m116",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11375,10 +11245,10 @@
     "alphaToCoverage": false,
     "color": "957e6c",
     "emissive": "000000",
-    "map": "t75",
-    "normalMap": "t76",
-    "roughnessMap": "t77",
-    "aoMap": "t77",
+    "map": "t73",
+    "normalMap": "t74",
+    "roughnessMap": "t75",
+    "aoMap": "t75",
     "defines": {
      "STANDARD": ""
     },
@@ -11435,7 +11305,7 @@
   },
   "pathGravel": {
    "material": {
-    "ref": "m119",
+    "ref": "m117",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11464,10 +11334,10 @@
     "alphaToCoverage": false,
     "color": "d4cbbf",
     "emissive": "000000",
-    "map": "t75",
-    "normalMap": "t76",
-    "roughnessMap": "t77",
-    "aoMap": "t77",
+    "map": "t73",
+    "normalMap": "t74",
+    "roughnessMap": "t75",
+    "aoMap": "t75",
     "defines": {
      "STANDARD": ""
     },
@@ -11524,7 +11394,7 @@
   },
   "lettuce": {
    "material": {
-    "ref": "m120",
+    "ref": "m118",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11579,7 +11449,7 @@
   },
   "cabbage": {
    "material": {
-    "ref": "m121",
+    "ref": "m119",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11634,7 +11504,7 @@
   },
   "apple": {
    "material": {
-    "ref": "m122",
+    "ref": "m120",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11689,7 +11559,7 @@
   },
   "pear": {
    "material": {
-    "ref": "m123",
+    "ref": "m121",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11744,7 +11614,7 @@
   },
   "fruitOrange": {
    "material": {
-    "ref": "m124",
+    "ref": "m122",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11799,7 +11669,7 @@
   },
   "plum": {
    "material": {
-    "ref": "m125",
+    "ref": "m123",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11854,7 +11724,7 @@
   },
   "puddle": {
    "material": {
-    "ref": "m126",
+    "ref": "m124",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11909,7 +11779,7 @@
   },
   "shade": {
    "material": {
-    "ref": "m127",
+    "ref": "m125",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -11964,7 +11834,7 @@
   },
   "metal": {
    "material": {
-    "ref": "m128",
+    "ref": "m126",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -12019,7 +11889,7 @@
   },
   "ink": {
    "material": {
-    "ref": "m129",
+    "ref": "m127",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -12074,7 +11944,7 @@
   },
   "door": {
    "material": {
-    "ref": "m130",
+    "ref": "m128",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -12129,7 +11999,7 @@
   },
   "cross": {
    "material": {
-    "ref": "m131",
+    "ref": "m129",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -12184,7 +12054,7 @@
   },
   "paint": {
    "material": {
-    "ref": "m132",
+    "ref": "m130",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -12239,7 +12109,7 @@
   },
   "signBlue": {
    "material": {
-    "ref": "m133",
+    "ref": "m131",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -12294,7 +12164,7 @@
   },
   "signRed": {
    "material": {
-    "ref": "m134",
+    "ref": "m132",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -12349,7 +12219,7 @@
   },
   "cone": {
    "material": {
-    "ref": "m135",
+    "ref": "m133",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -12404,7 +12274,7 @@
   },
   "fuel": {
    "material": {
-    "ref": "m136",
+    "ref": "m134",
     "type": "MeshStandardMaterial",
     "name": "",
     "transparent": false,
@@ -12459,7 +12329,7 @@
   },
   "glass": {
    "material": {
-    "ref": "m137",
+    "ref": "m135",
     "type": "MeshPhysicalMaterial",
     "name": "",
     "transparent": false,
@@ -12518,7 +12388,7 @@
   },
   "water": {
    "material": {
-    "ref": "m138",
+    "ref": "m136",
     "type": "MeshPhysicalMaterial",
     "name": "",
     "transparent": false,

@@ -189,7 +189,7 @@ function applyOne(ac, side) {
  * MEET_MS; latency is each link's one way delay, ms. Returns what the
  * checks read.
  */
-function pass(A, B, latency, friendly = false, map = 'swiss2') {
+function pass(A, B, latency, friendly = false, map = 'itaipu') {
   const room = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly, map, epoch: 0 });
   const conns = [{ i: 0 }, { i: 1 }];
   const craft = [A, B];
@@ -426,8 +426,8 @@ async function friendly(tag, a, b, map) {
 }
 
 console.log('mid air through the real plant, both sides');
-judge('', await series(PAIRS, 'swiss2'));
-await friendly('', 'cub1400', 'p51d1450', 'swiss2');
+judge('', await series(PAIRS, 'itaipu'));
+await friendly('', 'cub1400', 'p51d1450', 'itaipu');
 
 /* The aircraft PDCS seats, in the war's and The Interior's pairs, on
  * Itaipu: a war ram (the interceptor and the seven inch into the

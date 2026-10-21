@@ -7,8 +7,8 @@
  *   node scripts/rooms-safety-two-page.js [rooms-url] [outdir]
  *
  * Page A is in English and flies a Cub, page B in Spanish and flies a
- * P-51. Neither has a code: both press "Join a public room" on the Swiss
- * valley and the lobby must put them in the same public room. Then A says
+ * P-51. Neither has a code: both press "Join a public room" on the
+ * Interior and the lobby must put them in the same public room. Then A says
  * a preset phrase and waves, and B must read both in Spanish under A's
  * Spanish picker name; B mutes A, and A's next phrase and A's name tag
  * must be gone from B's screen while A's aircraft is still drawn; B
@@ -60,8 +60,8 @@ function check(name, ok, detail = '') {
 
 function seedFor(id) {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
-  s.map = 'swiss2';
-  s.freestyleMap = 'swiss2';
+  s.map = 'interior';
+  s.freestyleMap = 'interior';
   s.graphics = 'low';
   s.flightMode = 'angle';
   s.fpsCap = 0;

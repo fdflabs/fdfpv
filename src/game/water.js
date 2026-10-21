@@ -23,19 +23,6 @@
  *                   unit direction it blows toward, the open water it
  *                   crosses. The waves are the plant's from these.
  *
- * THE ALPS' LAKE, which swiss2 shares because it is built on the same
- * valley (src/maps/swiss2.js builds through alps.js's buildValley, on its
- * own walls where they meet the water): the
- * basin at the valley's south end whose shore is wherever the terrain
- * crosses LAKE_Y, found as src/maps/alps/nature.js finds it, by marching
- * rays out from the basin's middle. Read from src/maps/alps/terrain.js,
- * never written. Light air, 2 m/s, down the valley from the north, which
- * over the lake's 0.9 km raises a chop of 3.1 cm at 0.76 s: enough that an
- * aircraft afloat rocks a few degrees, as a model on a lake does, and no
- * more; the map draws the lake from the same waves (src/render/
- * lakewaves.js, docs/FLOATS-STAGE1.md). The aircraft spawns in the middle
- * facing into it, up the lake.
- *
  * A CHANNEL is a river, as the map draws it (the map's view.rivers, its
  * stream's centre line with the drawn surface's height at every row, and
  * its width): water within half the width of the line, the surface level
@@ -54,8 +41,8 @@
  * quad or a wheeled plane rests ON the water; wetHeight gives every other
  * body the same, so the ground over a river or a pool is its surface.
  *
- * Every other map has no water, and there an aircraft on floats stands on
- * its keels on the strip.
+ * A map that builds none has no water, and there an aircraft on floats
+ * stands on its keels on the strip.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -74,80 +61,6 @@
  */
 
 import { simErrorName, SIM_OK } from '../../tests/lib/simmod.js';
-
-/* The outline's corners, the plant's most (WATER_VERTS_MAX), and the march
- * out along each: STEP to find the shore, then halved to a millimetre, and
- * the corner set SHORE_OUT past it, where the land is over the water and
- * the plant's water under it meets nothing. The shore is where the map's
- * own ground comes within `wet` of the still water: swiss2's lake is
- * drawn over its north shore's beach, one in eighty, five centimetres up
- * it (WET_SWISS2); the alps' stops where the ground crosses the water.
- * The outline was 96 corners on the terrain, not the map's ground, and
- * swiss2's north shore was drawn water with no water under it
- * (scripts/collide-audit-swiss2.js). */
-const RAYS = 256;
-const STEP = 3;
-const SHORE_OUT = 1.5;
-const WET_SWISS2 = 0.05;
-/* The breeze on the Alps' lake, m/s. */
-export const ALPS_LAKE_WIND = 2;
-
-/* The lake over a ground height(x, z): the alps' own, or swiss2's, which is
- * the alps' with Lauterbrunnen's walls added where the walls are
- * (src/maps/swiss2/terrain.js, wallRise), so its lake's far shores are
- * where those walls meet the water. */
-async function alpsLake(ground, shore, over = 0) {
-  const t = await import('../maps/alps/terrain.js');
-  const height = ground ? await ground(t) : t.terrainHeight;
-  /* Where the shore is: on the map's own ground when it is built, which
-   * answers the lake's surface over the water, within `over` of it; else
-   * under the lake's level on the terrain. */
-  const wet = shore ? (x, z) => shore(x, z) <= t.LAKE_Y + over : (x, z) => height(x, z) < t.LAKE_Y;
-  const cz = (t.LAKE_N + t.LAKE_END) / 2;
-  const cx = t.valleyAxis(cz);
-  const outline = [];
-  let zMin = Infinity;
-  let zMax = -Infinity;
-  for (let k = 0; k < RAYS; k += 1) {
-    const a = (k / RAYS) * Math.PI * 2;
-    const dx = Math.cos(a);
-    const dz = Math.sin(a);
-    let r = 0;
-    while (r < 1100 && wet(cx + dx * r, cz + dz * r)) {
-      r += STEP;
-    }
-    let inside = Math.max(0, r - STEP);
-    while (r - inside > 0.001) {
-      const m = (inside + r) / 2;
-      if (wet(cx + dx * m, cz + dz * m)) {
-        inside = m;
-      } else {
-        r = m;
-      }
-    }
-    r += SHORE_OUT;
-    outline.push({ x: cx + dx * r, z: cz + dz * r });
-    zMin = Math.min(zMin, cz + dz * r);
-    zMax = Math.max(zMax, cz + dz * r);
-  }
-  return {
-    kind: 'lake',
-    surfaceY: t.LAKE_Y,
-    outline,
-    bed: height,
-    centre: { x: cx, z: cz },
-    spawn: { x: cx, z: cz, yaw: 0 },
-    wind: { speed: ALPS_LAKE_WIND, toX: 0, toZ: 1, fetch: zMax - zMin },
-  };
-}
-
-const WATER = {
-  alps: (shore) => [alpsLake(null, shore)],
-  swiss2: (shore) => [alpsLake(async (t) => {
-    const w = await import('../maps/swiss2/terrain.js');
-    return (x, z) => t.terrainHeight(x, z) + w.wallRise(x, z);
-  }, shore, WET_SWISS2)],
-};
 
 /* Segments a channel's box covers, as the plant's WATER_CHUNK. */
 const CHUNK = 32;
@@ -193,25 +106,20 @@ function pool({ x, z, r, y }, bed) {
 }
 
 /*
- * The water bodies of a map, by its id and as built: an empty list for a
- * map without. The lake first, since where two bodies meet (the stream's
- * mouth) the first declared is the water, in the plant as here, then the
- * lakes a map builds in this file's lake form itself (map.lakes: Itaipu's
- * reservoir and river, from its data), and then the drawn pools and
- * rivers, each over the map's own ground.
+ * The water bodies of a map as built: an empty list for a map without.
+ * The lakes it builds in this file's lake form itself first (map.lakes:
+ * Itaipu's reservoir and river, from its data), since where two bodies
+ * meet the first declared is the water, in the plant as here, and then
+ * the drawn pools and rivers, each over the map's own ground. The Alps'
+ * lake was built here from their terrain until the valleys left
+ * (2026-10-20).
  */
-export async function waterFor(mapId, map) {
-  const make = WATER[mapId];
-  const lakes = make ? await Promise.all(make(map ? (x, z) => map.height(x, z, -Infinity) : null)) : [];
-  if (!map) {
-    return lakes;
-  }
+export function waterFor(map) {
   /* The ground itself, under any roof or bridge: the map's height as it
    * is now, before wetHeight wraps it. */
   const height = map.height;
   const bed = (x, z) => height(x, z, -Infinity);
   return [
-    ...lakes,
     ...(map.lakes || []),
     ...(map.pools || []).map((p) => pool(p, bed)),
     ...(map.rivers || []).map((r) => channel(r.line, r.width, bed)),

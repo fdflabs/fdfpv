@@ -496,10 +496,11 @@ async function worldScale(ctx) {
 
 /*
  * Check 16 measures the lazy load instead of asserting it: the URLs the
- * page fetched with the Alps selected must hold no Swiss valley module,
- * the URLs after choosing the valley must hold its whole graph (and match
- * the loading bar's typed count), and the Alps' own frame after a round
- * trip through the valley must cost what it cost at boot. Everything is
+ * page fetched with the base world (Itaipu) selected must hold no module
+ * of the other (the Interior), the URLs after choosing the other must hold
+ * its whole graph (and match the loading bar's typed count), and the base
+ * world's own frame after a round trip through the other must cost what it
+ * cost at boot (tests/verify.js BASE_MAP and OTHER_MAP). Everything is
  * this run against itself, so no machine's constant can rot.
  */
 async function mapIsolation(ctx) {
@@ -511,21 +512,21 @@ async function mapIsolation(ctx) {
   const back = r.baseBudgetAfterRoundTrip;
   const faults = [];
   if (early.length !== 0) {
-    faults.push(`${early.length} Swiss valley module(s) fetched with the Alps selected, first ${early[0]}`);
+    faults.push(`${early.length} Interior module(s) fetched with Itaipu selected, first ${early[0]}`);
   }
-  if (fetched < th.swiss2_modules_min.value) {
-    faults.push(`only ${fetched} Swiss valley modules fetched after choosing it`);
+  if (fetched < th.interior_modules_min.value) {
+    faults.push(`only ${fetched} Interior modules fetched after choosing it`);
   }
   if (r.otherExpectedModules == null) {
-    faults.push('MAP_MODULE_COUNT has no count for the Swiss valley');
+    faults.push('MAP_MODULE_COUNT has no count for the Interior');
   } else if (fetched !== r.otherExpectedModules) {
-    faults.push(`MAP_MODULE_COUNT says ${r.otherExpectedModules} Swiss valley modules, the browser fetched ${fetched}`);
+    faults.push(`MAP_MODULE_COUNT says ${r.otherExpectedModules} Interior modules, the browser fetched ${fetched}`);
   }
   if (!boot) {
-    faults.push('the Alps budget was not measured');
+    faults.push('the Itaipu budget was not measured');
   }
   if (!back) {
-    faults.push('the Alps budget after a round trip was not measured');
+    faults.push('the Itaipu budget after a round trip was not measured');
   } else if (boot) {
     /* Byte figures get floating point slack; counts get none. */
     const held = [
@@ -541,16 +542,16 @@ async function mapIsolation(ctx) {
       }
     }
     /* Only growth is a leak: a material registers when it first compiles,
-     * so the rebuilt Alps may honestly report fewer. */
+     * so the rebuilt Itaipu may honestly report fewer. */
     if (back.cel > boot.cel) {
       faults.push(`cel material clock walk grew ${boot.cel} to ${back.cel} across a round trip`);
     }
   }
   const cost = (b) => `P1 ${b.p1}, P2 ${b.p2}, P5 ${b.p5} MB, P10 ${b.p10} MB`;
   return judge(
-    `Swiss valley modules: ${early.length} with the Alps selected, ${fetched} after choosing it; `
-      + (boot ? `Alps ${cost(boot)}, ${boot.meshes} meshes` : 'no budget')
-      + (back ? `; after a Swiss valley round trip ${cost(back)}` : ''),
+    `Interior modules: ${early.length} with Itaipu selected, ${fetched} after choosing it; `
+      + (boot ? `Itaipu ${cost(boot)}, ${boot.meshes} meshes` : 'no budget')
+      + (back ? `; after an Interior round trip ${cost(back)}` : ''),
     faults.length === 0,
     faults.join('; '),
   );
@@ -572,7 +573,7 @@ const CHECKS = [
   [13, 'console-clean', 'zero errors, zero warnings', consoleClean],
   [14, 'audio-bed', 'context running, bed audible, media advancing', audioBed],
   [15, 'world-scale', 'reference objects inside their real world bands', worldScale],
-  [16, 'map-isolation', 'no Swiss valley module requested with the Alps selected, Alps cost unchanged', mapIsolation],
+  [16, 'map-isolation', 'no Interior module requested with Itaipu selected, Itaipu cost unchanged', mapIsolation],
 ];
 
 export function buildChecks() {

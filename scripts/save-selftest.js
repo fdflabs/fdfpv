@@ -324,13 +324,13 @@ console.log('the envelope round trips');
 console.log('reset settings and reset progress each keep the other half');
 {
   const { freshProgress } = await import('../src/game/progress.js');
-  /* The fixture's profile flies the Swiss valley, which the new profile's
-   * default seat became when the Track seat left (the combat-only cut,
-   * 2026-10-20): seated on Itaipu here, so the reset still has a world
-   * choice to undo. */
+  /* The fixture's profile flies the Swiss valley, which left with the
+   * valleys (the combat-only cut, 2026-10-20), and the new profile's
+   * default seat is Itaipu: seated on the Interior here, so the reset
+   * still has a world choice to undo. */
   const good = {
     ...FIXTURE['v3-profile'],
-    [SETTINGS_KEY]: JSON.stringify({ ...JSON.parse(FIXTURE['v3-profile'][SETTINGS_KEY]), map: 'itaipu' }),
+    [SETTINGS_KEY]: JSON.stringify({ ...JSON.parse(FIXTURE['v3-profile'][SETTINGS_KEY]), map: 'interior' }),
   };
   const blob = JSON.parse(good[SETTINGS_KEY]);
   const was = readAll(new Storage(good));

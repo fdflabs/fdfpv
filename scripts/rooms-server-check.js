@@ -186,7 +186,7 @@ function pilot(path, headers = {}, options = {}) {
   return p;
 }
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3, livery: { scheme: 'sport' }, parts: { prop: 'stock', addons: [] } };
+const profile = { airframe: 'cub1400', map: 'itaipu', figure: 3, livery: { scheme: 'sport' }, parts: { prop: 'stock', addons: [] } };
 async function seat(path, extra = {}, options = {}) {
   const p = pilot(path, {}, options);
   await p.open;
@@ -217,14 +217,14 @@ async function adminRefused() {
 /* A named public room made and not listed while empty, a private one
  * never listed, a bad name refused. Its code. Two creates. */
 async function publicMade(privateCode) {
-  const r = await make({ map: 'swiss2', public: true, name: ' Server  check ' });
+  const r = await make({ map: 'itaipu', public: true, name: ' Server  check ' });
   const made = (await r.json()).code;
   check('a named public room is made', r.status === 200 && /^[A-Z0-9]{6}$/.test(made));
   const rooms = await listed();
   /* The owner, 2026-10-02: an empty room is never listed. */
   check('the browser does not list it before anybody joins', rooms.open === true && !rooms.rooms.some((x) => x.code === made), JSON.stringify(rooms.rooms));
   check('and never the private room', !rooms.rooms.some((x) => x.code === privateCode));
-  const bad = await make({ map: 'swiss2', public: true, name: 'fuck this' });
+  const bad = await make({ map: 'itaipu', public: true, name: 'fuck this' });
   check('a name the word filter refuses is refused', bad.status === 400 && (await bad.json()).error === 'name');
   return made;
 }
@@ -236,11 +236,11 @@ async function publicMade(privateCode) {
 async function warCreates() {
   let r = await make({ map: 'yellowstone' });
   check('a room on a retired world is refused (src/maps/retired.js)', r.status === 400 && (await r.json()).error === 'bad');
-  r = await make({ map: 'swiss2', mode: 'war' });
+  r = await make({ map: 'interior', mode: 'war' });
   check('a war room off the war\'s map is refused', r.status === 400 && (await r.json()).error === 'bad');
   r = await make({ map: 'itaipu', mode: 'war', mission: 'nowhere-1' });
   check('a mission nobody wrote is refused', r.status === 400 && (await r.json()).error === 'bad');
-  r = await make({ map: 'swiss2', mission: 'itaipu-1' });
+  r = await make({ map: 'interior', mission: 'itaipu-1' });
   check('a mission for a room not made for the war is refused', r.status === 400 && (await r.json()).error === 'bad');
   /* The release gate (the owner, 2026-10-04: only mission 1 until it is
    * right): no room is made for a mission in development, so the rows
@@ -310,13 +310,13 @@ check(given ? 'GET /v2/version names the commit it runs, or none' : 'GET /v2/ver
   JSON.stringify(version));
 /* The front counts an address's creates over a minute from its first. */
 const frontAt = Date.now();
-res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://evil.example' }, body: '{"map":"swiss2"}' });
+res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://evil.example' }, body: '{"map":"itaipu"}' });
 check('a page on another site is refused', res.status === 403);
 res = await fetch(`${origin}/v2/create`, { method: 'OPTIONS', headers: { origin: 'https://fdflabs.github.io' } });
 check('the simulator\'s origin gets its CORS answer', res.status === 204 && res.headers.get('access-control-allow-origin') === 'https://fdflabs.github.io');
 res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: 'not json' });
 check('a create that is not JSON is refused', res.status === 400);
-res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'swiss2' }) });
+res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'itaipu' }) });
 const { code } = await res.json();
 check('a private room is made', res.status === 200 && /^[A-Z0-9]{6}$/.test(code), code);
 check('with CORS for the page', res.headers.get('access-control-allow-origin') === 'https://fdflabs.github.io');
@@ -431,7 +431,7 @@ if (pub.open) {
   check('and the browser lists it, with its name', line && line.name === 'Server check' && line.n === 1, JSON.stringify(line));
   const q = await seat(`room/${publicCode}`, { name: [2, 3, 44] });
   check('a second pilot joins it by its code', q.welcome && q.welcome.code === publicCode, JSON.stringify(q.welcome && q.welcome.code));
-  const quickGone = await fetch(`${origin}/v2/public/swiss2`, { headers: { origin: 'https://fdflabs.github.io' } });
+  const quickGone = await fetch(`${origin}/v2/public/itaipu`, { headers: { origin: 'https://fdflabs.github.io' } });
   check('the quick join of builds before the cut is 404', quickGone.status === 404, `${quickGone.status}`);
   const rooms = await listed();
   check('and the list, read at once, counts both', rooms.rooms.find((r) => r.code === publicCode).n === 2);
@@ -673,9 +673,9 @@ function raw(text) {
   globalThis.WebSocket ??= WebSocket;
   const { createRoomLink } = await import('../src/share/rooms.js');
   const states = { first: [], second: [] };
-  const hello = () => ({ name: [5, 6, 40], profile: { airframe: 'cub1400', map: 'alps', figure: 1, livery: null, parts: null } });
+  const hello = () => ({ name: [5, 6, 40], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null } });
   const first = createRoomLink({ onState: (s) => states.first.push(s.phase + (s.reason ? `:${s.reason}` : '')) }, hello);
-  const tabCode = await first.create('alps', false, {});
+  const tabCode = await first.create('itaipu', false, {});
   first.join(tabCode);
   const opened = async (link) => {
     for (let i = 0; i < 100 && link.state().phase !== 'open'; i += 1) {
@@ -715,7 +715,7 @@ function raw(text) {
     }
   };
   const page = createRoomLink({}, hello);
-  const reloadCode = await page.create('alps', false, {});
+  const reloadCode = await page.create('itaipu', false, {});
   page.join(reloadCode);
   const pageIn = await opened(page);
   const before = page.state().welcome;
@@ -812,7 +812,7 @@ if (server) {
    * the closed file ('statement has been finalized', after hercules:room
    * 2026-10-14). Here a room nobody joined has its purge due 200 ms after
    * the file closes. */
-  const made = await (await make({ map: 'swiss2' })).json();
+  const made = await (await make({ map: 'itaipu' })).json();
   const room = objects.get(`prv:${made.code}`);
   await room.enqueue(() => room.host.closeLater(700));
   const purgeAt = room.host.core.emptySince + PURGE_MS;

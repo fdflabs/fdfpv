@@ -166,7 +166,7 @@ function pilot(origin, path) {
   return p;
 }
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3, livery: { scheme: 'sport' }, parts: { prop: 'stock', addons: [] } };
+const profile = { airframe: 'cub1400', map: 'itaipu', figure: 3, livery: { scheme: 'sport' }, parts: { prop: 'stock', addons: [] } };
 async function seat(origin, path, extra = {}) {
   const p = pilot(origin, path);
   await p.open;
@@ -221,7 +221,7 @@ async function keepsFlying(a, b) {
   return { ok, detail: `closed ${JSON.stringify([a.closed, b.closed])}, ${got.map((g) => `${g.fresh}/${g.n}`).join(' and ')} poses, need ${MIN_SHARE.toFixed(2)}` };
 }
 
-const make = (origin, extra = {}) => fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'swiss2', ...extra }) });
+const make = (origin, extra = {}) => fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'itaipu', ...extra }) });
 
 /* A room on server s with two pilots flying in it. */
 async function flyingRoom(s, extra = {}) {

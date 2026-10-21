@@ -178,9 +178,9 @@ export const FIRST_AIRFRAME = 'timber1500';
  * back instead of reaching the code that reads it.
  */
 export const DEFAULTS = {
-  /* World: the world the seat flies. The Swiss valley is the one the Track
-   * seat stood in with no track seated, which a new profile used to hold. */
-  map: 'swiss2',
+  /* World: the world the seat flies. Itaipu, the title's world; the Swiss
+   * valley held it until the valleys left (2026-10-20). */
+  map: 'itaipu',
   /* The freestyle world last chosen, '' if none ever was: the gate sends
    * such a pilot to the picker rather than choosing for them. */
   freestyleMap: '',

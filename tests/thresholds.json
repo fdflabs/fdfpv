@@ -314,9 +314,9 @@
     },
     "map-isolation": {
       "num": 16,
-      "swiss2_modules_min": {
-        "value": 38,
-        "source": "Choosing the Swiss valley with the Alps already built fetches swiss2.js and the files under src/maps/swiss2/ it imports, 49 by its static import closure on 2026-09-28 (the Alps modules it builds through are already there). Measured 42 on 2026-10-18 by this check's own run (tests/verify.js worldScale, URLs containing /src/maps/swiss2 after choosing it), after look.js (d694476b3) and water/stream.js, surface.js and waves.js (4ad5de989) moved to src/render/library/ on 2026-10-11 without the count following; the floor stands one under the measured count, where 45 stood under 46. Also on 2026-10-18 the photographic look Itaipu and the Interior share with it (post.js, clouds.js, craftlook.js) moved out to src/maps/look/, so 3 of those 42 left the prefix: 39, and the floor one under it, 38. A floor rather than an equality because the browser may serve some from cache within one page life; anything near this number means the graph really arrived. It replaced the city's floor of 55 when the city was retired, and it is the same property: a world's modules arrive when it is chosen and not before."
+      "interior_modules_min": {
+        "value": 12,
+        "source": "Choosing the Interior with Itaipu already built fetches interior.js and the files under src/maps/interior/ it imports, 13 by its static import closure on 2026-10-20 (the six Itaipu modules it builds with are under Itaipu's prefix and already there), and 13 fetched by npm run lint:memory's own run of the same switch on 2026-10-20 (URLs containing /src/maps/interior after choosing it). The floor stands one under the measured count, as the Swiss valley's did (38 under 39) until the valleys left on 2026-10-20. A floor rather than an equality because the browser may serve some from cache within one page life; anything near this number means the graph really arrived."
       }
     }
   }

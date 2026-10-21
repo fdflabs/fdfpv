@@ -1,16 +1,5 @@
 {
  "lists": {
-  "LAYERS": [
-   "meadow",
-   "pasture",
-   "forest",
-   "scree",
-   "rock",
-   "snow",
-   "shore",
-   "path",
-   "alpine"
-  ],
   "SURFACES": [
    "boards",
    "render",
@@ -1034,76 +1023,6 @@
     "flipY": true,
     "anisotropy": 8
    }
-  }
- },
- "terrain": {
-  "keys": [
-   "col",
-   "nrh"
-  ],
-  "col": {
-   "ref": "t0",
-   "type": "DataArrayTexture",
-   "size": [
-    64,
-    64,
-    9
-   ],
-   "data": "f5fea4e8",
-   "wrap": [
-    1000,
-    1000
-   ],
-   "filter": [
-    1006,
-    1008
-   ],
-   "mips": true,
-   "format": 1023,
-   "dataType": 1009,
-   "colorSpace": "srgb",
-   "repeat": [
-    1,
-    1
-   ],
-   "offset": [
-    0,
-    0
-   ],
-   "flipY": false,
-   "anisotropy": 4
-  },
-  "nrh": {
-   "ref": "t1",
-   "type": "DataArrayTexture",
-   "size": [
-    64,
-    64,
-    9
-   ],
-   "data": "36e8d390",
-   "wrap": [
-    1000,
-    1000
-   ],
-   "filter": [
-    1006,
-    1008
-   ],
-   "mips": true,
-   "format": 1023,
-   "dataType": 1009,
-   "colorSpace": "",
-   "repeat": [
-    1,
-    1
-   ],
-   "offset": [
-    0,
-    0
-   ],
-   "flipY": false,
-   "anisotropy": 4
   }
  }
 }

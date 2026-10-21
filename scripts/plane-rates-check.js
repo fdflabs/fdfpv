@@ -2,7 +2,7 @@
  * plane-rates-check.js: a plane's Rates row is the plane's own rates,
  * driven through the real shell with a real pointer and keys:
  *   npm run planerates:check -- [outdir]   (build/plane-rates-check)
- * The Timber flies on the Swiss valley; Escape pauses it. The pause
+ * The Timber flies on the Interior; Escape pauses it. The pause
  * menu's Flight panel's Rates row reads the Timber's own stock rate, the
  * manual's first flight low rate (configs/tuning.js THE STOCK RATE: "Take
  * first flights in Low Rate"), not the quad's Actual 670, and opens the
@@ -77,16 +77,16 @@ const round = (a) => a.map((x) => Math.round(x * 10) / 10);
 const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};
   const s = JSON.parse(localStorage.getItem(k) || '{}');
-  Object.assign(s, { map: 'swiss2', graphics: 'low', graphicsAuto: false, airframeAsked: true, airframe: '${AF}', tune: 'timber-manual' });
+  Object.assign(s, { map: 'interior', graphics: 'low', graphicsAuto: false, airframeAsked: true, airframe: '${AF}', tune: 'timber-manual' });
   localStorage.setItem(k, JSON.stringify(s));
   localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
   localStorage.setItem('webfpv.airhint.v2', '1');
 } catch (e) { /* storage refused */ }`];
 
-const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?dev=1', seed });
+const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?dev=1&map=interior', seed });
 try {
   await page.until('!!window.__shellReady', 300000);
-  await page.until("window.__map && window.__map().ready && window.__map().id === 'swiss2'", 400000);
+  await page.until("window.__map && window.__map().ready && window.__map().id === 'interior'", 400000);
   await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
   await page.sleep(1000);

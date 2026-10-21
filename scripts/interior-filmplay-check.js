@@ -86,7 +86,7 @@ function check(name, ok, detail = '') {
 
 const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
 Object.assign(seated, {
-  map: 'swiss2', graphics: 'low', graphicsAuto: false, fpsCap: 0, airframeAsked: true, interiorConsent: true,
+  map: 'interior', graphics: 'low', graphicsAuto: false, fpsCap: 0, airframeAsked: true, interiorConsent: true,
 });
 const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};

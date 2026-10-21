@@ -405,10 +405,6 @@ export function makePhotoLook({ surfaces, marks, ground, heights }) {
     hangar: { group: 'ribbed', tint: [0.36, 0.42, 0.39], weather: 'wall' },
     hangarRoof: { group: 'ribbed', tint: [0.34, 0.36, 0.36] },
     hangarDoor: { group: 'ribbed', tint: [0.46, 0.5, 0.5], weather: 'wall' },
-    /* The LANPY mark painted on the hangar's roof (buildings/hangar.js).
-     * Instanced, never baked: its geometry carries the art's own uvs,
-     * which a bake would overwrite with metres. */
-    lanpy: { group: 'mark', mark: 'lanpy' },
     /* The hangar's inside, what the open door shows: the sky does not
      * reach it, and the look's light cannot know that, so it is dark. */
     hangarIn: { group: 'plain', tint: [0.018, 0.019, 0.02], rough: 0.9 },

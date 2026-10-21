@@ -65,7 +65,7 @@ function check(name, ok, detail = '') {
   }
 }
 
-const profile = { airframe: 'cub1400', map: 'swiss2', livery: null, parts: null, figure: 0 };
+const profile = { airframe: 'cub1400', map: 'itaipu', livery: null, parts: null, figure: 0 };
 let tokens = 0;
 const newToken = () => {
   tokens += 1;
@@ -89,7 +89,7 @@ function run(actions) {
   return actions;
 }
 function makeRoom(turn = null) {
-  return new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: false, map: 'swiss2', epoch: now - 5000 }, { turn });
+  return new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: now - 5000 }, { turn });
 }
 function seat(room, s) {
   run(room.open(s, now));
@@ -293,7 +293,7 @@ for (const withTurn of [true, false]) {
   const srv = await server(withTurn ? VECTOR.secret : '', withTurn ? urls : '');
   try {
     const res = await fetch(`${srv.origin}/v2/create`, {
-      method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://127.0.0.1' }, body: JSON.stringify({ map: 'swiss2' }),
+      method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://127.0.0.1' }, body: JSON.stringify({ map: 'itaipu' }),
     });
     const { code } = await res.json();
     const one = pilot(srv.origin, code);

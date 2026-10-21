@@ -54,11 +54,12 @@ const loading = new Loading(document.getElementById('pdcs-loader'));
 window.loader = loading;
 window.__loading = loading;
 
-/* The world the title shows (the photographic Swiss valley with the
- * Skyhunter in it), regardless of what the pilot last flew. Only a link that
- * names a map replaces it; the pilot's stored map is built when they press
- * fly. */
-const TITLE_WORLD = 'swiss2';
+/* The world the title shows, Itaipu (its own attract line over the town
+ * and the dam crest, src/maps/itaipu/attract.js), regardless of what the
+ * pilot last flew. Only a link that names a map replaces it; the pilot's
+ * stored map is built when they press fly. The Swiss valley held it until
+ * the valleys left (the combat-only cut, 2026-10-20). */
+const TITLE_WORLD = 'itaipu';
 
 /* "three.js r160" for an import map entry on three@0.160.0: the release
  * number players and bug reports use. Empty when the page has no import map

@@ -49,6 +49,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { MOVE } from '../src/maps/itaipu/town/model.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const RECORD = join(root, 'tests', 'fixtures', 'contact-golden.json');
@@ -72,11 +73,15 @@ const SPAWN_JS = 'const SPAWN = () => { const p = window.__map().spawn; return {
  * spot is the same on every run.
  */
 const THROWS = [
+  /* On Itaipu, a world PDCS keeps: its crest's walls and poles and its
+   * town's roofs. These replaced the same throws on the Alps and the Swiss
+   * valley, recorded on the code those were before they left with their
+   * maps (the combat-only cut, 2026-10-20). */
   {
-    id: 'quad-wall',
-    what: 'the interceptor into the face of an Alps wall at 25 m/s',
+    id: 'itaipu-quad-wall',
+    what: 'the interceptor into the face of an Itaipu wall at 25 m/s',
     airframe: 'interceptor',
-    map: 'alps',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       const w = window.__crashSolids(s.worldX, s.worldZ, 600, 'wall').find((c) => {
@@ -94,10 +99,10 @@ const THROWS = [
       return { throw: { x, y, z: w.b[2] + 4.5, yaw: 0, pitch: -25, vx: 0, vy: 0, vz: -25 }, stick: [0, 0, 0, 0] };`,
   },
   {
-    id: 'quad-wall-glance',
-    what: 'the interceptor glancing along an Alps wall at 12 m/s, throttle up',
+    id: 'itaipu-quad-wall-glance',
+    what: 'the interceptor glancing along an Itaipu wall at 12 m/s, throttle up',
     airframe: 'interceptor',
-    map: 'alps',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       const w = window.__crashSolids(s.worldX, s.worldZ, 600, 'wall').find((c) => {
@@ -110,10 +115,10 @@ const THROWS = [
       return { throw: { x: w.a[0] - 3, y, z: w.b[2] + 0.5, yaw: -80, pitch: -10, vx: 12, vy: 0, vz: -1.5 }, stick: [0, 0, 0, 0.45] };`,
   },
   {
-    id: 'quad-pole',
-    what: 'the interceptor into a swiss2 power pole at 15 m/s',
+    id: 'itaipu-quad-pole',
+    what: 'the interceptor into an Itaipu pole at 15 m/s',
     airframe: 'interceptor',
-    map: 'swiss2',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       for (const p of window.__crashSolids(s.worldX, s.worldZ, 800, 'pole')) {
@@ -136,10 +141,10 @@ const THROWS = [
       return null;`,
   },
   {
-    id: 'quad-roof',
-    what: 'the interceptor dropped onto a swiss2 roof at 8 m/s, 35 degrees down',
+    id: 'itaipu-quad-roof',
+    what: 'the interceptor dropped onto an Itaipu roof at 8 m/s, 35 degrees down',
     airframe: 'interceptor',
-    map: 'swiss2',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       const roofs = (window.__roofs() || []).slice()
@@ -154,10 +159,10 @@ const THROWS = [
       return null;`,
   },
   {
-    id: 'quad-ground-skid',
-    what: 'the interceptor skidding into the swiss2 grass at 18 m/s, 15 degrees down',
+    id: 'itaipu-quad-ground-skid',
+    what: 'the interceptor skidding into the Itaipu ground at 18 m/s, 15 degrees down',
     airframe: 'interceptor',
-    map: 'swiss2',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       const x = s.worldX + 25, z = s.worldZ + 12, y = window.__heightAt(x, z) + 1.5;
@@ -166,65 +171,54 @@ const THROWS = [
   },
 ];
 
-/* Two more for the slide itself, crash damage off: a long shallow skate
- * along a wall with the throttle up, so the craft keeps pressing into the
- * face and the rounds carry its travel along it, and a building corner hit
- * on the diagonal, two faces in one pass. */
+/* One more for the slide itself, crash damage off: a corner hit on the
+ * diagonal, two faces in one pass, on the dam's own blocks round the
+ * spawn (in the map's tree, not the town's streamed set). The search
+ * stays inside MOVE of the spawn: a town building's corner 675 m out was
+ * a whole box in the set round the spawn and its fine boxes in the set
+ * round the throw, and the swap fell where the host's frames did (the
+ * recording runs parted at step 705); a corner on the Interior 7.9 km
+ * from its spawn parted at step 101 (2026-10-21). The long skate along a
+ * wall left with the Alps: neither kept map has a wall long and clear
+ * enough within 6 km of its spawn. */
 THROWS.push({
-  id: 'quad-wall-skate-nodamage',
-  what: 'the interceptor skating along an Alps wall, 4 degrees into it at 10 m/s, rolled into it, crash damage off',
+  id: 'itaipu-quad-corner-nodamage',
+  what: 'the interceptor into the corner of an Itaipu dam block on the diagonal at 12 m/s, crash damage off',
   airframe: 'interceptor',
-  map: 'alps',
+  map: 'itaipu',
   damage: false,
   plan: `
     const s = SPAWN();
-    const a = 4 * Math.PI / 180;
-    for (const c of window.__crashSolids(s.worldX, s.worldZ, 800, 'wall')) {
-      if (!c.box || c.turned || c.b[0] - c.a[0] < 14) continue;
-      const x0 = c.a[0] + 1.5, z0 = c.b[2] + 1.0;
-      const g = window.__heightAt(x0, z0);
-      if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
-      const y = g + 1.5;
-      let clear = window.__nearSolid(x0, y, z0, 0.9) > 0.5;
-      for (let d = 1; d <= 8 && clear; d += 1) {
-        clear = window.__heightAt(x0 + d, z0) < y - 0.8;
+    for (const c of window.__crashSolids(s.worldX, s.worldZ, ${MOVE}, 'wall')) {
+      if (!c.box) continue;
+      /* A box in its own frame (collide.js addTurnedBox), a plain one in the world's. */
+      const [ux, uz, u0, u1, w0, w1] = c.turned || [1, 0, c.a[0], c.b[0], c.a[2], c.b[2]];
+      if (u1 - u0 < 3 || w1 - w0 < 3) continue;
+      for (const [su, sw] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        const u = su > 0 ? u1 : u0, w = sw > 0 ? w1 : w0;
+        const cx = u * ux - w * uz, cz = u * uz + w * ux;
+        /* The diagonal out of that corner, between its two faces. */
+        const dx = (su * ux - sw * uz) * Math.SQRT1_2, dz = (su * uz + sw * ux) * Math.SQRT1_2;
+        const g = window.__heightAt(cx + dx, cz + dz);
+        if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
+        const y = g + 1.6;
+        const x0 = cx + 6 * dx, z0 = cz + 6 * dz;
+        let clear = true;
+        for (let d = 0; d <= 4.5 && clear; d += 0.5) {
+          const x = x0 - d * dx, z = z0 - d * dz;
+          clear = window.__nearSolid(x, y, z, 0.9) > 0.6 && window.__heightAt(x, z) < y - 1;
+        }
+        if (clear) {
+          return { throw: { x: x0, y, z: z0, yaw: Math.atan2(dx, dz) * 180 / Math.PI, pitch: -20, vx: -12 * dx, vy: 0, vz: -12 * dz }, stick: [0, 0, 0, 0.3] };
+        }
       }
-      if (!clear) continue;
-      const fx = Math.cos(a), fz = -Math.sin(a);
-      return { throw: { x: x0, y, z: z0, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: -15, roll: 25, vx: 10 * fx, vy: 0, vz: 10 * fz }, stick: [0.2, 0, 0, 0.55] };
-    }
-    return null;`,
-});
-THROWS.push({
-  id: 'quad-corner-nodamage',
-  what: 'the interceptor into the corner of an Alps building on the diagonal at 12 m/s, crash damage off',
-  airframe: 'interceptor',
-  map: 'alps',
-  damage: false,
-  plan: `
-    const s = SPAWN();
-    const k = Math.SQRT1_2;
-    for (const c of window.__crashSolids(s.worldX, s.worldZ, 800, 'wall')) {
-      if (!c.box || c.turned) continue;
-      const cx = c.b[0], cz = c.b[2];
-      const g = window.__heightAt(cx + 1, cz + 1);
-      if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
-      const y = g + 1.6;
-      const x0 = cx + 6 * k, z0 = cz + 6 * k;
-      let clear = true;
-      for (let d = 0; d <= 4.5 && clear; d += 0.5) {
-        const x = x0 - d * k, z = z0 - d * k;
-        clear = window.__nearSolid(x, y, z, 0.9) > 0.6 && window.__heightAt(x, z) < y - 1;
-      }
-      if (!clear) continue;
-      return { throw: { x: x0, y, z: z0, yaw: 45, pitch: -20, vx: -12 * k, vy: 0, vz: -12 * k }, stick: [0, 0, 0, 0.3] };
     }
     return null;`,
 });
 
 /* With crash damage off the plant does not own the contact, and the
  * shell's pass resolves every hit itself: the same throws again that way. */
-for (const th of THROWS.filter((t) => ['quad-wall', 'quad-wall-glance', 'quad-pole'].includes(t.id))) {
+for (const th of THROWS.filter((t) => ['itaipu-quad-wall', 'itaipu-quad-wall-glance', 'itaipu-quad-pole'].includes(t.id))) {
   THROWS.push({ ...th, id: `${th.id}-nodamage`, what: `${th.what}, crash damage off`, damage: false });
 }
 
@@ -253,25 +247,61 @@ function seed(airframe, map, damage) {
 const PASS_FIELDS = ['resolved', 'resting', 'buried', 'sepFail', 'dvZero', 'inbound', 'outbound', 'plantHeld', 'unheld'];
 const PASS = `JSON.parse(JSON.stringify(window.__contacts()))`;
 
-const digest = (xs) => createHash('sha256').update(xs.join(',')).digest('hex').slice(0, 24);
+/* Where the town's streamed set stands as `s` (src/maps/itaipu/town/model.js
+ * `near`), undefined off Itaipu, and `far(x, z)`: the shell would refill it
+ * round a pilot there (the model's wants()). */
+const TOWN_JS = `const m = window.__map(); const s = m.parts && m.parts.town && m.parts.town.stream;
+  const far = (x, z) => !(Math.hypot(x - s.x, z - s.z) < ${MOVE});`;
 
-async function stage(page, th) {
-  await page.tap('KeyR');
-  await page.until('window.__crash().flags === 0 && !window.__crash().wrecked', 30000);
-  await page.sleep(300);
-  const plan = await page.evaluate(`JSON.stringify((() => { ${SPAWN_JS} ${th.plan} })())`).then(JSON.parse);
-  if (!plan) {
-    throw new Error('no spot on the map fits the throw');
-  }
+async function throwAt(page, plan) {
   const thrown = await page.evaluate(`JSON.stringify(window.__crashThrow(${JSON.stringify({
     ...plan.throw, hold: true, fresh: true, clockMs: 0, showCraft: true,
   })}))`).then(JSON.parse);
   if (!thrown.ok) {
     throw new Error(`throw refused: ${JSON.stringify(thrown)}`);
   }
+}
+
+const digest = (xs) => createHash('sha256').update(xs.join(',')).digest('hex').slice(0, 24);
+
+async function stage(page, th) {
+  await page.tap('KeyR');
+  await page.until('window.__crash().flags === 0 && !window.__crash().wrecked', 30000);
+  /* A map that streams colliders round the pilot (Itaipu's town walls,
+   * src/maps/itaipu.js) holds the set round where the craft was before R
+   * until it refills: the shell's spot 1.5 km off the spawn on a page's
+   * first throw, a throw's own spot after it. A plan reads that set, so it
+   * waits for the one round the spawn; read early, the corner plan found a
+   * different corner by the host's load (2026-10-20). */
+  await page.until(`(() => {
+    const m = window.__map();
+    const s = m.parts && m.parts.town && m.parts.town.stream;
+    return !s || (!s.pending && Math.hypot(s.x - m.spawn.x, s.z - m.spawn.z) < 1);
+  })()`, 60000);
+  await page.sleep(300);
+  const plan = await page.evaluate(`JSON.stringify((() => { ${SPAWN_JS} ${th.plan} })())`).then(JSON.parse);
+  if (!plan) {
+    throw new Error('no spot on the map fits the throw');
+  }
+  /* A spot over MOVE from the set's centre starts a refill round it, and
+   * the refill runs only while the craft flies: it swapped in 400 to 700
+   * steps after the release, as the host's frames fell, and the swap
+   * reorders the statics the pass walks, so a throw's digests moved by
+   * the load (a town corner, 2026-10-20). Such a spot (the roof's) is flown
+   * once first, free, until its set is in, and then thrown again from the
+   * same plan. */
+  const away = await page.evaluate(`(() => { ${TOWN_JS} return !!s && far(${plan.throw.x}, ${plan.throw.z}); })()`);
+  if (away) {
+    await throwAt(page, plan);
+    await page.evaluate('window.__releasePose()');
+    await page.until(`(() => { ${TOWN_JS} const c = window.__craftState(); return !s.pending && !far(c.worldX, c.worldZ); })()`, 60000);
+  }
+  await throwAt(page, plan);
   await page.evaluate(`window.__stick(${plan.stick.join(',')})`);
   await page.sleep(400);
   const passBefore = await page.evaluate(PASS);
+  const FILLS = `(() => { ${TOWN_JS} return s ? s.fills : 0; })()`;
+  const fillsBefore = await page.evaluate(FILLS);
   await page.evaluate('window.__releasePose()');
   /* Until the trace is long enough, or the plant has stopped (a wreck at
    * rest is no longer stepped). Stopped is counted in the page's frames,
@@ -302,6 +332,10 @@ async function stage(page, th) {
     await page.sleep(100);
   }
   const trace = await page.evaluate('JSON.stringify(window.__stepTrace())').then(JSON.parse);
+  const fillsAfter = await page.evaluate(FILLS);
+  if (fillsAfter !== fillsBefore) {
+    throw new Error(`${th.id}: the town's set refilled inside the trace (fill ${fillsBefore} to ${fillsAfter}), so the pass walked two orders of statics`);
+  }
   /* What the throw met and which branches of the pass it ran (the pass's
    * counters run for the page's life, so the difference over the throw),
    * so the record states what it pins. */

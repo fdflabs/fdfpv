@@ -534,7 +534,7 @@ async function startServer(a, cap, scratch) {
 async function makeRooms(origin, n, local, remote) {
   const out = [];
   for (let k = 0; k < n; k += 1) {
-    const body = remote ? { map: 'loadtest', public: true, name: 'Load test' } : { map: 'swiss2', public: true, name: `Load ${k + 1}` };
+    const body = remote ? { map: 'loadtest', public: true, name: 'Load test' } : { map: 'itaipu', public: true, name: `Load ${k + 1}` };
     for (;;) {
       const res = await fetch(`${origin}/v2/create`, {
         method: 'POST',

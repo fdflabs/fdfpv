@@ -133,7 +133,7 @@ function pilot(code) {
   return p;
 }
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3 };
+const profile = { airframe: 'cub1400', map: 'itaipu', figure: 3 };
 async function seat(code, extra = {}) {
   const p = pilot(code);
   await p.open;
@@ -148,7 +148,7 @@ async function seat(code, extra = {}) {
 
 /* address: the client address Caddy would send, for a check that makes
  * more rooms than front.js CREATES_PER_MIN allows one address. */
-async function makeRoom(room = { map: 'swiss2' }, address = null, origin = roomsOrigin) {
+async function makeRoom(room = { map: 'itaipu' }, address = null, origin = roomsOrigin) {
   const headers = { origin: PAGE, ...(address ? { 'cf-connecting-ip': address } : {}) };
   const res = await fetch(`${origin}/v2/create`, { method: 'POST', headers, body: JSON.stringify(room) });
   return (await res.json()).code;
@@ -209,7 +209,7 @@ check('none of them was ever seated beside the pilots', roster && roster.got.fil
   JSON.stringify(roster && roster.got.filter((m) => m.type === 'join')));
 
 console.log('a war room and a free flight room the same');
-for (const room of [{ map: 'itaipu', mode: 'war' }, { map: 'swiss2', mode: null }]) {
+for (const room of [{ map: 'itaipu', mode: 'war' }, { map: 'interior', mode: null }]) {
   const at = await makeRoom(room);
   const war = room.mode === 'war' ? { war: WAR_JOIN } : {};
   const oldOne = await seat(at, war);
@@ -310,7 +310,7 @@ console.log('blocks that outlast a room');
    * joinerOf): a public room holding Iceman is neither listed to Goose,
    * who blocked him, nor picked for Goose's quick join, and is for Viper. */
   r = await api('PUT', '/api/account/blocks', { callsign: 'Iceman', on: true }, session);
-  const icemanRoom = await makeRoom({ map: 'swiss2', public: true }, nextAddress());
+  const icemanRoom = await makeRoom({ map: 'itaipu', public: true }, nextAddress());
   const icemanIn = await seat(icemanRoom, { ...NEW, name: [6, 7, 61], session: other });
   const asking = (sess) => ({ origin: PAGE, 'cf-connecting-ip': nextAddress(), ...(sess ? { authorization: `Bearer ${sess}` } : {}) });
   const listFor = async (sess) => {

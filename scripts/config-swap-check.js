@@ -18,7 +18,7 @@
  *     is never flown, and Fly waits for the load that is current when it
  *     settles, not for the one that was current when Fly was pressed.
  *
- * Two pages: a five inch on the Swiss valley for the clocks and the rate
+ * Two pages: a five inch on the Interior for the clocks and the rate
  * change, and a fixed wing (three tunes) for the tune loads.
  *
  * Exit 0 when every check passed and neither page logged a console error.
@@ -62,7 +62,7 @@ function seedFor(airframe) {
   const settings = {
     ...seatAirframe({ airframe, rates: airframeById(airframe).rates }, airframe),
     airframeAsked: true,
-    map: 'swiss2',
+    map: 'interior',
     graphics: 'low',
     graphicsAuto: false,
     crashDamage: false,
@@ -110,7 +110,7 @@ async function frames(page, n) {
 }
 
 async function boot(airframe) {
-  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=swiss2', seed: seedFor(airframe) });
+  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=interior', seed: seedFor(airframe) });
   await page.until('window.__shellReady && window.__map && window.__map().ready', 120000);
   await page.sleep(1000);
   /* Nothing here reads a pixel. On a CI runner, which renders in software

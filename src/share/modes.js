@@ -97,7 +97,7 @@ export const MODES = [
     category: 'flightclub',
     card: {
       way: 'freestyle-wing1000', label: 'ui.free_flight_card', blurb: 'ui.card_line_flight', facts: ['ui.every_plane', 'ui.the_swiss_valley'],
-      art: 'assets/gate/flight.jpg', home: 'swiss2',
+      art: 'assets/gate/flight.jpg', home: null,
     },
     minPlayers: 1,
     minElsewhere: 1,

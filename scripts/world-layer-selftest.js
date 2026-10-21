@@ -1,21 +1,15 @@
 /*
  * world-layer-selftest.js: each map's shared world is the ground the page
- * reads: the valley's (src/share/valley/world.js) for alps and swiss2,
- * Itaipu's (src/share/itaipu/world.js) and the Interior's
- * (src/share/interior/world.js).
+ * reads: Itaipu's (src/share/itaipu/world.js) and the Interior's
+ * (src/share/interior/world.js). The valleys' half (the far range and the
+ * headwall against src/share/valley/world.js) left with them on
+ * 2026-10-20.
  *
  *     node scripts/world-layer-selftest.js --three=DIR
  *
  * DIR is an unpacked three@0.160.0 npm package (as weather-surface-build.js
  * and collide-audit-air.js take it): the page's terrain and nature modules
  * import three, and they are run here in Node.
- *
- * The page. src/maps/alps.js lays its roofs over World.groundAt and reads
- * World.surfaceAt, so the page's ground is the module's by construction;
- * this holds alps.js to that, by its source, and holds what the page
- * draws to the World: the far range's mesh (alps/terrain.js farRange) at
- * every vertex, and the headwall's (alps/nature.js buildHeadwall) at
- * every vertex, so what a craft meets is what is drawn.
  *
  * The streamed maps. Their pages hold two grounds: the drawn level
  * (terrain.height), which follows the camera, and the finest
@@ -63,10 +57,6 @@ register(`data:text/javascript,${encodeURIComponent(`
   }`)}`);
 
 const THREE = await import('three');
-const { farRange } = await import('../src/maps/alps/terrain.js');
-const { buildHeadwall } = await import('../src/maps/alps/nature.js');
-const { makeValleyWorld } = await import('../src/share/valley/world.js');
-const { SWISS_WORLD } = await import('../src/maps/swiss2/field.js');
 const { makeItaipuWorld } = await import('../src/share/itaipu/world.js');
 const { readItaipuBytes } = await import('../src/share/itaipu/node.js');
 const ITAIPU_TERRAIN = await import('../src/maps/itaipu/terrain/index.js');
@@ -86,71 +76,6 @@ const fail = (msg) => {
   console.log(`FAIL ${msg}`);
 };
 const check = (ok, okMsg, failMsg) => (ok ? console.log(`ok ${okMsg}`) : fail(failMsg));
-
-/* alps.js by its source: the World built for the style, its far grid
- * drawn, its ground under the roofs and its material under theirs, and
- * no ground composed beside it. */
-const alpsSrc = readFileSync(new URL('../src/maps/alps.js', import.meta.url), 'utf8');
-const swissSrc = readFileSync(new URL('../src/maps/swiss2.js', import.meta.url), 'utf8');
-const wiring = [
-  'const world = makeValleyWorld(style.id, style.world);',
-  'const far = farRange(world.far, style.look);',
-  'roofs.height(x, z, fromY, world.groundAt(x, z))',
-  '?? world.surfaceAt(x, z),',
-];
-const missing = wiring.filter((w) => !alpsSrc.includes(w));
-/* A ground composed beside the World's, or a style's own field. */
-const beside = [
-  ...[/far\.height\(/, /groundZone\(/, /nature\.ground/, /style\.heightfield/].filter((re) => re.test(alpsSrc)),
-  ...[/heightfield:/].filter((re) => re.test(swissSrc)),
-];
-check(missing.length === 0 && beside.length === 0,
-  'alps.js reads its ground and material from the World and composes none of its own',
-  `alps.js wiring: missing ${JSON.stringify(missing)}, a ground of its own ${beside.map(String).join(' ')}`);
-
-const look = { parts: () => new THREE.MeshBasicMaterial() };
-
-for (const map of ['alps', 'swiss2']) {
-  const t0 = Date.now();
-  const world = makeValleyWorld(map, map === 'swiss2' ? SWISS_WORLD : undefined);
-  const built = Date.now() - t0;
-
-  /* The far range as drawn: every vertex of its mesh stands on the
-   * World's ground there. */
-  const far = farRange(world.far, look);
-  const pos = far.mesh.geometry.getAttribute('position');
-  let farOff = 0;
-  for (let k = 0; k < pos.count; k += 1) {
-    if (!Object.is(pos.getY(k), world.far.height(pos.getX(k), pos.getZ(k)))) {
-      farOff += 1;
-    }
-  }
-  check(farOff === 0 && far.height === world.far.height,
-    `${map}: the far range's ${pos.count} drawn vertices stand on the World's far grid`,
-    `${map}: ${farOff} of ${pos.count} far range vertices off the World's grid`);
-
-  /* The headwall as drawn: the alps' mesh is the World's triangles, in
-   * order; swiss2 has none. */
-  if (world.headwall) {
-    let mesh = null;
-    buildHeadwall({ scene: { add(o) { mesh = o; } }, look, world });
-    const drawn = mesh.geometry.getAttribute('position').array;
-    const want = Float32Array.from(world.headwall.pos);
-    let wallOff = drawn.length === want.length ? 0 : Math.max(drawn.length, want.length);
-    for (let k = 0; k < Math.min(drawn.length, want.length); k += 1) {
-      if (!Object.is(drawn[k], want[k])) {
-        wallOff += 1;
-      }
-    }
-    check(wallOff === 0 && mesh.name === 'headwall',
-      `${map}: the headwall's ${want.length / 9} drawn triangles are the World's`,
-      `${map}: ${wallOff} headwall coordinates drawn off the World's`);
-  } else {
-    check(map === 'swiss2', `${map}: no headwall, as its nature draws none`, `${map}: the World has no headwall`);
-  }
-
-  console.log(`  ${map}: World built in ${built} ms`);
-}
 
 /* The streamed maps. Each sample of `grid` (a generator of [x, z, part])
  * once: where `shared` and `page` disagree, by part. */

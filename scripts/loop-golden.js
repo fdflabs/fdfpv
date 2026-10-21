@@ -174,8 +174,11 @@ const PROGRAMS = {
  * Fly action waits on a sign in and the title's world.
  */
 const PAGES = [
+  /* On the Interior, a world PDCS keeps. These replaced the same seats on
+   * the Swiss valley and the Alps, recorded on the code those were before
+   * they left with their maps (the combat-only cut, 2026-10-20). */
   {
-    id: 'swiss2', map: 'swiss2', settings: {},
+    id: 'interior', map: 'interior', settings: {},
     scenarios: [
       { id: 'fly', start: { dy: 0.3 }, program: 'fly', frames: 700 },
       { id: 'restart', start: 'reset', program: 'fly', frames: 240 },
@@ -185,15 +188,15 @@ const PAGES = [
     ],
   },
   {
-    id: 'latency-standard', map: 'swiss2', settings: { latencyMode: 'standard' },
+    id: 'interior-latency-standard', map: 'interior', settings: { latencyMode: 'standard' },
     scenarios: [{ id: 'fly', start: { dy: 0.3 }, program: 'fly', frames: 500 }],
   },
   {
-    id: 'link-elrs150', map: 'swiss2', settings: { link: 'elrs150' },
+    id: 'interior-link-elrs150', map: 'interior', settings: { link: 'elrs150' },
     scenarios: [{ id: 'fly', start: { dy: 0.3 }, program: 'fly', frames: 500 }],
   },
   {
-    id: 'alps-scored', map: 'alps', settings: {},
+    id: 'interior-scored', map: 'interior', settings: {},
     scenarios: [{ id: 'tricks', start: { dy: 0.3 }, program: 'tricks', frames: 600 }],
   },
 ];

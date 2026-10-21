@@ -2,11 +2,12 @@
  * retired-maps-selftest.js: a world this build no longer has, named by
  * something that outlived it, lands somewhere and does not throw.
  *
- * The town and the airfield were retired on 2026-09-28 and Yellowstone on
- * 2026-10-01 (src/maps/retired.js). What still names them:
+ * The town and the airfield were retired on 2026-09-28, Yellowstone on
+ * 2026-10-01, and the Alps and the Swiss valley on 2026-10-20
+ * (src/maps/retired.js). What still names them:
  *
  *   1. A pilot's stored settings: the seated map and the remembered
- *      freestyle world each load as the Swiss valley, silently, through
+ *      freestyle world each load as Itaipu, silently, through
  *      the real loadSettings over a stand in for localStorage.
  *   2. The registry: none of them is a world, and mapById answers each
  *      with the first world, so a track or a room on one is never read as
@@ -62,7 +63,7 @@ function check(name, ok, detail = '') {
   }
 }
 
-const RETIRED = ['city', 'airfield', 'yellowstone'];
+const RETIRED = ['city', 'airfield', 'yellowstone', 'alps', 'swiss2'];
 
 console.log('1. stored settings');
 for (const id of RETIRED) {
@@ -74,23 +75,23 @@ for (const id of RETIRED) {
   } catch (e) {
     error = e;
   }
-  check(`a stored ${id} loads as the Swiss valley, in both slots`,
-    !error && s.map === 'swiss2' && s.freestyleMap === 'swiss2',
+  check(`a stored ${id} loads as Itaipu, in both slots`,
+    !error && s.map === 'itaipu' && s.freestyleMap === 'itaipu',
     error ? error.message : `map ${s.map}, freestyleMap ${s.freestyleMap}`);
 }
-stored.set(SETTINGS_KEY, JSON.stringify({ map: 'itaipu', freestyleMap: 'alps' }));
+stored.set(SETTINGS_KEY, JSON.stringify({ map: 'interior', freestyleMap: 'itaipu' }));
 const kept = loadSettings();
-check('a world this build has is kept as it was', kept.map === 'itaipu' && kept.freestyleMap === 'alps',
+check('a world this build has is kept as it was', kept.map === 'interior' && kept.freestyleMap === 'itaipu',
   `map ${kept.map}, freestyleMap ${kept.freestyleMap}`);
 
 console.log('2. the registry');
 for (const id of RETIRED) {
-  check(`${id} is retired to the Swiss valley`, retiredMap(id) && retiredMap(id).to === 'swiss2');
+  check(`${id} is retired to Itaipu`, retiredMap(id) && retiredMap(id).to === 'itaipu');
   check(`${id} is not a world, and mapById answers it with the first world`,
     !MAPS.some((m) => m.id === id) && mapById(id).id === MAPS[0].id);
 }
-check('the worlds are the Alps, the Swiss valley, Itaipu and the Interior',
-  MAPS.filter((m) => m.load).map((m) => m.id).join() === 'alps,swiss2,itaipu,interior',
+check('the worlds are Itaipu and the Interior',
+  MAPS.filter((m) => m.load).map((m) => m.id).join() === 'itaipu,interior',
   MAPS.filter((m) => m.load).map((m) => m.id).join());
 check('every retired id lands on a world this build has',
   RETIRED.every((id) => retiredMap(id) && MAPS.some((m) => m.id === retiredMap(id).to && m.load)));

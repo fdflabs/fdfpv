@@ -493,27 +493,18 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * resource timing for them): a wrong count moves the bar at the wrong pace
  * and cannot break a load. A map with no entry weighs 4.
  *
- * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 39 in
- * all. The Alps modules it builds through, the asset library's
- * (src/render/library/, where its tree models went) and the photographic
- * look it shares with Itaipu and the Interior (src/maps/look/) are under
- * their own prefixes, so they are not in this number, and a pilot who flew
- * the Alps first already has the Alps'. Check 16 asserts this count
- * against what the browser actually fetched on choosing the valley,
- * because a bar weight that is wrong cannot break a load and so nothing
- * else would notice: 61
- * sat here for a round for the city while the real count was 63.
- *
  * The freestyle town and the airfield were removed on 2026-09-28, and the
- * town's 72 went with it. `npm run lint:memory` prints the fetched count
- * per map beside this number.
+ * town's 72 went with it; the Swiss valley's 39 went with the valleys on
+ * 2026-10-20. `npm run lint:memory` prints the fetched count per map beside
+ * this number, and verify's check 16 asserts the Interior's against what
+ * the browser fetched on choosing it.
  *
  * The prefix a map's modules are counted under is `/src/maps/<id>`, and it
  * stays leading-slash while the rest of the file went relative, which is
  * not an oversight. It is never fetched. moduleCounter matches it as a
  * substring of each performance entry's full URL, and a shell mounted at
  * https://fdfpv.example/sim/ still produces names containing
- * /src/maps/swiss2.
+ * /src/maps/itaipu.
  *
  * itaipu: itaipu.js and src/maps/itaipu/, 34 (the town is 9 of them,
  * the vegetation 3, the spawns and the title's flight 2, the war's
@@ -524,13 +515,19 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * Free Flight draws from the map's build on, and breach.js, the water
  * through a hole torn in a gate, drawn with it, docs/FLOOD.md). The
  * terrain engine (src/maps/terrain/) and the photographic look it is
- * built with (src/maps/look/) are under their own prefixes, as the Alps'
- * modules are for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 39, itaipu: 34 };
+ * built with (src/maps/look/) are under their own prefixes.
+ *
+ * interior: interior.js and src/maps/interior/, 13. The Itaipu modules
+ * it builds with (the look's ground, light and sky, the town's drape and
+ * roads, the vegetation's plant) are under Itaipu's prefix, and a pilot
+ * on the title, which is Itaipu, has them already. */
+const MAP_MODULE_COUNT = { itaipu: 34, interior: 13 };
 
-/* The world a boot that could not build its own falls back to: the Alps,
- * the lightest world left and the one the Swiss valley builds through. */
-const FLOOR_WORLD = 'alps';
+/* The world a boot that could not build its own falls back to: the
+ * Interior, whose ground is in this repository (src/share/interior/), so
+ * it stands when Itaipu's data, fetched from its own site, does not
+ * arrive. */
+const FLOOR_WORLD = 'interior';
 
 /*
  * A solo run's game clock (docs/DAYTIME-CONTRACT.md): the address's
@@ -634,7 +631,7 @@ async function loadMap(shell, id, loading, options) {
   loading.finalSystem('world', 'loading');
   map.graphics = normalizeGraphics(options && options.quality);
   /* The map's water, as the plant is told it: src/game/water.js. */
-  map.water = await waterFor(id, map);
+  map.water = waterFor(map);
   /* The ground over a river or a pool is its water, as over the lake. */
   map.height = wetHeight(map.height, map.water);
   loading.finalSystem('world', 'ready');
@@ -3034,10 +3031,10 @@ export async function boot({
   applyPixelRatio(shell, ui.settings.graphics, renderScaleOf(ui.settings));
   /*
    * A world that will not build (a bad asset, a WebGL context the
-   * photographs cannot have) must not end the session before the title, as
-   * it did when only the map swap had a fallback. The Alps are the floor:
-   * the smallest world, and the one the Swiss valley builds through, so if
-   * they fail there is nothing under them and the error stands.
+   * photographs cannot have, Itaipu's data host out of reach) must not end
+   * the session before the title, as it did when only the map swap had a
+   * fallback. The Interior is the floor (FLOOR_WORLD): if it fails there is
+   * nothing under it and the error stands.
    */
   /* At the solo clock: no room is joined before the first world. */
   const worldOptions = () => ({ quality: ui.settings.graphics, renderScale: renderScaleOf(ui.settings), ...timeOptionsOf(soloClock(ui.settings)) });

@@ -69,7 +69,7 @@ function say(ok, what) {
 
 function seed(c) {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, c.airframe);
-  s.map = 'alps';
+  s.map = 'interior';
   s.graphics = 'low';
   s.fpsCap = 0;
   s.airframeAsked = true;

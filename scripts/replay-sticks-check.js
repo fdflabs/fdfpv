@@ -3,7 +3,7 @@
  *
  *     node scripts/replay-sticks-check.js [OUT_DIR]     (npm run replay:sticks)
  *
- * In headless Chromium, on the Swiss valley, a Timber (flaps, so the flap
+ * In headless Chromium, on the Interior, a Timber (flaps, so the flap
  * switch is in the clip too):
  *
  *  1. Thrown at 80 m and flown through four stick settings, the flaps
@@ -84,7 +84,7 @@ function seed() {
   const settings = {
     ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIRFRAME),
     airframeAsked: true,
-    map: 'swiss2',
+    map: 'interior',
     graphics: 'low',
     graphicsAuto: false,
     crashDamage: true,
@@ -182,7 +182,7 @@ const lastRowSpan = (seconds, end) => seconds <= end + 1e-3 && seconds > end - J
 
 async function main() {
   console.log('the pilot\'s sticks in a replay, on the real page');
-  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=swiss2', seed: seed() });
+  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=interior', seed: seed() });
   try {
     await page.until('window.__shellReady && window.__map && window.__map().ready && window.__crashCam && window.__boot', BOOT_MS);
     await viewport(page, FLIGHT_VIEW);

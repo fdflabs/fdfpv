@@ -106,7 +106,7 @@ const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};
   const s = JSON.parse(localStorage.getItem(k) || '{}');
   Object.assign(s, {
-    airframeAsked: true, fpsCap: 0, graphics: 'low', map: 'swiss2', freestyleMap: 'swiss2',
+    airframeAsked: true, fpsCap: 0, graphics: 'low', map: 'interior', freestyleMap: 'interior',
     progress: { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, unlockAll: true },
   });
   localStorage.setItem(k, JSON.stringify(s));

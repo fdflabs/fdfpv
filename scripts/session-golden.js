@@ -373,7 +373,7 @@ const scenarios = {
     const out = {};
     const seats = {
       defaults: {},
-      alps: { freestyleMap: 'alps', map: 'alps' },
+      interior: { freestyleMap: 'interior', map: 'interior' },
       unknown: { freestyleMap: 'nowhere', map: 'nowhere' },
       plane: { airframe: 'cub1400' },
     };

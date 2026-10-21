@@ -8,22 +8,23 @@
  * top of main.js would fetch the whole graph at boot, so the import lives
  * inside the loader thunk and nothing calls that thunk until a map is
  * chosen. tests/lib/checks.js measures that, by recording every request the
- * page makes with the Alps selected and asserting none of them is under
- * src/maps/swiss2.
+ * page makes with Itaipu selected and asserting none of them is under
+ * src/maps/interior.
  *
- * The freestyle town and the airfield were removed on 2026-09-28 on the
- * owner's ask ("leave only alps and swiss"), and Industrial bando, Municipal
- * baths and Bardwell's yard before them on 2026-08-30. They are in the
- * history if they are ever wanted back. A stored or linked id of one of
- * them is not an unknown id: src/maps/retired.js says where it went.
+ * The Alps and the Swiss valley were removed on 2026-10-20, the combat-only
+ * cut ("leave only combat quads and planes in pdcs no recreational stuff"),
+ * the freestyle town and the airfield on 2026-09-28 on the owner's ask
+ * ("leave only alps and swiss"), and Industrial bando, Municipal baths and
+ * Bardwell's yard before them on 2026-08-30. They are in the history if they
+ * are ever wanted back. A stored or linked id of one of them is not an
+ * unknown id: src/maps/retired.js says where it went.
  *
  * `poster` is the still the world card shows.
  * A first visit to Freestyle used to be four dark rectangles with the word
  * "loading" on them for the best part of a minute, which is the worst
  * possible moment to tell somebody nothing about the place they are choosing.
- * The file is generated: `npm run gen:posters`, see scripts/posters.js, which
- * also holds the camera each one is taken from. A map with no poster falls
- * back to the rectangle, so the field is optional rather than load bearing.
+ * A map with no poster falls back to the rectangle, so the field is
+ * optional rather than load bearing.
  *
  *
  * This file is part of WebFPVSimulator.
@@ -46,29 +47,8 @@ import { MAP_BUILD_MS } from './build-cost.js';
 import { str } from '../strings/index.js';
 
 export const MAPS = [
-  {
-    id: 'alps',
-    poster: 'assets/posters/alps.jpg',
-    name: str('registry.the_alps'),
-    mode: 'freestyle',
-    note: str('registry.a_glacial_valley_six_kilometres'),
-    buildMs: MAP_BUILD_MS.alps,
-    load: () => import('./alps.js'),
-  },
-  /* The same valley, drawn to read as a photograph rather than a
-   * cartoon: src/maps/swiss2.js builds it through the alps' own
-   * builders, so choosing it fetches the alps modules too, and nothing
-   * of it is fetched until it is chosen. */
-  {
-    id: 'swiss2',
-    poster: 'assets/posters/swiss2.jpg',
-    name: str('registry.swiss2'),
-    mode: 'freestyle',
-    note: str('registry.swiss2_note'),
-    buildMs: MAP_BUILD_MS.swiss2,
-    load: () => import('./swiss2.js'),
-  },
-  /* Named "(in development)" while it was terrain and water only; it has
+  /* First: mapById answers an unknown id with it, and the title shows it
+   * (src/boot.js TITLE_WORLD). Named "(in development)" while it was terrain and water only; it has
    * its dam, towns and forests now and the released mission flies on it. */
   {
     id: 'itaipu',

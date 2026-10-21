@@ -292,13 +292,13 @@ check('the rooms server is calm once A has left', calm);
 /* THE ROOMS PANEL, driven. A public room with a name to find. */
 const OPEN = `Open Club ${100 + Math.floor(Math.random() * 900)}`;
 const made = await (await fetch(`${rooms}/v2/create`, {
-  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: OPEN }),
+  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true, name: OPEN }),
 })).json();
 check('a public room is made for the panel to show', /^[A-Z0-9]{6}$/.test(made.code || ''), JSON.stringify(made));
 /* The longest name a room can have (src/share/roomwire.js ROOM_NAME_MAX). */
 const LONG = 'Sunday Morning Freestyle Session';
 const madeLong = await (await fetch(`${rooms}/v2/create`, {
-  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: LONG }),
+  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true, name: LONG }),
 })).json();
 check('and one with a name of the full 32 letters', LONG.length === 32 && /^[A-Z0-9]{6}$/.test(madeLong.code || ''), JSON.stringify(madeLong));
 /* A pilot in each: an empty room is never listed (the owner, 2026-10-02). */
@@ -404,7 +404,7 @@ try {
   panelPilots[0].close();
   for (const [i, name] of longNames.slice(1).entries()) {
     const longMade = await (await fetch(`${rooms}/v2/create`, {
-      method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name }),
+      method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true, name }),
     })).json();
     panelPilots.push(await seatPilot(rooms, longMade.code, [6 + i, 6 + i, 66 + i]));
   }

@@ -112,7 +112,7 @@ import { SIM_ADDON, addonParams } from '../configs/hangar-parts.js';
 import { PROP_ESTIMATES } from '../configs/prop-estimates.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const map = process.argv[2] || 'alps';
+const map = process.argv[2] || 'interior';
 
 let failed = 0;
 let passed = 0;

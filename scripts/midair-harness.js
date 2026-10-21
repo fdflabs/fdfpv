@@ -324,7 +324,7 @@ class Queue {
 
 /* ---------------------------------------------------------------- run */
 
-const PROFILE = (airframe, map = 'swiss2') => ({ airframe, map, figure: 0, livery: null, parts: null });
+const PROFILE = (airframe, map = 'itaipu') => ({ airframe, map, figure: 0, livery: null, parts: null });
 
 /*
  * One run: two clients, the room, the links. cfg: { sc, seed, la, lb
@@ -351,7 +351,7 @@ function runOne(cfg) {
   const down = [0, 1].map((i) => link(lk[i].base, lk[i].jitter, null, linkRand));
 
   const q = new Queue();
-  const room = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: Boolean(cfg.friendly), map: sc.map ?? 'swiss2', epoch: 0 });
+  const room = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly: Boolean(cfg.friendly), map: sc.map ?? 'itaipu', epoch: 0 });
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
   const clients = [0, 1].map((i) => ({
@@ -385,7 +385,7 @@ function runOne(cfg) {
     }
   };
   const helloMsg = (c, airframe) => JSON.stringify({
-    type: 'hello', proto: PROTO, build: 'harness', level: ROOM_LEVEL, name: [1, 2, 42], profile: PROFILE(airframe, sc.map ?? 'swiss2'), ...(c.token ? { token: c.token } : {}),
+    type: 'hello', proto: PROTO, build: 'harness', level: ROOM_LEVEL, name: [1, 2, 42], profile: PROFILE(airframe, sc.map ?? 'itaipu'), ...(c.token ? { token: c.token } : {}),
   });
   const air = [sc.a, sc.b];
   for (const c of clients) {

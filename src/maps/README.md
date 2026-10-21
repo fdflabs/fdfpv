@@ -33,7 +33,7 @@ selects the graphics preset in `src/render/quality.js`. The instance stamps
 
 A MapInstance is:
 
-    id            'alps' | 'swiss2' | 'itaipu'
+    id            'itaipu' | 'interior'
     name          what the menu shows
     mode          'race' | 'freestyle'
     graphics      'low' | 'medium' | 'high'

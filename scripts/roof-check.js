@@ -2,11 +2,11 @@
  * roof-check.js: a roof is ground you can skid on, and its walls are walls,
  * on every kind of building every map draws.
  *
- *     node scripts/roof-check.js [--map=swiss2] [--airframe=cub1400]
+ *     node scripts/roof-check.js [--map=itaipu] [--airframe=cub1400]
  *                                [--kinds=house,hut,...] [--roof=0]
  *                                [--only=ramp,dive,wall,gable,slope,quad]
- *     node scripts/roof-check.js --map=swiss2 --sweep
- *     node scripts/roof-check.js --map=swiss2 --audit
+ *     node scripts/roof-check.js --map=itaipu --sweep
+ *     node scripts/roof-check.js --map=itaipu --audit
  *     SIM_GPU=1 node scripts/roof-check.js --shots=DIR
  *
  * The owner's report: "buildings' roofs don't seem to work: when I approach
@@ -104,7 +104,7 @@ const arg = (name, fallback) => {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : fallback;
 };
-const MAP = arg('map', 'swiss2');
+const MAP = arg('map', 'itaipu');
 const AIRFRAME = arg('airframe', 'sky1800');
 const ROOF = Number(arg('roof', 0));
 const SHOTS = arg('shots', null);

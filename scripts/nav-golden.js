@@ -228,7 +228,7 @@ function makeUi(extra = {}) {
   const ui = Object.create(Ui.prototype);
   Object.assign(ui, frameNodes(), {
     screen: 'quad', returnTo: null, cursor: 0, rowOffset: 0, menuRows: [], focusId: null, cursorMemory: {},
-    settings: { map: 'alps', airframe: 'quad' }, mode: 'race', craftGate: false, hub: null, firstRun: false,
+    settings: { map: 'interior', airframe: 'quad' }, mode: 'race', craftGate: false, hub: null, firstRun: false,
     lastInput: 'keys', lists: {}, numberFocusWanted: null, inRoom: null, carousel: null, hangar: null,
     ratesFrom: null, pidsFrom: null, fcFrom: null, roomFrom: null, ratesNotice: null, padRearm: false, swapPadPrev: {},
     mapCards: 'x',

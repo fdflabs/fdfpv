@@ -134,7 +134,7 @@ const B = encodeURIComponent(board.origin);
 console.log(`tracks ${accounts.origin}, rooms ${R}, board ${board.origin}`);
 
 async function makeRoom() {
-  const res = await fetch(`${R}/v2/create`, { method: 'POST', body: JSON.stringify({ map: 'swiss2' }) });
+  const res = await fetch(`${R}/v2/create`, { method: 'POST', body: JSON.stringify({ map: 'itaipu' }) });
   return (await res.json()).code;
 }
 
@@ -319,12 +319,12 @@ try {
     check('the Hangar shows its cards to a visitor', await p.evaluate("document.querySelectorAll('.screen-title .gate-card').length > 1"));
     await p.evaluate(`(() => { const c = [...document.querySelectorAll('.screen-title .gate-card')].find((n) => /customi/i.test(n.textContent)); c && c.click(); return true; })()`);
   });
-  await refused(p, 'the track builder', () => p.evaluate("window.__ui.openBuilder({ map: 'swiss2' }); true"));
+  await refused(p, 'the track builder', () => p.evaluate("window.__ui.openBuilder({ map: 'itaipu' }); true"));
   const invite = await makeRoom();
   await refused(p, 'an invite code (Join with a code)', () => p.evaluate(`window.__roomJoin(${JSON.stringify(invite)}); true`));
   let made = null;
   await refused(p, 'Make a room', async () => {
-    made = await p.evaluate("window.__roomCreate({ map: 'swiss2' }).then(() => 'made', (e) => e.message)");
+    made = await p.evaluate("window.__roomCreate({ map: 'itaipu' }).then(() => 'made', (e) => e.message)");
   });
   check('Make a room made nothing, and said why', made === 'signin', String(made));
   errors.push(...p.errors);

@@ -1267,7 +1267,7 @@
     {
      "id": "friends:the-world",
      "label": "The world",
-     "value": "Swiss valley, photoreal",
+     "value": "The Interior (in development)",
      "note": "This room flies here. Leave it to fly somewhere else.",
      "info": true,
      "drives": {}
@@ -1469,7 +1469,7 @@
     {
      "id": "friends:the-world",
      "label": "The world",
-     "value": "Swiss valley, photoreal",
+     "value": "The Interior (in development)",
      "note": "This room flies here. Leave it to fly somewhere else.",
      "info": true,
      "drives": {}
@@ -25397,7 +25397,7 @@
     {
      "id": "friends:el-mundo",
      "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
+     "value": "El Interior (en desarrollo)",
      "note": "Esta sala vuela aquí. Sal de ella para volar en otro lugar.",
      "info": true,
      "drives": {}
@@ -25599,7 +25599,7 @@
     {
      "id": "friends:el-mundo",
      "label": "El mundo",
-     "value": "Valle suizo, fotorrealista",
+     "value": "El Interior (en desarrollo)",
      "note": "Esta sala vuela aquí. Sal de ella para volar en otro lugar.",
      "info": true,
      "drives": {}

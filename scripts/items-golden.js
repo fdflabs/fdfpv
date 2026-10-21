@@ -388,7 +388,7 @@ const SCENARIOS = [
   scenario('title-race-no-seat', { fields: { padInfo: padFine } }),
   scenario('title-race-first-no-seat', { fields: { firstRun: true } }),
   scenario('title-race-named', { seed: () => { store.set('webfpv.pilot.name', 'Ace Pilot'); }, fields: { friendsRow: friendsRowInRoom, inRoom: () => true } }),
-  scenario('title-freestyle', { settings: { map: 'swiss2', freestyleMap: 'swiss2' }, fields: { mode: 'freestyle', firstRun: true } }),
+  scenario('title-freestyle', { settings: { map: 'interior', freestyleMap: 'interior' }, fields: { mode: 'freestyle', firstRun: true } }),
   scenario('title-freestyle-not-loaded', { settings: { map: 'track' }, fields: { mode: 'freestyle' } }),
   scenario('title-plane', { settings: { airframe: 'cub1400', tune: 'cub-manual' }, fields: {} }),
   scenario('title-update-bar', { fields: { updateBar: { hidden: false } } }),
@@ -403,18 +403,18 @@ const SCENARIOS = [
   scenario('friends-out', { fields: { screen: 'friends', friendsRow: friendsRowOut, friendsRows: friendsRowsPlain } }),
   scenario('friends-in-race', { fields: { screen: 'friends', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
   scenario('friends-in-started', { fields: { screen: 'friends', friendsRow: friendsRowInRoom, friendsRows: friendsRowsStarted, inRoom: () => true } }),
-  scenario('friends-in-freestyle', { settings: { map: 'swiss2' }, fields: { screen: 'friends', mode: 'freestyle', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
-  scenario('friends-in-freestyle-shown', { settings: { map: 'swiss2' }, fields: { screen: 'friends', mode: 'freestyle', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, craftShown: () => '7inch' } }),
-  scenario('friends-paused-freestyle', { settings: { map: 'swiss2' }, fields: { screen: 'friends', mode: 'freestyle', returnTo: 'paused', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain } }),
-  scenario('friends-war', { settings: { map: 'swiss2' }, fields: { screen: 'friends', mode: 'freestyle', warLobbyOn: true, friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
+  scenario('friends-in-freestyle', { settings: { map: 'interior' }, fields: { screen: 'friends', mode: 'freestyle', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
+  scenario('friends-in-freestyle-shown', { settings: { map: 'interior' }, fields: { screen: 'friends', mode: 'freestyle', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, craftShown: () => '7inch' } }),
+  scenario('friends-paused-freestyle', { settings: { map: 'interior' }, fields: { screen: 'friends', mode: 'freestyle', returnTo: 'paused', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain } }),
+  scenario('friends-war', { settings: { map: 'interior' }, fields: { screen: 'friends', mode: 'freestyle', warLobbyOn: true, friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
   scenario('friends-war-paused', { fields: { screen: 'friends', returnTo: 'paused', warLobbyOn: true, friendsRow: friendsRowInRoom, friendsRows: friendsRowsStarted } }),
   scenario('rooms', { fields: { screen: 'rooms', roomRows: (screen) => [{ label: `rows of ${screen}`, action: 'friends-room-owls' }] } }),
   scenario('rooms-no-hook', { fields: { screen: 'rooms' } }),
   scenario('roomnew', { fields: { screen: 'roomnew', roomRows: (screen) => [{ label: `rows of ${screen}`, action: 'friends-make' }] } }),
 
   /* Freestyle: as it stands and arcade with crash damage off. */
-  scenario('freestyle-off', { settings: { map: 'swiss2' }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
-  scenario('freestyle-arcade', { settings: { map: 'swiss2', flightStyle: 'arcade', crashDamage: false }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
+  scenario('freestyle-off', { settings: { map: 'interior' }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
+  scenario('freestyle-arcade', { settings: { map: 'interior', flightStyle: 'arcade', crashDamage: false }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
 
   /* Quad: between runs, paused with and without the hot swap, the yaw tip. */
   scenario('quad', { fields: { screen: 'quad' } }),
@@ -454,20 +454,20 @@ const SCENARIOS = [
 
   /* Paused: alone, in a room, planes. */
   scenario('paused', { fields: { screen: 'paused', returnTo: 'paused' } }),
-  scenario('paused-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowOut } }),
+  scenario('paused-rows', { settings: { map: 'interior', graphics: 'medium' }, fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowOut } }),
   scenario('paused-in-room', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, roomBar: { hidden: false }, roomBarView: { button: 'Room', text: 'OWLS' } } }),
   scenario('paused-watching', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, watching: () => true } }),
-  scenario('paused-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'paused', returnTo: 'paused' } }),
+  scenario('paused-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'interior' }, fields: { screen: 'paused', returnTo: 'paused' } }),
   /* The pause menu's Flight panel: a quad, a quad with its rows, planes. */
   scenario('quick', { fields: { screen: 'quick', returnTo: 'paused' } }),
-  scenario('quick-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused' } }),
-  scenario('quick-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
-  scenario('quick-extra', { settings: { airframe: 'extra3d1308', tune: 'extra-acro', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-rows', { settings: { map: 'interior', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'interior' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-extra', { settings: { airframe: 'extra3d1308', tune: 'extra-acro', map: 'interior' }, fields: { screen: 'quick', returnTo: 'paused' } }),
 
   /* Results: a room's, a free world, no seat. */
   scenario('results-room', { fields: { screen: 'results', roomResults: true, roomResultsRows: () => [{ label: 'Room results', action: 'friends-results' }, { label: 'Back to title', action: 'title' }], inRoom: () => true } }),
   scenario('results-room-no-rows', { fields: { screen: 'results', roomResults: true } }),
-  scenario('results-free-world', { settings: { map: 'alps' }, fields: { screen: 'results' } }),
+  scenario('results-free-world', { settings: { map: 'interior' }, fields: { screen: 'results' } }),
   scenario('results-no-seat', { fields: { screen: 'results' } }),
 
   /* Rates: no presets, a matching one, an unrelated one, split, notice. */
