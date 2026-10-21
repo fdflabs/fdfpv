@@ -14320,7 +14320,7 @@ export async function boot({
     leftover: false, interior: 0, roof: false,
     /* Screen state the later phases share. */
     worldLive: false, attractOn: false, pickerOn: false, walkOn: false, studioOn: false,
-    drawThis: false, renderMs: 0, capHz: 0, watching: null, motorsTurning: false,
+    drawThis: false, drawWorld: false, renderMs: 0, capHz: 0, watching: null, motorsTurning: false,
   };
 
   /*
@@ -14374,6 +14374,7 @@ export async function boot({
     dressWorld();
     placeLens();
     pickCamera();
+    chooseDraw();
     moveScenery();
     drawFrame();
     mixFrame();
@@ -15730,7 +15731,7 @@ export async function boot({
     const focus = camOverride || warIntro || mode === 'replay'
       ? shell.camera.position
       : (mode === 'title' ? shell.quad.position : pCurr);
-    view.updateShadowFocus(focus, streamFollowsCraft());
+    view.updateShadowFocus(focus, streamFollowsCraft(), fr.drawWorld);
     /* Wash drove grass propwash once; the argument stays so every map has
      * one updateWind shape. */
     const meanRpm = (stateCurr[14] + stateCurr[15] + stateCurr[16] + stateCurr[17]) * 0.25;
@@ -15751,22 +15752,35 @@ export async function boot({
    * studio has its own renderer so the field's draw budget cannot see it,
    * created when Settings opens and disposed when it closes.
    */
+  /*
+   * Whether this frame draws at all, and whether it draws the world,
+   * decided before the scenery moves: the map's sky cube is drawn there
+   * (look.updateShadowFocus), and a frame that does not draw the world
+   * (the hangar over it, the walk room in its place, a capped frame)
+   * must not pay for a cube nobody sees. On a software rasteriser one
+   * band of it took longer than the whole hangar.
+   */
+  function chooseDraw() {
+    fr.capHz = Number(ui.settings.fpsCap) || 0;
+    let drawThis = !harnessNoDraw;
+    if (fr.capHz > 0 && fr.worldLive && !exportShot) {
+      if (fr.wall - capLastDraw < 1000 / fr.capHz - 1.0) {
+        drawThis = false;
+      } else {
+        capLastDraw = fr.wall;
+      }
+    }
+    fr.drawThis = drawThis;
+    fr.drawWorld = fr.worldLive && drawThis && !ui.hangar.isOpen && !fr.walkOn;
+  }
+
   function drawFrame() {
     const nowWall = fr.wall;
     const dt = fr.dt;
     shell.renderer.info.reset();
     const renderStart = performance.now();
-    fr.capHz = Number(ui.settings.fpsCap) || 0;
-    let drawThis = !harnessNoDraw;
-    if (fr.capHz > 0 && fr.worldLive && !exportShot) {
-      if (nowWall - capLastDraw < 1000 / fr.capHz - 1.0) {
-        drawThis = false;
-      } else {
-        capLastDraw = nowWall;
-      }
-    }
-    fr.drawThis = drawThis;
-    if (fr.worldLive && drawThis && !ui.hangar.isOpen && !fr.walkOn) {
+    const drawThis = fr.drawThis;
+    if (fr.drawWorld) {
       rainFrame();
       dynres.beginGpu();
       if (avionicsHud.on || ballOn) {

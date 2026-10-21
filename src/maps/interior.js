@@ -227,8 +227,8 @@ async function buildInterior(shell, progress, q, hours) {
     hasRacingLine: false,
     setRacingLine() {},
     updateRacingLine() { return null; },
-    updateShadowFocus(target) {
-      look.updateShadowFocus(target);
+    updateShadowFocus(target, clocked, drawn = true) {
+      look.updateShadowFocus(target, drawn);
       terrain.update(target, camera.position);
       trees.view(camera, target);
       nearField.view(camera);

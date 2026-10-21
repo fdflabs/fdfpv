@@ -645,9 +645,11 @@ async function buildItaipu(shell, progress, q, time, toward, hour) {
     updateRacingLine() { return null; },
     /* Once a frame before the draw, with the craft (or the title's quad):
      * the sun's shadow maps round it, and the terrain's selection round it
-     * and the camera. */
-    updateShadowFocus(target, clocked) {
-      look.updateShadowFocus(target);
+     * and the camera. `drawn` false is a frame that will not draw the
+     * world (src/main.js chooseDraw): the selection still follows, the
+     * sky's cube waits for a frame that shows it. */
+    updateShadowFocus(target, clocked, drawn = true) {
+      look.updateShadowFocus(target, drawn);
       terrain.update(target, camera.position);
       streamer.update(target.x, target.z, clocked);
       for (const p of Object.values(parts)) {

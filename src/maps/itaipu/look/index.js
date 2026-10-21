@@ -487,7 +487,7 @@ export async function makeLook({
     finish() {
       finishScene(scene, lit);
     },
-    updateShadowFocus(target) {
+    updateShadowFocus(target, drawn = true) {
       const [near, far] = sun.lights;
       if (near.userData.squash === undefined) {
         near.userData.squash = Math.min(1, sunDir.y / DAY_SUN_SIN);
@@ -510,7 +510,7 @@ export async function makeLook({
         }
       }
       sun.update(target, camera);
-      sky.updateCube(renderer, camera);
+      sky.updateCube(renderer, camera, drawn);
       turf.update(camera, groundAt);
     },
     /* The post chain and the photographed craft, onto a built map. */
