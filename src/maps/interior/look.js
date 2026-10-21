@@ -474,7 +474,6 @@ export async function makeLook({
   const heights = { texture: { value: null }, grid: { value: new THREE.Vector3() } };
   const look = makePhotoLook({
     surfaces,
-    marks: {},
     ground: () => {
       throw new Error('interior look: the ground is the terrain\'s own material (ground.js), not a kit piece');
     },

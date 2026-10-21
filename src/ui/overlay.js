@@ -57,8 +57,6 @@ const REF_STICKS = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 /* String keys, resolved per frame through str() so a locale change reads
  * right on the next frame. */
 const FLIGHT_MODE_KEYS = { angle: 'ui.angle', stab: 'ui.stabilised', manual: 'ui.manual', as3x: 'ui.as3x' };
-const FLAP_KEYS = ['ui.flaps_up', 'ui.flaps_half', 'ui.flaps_full'];
-const GEAR_KEYS = { up: 'ui.gear_up', down: 'ui.gear_down' };
 
 /* Wording for input.js's calibration steps; the order is CAL_STEPS. Keys,
  * read when the list is drawn, so the words are the table's at that moment
@@ -126,13 +124,6 @@ function paintLaunch(node, state, pitch) {
     text = deg > 2 ? str('ui.launch', { deg }) : 'LAUNCH';
   }
   Ui.text(node, text);
-}
-
-function gearText(gear) {
-  if (gear == null) {
-    return '';
-  }
-  return str(GEAR_KEYS[gear] || 'ui.gear_moving');
 }
 
 /* Whether the cards on screen are already one per pad in view. A loop,
@@ -230,7 +221,7 @@ export const overlayMethods = {
    * above the surface under the craft (the collision query's own), which
    * is the number that means something over a roof.
    */
-  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, gear = null, hold = null, bounces, launchState, launchPitch }) {
+  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, bounces, launchState, launchPitch }) {
     const freestyle = mode === 'freestyle';
     paintClock(this, freestyle, lapMs);
     let gateLine = '';
@@ -248,16 +239,6 @@ export const overlayMethods = {
     Ui.bar(this.osdThrBar, throttle);
     if (this.osdFlight) {
       Ui.text(this.osdFlight, flightModeText(flightMode, launchState));
-    }
-    if (this.osdFlaps) {
-      const key = flaps == null ? null : FLAP_KEYS[flaps];
-      Ui.text(this.osdFlaps, key ? str(key) : '');
-    }
-    if (this.osdGear) {
-      Ui.text(this.osdGear, gearText(gear));
-    }
-    if (this.osdHold) {
-      Ui.text(this.osdHold, hold ?? '');
     }
     if (this.osdLaunch) {
       paintLaunch(this.osdLaunch, launchState, launchPitch);

@@ -53,7 +53,7 @@ const MARK = 'part of WebFPVSimulator';
 const POST_FORK = new Set([
   'assets/boot/drone.svg', 'scripts/bombshell-shell.js', 'scripts/boot-loader-check.js',
   'scripts/build-save-check.js', 'scripts/crash-rules-selftest.js',
-  'scripts/drone-wireframe.js', 'scripts/floats-shell.js', 'scripts/itaipu-check.js',
+  'scripts/drone-wireframe.js', 'scripts/itaipu-check.js',
   'scripts/mouse-shell.js', 'scripts/og-check.js',
   'src/game/airframehull.js',
   'src/replay/crashcam.js', 'src/ui/accountui.js', 'src/ui/campaign.js', 'src/ui/carousel.js',

@@ -23,7 +23,6 @@
  * happens, and the script checks that it was.
  *
  * Run: node scripts/crash-identity.js [--base=<ref>] [--only=name,...]
- * FDFPV_BOARD, when set, is passed to wing:e2e.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -67,7 +66,6 @@ const RUNS = [
   ['waves:selftest', 'scripts/waves-selftest.js'],
   ['lint:presets', 'scripts/preset-lint.js'],
   ['lint:fc', 'scripts/fc-trace.js'],
-  ['wing:e2e', 'scripts/wing-e2e.js'],
 ].filter(([name]) => !only || only.split(',').includes(name));
 
 const scratch = join(root, 'build', 'identity');

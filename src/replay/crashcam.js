@@ -1025,9 +1025,6 @@ export function createCrashCam(host) {
     if (craft.setSurfaces) {
       craft.setSurfaces(s.pose[POSE.surf], s.pose[POSE.surf + 1], s.pose[POSE.surf + 2], s.pose[POSE.surf + 3]);
     }
-    if (craft.setFlaps) {
-      craft.setFlaps(s.pose[POSE.flaps]);
-    }
     const cam = shownCam();
     const onboard = Boolean(cam) && cam.rig === 'fpv' && !cam.watch;
     craft.group.visible = !onboard;

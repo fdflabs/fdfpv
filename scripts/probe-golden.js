@@ -9,13 +9,14 @@
  * probe, and of the parametric ones at fixed points, so any change in a
  * field's name, type or value shows up here first.
  *
- * States: the title on the Swiss valley, then a flight on the Swiss valley
- * and on the Alps with the craft thrown to a fixed point and held there
- * (__crashThrow with hold), so the pose and everything derived from it is
- * the same on every run, then on the Swiss valley the two seats that freeze
- * the pose (__seatCraft cameraDown and invertedHold). The Track seat, the
- * one with gates, and the race probes left with the track builder and the
- * race (the combat-only cut, 2026-10-20).
+ * States: the title at Itaipu, then a flight at Itaipu and in the Interior
+ * with the craft thrown to a fixed point and held there (__crashThrow with
+ * hold), so the pose and everything derived from it is the same on every
+ * run, then at Itaipu the two seats that freeze the pose (__seatCraft
+ * cameraDown and invertedHold). The Track seat, the one with gates, and the
+ * race probes left with the track builder and the race, and the Swiss
+ * valley and the Alps with the recreational maps (the combat-only cut,
+ * 2026-10-20).
  *
  * Some answers move between two runs of the same code (frame times, fps,
  * the wall clock, anything rendered at whatever moment the probe lands).
@@ -78,7 +79,6 @@ const PARAMETRIC = [
   ['__heightAt', 'sx + 7, sz - 5'],
   ['__surface', 'sx + 7, sz - 5, sy + 50'],
   ['__surfaceMaterial', 'sx + 7, sz - 5, sy + 50'],
-  ['__water', 'sx + 40, sz + 40'],
   ['__waterSample', 'sx + 40, sz + 40'],
   ['__nearSolid', 'sx, sy + 1, sz'],
   ['__nearSolid', 'sx + 3, sy + 0.5, sz + 2, 30'],
@@ -184,12 +184,12 @@ const THROW = (m) => `JSON.stringify(window.__crashThrow({
 
 async function sample() {
   const out = {};
-  for (const map of ['swiss2', 'alps']) {
+  for (const map of ['itaipu', 'interior']) {
     const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${map}`, seed: seed(map) });
     try {
       await page.until('window.__shellReady && window.__map && window.__map().ready', WAIT);
       await page.sleep(1500);
-      if (map === 'swiss2') {
+      if (map === 'itaipu') {
         out.title = JSON.parse(await page.evaluate(FLATTEN));
       }
       await page.evaluate('(() => { const s = window.__craftState(); window.__placeCraft(s.worldX, s.worldY, s.worldZ); })()');
@@ -199,7 +199,7 @@ async function sample() {
       out[`flight-${map}`] = JSON.parse(await page.evaluate(FLATTEN));
       /* The two seats that hold the pose (poseLock), so everything after
        * them is as fixed as the throw. */
-      for (const kind of map === 'swiss2' ? ['cameraDown', 'invertedHold'] : []) {
+      for (const kind of map === 'itaipu' ? ['cameraDown', 'invertedHold'] : []) {
         await page.evaluate(`void window.__seatCraft(${JSON.stringify(kind)})`);
         await page.sleep(800);
         out[`seat-${kind}-${map}`] = JSON.parse(await page.evaluate(FLATTEN));

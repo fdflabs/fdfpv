@@ -127,7 +127,7 @@ function seat(id, e = null) {
   } else {
     must(sim.setPower(partsPowerBlock(id, o.id, e.prop, stockBlock(id))), `sim_set_power ${id} ${e.prop}`);
   }
-  const block = addonParams(id, e, o, baseMass(id));
+  const block = addonParams(id, e, baseMass(id));
   if (block) {
     must(sim.setAddons(block), `sim_set_addons ${id}`);
   }
@@ -233,7 +233,7 @@ console.log('A2 the defaults');
   let allNull = true;
   let sameBlock = true;
   for (const id of PARTS_PLANES) {
-    allNull = allNull && addonParams(id, entry(), stockOption(id), baseMass(id)) === null;
+    allNull = allNull && addonParams(id, entry(), baseMass(id)) === null;
     for (const o of POWER[id]) {
       const blk = powerBlock(id, o.id, o.pack);
       sameBlock = sameBlock && partsPowerBlock(id, o.id, 'stock', blk) === blk;
@@ -271,7 +271,7 @@ console.log('A3 the CG, every combination');
       for (const prop of PROPS[id]) {
         for (const tape of [null, taped(id, () => true)]) {
           const e = entry({ prop: prop.id, addons, damage: tape && tape.parts.length ? tape : null });
-          const b = addonParams(id, e, stockOption(id), baseMass(id));
+          const b = addonParams(id, e, baseMass(id));
           if (!b) {
             continue;
           }
@@ -301,7 +301,7 @@ for (const [tag, add, test] of [
 ]) {
   console.log(tag);
   for (const id of PARTS_PLANES) {
-    const b = addonParams(id, entry({ addons: [add] }), stockOption(id), baseMass(id));
+    const b = addonParams(id, entry({ addons: [add] }), baseMass(id));
     const s = shiftOf(b, baseMass(id));
     tops[id] ??= topWith(id, []).v;
     const top = topWith(id, [add]).v;
@@ -314,7 +314,7 @@ console.log('A9 tape on a wing');
 for (const id of PARTS_PLANES) {
   const tape = taped(id, (p) => PART_KINDS[p.kind] === 'wing' && p.cg[1] > 0);
   const e = entry({ damage: tape });
-  const b = addonParams(id, e, stockOption(id), baseMass(id));
+  const b = addonParams(id, e, baseMass(id));
   const s = shiftOf(b, baseMass(id));
   seat(id, entry());
   const clean = topSpeed(id);
@@ -336,7 +336,7 @@ console.log('A10 a crash reset keeps what was seated');
   const set = setupFor(id, { option: 'stock', pack: '6s10000' });
   const tune = tuneBlock(id, normalizeEntry(id, { packMm: 10, ballastG: 20, rate: 'low', trimDeg: 1 }, set.limits), set.massKg, set.packKg);
   must(sim.setTune(tune), 'sim_wing_set_tune');
-  must(sim.setAddons(addonParams(id, e, POWER[id][0], powerBlock(id, 'stock', '6s10000')[SIM_POWER.MASS])), 'sim_set_addons');
+  must(sim.setAddons(addonParams(id, e, powerBlock(id, 'stock', '6s10000')[SIM_POWER.MASS])), 'sim_set_addons');
   const seated = sim.addonsState();
   const fresh = traceHash();
   must(sim.e.sim_set_damage(1), 'sim_set_damage');

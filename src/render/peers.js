@@ -14,7 +14,7 @@
  * colour this build does not know is dropped here, not an error.
  *
  * What moves on it comes from the pose (src/share/roomwire.js): the
- * surfaces, the flaps, the retracts, the folding prop, the chute, and the
+ * surfaces, the folding prop, the chute, and the
  * props at the speed the sender's motors turned. The smoke trail is not
  * sent: each peer with the smoke add on gets its own trail, emitted here
  * from the nozzle while the pose says the smoke is on.
@@ -57,7 +57,7 @@ import { airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { liveryKey, lookFor, normaliseEntry, paintable } from '../../configs/liveries.js';
 import { unpackEntry } from '../../configs/paint.js';
 import { PROPS, normalisePlane } from '../../configs/hangar-parts.js';
-import { FIGURE_COUNT, FLAG_CHUTE, FLAG_GEAR_DOWN, FLAG_QUAD, FLAG_SMOKE } from '../share/roomwire.js';
+import { FIGURE_COUNT, FLAG_CHUTE, FLAG_QUAD, FLAG_SMOKE } from '../share/roomwire.js';
 
 /* A suit and a cap each. FIGURE_COUNT of them; the wire checks the index. */
 export const FIGURE_LOOKS = [
@@ -313,7 +313,6 @@ export function buildPeerCraft(profile, look = null) {
   craft.group.add(tag.sprite);
   const quad = !airframeById(id).fixedWing;
 
-  let gear = 0;
   let smokeOn = false;
   const nozzle = new THREE.Vector3();
   const vel = new THREE.Vector3();
@@ -322,8 +321,8 @@ export function buildPeerCraft(profile, look = null) {
   const qInv = new THREE.Quaternion();
 
   /* The moving parts from a sample `p`: the props turned by `spinK` of
-   * a live frame's turn, the retracts at `gearAt`, 0 down to 1 up. */
-  function drive(p, spinK, gearAt) {
+   * a live frame's turn. */
+  function drive(p, spinK) {
     const speeds = (p.flags & FLAG_QUAD) ? [p.c0, p.c1, p.c2, p.c3] : [p.motor, p.motor, p.motor, p.motor];
     for (let m = 0; m < rotors; m += 1) {
       /* The wire's rad/s, turned back into the rpm this spin was tuned
@@ -341,12 +340,6 @@ export function buildPeerCraft(profile, look = null) {
     }
     if (!quad && craft.setSurfaces) {
       craft.setSurfaces(p.c0, p.c1, p.c2, p.c3);
-    }
-    if (craft.setFlaps) {
-      craft.setFlaps(p.flaps);
-    }
-    if (craft.setGear) {
-      craft.setGear(gearAt);
     }
     if (craft.setChute) {
       if (p.flags & FLAG_CHUTE) {
@@ -373,13 +366,7 @@ export function buildPeerCraft(profile, look = null) {
   function pose(drawn, p, dt, simT, viewHeight, fov) {
     craft.group.position.set(drawn.px, drawn.py, drawn.pz);
     craft.group.quaternion.set(drawn.qx, drawn.qy, drawn.qz, drawn.qw);
-    if (craft.setGear) {
-      /* The retracts travel in about two seconds; the wire says only
-       * whether they are down. */
-      const want = (p.flags & FLAG_GEAR_DOWN) ? 0 : 1;
-      gear += Math.max(-dt * 0.5, Math.min(dt * 0.5, want - gear));
-    }
-    drive(p, 1, gear);
+    drive(p, 1);
     /* The kit's LEDs and strobes, run on this page's sim clock (the wire
      * carries no clock of the pilot's, so a peer's chase is not in step
      * with their own screen). The wire has no stick or pack either, so
@@ -403,12 +390,12 @@ export function buildPeerCraft(profile, look = null) {
 
   /* A recorded frame, for the crash cam's replay (src/replay/peers.js):
    * the pose as it was drawn and the moving parts as they were, the props
-   * turned by spinK and the retracts where they stood. Its smoke is fed
-   * by the replay, which owns that clock. */
-  function replay(drawn, p, spinK, gearAt) {
+   * turned by spinK. Its smoke is fed by the replay, which owns that
+   * clock. */
+  function replay(drawn, p, spinK) {
     craft.group.position.set(drawn.px, drawn.py, drawn.pz);
     craft.group.quaternion.set(drawn.qx, drawn.qy, drawn.qz, drawn.qw);
-    drive(p, spinK, gearAt);
+    drive(p, spinK);
   }
 
   return {
@@ -422,9 +409,10 @@ export function buildPeerCraft(profile, look = null) {
     pose,
     replay,
     /* What the last pose drew, for the crash cam's recorder: the
-     * retracts, 0 down to 1 up, and the smoke's nozzle (world) while it
-     * trails, else null. */
-    gear: () => gear,
+     * retracts, 0 down to 1 up, for the clip's PEER.gear column (no kept
+     * aircraft has retracts, so always down), and the smoke's nozzle
+     * (world) while it trails, else null. */
+    gear: () => 0,
     smokeAt: () => (smokeOn ? nozzle : null),
     /* The trail itself (src/render/smoke.js), or null without the add on. */
     trail: smoke,

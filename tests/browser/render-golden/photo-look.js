@@ -48,8 +48,8 @@ function texture(w, h, v) {
   return t;
 }
 
-/* The kit's inputs: every surface a set of three small maps, one mark,
- * a ground that says what it was asked for, the heights' uniforms. */
+/* The kit's inputs: every surface a set of three small maps, a ground
+ * that says what it was asked for, the heights' uniforms. */
 function made() {
   const surfaces = Object.fromEntries(SURFACES.map((n, k) => [n, { col: texture(2, 2, 40 + k), nrm: texture(2, 2, 128), arm: texture(2, 2, 200 - k) }]));
   const ground = (opts) => {
@@ -58,7 +58,7 @@ function made() {
     return m;
   };
   const heights = { texture: { value: null }, grid: { value: new THREE.Vector4(1, 2, 3, 4) } };
-  return look.makePhotoLook({ surfaces, marks: { lanpy: texture(4, 4, 90) }, ground, heights });
+  return look.makePhotoLook({ surfaces, ground, heights });
 }
 
 function shaders(m) {

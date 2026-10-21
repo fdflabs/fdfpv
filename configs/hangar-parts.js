@@ -67,59 +67,6 @@ import { AIRCRAFT } from './aircraft.js';
 export const SIM_ADDON = { MASS: 0, CG: 1, CDA: 4, DRAG: 5, WHEEL_R: 8, ROLL_K: 9 };
 export const SIM_ADDON_DOUBLES = 10;
 
-const OZ = 0.028349523125;
-
-/*
- * APC's published weights, ounces, from each prop's product page, for the
- * props below and the proxies that stand in for each option's own.
- */
-const APC_OZ = {
-  '11x7E-3': 1.09, '11x7E': 0.81, '10x7E': 0.71, '11x55E': 0.81, '11x8E': 0.81, '12x6E': 0.95,
-  '13x8E': 1.09, '12x6': 1.62, '12x7': 1.52, '12x8': 1.69, '11x6': 1.41, '11x7': 1.41, '13x6': 1.69, '7x4': 0.42, '6x4': 0.18,
-  '7x3': 0.42, '5x3': 0.21, '8x4E': 0.46, '10x47SF': 0.42, '10x38SF': 0.42, '11x47SF': 0.53,
-  '10x6E': 0.71, '12x8E': 0.92, '13x65E': 1.06, '13x4E': 1.06,
-  '18x8E': 2.57, '18x10E': 2.57, '17x8E': 2.26,
-};
-
-/*
- * THE PROXY for each option's own prop: APC's own where APC makes the
- * kit's prop, else APC's nearest in diameter, pitch, blade count and
- * family (E thin electric, SF slow flyer, plain the sport glow prop).
- * E-flite's 11 x 7.5 three blade on the Timber takes APC's 11 x 7E-3,
- * GWS's EP1180 and EP1047 take APC's 11 x 8E and 10 x 4.7SF, and Cox's 7 x
- * 3.5 takes APC's 7 x 4, the nearer pitch of the two APC makes.
- */
-const PROXY = {
-  '11/7.5/3/electric': '11x7E-3',
-  '11/7/2/electric': '11x7E',
-  '11/5.5/2/electric': '11x55E',
-  '12/6/2/electric': '12x6E',
-  '13/8/2/electric': '13x8E',
-  '13/6/2/electric': '13x65E',
-  '13/4/2/electric': '13x4E',
-  '18/8/2/electric': '18x8E',
-  '11/8/2/electric': '11x8E',
-  '10/4.7/2/electric': '10x47SF',
-  '10/6/2/electric': '10x6E',
-  '8/4/2/electric': '8x4E',
-  '12/8/2/electric': '12x8E',
-  '7/3.5/2/glow': '7x4',
-  '5/3/2/glow': '5x3',
-  '12/6/2/glow': '12x6',
-  '11/6/2/glow': '11x6',
-  '13/6/2/glow': '13x6',
-  '14/7/2/glow': '14x7',
-};
-
-export function propProxy(option) {
-  const key = `${option.propIn}/${option.pitchIn}/${option.blades}/${option.kind}`;
-  const p = PROXY[key];
-  if (!p) {
-    throw new Error(`no APC proxy for ${key}`);
-  }
-  return p;
-}
-
 /*
  * PROPS[airframeId]: the first is 'stock', the prop the chosen power
  * option turns (configs/power.js propIn, pitchIn, blades); the rest are
@@ -367,16 +314,12 @@ export function propShape(id, option, propId) {
   return { propIn: option.propIn, pitchIn: option.pitchIn, blades: option.blades };
 }
 
-/* Every mass and drag the choice adds, body frame: the add-ons, the prop's
- * mass over the option's own, and each taped part. */
-export function partsPoints(id, entry, option, baseMassKg) {
+/* Every mass and drag the choice adds, body frame: the add-ons and each
+ * taped part. */
+export function partsPoints(id, entry, baseMassKg) {
   const pts = [];
   for (const a of entry.addons) {
     pts.push(...ADDONS[a].points(id, baseMassKg));
-  }
-  const p = propOf(id, entry.prop);
-  if (p.id !== 'stock') {
-    pts.push(pt(ANCHORS[id].prop, p.massKg - APC_OZ[propProxy(option)] * OZ));
   }
   for (const d of (entry.damage ? entry.damage.parts : [])) {
     if (d.state === 'taped') {
@@ -391,8 +334,8 @@ export function partsPoints(id, entry, option, baseMassKg) {
  * when it adds nothing (the stock prop, no add-on, nothing taped), which
  * is sim_addons_clear.
  */
-export function addonParams(id, entry, option, baseMassKg) {
-  const pts = partsPoints(id, entry, option, baseMassKg);
+export function addonParams(id, entry, baseMassKg) {
+  const pts = partsPoints(id, entry, baseMassKg);
   if (!pts.length) {
     return null;
   }
@@ -439,8 +382,8 @@ export function partsPowerBlock(id, optionId, propId, block) {
 
 /* What the tab reads out: the mass it adds, g, its drag area, cm^2, and
  * how far it moves the CG, mm (forward and up positive). */
-export function partsSummary(id, entry, option, baseMassKg) {
-  const block = addonParams(id, entry, option, baseMassKg);
+export function partsSummary(id, entry, baseMassKg) {
+  const block = addonParams(id, entry, baseMassKg);
   if (!block) {
     return { grams: 0, dragCm2: 0, cgMm: [0, 0, 0] };
   }

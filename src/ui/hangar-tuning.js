@@ -12,10 +12,9 @@
  *            point. The model shows a CG mark on a rail over the plane
  *            (src/render/hangar-tuning3d.js).
  *   RATES    low, mid or high throws from the manual, the expo on each
- *            surface with the stick to surface curve drawn, the elevator
- *            trim, and on the Timber the flaps the run starts on and the
- *            manual's flap to elevator mix. The model's surfaces sweep
- *            through the throws on show.
+ *            surface with the stick to surface curve drawn, and the
+ *            elevator trim. The model's surfaces sweep through the throws
+ *            on show.
  *   STAND    the motor or the engine run on the bench: a throttle, the
  *            static thrust, the current, the prop's rpm and the pack's
  *            volts or the fuel, live, from the plant itself run headless
@@ -50,7 +49,7 @@
 
 import { registerHangarTab } from './hangar.js';
 import {
-  HEADING_STEP, MARGIN_WARN, RATES, TRIM_MAX_DEG, balance, curve, fullEntry, hasHeading, normalizeEntry, setupFor,
+  MARGIN_WARN, RATES, TRIM_MAX_DEG, balance, curve, fullEntry, normalizeEntry, setupFor,
   throwsFor, tuneBlock, tuningFor,
 } from '../../configs/tuning.js';
 import { TABLE, powerCells, powerOption, powerParams } from '../../configs/power.js';
@@ -145,11 +144,6 @@ function changed(h, key, sound = 'select') {
 /* The entry with one field moved, snapped and clamped by the config. */
 function setField(h, key, field, value) {
   T.entry = fullEntry(T.id, normalised(h, { ...T.entry, [field]: value }));
-  changed(h, key, 'adjust');
-}
-
-function setHeading(h, key, surface, value) {
-  T.entry = fullEntry(T.id, normalised(h, { ...T.entry, heading: { ...T.entry.heading, [surface]: value } }));
   changed(h, key, 'adjust');
 }
 
@@ -424,12 +418,6 @@ function ratesPage(h, box) {
   table.append(plot);
   box.append(table);
   box.append(el('p', 'tn-caption', str('tuning.curve')));
-  /* An AS3X receiver reads the stick through the rate (plant_wing.c
-   * as3x_channel): under half the travel, E-flite's AS3X note. */
-  const high = throwsFor(T.id, 'high');
-  if (hasHeading(T.id) && throws.some((d, i) => high[i] > 0 && d < 0.5 * high[i])) {
-    box.append(el('p', 'tn-caption', str('tuning.as3x_low_rate')));
-  }
 
   box.append(el('h3', 'hangar-h', str('tuning.expo')));
   SURFACES.forEach((k, i) => {
@@ -449,29 +437,6 @@ function ratesPage(h, box) {
     }));
   });
 
-  /* The AS3X receiver's Heading, where the plane flies one: zero as the
-   * receiver ships (the AR631's default), a pilot's to turn up. */
-  if (hasHeading(T.id)) {
-    box.append(el('h3', 'hangar-h', str('tuning.heading')));
-    SURFACES.forEach((k, i) => {
-      if (!(throws[i] > 0)) {
-        return;
-      }
-      const v = e.heading[k];
-      box.append(stepper(h, {
-        key: `heading-${k}`,
-        label: str(`tuning.surface.${k}`),
-        value: v === 0 ? str('tuning.heading_off') : str('tuning.percent', { n: number(v) }),
-        focus: k === 'a' ? 'wing' : 'tail',
-        canDec: v > 0,
-        canInc: v < 100,
-        dec: () => setHeading(h, `heading-${k}-dec`, k, v - HEADING_STEP),
-        inc: () => setHeading(h, `heading-${k}-inc`, k, v + HEADING_STEP),
-      }));
-    });
-    box.append(el('p', 'tn-caption', str('tuning.heading_note')));
-  }
-
   box.append(el('h3', 'hangar-h', str('tuning.trim')));
   const tr = e.trimDeg;
   box.append(stepper(h, {
@@ -485,33 +450,6 @@ function ratesPage(h, box) {
     inc: () => setField(h, 'trim-inc', 'trimDeg', tr + TRIM_STEP),
   }));
 
-  box.append(el('h3', 'hangar-h', str('tuning.flaps')));
-  if (t.flaps) {
-    box.append(el('span', 'tn-sub', str('tuning.flap_start')));
-    box.append(segmented(h, {
-      key: 'flap',
-      items: [0, 1, 2].map((n) => ({ id: n, label: str(`tuning.flap.${n}`) })),
-      on: e.flapStart,
-      focus: 'wing',
-      pick: (n) => {
-        T.entry = fullEntry(T.id, normalised(h, { ...T.entry, flapStart: n }));
-        changed(h, `flap-${n}`);
-      },
-    }));
-    box.append(el('span', 'tn-sub', str('tuning.flap_mix')));
-    box.append(segmented(h, {
-      key: 'mix',
-      items: [{ id: 'on', label: str('tuning.flap_mix_on') }, { id: 'off', label: str('tuning.flap_mix_off') }],
-      on: e.flapMix ? 'on' : 'off',
-      focus: 'tail',
-      pick: (m) => {
-        T.entry = fullEntry(T.id, normalised(h, { ...T.entry, flapMix: m === 'on' }));
-        changed(h, `mix-${m}`);
-      },
-    }));
-  } else {
-    box.append(el('p', 'hangar-note tn-flat', str('tuning.flaps_none')));
-  }
   if (e.rate === 'mid') {
     box.append(el('p', 'hangar-source', str('tuning.mid_note')));
   }
@@ -776,7 +714,7 @@ function frame(h, now) {
   const t = tuningFor(T.id);
   const s = setup(h);
   const b = balance(T.id, T.entry, s.massKg, s.packKg);
-  const out = { section: T.section, cg: null, surfaces: null, rpm: T.reading && T.standOn ? T.reading.rpm : 0, flaps: 0 };
+  const out = { section: T.section, cg: null, surfaces: null, rpm: T.reading && T.standOn ? T.reading.rpm : 0 };
   if (T.section === 'balance') {
     const range = t.cg.range && t.cg.mm != null
       ? [(t.cg.mm - t.cg.range[0]) / 1000, (t.cg.mm - t.cg.range[1]) / 1000]
@@ -795,9 +733,6 @@ function frame(h, now) {
       out.surfaces = [de - da, de + da, 0, 0];
     } else {
       out.surfaces = [-da, da, de, dr];
-    }
-    if (t.flaps) {
-      out.flaps = t.flaps.angles[T.entry.flapStart];
     }
   }
   return out;

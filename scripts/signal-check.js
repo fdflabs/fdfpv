@@ -55,7 +55,7 @@ import { RcLink } from '../src/input/link.js';
 import { createFpvFail } from '../src/render/fpvfail.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import {
-  must, attitude, wingDebug, skyPrelude, bramorPrelude, RC_STEP_MS,
+  must, attitude, wingDebug, bramorPrelude, STRIKER_PROP_AIRFRAME, RC_STEP_MS,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -156,13 +156,13 @@ const LOW = { x: GORGE.x, y: groundAt(GORGE.x, GORGE.z) + 10, z: GORGE.z };
 const HIGH = { x: GORGE.x, y: groundAt(GORGE.x, GORGE.z) + 400, z: GORGE.z };
 const RELAY_AT = { x: -350, z: -350 };
 const RELAY = {
-  x: RELAY_AT.x, y: groundAt(RELAY_AT.x, RELAY_AT.z) + 300, z: RELAY_AT.z, airframe: 'sky1800',
+  x: RELAY_AT.x, y: groundAt(RELAY_AT.x, RELAY_AT.z) + 300, z: RELAY_AT.z, airframe: 'bramor2300',
 };
 const base = { station: STATION, finestAt, waterAt, waterTop: RESERVOIR_Y };
 
 /* The determinism hash: a grid of calls over the gorge, every result's
  * bytes. Positions and relays vary so the hash covers every branch. */
-function determinismHash(waterTop = RESERVOIR_Y, relay = RELAY) {
+function determinismHash(waterTop = RESERVOIR_Y) {
   const h = createHash('sha256');
   const f = new Float64Array(1);
   const u = new Uint8Array(f.buffer);
@@ -175,7 +175,7 @@ function determinismHash(waterTop = RESERVOIR_Y, relay = RELAY) {
         ...base,
         waterTop,
         craft,
-        relays: (i + j) % 3 === 0 ? [relay] : [],
+        relays: (i + j) % 3 === 0 ? [RELAY] : [],
         jammers: (i * j) % 5 === 0 ? [{ x: x + 200, y: craft.y, z: z - 100 }] : [],
       });
       f[0] = r.q;
@@ -217,11 +217,6 @@ check('and q is the range rule at that distance', high.q === rangeHigh, `${dHigh
 const relayed = signalQuality({ ...base, craft: LOW, relays: [RELAY] });
 check('a relay 300 m over the gorge restores the low craft', relayed.q > 0.9 && relayed.via === 0 && relayed.blocked,
   `q ${relayed.q.toFixed(4)}, via ${relayed.via}, direct blocked ${relayed.blocked}`);
-/* The relay The Interior flies (src/share/ops, interior-3's relay role):
- * the Bramor in the Skyhunter's place answers the same, to the bit. */
-const bramorRelay = signalQuality({ ...base, craft: LOW, relays: [{ ...RELAY, airframe: 'bramor2300' }] });
-check('a Bramor in the same place is the same relay', JSON.stringify(bramorRelay) === JSON.stringify(relayed),
-  `q ${bramorRelay.q.toFixed(4)}, via ${bramorRelay.via}`);
 const notRelay = signalQuality({ ...base, craft: LOW, relays: [{ ...RELAY, airframe: 'quad5' }] });
 check('a quad in the same place is no relay', notRelay.q === 0 && notRelay.via === -1, `q ${notRelay.q}`);
 const lowRelay = signalQuality({
@@ -244,7 +239,6 @@ const h3 = execFileSync(process.execPath, [fileURLToPath(import.meta.url), '--ha
 check('two runs in one process are bit identical', h1 === h2, h1.slice(0, 16));
 check('and a second process agrees', h1 === h3, h3.slice(0, 16));
 check('skipping the water over its highest surface changes no answer', determinismHash(Infinity) === h1);
-check('the Bramor as the relay gives the same hash', determinismHash(RESERVOIR_Y, { ...RELAY, airframe: 'bramor2300' }) === h1);
 
 console.log('\ncost');
 function perCall(label, args) {
@@ -414,11 +408,12 @@ const sim = await loadSim(new Uint8Array(await readFile(join(root, 'dist/sim.was
 must(sim.init(await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8')), 'init');
 must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0), 'ground');
 {
-  /* The Skyhunter in Manual, climbing out banked hard right under power,
+  /* The Striker in Manual, climbing out banked hard right under power,
    * then the link goes. The rule must level it and cut the motor. */
   must(sim.reset(), 'reset');
   must(sim.e.sim_wing_set_stab(0), 'manual');
-  skyPrelude(sim);
+  must(sim.e.sim_set_airframe(STRIKER_PROP_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   const bank = 35 * Math.PI / 180;
   must(sim.e.sim_set_pose(0, 0, 150, Math.cos(bank / 2), Math.sin(bank / 2), 0, 0), 'pose');
   must(sim.e.sim_wing_launch(16), 'launch');

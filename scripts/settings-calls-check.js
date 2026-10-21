@@ -61,7 +61,7 @@ const recording = process.argv.includes('--record');
  * itself and the contact pass that runs beside it in flight. */
 const HOT = new Set([
   'sim_step', 'sim_state', 'sim_state_size', 'sim_input', 'malloc', 'free',
-  'sim_set_ground', 'sim_set_ground_material', 'sim_ground_contacts', 'sim_wheel_loads',
+  'sim_set_ground', 'sim_set_ground_material', 'sim_ground_contacts',
   'sim_damage_events', 'sim_obstacle_contacts',
 ]);
 

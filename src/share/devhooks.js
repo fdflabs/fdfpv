@@ -196,7 +196,6 @@ export const HOOKS = [
   ['__warMap', null],
   ['__warMapLog', 'starts or stops the war map\'s log'],
   ['__warMapLogged', null],
-  ['__water', null],
   ['__waterSample', null],
   ['__wavesOn', 'turns the title\'s waves on'],
   ['__wear', null],

@@ -10,12 +10,11 @@
  * lint's harness exemption (scripts/noun-lint.js) exists for.
  *
  * ui-golden.js pins every screen's items and rows. It does not see the
- * cards: the home and hub cards, the rooms panel beside them and the
- * Tricks screen's caption. Those are drawn from items() by the card
- * methods of the Ui (src/ui/cards.js), and this check drives those methods
- * through window.__ui and records the DOM they leave: classes, text, the
- * attributes a screen reader or a stylesheet reads, and which card the
- * cursor lights.
+ * cards: the home and hub cards and the rooms panel beside them. Those
+ * are drawn from items() by the card methods of the Ui (src/ui/cards.js),
+ * and this check drives those methods through window.__ui and records the
+ * DOM they leave: classes, text, the attributes a screen reader or a
+ * stylesheet reads, and which card the cursor lights.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -38,7 +37,6 @@ import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
-import { SETTINGS_KEY } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUT = join(root, 'tests', 'cards-golden');
@@ -185,53 +183,26 @@ const TITLE = probe(`
   }
 `);
 
-/* THE TRICKS SCREEN's caption, at two cursor stops. */
-const TRICKS = probe(`
-  ui.show('tricks');
-  const cap = () => ({ name: text(ui.trickName), meta: text(ui.trickMeta), how: text(ui.trickHow), view: text(ui.trickView) });
-  out.first = cap();
-  const rows = ui.trickRows();
-  out.count = rows.length;
-  out.kept = ui.trickRows() === rows;
-  out.head = rows.slice(0, 3).map((t) => ({ name: t.name, how: t.how, view: t.view, status: t.status, points: t.points }));
-  ui.setCursor(4);
-  out.fifth = cap();
-  ui.setCursor(9999);
-  out.past = cap();
-  ui.show('title');
-`);
-
 const FIXTURES = [
-  { name: 'home', profile: null, pastGate: false, probes: { title: TITLE } },
-  { name: 'race', profile: { airframeAsked: true }, pastGate: 'race', probes: { tricks: TRICKS } },
+  { name: 'home', probes: { title: TITLE } },
 ];
 
-function seedFor(fx) {
-  const lines = [
-    "try { localStorage.setItem('fdfpv.pilotPick', '[1,2,42]'); localStorage.setItem('fdfpv.pilotFigure', '3'); } catch (e) { /* storage refused */ }",
-  ];
-  if (fx.profile) {
-    lines.push(`try {
-      localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, ${JSON.stringify(JSON.stringify(fx.profile))});
-    } catch (e) { /* storage refused */ }`);
-  }
-  return lines;
-}
+const SEED = [
+  "try { localStorage.setItem('fdfpv.pilotPick', '[1,2,42]'); localStorage.setItem('fdfpv.pilotFigure', '3'); } catch (e) { /* storage refused */ }",
+];
 
 let failed = 0;
 for (const fx of FIXTURES) {
   if (ONLY.length && !ONLY.includes(fx.name)) {
     continue;
   }
-  const page = await openPage({ root, width: 1600, height: 900, url: '/index.html?lang=en', seed: seedFor(fx) });
+  const page = await openPage({ root, width: 1600, height: 900, url: '/index.html?lang=en', seed: SEED });
   const got = {};
   try {
     await page.until('window.__shellReady === true', 300000);
     await page.evaluate(`(async () => {
       const pilot = await import('/src/share/pilot.js');
       pilot.writePilotName(${JSON.stringify(PILOT)});
-      const ui = window.__ui;
-      ${fx.pastGate ? `ui.firstRun = false; ui.craftGate = false; ui.mode = ${JSON.stringify(fx.pastGate)};` : ''}
       return true;
     })()`);
     for (const [name, code] of Object.entries(fx.probes)) {

@@ -149,7 +149,7 @@ jobs:
       # lint runs first so a lane sees its whole list in one run.
       - run: npm run lint:physics-sources
       - run: npm run physics-sources:selftest
-      # src/render and src/art outputs on a fixed stage against goldens
+      # src/render outputs on a fixed stage against goldens
       # recorded from each module before its track U rewrite
       # (tests/browser/render-golden/).
       - run: npm run render:golden
@@ -494,7 +494,6 @@ jobs:
           npm run world:layer -- --three="$RUNNER_TEMP/package"
         env:
           FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
-      - run: npm run figures:selftest
       - run: npm run personpilot:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.

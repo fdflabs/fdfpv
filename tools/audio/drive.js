@@ -137,16 +137,12 @@ export async function renderFlight(id, mode, stem = '') {
   }
   a.setEnabled(true);
   const rpm = [0, 0, 0, 0];
-  const air = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0, flapsMoving: false, gearMoving: false };
+  const air = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0 };
   const events = f.events.slice();
   const heard = [];
   const peerState = scene ? scene.peers.map((sp, k) => ({
     id: k + 1, spec: engineSpecFor(PEER_AIRFRAME[sp.flight], {}, {}), rpm: [0, 0, 0, 0], x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
   })) : null;
-  /* The flaps and the gear, read as src/main.js reads them off the plant. */
-  let flapWas = rows.length ? rows[0][11] : 0;
-  let gearWas = rows.length ? rows[0][12] : 0;
-  let gearMovingWas = false;
   for (let i = 0; i < rows.length; i += 1) {
     const r = rows[i];
     const t = i / data.rate;
@@ -158,15 +154,6 @@ export async function renderFlight(id, mode, stem = '') {
     air.v = r[5];
     air.w = r[6];
     air.amps = r[10];
-    air.flapsMoving = Math.abs(r[11] - flapWas) > 1e-5;
-    flapWas = r[11];
-    const gearMoving = Math.abs(r[12] - gearWas) > 1e-6;
-    if (lab && gearMovingWas && !gearMoving && (r[12] === 0 || r[12] === 1)) {
-      a.mechanical('gear', t);
-    }
-    gearMovingWas = gearMoving;
-    gearWas = r[12];
-    air.gearMoving = gearMoving;
     if (f.listener) {
       Object.assign(air, listenerView(r, f.listener));
     }

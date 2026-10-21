@@ -24,12 +24,6 @@
  *             plant's right handed Z up body frame)
  *   x y z     position, metres, world frame (for a listener off board)
  *   amps      pack current, A
- *   flap      the flaps' angle, rad
- *   gear      the retracts, 0 down and locked to 1 up
- *
- * flap and gear are 0 in every row: no aircraft left in the module has
- * flaps or retracts (the combat only cut). The columns stay so the
- * committed flights and tools/audio/drive.js keep their row layout.
  *
  * Events are what the shell learns from the plant or its contact code and
  * hands the audio as a call rather than a stream: an impact with the
@@ -64,7 +58,7 @@ const OUT = join(root, 'tools/audio/flights.json');
 export const TRACE_HZ = 62.5;
 const ROW_MS = 1000 / TRACE_HZ;
 const RC_MS = 4;
-export const COLS = ['r0', 'r1', 'r2', 'r3', 'u', 'v', 'w', 'x', 'y', 'z', 'amps', 'flap', 'gear'];
+export const COLS = ['r0', 'r1', 'r2', 'r3', 'u', 'v', 'w', 'x', 'y', 'z', 'amps'];
 const SURF = { grass: 1, concrete: 4, rock: 5, wood: 7 };
 
 function must(code, where) {
@@ -119,8 +113,6 @@ class Recorder {
         live ? +u.toFixed(2) : 0, live ? +v.toFixed(2) : 0, live ? +w.toFixed(2) : 0,
         +s[1].toFixed(2), +s[2].toFixed(2), +s[3].toFixed(2),
         +s[19].toFixed(1),
-        0,
-        0,
       ]);
       this.nextRow += ROW_MS;
     }

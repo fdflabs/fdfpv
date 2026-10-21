@@ -391,8 +391,6 @@
    "resize",
    "setChute",
    "setCraftLook",
-   "setFlaps",
-   "setGear",
    "setProp",
    "setSurfaces",
    "swapCraft"
@@ -443,14 +441,6 @@
      ],
      [
       "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
       null
      ],
      [
@@ -562,14 +552,6 @@
       null
      ],
      [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
       "launcher",
       null
      ],
@@ -601,14 +583,6 @@
       true
      ],
      [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
       "launcher",
       true
      ],
@@ -635,14 +609,6 @@
      ],
      [
       "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
       null
      ],
      [
@@ -709,8 +675,6 @@
    "resize",
    "setChute",
    "setCraftLook",
-   "setFlaps",
-   "setGear",
    "setProp",
    "setSurfaces",
    "swapCraft"
@@ -761,14 +725,6 @@
      ],
      [
       "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
       null
      ],
      [
@@ -880,14 +836,6 @@
       null
      ],
      [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
       "launcher",
       null
      ],
@@ -919,14 +867,6 @@
       true
      ],
      [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
       "launcher",
       true
      ],
@@ -953,14 +893,6 @@
      ],
      [
       "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
       null
      ],
      [

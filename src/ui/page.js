@@ -126,15 +126,12 @@ export function buildFlightOverlay(shell) {
     keep(shell, 'osdHits', 'div', 'osd-sub osd-hits', ''),
   );
 
-  /* Flaps, gear and the hold stay empty on an aircraft without them. Launch is not a
-   * corner line: it sits on the overlay itself, after the sticks. */
+  /* Launch is not a corner line: it sits on the overlay itself, after the
+   * sticks. */
   const right = el('div', 'osd-corner osd-right');
   right.append(
     keep(shell, 'osdSpeed', 'div', 'osd-value', ''),
     keep(shell, 'osdFlight', 'div', 'osd-sub osd-mode', ''),
-    keep(shell, 'osdFlaps', 'div', 'osd-sub osd-mode', ''),
-    keep(shell, 'osdGear', 'div', 'osd-sub osd-mode', ''),
-    keep(shell, 'osdHold', 'div', 'osd-sub osd-mode', ''),
   );
   const launch = keep(shell, 'osdLaunch', 'div', 'osd-launch is-off', '');
   right.append(

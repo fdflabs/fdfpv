@@ -133,20 +133,6 @@ window.__preview = {
     craft.setSurfaces(...rad);
     return true;
   },
-  /* A craft with flaps: both lowered by rad, trailing edge down. */
-  flaps(rad) {
-    if (craft.setFlaps) {
-      craft.setFlaps(rad);
-    }
-    return true;
-  },
-  /* A craft with retracts: 0 down and locked to 1 up. */
-  gear(g) {
-    if (craft.setGear) {
-      craft.setGear(g);
-    }
-    return true;
-  },
   spin(angle, blur) {
     craft.blades[0].rotation.y = angle;
     craft.discs[0].visible = blur;

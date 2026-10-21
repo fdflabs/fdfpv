@@ -175,19 +175,6 @@ export function declareBodies(e, bodies, frame) {
 }
 
 /*
- * Where an aircraft on floats starts, flown free: body `chosen`'s own
- * spawn. A body without one (a pool, a river channel) is not a start, and
- * choosing it throws rather than starting on some other body.
- */
-export function floatSpawn(bodies, chosen) {
-  const w = bodies[chosen];
-  if (!w || !w.spawn) {
-    throw new Error(`water body ${chosen} of ${bodies.length} has no float spawn`);
-  }
-  return w.spawn;
-}
-
-/*
  * A channel's surface under (x, z) and how far off its line that is:
  * { d2, y }, the nearest segment's, or null where no chunk's box holds
  * the point. The plant's channel_nearest (src/native/water.c) in the

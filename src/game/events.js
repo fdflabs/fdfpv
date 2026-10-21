@@ -57,9 +57,9 @@
  *                 is not; freestyle's debrief counts these (debrief.js
  *                 fromFree)
  *   trick {id, score}
- *                 a trick or figure the freestyle scorer took (score.js
- *                 land, from the trick judge, src/game/trickdetect.js and
- *                 figuredetect.js): id its name, score its points (net)
+ *                 a trick or figure the freestyle scorer took: id its
+ *                 name, score its points (net). The scorer left with
+ *                 freestyle; runs recorded before keep the kind
  *   engine_out, battery_low
  *                 the engine quitting with fuel in the tank, and LOW
  *                 BATTERY on electric power, each once a run, as

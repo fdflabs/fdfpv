@@ -91,7 +91,7 @@ function changed(hangar, key) {
 function fitOf(entry, now) {
   const id = st.id;
   return {
-    extraG: partsSummary(id, entry, now.option, baseMass(id, now)).grams,
+    extraG: partsSummary(id, entry, baseMass(id, now)).grams,
     thrustK: 1,
   };
 }
@@ -161,7 +161,7 @@ function addonCards(hangar, box, now) {
     b.addEventListener('pointerenter', () => {
       hangar.focus = ADDON_FOCUS[a];
     });
-    const grams = partsSummary(id, { prop: 'stock', addons: [a], damage: null }, now.option, baseMass(id, now)).grams;
+    const grams = partsSummary(id, { prop: 'stock', addons: [a], damage: null }, baseMass(id, now)).grams;
     b.append(el('span', 'hangar-card-name', str(`parts.addon.${a}`)));
     b.append(el('span', 'hangar-card-detail', str('parts.plus_grams', { n: number(grams) })));
     previewOn(hangar, b, () => {
@@ -350,7 +350,7 @@ function wearList(hangar, box) {
 
 function statsBlock(box, now) {
   const id = st.id;
-  const s = partsSummary(id, st.entry, now.option, baseMass(id, now));
+  const s = partsSummary(id, st.entry, baseMass(id, now));
   const p = propOf(id, st.entry.prop);
   const thrust = now.option.thrustN;
   const pitchSpeed = now.option.pitchSpeedMs;

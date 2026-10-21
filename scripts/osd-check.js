@@ -489,7 +489,7 @@ async function quad() {
 }
 
 /* A plane's autopilot, in the page: wings level and a pitch to hold, on the
- * craft's own attitude, the same law scripts/water-render.js flies. */
+ * craft's own attitude. */
 const PLANE_PILOT = `
 window.__osdPilot = { pitchDeg: 8, throttle: 1, on: true };
 (() => {

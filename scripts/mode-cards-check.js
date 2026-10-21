@@ -182,7 +182,7 @@ async function click(page, selector) {
 }
 
 /* Home, where the rooms panel is. */
-async function toClub(page) {
+async function toHome(page) {
   await page.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-hangar')", 60000).catch(() => {});
   if (await page.evaluate('window.__ui.hub !== null')) {
     await page.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
@@ -317,7 +317,7 @@ const roomAction = `lobby:friends-room-${made.code}`;
 try {
   for (const p of [e, f]) {
     await p.until('window.__shellReady === true', 300000);
-    await toClub(p);
+    await toHome(p);
     await p.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)}) && window.__ui.items().some((it) => it.label === ${JSON.stringify(LONG)})`, 60000).catch(() => {});
   }
   const panel = await e.evaluate(PANEL);
@@ -418,7 +418,7 @@ try {
     await f.sleep(300);
   }
   await f.until('window.__ui.onGate()', 10000).catch(() => {});
-  await toClub(f);
+  await toHome(f);
   /* A listed room's name, not the Watch beside it, which wears the same
    * name class. */
   const LISTED_NAMES = "[...document.querySelectorAll('.gate-rooms-list .gate-room:not(.gate-room-watch) .gate-room-name')].map((n) => n.textContent)";
@@ -465,7 +465,7 @@ const updateUp = '(() => { window.__ui.updateReady = true; window.__ui.syncChips
 const gPad = (nav) => g.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
 try {
   await g.until('window.__shellReady === true', 300000);
-  await toClub(g);
+  await toHome(g);
   await g.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.lobby === 'room')`, 60000).catch(() => {});
   await g.evaluate(updateUp);
   for (const [w, h] of [[1280, 720], [1920, 1080], [390, 844], [360, 640], [844, 390]]) {
@@ -499,7 +499,7 @@ try {
 
   /* The pad: up onto Reload, select reloads. */
   await g.until(`window.__ui.onGate()`, 60000).catch(() => {});
-  await toClub(g);
+  await toHome(g);
   await g.evaluate(updateUp);
   await g.evaluate('(() => { window.__ui.setCursor(0); return true; })()');
   await gPad({});
@@ -514,7 +514,7 @@ try {
   /* In a room the room bar asks for the reload instead (src/main.js
    * roomBarView), and its button is a stop the same way. */
   await g.until(`window.__ui.onGate()`, 60000).catch(() => {});
-  await toClub(g);
+  await toHome(g);
   await g.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)})`, 30000).catch(() => {});
   await g.evaluate(`(() => { window.__ui.act(${JSON.stringify(roomAction)}); return true; })()`);
   await g.until(`window.__rooms().phase === 'open' && window.__ui.screen === 'friends'`, 30000).catch(() => {});
@@ -590,7 +590,7 @@ try {
     await shot(h, `es-home-${w}x${hh}`);
   }
   await resize(h, 1280, 720);
-  await toClub(h);
+  await toHome(h);
   await h.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'hangar')); return true; })()");
   await h.tap('Enter');
   await h.until(`window.__ui.hub === 'hangar' && ${LAYOUT}.cards.length === ${N_CARDS}`, 30000).catch(() => {});

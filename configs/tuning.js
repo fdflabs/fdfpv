@@ -1,6 +1,6 @@
 /*
- * tuning.js: each plane's bench setup, the CG, the rates, the expo, the
- * trim and the flaps, and the one function that turns the pilot's setup
+ * tuning.js: each plane's bench setup, the CG, the rates, the expo and
+ * the trim, and the one function that turns the pilot's setup
  * into the plant's sim_wing_set_tune block (src/native/sim_abi.h).
  *
  * THE CONTRACT, for the hangar's Tuning tab (src/ui/hangar-tuning.js) and
@@ -8,8 +8,7 @@
  *
  *   TUNING[airframeId] is a fixed wing's data, below. The pilot's setup is
  *   settings.tuning[airframeId] = { packMm, ballastG, rate, expo: { a, e,
- *   r }, trimDeg, flapStart, flapMix, elevFlap }, every field optional, a missing
- *   one the stock value; normalizeTuning validates a stored map on load and
+ *   r }, trimDeg }, every field optional, a missing one the stock value; normalizeTuning validates a stored map on load and
  *   drops whatever is the stock value, so an empty entry is the kit as it
  *   comes. tuneBlock(airframeId, entry, massKg, packKg) is the plant's
  *   block, or null for the stock setup, which the shell clears rather than
@@ -82,25 +81,6 @@ const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
 export const RATES = ['low', 'mid', 'high'];
-/* The radio's elevator to flap mix, percent of full flap at full up
- * elevator, on a plane with flaps: the 3D pilot's "elevator flaps" that
- * steady a harrier (docs/FLIGHTMODEL.md). Off as every kit ships; the
- * steps are a transmitter's coarse ones, the amount is the pilot's. */
-export const ELEV_FLAPS = [0, 25, 50, 75, 100];
-/* THE HEADING, on an aircraft with an AS3X receiver (a tune that flies
- * plant mode 3): the AR631's Heading gain on each axis, percent of the
- * table's as3x_kh, "defaulted to zero. You can increase this value to
- * make the aircraft hold its attitude when control input is neutral"
- * (the AR631 manual). Seated with sim_wing_set_heading. */
-export const HEADING_STEP = 10;
-export function hasHeading(airframeId) {
-  return AIRCRAFT.TUNES.some((tune) => tune.airframe === airframeId && tune.wingStab === 3);
-}
-/* The entry's Heading as the plant takes it, a share of as3x_kh per axis. */
-export function headingShare(entry) {
-  const h = (entry && entry.heading) || {};
-  return ['a', 'e', 'r'].map((k) => (num(h[k]) ? h[k] / 100 : 0));
-}
 export const STOCK_EXPO = 30;
 /* How far a pack slides in its bay either way, mm: ESTIMATED, no kit
  * publishes it; the hook and loop trays of these kits leave about an inch
@@ -174,11 +154,7 @@ export function stockEntry(airframeId) {
     ballastG: 0,
     rate: t?.firstFlight?.rate ?? 'high',
     expo: { a: x, e: x, r: x },
-    heading: { a: 0, e: 0, r: 0 },
     trimDeg: 0,
-    flapStart: 0,
-    flapMix: Boolean(t && t.flaps),
-    elevFlap: 0,
   };
 }
 
@@ -268,36 +244,10 @@ export function normalizeEntry(airframeId, raw, limits) {
       out.expo = expo;
     }
   }
-  if (hasHeading(airframeId) && raw.heading && typeof raw.heading === 'object') {
-    const heading = {};
-    for (const k of ['a', 'e', 'r']) {
-      const v = raw.heading[k];
-      if (num(v)) {
-        const s = Math.round(clampTo(v, 0, 100) / HEADING_STEP) * HEADING_STEP;
-        if (s !== 0) {
-          heading[k] = s;
-        }
-      }
-    }
-    if (Object.keys(heading).length) {
-      out.heading = heading;
-    }
-  }
   if (num(raw.trimDeg)) {
     const v = Math.round(clampTo(raw.trimDeg, -TRIM_MAX_DEG, TRIM_MAX_DEG) * 4) / 4;
     if (v !== 0) {
       out.trimDeg = v;
-    }
-  }
-  if (t.flaps) {
-    if (raw.flapStart === 1 || raw.flapStart === 2) {
-      out.flapStart = raw.flapStart;
-    }
-    if (raw.flapMix === false) {
-      out.flapMix = false;
-    }
-    if (ELEV_FLAPS.includes(raw.elevFlap) && raw.elevFlap !== 0) {
-      out.elevFlap = raw.elevFlap;
     }
   }
   return Object.keys(out).length ? out : null;
@@ -311,7 +261,6 @@ export function fullEntry(airframeId, entry) {
     ...s,
     ...e,
     expo: { ...s.expo, ...(e.expo || {}) },
-    heading: { ...s.heading, ...(e.heading || {}) },
   };
 }
 
@@ -346,7 +295,6 @@ export function tuneBlock(airframeId, entry, massKg, packKg) {
   if (isStock(airframeId, entry) && !tuningFor(airframeId).firstFlight) {
     return null;
   }
-  const t = tuningFor(airframeId);
   const e = fullEntry(airframeId, entry);
   const b = balance(airframeId, entry, massKg, packKg);
   const th = throwsFor(airframeId, e.rate);
@@ -361,8 +309,9 @@ export function tuneBlock(airframeId, entry, massKg, packKg) {
   out[SIM_TUNE.EXPO_E] = e.expo.e / 100;
   out[SIM_TUNE.EXPO_R] = e.expo.r / 100;
   out[SIM_TUNE.TRIM_E] = rad(e.trimDeg);
-  out[SIM_TUNE.FLAP_MIX] = t.flaps && e.flapMix ? t.flaps.mix : 0;
-  out[SIM_TUNE.ELEV_FLAP] = t.flaps ? e.elevFlap / 100 : 0;
+  /* No kept aircraft has flaps; the slots stay in sim_abi.h's layout. */
+  out[SIM_TUNE.FLAP_MIX] = 0;
+  out[SIM_TUNE.ELEV_FLAP] = 0;
   return out;
 }
 

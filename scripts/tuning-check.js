@@ -40,9 +40,9 @@
  *   U5 the expo softens the centre and leaves the ends: at a quarter stick
  *      the surface is smaller and the roll rate lower the more expo there
  *      is, and at full stick the surface is the throw whatever the expo.
- *   U6 the trim adds to the elevator at centred sticks, the flap mix is
- *      the manual's or none (the Timber), and the ballast is mass: the
- *      same CG with lead on it pitches up slower than without.
+ *   U6 the trim adds to the elevator at centred sticks, and the ballast
+ *      is mass: the same CG with lead on it pitches up slower than
+ *      without.
  *   U7 the test stand: at full throttle on a fresh pack it reads the
  *      plant's own static thrust, rpm and current (configs/power.js, which
  *      power:check P1 proves are the table's), the lead does not change
@@ -225,15 +225,9 @@ function rateStep(id, tune, sticks, axis) {
 }
 
 /* The surfaces after one step at these sticks, radians [la, ra, e, r]. */
-function surfaces(id, tune, roll, pitch, flapNotch = 0) {
+function surfaces(id, tune, roll, pitch) {
   seat(id, tune);
-  if (flapNotch) {
-    must(sim.e.sim_wing_set_flaps(flapNotch), 'flaps');
-  }
   place(TABLE[id].cruiseMs);
-  if (flapNotch) {
-    must(sim.e.sim_wing_flaps_settle(), 'settle');
-  }
   must(sim.input(0, roll, pitch, 0, 0), 'input');
   /* 200 ms: a table whose servos slew (servo_rate) has them there. */
   must(sim.step(200), 'step');
@@ -241,9 +235,6 @@ function surfaces(id, tune, roll, pitch, flapNotch = 0) {
   must(sim.e.sim_plane_surfaces(ptr), 'surfaces');
   const out = Array.from(new Float64Array(sim.e.memory.buffer, ptr, 4));
   sim.e.free(ptr);
-  if (flapNotch) {
-    must(sim.e.sim_wing_set_flaps(0), 'flaps up');
-  }
   return out;
 }
 
@@ -349,19 +340,6 @@ for (const id of ids) {
   const elevatorAt = elevator(trimmed);
   check(`U6 ${id} 2 deg of up trim puts 2 deg on the elevator at centred sticks`, Math.abs(deg(elevatorAt) - 2) < 1e-9,
     `${f3(deg(elevatorAt))} deg`);
-  if (t.flaps && t.flaps.mix !== 0) {
-    const withMix = surfaces(id, null, 0, 0, 2)[2];
-    const noMix = surfaces(id, block({ flapMix: false }), 0, 0, 2)[2];
-    check(`U6 ${id} full flaps: the manual's mix puts down elevator on, none leaves it centred`,
-      withMix < -0.05 && noMix === 0, `${f2(deg(withMix))} and ${f2(deg(noMix))} deg`);
-  } else if (t.flaps) {
-    /* A manual that gives no mix: full flaps leave the elevator centred
-     * either way. */
-    const withMix = surfaces(id, null, 0, 0, 2)[2];
-    const noMix = surfaces(id, block({ flapMix: false }), 0, 0, 2)[2];
-    check(`U6 ${id} full flaps and no mix in the manual: the elevator stays centred`,
-      withMix === 0 && noMix === 0, `${f2(deg(withMix))} and ${f2(deg(noMix))} deg`);
-  }
   const lead = lim.ballastG;
   const same = balance(id, { ballastG: lead }, massKg, packKg).shift;
   const withLead = block({ ballastG: lead });

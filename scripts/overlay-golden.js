@@ -178,7 +178,7 @@ function stubUi() {
   for (const k of ['brandSub', 'titleBest', 'osdBest', 'resultsBody', 'resultsFacts', 'resultsNote', 'resultsKicker', 'resultsHead',
     'resultsHeroCap', 'resultsHeroTime', 'resultsHeroMeta', 'announcer', 'osdTopBlock',
     'osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdPackBar', 'osdSpeed', 'osdFlight',
-    'osdFlaps', 'osdGear', 'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits', 'osdSticks',
+    'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits', 'osdSticks',
     'calPrompt', 'calKicker', 'calHint', 'calList', 'calAxes', 'calSaveBtn', 'calSkipBtn', 'calZeroBtn', 'calRevBtn',
     'calModeBtn', 'padPrompt', 'padKicker', 'padHint', 'padCards', 'padYesBtn', 'padNoBtn', 'padSkipBtn']) {
     ui[k] = el('div', k);
@@ -301,7 +301,7 @@ async function snapshot() {
   });
 
   const osdNodes = (ui) => Object.fromEntries(['osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast',
-    'osdPackBar', 'osdSpeed', 'osdFlight', 'osdFlaps', 'osdGear', 'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits']
+    'osdPackBar', 'osdSpeed', 'osdFlight', 'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits']
     .map((k) => [k, ui[k]]));
   const frame = {
     mode: 'race', lapMs: null, lastLapMs: null, gate: 1, gateCount: 8, gateCue: '', volts: 16.84, packFrac: 0.99994,
@@ -319,9 +319,6 @@ async function snapshot() {
       ['launch armed', { ...frame, launchState: 1, launchPitch: 2 }],
       ['launch hot', { ...frame, launchState: 2, launchPitch: 14.6 }],
       ['launch go', { ...frame, launchState: 3 }],
-      ['plane flaps gear', { ...frame, flaps: 1, gear: 'up' }],
-      ['plane flaps full gear down', { ...frame, flaps: 2, gear: 'down' }],
-      ['plane gear moving', { ...frame, flaps: 0, gear: 'moving' }],
       ['freestyle', { ...frame, mode: 'freestyle', lapMs: 65000, lastLapMs: 3000 }],
       ['freestyle, waiting', { ...frame, mode: 'freestyle', lapMs: NaN }],
       ['bounces back to zero', { ...frame, bounces: 0 }],
@@ -330,8 +327,8 @@ async function snapshot() {
       call(ui, 'setOsd', f);
       step(name, osdNodes(ui));
     }
-    for (const k of ['osdFlight', 'osdFlaps', 'osdGear', 'osdLaunch', 'osdHits']) ui[k] = null;
-    call(ui, 'setOsd', { ...frame, lapMs: 5000, flaps: 1, gear: 'up', launchState: 2, bounces: 2 });
+    for (const k of ['osdFlight', 'osdLaunch', 'osdHits']) ui[k] = null;
+    call(ui, 'setOsd', { ...frame, lapMs: 5000, launchState: 2, bounces: 2 });
     step('optional readouts absent', osdNodes(ui));
   });
 

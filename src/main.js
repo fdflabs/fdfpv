@@ -197,7 +197,7 @@ import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams, S
 import { ESTIMATES } from '../configs/power-estimates.js';
 import { MOTORS, choiceKey, hasMotors, motorChoice, motorStats, motorsBlock, propPackBlock, quadChoices } from '../configs/motors.js';
 import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
-import { fullEntry, hasHeading, headingShare, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
+import { normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import {
@@ -241,7 +241,7 @@ import { FpvOsd } from './ui/fpvhud.js';
 import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { currentLocale, hasStr, plural, str } from './strings/index.js';
-import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
+import { declareBodies, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
 import { makeWeather, MAPS as WEATHER_MAPS, PRESET_IDS as WEATHER_PRESETS } from './game/weather.js';
 import { KINDS, TURNED } from './game/collide.js';
 import {
@@ -293,19 +293,11 @@ const WASM_URL = new URL(`../dist/sim.wasm${new URL(import.meta.url).search}`, i
  */
 let SPAWN_ALT = 0.045;
 let REST_HEIGHT = 0.045;
-/* The gear pose an aircraft stands at: the kit's. */
-function gearOf(af) {
-  return af ? (af.gear ?? null) : null;
-}
-/* An aircraft on wheels rests where its gear holds it, not on its lowest
- * drawn point; one on floats rests where they float it when it starts on
- * water; anything else on its hull's lower half extent from
+/* An aircraft rests on its hull's lower half extent from
  * configs/airframes.js (vHalfDown, snapshotted from plant.c). */
-function seatRestHeight(af, onWater = false) {
+function seatRestHeight(af) {
   const dims = af && af.dims;
-  const h = onWater && af.floats ? af.floats.restHeight
-    : gearOf(af) ? gearOf(af).restHeight
-    : dims && Number.isFinite(dims.vHalfDown) ? dims.vHalfDown : 0.045;
+  const h = dims && Number.isFinite(dims.vHalfDown) ? dims.vHalfDown : 0.045;
   SPAWN_ALT = h;
   REST_HEIGHT = h;
 }
@@ -2794,13 +2786,8 @@ export async function boot({
   /* The ground's material where the craft is, as the plant was last told
    * (declareGroundMaterial), for what a hit on it sounds like. */
   let groundMaterialNow = SURFACE.grass;
-  /* The flaps' angle and the gear's position last frame, for the sound of
-   * them moving, and whether the gear was moving. */
-  let flapAngleWas = 0;
   /* Whether the mix was last told a replay plays (audio.setReplaying). */
   let audioReplaying = false;
-  let gearWas = 0;
-  let gearMovingWas = false;
   /* Everything in the world that sounds and is not this aircraft: the
    * war's attackers and its explosions (src/render/world-audio.js). Fed
    * a frame at a time; silent until the mix gives it a bus. */
@@ -3092,43 +3079,9 @@ export async function boot({
     return Math.min(1, Math.max(-1, 1 - 2 * (x * x + z * z)));
   }
 
-  /*
-   * AN AIRCRAFT ON FLOATS ON A MAP WITH WATER starts afloat on it, at the
-   * water's own spawn, and rests at its floats' height; anywhere else it is
-   * on the strip on its keels. Everything that asks where the craft rests
-   * asks restPose().
-   */
-  function floatsOnWater() {
-    return Boolean(airframeById(runAirframe).floats && view && view.water && view.water.length);
-  }
-  function restPose() {
-    const af = airframeById(runAirframe);
-    if (floatsOnWater()) {
-      return af.floats;
-    }
-    return gearOf(af);
-  }
   /* The water body under a map point, or null. */
   function waterAt(x, z) {
     return (view && view.water || []).find((b) => insideWater(b, x, z)) || null;
-  }
-  /*
-   * WHERE THE PLANT'S GROUND GOES under an aircraft on floats over water:
-   * the lake's bed, since view.height answers the surface there so that
-   * everything else rests on the water as it always has, and the floats
-   * float on the water the plant was told of instead. Everything else,
-   * and the floats anywhere but over water, gets view.height itself.
-   */
-  function floorHeight(x, z, fromY) {
-    const h = view.height(x, z, fromY);
-    if (!airframeById(runAirframe).floats) {
-      return h;
-    }
-    const w = waterAt(x, z);
-    if (!w || h > surfaceAt(w, x, z) + 1e-6) {
-      return h;
-    }
-    return Math.min(h, w.bed(x, z));
   }
   /*
    * Tell the plant the map's water, in its own frame, which is the spawn's:
@@ -3244,48 +3197,13 @@ export async function boot({
     }
   }
 
-  /* An aircraft on floats as the water reads it: its drawn pose, which
-   * the near patch is laid round, and for its spray and wake (src/render/
-   * spray.js) its velocity in the map, what the floats did on the last
-   * step, and its floats' geometry. Null for anything else. */
-  /* Empty since the float planes left (2026-10-21); the floats machinery
-   * is still to go. */
-  const FLOAT_GEOMETRY = {};
-  const craftWaterVel = new THREE.Vector3();
-  let craftWaterState = null;
-  function craftOnWater() {
-    const floats = FLOAT_GEOMETRY[runAirframe];
-    if (!floats || !stateCurr || mode === 'title' || typeof sim.e.sim_float_state !== 'function') {
-      return null;
-    }
-    if (!floatStatePtr) {
-      floatStatePtr = sim.e.malloc(10 * 8);
-    }
-    sim.e.sim_float_state(floatStatePtr);
-    if (!craftWaterState || craftWaterState.buffer !== sim.e.memory.buffer) {
-      craftWaterState = new Float64Array(sim.e.memory.buffer, floatStatePtr, 10);
-    }
-    simPosToThree(stateCurr[4], stateCurr[5], stateCurr[6], craftWaterVel).applyQuaternion(qSpawn);
-    return {
-      position: shell.quad.position, quaternion: shell.quad.quaternion, velocity: craftWaterVel, state: craftWaterState, floats,
-    };
-  }
-
-  /*
-   * Where this run starts. The view's spawn, except for an aircraft on
-   * floats on a map with water, which starts on the water's own spawn.
-   */
+  /* Where this run starts: the view's spawn. */
   function runSpawn() {
     return roomSlotSpawn(mapSpawn());
   }
-  /* The water body an aircraft on floats starts on when flown free, an
-   * index into view.water: the map's first body on a map that does not
-   * choose its own spawns (spawnFor, below). */
-  let floatBody = 0;
   /*
    * A map with more than one start (Itaipu: the crest road for the planes
-   * and the quads, the reservoir and the river for the floats, and
-   * one in the air) answers spawnFor(spawn, kind, wish) with the one for
+   * and the quads, and one in the air) answers spawnFor(spawn, kind, wish) with the one for
    * this aircraft, given the view's spawn. `wish` is the page's ?spawn=,
    * the one way a pilot picks among them until the shell has a row for it.
    */
@@ -3293,13 +3211,9 @@ export async function boot({
   function mapSpawn() {
     const sp = view.spawn;
     if (sp && view.spawnFor) {
-      const kind = floatsOnWater() ? 'float' : airframeById(runAirframe).fixedWing ? 'plane' : 'quad';
-      return view.spawnFor(sp, kind, spawnWish);
+      return view.spawnFor(sp, airframeById(runAirframe).fixedWing ? 'plane' : 'quad', spawnWish);
     }
-    if (!sp || !floatsOnWater()) {
-      return sp;
-    }
-    return sp.air ? sp : floatSpawn(view.water, floatBody);
+    return sp;
   }
   /*
    * In a room of friends, each pilot starts at their own seat's slot
@@ -3311,11 +3225,6 @@ export async function boot({
   let roomSlot = -1;
   function roomSlotSpawn(sp) {
     return roomSlot > 0 ? slotSpawn(sp, roomSlot) : sp;
-  }
-  /* Whether this run starts afloat, which is where it rests. */
-  function startsAfloat() {
-    const sp = runSpawn();
-    return floatsOnWater() && !(sp && sp.air);
   }
 
   /* The ground a spawn seats the craft on. A map that draws its ground in
@@ -3334,7 +3243,7 @@ export async function boot({
    * (edgeFrame). Up here because boot reaches adoptSpawn. */
   const edgeHome = { x: 0, z: 0 };
   function adoptSpawn() {
-    seatRestHeight(airframeById(runAirframe), startsAfloat());
+    seatRestHeight(airframeById(runAirframe));
     const sp = runSpawn();
     startX = sp.x;
     startZ = sp.z;
@@ -6780,7 +6689,6 @@ export async function boot({
      * rpm, and sending rpm in a field of 40 rad/s counts clamped every
      * quad above 5,080 rpm, so hover and every punch went out the same. */
     const rotors = [st[14] / RPM_PER_RAD_S, st[15] / RPM_PER_RAD_S, st[16] / RPM_PER_RAD_S, st[17] / RPM_PER_RAD_S];
-    const gear = typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : 0;
     const chute = typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0;
     const fitted = PROPS[runAirframe] ? partsEntry(ui.settings.parts, runAirframe).addons : [];
     const flags = (landed ? 0 : FLAG_AIRBORNE)
@@ -6789,7 +6697,9 @@ export async function boot({
       | (smokeLive ? FLAG_SMOKE : 0)
       | (fitted.includes('lights') ? FLAG_LIGHTS : 0)
       | (chute > 0 ? FLAG_CHUTE : 0)
-      | (gear < 0.5 ? FLAG_GEAR_DOWN : 0)
+      /* No kept aircraft has retracts: its gear is always down, as
+       * the wire has always said of a plane without them. */
+      | FLAG_GEAR_DOWN
       | (quad ? FLAG_QUAD : 0);
     roomSeq = (roomSeq + 1) & 0xffff;
     roomSentPose = {
@@ -6814,7 +6724,8 @@ export async function boot({
       c2: surf ? surf[2] : rotors[2],
       c3: surf ? surf[3] : rotors[3],
       motor: quad ? (rotors[0] + rotors[1] + rotors[2] + rotors[3]) / 4 : rotors[0],
-      flaps: typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0,
+      /* The wire's flap field (roomwire.js): no kept aircraft has flaps. */
+      flaps: 0,
     };
     roomLinkState.sendPose(encodePose(roomSentPose));
   }
@@ -8005,9 +7916,6 @@ export async function boot({
     if (airframeById(runAirframe).catapult) {
       return catapultLaunch(stNow);
     }
-    if (airframeById(runAirframe).discus) {
-      return discusLaunch(stNow);
-    }
     /* Into the hand first: a hull on the grass is held by friction the
      * moment it moves. Level, too: a wing that came to rest on a wingtip
      * is picked up before it is thrown. */
@@ -8070,85 +7978,6 @@ export async function boot({
   }
 
   /*
-   * THE DISCUS LAUNCH, on a glider thrown by its wingtip (airframes.js
-   * `discus`, the NRJ): L, or the throttle stick up, and the pilot picks
-   * it up where it lies, turns once with it by the peg and lets it go
-   * there, climbing, facing the way it faced (sim_wing_discus). The turn
-   * and the release are the plant's, so a replay throws the same throw.
-   * discusCue below says what is happening on the HUD: the spin, the
-   * release, and the height the launch reached at the top of the zoom.
-   * Where it was thrown from is where the pilot stands, which is where it
-   * can be caught.
-   */
-  let discusAt = null;
-  function discusLaunch(stNow) {
-    const yaw = Math.atan2(2 * (stNow[7] * stNow[10] + stNow[8] * stNow[9]), 1 - 2 * (stNow[9] * stNow[9] + stNow[10] * stNow[10]));
-    const ground = stNow[3] - REST_HEIGHT;
-    sim.e.sim_set_pose(stNow[1], stNow[2], stNow[3] + 1.2, Math.cos(yaw / 2), 0, 0, Math.sin(yaw / 2));
-    if (typeof sim.e.sim_wing_discus !== 'function' || sim.e.sim_wing_discus() !== SIM_OK) {
-      return false;
-    }
-    landed = false;
-    takingOff = false;
-    flownThisRun = true;
-    adoptSimClock();
-    stateCurr = readState();
-    statePrev = stateCurr;
-    discusAt = { x: stNow[1], y: stNow[2], ground, phase: 1, top: -Infinity, releasedMs: null };
-    notice = { text: str('main.discus_spin'), untilMs: performance.now() + 1200 };
-    return true;
-  }
-
-  /*
-   * The HUD's cue for the discus launch, every frame, from the plant's
-   * phase: the release, and the top of the zoom, where the launch preset
-   * lets go and the height the throw reached is said, which is the number
-   * a DLG pilot reads off the altimeter after every launch. And THE CATCH:
-   * back at the pilot, slow and at hand height, the glider is caught, and
-   * held there until the next throw.
-   */
-  const CATCH_REACH = 1.5;
-  const CATCH_LOW = 0.6;
-  const CATCH_HIGH = 2.3;
-  const CATCH_SPEED = 8;
-  const CATCH_AFTER_MS = 5000;
-  function discusCue(nowWall) {
-    if (!discusAt || !stateCurr || !airframeById(runAirframe).discus || typeof sim.e.sim_wing_discus_phase !== 'function') {
-      return;
-    }
-    const phase = sim.e.sim_wing_discus_phase();
-    const h = stateCurr[3] - discusAt.ground;
-    if (phase === 2 && discusAt.phase === 1) {
-      discusAt.releasedMs = nowWall;
-      const v = Math.hypot(stateCurr[4], stateCurr[5], stateCurr[6]);
-      notice = { text: str('main.discus_released', { speed: Math.round(v) }), untilMs: performance.now() + 1600 };
-    }
-    if (phase === 2) {
-      discusAt.top = Math.max(discusAt.top, h);
-    }
-    if (phase === 0 && discusAt.phase === 2) {
-      notice = { text: str('main.discus_top', { m: Math.round(Math.max(discusAt.top, h)) }), untilMs: performance.now() + 3000 };
-    }
-    discusAt.phase = phase;
-    if (phase !== 0 || landed || crashed || discusAt.releasedMs === null || nowWall - discusAt.releasedMs < CATCH_AFTER_MS) {
-      return;
-    }
-    const off = Math.hypot(stateCurr[1] - discusAt.x, stateCurr[2] - discusAt.y);
-    const v = Math.hypot(stateCurr[4], stateCurr[5], stateCurr[6]);
-    if (off <= CATCH_REACH && h >= CATCH_LOW && h <= CATCH_HIGH && v <= CATCH_SPEED) {
-      sim.rest();
-      landed = true;
-      takingOff = false;
-      adoptSimClock();
-      stateCurr = readState();
-      statePrev = stateCurr;
-      acc = 0;
-      discusAt.releasedMs = null;
-      notice = { text: str('main.discus_caught'), untilMs: performance.now() + 2200 };
-    }
-  }
-
-  /*
    * The recovery parachute, P, on an aircraft that has one. In the air
    * only: on the ground there is nothing for it to do. Once out it stays
    * out until the aircraft is relaunched or reset.
@@ -8169,44 +7998,6 @@ export async function boot({
     }
     notice = { text: str('main.parachute_out_motor_cut'), untilMs: performance.now() + 2600 };
     audio.mechanical('parachute');
-    return true;
-  }
-
-  /*
-   * A PLANE ON WHEELS IS NOT THROWN, IT IS LET GO. Parked, the plant is
-   * held, like any craft that is down; throttle releases it onto its gear
-   * at the pose the gear holds it in, CG gear.restHeight over the ground
-   * and gear.restPitch nose up, facing the way it faced, and the plant's
-   * wheels roll it down the strip from there. The wheels are not hull
-   * corners, so a plane rolling or sitting on them never trips the perch
-   * that parks a craft again.
-   */
-  function releaseOnWheels() {
-    const gear = restPose();
-    const stNow = readState();
-    if (!gear || !stNow) {
-      return false;
-    }
-    const yaw = Math.atan2(2 * (stNow[7] * stNow[10] + stNow[8] * stNow[9]), 1 - 2 * (stNow[9] * stNow[9] + stNow[10] * stNow[10]));
-    const cy = Math.cos(yaw / 2);
-    const sy = Math.sin(yaw / 2);
-    const cp = Math.cos(gear.restPitch / 2);
-    const sp = Math.sin(gear.restPitch / 2);
-    /* Yaw about world up, then the nose up pitch about the body's left
-     * axis, which is a negative rotation about +y in the plant's frame. */
-    const code = sim.e.sim_set_pose(
-      stNow[1], stNow[2], stNow[3] - REST_HEIGHT + gear.restHeight,
-      cy * cp, sy * sp, -cy * sp, sy * cp,
-    );
-    if (code !== SIM_OK) {
-      return false;
-    }
-    landed = false;
-    takingOff = false;
-    flownThisRun = true;
-    adoptSimClock();
-    stateCurr = readState();
-    statePrev = stateCurr;
     return true;
   }
 
@@ -8467,37 +8258,8 @@ export async function boot({
   let lastHitIndex = -1;
   let lastGroundHits = 0;
   /* Harness (__ground): 1 ms steps since load that ended with the hull on
-   * the ground plane or a wheel loaded, which catches a touch shorter
-   * than a frame and a roll on the gear the hull count misses. */
+   * the ground plane, which catches a touch shorter than a frame. */
   let groundContactSteps = 0;
-  /* sim_wheel_loads' four doubles in the module heap, and a view of them. */
-  let wheelPtr = 0;
-  let wheelLoads = null;
-  /*
-   * Whether any wheel carries weight. Called every step, so it allocates
-   * nothing: the heap slot is taken once, and the view is remade only
-   * when the module's memory has grown under it. A plant built without
-   * the export has no gear to load.
-   */
-  function wheelsLoaded() {
-    const mod = sim.e;
-    if (typeof mod.sim_wheel_loads !== 'function') {
-      return false;
-    }
-    if (wheelPtr === 0) {
-      wheelPtr = mod.malloc(Float64Array.BYTES_PER_ELEMENT * 4);
-    }
-    if (wheelLoads === null || wheelLoads.buffer !== mod.memory.buffer) {
-      wheelLoads = new Float64Array(mod.memory.buffer, wheelPtr, 4);
-    }
-    mod.sim_wheel_loads(wheelPtr);
-    for (let i = 0; i < wheelLoads.length; i += 1) {
-      if (wheelLoads[i] > 0) {
-        return true;
-      }
-    }
-    return false;
-  }
   let lastClearance = 1;
   let lastUpz = 1;
   let lastFpvY = 0;
@@ -8739,30 +8501,10 @@ export async function boot({
   let runCells = airframeById(runAirframe).cells;
   /* The aircraft the Settings studio was built for; a new one rebuilds it. */
   let showcaseCraft = DEFAULT_AIRFRAME;
-  /* Heap slots taken once: ten doubles for sim_float_state, four for
-   * sim_plane_surfaces. */
-  let floatStatePtr = 0;
+  /* The heap slot taken once for sim_plane_surfaces' four doubles. */
   let wingSurfPtr = 0;
   /* The stabiliser setting last sent to the module. */
   let wingStabApplied = -1;
-  /*
-   * The flap switch on an aircraft with flaps (airframes.js `flaps`): 0
-   * up, 1 half, 2 full, F stepping round them like a three position
-   * switch. The plant holds the notch across resets and drives the flaps
-   * at servo speed; this copy is for the OSD and the key, and goes back
-   * to up with the plant's on a new airframe.
-   */
-  let flapNotch = 0;
-  /* Moves the switch; false, and the copy unchanged, if the plant has no
-   * flaps or refused the notch. */
-  function setFlapNotch(n) {
-    const plantHasFlaps = typeof sim.e.sim_wing_set_flaps === 'function';
-    if (plantHasFlaps && sim.e.sim_wing_set_flaps(n) === SIM_OK) {
-      flapNotch = n;
-      return true;
-    }
-    return false;
-  }
   /*
    * A catapult's world matrix once its aircraft is off it, so the launcher
    * stays at the spawn although it is part of the craft's model (which
@@ -9563,7 +9305,7 @@ export async function boot({
     }
     const { option, pack } = powerChoice(af.id, s.power);
     const parts = partsEntry(s.parts, af.id);
-    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS]);
+    const block = addonParams(af.id, parts, powerBlock(af.id, option, pack)[SIM_POWER.MASS]);
     const code = block ? sim.setAddons(block) : sim.clearAddons();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(code)}`);
@@ -9594,19 +9336,15 @@ export async function boot({
 
   /*
    * THE PILOT'S TUNING, configs/tuning.js and the hangar's Tuning tab: the
-   * CG, the rates, the expo, the trim and the flap mix the pilot set up
-   * for the seated plane, on the same rule as the power and after it,
-   * since the CG is balanced on the pack the power choice fits. The stock
-   * setup clears, so an untuned plane flies its table bit for bit. The
-   * flaps a run starts on are the setup's only where the pilot chose them;
-   * otherwise the switch stays where it was, as it always did.
-   * runTuneKey is what was seated, so a save can tell whether the plane in
+   * CG, the rates, the expo and the trim the pilot set up for the seated
+   * plane, on the same rule as the power and after it, since the CG is
+   * balanced on the pack the power choice fits. The stock setup clears,
+   * so an untuned plane flies its table bit for bit. runTuneKey is what was seated, so a save can tell whether the plane in
    * the air needs a refit.
    */
   let runTuneKey = 'null';
-  function applyTuning(s, midRun = false) {
+  function applyTuning(s) {
     const af = airframeById(runAirframe);
-    applyHeading(af, s);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
       return;
@@ -9619,23 +9357,6 @@ export async function boot({
       throw new Error(`sim_wing_set_tune refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
     }
     runTuneKey = JSON.stringify(entry);
-    if (!midRun && entry && entry.flapStart) {
-      setFlapNotch(fullEntry(af.id, entry).flapStart);
-    }
-  }
-
-  /* The AS3X Heading the pilot set for the seated plane (configs/tuning.js
-   * headingShare), zero on every other: the plant keeps it across resets,
-   * so every seat sets it. */
-  function applyHeading(af, s) {
-    if (typeof sim.e.sim_wing_set_heading !== 'function') {
-      return;
-    }
-    const entry = af.fixedWing && hasHeading(af.id) ? normalizeEntry(af.id, s.tuning && s.tuning[af.id], { packMm: 0, ballastG: 0 }) : null;
-    const code = sim.setHeading(headingShare(entry));
-    if (code !== SIM_OK) {
-      throw new Error(`sim_wing_set_heading refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
-    }
   }
 
   /*
@@ -11680,25 +11401,12 @@ export async function boot({
   }
 
   /*
-   * WHETHER THE AIRCRAFT IS DOWN, which is more than `landed`. The shell
-   * parks only a craft that has stopped: a plane rolling on its wheels and
-   * a float plane riding the water are handed to the plant and are not
-   * `landed`, and a swap there is a swap on the ground, not in the air.
-   * Read before the swap touches the plant: these are the last step's.
+   * WHETHER THE AIRCRAFT IS DOWN: parked, or on the ground on the last
+   * step, so a swap there is a swap on the ground, not in the air. Read
+   * before the swap touches the plant: these are the last step's.
    */
   function onSurface() {
-    if (landed || sim.e.sim_ground_contacts() > 0 || wheelsLoaded()) {
-      return true;
-    }
-    if (!airframeById(runAirframe).floats || typeof sim.e.sim_float_state !== 'function') {
-      return false;
-    }
-    if (!floatStatePtr) {
-      floatStatePtr = sim.e.malloc(10 * 8);
-    }
-    sim.e.sim_float_state(floatStatePtr);
-    const f = new Float64Array(sim.e.memory.buffer, floatStatePtr, 10);
-    return f[4] + f[5] > 0 || f[6] > 0;
+    return landed || sim.e.sim_ground_contacts() > 0;
   }
 
   function seatSwap(to, next, text, at = null) {
@@ -11718,7 +11426,7 @@ export async function boot({
     const from = runAirframe;
     const quadBefore = shell.quad;
     const onWater = Boolean(waterAt(swapAt.x, swapAt.z));
-    const inAir = wasFlying || Boolean(to.floats) !== onWater;
+    const inAir = wasFlying || onWater;
     const s = ui.settings;
 
     /* The seat, then the plant: the mode first, then the config, which
@@ -11755,7 +11463,6 @@ export async function boot({
     /* The shell's copies of the machine, the same calls a choice between
      * runs makes: its size, hull, parts, model, voice and camera. */
     syncCraftScale();
-    flapNotch = 0;
     wingStabApplied = -1;
     applyCrashMode(s);
     applyPower(s);
@@ -11765,7 +11472,7 @@ export async function boot({
     launcherLeft = null;
     chaseValid = false;
     introMs = -1;
-    seatRestHeight(to, !inAir && onWater);
+    seatRestHeight(to);
 
     /* The craft, parked at the spot on its heading, which is also a fresh
      * physics state and a fresh crash state. */
@@ -11862,6 +11569,16 @@ export async function boot({
     if (keepPlace) {
       paintBest();
       mode = stayMode === 'flight' ? 'paused' : stayMode;
+      /* A pilot taken out of the room's round is owed the air again
+       * (roomSummonStep resumes the pause). A war's or a match's begin
+       * owes it only when it finds the world down, and the room's clock
+       * that rebuilds the world comes in its own message after the war's
+       * (edge/rooms/core.js message): a frame drawn between the two began
+       * the war on the standing world, and the rebuild then left the pilot
+       * paused over the whole war (replay:world under load, 2026-10-21). */
+      if (stayMode === 'flight' && roomGameUp()) {
+        roomCall('game');
+      }
       /* Only if the pilot is still on it: a war lobby builds its mission's
        * world while the pilot waits (clockTimeFrame), about 5 s, and one who
        * left the room and opened Make a room meanwhile was thrown back to
@@ -12243,7 +11960,7 @@ export async function boot({
     setCraftAirframe(craft.dims);
     seatCraftParts();
     runCells = craft.cells;
-    seatRestHeight(craft, startsAfloat());
+    seatRestHeight(craft);
     dressCraft();
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
@@ -12398,8 +12115,6 @@ export async function boot({
       /* The craft is session lived and the world is not, so its derived
        * state follows here rather than in a world rebuild. */
       syncCraftScale();
-      /* The plant raised the old airframe's flaps with it. */
-      flapNotch = 0;
     }
     applyCrashMode(s);
     applyPower(s);
@@ -12438,8 +12153,8 @@ export async function boot({
    * A plane's rates from the Rates screen (src/ui/items.js planeRatesRows)
    * fly at once, as a quad's do: the setup is seated again without a
    * reset, and only its throws and expo have moved, so the plane flies on
-   * from where it is. The flaps stay where the switch has them. At the
-   * title the next seat takes it (applyRunSettings).
+   * from where it is. At the title the next seat takes it
+   * (applyRunSettings).
    */
   function applyPlaneRates(s) {
     if (mode === 'title') {
@@ -12450,10 +12165,8 @@ export async function boot({
       return;
     }
     const set = setupFor(af.id, powerChoice(af.id, s.power));
-    /* Not the surface tiers: they are mass and aero and wait for the
-     * next run, which seats them with their servos and draws them. */
     if (JSON.stringify(normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits)) !== runTuneKey) {
-      applyTuning(s, true);
+      applyTuning(s);
     }
   }
 
@@ -13680,46 +13393,8 @@ export async function boot({
       }
       return;
     }
-    /* THE CARGO DOORS, on an aircraft that has them (airframes.js `ramp`,
-     * the Hercules): O opens and shuts the ramp and door, ahead of O's
-     * smoke, which a Hercules with smoke fitted gives up while it flies
-     * (docs/HERCULES-CONTRACT.md). The switch is the plant's, which a reset
-     * shuts, so it is read back rather than kept here. */
-    if (code === 'KeyO' && ui.screen === 'flight' && airframeById(runAirframe).ramp
-      && typeof sim.e.sim_wing_set_door === 'function') {
-      const open = sim.e.sim_wing_door_selected() ? 0 : 1;
-      if (sim.e.sim_wing_set_door(open) === SIM_OK) {
-        notice = { text: open ? str('ui.doors_open') : str('ui.doors_shut'), untilMs: performance.now() + 1600 };
-      }
-      return;
-    }
     if (code === 'KeyP' && ui.screen === 'flight' && airframeById(runAirframe).chute) {
       pullChute();
-      return;
-    }
-    if (code === 'KeyF' && ui.screen === 'flight' && airframeById(runAirframe).flaps) {
-      if (setFlapNotch((flapNotch + 1) % 3)) {
-        /* Parked, the plant is held by not stepping it, and the servos
-         * would have moved the flaps in the time it sat there. */
-        if (landed && typeof sim.e.sim_wing_flaps_settle === 'function') {
-          sim.e.sim_wing_flaps_settle();
-        }
-        const said = [str('ui.flaps_up'), str('ui.flaps_half'), str('ui.flaps_full')];
-        notice = { text: said[flapNotch], untilMs: performance.now() + 1600 };
-      }
-      return;
-    }
-    /* THE RETRACTS' SWITCH, on an aircraft that has them (airframes.js
-     * `retracts`): G flips it, and the plant moves the gear at its own
-     * rate. The switch is the plant's, which a reset puts down, so it is
-     * read back rather than kept here. Up on the ground puts the aircraft
-     * on its belly, as a real one's would. */
-    if (code === 'KeyG' && ui.screen === 'flight' && airframeById(runAirframe).retracts
-      && typeof sim.e.sim_wing_set_gear === 'function') {
-      const up = sim.e.sim_wing_gear_selected() ? 0 : 1;
-      if (sim.e.sim_wing_set_gear(up) === SIM_OK) {
-        notice = { text: up ? str('ui.gear_up') : str('ui.gear_down'), untilMs: performance.now() + 1600 };
-      }
       return;
     }
     if (code === 'KeyO' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing && smokeFitted()) {
@@ -13819,16 +13494,8 @@ export async function boot({
     const chaseAim = new THREE.Vector3();
     const chaseStep = new THREE.Vector3();
     const chaseHead = new THREE.Vector3();
-    /* The point the chase camera follows and looks at: the plane itself,
-     * except that on water its height is slowed to the swell's mean. A
-     * floatplane rides every wave up and down, and a camera tied to it
-     * pitched and bobbed with each one; a real chase camera boat or
-     * drone holds its own line. chaseLift is how far the damping has
-     * eased in, 0 in the air and 1 afloat, so a take off or a landing
-     * does not jump the camera. */
+    /* The point the chase camera follows and looks at: the plane itself. */
     const chaseAnchor = new THREE.Vector3();
-    let chaseLift = 0;
-    let chaseWaterY = 0;
     let chaseValid = false;
     /* The seat the spectator's camera last framed, so a new one snaps. */
     let watchCamSeat = -1;
@@ -13910,14 +13577,14 @@ export async function boot({
    */
   function sampleGroundNormal(wx, wz, fromY, out) {
     const STENCIL = 0.35;
-    const here = floorHeight(wx, wz, fromY);
+    const here = view.height(wx, wz, fromY);
     const slopeX = limitSlope(
-      here - floorHeight(wx + STENCIL, wz, fromY),
-      floorHeight(wx - STENCIL, wz, fromY) - here,
+      here - view.height(wx + STENCIL, wz, fromY),
+      view.height(wx - STENCIL, wz, fromY) - here,
     );
     const slopeZ = limitSlope(
-      here - floorHeight(wx, wz + STENCIL, fromY),
-      floorHeight(wx, wz - STENCIL, fromY) - here,
+      here - view.height(wx, wz + STENCIL, fromY),
+      view.height(wx, wz - STENCIL, fromY) - here,
     );
     const lenSq = slopeX * slopeX + STENCIL * STENCIL + slopeZ * slopeZ;
     if (lenSq > 1e-12) {
@@ -13993,7 +13660,7 @@ export async function boot({
       view.setWaterClock(trafficMs(simTimeMs));
     }
     feedWaterLevels(pProbe.x, pProbe.z);
-    const hy = floorHeight(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
+    const hy = view.height(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
     worldPosToSim(pProbe.x, hy, pProbe.z, pSim);
     /* The slope's normal takes the spawn's turn out like any direction (on
      * its own the axis change turned a hillside into a roll on every map
@@ -14843,24 +14510,16 @@ export async function boot({
   }
 
   /*
-   * A perched craft and the throttle. Floats never park; wheels roll; a
-   * wing is thrown; props down is not a takeoff, it is a turtle; otherwise
-   * the craft lifts off and the RC grid, which rode the frozen sim clock,
-   * is re-pinned where it already is.
+   * A perched craft and the throttle. A wing is launched; props down is
+   * not a takeoff, it is a turtle; otherwise the craft lifts off and the
+   * RC grid, which rode the frozen sim clock, is re-pinned where it
+   * already is.
    */
   function leaveGround(throttle, nowWall) {
-    if (floatsOnWater()) {
-      releaseOnWheels();
-      return;
-    }
     if (!(throttle > TAKEOFF_THROTTLE)) {
       return;
     }
     const af = airframeById(runAirframe);
-    if (af.gear) {
-      releaseOnWheels();
-      return;
-    }
     if (af.fixedWing) {
       throwWing();
       return;
@@ -15160,7 +14819,7 @@ export async function boot({
         statePrev = st;
       }
       const contacts = sim.e.sim_ground_contacts();
-      if (contacts > 0 || wheelsLoaded()) {
+      if (contacts > 0) {
         groundContactSteps += 1;
       }
       if (contacts > 0) {
@@ -15309,11 +14968,6 @@ export async function boot({
     pCurr.y = groundY + simLenToWorld(REST_HEIGHT) * Math.cos(startPitch);
     if (startPitch) {
       qPad.setFromAxisAngle(AXIS_X, -startPitch);
-      qPrev.multiply(qPad);
-    }
-    const gear = restPose();
-    if (gear) {
-      qPad.setFromAxisAngle(AXIS_X, gear.restPitch);
       qPrev.multiply(qPad);
     }
     const cat = airframeById(runAirframe).catapult;
@@ -15559,7 +15213,6 @@ export async function boot({
     }
     dressWing();
     poseBramorExtras();
-    discusCue(fr.wall);
     roomFrame(fr.wall, fr.dt / 1000);
     if (crashCam) {
       crashCam.recordPeers(roomPeers, null);
@@ -15583,15 +15236,6 @@ export async function boot({
         const out = new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4);
         shell.setSurfaces(out[0], out[1], out[2], out[3]);
       }
-    }
-    if (shell.setFlaps && typeof sim.e.sim_wing_flaps === 'function') {
-      shell.setFlaps(sim.e.sim_wing_flaps());
-    }
-    if (shell.setGear && typeof sim.e.sim_wing_gear === 'function') {
-      shell.setGear(sim.e.sim_wing_gear());
-    }
-    if (shell.setRamp && typeof sim.e.sim_wing_door === 'function') {
-      shell.setRamp(sim.e.sim_wing_door());
     }
   }
 
@@ -15962,26 +15606,10 @@ export async function boot({
 
   function chaseCamera(dt, nowWall, span) {
     const k = 1 - Math.exp(-dt / chaseLagMs(ui.settings.chaseSmooth));
-    const water = craftOnWater();
-    const afloat = Boolean(water && water.state[3] > 0);
-    chaseLift += ((afloat ? 1 : 0) - chaseLift) * (1 - Math.exp(-dt / (afloat ? 700 : 250)));
-    if (!chaseValid) {
-      chaseWaterY = pCurr.y;
-    }
-    if (afloat) {
-      chaseWaterY += (pCurr.y - chaseWaterY) * (1 - Math.exp(-dt / 1500));
-    }
     chaseAnchor.copy(pCurr);
-    chaseAnchor.y += chaseLift * (chaseWaterY - pCurr.y);
     chaseStep.copy(chaseAnchor).sub(chaseLast);
-    chaseStep.y *= 1 - chaseLift;
     if (!chaseValid) {
       chaseDir.copy(camFwd);
-    } else if (chaseLift > 0.5 && chaseStep.length() < 0.3e-3 * dt) {
-      introLook.copy(camFwd).setY(0);
-      if (introLook.lengthSq() > 1e-6) {
-        chaseDir.lerp(introLook.normalize(), 1 - Math.exp(-dt / 600)).normalize();
-      }
     } else {
       const share = chaseTurn(dt, k);
       if (share > 0) {
@@ -16064,7 +15692,7 @@ export async function boot({
     view.updateWind(exportShot ? exportShot.wind0 + exportShot.clock() : nowWall * 0.001, focus, wash);
     showWaves();
     if (view.updateWaves) {
-      view.updateWaves(exportShot ? exportShot.waves0 + exportShot.clock() : renderSimT, craftOnWater());
+      view.updateWaves(exportShot ? exportShot.waves0 + exportShot.clock() : renderSimT);
     }
   }
 
@@ -16265,8 +15893,8 @@ export async function boot({
   }
 
   /* The air over the airframe in its own frame (velocity rotated by the
-   * conjugate attitude), the current drawn, and whether the flaps or the
-   * gear are moving, for the wind and the mechanical sounds. */
+   * conjugate attitude) and the current drawn, for the wind. Its flaps and
+   * gear stand still (audioAir): no kept aircraft has either. */
   function airNow(st, motorsTurning) {
     const qw = st[7], qx = st[8], qy = st[9], qz = st[10];
     const vx = motorsTurning ? st[4] : 0, vy = motorsTurning ? st[5] : 0, vz = motorsTurning ? st[6] : 0;
@@ -16274,17 +15902,6 @@ export async function boot({
     audioAir.v = 2 * (qx * qy - qw * qz) * vx + (1 - 2 * (qx * qx + qz * qz)) * vy + 2 * (qy * qz + qw * qx) * vz;
     audioAir.w = 2 * (qx * qz + qw * qy) * vx + 2 * (qy * qz - qw * qx) * vy + (1 - 2 * (qx * qx + qy * qy)) * vz;
     audioAir.amps = motorsTurning ? st[19] : 0;
-    const flap = typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0;
-    audioAir.flapsMoving = Math.abs(flap - flapAngleWas) > 1e-5;
-    flapAngleWas = flap;
-    const gear = typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : 0;
-    const gearMoving = Math.abs(gear - gearWas) > 1e-6;
-    if (gearMovingWas && !gearMoving && (gear === 0 || gear === 1)) {
-      audio.mechanical('gear');
-    }
-    gearMovingWas = gearMoving;
-    gearWas = gear;
-    audioAir.gearMoving = gearMoving;
     if (crashCam && mode === 'flight') {
       crashCam.recordAir(audioAir);
     }
@@ -16391,7 +16008,6 @@ export async function boot({
     const st = stateCurr;
     const af = airframeById(runAirframe);
     const p = shell.quad.position;
-    const gearNow = af.retracts && typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : null;
     const flightMode = flightModeNow();
     /* Native launch state 3 latches until the L switch drops; the GO flash
      * is 900 ms, after which the overlay hides. */
@@ -16411,10 +16027,6 @@ export async function boot({
       speedKph: speedNow * 3.6,
       throttle: input.channels.throttle,
       flightMode,
-      flaps: af.flaps ? flapNotch : null,
-      gear: gearNow != null
-        ? (gearNow >= 1 ? 'up' : gearNow <= 0 ? 'down' : 'moving')
-        : null,
       bounces: bounceCount,
       launchState,
       launchPitch: pitchNoseDownDeg(st),
@@ -16684,17 +16296,7 @@ export async function boot({
   function takeoffPrompt() {
     const af = airframeById(runAirframe);
     let start;
-    if (startsAfloat()) {
-      start = str('main.throttle_up_on_the_water');
-    } else if (af.retracts && af.flaps) {
-      start = str('main.throttle_up_gear_g');
-    } else if (af.retracts) {
-      start = str('main.throttle_up_retracts_g');
-    } else if (af.flaps) {
-      start = str('main.throttle_up_flaps_f');
-    } else if (af.gear) {
-      start = str('main.throttle_up_to_take_off_from');
-    } else if (af.catapult && af.chute) {
+    if (af.catapult && af.chute) {
       start = str('main.launch_it_off_the_catapult');
     } else if (af.catapult) {
       start = str('main.launch_it_off_the_rail');
@@ -16907,7 +16509,6 @@ export async function boot({
       smoke: { on: smokeOn, puffs: smoke.live() },
       bladeScale: audio.bladeScale,
       tune: af.fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
-      flapNotch,
       standAudio: { voice: standVoiceOn, rpm: standVoiceOn ? audioRpm[0] : 0 },
     };
   };
@@ -17162,14 +16763,6 @@ export async function boot({
   window.__craftState = () => {
     const st = stateCurr;
     const af = airframeById(runAirframe);
-    let floats = null;
-    if (af.floats && typeof sim.e.sim_float_state === 'function') {
-      if (!floatStatePtr) {
-        floatStatePtr = sim.e.malloc(10 * 8);
-      }
-      sim.e.sim_float_state(floatStatePtr);
-      floats = { state: Array.from(new Float64Array(sim.e.memory.buffer, floatStatePtr, 10)), onWater: floatsOnWater() };
-    }
     const at = shell.quad.position;
     return {
       mode,
@@ -17208,9 +16801,6 @@ export async function boot({
       rates: st ? { p: st[11], q: st[12], r: st[13] } : null,
       simS: st ? st[0] : 0,
       plantPos: st ? { x: st[1], y: st[2], z: st[3] } : null,
-      airLift: st && typeof sim.e.sim_air_lift === 'function' ? sim.e.sim_air_lift(st[1], st[2], st[3]) : 0,
-      discusPhase: wasm('sim_wing_discus_phase', 0),
-      floats,
       descentRate: lastDescent,
       tiltDeg: lastTiltDeg,
       lastHitKind,
@@ -17720,35 +17310,11 @@ export async function boot({
    * can prove what a craft would meet anywhere, not only under itself.
    * Harness only. */
   window.__heightAt = (x, z) => view.height(x, z, Infinity);
-  /*
-   * The drawn water against the plant's at a map point: the map's lake as
-   * the GPU drew it (probeWater, read back off a one texel render of the
-   * same displaced mesh), and sim_water_sample at the same point and the
-   * same sim clock, both as a map height. Null where the map has no waves
-   * hook or the plant no water there. For scripts/water-render.js.
-   */
   const probeSim = { x: 0, y: 0, z: 0 };
   const probeMap = new THREE.Vector3();
-  window.__water = (x, z) => {
-    const drawn = view.probeWater ? view.probeWater(x, z) : null;
-    if (!drawn || typeof sim.e.sim_water_sample !== 'function') {
-      return null;
-    }
-    const ptr = sim.e.malloc(7 * 8);
-    worldPosToSim(x, 0, z, probeSim);
-    const code = sim.e.sim_water_sample(probeSim.x, probeSim.y, drawn.t, ptr);
-    const out = Array.from(new Float64Array(sim.e.memory.buffer, ptr, 7));
-    sim.e.free(ptr);
-    if (code !== SIM_OK || out[0] < 0) {
-      return { drawn, plant: null };
-    }
-    simPosToThree(probeSim.x, probeSim.y, out[1] + SPAWN_ALT, probeMap).applyQuaternion(qSpawn);
-    return { t: drawn.t, drawn: drawn.y, patch: drawn.patch, plant: probeMap.y + startY, body: out[0] };
-  };
   /* The plant's water under a map point, as a map height, with the body
    * and the shell's own answer beside it: { body, plant, shell }, body
-   * -1 and plant null where the plant has none. For
-   * scripts/river-page-check.js. */
+   * -1 and plant null where the plant has none. Harness only. */
   window.__waterSample = (x, z) => {
     const ptr = sim.e.malloc(7 * 8);
     worldPosToSim(x, 0, z, probeSim);
@@ -18186,13 +17752,15 @@ export async function boot({
     throttle: () => input.channels.throttle,
     /* The rest of what the sticks and switches said, for the replay's
      * gimbals (src/replay/sticks.js): the mode, the flap switch's notch
-     * (-1 without flaps), and the stick mode a replay draws them in. */
+     * (-1, the clip's "no flaps": no kept aircraft has them), and the
+     * stick mode a replay draws them in. */
     flightMode: flightModeNow,
-    flapNotch: () => (airframeById(runAirframe).flaps ? flapNotch : -1),
+    flapNotch: () => -1,
     stickMode: () => ui.settings.stickMode,
     agl: () => lastClearance,
     surfaces: () => (shell.setSurfaces && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null),
-    flaps: () => (shell.setFlaps && typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0),
+    /* The clip's flap angle (recorder.js POSE.flaps): no kept aircraft has flaps. */
+    flaps: () => 0,
     fpv: () => ({
       fwd: simLenToWorld(camMountFwd), up: simLenToWorld(camMountUp), tilt: cameraTiltRad(camTilt), fov: ui.settings.cameraFov,
     }),
