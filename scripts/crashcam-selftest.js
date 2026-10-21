@@ -7,7 +7,7 @@
  *    beyond the five debug readers the journal knows by name.
  * 2. Every PURE reader leaves the plant's region byte identical, called in
  *    the middle of a crash with parts in the air.
- * 3. TAKE OVER: a Skyhunter flown with crash physics on, its wing broken off
+ * 3. TAKE OVER: a Bramor flown with crash physics on, its wing broken off
  *    in the air, flown on and into the grass, with a tree, a post, a power
  *    block and the sticks moving. At frames all through the flight the
  *    plant is put back from the journal (the copy before the frame and the
@@ -187,12 +187,6 @@ import { newDecal } from '../configs/paint.js';
 import { LIVERIES, lookFor } from '../configs/liveries.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import { AIRFRAME_IDS, retiredAirframe } from '../configs/airframes.js';
-import { seatPrecutAircraft } from './lib/precut.js';
-
-/* The take over flies the Skyhunter, which left the shell before its plant
- * leaves the module (2026-10-21): its power row comes back from the
- * pre-cut fixture. */
-seatPrecutAircraft();
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -244,9 +238,8 @@ console.log('1. the journal\'s tables against sim_abi.h and the module');
   check(wrongSide.length === 0, 'every `in` pointer is const in the header', wrongSide.join(', ') || 'yes');
   /* The doubles an `in` pointer carries are the header's own count. */
   const counts = {
-    sim_set_power: 'SIM_POWER_DOUBLES', sim_wing_set_tune: 'SIM_TUNE_DOUBLES', sim_wing_set_tiers: 'SIM_TIER_DOUBLES', sim_set_addons: 'SIM_ADDON_DOUBLES',
+    sim_set_power: 'SIM_POWER_DOUBLES', sim_wing_set_tune: 'SIM_TUNE_DOUBLES', sim_set_addons: 'SIM_ADDON_DOUBLES',
     sim_set_addon_inertia: 'SIM_ADDON_INERTIA_DOUBLES', sim_set_motors: 'SIM_MOTORS_DOUBLES', sim_set_prop_pack: 'SIM_PROP_PACK_DOUBLES',
-    sim_wing_set_heading: 'SIM_HEADING_DOUBLES',
   };
   const inputs = Object.keys(POINTERS).filter((n) => POINTERS[n].doubles);
   const sized = inputs.map((n) => {
@@ -265,7 +258,9 @@ console.log('1. the journal\'s tables against sim_abi.h and the module');
 
 /* ---- the test flight ---- */
 
-const SKY = 3;
+/* The Bramor, the fixed wing the Interior seats (the Skyhunter flew this
+ * until it left the module on 2026-10-20). */
+const BRAMOR = 8;
 const q = (yaw, pitch, bank) => {
   const D = Math.PI / 180;
   const cy = Math.cos(yaw * D / 2); const sy = Math.sin(yaw * D / 2);
@@ -283,7 +278,7 @@ function must(code, what) {
 
 function setup(sim) {
   must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(SKY), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(BRAMOR), 'sim_set_airframe');
   must(sim.e.sim_reset(), 'sim_reset');
   must(sim.e.sim_set_cell_voltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_part_table(0), 'sim_set_part_table');
@@ -317,7 +312,7 @@ function stepMs(sim, ms, statePtr, partsPtr, eventsPtr) {
   sim.e.sim_damage_events(eventsPtr, 64);
 }
 
-/* The Skyhunter's right wing panel's index. */
+/* The Bramor's right wing panel's index. */
 function wingPart(sim) {
   const n = sim.e.sim_parts_count();
   const p = sim.e.malloc(24 * 8);
@@ -360,7 +355,7 @@ function flyTakeOver() {
     const nState = sim.e.sim_state_size();
     j.snapshot(0);
     setup(sim);
-    const block = powerBlock('sky1800');
+    const block = powerBlock('bramor2300');
     if (block) {
       must(sim.setPower(block), 'sim_set_power');
     }
@@ -372,7 +367,7 @@ function flyTakeOver() {
     must(sim.e.sim_set_pose(0, 0, 12, qq[0], qq[1], qq[2], qq[3]), 'sim_set_pose');
     must(sim.e.sim_wing_launch(15), 'sim_wing_launch');
     const wing = wingPart(sim);
-    check(wing > 0, 'the Skyhunter has a right wing panel', `part ${wing}`);
+    check(wing > 0, 'the Bramor has a right wing panel', `part ${wing}`);
 
     const frames = [];
     const region = () => new Uint8Array(raw.memory.buffer, j.region.lo, j.region.hi - j.region.lo);
@@ -758,7 +753,7 @@ async function pureReaders() {
   const ARGS = {
     sim_part_info: [1, out], sim_part_hull: [1, out], sim_material_info: [1, out], sim_obstacle_state: [0, out],
     sim_water_sample: [0, 0, 0, out], sim_water_components: [0, out], sim_damage_events_dropped: [],
-    sim_air_lift: [0, 0, 5], sim_math_sin: [0.5], sim_math_cos: [0.5], sim_math_atan2: [0.5, 0.2],
+    sim_math_sin: [0.5], sim_math_cos: [0.5], sim_math_atan2: [0.5, 0.2],
     sim_bf_debug: [13], sim_bf_dump: [out, 1 << 16], sim_bf_get: [key, out, 256], sim_crash_debug: [out, 64],
   };
   const bad = [];

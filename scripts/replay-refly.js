@@ -612,7 +612,9 @@ function must(code, what) {
   return code;
 }
 
-const SKY = 3;
+/* The Bramor (the Skyhunter flew this until it left the module on
+ * 2026-10-20). */
+const BRAMOR = 8;
 /* Long enough that the journal has let its oldest copies go (it keeps 33)
  * and the clip is the recorder's last 30 s, as a real one is. */
 const FLIGHT_MS = 40000;
@@ -656,7 +658,7 @@ async function recordFlight(wasmBytes, configText, windy = false) {
   const statePtr = sim.e.malloc(nState * 8);
   j.snapshot(0);
   must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(SKY), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(BRAMOR), 'sim_set_airframe');
   must(sim.e.sim_reset(), 'sim_reset');
   must(sim.e.sim_set_cell_voltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_damage(1), 'sim_set_damage');

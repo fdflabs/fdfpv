@@ -11,42 +11,22 @@
  *
  * Every number is per airframe, in the FixedWingParams tables at the end
  * of this file: FW_WING1000, the 1000 mm flying wing of
- * docs/WING-STAGE1.md, with elevons and no rudder; FW_SKY1800, the
- * Skyhunter of docs/SKYHUNTER-STAGE1.md, with ailerons, an elevator and a
- * rudder on an H tail; and FW_CUB1400, the Piper J-3 Cub of
- * docs/CUB-STAGE1.md, the same surfaces behind a tractor prop, which adds
- * a thrust line off the CG and P factor; FW_RADIAN2000, the E-flite
- * Radian Pro powered glider of docs/GLIDER-STAGE1.md, which adds a folding
- * prop and flies in rising air; FW_BRAMOR2300, the C-Astral Bramor
- * C4EYE of docs/BRAMOR-STAGE1.md, a blended wing body with elevons that
- * brings a recovery parachute; FW_SLOWSTICK1180, the GWS Slow Stick
- * of docs/SLOWSTICK-STAGE1.md, which has no ailerons and banks on its
- * rudder through its dihedral; and FW_TIMBER1500, the E-flite Turbo
- * Timber Evolution of docs/TIMBER-STAGE1.md, a STOL taildragger that adds
- * flaps and slats; and FW_TIMBER1500F and FW_CUB1400F, the Timber and the
- * Cub on floats, docs/FLOATS-STAGE1.md, whose water is sim.c's; and
- * FW_BOMBSHELL1118, BMJR's 1/2A Texaco Buzzard Bombshell of
- * docs/BOMBSHELL-STAGE1.md, the Slow Stick's three channels on a balsa
- * old timer, which adds a glow engine's throttle; and FW_KADET1981, SIG's
- * Kadet Senior of docs/KADET-STAGE1.md, the same three channels and glow
- * throttle on a 78 in trainer with a four stroke; and
- * FW_UGLYSTIK1567, Phil Kraft's Das Ugly Stik of docs/UGLYSTIK-STAGE1.md,
- * a four channel sport aerobat on a two stroke glow engine, which adds
- * nothing; and FW_TIGERMOTH1803, Great Planes' Tiger Moth ARF of
- * docs/TIGERMOTH-STAGE1.md, a scale biplane on a glow engine, which adds
- * the second wing (docs/PITTS-STAGE1.md, written for the Pitts S-1S that
- * brought it and was removed on 2026-09-29): each wing's lift in the
- * other's flow, Prandtl's induced drag and each wing's own stall.
- * A term an airframe does not have
+ * docs/WING-STAGE1.md, with elevons and no rudder, kept as the reference
+ * fixed wing; FW_BRAMOR2300, the C-Astral Bramor C4EYE of
+ * docs/BRAMOR-STAGE1.md, a blended wing body with elevons that brings a
+ * recovery parachute and a folding prop; and FW_STRIKER_PROP and
+ * FW_STRIKER_JET, the war's Striker of docs/COMBAT-DRONES.md section 7 on
+ * its piston twin and on its turbojet. The twenty recreational aircraft
+ * this plant also flew, and the terms only they reached (AS3X, flaps and
+ * slats, retracts, cargo doors, the discus launch, the second wing, the
+ * prop's slipstream over the tail, the high alpha tail, the thermals, the
+ * low Reynolds number section data, the mapped engine), left with them on
+ * 2026-10-20; they fly on in Openflight. A term an airframe does not have
  * is zero in its table, and every term a later aircraft added is written
  * so that a zero leaves the earlier ones' arithmetic bit for bit what it
  * was: their gates and recorded trace hashes are the proof. The bands each
  * airframe has to land in are scripts/wing-gates.js,
- * scripts/skyhunter-gates.js, scripts/cub-gates.js,
- * scripts/glider-gates.js, scripts/bramor-gates.js,
- * scripts/slowstick-gates.js, scripts/timber-gates.js,
- * scripts/bombshell-gates.js, scripts/kadet-gates.js,
- * scripts/uglystik-gates.js and scripts/tigermoth-gates.js.
+ * scripts/bramor-gates.js and scripts/combat-gates.js.
  *
  * Determinism: sqrt, the fixed atan2 and the small angle sin and cos from
  * libm, and nothing else. Lift and drag directions come from the wind
@@ -146,25 +126,8 @@ static int g_acro_held = 0;
 #define STAB_ROLL_TCONST 0.5 /* AP_RollController.cpp 2SRV_TCONST default, https://github.com/ArduPilot/ardupilot */
 #define STAB_ROLL_IMAX (1.0 / 3.0) /* RLL2SRV_IMAX 1500 of 4500, https://ardupilot.org/plane/docs/roll-pitch-controller-tuning.html */
 static double g_stab_roll_i = 0.0;
-/* Mode 3's state: the rotation beyond what the sticks asked, per axis,
- * the surfaces' offsets the receiver last wrote, and the time to its next
- * frame. */
-static double g_as3x_h[3] = { 0.0, 0.0, 0.0 };
-static double g_as3x_out[3] = { 0.0, 0.0, 0.0 };
-static double g_as3x_t = 0.0;
-/* The pilot's heading gain on each axis, a share of the table's as3x_kh:
- * the AR631's Heading, "defaulted to zero" (plant_wing_set_heading). */
-static double g_as3x_heading[3] = { 0.0, 0.0, 0.0 };
-/* Where the aileron, elevator and rudder servos stand, rad, for a table
- * whose servos slew (FixedWingParams.servo_rate). */
-static double g_servo[3] = { 0.0, 0.0, 0.0 };
-/* Weight on wheels, from sim.c's gear. Always 0 on an airframe without. */
-static int g_on_wheels = 0;
-/* The wheel brake, 0 to 1, sim_set_brake; sim.c's gear reads it. */
-static double g_brake = 0.0;
 static double g_acro_i_roll = 0.0;
 static double g_acro_i_pitch = 0.0;
-static double g_acro_i_yaw = 0.0;
 
 /*
  * THE PARACHUTE, for an aircraft that recovers under one: the Bramor,
@@ -179,34 +142,6 @@ static double g_acro_i_yaw = 0.0;
 static int g_chute = 0;
 static double g_chute_t = 0.0;
 
-/*
- * THE FLAPS AND SLATS, for an aircraft that has them: the Timber,
- * docs/TIMBER-STAGE1.md. The notch is the radio's three position switch, a
- * mode like the stabiliser's, kept across resets; the flaps' angle follows
- * it at the table's flap_rate, which is the radio's slowed flap channel,
- * and a reset puts them where the notch has them. The slats are fixed
- * parts, fitted or not, fitted by default. On every aircraft without flaps
- * the notch cannot leave 0, so the angle is +0 and stays +0.
- */
-static int g_flap_notch = 0;
-static double g_flap = 0.0;
-/* What the elevator to flap mix put on top of the notch last step, so the
- * drawn flaps are the ones flying. Zero without the mix. */
-static double g_flap_mix = 0.0;
-
-/*
- * THE RETRACTS, docs/P51-STAGE1.md: the gear selected up (1) or down (0),
- * and where it is, 0 down and locked to 1 up, travelling at 1/gear_time a
- * second. A reset puts it down and locked; every aircraft without
- * retracts keeps both at zero.
- */
-static int g_gear_up = 0;
-static double g_gear = 0.0;
-/* THE CARGO DOORS, as the retracts: selected open (1) or shut (0), and
- * where they are, 0 shut to 1 open, at 1/door_time a second. */
-static int g_door_open = 0;
-static double g_door = 0.0;
-
 /* THE STALL TAKES TIME. Each wing strip's shortfall past the stall, lift
  * and drag, left half and right, as the flow has so far let it develop:
  * a separation grows and heals over a few semichords of travel, so it
@@ -217,7 +152,6 @@ static double g_door = 0.0;
  * once. Zero from a reset. */
 #define STALL_TF_SEMICHORDS 3.0
 static double g_sep[4][2][2];
-static int g_slats = 1;
 
 /* What the last step saw and did, for the gates and for anyone chasing a
  * sign: alpha (of the zero lift line), beta, qbar, CL, CD, l m n (aero),
@@ -244,80 +178,6 @@ static double g_prop_dn = 0.0;
  * table had both before the Striker's, so this is false on every other. */
 static int fan_idles(const FixedWingParams *fw) {
   return fw && fw->fan_tau > 0.0 && fw->throttle_idle > 0.0;
-}
-
-/* THE DISCUS LAUNCH (FixedWingParams.discus_v): the phase, 0 none, 1 the
- * pilot's turn, 2 the zoom under the launch preset; the turn's time, s,
- * its centre, world x y, and the CG's height on it, m, the angle round it
- * the turn starts at, rad, its angular acceleration, rad/s^2, and how long
- * it lasts, s. Nothing reads them on an aircraft without one. */
-static int g_discus = 0;
-static double g_discus_t = 0.0;
-static double g_discus_c[3] = { 0.0, 0.0, 0.0 };
-static double g_discus_a0 = 0.0;
-static double g_discus_acc = 0.0;
-static double g_discus_T = 0.0;
-
-/* A biplane's wings as the last step took them (biplane_lift): each
- * wing's own lift coefficient, top and bottom, and the linear lift each
- * would carry at the cell's angle alone. Zero on a monoplane. Read only
- * by sim_wing_biplane, for the gates; nothing in a step reads it. */
-static double g_bip[4];
-void plant_wing_biplane(double out[4]) {
-  for (int i = 0; i < 4; i += 1) {
-    out[i] = g_bip[i];
-  }
-}
-
-/* The share of a prop's swirl that reaches the fin past the wing's root,
- * the rest turned straight by the root (plant_wing_step, the slipstream).
- * Selig (AIAA 2010-7938, sec. B): on "a typical aerobatic RC/UAV
- * configuration capable of hover, the net right rolling moment" of the
- * swirl "is near 40% of the propeller torque". On the Extra 300 3D at its
- * hover the root's (1 - K) Q and the fin's roll make 0.40 Q at K = 0.649
- * (scripts/extra-derive.js), the fin meeting the swirl the static jet
- * brings it (slip_loss[2]; it was 0.743 on the disc's whole swirl); the
- * fuselage's coil, which Selig counts, is in the root's share.
- * docs/FLIGHTMODEL.md. */
-#define SWIRL_KEEP 0.65
-
-/* The slipstream as the last step took it (FixedWingParams.slip_r): its
- * roll, pitch and yaw moments in the body frame as they were added, the
- * disc's pressure jump, the induced speed and the swirl's sideways speed
- * over the fin. Zero without a wash. Read only by sim_wing_slip, for the
- * gates that take one term of the moment alone; nothing in a step reads
- * it. */
-static double g_slip[6];
-
-/* The yaw moment term by term as the last step added it to the body's
- * M[2], N m, for a check that holds the plant's budget against a
- * derivation's (scripts/knife-budget.js): [0] the fin in the free stream
- * on the sideslip, [1] the rudder in the free stream, [2] the rest of
- * cn_beta (wing, body outside Munk's share), [3] Munk's couple, [4] yaw
- * damping cn_r, [5] cn_p, [6] the ailerons' adverse yaw, [7] the roll
- * coefficients turned into the body's yaw by sin beta, [8] the flow from
- * behind, [9] the thrust line's yaw, [10] the fin in the wash, [11] the
- * rudder in the wash, [12] the wash's damping, [13] the jet normal force,
- * [14] the crossflow drag at side_x, [15] P factor, [16] rot_k's extra
- * damping, [17] the gyroscope, [18] their sum, [19] M[2] as stepped (the
- * strips, contacts and crash on top); [20] the fin's plate ratio in the
- * free stream, [21] in the wash, [22] its crossflow speed in the wash
- * (the swirl's force share in it), [23] the rudder, [24] the prop's
- * torque on the air, [25] the share of the swirl that reaches the fin.
- * Read only by sim_wing_yaw_budget; nothing in a step reads it. */
-#define YAW_BUDGET_DOUBLES 26
-static double g_yaw[YAW_BUDGET_DOUBLES];
-
-void plant_wing_yaw_budget(double out[YAW_BUDGET_DOUBLES]) {
-  for (int i = 0; i < YAW_BUDGET_DOUBLES; i += 1) {
-    out[i] = g_yaw[i];
-  }
-}
-
-void plant_wing_slip(double out[6]) {
-  for (int i = 0; i < 6; i += 1) {
-    out[i] = g_slip[i];
-  }
 }
 
 void plant_wing_strips(double out[8]) {
@@ -365,21 +225,6 @@ static void wquat_rotate_inv(const double q[4], const double v[3], double out[3]
   wquat_rotate(qc, v, out);
 }
 
-/* AS3X's share of its gain at a stick, Spektrum's priority 160. */
-/* Gone at 40 percent stick: Spektrum's priority 160, "the gain goes to 0
- * at 40% stick input" (the AS3000 manual, p. 10). */
-#define AS3X_ZERO 0.4 /* docs/FLIGHTMODEL.md, the AS3000 manual p. 10 */
-/* The receiver writes the servos once a frame, FixedWingParams.as3x_frame.
- * Spektrum's frames are 22, 11 and 5.5 ms, "22ms is the default setting",
- * "Only use 11ms and 5.5 ms with digital servos" (AS3000): a table that
- * gives none is on the default. */
-#define AS3X_FRAME_DEFAULT 0.022 /* docs/FLIGHTMODEL.md, the AS3000 manual */
-static double as3x_priority(double stick) {
-  const double g = 1.0 - sim_fabs(stick) / AS3X_ZERO;
-  return g > 0.0 ? g : 0.0;
-}
-
-/* Stick to surface: full travel at full stick, with expo, clipped. */
 static double surface_from_stick(double x, double throw_max, double expo) {
   if (x > 1.0) {
     x = 1.0;
@@ -407,19 +252,6 @@ static double clip(double x, double lim) {
   if (x > lim) return lim;
   if (x < -lim) return -lim;
   return x;
-}
-
-/* What the receiver reads on a channel, -1 to 1 of the travel it learned:
- * the transmitter's rate and expo are in it, the trim is not (the
- * receiver takes the trim as its centre, "In-flight trim changes do not
- * require any further updates", the AR631 manual). The stick's shape on
- * the full throw, times the tuned throw over the learned travel. */
-static double as3x_channel(double stick, double throw_max, double travel, double expo) {
-  const double learned = travel > 0.0 ? travel : throw_max;
-  if (!(learned > 0.0)) {
-    return 0.0;
-  }
-  return clip(surface_from_stick(stick, 1.0, expo) * (throw_max / learned), 1.0);
 }
 
 /*
@@ -488,11 +320,9 @@ static double plate_cn(const FixedWingParams *fw) {
 
 /* A surface's share of its moment kept past the stall, at KEEP_DEG
  * degrees past the wing's own stall angle, straight between and held past
- * the last; tab is the table's own (ail_keep, fin_keep) where it gives one
- * and def the measured default otherwise. */
+ * the last, on the measured curve k. */
 static const double KEEP_DEG[7] = { 0.0, 4.0, 10.0, 15.0, 20.0, 25.0, 35.0 };
-static double keep_at(const double tab[7], const double def[7], double past) {
-  const double *k = tab[0] > 0.0 ? tab : def;
+static double keep_at(const double k[7], double past) {
   if (!(past > 0.0)) {
     return 1.0;
   }
@@ -503,116 +333,11 @@ static double keep_at(const double tab[7], const double def[7], double past) {
   }
   return k[6];
 }
-/* A wash control's share kept at a body angle, deg (plant_wing_step, the
- * wash's controls): all of it to deg[0], k[0] being 1, then straight
- * between the points, held past the last. */
-static double wash_keep(const double deg[9], const double k[9], double a) {
-  if (!(a > 0.0)) {
-    return 1.0;
-  }
-  if (a <= deg[0]) {
-    return k[0];
-  }
-  for (int i = 0; i < 8; i += 1) {
-    if (a <= deg[i + 1]) {
-      return k[i] + (k[i + 1] - k[i]) * (a - deg[i]) / (deg[i + 1] - deg[i]);
-    }
-  }
-  return k[8];
-}
-/* A table's measured lateral derivatives against the body's angle of
- * attack (FixedWingParams.hi_lat), at NASA TP-1538's angles, deg:
- * straight between them, held past either end. */
-static const double HI_LAT_DEG[20] = { -20.0, -15.0, -10.0, -5.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 70.0, 80.0, 90.0 };
-static double hi_lat_at(const double row[20], double deg) {
-  if (!(deg > HI_LAT_DEG[0])) {
-    return row[0];
-  }
-  for (int i = 0; i < 19; i += 1) {
-    if (deg <= HI_LAT_DEG[i + 1]) {
-      return row[i] + (row[i + 1] - row[i]) * (deg - HI_LAT_DEG[i]) / (HI_LAT_DEG[i + 1] - HI_LAT_DEG[i]);
-    }
-  }
-  return row[19];
-}
-/* A table's measured side force coefficient against the body's angle of
- * attack and the sideslip (FixedWingParams.cy_tab): each row one sideslip
- * of CY_TAB_DEG, across HI_LAT_DEG. Straight between the sideslips, none
- * at none, odd in the sideslip. Past the last the sideslip's sine carries
- * the last row's: ESTIMATED, the table stops at 30 deg and a body flown
- * sideways keeps a side force that grows as it turns broadside. */
-static const double CY_TAB_DEG[8] = { 2.0, 4.0, 8.0, 10.0, 15.0, 20.0, 25.0, 30.0 };
-static double cy_tab_at(const FixedWingParams *fw, double a_deg, double b_deg, double sin_b) {
-  const double bd = sim_fabs(b_deg);
-  double c;
-  if (bd >= CY_TAB_DEG[7]) {
-    c = hi_lat_at(fw->cy_tab[7], a_deg) * sim_fabs(sin_b) / 0.5;
-  } else {
-    double b0 = 0.0, c0 = 0.0;
-    int j = 0;
-    while (bd > CY_TAB_DEG[j]) {
-      b0 = CY_TAB_DEG[j];
-      c0 = hi_lat_at(fw->cy_tab[j], a_deg);
-      j += 1;
-    }
-    const double c1 = hi_lat_at(fw->cy_tab[j], a_deg);
-    c = c0 + (c1 - c0) * (bd - b0) / (CY_TAB_DEG[j] - b0);
-  }
-  return b_deg < 0.0 ? -c : c;
-}
 /* NACA TR 419 table II, an unswept Clark Y wing's ailerons (below). */
 static const double AIL_KEEP_TR419[7] = { 1.0, 0.40, 0.22, 0.108, 0.148, 0.18, 0.18 };
-/* NASA TP-2011 fig. 55a, a rudder over a low stabiliser (below). */
-static const double FIN_KEEP_TP2011[7] = { 1.0, 0.704, 0.46, 0.38, 0.23, 0.08, 0.08 };
-/* How much of the stalled wing's wake reaches the fin, 0 to 1, at the
- * body's sideways speed v and its speed in the plane of symmetry vxz. The
- * keep curves above were measured with the flow over the wing toward the
- * tail at small sideslip (TP-2011, a full scale low wing airplane in the
- * tunnel, a stalled wing ahead of its fin). In a slip the wake
- * leaves each wing station along the stream, so what crosses the fin's
- * station comes from the station l tan(beta) to windward, l the wing's
- * quarter chord to the stabiliser's (ge_wing, ge_tail). ESTIMATED, the
- * geometry and no measurement: the whole wake while that station is on
- * the inner half of the half span, where the chord and its separated wake
- * are whole, none once it is past the tip, a smoothstep between. Falling
- * sideways, beta near 90 deg, the wing is edge on to the stream, its
- * separated chordwise flow is a few percent of the dynamic pressure, and
- * nothing of it reaches the fin: the fin is a plate in the crossflow and
- * weathercocks the nose into the fall. Before this the plant judged the
- * fin blanketed by an "alpha" of 180 deg taken from a chordwise speed of
- * 0.5 m/s, and the Extra and the CAP fell flat on their sides to the
- * ground (the owner, 2026-10-12). Exactly 1 inside the measured range,
- * and on a table without the two quarter chords. */
-static double smoothstep(double a, double b, double x);
-static double fin_in_wake(const FixedWingParams *fw, double v, double vxz) {
-  const double l = fw->ge_wing[0] - fw->ge_tail[0];
-  if (!(fw->ge_tail[0] < 0.0) || !(l > 0.0)) {
-    return 1.0;
-  }
-  const double side = l * sim_fabs(v), half = 0.5 * fw->span * vxz;
-  if (side <= 0.5 * half) {
-    return 1.0;
-  }
-  if (side >= half) {
-    return 0.0;
-  }
-  return 1.0 - smoothstep(0.5, 1.0, side / half);
-}
-
-/* The wing's own lift slope (FixedWingParams.cl_alpha_wing). */
-static double wing_cla(const FixedWingParams *fw) {
-  return fw->cl_alpha_wing > 0.0 ? fw->cl_alpha_wing : fw->cl_alpha;
-}
 
 static double add_term(double sum, double term) {
   return sum - (0.0 - term);
-}
-
-/* The wing's own slope GROUND EFFECT splits cl_alpha on
- * (FixedWingParams.ge_cla_wing): the table's own where it stalls on the
- * whole curve, else wing_cla. */
-static double ge_cla(const FixedWingParams *fw) {
-  return fw->ge_cla_wing > 0.0 ? fw->ge_cla_wing : wing_cla(fw);
 }
 
 /*
@@ -645,72 +370,20 @@ static double ge_cla(const FixedWingParams *fw) {
  * polar (fig. 5) gives no more lift near the ground past CL 1. The drag is
  * the lift tilted forward by the same angle, TM 77's sigma CL^2 / (pi A).
  *
- * The downwash at the tail falls: Report 738's method, the wing's downwash
- * there less its image's, read at the image's distance (2 z + m, z the
- * wake's origin over the ground, m the tail over the wake normal to the
- * wind, in semispans), on the flat elliptic vortex sheet of Silverstein
- * and Katzoff (NACA Report 648, 1939, the first approximation, horseshoes
- * from the lifting line on to infinity). Its worked example, flaps up,
- * the image taking 3.3 of 5.8 deg (0.57), this sheet gives 0.61. The
- * wake's displacement and the reflected bound vortex (Report 738's (a)
- * and (b), which it takes to cancel) are left out; the wake's origin is
- * taken at the wing's quarter chord, ESTIMATED. The tail's share falls to
- * nothing between h/b 0.5 and the wing's zero, where the sheet still gives
- * 0.09 to 0.04 of the downwash: FITTED, so the term ends with the wing's
- * and does not step.
- *
- * The heights are the surfaces' quarter chords (FixedWingParams.ge_wing,
- * ge_tail) carried by the attitude onto the ground's normal, as the quad's
- * rotor heights are (plant.c). A banked wing is taken at its centre's
- * height; the roll a low tip would add is not modelled. The wing's lift
- * the terms are taken on is its attached line's, held to its CL max: past
- * the stall it overstates them by up to the stall's loss (stall_k),
- * ESTIMATED. The terms split cl_alpha into the wing's and the tail's on
- * the wing's own slope: cl_alpha_wing, or on a table that stalls on the
- * whole curve (the Hercules) ge_cla_wing, which nothing else reads, so
- * its stall stays where every band was derived. A biplane's two wings
- * are TM 77's four terms, biplane_ground_terms below.
+ * The heights are the wing's quarter chord (FixedWingParams.ge_wing)
+ * carried by the attitude onto the ground's normal, as the quad's rotor
+ * heights are (plant.c). A banked wing is taken at its centre's height;
+ * the roll a low tip would add is not modelled. The wing's lift the terms
+ * are taken on is its attached line's, held to its CL max: past the stall
+ * it overstates them by up to the stall's loss (stall_k), ESTIMATED. The
+ * downwash at the tail and its image (Report 738's method on Silverstein
+ * and Katzoff's sheet) went with the tailed aircraft on 2026-10-20: the
+ * wings left take the wing's terms alone.
  */
 #define GE_HB_MAX (1.0 / 1.32)
-static double smoothstep(double a, double b, double x);
-#define GE_NODES 32 /* FITTED: the image's share within 0.3 percent of 20,000 nodes' over five tail geometries (Report 738's example's among them), scripts/lib/groundeffect.js */
-/* sin((i + 0.5) / 32 * pi / 2), the sheet's elementary horseshoes'
- * semispans at theta's midpoints, where the elliptic sheet's strength per
- * ds, s / sqrt(1 - s^2), is regular (scripts/lib/groundeffect.js). */
-static const double GE_S[GE_NODES] = {
-  0.024541228522912288, 0.07356456359966743, 0.1224106751992162, 0.17096188876030122,
-  0.2191012401568698, 0.26671275747489837, 0.3136817403988915, 0.3598950365349881,
-  0.40524131400498986, 0.44961132965460654, 0.49289819222978404, 0.5349976198870972,
-  0.5758081914178453, 0.6152315905806268, 0.6531728429537768, 0.6895405447370668,
-  0.7242470829514669, 0.7572088465064845, 0.7883464276266062, 0.8175848131515837,
-  0.844853565249707, 0.8700869911087113, 0.8932243011955153, 0.9142097557035307,
-  0.9329927988347388, 0.9495281805930367, 0.9637760657954398, 0.9757021300385286,
-  0.9852776423889412, 0.99247953459871, 0.9972904566786902, 0.9996988186962042
-};
-
-/* The sheet's downwash in its plane of symmetry, x behind the lifting line
- * and z off the sheet, in semispans, to a scale the ratio cancels: the
- * trailing pair's and the bound vortex's Biot-Savart terms of each
- * horseshoe, summed over the elliptic loading. */
-static double ge_sheet(double x, double z) {
-  const double z2 = z * z, d2 = x * x + z2;
-  double sum = 0.0;
-  for (int i = 0; i < GE_NODES; i += 1) {
-    const double sv = GE_S[i], s2 = sv * sv;
-    sum += sv * (sv / (s2 + z2) * (1.0 + x / sim_sqrt(x * x + s2 + z2)) + sv * x / (d2 * sim_sqrt(s2 + d2)));
-  }
-  return sum;
-}
-
 typedef struct {
   double da;  /* the wing's upwash, added to its angle, rad */
   double clw; /* the wing's lift it was taken on */
-  double dt;  /* the tail's angle over what the shifted curve gives it, rad */
-  /* A biplane's wings (biplane_ground_terms): each one's angle over r
-   * times the cell's shifted angle, rad, and the drag its lift tilted by
-   * its upwash takes off, on the reference area. */
-  double bip_da[2];
-  double bip_cd[2];
 } GroundTerms;
 
 /* A body point's height over the ground's plane, m. */
@@ -725,132 +398,25 @@ static double ge_sigma(double hb) {
   return hb >= GE_HB_MAX ? 0.0 : (1.0 - 1.32 * hb) / (1.05 + 7.4 * hb);
 }
 
-/* The share of a wing's downwash at the tail its image takes away, the
- * wing's quarter chord at wing, h over the ground: zero without a tail. */
-static double ge_tail_r(const FixedWingParams *fw, const double wing[3], double h, double hb, double sin_b, double cos_b) {
-  if (!(fw->ge_tail[0] < 0.0)) return 0.0;
-  const double semi = 0.5 * fw->span;
-  const double dx = fw->ge_tail[0] - wing[0], dz = fw->ge_tail[2] - wing[2];
-  const double x = (-dx * cos_b + dz * sin_b) / semi, m = (dx * sin_b + dz * cos_b) / semi;
-  /* A tail that the wind meets before the wing (an aircraft hanging on
-   * its prop) is not behind the sheet the method reads. */
-  if (!(x > 0.0)) return 0.0;
-  return ge_sheet(x, 2.0 * h / semi + m) / ge_sheet(x, m) * (1.0 - smoothstep(0.5, GE_HB_MAX, hb));
-}
-
-/*
- * A BIPLANE NEAR THE GROUND, TM 77 p. 6: the ground is both wings'
- * images, and the drag falls by four terms, each wing's own image's and
- * each wing in the other's, W' = 2 W12' + W11' + W22' (eq. 7), each
- * sigma_ij L_i L_j / (pi q b^2) with sigma at the distance from wing i to
- * the image of wing j (eq. 3; the spans equal, mu = 1, so the monoplane's
- * curve, eq. 4). In heights over the span: sigma_11 at the top wing's,
- * sigma_22 at the bottom's, sigma_12 at their mean. That drag is each
- * wing's lift tilted forward by its upwash, Delta alpha_i = (sigma_ii
- * CL_i + sigma_ij CL_j) / (pi A), on the reference area; so each wing is
- * taken at its angle plus its own upwash, as the monoplane is (Report 738),
- * and the two lifts solved together. sigma_12 is read in the lifting
- * lines' plane, the stagger left out (Munk's theorem leaves the sum of the
- * drags unmoved by it, not each wing's upwash): ESTIMATED. Each wing's
- * lift is held at its own lift at the plant's stall (biplane_lift's
- * cmax). The cell's angle takes the area weighted upwash, its lift
- * change over cl_alpha; each wing the rest of its own, so the top wing,
- * further from the ground and ahead, gains less than the bottom one and
- * the cell pitches nose down at their aerodynamic centres (biplane_lift).
- * The tail: Report 738's image for each wing's sheet, from its own quarter
- * chord and height, weighted by the lift each sheet carries, ESTIMATED.
- * With one wing it is the monoplane's term.
- */
-static int biplane_ground_terms(const SimState *s, const FixedWingParams *fw, double alpha_w, double sin_b, double cos_b,
-                                double clmax, GroundTerms *g) {
-  const double *pt[2] = { fw->ge_wing, fw->ge_wing2 };
-  double h[2], hb[2];
-  for (int i = 0; i < 2; i += 1) {
-    h[i] = ge_height(s, pt[i]);
-    hb[i] = (h[i] > 0.0 ? h[i] : 0.0) / fw->span;
-  }
-  if (hb[0] >= GE_HB_MAX && hb[1] >= GE_HB_MAX) return 0;
-  const double sg[2] = { ge_sigma(hb[0]), ge_sigma(hb[1]) };
-  const double s12 = ge_sigma(0.5 * (hb[0] + hb[1]));
-  const double pia = WING_PI * fw->span * fw->span / fw->area;
-  const double aw = ge_cla(fw);
-  double area[2], p[2], rhs[2];
-  for (int i = 0; i < 2; i += 1) {
-    area[i] = fw->bip_w[i] / fw->bip_r[i];
-    p[i] = area[i] * aw / pia;
-    rhs[i] = fw->bip_w[i] * aw * alpha_w;
-  }
-  /* C_i (1 - p_i sigma_ii) - p_i sigma_12 C_j = bip_w_i a_w alpha. */
-  const double a00 = 1.0 - p[0] * sg[0], a01 = -p[0] * s12, a10 = -p[1] * s12, a11 = 1.0 - p[1] * sg[1];
-  const double det = a00 * a11 - a01 * a10;
-  double c[2] = { (rhs[0] * a11 - a01 * rhs[1]) / det, (a00 * rhs[1] - a10 * rhs[0]) / det };
-  for (int i = 0; i < 2; i += 1) {
-    const double cmax = add_term(clmax, wing_cla(fw) * fw->bip_r[i] * fw->bip_dstall[i]);
-    const double most = area[i] * cmax * (aw / wing_cla(fw));
-    if (c[i] > most) c[i] = most;
-    if (c[i] < -most) c[i] = -most;
-  }
-  double up[2];
-  g->da = 0.0;
-  g->clw = 0.0;
-  for (int i = 0; i < 2; i += 1) {
-    up[i] = (sg[i] * c[i] + s12 * c[1 - i]) / pia;
-    g->da += area[i] * up[i];
-    g->clw += c[i];
-    g->bip_cd[i] = c[i] * up[i];
-  }
-  g->dt = -g->da;
-  for (int i = 0; i < 2; i += 1) {
-    g->bip_da[i] = up[i] - fw->bip_r[i] * g->da;
-    g->dt += fw->tail_deda * ge_tail_r(fw, pt[i], h[i], hb[i], sin_b, cos_b) * c[i] / aw;
-  }
-  return 1;
-}
-
 /* Zero terms when the host has raised no ground or the wing is past
  * GE_HB_MAX of its span over it; the caller takes no branch then. alpha_w
- * is the wing's angle of its zero lift line with the flaps' share, sin_b
- * and cos_b the body's angle to the wind. */
-static int ground_terms(const SimState *s, const FixedWingParams *fw, double alpha_w, double sin_b, double cos_b,
-                        double clmax, GroundTerms *g) {
+ * is the wing's angle of its zero lift line. */
+static int ground_terms(const SimState *s, const FixedWingParams *fw, double alpha_w, double clmax, GroundTerms *g) {
   if (!fw->ground_effect || !(s->ground_h >= 0.0)) return 0;
-  if (fw->bip_w[0] > 0.0) return biplane_ground_terms(s, fw, alpha_w, sin_b, cos_b, clmax, g);
   const double h = ge_height(s, fw->ge_wing);
   const double hb = (h > 0.0 ? h : 0.0) / fw->span;
   if (hb >= GE_HB_MAX) return 0;
   const double sigma = ge_sigma(hb);
   const double pia = WING_PI * fw->span * fw->span / fw->area;
-  const double aw = ge_cla(fw);
-  /* The wing's own lift at the plant's stall angle, clmax / wing_cla: on a
-   * table that stalls on the whole curve (ge_cla_wing) less than clmax by
-   * the tail's share, on every other exactly clmax. */
-  const double clw_max = clmax * (aw / wing_cla(fw));
+  const double aw = fw->cl_alpha;
+  /* The wing's own lift at the plant's stall angle: clmax. */
+  const double clw_max = clmax;
   double clw = aw * alpha_w / (1.0 - sigma * aw / pia);
   if (clw > clw_max) clw = clw_max;
   if (clw < -clw_max) clw = -clw_max;
   g->clw = clw;
   g->da = sigma * clw / pia;
-  g->dt = -g->da;
-  if (fw->ge_tail[0] < 0.0) {
-    g->dt += fw->tail_deda * ge_tail_r(fw, fw->ge_wing, h, hb, sin_b, cos_b) * clw / aw;
-  }
   return 1;
-}
-
-/*
- * A plain flap's profile drag on its section, per unit of its chord
- * fraction: SURF_DRAG_A |delta| + SURF_DRAG_B delta^2, delta in rad.
- * FITTED by least squares to Roskam, Airplane Design VI, fig. 4.44 (plain
- * flaps, cf/c 0.1 to 0.3 at 15 and 60 deg, as FAST-GA digitised it,
- * delta_drag_plain_flap.csv): within 13 percent of every point, and taken
- * on past cf/c 0.3, where the figure stops, on the same form.
- * docs/SURFACES-STAGE1.md.
- */
-#define SURF_DRAG_A 0.2476 /* FITTED: Roskam VI fig. 4.44, docs/SURFACES-STAGE1.md */
-#define SURF_DRAG_B 0.3992 /* FITTED: Roskam VI fig. 4.44, docs/SURFACES-STAGE1.md */
-static double surf_drag(double delta) {
-  const double d = sim_fabs(delta);
-  return add_term(SURF_DRAG_A * d, SURF_DRAG_B * d * d);
 }
 
 /*
@@ -1059,52 +625,6 @@ void plant_power_state(const SimState *s, double *out) {
   out[9] = plant_power_custom() ? 1.0 : 0.0;
 }
 
-/* A surface's normal force over its linear one, x = a (angle), when it
- * saturates on a flat plate's cn: 1 / (1 + (x / cn)^4)^(1/4), 1 at x = 0
- * and cn / |x| far past it. hi_alpha's, docs/EXTRA-STAGE1.md. */
-static double plate_ratio(double x, double cn) {
-  const double n = x / cn;
-  return 1.0 / sim_sqrt(sim_sqrt(1.0 + n * n * n * n));
-}
-
-/*
- * THE SWIRL OVER THE WING'S ROOT (FixedWingParams.slip_root), its roll
- * moment, N m, the prop's way. The wash turns as a solid body at om, so at
- * y out along the span, at any height, it blows across the chord at om y:
- * up on the left of a prop turning clockwise from behind, down on the
- * right. Each side's root, from the fuselage's side out to where the wing
- * leaves the wash, meets it on top of the angle xw / vw the whole stream
- * crosses the wing at, and its normal force there is the wing's slope
- * saturating as a flat plate's does, plate_ratio, the tail's form in the
- * wash. The roll is the two sides' difference: at a small angle each side
- * is linear and the difference is the strip theory stator, which grows
- * with the span of wing in the wash; near the stall the upwash side
- * saturates first and the root gives back less of the swirl, the left
- * wing's lift the shortfall. Four point Gauss-Legendre over each side.
- */
-static double root_swirl(const FixedWingParams *fw, double xw, double vw, double om, double rw) {
-  static const double GX[4] = { -0.86113631159405258, -0.33998104358485626, 0.33998104358485626, 0.86113631159405258 };
-  static const double GW[4] = { 0.34785484513745386, 0.65214515486254614, 0.65214515486254614, 0.34785484513745386 };
-  const double yf = fw->slip_root[0], h = fw->slip_root[1];
-  if (!(rw > h) || !(vw > 0.0)) {
-    return 0.0;
-  }
-  const double yw = sim_sqrt(rw * rw - h * h);
-  if (!(yw > yf)) {
-    return 0.0;
-  }
-  const double cla = wing_cla(fw);
-  const double mid = 0.5 * (yw + yf), hw = 0.5 * (yw - yf);
-  double sum = 0.0;
-  for (int i = 0; i < 4; i += 1) {
-    const double y = mid + hw * GX[i];
-    const double xp = cla * (xw + om * y) / vw;
-    const double xm = cla * (xw - om * y) / vw;
-    sum += GW[i] * y * (xp * plate_ratio(xp, fw->tail_cn) - xm * plate_ratio(xm, fw->tail_cn));
-  }
-  return fw->slip_root_eta * 0.5 * PLANT.rho * vw * vw * fw->slip_root[2] * hw * sum;
-}
-
 /* Cubic smoothstep from 0 at a to 1 at b. */
 static double smoothstep(double a, double b, double x) {
   if (x <= a) {
@@ -1115,60 +635,6 @@ static double smoothstep(double a, double b, double x) {
   }
   const double t = (x - a) / (b - a);
   return t * t * (3.0 - 2.0 * t);
-}
-
-/*
- * THE RISING AIR. Three thermals over the airfield, each a column of air
- * going up, fastest at its core and smoothly nothing at its edge:
- * w0 (1 - (r/R)^2)^2, which has no kink anywhere, so a wing flying through
- * one feels a gust and not a step. The columns stand still (there is no
- * wind to drift them) and never change, so the field is a function of
- * position alone and a replay meets exactly the air it met before. They
- * start a few metres off the ground, are whole by 40 m, and fade out
- * between 250 and 300 m, the base of the cloud they would be feeding, so a
- * glider can climb in one but not for ever. There is no sink round them:
- * the air between is still. The sizes and strengths are a small field's
- * afternoon, docs/GLIDER-STAGE1.md; the places are in the plant's world
- * frame, whose origin the shell puts at the map's spawn facing +x: on the
- * airfield that is the strip's south end facing up it, so the runway runs
- * along x from -8 to 112 m and the pylons stand along y = -70, and the
- * three cores are clear of both.
- *
- * Only an airframe whose table sets air_lift flies in it. Every other one
- * flies in still air, as it always has, so its trace is untouched.
- */
-typedef struct {
-  double x, y; /* core, world frame, m */
-  double r;    /* radius where the rise has died away, m */
-  double w0;   /* rise at the core, m/s */
-} Thermal;
-static const Thermal THERMALS[] = {
-  { 110.0, 70.0, 45.0, 2.5 },
-  { -140.0, -90.0, 40.0, 2.0 },
-  { 60.0, -170.0, 35.0, 1.6 },
-};
-#define THERMAL_COUNT ((int)(sizeof(THERMALS) / sizeof(THERMALS[0])))
-#define THERMAL_FORM_LO 5.0
-#define THERMAL_FORM_HI 40.0
-#define THERMAL_TOP_LO 250.0
-#define THERMAL_TOP_HI 300.0
-
-double plant_air_lift(const double pos[3]) {
-  const double fade = smoothstep(THERMAL_FORM_LO, THERMAL_FORM_HI, pos[2]) *
-                      (1.0 - smoothstep(THERMAL_TOP_LO, THERMAL_TOP_HI, pos[2]));
-  if (!(fade > 0.0)) {
-    return 0.0;
-  }
-  double w = 0.0;
-  for (int i = 0; i < THERMAL_COUNT; i += 1) {
-    const double dx = pos[0] - THERMALS[i].x;
-    const double dy = pos[1] - THERMALS[i].y;
-    const double f = 1.0 - (dx * dx + dy * dy) / (THERMALS[i].r * THERMALS[i].r);
-    if (f > 0.0) {
-      w += THERMALS[i].w0 * f * f;
-    }
-  }
-  return w * fade;
 }
 
 /*
@@ -1254,19 +720,7 @@ static void wing_attitude(const double q[4], double *pitch, double *bank) {
   *bank = sim_atan2(byz, bzz);
 }
 
-/* The AS3X heading gain per axis, 0 to 1 of the table's as3x_kh. The
- * AR631 manual: "Heading screens ... are defaulted to zero. You can
- * increase this value to make the aircraft hold its attitude when
- * control input is neutral." Kept across resets, like the mode; the
- * caller has range checked it. */
-void plant_wing_set_heading(const double share[3]) {
-  for (int i = 0; i < 3; i += 1) {
-    g_as3x_heading[i] = share[i];
-  }
-}
-
-/* 0 off, 1 stabilised, 2 acro, 3 rate damped. The caller has range
- * checked it. */
+/* 0 off, 1 stabilised, 2 acro. The caller has range checked it. */
 void plant_wing_set_stab(int mode) {
   if (mode != g_stab) {
     g_acro_held = 0;
@@ -1276,30 +730,6 @@ void plant_wing_set_stab(int mode) {
 
 int plant_wing_stab(void) {
   return g_stab;
-}
-
-void plant_wing_set_brake(double b) {
-  g_brake = b;
-}
-
-double plant_wing_brake(void) {
-  return g_brake;
-}
-
-void plant_wing_set_on_wheels(int on) {
-  g_on_wheels = on;
-}
-
-/* The flap angle the notch asks for on the airframe in force: zero on a
- * quad, which has no table, and on every wing without flaps. */
-static double flap_target(void) {
-  if (PLANT.kind != PLANT_KIND_WING || PLANT.fw == 0) {
-    return 0.0;
-  }
-  if (g_flap_notch == 2) {
-    return PLANT.fw->flap_full;
-  }
-  return g_flap_notch == 1 ? PLANT.fw->flap_half : 0.0;
 }
 
 /* The prop's gyroscope, on but for a gate that measures the airframe's
@@ -1323,27 +753,11 @@ void plant_wing_reset(void) {
     g_surf[i] = 0.0;
   }
   g_acro_held = 0;
-  for (int i = 0; i < 3; i += 1) {
-    g_as3x_h[i] = 0.0;
-    g_as3x_out[i] = 0.0;
-  }
-  g_as3x_t = 0.0;
-  g_servo[0] = 0.0;
-  g_servo[1] = 0.0;
-  g_servo[2] = 0.0;
   g_cmd[0] = 0.0;
   g_cmd[1] = 0.0;
   g_cmd[2] = 0.0;
-  g_on_wheels = 0;
-  g_brake = 0.0;
   g_chute = 0;
   g_chute_t = 0.0;
-  g_flap = flap_target();
-  g_flap_mix = 0.0;
-  g_gear_up = 0;
-  g_gear = 0.0;
-  g_door_open = 0;
-  g_door = 0.0;
   for (int i = 0; i < 4; i += 1) {
     for (int j = 0; j < 2; j += 1) {
       g_sep[i][j][0] = 0.0;
@@ -1361,8 +775,6 @@ void plant_wing_reset(void) {
    * has no table (PLANT.fw is 0), so nothing of this is read until a
    * fixed wing is seated, which resets it again (sim_set_airframe). */
   g_prop_hot = PLANT.fw != 0 && !(PLANT.fw->current_full > 0.0) ? 1 : 0;
-  g_discus = 0;
-  g_discus_t = 0.0;
 }
 
 /*
@@ -1429,8 +841,7 @@ static double fan_spool(const FixedWingParams *fw, double throttle, double de, i
  * speed at part throttle sits over its share of the stick (T-Motor's
  * AM670 bench, the CAP lane's: 0.50 at 40 percent, 0.60 at 50). Until
  * 2026-10-11 the drive carried d^2 for d, which held n = d, a premise no
- * motor has. A table with its motor's measured curve (throttle_rpm) takes
- * the duty that settles there. A small step is answered in
+ * motor has. A small step is answered in
  * J w_f / (Q_f (K_M + 2 n)): the Extra's 66 ms at its hover. The
  * current a step draws is that R's, up to V / R at a stall; no ESC here
  * clamps it (none of their listings names a limiter in running).
@@ -1456,7 +867,9 @@ static double fan_spool(const FixedWingParams *fw, double throttle, double de, i
 #define PROP_K_M (0.85 / 0.15)
 /* A free electric rotor's friction over the prop's static torque. The
  * Extra's motor class, E-flite's Power 32, draws 2.4 A at no load
- * (scripts/extra-derive.js), at its Kt of 60 / (2 pi 910) 0.025 N m, of
+ * (docs/EXTRA-STAGE1.md; scripts/extra-derive.js, which derived it, left
+ * with the Extra on 2026-10-20, in git at b420b0e51), at its Kt of
+ * 60 / (2 pi 910) 0.025 N m, of
  * the prop's 0.651 N m at full. FITTED: no other table has its motor's
  * no load current, so every electric rotor takes the Extra's share. It
  * stops a coasting prop in seconds on the ground, as a real one stops. */
@@ -1470,15 +883,6 @@ static int prop_spools(const FixedWingParams *fw) {
  * own on a fan (fan_spool). */
 static double spool_duty(const FixedWingParams *fw, double n) {
   return prop_spools(fw) ? (n * n + PROP_K_M * n) / (PROP_K_M + 1.0) : n;
-}
-
-/* An engine's steady speed at the stick, its throttle_rpm, straight
- * between tenths; the stick held to 0 to 1. */
-static double engine_throttle(const FixedWingParams *fw, double throttle) {
-  const double t = throttle < 0.0 ? 0.0 : (throttle > 1.0 ? 1.0 : throttle);
-  const double x = t * 10.0;
-  const int i = x >= 10.0 ? 9 : (int)x;
-  return fw->throttle_rpm[i] + (x - (double)i) * (fw->throttle_rpm[i + 1] - fw->throttle_rpm[i]);
 }
 
 /* A launch starts the prop at its duty's speed (prop_spool) before it has
@@ -1518,50 +922,7 @@ static int prop_free(const FixedWingParams *fw, double de) {
   return fw->current_full > 0.0 && !(de > 0.0);
 }
 
-/* An engine's torque at the stick and its speed, N m, from its map
- * (FixedWingParams.engine_q): rows at the idle stop (stick 0) and at the
- * stick's 0.2, 0.3, ... 1, columns 1,000 to 8,000 rpm in 500s, bilinear,
- * straight on past either end of the speed. Past the maker's published top
- * speed (FixedWingParams.engine_rpm_max) it is the idle stop's, the engine
- * giving nothing but its friction and pumping: no source runs the engine
- * there, and the dyno's own run on to 8,000 rpm would let an unloaded prop
- * take it 1,500 rpm past the range it is sold for. */
-static int engine_mapped(const FixedWingParams *fw) {
-  return fw->engine_q[9][0] > 0.0;
-}
-
-static double engine_torque(const FixedWingParams *fw, double stick, double rpm) {
-  const double st = rpm > fw->engine_rpm_max ? 0.0 : (stick < 0.0 ? 0.0 : (stick > 1.0 ? 1.0 : stick));
-  const double xr = st <= 0.2 ? st / 0.2 : 1.0 + (st - 0.2) / 0.1;
-  const int r = xr >= 9.0 ? 8 : (int)xr;
-  const double fr = xr - (double)r;
-  const double xc = (rpm - 1000.0) / 500.0;
-  const int c = xc < 0.0 ? 0 : (xc >= 14.0 ? 13 : (int)xc);
-  const double fc = xc - (double)c;
-  const double q0 = fw->engine_q[r][c] + fc * (fw->engine_q[r][c + 1] - fw->engine_q[r][c]);
-  const double q1 = fw->engine_q[r + 1][c] + fc * (fw->engine_q[r + 1][c + 1] - fw->engine_q[r + 1][c]);
-  return q0 + fr * (q1 - q0);
-}
-
-/* A prop's power coefficient at its tip's Mach number over its own at
- * 0.52: APC's 22x8 static rows (https://www.apcprop.com/files/PER3_22x8.dat)
- * at 6,000 to 11,000 rpm, Cp 0.0182, 0.0184, 0.0189, 0.0203, 0.0249 and
- * 0.0313, their tips at Mach 0.52, 0.60, 0.69, 0.77, 0.86 and 0.95 (340
- * m/s): past 0.7 the blades' compressibility drag climbs. At Mach 0.5,
- * 0.6, ... 1.0 read straight between those rows, the 1.0 straight on
- * from the last two (FITTED: APC's file ends at 0.95); held at the ends. */
-#define CP_MACH_N 6
-static const double CP_MACH[CP_MACH_N] = { 1.000, 1.011, 1.049, 1.191, 1.532, 1.941 };
-
-static double cp_of_mach(double m) {
-  const double x = (m - 0.5) / 0.1;
-  if (!(x > 0.0)) return CP_MACH[0];
-  if (x >= (double)(CP_MACH_N - 1)) return CP_MACH[CP_MACH_N - 1];
-  const int i = (int)x;
-  return CP_MACH[i] + (x - (double)i) * (CP_MACH[i + 1] - CP_MACH[i]);
-}
-
-static double prop_spool(const FixedWingParams *fw, double de, int off, double u_pos, double stick) {
+static double prop_spool(const FixedWingParams *fw, double de, int off, double u_pos) {
   int hot = 0;
   if (g_prop_hot) {
     g_prop_hot = 0;
@@ -1577,13 +938,6 @@ static double prop_spool(const FixedWingParams *fw, double de, int off, double u
    * speed: Q_f (d - 0.85 n) / 0.15, which is the K_M term plus d. A glow
    * engine's is the torque that holds n = d. */
   double drive = free ? 0.0 : electric + (fw->current_full > 0.0 ? de : de * de);
-  /* A mapped engine drives by its map at the speed it turns, against the
-   * air's own torque on the prop (torque_curve), so its speed floats with the
-   * airspeed as a real engine's does. */
-  const int mapped = engine_mapped(fw);
-  if (mapped && !free) {
-    drive = engine_torque(fw, stick, n * 0.85 * fw->rpm_no_load) / q_f;
-  }
   /* A driven rotor's load is taken at its static torque, so that it holds
    * n = d at any airspeed and the trims stay the table's (the motor's
    * unloading at speed is left out, docs/FLIGHTMODEL.md). A free rotor has
@@ -1591,17 +945,8 @@ static double prop_spool(const FixedWingParams *fw, double de, int off, double u
    * torque_curve's, falls as the air speeds it and past the windmill turns it,
    * so it settles where Cp is zero, spinning with the airspeed. */
   double load = n * n;
-  if ((free || mapped) && n > 0.0) {
+  if (free && n > 0.0) {
     load = n * n * prop_curve(fw->torque_curve, u_pos / (fw->pitch_speed * SIM_BOOST * n));
-    /* A mapped engine's rotor turns as fast as its torque and the air let
-     * it, and a big prop's tips reach the speed of sound: its load climbs
-     * with their Mach number as APC's does. */
-    if (mapped) {
-      /* Over the static full point's own, which the measured full
-       * throttle speed already carries. */
-      const double tip_f = WING_PI * 2.0 * fw->slip_r * 0.85 * fw->rpm_no_load / 60.0 / 340.0;
-      load *= cp_of_mach(tip_f * n) / cp_of_mach(tip_f);
-    }
     /* An electric motor's own friction, its no load current's torque, I0
      * Kt (Drela's model), holds a free rotor back; a glow engine's is in
      * its idle. */
@@ -1615,78 +960,6 @@ static double prop_spool(const FixedWingParams *fw, double de, int off, double u
   }
   g_prop_dn = hot ? 0.0 : (g_prop_n - n) / SIM_DT;
   return g_prop_n;
-}
-
-int plant_wing_set_gear(int up) {
-  if (up && (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->gear_time > 0.0))) {
-    return -1;
-  }
-  g_gear_up = up ? 1 : 0;
-  return 0;
-}
-
-double plant_wing_gear(void) {
-  return g_gear;
-}
-
-int plant_wing_gear_selected(void) {
-  return g_gear_up;
-}
-
-int plant_wing_gear_down(void) {
-  return g_gear == 0.0;
-}
-
-void plant_wing_gear_reset(void) {
-  g_gear_up = 0;
-  g_gear = 0.0;
-}
-
-int plant_wing_set_door(int open) {
-  if (open && (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->door_time > 0.0))) {
-    return -1;
-  }
-  g_door_open = open ? 1 : 0;
-  return 0;
-}
-
-double plant_wing_door(void) {
-  return g_door;
-}
-
-int plant_wing_door_selected(void) {
-  return g_door_open;
-}
-
-void plant_wing_door_reset(void) {
-  g_door_open = 0;
-  g_door = 0.0;
-}
-
-int plant_wing_set_flaps(int notch) {
-  if (notch != 0 && (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->flap_full > 0.0))) {
-    return -1;
-  }
-  g_flap_notch = notch;
-  return 0;
-}
-
-double plant_wing_flaps(void) {
-  return add_term(g_flap, g_flap_mix);
-}
-
-void plant_wing_flaps_stow(void) {
-  g_flap_notch = 0;
-  g_flap = 0.0;
-  g_flap_mix = 0.0;
-}
-
-void plant_wing_flaps_settle(void) {
-  g_flap = flap_target();
-}
-
-void plant_wing_set_slats(int fitted) {
-  g_slats = fitted;
 }
 
 int plant_wing_chute(int deploy) {
@@ -1730,13 +1003,10 @@ static double acro_shape(const FixedWingParams *fw, double x) {
  * aircraft is pushed off it, so the hold pulls the nose back rather than
  * following it down.
  *
- * The yaw is held only on a table with acro_yaw gains, and only while the
- * yaw stick is centred: with it in, the rudder is the pilot's stick alone,
- * as it always was, and the target's yaw is the aircraft's. It is
- * weighted by how far the nose is off level (below): none level, where
- * the rudder is the pilot's and a turn is flown on the bank, all of it
- * nose up, where a hover's nose falls in yaw as readily as in pitch. */
-static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *roll, double *pitch, double *yaw) {
+ * The yaw is not held: the rudder is the pilot's stick alone, and the
+ * target's yaw is the aircraft's. (The tables with acro_yaw gains held it
+ * with the yaw stick centred; they left on 2026-10-20.) */
+static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *roll, double *pitch) {
   if (!g_acro_held) {
     for (int i = 0; i < 4; i += 1) {
       g_acro_q[i] = s->quat[i];
@@ -1744,11 +1014,9 @@ static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *ro
     g_acro_held = 1;
     g_acro_i_roll = 0.0;
     g_acro_i_pitch = 0.0;
-    g_acro_i_yaw = 0.0;
   }
   const int fly_roll = deadband1(*roll, fw->stab_deadband) != 0.0;
   const int fly_pitch = deadband1(*pitch, fw->stab_deadband) != 0.0;
-  const int hold_yaw = fw->acro_yaw_kp > 0.0 && deadband1(*yaw, fw->stab_deadband) == 0.0;
   const double rate_roll = fw->acro_roll_rate * acro_shape(fw, *roll);
   const double rate_up = fw->acro_pitch_rate * acro_shape(fw, *pitch);
 
@@ -1802,29 +1070,22 @@ static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *ro
   const double sn = sim_sqrt(sy * sy + sz * sz);
   const double k = sn > 1e-12 ? 2.0 * sim_atan2(sn, tw) / sn : 2.0;
   double ey = sy * k;
-  double ez = hold_yaw ? sz * k : 0.0;
 
   /* The leash, while a roll or pitch stick is in. */
-  const double en = sim_sqrt(ex * ex + ey * ey + ez * ez);
+  const double en = sim_sqrt(ex * ex + ey * ey);
   const int leash = (fly_roll || fly_pitch) && en > fw->acro_err_max;
   if (leash) {
     ex *= fw->acro_err_max / en;
     ey *= fw->acro_err_max / en;
-    ez *= fw->acro_err_max / en;
   }
 
-  /* Keep the target, unless the leash moved it or the yaw it carries is
-   * not held: then rebuild it from the aircraft and the error kept, the
-   * swing then the twist, which drops the yaw the target does not hold
-   * and the error past the leash. */
-  if (hold_yaw && !leash) {
-    for (int i = 0; i < 4; i += 1) {
-      g_acro_q[i] = t[i];
-    }
-  } else {
-    const double ea = sim_sqrt(ey * ey + ez * ez);
+  /* Rebuild the target from the aircraft and the error kept, the swing
+   * then the twist, which drops the yaw the target does not hold and the
+   * error past the leash. */
+  {
+    const double ea = sim_sqrt(ey * ey);
     const double sh = ea > 1e-12 ? sim_sin(0.5 * ea) / ea : 0.5;
-    const double qs[4] = { sim_cos(0.5 * ea), 0.0, ey * sh, ez * sh };
+    const double qs[4] = { sim_cos(0.5 * ea), 0.0, ey * sh, 0.0 };
     const double qt[4] = { sim_cos(0.5 * ex), sim_sin(0.5 * ex), 0.0, 0.0 };
     double qst[4];
     wquat_mul(qs, qt, qst);
@@ -1838,11 +1099,10 @@ static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *ro
 
   /* What the loops answer is held to acro_err_max, so a large upset is
    * pulled back at the rate a small one is, not snapped. */
-  const double ec = sim_sqrt(ex * ex + ey * ey + ez * ez);
+  const double ec = sim_sqrt(ex * ex + ey * ey);
   if (ec > fw->acro_err_max) {
     ex *= fw->acro_err_max / ec;
     ey *= fw->acro_err_max / ec;
-    ez *= fw->acro_err_max / ec;
   }
 
   /* The integrals sum under a stick too, as ArduPlane's rate loops do in
@@ -1857,17 +1117,6 @@ static void acro_sticks(const FixedWingParams *fw, const SimState *s, double *ro
                  fw->acro_roll_ff * rate_roll);
   *pitch = clamp1(fw->acro_pitch_kp * -ey + g_acro_i_pitch + fw->acro_pitch_kd * (rate_up + s->omega[1]) +
                   fw->acro_pitch_ff * rate_up);
-  /* The yaw stick is nose right, -omega[2], and ez is the target to the
-   * left of the nose. The hold is weighted by how far the nose is off
-   * level, 1 - level, as the heading's follow is by level: level, the
-   * rudder stays the pilot's and a skid's own return is the airframe's;
-   * nose up, as in a hover, the hold has it all. Its integral sums at the
-   * same weight. */
-  if (hold_yaw) {
-    const double wy = 1.0 - level;
-    g_acro_i_yaw = clip(g_acro_i_yaw + wy * fw->acro_yaw_ki * -ez * WING_DT, fw->acro_i_max);
-    *yaw = clamp1(wy * (fw->acro_yaw_kp * -ez + fw->acro_yaw_kd * s->omega[2]) + g_acro_i_yaw);
-  }
 }
 
 /* The turn coordinator: the yaw stick that brings the body yaw rate onto
@@ -1921,99 +1170,6 @@ void plant_wing_launch(SimState *s, double speed) {
 }
 
 /*
- * THE DISCUS LAUNCH, docs/DLG-STAGE1.md: the pilot's turn, flown as a
- * path and not as a plant, because the hand holds the glider on it. The
- * turn is counter clockwise seen from above, a right handed pilot's with
- * the peg on the left tip, so the pilot stands to the glider's left and
- * the heading is the angle round the centre plus a right angle. The
- * angle is a0 + acc t^2 / 2 and the rate acc t, from standing to
- * discus_v / discus_r at the end of discus_turn. Over the last quarter of
- * the turn's time the nose comes up to discus_pitch, the arm's sweep and
- * the wrist; at the end the hand opens and the glider leaves at discus_v
- * along its nose with no rotation, and from the next step it is the
- * plant's. All of it in the fixed libm, so a replay turns the same turn.
- */
-static void discus_pose(SimState *s, const FixedWingParams *fw, double t, int release) {
-  const double phi = g_discus_a0 + 0.5 * g_discus_acc * t * t;
-  const double cph = sim_cos(phi), sph = sim_sin(phi);
-  const double psi = phi + 0.5 * WING_PI;
-  const double theta = fw->discus_pitch * smoothstep(0.75 * g_discus_T, g_discus_T, t);
-  const double cy = sim_cos(0.5 * psi), sy = sim_sin(0.5 * psi);
-  const double cp = sim_cos(0.5 * theta), sp = sim_sin(0.5 * theta);
-  s->pos[0] = g_discus_c[0] + fw->discus_r * cph;
-  s->pos[1] = g_discus_c[1] + fw->discus_r * sph;
-  s->pos[2] = g_discus_c[2];
-  s->quat[0] = cy * cp;
-  s->quat[1] = sy * sp;
-  s->quat[2] = -cy * sp;
-  s->quat[3] = sy * cp;
-  s->omega[0] = 0.0;
-  s->omega[1] = 0.0;
-  s->omega[2] = 0.0;
-  if (release) {
-    /* Along the nose: heading psi, pitched theta up. cos psi is -sin phi
-     * and sin psi is cos phi. */
-    const double ct = sim_cos(theta), st = sim_sin(theta);
-    s->vel[0] = fw->discus_v * ct * -sph;
-    s->vel[1] = fw->discus_v * ct * cph;
-    s->vel[2] = fw->discus_v * st;
-    return;
-  }
-  const double w = g_discus_acc * t;
-  s->vel[0] = w * fw->discus_r * -sph;
-  s->vel[1] = w * fw->discus_r * cph;
-  s->vel[2] = 0.0;
-  s->omega[2] = w;
-}
-
-int plant_wing_discus_start(SimState *s, double z_release) {
-  if (PLANT.kind != PLANT_KIND_WING || PLANT.fw == 0 || !(PLANT.fw->discus_v > 0.0)) {
-    return -1;
-  }
-  const FixedWingParams *fw = PLANT.fw;
-  const double w = s->quat[0], x = s->quat[1], y = s->quat[2], z = s->quat[3];
-  const double psi = sim_atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
-  const double phi_rel = psi - 0.5 * WING_PI;
-  g_discus_c[0] = s->pos[0] - fw->discus_r * sim_cos(phi_rel);
-  g_discus_c[1] = s->pos[1] - fw->discus_r * sim_sin(phi_rel);
-  g_discus_c[2] = z_release;
-  const double wf = fw->discus_v / fw->discus_r;
-  g_discus_a0 = phi_rel - fw->discus_turn;
-  g_discus_acc = wf * wf / (2.0 * fw->discus_turn);
-  g_discus_T = 2.0 * fw->discus_turn / wf;
-  g_discus_t = 0.0;
-  g_discus = 1;
-  g_acro_held = 0;
-  discus_pose(s, fw, 0.0, 0);
-  return 0;
-}
-
-int plant_wing_discus_hold(SimState *s) {
-  if (g_discus != 1) {
-    return 0;
-  }
-  const FixedWingParams *fw = PLANT.fw;
-  g_discus_t += WING_DT;
-  if (g_discus_t >= g_discus_T) {
-    discus_pose(s, fw, g_discus_T, 1);
-    g_discus = 2;
-    g_acro_held = 0;
-    return 1;
-  }
-  discus_pose(s, fw, g_discus_t, 0);
-  return 1;
-}
-
-int plant_wing_discus_phase(void) {
-  return g_discus;
-}
-
-void plant_wing_discus_stop(void) {
-  g_discus = 0;
-  g_discus_t = 0.0;
-}
-
-/*
  * THE STALLED WING'S LIFT, past the stall angle, docs/STALL-STAGE1.md. Its
  * section's measured lift curve (Selig et al., Summary of Low-Speed Airfoil
  * Data) holds its lift, flat, for stall_top past the stall, then falls to
@@ -2025,15 +1181,14 @@ void plant_wing_discus_stop(void) {
  * nothing at 90 deg, where the plate alone is right, and is not taken past
  * 90 deg, where the flow is from behind.
  *
- * cl_s: the lift held; stall: the stall angle on aa's scale, and shift
- * what the flaps add to it, so stall - shift is the plate's; aa: the angle
- * the stall is judged on, flaps included, whose sign the lift takes;
+ * cl_s: the lift held; stall: the stall angle on aa's scale; aa: the
+ * angle the stall is judged on, whose sign the lift takes;
  * sin_a and cos_a: the zero lift line's, which the plate is taken at.
  * Returns the lift; *fall is how far through the fall it is, and *past how
  * far past the stall angle, 0 at it and 1 a stall_blend on, which is how
  * the caller brings this curve in.
  */
-static double stalled_lift(const FixedWingParams *fw, double k, double top, double cl_s, double stall, double shift,
+static double stalled_lift(const FixedWingParams *fw, double k, double top, double cl_s, double stall,
                            double aa, double sin_a, double cos_a, double *fall, double *past) {
   const double a0 = stall + top;
   const double a1 = a0 + 2.0 * fw->stall_blend;
@@ -2042,7 +1197,7 @@ static double stalled_lift(const FixedWingParams *fw, double k, double top, doub
   const double sgn = aa < 0.0 ? -1.0 : 1.0;
   double viterna = 0.0;
   if (cos_a > 0.0 && sim_fabs(sin_a) > 0.05) {
-    const double st = clip(a1 - shift, 0.5);
+    const double st = clip(a1, 0.5);
     const double ss = sim_sin_small(st), cs = sim_cos_small(st);
     const double a2 = (k * cl_s - plate_cn(fw) * ss * cs) * ss / (cs * cs);
     viterna = a2 * cos_a * cos_a / sin_a;
@@ -2076,19 +1231,19 @@ static double stalled_lift(const FixedWingParams *fw, double k, double top, doub
  *           within 0.5 rad of the centre's, where the small angle sine is
  *           good; past that the strip is stalled through anyway.
  *
- * k is the table's stall_k (or slat_k). Both are
+ * k is the table's stall_k. Both are
  * taken only past the strip's stall angle, scaled in over a stall_blend:
  * short of it a strip is the linear wing the plant's roll damping was
  * always taken for, and a flight that stays short of every strip's stall
  * is what it was.
  */
 static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, double cos_a, double da, double ail,
-                        double dr, double r, double cl_lin, double dcl_f, double stall, double k, double top, double b2,
+                        double dr, double r, double cl_lin, double stall, double k, double top, double b2,
                         double out[2]) {
   out[0] = 0.0;
   out[1] = 0.0;
-  const double cla = wing_cla(fw);
-  const double aa = add_term(alpha + (da + dr), dcl_f / cla);
+  const double cla = fw->cl_alpha;
+  const double aa = alpha + (da + dr);
   /* The surface on the strip (ail, its aileron's and on a flying wing its
    * elevon's zero lift shift) decides whether the strip is stalled, the
    * rising wing's down aileron taking it there and the falling wing's up
@@ -2114,12 +1269,12 @@ static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, d
    * nothing more. */
   const double lin = r * cla * aa;
   const double hold = r * cla * stall;
-  const double lift = stalled_lift(fw, k, top, hold, stall, dcl_f / cla, aa, sp, cp, &fall, &past);
+  const double lift = stalled_lift(fw, k, top, hold, stall, aa, sp, cp, &fall, &past);
   const double blended = (1.0 - sigma) * lin + sigma * lift;
   /* The linear wing's roll damping acts on the roll about the flight path,
    * the roll rate's da and the yaw rate's dr together (plant_wing_step's
    * stability axis rates), so a stalled strip takes both back. */
-  const double ref = r * cla * add_term(alpha, dcl_f / cla) + cla * (da + dr);
+  const double ref = r * cla * alpha + cla * (da + dr);
   const double past_on = ail == 0.0 ? past : smoothstep(stall, stall + fw->stall_blend, sim_fabs(aa_on));
   /* The rates tilt the strip's own air by dc, so its lift and drag,
    * across and along that air, turn by dc against the wing's: the extra
@@ -2139,34 +1294,28 @@ static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, d
 
 /*
  * ONE LIFTING SURFACE'S LIFT, the plant's curve for the whole wing at the
- * angle alpha (the zero lift line's), with the elevator's delta_e and the
- * flaps' dcl_f: the linear lift, the stall blend to the flat plate, and
- * past the stall angle the section's, stalled_lift above. The plant's lift
- * is the whole wing's, which is this once; a biplane's is this for each
- * of its wings (biplane_lift below). sin_a and cos_a are the zero lift
+ * angle alpha (the zero lift line's), with the elevator's delta_e: the
+ * linear lift, the stall blend to the flat plate, and past the stall angle
+ * the section's, stalled_lift above. sin_a and cos_a are the zero lift
  * line's, which the plate is taken at.
  */
 typedef struct {
-  double cl_lin; /* the linear lift, elevator and flaps included */
+  double cl_lin; /* the linear lift, the elevator's included */
   double sigma;  /* the stall blend, 0 short of it and 1 through it */
   double cl_st;  /* the stalled lift past the stall angle */
   double fall;   /* how far through its fall the stalled lift is */
   double past;   /* how far past the stall angle, over a stall_blend */
   double cl;     /* the lift */
 } WingLift;
-static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, double dcl_f, double clmax, double k_stall,
+static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, double clmax, double k_stall,
                       double fre, double sin_a, double cos_a, WingLift *o) {
-  const double cla = wing_cla(fw);
+  const double cla = fw->cl_alpha;
   const double alpha_stall = clmax / cla;
-  const double aa = sim_fabs(add_term(alpha, dcl_f / cla));
-  const double round = fw->stall_round > 0.0 ? fw->stall_round : fw->stall_blend;
-  /* With the tail's own angle (hi_alpha) and the wing's own slope, the
-   * tail's lift, the elevator's with it, is the tail's, taken in
-   * plant_wing_step on the tail's angle; this is the wing's alone. */
-  const int tail_own = fw->hi_alpha && fw->cl_alpha_wing > 0.0;
-  const double de_w = tail_own ? 0.0 : delta_e;
+  const double aa = sim_fabs(alpha);
+  const double round = fw->stall_blend;
+  const double de_w = delta_e;
   const double sigma = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, aa);
-  const double cl_lin = add_term(fw->cl_alpha * alpha + fw->cl_de * delta_e, dcl_f);
+  const double cl_lin = fw->cl_alpha * alpha + fw->cl_de * delta_e;
   const double cl_flat = plate_cn(fw) * sin_a * cos_a;
   /* THE TOP OF THE CURVE, docs/FLIGHTMODEL.md: a wing's CL max is the peak
    * of its lift curve, which every derivation's stall speed, sqrt(2 W / rho
@@ -2175,14 +1324,13 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
    * angle CL max / CL alpha, leaves it below on the parabola tangent to it
    * there, and tops out at CL max a stall_blend past it, level; a section's
    * curve is concave over its top, never above its line. The elevator's
-   * and the flaps' lift ride on it as before. Past the top it holds CL max
+   * lift rides on it as before. Past the top it holds CL max
    * until the stalled lift below takes it, or, short of the Reynolds number
    * the section data reach, blends to the flat plate over two
    * stall_blends. sigma, the blend that brings in the plate's drag and the
    * stall's moments, and the strips' stall angle are where they always
    * were: the drag rises before the peak, as a real section's does, and
    * the gates measure the stall at the linear crossing. */
-  const double aw = add_term(alpha, dcl_f / cla);
   const double a0 = alpha_stall - round;
   const double a1 = alpha_stall + round;
   double wing = clmax;
@@ -2191,23 +1339,18 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   } else if (aa < a1) {
     wing = clmax - cla * (a1 - aa) * (a1 - aa) / (4.0 * round);
   }
-  const double cl_peak = (aw < 0.0 ? -wing : wing) + fw->cl_de * de_w;
+  const double cl_peak = (alpha < 0.0 ? -wing : wing) + fw->cl_de * de_w;
   const double s_hi = smoothstep(a1, a1 + 2.0 * fw->stall_blend, aa);
   const double cl_old = (1.0 - s_hi) * cl_peak + s_hi * cl_flat;
   double cl_st = cl_old, fall = 0.0, past = 0.0;
   if (sigma > 0.0 && fre > 0.0) {
-    const double shift = dcl_f / cla;
     /* What the stalled wing holds is CL max, the top of the curve above,
      * with the elevator's lift on it, taken on the side the wing is
      * stalling on, so a symmetric section holds the same lift on its back
      * as right way up. */
-    const int neg = add_term(alpha, shift) < 0.0;
+    const int neg = alpha < 0.0;
     const double cl_s = neg ? clmax - fw->cl_de * de_w : clmax + fw->cl_de * de_w;
-    cl_st = stalled_lift(fw, k_stall, fw->stall_top, cl_s, alpha_stall, shift, add_term(alpha, shift), sin_a, cos_a, &fall, &past);
-    /* The curve goes over to the stalled lift as it rounds to its peak. */
-    if (fw->stall_round > 0.0) {
-      past = smoothstep(alpha_stall, alpha_stall + round, aa);
-    }
+    cl_st = stalled_lift(fw, k_stall, fw->stall_top, cl_s, alpha_stall, alpha, sin_a, cos_a, &fall, &past);
   }
   o->cl_lin = cl_lin;
   o->sigma = sigma;
@@ -2215,98 +1358,6 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   o->fall = fall;
   o->past = past;
   o->cl = add_term(cl_old, fre * past * (cl_st - cl_old));
-  /* The tail's share of the slope (cl_alpha_wing), which does not stall
-   * with the wing: its lift at the angle, sin cos for alpha so it is
-   * bounded on its side. Nothing where the table gives no wing slope. */
-  if (fw->cl_alpha_wing > 0.0 && !tail_own) {
-    o->cl += (fw->cl_alpha - fw->cl_alpha_wing) * sin_a * cos_a;
-  }
-}
-
-/*
- * THE SECOND WING, docs/PITTS-STAGE1.md (FixedWingParams.bip_*). Each wing
- * is the plant's curve (wing_lift) at bip_r times the cell's angle,
- * elevator and flaps, which is its own lift coefficient: the wing that
- * carries more for its area reaches its CL max first, and stalls first.
- * The two are taken twice. First each wing alone at the cell's angle; then
- * each again, its angle moved by what its partner falls short of its
- * linear lift: a stalled wing's trailing sheet and bound vortex stop
- * washing the other down, which gains bip_m of the lift lost. The cell's
- * lift is the wings' own, each over the reference area (bip_w / bip_r),
- * which in the linear range is exactly the table's cl_alpha. Its drag: the
- * section's zero lift drag once, each wing's plate as it stalls, and
- * Prandtl's induced drag on the lift each wing's attached flow carries,
- * CL_i (bip_ki CL_i + bip_kx CL_j), which on the cell's linear split is the
- * equivalent monoplane's k CL^2 on Munk's span. Its pitching moment past
- * the linear lift the table's cm_alpha holds, cm: each wing's stall at its
- * own arm, the stall model's (plant_wing_step's cm_post) with the arms
- * moved by bip_x, and the lift a wing gains from its partner's stall at
- * its aerodynamic centre. The low Reynolds number arms (lowre_arm_*) are
- * the Slow Stick's alone and are not taken here. Near the ground (ge, none
- * in free air; biplane_ground_terms) each wing in its partner's wash takes
- * its own upwash over the cell's, and the drag its lift tilted forward by
- * it; the cell's lift change rides on alpha. A wing alone stays at the
- * cell's angle, so the uneven upwash's lift is gained at each wing's
- * aerodynamic centre, as a stalled partner's is, and pitches the cell; the
- * partner's stall is read without it, ESTIMATED. Nothing here runs for a
- * monoplane.
- */
-static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e, double dcl_f, double clmax, double k_stall,
-                         double fre, double sin_a, double cos_a, double cd0, double b2c, const GroundTerms *ge,
-                         double *CL, double *CD, double *CDp, double *cm) {
-  WingLift alone[2], wl[2];
-  /* bip_dstall: how much later than potential flow each wing stalls, in
-   * the cell's angle, the lift it holds to that angle its own CL max. */
-  double cmax[2];
-  for (int i = 0; i < 2; i += 1) {
-    cmax[i] = add_term(clmax, wing_cla(fw) * fw->bip_r[i] * fw->bip_dstall[i]);
-  }
-  for (int i = 0; i < 2; i += 1) {
-    const double r = fw->bip_r[i];
-    wing_lift(fw, r * alpha, r * delta_e, r * dcl_f, cmax[i], k_stall, fre, sin_a, cos_a, &alone[i]);
-  }
-  for (int i = 0; i < 2; i += 1) {
-    const double r = fw->bip_r[i];
-    const double lost = alone[1 - i].cl - alone[1 - i].cl_lin;
-    double a = r * alpha;
-    if (ge) {
-      a = add_term(a, ge->bip_da[i]);
-    }
-    wing_lift(fw, a - fw->bip_m[i] * lost / fw->cl_alpha, r * delta_e, r * dcl_f, cmax[i], k_stall, fre, sin_a, cos_a, &wl[i]);
-  }
-  /* The broadside coefficient and Viterna's B2 are the cell's, on its
-   * span over its area: the two wings stall in each other's flow. */
-  const double plate = plate_cn(fw) * sin_a * sin_a + b2c;
-  const double cl_flat = plate_cn(fw) * sin_a * cos_a;
-  /* With hi_alpha the tail's own angle carries the downwash's loss, as in
-   * plant_wing_step, and stall_dw is not taken again. */
-  const double dw = fw->hi_alpha ? 0.0 : fw->stall_dw;
-  double cl = 0.0, cd = cd0, cdp = 0.0, m = 0.0;
-  for (int i = 0; i < 2; i += 1) {
-    const WingLift *a = &wl[i];
-    const double area = fw->bip_w[i] / fw->bip_r[i];
-    cl += area * a->cl;
-    cdp += area * a->sigma * plate;
-    cd += area * a->sigma * plate + (1.0 - a->sigma) * a->cl_lin * (fw->bip_ki[i] * a->cl_lin + fw->bip_kx[i] * wl[1 - i].cl_lin);
-    if (ge) {
-      cd -= (1.0 - a->sigma) * ge->bip_cd[i];
-    }
-    const double ac = fw->stall_arm_ac + fw->bip_x[i];
-    const double cp = fw->stall_arm_cp - fw->bip_x[i];
-    const double lin = alone[i].cl_lin;
-    const double cn_st = add_term(add_term(plate_cn(fw) * sin_a, (a->cl_st - cl_flat) * cos_a), b2c * sin_a);
-    const double stall = fre * a->past * a->sigma;
-    const double post = ((1.0 - a->past) * ac - a->past * cp) * cn_st - ac * lin - dw * (lin - a->cl_st);
-    m += area * (stall * post + (1.0 - stall) * ac * (a->cl_lin - lin));
-  }
-  for (int i = 0; i < 2; i += 1) {
-    g_bip[i] = wl[i].cl;
-    g_bip[2 + i] = alone[i].cl_lin;
-  }
-  *CL = cl;
-  *CD = cd;
-  *CDp = cdp;
-  *cm = m;
 }
 
 void plant_wing_step(SimState *s, const double rc[4]) {
@@ -2334,21 +1385,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     fw_dmg.cn_beta_fus = f * fw->cn_beta_fus + (1.0 - f) * WING_BODY_CN_BETA;
     fw_dmg.cn_r = fw->cn_r * (0.3 + 0.7 * f);
     fw_dmg.cy_beta = fw->cy_beta * (0.5 + 0.5 * f);
-    for (int j = 0; j < 8; j += 1) {
-      for (int i = 0; i < 20; i += 1) {
-        fw_dmg.cy_tab[j][i] = fw->cy_tab[j][i] * (0.5 + 0.5 * f);
-      }
-    }
     const double r = f < CRASH.rudder_keep ? f : CRASH.rudder_keep;
     fw_dmg.cn_dr = fw->cn_dr * r;
     fw_dmg.cl_dr = fw->cl_dr * r;
     fw_dmg.cy_dr = fw->cy_dr * r;
-    fw_dmg.slip_cl_a = fw->slip_cl_a * h;
-    fw_dmg.slip_cm_a = fw->slip_cm_a * h;
-    fw_dmg.slip_cn_b = fw->slip_cn_b * f;
-    fw_dmg.slip_cn_r = fw->slip_cn_r * f;
-    fw_dmg.slip_cy_b = fw->slip_cy_b * f;
-    fw_dmg.slip_cl_b = fw->slip_cl_b * f;
     fw = &fw_dmg;
   }
   double roll = rc[0];
@@ -2356,9 +1396,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double yaw = rc[2];
   const double throttle = rc[3];
 
-  /* Relative wind in the body frame: still air, or for an airframe that
-   * flies in it, the thermals' rise, which is a wind from below, and the
-   * wind when a host has set one, horizontal and vertical. Everything aerodynamic below,
+  /* Relative wind in the body frame: still air, or the wind when a host
+   * has set one, horizontal and vertical. Everything aerodynamic below,
    * the chute's drag with it, reads this. */
   double vb[3];
   double vg[3] = { s->vel[0], s->vel[1], s->vel[2] };
@@ -2369,61 +1408,16 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     vg[1] -= wa[1];
     vg[2] -= wa[2];
   }
-  if (fw->air_lift) {
-    const double va[3] = { vg[0], vg[1], vg[2] - plant_air_lift(s->pos) };
-    wquat_rotate_inv(s->quat, va, vb);
-  } else {
-    wquat_rotate_inv(s->quat, vg, vb);
-  }
+  wquat_rotate_inv(s->quat, vg, vb);
   const double u = vb[0], v = vb[1], w = vb[2];
   const double V2 = u * u + v * v + w * w;
   const double V = sim_sqrt(V2);
-  /* The stall across the Reynolds numbers (FixedWingParams.stall_re): CL
-   * max and the angle the lift peaks at, from the section's data at two
-   * Reynolds numbers, straight between them at the chord's; the peak is a
-   * stall_blend past the stall angle CL max / CL alpha (wing_lift), so the
-   * blend is what puts it there. A copy, as for the damage above. */
-  FixedWingParams fw_re;
-  if (fw->stall_re[0] > 0.0) {
-    fw_re = *fw;
-    const double re = V * fw->chord * PLANT.rho / AIR_MU;
-    double x = 0.0;
-    if (re > fw->stall_re[0]) {
-      x = re >= fw->stall_re[1] ? 1.0 : (re - fw->stall_re[0]) / (fw->stall_re[1] - fw->stall_re[0]);
-    }
-    fw_re.cl_max = fw->stall_clmax[0] + x * (fw->stall_clmax[1] - fw->stall_clmax[0]);
-    const double peak = fw->stall_peak[0] + x * (fw->stall_peak[1] - fw->stall_peak[0]);
-    const double b = peak - fw_re.cl_max / wing_cla(fw);
-    if (fw->stall_round > 0.0) {
-      fw_re.stall_round = b > fw->stall_round ? b : fw->stall_round;
-    } else {
-      fw_re.stall_blend = b > fw->stall_blend ? b : fw->stall_blend;
-    }
-    fw = &fw_re;
-  }
-  /* The discus launch's zoom lasts as long as the climb does. */
-  if (g_discus == 2 && !(s->vel[2] > 0.0)) {
-    g_discus = 0;
-  }
-  const int preset = g_discus == 2;
-  /* The pitch stick as the radio has it, before any stabiliser below
-   * rewrites it: the elevator to flap mix is the transmitter's. */
-  const double pitch_radio = g_chute ? 0.0 : pitch;
 
-  /* On its wheels a stabiliser has nothing to hold: the gear holds the
-   * attitude, so an attitude loop would only wind its error up against the
-   * ground and let it go at liftoff, and the turn coordinator would fight
-   * the tailwheel the pilot steers with. So the sticks are the surfaces
-   * there, in every mode, and Acro takes its target afresh each step, which
-   * leaves it holding the attitude the aircraft leaves the ground in. */
   if (g_chute) {
     /* Under the canopy the autopilot has let go: surfaces centred. */
     roll = 0.0;
     pitch = 0.0;
     yaw = 0.0;
-  } else if (g_on_wheels && g_stab != 0) {
-    g_acro_held = 0;
-    g_stab_roll_i = 0.0;
   } else if (g_stab == 2) {
     g_stab_roll_i = 0.0;
     /* Acro leaves the yaw stick as the rudder alone. The owner flew the
@@ -2431,19 +1425,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * its own yaw, and the damper pulled the yaw rate back onto the
      * coordinated rate against the pilot's own rudder, so rudder felt
      * mixed into the ailerons and never independent. Stabilised keeps
-     * the coordinator; Acro is flown on the pilot's feet. A table with
-     * acro_yaw gains holds the yaw with the yaw stick centred, nothing of
-     * it level and all of it nose up, and any rudder stick is the
-     * pilot's alone (acro_sticks). */
-    acro_sticks(fw, s, &roll, &pitch, &yaw);
+     * the coordinator; Acro is flown on the pilot's feet (acro_sticks). */
+    acro_sticks(fw, s, &roll, &pitch);
   } else if (g_stab == 1) {
     double pitch_att, bank;
     wing_attitude(s->quat, &pitch_att, &bank);
     const double bank_t = fw->stab_bank_max * deadband1(roll, fw->stab_deadband);
     double pitch_t = fw->stab_trim_pitch + fw->stab_pitch_max * deadband1(pitch, fw->stab_deadband);
-    if (preset) {
-      pitch_t = fw->discus_pitch + fw->stab_pitch_max * deadband1(pitch, fw->stab_deadband);
-    }
     /* With the power gone, a pitch held at the cruise's attitude bleeds
      * the speed into a stall; lower it toward the glide the airframe
      * trims at by itself, as ArduPilot's adjust_nav_pitch_throttle does. */
@@ -2477,47 +1465,6 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     yaw = clamp1(add_term(yaw, yaw_coordinated(fw, s, V)));
   }
 
-  /* The flaps travel toward the notch's angle at the servo's rate. */
-  const double flap_t = flap_target();
-  if (g_flap < flap_t) {
-    g_flap += fw->flap_rate * WING_DT;
-    if (g_flap > flap_t) g_flap = flap_t;
-  } else if (g_flap > flap_t) {
-    g_flap -= fw->flap_rate * WING_DT;
-    if (g_flap < flap_t) g_flap = flap_t;
-  }
-  /* The radio's elevator to flap mix, a pilot's 3D setup ("elevator
-   * flaps", docs/FLIGHTMODEL.md): up elevator lowers the flaps by
-   * elev_flap of their full travel at full stick, on top of the notch.
-   * It is the transmitter's mix on the flap servos, which follow it as the
-   * other surfaces follow their sticks; only the notch's switch is slowed.
-   * Down only, within the flaps' travel. Zero leaves df the notch's. */
-  double df = g_flap;
-  if (fw->elev_flap > 0.0) {
-    df = g_flap + fw->elev_flap * fw->flap_full * (pitch_radio > 0.0 ? pitch_radio : 0.0);
-    if (df > fw->flap_full) df = fw->flap_full;
-  }
-  g_flap_mix = df - g_flap;
-
-  /* The retracts travel toward what is selected at their own rate. */
-  if (fw->gear_time > 0.0) {
-    const double dg = WING_DT / fw->gear_time;
-    if (g_gear_up) {
-      g_gear = g_gear + dg < 1.0 ? g_gear + dg : 1.0;
-    } else {
-      g_gear = g_gear - dg > 0.0 ? g_gear - dg : 0.0;
-    }
-  }
-  /* The cargo doors travel toward what is selected at their own rate. */
-  if (fw->door_time > 0.0) {
-    const double dd = WING_DT / fw->door_time;
-    if (g_door_open) {
-      g_door = g_door + dd < 1.0 ? g_door + dd : 1.0;
-    } else {
-      g_door = g_door - dd > 0.0 ? g_door - dd : 0.0;
-    }
-  }
-
   /*
    * Surfaces. Roll right needs the right surface up and the left one down.
    * The rudder is trailing edge left positive and the yaw stick nose right
@@ -2533,97 +1480,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * expect, through the rudder and the dihedral; the yaw stick stays live
    * for a pilot who uses it. For every other mix the rudder's stick is the
    * yaw stick, the same double.
-   *
-   * The elevator carries the radio's flap mix on top of the stick, within
-   * its travel, as a transmitter's mix does. Without flaps it adds a zero.
    */
   double de = add_term(surface_from_stick(pitch, fw->throw_e, fw->tune ? fw->tune_expo[1] : fw->expo), fw->trim_e);
-  /* The launch preset's elevator is the radio's, under every mode. */
-  if (preset) {
-    de = clip(de + fw->discus_de, fw->throw_e);
-  }
   double da = surface_from_stick(roll, fw->throw_a, fw->tune ? fw->tune_expo[0] : fw->expo);
   const double rudder_stick = fw->mix == FW_MIX_RUDDER ? clamp1(yaw + roll) : yaw;
   double delta_r = -surface_from_stick(rudder_stick, fw->throw_r, fw->tune ? fw->tune_expo[2] : fw->expo);
-  /*
-   * Mode 3, the gyro (scripts/as3x-derive.js), Spektrum's AS3X as the
-   * AR631 runs it. Once a frame it reads the rates and writes each
-   * surface's offset, held to the next: a damper on the body's rate,
-   * as3x_k, and, where the pilot turns its Heading up (the AR631's,
-   * "defaulted to zero", plant_wing_set_heading), a heading term on the
-   * rotation beyond what the stick asks, its stick times as3x_rate, at
-   * that share of as3x_kh. Past 40 percent stick both fade to nothing
-   * (Spektrum's priority 160), so a full stick is Manual's. Priority
-   * "tells the receiver how much to reduce gain when you move the control
-   * stick away from center" (the AR631 manual), so the heading's sum
-   * takes the rotation at the gain priority leaves it, as its output
-   * does: a sum taken at the whole rate while the output was faded wound
-   * up under a held stick and landed all at once when the stick came
-   * back to centre. The heading is held to what the throw can answer,
-   * and it starts afresh whenever priority lets the stick have it all.
-   *
-   * The receiver sees the channels, not the sticks: priority and the
-   * heading's asked rate read each stick through the transmitter's rate
-   * and expo, over the travel the receiver learned with the rates at
-   * their most (as3x_channel; "Learn Travel ... Press apply after
-   * maximizing the rates and moving the channel to the extremes", the
-   * AS3000 manual). The gyro's offset is surface, the same at every
-   * rate: Spektrum ties the gyro to the travel and not to the rates
-   * ("Relearn Travel and Reverse ... after ... changes are made to
-   * travel adjust, absolute travel, and servo reversing", the AS3000
-   * manual; "Changing the servo total travel from 125% will affect the
-   * tuning and performance of the AS3X technology", and on a radio
-   * without travel adjust, "If you need to use low rates ... you can do
-   * so without affecting the performance of the AS3X system", the AR635
-   * manual), so as3x_k and as3x_kh are the gains at the full travel, and
-   * as3x_rate is per unit channel.
-   */
-  if (g_stab == 3 && !g_on_wheels && !g_chute) {
-    const double th[3] = { fw->throw_a, fw->throw_e, fw->throw_r };
-    const double st[3] = {
-      as3x_channel(roll, th[0], fw->as3x_travel[0], fw->tune ? fw->tune_expo[0] : fw->expo),
-      as3x_channel(pitch, th[1], fw->as3x_travel[1], fw->tune ? fw->tune_expo[1] : fw->expo),
-      as3x_channel(rudder_stick, th[2], fw->as3x_travel[2], fw->tune ? fw->tune_expo[2] : fw->expo),
-    };
-    const double frame = fw->as3x_frame > 0.0 ? fw->as3x_frame : AS3X_FRAME_DEFAULT;
-    g_as3x_t -= WING_DT;
-    if (g_as3x_t <= 0.0) {
-      g_as3x_t += frame;
-      for (int i = 0; i < 3; i += 1) {
-        const double pr = as3x_priority(st[i]);
-        const double kh = g_as3x_heading[i] * fw->as3x_kh[i];
-        const double err = s->omega[i] - st[i] * fw->as3x_rate[i];
-        g_as3x_h[i] = pr > 0.0 && kh > 0.0 ? g_as3x_h[i] + pr * err * frame : 0.0;
-        if (kh > 0.0) {
-          g_as3x_h[i] = clip(g_as3x_h[i], th[i] / kh);
-        }
-        g_as3x_out[i] = pr * (fw->as3x_k[i] * s->omega[i] + kh * g_as3x_h[i]);
-      }
-    }
-    da = clip(da - g_as3x_out[0], fw->throw_a);
-    de = clip(de + g_as3x_out[1], fw->throw_e);
-    delta_r = clip(delta_r - g_as3x_out[2], fw->throw_r);
-  } else {
-    for (int i = 0; i < 3; i += 1) {
-      g_as3x_h[i] = 0.0;
-      g_as3x_out[i] = 0.0;
-    }
-    g_as3x_t = 0.0;
-  }
   g_cmd[0] = da;
   g_cmd[1] = de;
   g_cmd[2] = delta_r;
-  /* The servos turn at their rate, not in the step they are asked. */
-  if (fw->servo_rate > 0.0) {
-    const double cmd[3] = { da, de, delta_r };
-    const double most = fw->servo_rate * WING_DT;
-    for (int i = 0; i < 3; i += 1) {
-      g_servo[i] += clip(cmd[i] - g_servo[i], most);
-    }
-    da = g_servo[0];
-    de = g_servo[1];
-    delta_r = g_servo[2];
-  }
   double delta_e;
   if (fw->mix == FW_MIX_ELEVON) {
     g_surf[0] = clip(de - da, fw->surface_max);
@@ -2639,7 +1503,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const int ailerons = fw->mix == FW_MIX_TAIL;
     g_surf[0] = ailerons ? -da : 0.0;
     g_surf[1] = ailerons ? da : 0.0;
-    g_surf[2] = clip(add_term(de, fw->de_df * g_flap), fw->throw_e);
+    g_surf[2] = clip(de, fw->throw_e);
     g_surf[3] = delta_r;
     delta_e = g_surf[2];
   }
@@ -2661,11 +1525,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double v_h = sim_sqrt(V2);
     const double s_w = v_h > 1e-6 ? -w / v_h : 0.0, c_w = v_h > 1e-6 ? u / v_h : 1.0;
     const double s_wing = s_w * fw->cos_zl - c_w * fw->sin_zl;
-    const double s_tail = (s_w * sim_cos(fw->slip_a0) - c_w * sim_sin(fw->slip_a0)) * (1.0 - fw->tail_deda);
     const double s_fin = v_h > 1e-6 ? -v / v_h : 0.0;
     const double DEG_H = 180.0 / WING_PI;
     const double f_a = -fw->hinge_alpha[0] * s_wing * DEG_H;
-    const double f_e = -fw->hinge_alpha[1] * s_tail * DEG_H;
+    const double f_e = -fw->hinge_alpha[1] * s_w * DEG_H;
     const double f_r = -fw->hinge_alpha[2] * s_fin * DEG_H;
     const double lim_a = fw->mix == FW_MIX_ELEVON ? fw->surface_max : fw->throw_a;
     const double was[4] = { g_surf[0], g_surf[1], g_surf[2], g_surf[3] };
@@ -2678,11 +1541,6 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     }
     if (g_surf[3] != was[3]) {
       delta_r = g_surf[3];
-    }
-    if (fw->servo_rate > 0.0 && fw->mix == FW_MIX_TAIL) {
-      g_servo[0] -= was[1] - g_surf[1];
-      g_servo[1] -= was[2] - g_surf[2];
-      g_servo[2] -= was[3] - g_surf[3];
     }
   }
   /* A surface that has left moves nothing, and with the pack gone every
@@ -2710,21 +1568,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* Angle of attack of the zero lift line, which is the body's on the wing. */
   double alpha = (Vxz > 1e-6 ? sim_atan2(-w, u) : 0.0) - fw->alpha_zl;
   const double beta = V > 1e-6 ? sim_atan2(-v, Vxz) : 0.0; /* wind from the right positive */
-  /* The sideslip the sideslip terms take: the angle, or with hi_alpha its
-   * sine, the body's sideways speed over the airspeed, which is the angle
-   * at small angles and stays bounded flying sideways. */
-  const double beta_s = fw->hi_alpha ? (V > 1e-6 ? -v / V : 0.0) : beta;
+  /* The sideslip the sideslip terms take: the angle. */
+  const double beta_s = beta;
   const double qbar = 0.5 * PLANT.rho * V2;
   const double Vrate = V > 1.0 ? V : 1.0; /* floor for the rate terms */
 
-  /* Lift and drag coefficients, with the stall blend. The flaps add lift
-   * at every alpha, which brings the stall to a lower alpha by their own
-   * share of it, and raise the CLmax the stall is reached at; the slats
-   * raise the CLmax alone, which moves the stall along the same lift
-   * curve to a higher alpha. All of it zero without them. */
-  const double dcl_f = fw->cl_df * df + fw->cl_df2 * df * df;
-  const double clmax = add_term(add_term(fw->cl_max, fw->clmax_df * df), g_slats ? fw->slat_dclmax : 0.0);
-  const double alpha_stall = clmax / wing_cla(fw);
+  /* Lift and drag coefficients, with the stall blend. */
+  const double clmax = fw->cl_max;
+  const double alpha_stall = clmax / fw->cl_alpha;
   double sin_b = 0.0, cos_b = 1.0;
   if (Vxz > 0.5) {
     sin_b = -w / Vxz;
@@ -2736,7 +1587,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* Near the ground (GROUND EFFECT above) the wing flies at its angle plus
    * the image's upwash, everything of the wing's below with it. */
   GroundTerms ge;
-  const int ge_on = ground_terms(s, fw, add_term(alpha, dcl_f / wing_cla(fw)), sin_b, cos_b, clmax, &ge);
+  const int ge_on = ground_terms(s, fw, alpha, clmax, &ge);
   if (ge_on) {
     const double sd = sim_sin(ge.da), cd = sim_cos(ge.da);
     const double sa = sin_a * cd + cos_a * sd;
@@ -2745,35 +1596,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     alpha += ge.da;
   }
   const double cl_flat = plate_cn(fw) * sin_a * cos_a;
-  double cd0 = add_term(add_term(fw->cd0, g_slats ? fw->slat_cd0 : 0.0), fw->cd_df2 * df * df);
-  /* Retracts: the gear's drag goes as it folds away. */
-  if (fw->gear_time > 0.0) {
-    cd0 -= fw->cd_gear * g_gear;
-  }
-  /* The cargo doors: the open ramp's drag goes as they open. */
-  if (fw->door_time > 0.0) {
-    cd0 += fw->cd_door * g_door;
-  }
-  /* The drag across the Reynolds numbers (FixedWingParams.cd0_re). */
-  if (fw->cd0_re > 0.0) {
-    const double re_now = V * fw->chord * PLANT.rho / AIR_MU;
-    const double re_d = re_now > 0.5 * fw->cd0_re ? re_now : 0.5 * fw->cd0_re;
-    cd0 *= sim_sqrt(fw->cd0_re / re_d);
-  }
-  /* A bigger surface's drag, deflected (FixedWingParams.surf_cd): a
-   * pressure drag, so after the skin's Reynolds number scaling above. */
-  if (fw->surf_cd[0] > 0.0 || fw->surf_cd[1] > 0.0 || fw->surf_cd[2] > 0.0) {
-    cd0 += add_term(add_term(fw->surf_cd[0] * surf_drag(delta_a), fw->surf_cd[1] * surf_drag(delta_e)),
-                    fw->surf_cd[2] * surf_drag(delta_r));
-  }
+  const double cd0 = fw->cd0;
   /* Viterna's drag past the stall, CDmax sin^2 + B2 cos, B2 taking the
    * drag at the stall angle, cd0 + k CLmax^2, on continuously (NASA
    * TM-82944 eqs. 15 and 17); the cd0 is the skin's, along the chord. The
    * plate alone, without B2, fell short of the stalled section's drag
    * between the stall and about 30 deg (NACA 0012 at 20 deg: 0.30
    * measured, SAND80-2114 table 2, the plate 0.21 even at 2.0). */
-  const double a_s = add_term(alpha_stall, -dcl_f / wing_cla(fw));
-  const double s_s = sim_sin(a_s), c_s = sim_cos(a_s);
+  const double s_s = sim_sin(alpha_stall), c_s = sim_cos(alpha_stall);
   const double b2 = (fw->k_induced * clmax * clmax - plate_cn(fw) * s_s * s_s) / c_s;
   const double b2c = cos_a > 0.0 ? b2 * cos_a : 0.0;
   const double cd_flat = cd0 + plate_cn(fw) * sin_a * sin_a + b2c;
@@ -2782,242 +1612,32 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * derived on. Past it the lift is its section's (wing_lift above). */
   const double re = V * fw->chord * PLANT.rho / AIR_MU;
   const double fre = smoothstep(STALL_RE_LO, STALL_RE_HI, re);
-  const double k_stall = (g_slats && fw->slat_k > 0.0) ? fw->slat_k : fw->stall_k;
+  const double k_stall = fw->stall_k;
   WingLift wl;
-  wing_lift(fw, alpha, delta_e, dcl_f, clmax, k_stall, fre, sin_a, cos_a, &wl);
+  wing_lift(fw, alpha, delta_e, clmax, k_stall, fre, sin_a, cos_a, &wl);
   const double sigma = wl.sigma, cl_lin = wl.cl_lin, cl_st = wl.cl_st, fall = wl.fall, past = wl.past;
   const double cd_lin = cd0 + fw->k_induced * cl_lin * cl_lin;
   double CL = wl.cl;
   double CD = (1.0 - sigma) * cd_lin + sigma * cd_flat;
   /* The separated wing's plate share of CD (cd_flat less its cd0), kept
-   * beside CD through the flaps and the biplane below: THE PLATE'S FORCE
-   * IN A SIDESLIP, at the forces. */
+   * beside CD: THE PLATE'S FORCE IN A SIDESLIP, at the forces. */
   double cd_plate = sigma * (plate_cn(fw) * sin_a * sin_a + b2c);
   /* The attached wing's lift, tilted forward by the image's upwash. */
   if (ge_on) {
     CD -= (1.0 - sigma) * ge.clw * ge.da;
   }
-  /* THE FLAPS PAST THE STALL. The linear flap terms above carry on through
-   * the stall as if attached. Measured, a down flap's normal force past
-   * the stall is a fraction k of its attached lift that falls to nothing
-   * by 90 deg, and it acts about 0.4 of the chord behind the quarter
-   * chord, so its moment is nose down: NACA TN 3307 (Kuhn and Draper 1954,
-   * a 30 percent plain flap on a NACA 0015 wing to 90 deg) and Ma, Smeur
-   * and de Croon 2022 (a flapped wing at all angles, Re 0.5 to 2.3e5)
-   * agree (~/Desktop/fdfpv-loop/research/FLAP-DEEP-STALL.md). As the wing
-   * passes its stall (fre past) the flaps' terms go over to that: the
-   * wing taken without its flaps, plus k dcl_f as a normal force, with
-   * its moment at that arm in place of cm_dcl_f's. k is FITTED to both: 1
-   * at the stall, 0.5 at 30 deg, 0 at 90. */
-  const int flaps_past = dcl_f != 0.0 && fre > 0.0 && wl.past > 0.0 && fw->bip_w[0] <= 0.0;
-  double w_fp = 0.0, cm_fp_lin = 0.0, cm_fp_meas = 0.0, b20c = 0.0;
-  WingLift w0 = wl;
-  if (flaps_past) {
-    const double clmax_nf = add_term(fw->cl_max, g_slats ? fw->slat_dclmax : 0.0);
-    wing_lift(fw, alpha, delta_e, 0.0, clmax_nf, k_stall, fre, sin_a, cos_a, &w0);
-    const double a_deg = sim_atan2(sin_a, cos_a) * 180.0 / WING_PI;
-    const double as_deg = clmax_nf / wing_cla(fw) * 180.0 / WING_PI;
-    const double k_f = a_deg <= as_deg ? 1.0
-                       : a_deg < 30.0 ? 1.0 - 0.5 * (a_deg - as_deg) / (30.0 - as_deg)
-                       : a_deg < 90.0 ? 0.5 * (90.0 - a_deg) / 60.0 : 0.0;
-    const double dcn = k_f * dcl_f;
-    w_fp = fre * wl.past;
-    const double s0 = sim_sin(clmax_nf / wing_cla(fw)), c0 = sim_cos(clmax_nf / wing_cla(fw));
-    const double b20 = (fw->k_induced * clmax_nf * clmax_nf - plate_cn(fw) * s0 * s0) / c0;
-    const double cd_flat0 = cd0 + plate_cn(fw) * sin_a * sin_a + (cos_a > 0.0 ? b20 * cos_a : 0.0);
-    const double cd0_nf = (1.0 - w0.sigma) * (cd0 + fw->k_induced * w0.cl_lin * w0.cl_lin) + w0.sigma * cd_flat0;
-    CL = add_term((1.0 - w_fp) * CL, w_fp * add_term(w0.cl, dcn * cos_a));
-    CD = add_term((1.0 - w_fp) * CD, w_fp * add_term(cd0_nf, dcn * sin_a));
-    cd_plate = add_term((1.0 - w_fp) * cd_plate, w_fp * add_term(w0.sigma * (cd_flat0 - cd0), dcn * sin_a));
-    /* The moment's parts, assembled with the stall's below. */
-    cm_fp_lin = fw->cm_dcl_f * dcl_f;
-    cm_fp_meas = -(0.4 - fw->stall_arm_ac) * dcn;
-    b20c = cos_a > 0.0 ? b20 * cos_a : 0.0;
-  }
-  /* A biplane (FixedWingParams.bip_w) takes its lift, its drag and its
-   * stall's pitching moment wing by wing, biplane_lift above, and the
-   * strips below judge their stall on the wing that stalls first. */
-  double cm_bip = 0.0, alpha_strip = alpha_stall;
-  const int biplane = fw->bip_w[0] > 0.0;
-  if (biplane) {
-    biplane_lift(fw, alpha, delta_e, dcl_f, clmax, k_stall, fre, sin_a, cos_a, cd0, b2c, ge_on ? &ge : 0, &CL, &CD, &cd_plate, &cm_bip);
-    alpha_strip = alpha_stall / (fw->bip_r[0] > fw->bip_r[1] ? fw->bip_r[0] : fw->bip_r[1]);
-  }
-
-  /*
-   * PAST THE LINEAR ANGLES, for a table with hi_alpha (docs/EXTRA-STAGE1.md).
-   * Without it the pitch stiffness is cm_alpha alpha and the sideslip and
-   * control terms the table's, as they always were. With it the wing and
-   * body's share of the stiffness takes sin(alpha), and each tail surface
-   * is taken at its own angle with its control's: the stabiliser at the
-   * wing's angle less the downwash, which goes with the lift the wing
-   * makes (so a stalled wing's lost downwash is in it, and stall_dw is not
-   * taken again), less the angle it carries none at, and the elevator's
-   * share; the fin at the sideslip and the rudder's share. Each surface's
-   * normal force, linear x = a (angle) at small angles, saturates on a
-   * flat plate's tail_cn, x / (1 + (x / tail_cn)^4)^(1/4), so a surface in
-   * a crossflow, or a control past what its surface can carry, pushes no
-   * harder than a plate does. At small angles every term is the linear
-   * one it replaces.
-   */
-  double cm_stiff = fw->cm_alpha * alpha;
-  double cm_de_lin = fw->cm_de;
+  const double cm_stiff = fw->cm_alpha * alpha;
+  const double cm_de_lin = fw->cm_de;
   double cyb = fw->cy_beta, clb = fw->cl_beta, cnb = fw->cn_beta;
   double cydr = fw->cy_dr, cldr = fw->cl_dr, cndr = fw->cn_dr;
-  double cl_lin_m = cl_lin, stall_dw = fw->stall_dw;
-  double vh = 0.0, vv = 0.0, ae = 0.0, ar = 0.0;
-  /* The fin's share of the sideslip terms as it stands, saturated on its
-   * plate with hi_alpha, whole without. */
-  double rv_fin = 1.0;
-  if (fw->hi_alpha) {
-    const double dd = fw->tail_deda;
-    vh = -fw->slip_cm_a / (fw->tail_at * (1.0 - dd));
-    vv = fw->slip_cn_b / fw->tail_av;
-    /* The elevator's and the rudder's angles on their surfaces. A surface
-     * a crash took away (crash.c zeroes its share, so vh or vv is zero)
-     * carries no angle, where the division would be 0 / 0. */
-    ae = vh > 0.0 ? -fw->cm_de * delta_e / vh : 0.0;
-    ar = vv > 0.0 ? fw->cn_dr * delta_r / vv : 0.0;
-    /* The downwash goes with the wing's lift: with the wing's own slope
-     * (cl_alpha_wing) CL here is the wing's alone. */
-    const int tail_own = fw->cl_alpha_wing > 0.0;
-    double at = sin_a - dd * CL / (tail_own ? fw->cl_alpha_wing : fw->cl_alpha) - fw->slip_a0 * (1.0 - dd);
-    /* Near the ground the tail is at the geometric angle less the
-     * downwash its image leaves, not at the wing's shifted one. */
-    if (ge_on) {
-      at += ge.dt;
-    }
-    const double xt = fw->tail_at * at + ae;
-    const double rt = plate_ratio(xt, fw->tail_cn);
-    cm_stiff = (fw->cm_alpha - fw->slip_cm_a) * sin_a + fw->slip_cm_a * fw->slip_a0 - vh * xt * rt;
-    /* THE TAIL'S OWN LIFT: on its own angle, the elevator's with it,
-     * saturating on its plate as its moment above does, so the lift and
-     * the moment are one surface's. Its share of the slope over its own,
-     * (CLa - a_w) / (a_t (1 - de/da)), is S_t / S eta (Nelson eq. 2.52);
-     * at small angles it is (CLa - a_w) alpha + cl_de delta_e, the linear
-     * plant's. docs/FLIGHTMODEL.md, the tail's own stall. */
-    if (tail_own) {
-      CL = add_term(CL, (fw->cl_alpha - fw->cl_alpha_wing) / (fw->tail_at * (1.0 - dd)) * xt * rt);
-    }
-    cm_de_lin = 0.0;
-    const double xv = fw->tail_av * beta_s + ar;
-    const double rv = plate_ratio(xv, fw->tail_cn);
-    rv_fin = rv;
-    cyb = fw->cy_beta - fw->slip_cy_b * (1.0 - rv);
-    clb = fw->cl_beta - fw->slip_cl_b * (1.0 - rv);
-    cnb = fw->cn_beta - fw->slip_cn_b * (1.0 - rv);
-    cydr = fw->cy_dr * rv;
-    cldr = fw->cl_dr * rv;
-    cndr = fw->cn_dr * rv;
-    cl_lin_m = add_term(fw->cl_alpha * sin_a + fw->cl_de * delta_e, dcl_f);
-    stall_dw = 0.0;
-  } else if (ge_on && (fw->cl_alpha_wing > 0.0 || fw->ge_cla_wing > 0.0)) {
-    /* The linear tail: the whole aircraft's curve took it at the wing's
-     * shifted angle, and the ground puts it at ge.dt over that. Its lift
-     * per rad of its own angle is the curve's tail share over (1 - d eps
-     * / d alpha) (Nelson eq. 2.52), its moment that lift at its arm. */
-    const double keep = CRASH.active ? CRASH.hstab_keep : 1.0;
-    const double dcl_t = keep * (fw->cl_alpha - ge_cla(fw)) / (1.0 - fw->tail_deda) * ge.dt;
-    CL += dcl_t;
-    cm_stiff += dcl_t * fw->ge_tail[0] / fw->chord;
-  }
-
-  /*
-   * SIDESLIP PAST THE STALL, docs/FLIGHTMODEL.md, on a table that splits
-   * its cl_beta (cl_beta_wing and cl_beta_fin given); zero on any other,
-   * whose sideslip derivatives stay its linear ones. Three measured
-   * changes past the wing's CL max, rel degrees past its own stall angle:
-   * - The wing's share (dihedral, wing position) goes with its attached
-   *   flow: the full size GA airplane's C_l_beta falls from -0.0042 per
-   *   deg at 16 deg to -0.0006 to -0.0023 at 26 to 41 (NASA TP-2011, fig.
-   *   51; its 1/6 model the same, CR-2971 fig. 42). Gone 5 deg past.
-   * - The separated wing rolls away from the slip on its own, past a dead
-   *   zone: about 0.003 per deg beyond 3 to 5 deg of slip (CR-2971 fig.
-   *   42f; NACA TR 379 figs. 28 and 29, 5 deg of yaw giving 15 to 20
-   *   percent of 20 deg's), rising from the stall to 0.0035 4 deg past it
-   *   and easing to 0.0015 40 past (TR 548 fig. 7, rounded tips). The
-   *   dead zone, 4 deg, is FITTED: the data put it between 3 and 6.
-   * - The fin and rudder sit in the stalled wing's wake: TP-2011's rudder
-   *   (fig. 55a) keeps 0.63 of its yawing moment 5 deg past the stall,
-   *   0.46 at 10, 0.38 at 15, 0.23 at 20 and 0.08 at 25; the fin's
-   *   cn_beta_fin and cl_beta_fin shares and the rudder take that share.
-   *   Measured on one low wing airplane, taken for every tail, ESTIMATED
-   *   for other layouts. The prop's wash over the fin (the slipstream's
-   *   own terms) is not in the wake and keeps its rudder.
-   */
-  double cl_sep = 0.0;
-  if (fw->cl_beta_wing != 0.0 && fre > 0.0) {
-    const double aw_s = add_term(alpha, dcl_f / wing_cla(fw));
-    const double rel = (sim_fabs(aw_s) - alpha_stall) * 180.0 / WING_PI;
-    const double sep_w = fre * (rel <= 0.0 ? 0.0 : rel >= 5.0 ? 1.0 : rel / 5.0);
-    static const double KP[6] = { 0.0, 4.0, 10.0, 25.0, 40.0, 90.0 };
-    static const double KK[6] = { 0.0010, 0.0035, 0.0030, 0.0025, 0.0015, 0.0015 };
-    const double ff = keep_at(fw->fin_keep, FIN_KEEP_TP2011, rel);
-    double kk = 0.0;
-    for (int i = 0; i < 5; i += 1) {
-      if (rel > KP[i] && rel <= KP[i + 1]) kk = KK[i] + (KK[i + 1] - KK[i]) * (rel - KP[i]) / (KP[i + 1] - KP[i]);
-    }
-    const double fin = 1.0 - fre * fin_in_wake(fw, v, Vxz) * (1.0 - ff);
-    /* The wake takes its share of the fin as the fin stands: saturated on
-     * its plate, rv_fin of its linear share, the wake can take no more
-     * than that. Taking the linear share off a saturated fin left it
-     * pushing the wrong way, 0.2832 (0.31 - 0.92) on the Extra at 90 deg
-     * of sideslip. */
-    clb = add_term(add_term(clb, -fw->cl_beta_wing * sep_w), -fw->cl_beta_fin * rv_fin * (1.0 - fin));
-    cnb = add_term(cnb, -fw->cn_beta_fin * rv_fin * (1.0 - fin));
-    cydr *= fin;
-    cldr *= fin;
-    cndr *= fin;
-    const double bd = sim_fabs(beta_s) * 180.0 / WING_PI - 4.0;
-    if (bd > 0.0) {
-      cl_sep = -(beta_s < 0.0 ? -1.0 : 1.0) * (aw_s < 0.0 ? -1.0 : 1.0) * sep_w * kk * bd;
-    }
-  }
-  /*
-   * MEASURED LATERAL DERIVATIVES AGAINST ALPHA, on a table that gives them
-   * (hi_lat, the F-16's from NASA TP-1538 table III, scripts/
-   * f16-derive-hilat.js): the weathercock, the dihedral, the roll and yaw
-   * damping, the ailerons and the rudder, each as the measured aircraft's
-   * ratio to its own value at no angle of attack, where the table's linear
-   * derivatives are derived; the cross derivatives Cl_r and Cn_p the
-   * measured ones themselves, in place of the CL rules. All in the
-   * stability axes the linear terms are in. The roll damping is then the
-   * measured whole aircraft's through its stall, which never goes
-   * propelling, so the strips' stall moments below, which take back the
-   * linear damping as each strip stalls, are not added: with them as well
-   * the F-16 took the damping away twice and spun hands off at 505 deg/s
-   * from the S9 mush.
-   */
-  const int hi_lat = fw->hi_lat[0][0] != 0.0;
-  const double a_body = sim_atan2(sin_b, cos_b) * 180.0 / WING_PI;
-  const double r_clp = hi_lat ? hi_lat_at(fw->hi_lat[2], a_body) : 1.0;
-  const double r_cnr = hi_lat ? hi_lat_at(fw->hi_lat[3], a_body) : 1.0;
-  const double r_ail = hi_lat ? hi_lat_at(fw->hi_lat[4], a_body) : 1.0;
-  const double r_cnb = hi_lat ? hi_lat_at(fw->hi_lat[0], a_body) : 1.0;
-  if (hi_lat) {
-    cnb *= r_cnb;
-    clb *= hi_lat_at(fw->hi_lat[1], a_body);
-    const double r_rud = hi_lat_at(fw->hi_lat[5], a_body);
-    cydr *= r_rud;
-    cldr *= r_rud;
-    cndr *= r_rud;
-  }
-
+  const double cl_lin_m = cl_lin;
 
   /* Forces in the body frame. */
   double F[3] = { 0.0, 0.0, 0.0 };
   if (V > 1e-6) {
     const double L = qbar * fw->area * CL;
     const double D = qbar * fw->area * CD;
-    /* A table with a measured side force (cy_tab, the F-16's from NASA
-     * TP-1538) takes the body's whole power off side force from it: the
-     * tunnel's balance measured it in the body axes, where a broadside
-     * wing's force is the plate's normal and none of it goes sideways with
-     * the wind. So the drag's sideways share, cy_beta's line and the
-     * crossflow (none on such a table) are its, and the rudder's stays. */
-    const int cy_meas = fw->cy_tab[7][4] != 0.0;
-    const double y_beta = cy_meas ? qbar * fw->area * cy_tab_at(fw, a_body, beta * 180.0 / WING_PI, -v / V)
-                                  : qbar * fw->area * cyb * beta_s;
+    const double y_beta = qbar * fw->area * cyb * beta_s;
     const double Y = add_term(y_beta, qbar * fw->area * cydr * delta_r);
     /* Lift is perpendicular to the wind in the x z plane, up in level flight. */
     if (Vxz > 1e-6) {
@@ -3040,9 +1660,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double Dp = qbar * fw->area * cd_plate;
     const double Dw = add_term(D, -Dp);
     F[0] -= Dw * u / V;
-    if (!cy_meas) {
-      F[1] -= Dw * v / V;
-    }
+    F[1] -= Dw * v / V;
     F[2] -= Dw * w / V;
     if (Vxz > 1e-6) {
       F[0] -= Dp * u / Vxz;
@@ -3070,12 +1688,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * glow engine's stick runs its rpm from the carburettor's idle to full,
    * so its duty is never under the idle's. */
   double duty = throttle;
-  if (fw->throttle_rpm[10] > 0.0) {
-    /* The measured speed at the stick; an electric's ESC duty is the one
-     * Drela's motor settles at that speed on, (n^2 + K_M n) / (K_M + 1). */
-    const double c = engine_throttle(fw, throttle);
-    duty = fw->current_full > 0.0 ? (c * c + PROP_K_M * c) / (PROP_K_M + 1.0) : c;
-  } else if (fw->throttle_idle > 0.0) {
+  if (fw->throttle_idle > 0.0) {
     duty = fw->throttle_idle + (1.0 - fw->throttle_idle) * throttle;
   }
   /* An electric aircraft's ESC at zero throttle does not drive the motor:
@@ -3104,7 +1717,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (fan) {
     n = fan_spool(fw, throttle, duty_e, dead || g_chute);
   } else if (prop_spools(fw)) {
-    n = prop_spool(fw, duty_e, dead || g_chute, u > 0.0 ? u : 0.0, throttle);
+    n = prop_spool(fw, duty_e, dead || g_chute, u > 0.0 ? u : 0.0);
   }
   const double u_pos = u > 0.0 ? u : 0.0;
   /* A fan or a prop at rest makes nothing, where 0 / 0 would be a NaN. */
@@ -3132,17 +1745,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   }
   /* The chase boost's faster prop, last; exact at 1.0 (sim_set_boost). */
   thrust *= SIM_BOOST * SIM_BOOST;
-  /* Right thrust: the line turned thrust_yaw right of the axis, its
-   * sideways part at the disc, prop_x ahead of the CG (thrust_yaw). */
-  double m_thrust_yaw = 0.0;
-  if (fw->thrust_yaw != 0.0) {
-    const double fy = -thrust * sim_sin_small(fw->thrust_yaw);
-    F[0] += thrust * sim_cos_small(fw->thrust_yaw);
-    F[1] += fy;
-    m_thrust_yaw = fw->prop_x * fy;
-  } else {
-    F[0] += thrust;
-  }
+  F[0] += thrust;
   /*
    * THE PROP'S TORQUE AND ITS ROTOR, docs/FLIGHTMODEL.md "The prop's
    * torque, from the drive". q_air is the torque the prop puts into the
@@ -3170,235 +1773,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     q_react = driven && g_mount_on ? q_air + fw->j_prop * w_f * g_prop_dn : 0.0;
     w_rot = (folded || !(kt > 0.0)) ? 0.0 : n * w_f;
   }
-  /*
-   * THE SLIPSTREAM over the tail and the ailerons, where the table has one
-   * (FixedWingParams.slip_r). Momentum theory: the disc's pressure jump
-   * dp = T / A, the induced speed v_i at the disc, the far wake 2 v_i
-   * faster than the free stream and contracted to rw. Each surface's share
-   * of the wash is how much of it rw covers. The controls meet dp on the
-   * share; the angle and rate terms meet rho v_i times the crossflow over
-   * the surface, which is the free stream's q times the angle, 1/2 rho V
-   * (V alpha), with the wash's 2 v_i in place of V: so a still aircraft's
-   * own rotation meets the wash too, and is damped by it. The tail's force
-   * is along the body's axes, the wash's own direction. Taken after the
-   * boost, so a faster prop blows harder. Nothing here runs without a
-   * slipstream, and the three moments stay zero.
-   */
-  double m_slip = 0.0, n_slip = 0.0, l_slip = 0.0;
-  for (int i = 0; i < 6; i += 1) {
-    g_slip[i] = 0.0;
-  }
-  for (int i = 0; i < YAW_BUDGET_DOUBLES; i += 1) {
-    g_yaw[i] = 0.0;
-  }
-  if (fw->slip_r > 0.0 && thrust > 0.0) {
-    const double dp = thrust / (WING_PI * fw->slip_r * fw->slip_r);
-    const double vi = 0.5 * (sim_sqrt(u_pos * u_pos + 2.0 * dp / PLANT.rho) - u_pos);
-    const double rw = fw->slip_r * sim_sqrt((u_pos + vi) / (u_pos + 2.0 * vi));
-    const double fh = rw < fw->slip_yh ? rw / fw->slip_yh : 1.0;
-    const double up = rw < fw->slip_hv[0] ? rw : fw->slip_hv[0];
-    const double dn = rw < fw->slip_hv[1] ? rw : fw->slip_hv[1];
-    const double fv = fw->slip_hv[0] + fw->slip_hv[1] > 0.0 ? (up + dn) / (fw->slip_hv[0] + fw->slip_hv[1]) : 0.0;
-    double fa = 0.0;
-    if (rw > fw->slip_ya[0]) {
-      const double ye = rw < fw->slip_ya[1] ? rw : fw->slip_ya[1];
-      const double y0 = fw->slip_ya[0], y1 = fw->slip_ya[1];
-      fa = (ye * ye - y0 * y0) / (y1 * y1 - y0 * y0);
-    }
-    /* The crossflows: over the stabiliser from its zero lift, V sin(alpha
-     * - a0) in the body's velocities; over the fin, the sideways speed.
-     * Where the table has the jet normal force (jet_kj, below), the disc
-     * has already taken that force's share of the air's sideways momentum:
-     * N_j is the momentum drag, the mass flow times the crossflow it turns
-     * onto the axis (Selig, AIAA 2010-7938, eqs. 13 to 16), so the air
-     * through the disc leaves with 1 - N_j / (mdot V_T) of its crossflow
-     * against the body, and the surfaces in the wash meet that, not the
-     * whole of it, or the same momentum is spent twice. The share is the
-     * jet's own k over the disc's mass flow, rho pi R^2 (u + v_i): jet_kj
-     * hanging still, nothing with way on. It is the body's sideways and
-     * normal speeds only; the rates' own crossflow at the tail is the
-     * cn_r and cm_q terms'. Taking the whole of it, a hover drifting
-     * sideways turns its nose into the drift on the fin in the wash, and
-     * the Extra's rudder tilt per stick sits flat at 0.55 to 0.70 from 1
-     * to 4 rad/s (scripts/figures-margins.js, the hover). */
-    double turned = 0.0;
-    if (fw->jet_kj > 0.0) {
-      const double w0 = sim_sqrt(thrust / (2.0 * PLANT.rho * WING_PI * fw->slip_r * fw->slip_r));
-      turned = fw->jet_kj * w0 * vi / ((u_pos + vi) * (u_pos + vi));
-    }
-    const double v_wash = v * (1.0 - turned), w_wash = w * (1.0 - turned);
-    const double xa = -w_wash * sim_cos_small(fw->slip_a0) - u * sim_sin_small(fw->slip_a0);
-    /* The swirl: the prop's torque, torque_arm times the thrust, is the
-     * wash's angular momentum flux, the mass flow rho pi R^2 (u + v_i)
-     * turning as a solid body at Omega, Q = mdot Omega rw^2 / 2. Every prop
-     * here turns clockwise seen from behind, and so does its wash: over
-     * the fin above the thrust line it blows from the left, under it from
-     * the right, Omega y at height y. Over the fin's span in the wash the
-     * mean of the two, weighted by each part's share, is Omega (up - dn) /
-     * 2, which the fin's terms take as a sideways speed: the nose yaws left
-     * under power and right rudder holds it, the tractor's left turning
-     * tendency on the take off roll, and the fin's side force rolls the
-     * airframe against the torque. The wing's root, in the wash ahead of
-     * the fin, is a stator: it turns part of the swirl back straight and
-     * takes that part's angular momentum as a roll moment the prop's way,
-     * against the torque reaction (Veldhuis, Propeller Wing Aerodynamic
-     * Interference, TU Delft 2005: the wing recovers a significant part of
-     * the swirl). SWIRL_KEEP of the swirl reaches the fin; the rest is the
-     * root's. Where the table measures its root (slip_root) the root's
-     * share is the wing's own lift in the swirl, root_swirl above, and the
-     * fin meets what the root leaves. Standing still the swirl spreads with
-     * the jet and slows by the fin, faster than the axial wash: the fin
-     * meets 1 - slip_loss[2] of the solid body's crossflow force (Deters,
-     * Ananda and Selig 2015, figs. 15a and 15b; scripts/lib/wash.js
-     * swirlKeep), going with the mixing ratio lam as the axial loss does
-     * below; with way on it holds to x/D 3 (fig. 22b). */
-    const double lam = vi / (u_pos + vi);
-    const double q_prop = q_air;
-    const double mdot = PLANT.rho * WING_PI * fw->slip_r * fw->slip_r * (u_pos + vi);
-    double keep = fw->slip_pusher ? 1.0 : SWIRL_KEEP;
-    double root = (1.0 - keep) * q_prop;
-    if (fw->slip_root_eta > 0.0 && q_prop > 0.0) {
-      const double om = 2.0 * q_prop / (mdot * rw * rw);
-      const double xw = -w * fw->cos_zl - u * fw->sin_zl;
-      root = root_swirl(fw, xw, u_pos + 2.0 * vi, om, rw);
-      if (root > q_prop) {
-        root = q_prop;
-      }
-      keep = 1.0 - root / q_prop;
-    }
-    const double xs = (1.0 - fw->slip_loss[2] * lam) * keep * q_prop * (up - dn) / (mdot * rw * rw);
-    const double xb = add_term(-v_wash, -xs);
-    /* The fin's force from its crossflow takes rho v_i, the wash's excess
-     * over the free stream, whose own fin terms take the body's sideslip;
-     * but nothing outside the wash blows the swirl, so the swirl's
-     * sideways speed meets the whole stream, 1/2 rho (u + 2 v_i) per unit
-     * of it. Standing still the two are the same; at Deters, Ananda and
-     * Selig's J 0.52 (fig. 22b, 3.7 to 4.2 times rho v_i's measured, flat
-     * with distance) the whole stream's is 4.3 times. The fin's angle in
-     * the wash, which saturates it, stays the swirl's own speed. */
-    const double xbf = add_term(-v_wash, -xs * (u_pos + 2.0 * vi) / (2.0 * vi));
-    /* A control surface in the wash loses its effect past about 30 deg of
-     * the airframe's angle, though the wash still runs along it, by how
-     * much as it is deflected (scripts/lib/washcontrol.js, its sources,
-     * ~/Desktop/fdfpv-loop/research/wash-control/WASH-CONTROL.md): with the
-     * incidence, to the windward side, NACA TN 3307's 30 percent flap at
-     * Tc'' 0.71 (figs. 13c and 16c), which Ma, Smeur and de Croon 2022's
-     * flapped wing at 70 percent throttle repeats (4TU doi:10.4121/16620226);
-     * against it, to the leeward side, Ma 2022's, which keeps far more
-     * (0.89 at 40 deg against 0.47). Each FITTED to its data as a curve on
-     * the body's angle. The elevator takes the side its deflection is on
-     * against the stabiliser's crossflow (nose up elevator at a positive
-     * angle is against it, the harrier's), the ailerons, one each way, the
-     * mean of the two; on the elevator's angle in the wash and its share
-     * both, so the tail's saturating normal force stays monotonic in the
-     * stick. */
-    static const double KW_DEG[9] = { 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0 };
-    static const double KW_WITH[9] = { 1.0, 1.0, 0.735, 0.47, 0.30, 0.13, 0.10, 0.07, 0.05 };
-    static const double KW_AGAINST[9] = { 1.0, 0.95, 0.93, 0.89, 0.74, 0.55, 0.37, 0.25, 0.16 };
-    const double a_w = sim_fabs(sim_atan2(-w, u_pos > 0.0 ? u_pos : 0.0)) * 180.0 / WING_PI;
-    /* With no freestream (Tc'' 1, the hover) nothing turns the wash off
-     * the surface and the angle means nothing: the loss fades out between
-     * TN 3307's highest Tc'', 0.91, where it is whole, and 1. */
-    const double tcl = dp / (dp + 0.5 * PLANT.rho * V * V);
-    const double fade = tcl <= 0.91 ? 1.0 : tcl >= 1.0 ? 0.0 : (1.0 - tcl) / 0.09;
-    const double k_with = 1.0 - fade * (1.0 - wash_keep(KW_DEG, KW_WITH, a_w));
-    const double k_against = 1.0 - fade * (1.0 - wash_keep(KW_DEG, KW_AGAINST, a_w));
-    const double kw = fw->cm_de * delta_e * xa > 0.0 ? k_against : k_with;
-    const double kwa = 0.5 * (k_with + k_against);
-    /* THE WASH AT THE TAIL. Standing still, the jet mixes with the air
-     * around it and spreads 6 to 8 deg from half a diameter behind the
-     * disc, its peak falling in to the axis; its momentum stays, but less
-     * of it crosses the tail's span: the stabiliser and the fin meet
-     * 1 - slip_loss of dp (Deters, Ananda and Selig 2015, AIAA 2015-2265,
-     * figs. 15a and 17a; scripts/lib/wash.js tailKeep). Its mass flow over
-     * the span holds within 14 percent, so rho v_i stays. With way on the
-     * slipstream keeps V + 2 v_i to x/D 3 (the same paper's fig. 22a at J
-     * 0.52; Stuper, NACA TM 874, fig. 25): the loss goes with the jet's
-     * mixing ratio, (U_j - V) / (U_j + V) for U_j = V + 2 v_i, which is
-     * v_i / (V + v_i), 1 standing still, the shear layer's spreading rate
-     * going with it (Abramovich, The Theory of Turbulent Jets, 1963),
-     * straight between: FITTED, the two ends measured. */
-    const double keep_h = 1.0 - fw->slip_loss[0] * lam, keep_v = 1.0 - fw->slip_loss[1] * lam;
-    /* With hi_alpha each surface's share in the wash saturates as its
-     * free stream share does, at its angle in the wash's own stream, the
-     * crossflow over the speed the wash reaches it at, and its control's. */
-    double rh = 1.0, rv = 1.0;
-    if (fw->hi_alpha) {
-      const double ex = 4.0 * vi * (u_pos + vi);
-      const double xh = fw->tail_at * xa / sim_sqrt(u_pos * u_pos + keep_h * ex) + kw * ae;
-      const double xv = fw->tail_av * xb / sim_sqrt(u_pos * u_pos + keep_v * ex) + ar;
-      rh = plate_ratio(xh, fw->tail_cn);
-      rv = plate_ratio(xv, fw->tail_cn);
-    }
-    const double kh = PLANT.rho * vi * fh * rh, kv = PLANT.rho * vi * fv * rv;
-    const double ph = dp * keep_h * fh * rh * kw, pv = dp * keep_v * fv * rv;
-    F[2] += fw->area * (kh * fw->slip_cl_a * xa + ph * fw->cl_de * delta_e);
-    F[1] -= fw->area * (kv * fw->slip_cy_b * xbf + pv * fw->cy_dr * delta_r);
-    const double q_a = -s->omega[1], r_a = -s->omega[2];
-    m_slip = fw->area * fw->chord *
-             (kh * (fw->slip_cm_a * xa + fw->cm_q * q_a * 0.5 * fw->chord) + ph * fw->cm_de * delta_e);
-    n_slip = fw->area * fw->span *
-             (kv * (fw->slip_cn_b * xbf + fw->slip_cn_r * r_a * 0.5 * fw->span) + pv * fw->cn_dr * delta_r);
-    l_slip = fw->area * fw->span *
-             (kv * fw->slip_cl_b * xbf + pv * fw->cl_dr * delta_r + dp * fa * kwa * fw->cl_da * delta_a);
-    l_slip = add_term(l_slip, root);
-    g_yaw[10] = -fw->area * fw->span * kv * fw->slip_cn_b * xbf;
-    g_yaw[11] = -fw->area * fw->span * pv * fw->cn_dr * delta_r;
-    g_yaw[12] = -fw->area * fw->span * kv * fw->slip_cn_r * r_a * 0.5 * fw->span;
-    g_yaw[21] = rv;
-    g_yaw[22] = xbf;
-    g_yaw[24] = q_prop;
-    g_yaw[25] = keep;
-    g_slip[0] = l_slip;
-    g_slip[1] = -m_slip;
-    g_slip[2] = -n_slip;
-    g_slip[3] = dp;
-    g_slip[4] = vi;
-    g_slip[5] = xs;
-  }
-  /*
-   * THE JET NORMAL FORCE (FixedWingParams.jet_kj), Selig, "Modeling
-   * Propeller Aerodynamics and Slipstream Effects on Small UAVs in
-   * Realtime", AIAA 2010-7938, eq. 13 to 16: air crossing the disc
-   * sideways at V_T leaves in the slipstream along the axis, so the prop
-   * takes its sideways momentum, N_j = k_j rho A w0 V_T, against V_T, w0
-   * the hover's induced speed sqrt(T / (2 rho A)). Selig: k_j about 80
-   * percent behind a smooth cowling and "nearly 100% for cruciform-nose
-   * profile aerobatic foam aircraft in hover", and "for an airplane in
-   * hover the damping force makes hovering flight less demanding of the
-   * pilot". Washed out away from the hover through his jet parameter m =
-   * V_N / (V_N + w), taken here as the weight 1 - m: the classic normal
-   * force his eq. 4 blends with it is not in this plant. V_T is the
-   * disc's own sideways air, the body's and what the rates add at prop_x
-   * ahead of the CG, where the force acts, so it damps the drift and the
-   * nose's swing alike.
-   */
-  double jet_m[3] = { 0.0, 0.0, 0.0 };
-  if (fw->jet_kj > 0.0 && thrust > 0.0) {
-    const double a_disc = WING_PI * fw->slip_r * fw->slip_r;
-    const double w0 = sim_sqrt(thrust / (2.0 * PLANT.rho * a_disc));
-    const double wi = 0.5 * (sim_sqrt(u_pos * u_pos + 2.0 * thrust / (PLANT.rho * a_disc)) - u_pos);
-    const double k = fw->jet_kj * PLANT.rho * a_disc * w0 * wi / (u_pos + wi);
-    const double vy = v + s->omega[2] * fw->prop_x;
-    const double vz = w - s->omega[1] * fw->prop_x;
-    const double fy = -k * vy, fz = -k * vz;
-    F[1] += fy;
-    F[2] += fz;
-    jet_m[1] = -fw->prop_x * fz;
-    jet_m[2] = fw->prop_x * fy;
-  }
   /* The fuselage's crossflow drag in side view (FixedWingParams.side_cda),
-   * against the sideways speed squared, acting at its own centre of
-   * pressure side_x ahead of the CG: Allen and Perkins (NACA TR 1048) put
-   * a body's viscous crossflow force at the centroid of its side view,
-   * each station weighted by its local crossflow drag, so it yaws the
-   * nose as the force's lever about the CG. The sideways speed is the
-   * CG's: the rates' own crossflow along the body is rot_k's. */
-  double side_n = 0.0;
+   * against the sideways speed squared, at the CG (Allen and Perkins, NACA
+   * TR 1048). The sideways speed is the CG's. */
   if (fw->side_cda > 0.0) {
-    const double fy = -0.5 * PLANT.rho * fw->side_cda * v * sim_fabs(v);
-    F[1] += fy;
-    side_n = fw->side_x * fy;
+    F[1] += -0.5 * PLANT.rho * fw->side_cda * v * sim_fabs(v);
   }
   /* A fan runs down after its drive is cut rather than stopping. */
   const double rpm = (folded || ((g_chute || dead) && !fan)) ? 0.0 : 0.85 * n * fw->rpm_no_load;
@@ -3431,16 +1810,13 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * as the rest of the stall is. Every aircraft's ailerons, which before
    * kept their whole moment through the stall unless the table gave a
    * surf_sep; the flying wing's elevator half keeps its surf_sep. */
-  /* A biplane's ailerons are on the wing that stalls later (bip_r[1], the
-   * Tiger Moth's bottom wing), past its own stall angle. */
-  const double ail_stall = fw->bip_w[0] > 0.0 ? add_term(alpha_stall / fw->bip_r[1], fw->bip_dstall[1]) : alpha_stall;
-  const double past_deg = (sim_fabs(add_term(alpha, dcl_f / wing_cla(fw))) - ail_stall) * 180.0 / WING_PI;
-  const double ail_sep = keep_at(fw->ail_keep, AIL_KEEP_TR419, past_deg);
+  const double past_deg = (sim_fabs(alpha) - alpha_stall) * 180.0 / WING_PI;
+  const double ail_sep = keep_at(AIL_KEEP_TR419, past_deg);
   /* The same share of the surface's shift of its strips' zero lift: a
    * surface in separated flow moves the section's lift by as little as it
    * moves the wing's (the strips below). */
   const double ail_k = 1.0 - fre * (1.0 - ail_sep);
-  const double da_m = delta_a * ail_k * r_ail;
+  const double da_m = delta_a * ail_k;
   const double de_m = fw->mix == FW_MIX_ELEVON ? delta_e * sep_g : delta_e;
 
   /* Moments, in the aero convention, then into the body frame. */
@@ -3463,10 +1839,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * angle is sin_b and cos_b above, 0 and 1 below 0.5 m/s. */
   const double ps = p * cos_b + r_aero * sin_b;
   const double rs = r_aero * cos_b - p * sin_b;
-  double cl_sum = clb * beta_s + fw->cl_p * r_clp * ps * b2v + fw->cl_da * da_m;
-  cl_sum = add_term(cl_sum, cl_sep);
+  double cl_sum = clb * beta_s + fw->cl_p * ps * b2v + fw->cl_da * da_m;
 
-  cl_sum = add_term(cl_sum, (hi_lat ? hi_lat_at(fw->hi_lat[6], a_body) : fw->cl_r_per_cl * CL) * rs * b2v);
+  cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * rs * b2v);
   cl_sum = add_term(cl_sum, cldr * delta_r);
   /*
    * MUNK'S MOMENT. The fuselage's share of cn_beta (cn_beta_fus, each
@@ -3479,18 +1854,14 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * a share of it into roll, and put on -u v / V^2 in the body: beta at
    * small angles (sin beta cos beta cos alpha), so a cruise flies as it
    * did; none flying sideways, and turned over with the flow from behind,
-   * as the couple is. The measured lateral derivatives' ratio (hi_lat,
-   * the F-16's) takes it as it takes the rest, the whole aircraft's
-   * cn_beta against alpha at small sideslip. A table without it (zero)
-   * keeps its arithmetic.
+   * as the couple is. A table without it (zero) keeps its arithmetic.
    */
-  const double cn_fus = fw->cn_beta_fus * r_cnb;
+  const double cn_fus = fw->cn_beta_fus;
   const double munk = V > 1e-6 ? -(u * v) / V2 : 0.0;
-  double cn_sum = add_term(cnb, -cn_fus) * beta_s + fw->cn_r * r_cnr * rs * b2v;
-  cn_sum = add_term(cn_sum, (hi_lat ? hi_lat_at(fw->hi_lat[7], a_body) : fw->cn_p_per_cl * CL) * ps * b2v);
+  double cn_sum = add_term(cnb, -cn_fus) * beta_s + fw->cn_r * rs * b2v;
+  cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * ps * b2v);
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * da_m);
   cn_sum = add_term(cn_sum, cndr * delta_r);
-  const double cl_sum_stab = cl_sum;
   const double cl_b = cl_sum * cos_b - cn_sum * sin_b;
   const double cn_b = cn_sum * cos_b + cl_sum * sin_b;
   /* The sideslip's own moments are mostly the fin's and the dihedral's,
@@ -3524,113 +1895,25 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * behind the CG as it falls (Hoerner, Fluid Dynamic Lift, ch. 3); and
    * the tail's lift that the downwash, going with the wing's lift, no
    * longer holds down. Short of the stall angle, and below the Reynolds
-   * number the section data reach, the moment is the plant's earlier one,
-   * the lowre arms on the plate's lift, which only the Slow Stick has;
-   * past and fre are zero there and add_term keeps that arithmetic what
-   * it was. */
-  const double cm_low = -sigma * (fw->lowre_arm_ac * cl_lin + fw->lowre_arm_cp * cl_flat);
+   * number the section data reach, past and fre are zero and so is this.
+   * (The Slow Stick's lowre arms put a moment there; they left with it on
+   * 2026-10-20.) */
   const double cn_st = add_term(add_term(plate_cn(fw) * sin_a, (cl_st - cl_flat) * cos_a), b2c * sin_a);
   const double cm_post = sigma * (((1.0 - past) * fw->stall_arm_ac - past * fw->stall_arm_cp) * cn_st
-                                  - fw->stall_arm_ac * cl_lin_m - stall_dw * (cl_lin_m - cl_st));
-  const double cm_stall = biplane ? cm_bip : add_term(cm_low, fre * past * (cm_post - cm_low));
-  /* The flapless wing's stall moment, on the same downwash and linear lift
-   * less the flaps', for the flaps past the stall (above). */
-  double cm_fp_nf = 0.0;
-  if (flaps_past) {
-    const double cm_low0 = -w0.sigma * (fw->lowre_arm_ac * w0.cl_lin + fw->lowre_arm_cp * cl_flat);
-    const double cn_st0 = add_term(add_term(plate_cn(fw) * sin_a, (w0.cl_st - cl_flat) * cos_a), b20c * sin_a);
-    const double cl_lin_m0 = add_term(cl_lin_m, -dcl_f);
-    const double cm_post0 = w0.sigma * (((1.0 - w0.past) * fw->stall_arm_ac - w0.past * fw->stall_arm_cp) * cn_st0
-                                        - fw->stall_arm_ac * cl_lin_m0 - stall_dw * (cl_lin_m0 - w0.cl_st));
-    cm_fp_nf = add_term(cm_low0, fre * w0.past * (cm_post0 - cm_low0));
-  }
-  /* The flaps' own moment rides on the lift they add: the section's nose
-   * down moment and the downwash they add at the tail, nose up net. */
-  /* Past the stall the flapped wing's stall moment and cm_dcl_f go over to
-   * the flapless wing's and the measured flap moment (above). */
-  const double cm_st_f = flaps_past ? add_term((1.0 - w_fp) * cm_stall, w_fp * cm_fp_nf) : cm_stall;
-  const double cm_f = flaps_past ? add_term((1.0 - w_fp) * cm_fp_lin, w_fp * cm_fp_meas) : fw->cm_dcl_f * dcl_f;
+                                  - fw->stall_arm_ac * cl_lin_m);
+  const double cm_stall = fre * past * cm_post;
   const double m_aero = qbar * fw->area * fw->chord *
                         add_term(add_term(fw->cm_0 + cm_stiff + fw->cm_q * q_aero * c2v + cm_de_lin * de_m,
-                                          cm_st_f),
-                                 add_term(cm_f, -(fw->cg_shift / fw->chord) * CL));
+                                          cm_stall),
+                                 -(fw->cg_shift / fw->chord) * CL);
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
-  {
-    /* The yaw budget's free stream terms, each as it reaches the body's
-     * yaw (the stability axis ones through cos beta, the roll ones
-     * through sin beta), negated as n_aero is below. */
-    const double qsb = -qbar * fw->area * fw->span;
-    const double fin_b = fw->slip_cn_b * rv_fin;
-    g_yaw[0] = qsb * cos_b * fin_b * beta_s;
-    g_yaw[1] = qsb * cos_b * cndr * delta_r;
-    g_yaw[2] = qsb * cos_b * (cnb - fin_b - cn_fus) * beta_s;
-    g_yaw[3] = qsb * cn_fus * munk;
-    g_yaw[4] = qsb * cos_b * fw->cn_r * r_cnr * rs * b2v;
-    g_yaw[5] = qsb * cos_b * (hi_lat ? hi_lat_at(fw->hi_lat[7], a_body) : fw->cn_p_per_cl * CL) * ps * b2v;
-    g_yaw[6] = qsb * cos_b * fw->cn_da_per_cl * CL * da_m;
-    g_yaw[7] = qsb * sin_b * cl_sum_stab;
-    g_yaw[8] = qsb * back * add_term(cnb, -cn_fus) * beta_s;
-    g_yaw[20] = rv_fin;
-    g_yaw[23] = delta_r;
-  }
   double M[3];
   M[0] = l_aero - q_react; /* the prop turns one way; the airframe answers the other */
-  /* A thrust line off the CG pitches with power, (0, z, 0) x (T, 0, 0).
-   * P factor: at an angle of attack the descending blade meets the air
-   * harder than the rising one, which moves the thrust off the axis toward
-   * it by a distance that grows with the inflow across the disc, V sin
-   * alpha = -w, over the blade speed. Both are zero on an airframe whose
-   * table leaves them out, and add_term keeps its arithmetic as it was. */
+  /* A thrust line off the CG pitches with power, (0, z, 0) x (T, 0, 0):
+   * zero on an airframe whose table leaves it out, and add_term keeps its
+   * arithmetic as it was. */
   M[1] = add_term(-m_aero, fw->thrust_z * thrust);
-  M[2] = add_term(-n_aero, m_thrust_yaw);
-  g_yaw[9] = m_thrust_yaw;
-  /* The open ramp's moment, nose up positive as cm_0's, so the body's
-   * pitch takes it negated as m_aero is. */
-  if (fw->door_time > 0.0) {
-    M[1] -= qbar * fw->area * fw->chord * fw->cm_door * g_door;
-  }
-  if (fw->slip_r > 0.0) {
-    M[0] += l_slip;
-    M[1] -= m_slip;
-    M[2] -= n_slip;
-  }
-  if (fw->jet_kj > 0.0) {
-    M[1] += jet_m[1];
-    M[2] += jet_m[2];
-    g_yaw[13] = jet_m[2];
-  }
-  M[2] = add_term(M[2], side_n);
-  g_yaw[14] = side_n;
-  /* A folded prop is not turning, and 0/0 would be a NaN, not a zero; nor
-   * is a prop whose motor the chute has cut. */
-  if (s->motor_omega[0] > 0.0) {
-    M[2] = add_term(M[2], fw->pfactor * thrust * -w / s->motor_omega[0]);
-    g_yaw[15] = fw->pfactor * thrust * -w / s->motor_omega[0];
-  }
-  /* The air a slow aircraft turns through (FixedWingParams.rot_k): each
-   * axis' flat plate damping, k w^2, and the table's linear damping at the
-   * airspeed flown, 1/4 rho V S b^2 |Cl_p| |p| and its pitch and yaw
-   * counterparts, taken together as the root of their squares' sum; what
-   * that adds to the linear, which the moments above already hold, is
-   * applied here. At flying speed it is nothing to speak of; hanging on the
-   * prop it is all the damping there is. */
-  if (fw->rot_k[0] > 0.0 || fw->rot_k[1] > 0.0 || fw->rot_k[2] > 0.0) {
-    const double lin[3] = {
-      0.25 * PLANT.rho * V * fw->area * fw->span * fw->span * sim_fabs(fw->cl_p),
-      0.25 * PLANT.rho * V * fw->area * fw->chord * fw->chord * sim_fabs(fw->cm_q),
-      0.25 * PLANT.rho * V * fw->area * fw->span * fw->span * sim_fabs(fw->cn_r),
-    };
-    for (int i = 0; i < 3; i += 1) {
-      const double wr = s->omega[i];
-      const double lq = lin[i] * sim_fabs(wr);
-      const double kq = fw->rot_k[i] * wr * wr;
-      const double more = sim_sqrt(lq * lq + kq * kq) - lq;
-      M[i] -= wr < 0.0 ? -more : more;
-      if (i == 2) {
-        g_yaw[16] = -(wr < 0.0 ? -more : more);
-      }
-    }
-  }
+  M[2] = -n_aero;
   /* The prop as a gyroscope: its angular momentum H along body x, and the
    * airframe's answer to turning it, -omega x H. A pitch rate nose down
    * (q positive) yaws the nose left and a yaw rate nose right pitches it
@@ -3639,10 +1922,6 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double H = fw->j_prop * (w_rot < 0.0 ? s->motor_omega[0] : w_rot);
     M[1] -= s->omega[2] * H;
     M[2] += s->omega[1] * H;
-    g_yaw[17] = s->omega[1] * H;
-  }
-  for (int i = 0; i < 18; i += 1) {
-    g_yaw[18] += g_yaw[i];
   }
 
   /* The wing's strips past the stall, strip_stall above. A strip that
@@ -3654,9 +1933,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * chords the table's strip_c over the mean chord; each carries r of the
    * wing's lift coefficient, Schrenk's (c + c_elliptic) / 2c (NACA TM 948),
    * so the most loaded strip stalls where the wing's CLmax says and the
-   * others later; a washed out strip, twisted nose down by washout times
-   * its share of the semispan, later again, by that twist. The left half
-   * stalls stall_asym sooner. The moments are
+   * others later. The left half stalls stall_asym sooner. The moments are
    * scaled by kr so that the strips' linear part is exactly the table's
    * roll damping, which they take back as they stall. The yaw a lift makes
    * through a roll rate is the table's cn_p_per_cl, on the stalled CL
@@ -3675,33 +1952,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       rmax = rr[i] > rmax ? rr[i] : rmax;
       cyy += fw->strip_c[i] * eta * eta * 0.25;
     }
-    /* The flaps over the strips they span, cov the share of each strip's
-     * span they cover, the whole wing's flap lift and CLmax taken at those
-     * strips over the flapped share of the area, fa, so the area weighted
-     * sum is the wing's (docs/FLIGHTMODEL.md, flaps over their strips). */
-    double cov[4], fa = 0.0, ca = 0.0;
-    for (int i = 0; i < 4; i += 1) {
-      const double lo = 0.25 * i, hi = lo + 0.25;
-      const double in = fw->flap_eta[0] > lo ? fw->flap_eta[0] : lo;
-      const double out = fw->flap_eta[1] < hi ? fw->flap_eta[1] : hi;
-      cov[i] = out > in ? (out - in) / 0.25 : 0.0;
-      fa += cov[i] * fw->strip_c[i];
-      ca += fw->strip_c[i];
-    }
-    fa /= ca;
-    const double dclmax_f = fw->clmax_df * df;
     const double chord_mean = fw->area / fw->span;
     const double kr = -fw->cl_p * fw->area * fw->span * fw->span /
-                      (4.0 * wing_cla(fw) * chord_mean * half * half * half * cyy);
+                      (4.0 * fw->cl_alpha * chord_mean * half * half * half * cyy);
     /* A section along the span: the strip nearest its own limit, its
      * section's CL max over its share of the wing's lift, stalls first. */
-    double kmin = 0.0;
-    if (fw->strip_k[0] > 0.0) {
-      kmin = fw->strip_k[0] / rr[0];
-      for (int i = 1; i < 4; i += 1) {
-        kmin = fw->strip_k[i] / rr[i] < kmin ? fw->strip_k[i] / rr[i] : kmin;
-      }
-    }
     double ml = 0.0, mn = 0.0;
     for (int i = 0; i < 4; i += 1) {
       const double y = (0.125 + 0.25 * i) * half;
@@ -3712,20 +1967,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
        * so what a stalled strip takes back is what the linear wing gave. */
       const double da = (u / V) * p * y / Vrate;
       const double dr = (-w / V) * s->omega[2] * y / Vrate;
-      /* No flap span given (no flaps), the strips take the wing's. */
-      const double fs = fa > 0.0 ? cov[i] / fa : 1.0;
-      const double as_i = add_term(alpha_strip, (fs - 1.0) * dclmax_f / wing_cla(fw));
-      const double st0 = kmin > 0.0 ? as_i * (fw->strip_k[i] / rr[i]) / kmin : as_i * rmax / rr[i];
-      const double st = add_term(st0, fw->washout * (0.125 + 0.25 * i));
-      const double dcl_i = fs * dcl_f;
+      const double st = alpha_stall * rmax / rr[i];
       double fl[2], fr[2];
-      /* A section along the span stalls its own way: a thin one sharply
-       * at its peak and down to less, a thick one rounded over and down
-       * to more (strip_top, strip_kfall). The table's one section where
-       * they are not given. */
-      const int own = fw->strip_kfall[0] > 0.0 && !(g_slats && fw->slat_k > 0.0);
-      const double k_i = own ? fw->strip_kfall[i] : k_stall;
-      const double top_i = own ? fw->strip_top[i] : fw->stall_top;
+      /* The table's one section for every strip. */
+      const double k_i = k_stall;
+      const double top_i = fw->stall_top;
       /* The aileron on this strip moves its zero lift angle, trailing edge
        * up less: the rising wing's down aileron takes it toward its stall
        * and the falling wing's up aileron away from it, against the roll
@@ -3738,8 +1984,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
        * elevator is on the tail, and leaves the strips alone. Zero where
        * strip_tau is, so no earlier table reads it. */
       const double se = fw->mix == FW_MIX_ELEVON ? fw->strip_tau[i] * delta_e : 0.0;
-      strip_stall(fw, alpha, sin_a, cos_a, -da, ail_k * add_term(sa, -se), dr, rr[i], cl_lin, dcl_i, st - 0.5 * fw->stall_asym, k_i, top_i, b2, fl);
-      strip_stall(fw, alpha, sin_a, cos_a, da, ail_k * add_term(-sa, -se), -dr, rr[i], cl_lin, dcl_i, st + 0.5 * fw->stall_asym, k_i, top_i, b2, fr);
+      strip_stall(fw, alpha, sin_a, cos_a, -da, ail_k * add_term(sa, -se), dr, rr[i], cl_lin, st - 0.5 * fw->stall_asym, k_i, top_i, b2, fl);
+      strip_stall(fw, alpha, sin_a, cos_a, da, ail_k * add_term(-sa, -se), -dr, rr[i], cl_lin, st + 0.5 * fw->stall_asym, k_i, top_i, b2, fr);
       const double tau = STALL_TF_SEMICHORDS * 0.5 * fw->strip_c[i] * chord_mean / Vrate;
       const double lag = WING_DT / (tau + WING_DT);
       for (int j = 0; j < 2; j += 1) {
@@ -3750,7 +1996,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       ml += arm * (g_sep[i][0][0] - g_sep[i][1][0]);
       mn += arm * (g_sep[i][0][1] - g_sep[i][1][1]);
     }
-    const double k = hi_lat ? 0.0 : qbar * kr * fre;
+    const double k = qbar * kr * fre;
     /* A strip's lift and drag act across and along the air, the
      * stability axes, so they turn into the body's through the angle of
      * attack as the linear moments above do (Etkin and Reid's stability to
@@ -3863,7 +2109,6 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   g_debug[5] = l_aero; g_debug[6] = m_aero; g_debug[7] = n_aero; g_debug[8] = thrust;
   g_debug[9] = F[0]; g_debug[10] = F[1]; g_debug[11] = F[2];
   g_debug[12] = M[0]; g_debug[13] = M[1]; g_debug[14] = M[2];
-  g_yaw[19] = M[2];
   g_debug[15] = u; g_debug[16] = v; g_debug[17] = w; g_debug[18] = delta_e; g_debug[19] = delta_a;
 
   /* Velocity and position, semi implicit. */
@@ -3987,470 +2232,6 @@ const FixedWingParams FW_WING1000 = {
   .ge_wing = { -0.0163, 0.0, 0.0 }, /* the drawn model's wing quarter chord, npm run ge:derive */
 };
 
-/* The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md, where each number has its
- * formula and source and the estimated ones say so. */
-const FixedWingParams FW_SKY1800 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.80,
-  .area = 0.36,
-  .chord = 0.20,
-  .cl_alpha = 5.52,       /* wing and tail, Nelson eq. 2.52 */
-  .cl_alpha_wing = 5.141, /* the wing alone, a_w, scripts/stall-derive.js */
-  .cl_max = 1.10,
-  /* The zero lift line 4 degrees under the body axis: incidence and a
-   * cambered section. sin and cos of minus 4 degrees, to 17 digits. */
-  .alpha_zl = -4.0 * WING_PI / 180.0,
-  .sin_zl = -0.069756473744125302,
-  .cos_zl = 0.99756405025982420,
-  .cd0 = 0.033,
-  .k_induced = 0.0442,    /* 1/(pi 0.8 9) */
-  .cl_de = -0.36,         /* trailing edge up pushes the tail down */
-  .cy_beta = -0.45,
-  .cy_dr = 0.20,
-  .cl_beta = -0.096,      /* dihedral, the high wing and the fins */
-  .cl_p = -0.78,
-  .cl_da = 0.33,
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.011,
-  .cm_0 = 0.071,          /* trims at 15 m/s with the elevator neutral */
-  .cm_alpha = -0.94,      /* static margin 0.17 */
-  .cm_q = -14.1,
-  .cm_de = 1.23,
-  .cn_beta = 0.140,
-  .cn_beta_fus = -0.014, /* Munk's, the pod's -1.3 Vol / (S b) of cn_beta, docs/SKYHUNTER-STAGE1.md */
-  .cn_r = -0.126,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.112,
-  .cn_dr = -0.077,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  .throw_a = 15.0 * WING_PI / 180.0,
-  .throw_e = 15.0 * WING_PI / 180.0,
-  .throw_r = 25.0 * WING_PI / 180.0,
-  .surface_max = 15.0 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 27.0,  /* N, 950 kV on 4S with an 11 x 5.5 */
-  .pitch_speed = 27.826, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 11 x 5.5: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9599, 0.9143, 0.8610, 0.8002, 0.7316, 0.6549,
-    0.5709, 0.4804, 0.3854, 0.2866, 0.1858, 0.0850, -0.0136,
-    -0.1123, -0.2110, -0.3097, -0.4084, -0.5071, -0.6058, -0.7045,
-  },
-  .torque_curve = {
-    1.0000, 1.0192, 1.0326, 1.0355, 1.0265, 1.0020, 0.9598,
-    0.9004, 0.8217, 0.7236, 0.6080, 0.4753, 0.3294, 0.1727,
-    0.0161, -0.1405, -0.2971, -0.4537, -0.6102, -0.7668, -0.9234,
-  },
-  .rpm_no_load = 14060.0,
-  .torque_arm = 0.0107,   /* 362 W of disc power at 11,950 rpm is 0.29 N m at 27 N */
-  .j_prop = 0.000124, /* APC's 24.9 g 11 x 5.5E and the 2820's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .current_full = 43.0,
-  .v_meas = 3.872, /* V a cell loaded: the review's 669 W at 43.2 A on 4S; docs/POWER-STAGE1.md */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 2.0,
-  .stab_roll_kd = 0.2,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 10.04 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.466, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  /* INAV's defaults, roll_rate and pitch_rate 20 deca-degrees a second
-   * (docs/Settings.md), above what full Manual stick reaches (161 and
-   * 148 deg/s at 20 m/s), so Acro never caps a full stick. */
-  .acro_roll_rate = 200.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 200.0 * WING_PI / 180.0, /* https://github.com/iNavFlight/inav/blob/master/docs/Settings.md */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 5.0,
-  .acro_roll_kd = 0.4,
-  .acro_roll_ff = 0.5,
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 6.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 1.0,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .stall_arm_ac = 0.0833,
-  .stall_arm_cp = 0.0667,
-  .stall_dw = 0.1448,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.72,
-  .stall_top = 5.3 * WING_PI / 180.0,
-  .strip_c = { 1.132, 1.044, 0.956, 0.868 },
-  .washout = 5.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
-  .side_cda = 0.0838, /* the pod's drawn sections' crossflow, NACA TN 3038, on its 0.086 m^2 side (ESTIMATED), scripts/skyhunter-derive.js */
-  .side_x = 0.0840, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run skyhunter:derive */
-  .hinge_hold = { 926.2, 461.5, 971.7 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.3952, 0.5061, 0.3471 }, /* npm run servo:derive */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1397, .slip_yh = 0.228, .slip_hv = { 0, 0 }, .slip_ya = { 0.45, 0.85 },
-  .slip_a0 = 0.005368, .slip_cl_a = 0.3771, .slip_cm_a = -1.305, .slip_cn_b = 0.1552,
-  .slip_cn_r = -0.119, .slip_cy_b = -0.4011, .slip_cl_b = -0.02228, .slip_pusher = 1,
-  .slip_loss = { 0.1276, 0, 0 }, /* scripts/wash-derive.js */
-  .tail_deda = 0.364, /* d eps / d alpha, scripts/stall-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0293, 0.0, 0.0645 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.7375, 0.0, 0.051 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, where each number has
- * its formula and source and the estimated ones say so. A tractor: the prop
- * is in the nose, turning clockwise seen from the cockpit, so its reaction
- * rolls the airframe left as the pushers' does, and its P factor yaws the
- * nose left at a positive angle of attack. */
-const FixedWingParams FW_CUB1400 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.40,
-  .area = 0.28,
-  .chord = 0.20,
-  .cl_alpha = 5.21,       /* wing and tail, Nelson eq. 2.52 */
-  .cl_alpha_wing = 4.887, /* the wing alone, a_w, scripts/cub-derive.js */
-  .cl_max = 1.15,
-  /* The zero lift line 5 degrees under the body axis: a flat bottomed
-   * section of the USA 35B class set at about 1.5 degrees of incidence.
-   * sin and cos of minus 5 degrees, to 17 digits. */
-  .alpha_zl = -5.0 * WING_PI / 180.0,
-  .sin_zl = -0.08715574274765817,
-  .cos_zl = 0.9961946980917455,
-  .cd0 = 0.050,           /* struts, fixed gear, open cylinder heads */
-  .k_induced = 0.0606,    /* 1/(pi 0.75 7) */
-  .cl_de = -0.345,
-  .cy_beta = -0.29,
-  .cy_dr = 0.106,
-  .cl_beta = -0.089,
-  .cl_beta_wing = -0.0747, /* cl_beta less the fin's, scripts/cub-derive.js */
-  .cl_beta_fin = -0.0143, /* scripts/cub-derive.js */
-  .cn_beta_fin = 0.0779, /* scripts/cub-derive.js */
-  .cl_p = -0.81,
-  .cl_da = 0.40,
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.008,
-  .cm_0 = 0.062,          /* trims at 12 m/s with the elevator neutral */
-  .cm_alpha = -0.62,      /* static margin 0.12 at the manual's 60 mm CG */
-  .cm_q = -7.7,
-  .cm_de = 0.89,
-  .cn_beta = 0.048,
-  .cn_beta_fus = -0.0302, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run cub:derive */
-  .cn_r = -0.076,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.136,
-  .cn_dr = -0.043,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* The manual's high rates, 16, 16 and 18 mm, over the surfaces' chords. */
-  .throw_a = 18.0 * WING_PI / 180.0,
-  .throw_e = 15.0 * WING_PI / 180.0,
-  .throw_r = 15.0 * WING_PI / 180.0,
-  .surface_max = 18.0 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 13.5,  /* N, 3536 850 kV on 3S with an 11 x 7 */
-  .pitch_speed = 23.765, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 11 x 7, two blade: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9682, 0.9303, 0.8834, 0.8253, 0.7569, 0.6772,
-    0.5851, 0.4839, 0.3756, 0.2631, 0.1494, 0.0370, -0.0752,
-    -0.1875, -0.2997, -0.4120, -0.5243, -0.6365, -0.7488, -0.8611,
-  },
-  .torque_curve = {
-    1.0000, 1.0380, 1.0706, 1.0931, 1.1019, 1.0874, 1.0498,
-    0.9824, 0.8852, 0.7611, 0.6131, 0.4454, 0.2607, 0.0735,
-    -0.1136, -0.3006, -0.4877, -0.6748, -0.8619, -1.0489, -1.2360,
-  },
-  .rpm_no_load = 9435.0,
-  .torque_arm = 0.0113,   /* 128 W of disc power at 8,020 rpm is 0.15 N m at 13.5 N */
-  .j_prop = 0.000132, /* the 11 x 7 (26 g) and the 3536's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .thrust_z = 0.002,      /* the drawn model's thrust line, 2 mm over the CG */
-  .pfactor = 1.6,         /* blade element at 0.75 R in a climb */
-  .current_full = 27.0,
-  .v_meas = 3.642, /* V a cell loaded: HobbyKing's 295 W at 27 A on 3S; docs/POWER-STAGE1.md */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 1.2,
-  .stab_roll_kd = 0.12,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 10.65 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.477, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 120.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 80.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0071, 0.0162, 0.0866 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.716, 1.9122, 2.0334 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.832, -1.948, -0.751 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 3.0,
-  .acro_roll_kd = 0.25,
-  .acro_roll_ff = 0.35,
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 4.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 3.0,     /* a third of the Skyhunter's yaw authority per stick */
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .stall_arm_ac = 0.05,
-  .stall_arm_cp = 0.1,
-  .stall_dw = 0.1352,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.72,
-  .stall_top = 4.6 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1397, .slip_yh = 0.19, .slip_hv = { 0.158, 0.01 }, .slip_ya = { 0.28, 0.66 },
-  .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
-  .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
-  .slip_loss = { 0.2312, 0.2836, 0.4694 }, /* scripts/wash-derive.js */
-  .side_cda = 0.1295, /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run cub:derive */
-  .side_x = -0.1357, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run cub:derive */
-  .hinge_hold = { 501.2, 635.5, 1128.2 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.4472, 0.4686, 0.473 }, /* npm run servo:derive */
-  .tail_deda = 0.444, /* d eps / d alpha, scripts/cub-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0079, 0.0, 0.105 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.5125, 0.0, 0.043 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* The E-flite Radian Pro, docs/GLIDER-STAGE1.md, where each number has its
- * formula and source and the estimated ones say so: the 2 m Radian's
- * published wing, fuselage and power system, with the Pro's ailerons. A
- * powered glider: a tractor prop that folds when the motor stops, and the
- * only airframe that flies in the thermals above. */
-const FixedWingParams FW_RADIAN2000 = {
-  .mix = FW_MIX_TAIL,
-  .span = 2.00,
-  .area = 0.355,
-  .chord = 0.1866,        /* the mean aerodynamic chord of the drawn planform */
-  .cl_alpha = 5.709,      /* wing and tail, Nelson eq. 2.52 */
-  .cl_alpha_wing = 5.336, /* the wing alone, a_w, scripts/glider-derive.js */
-  .cl_max = 1.05,
-  /* The zero lift line 5 degrees under the body axis: a cambered glider
-   * section at about 1.5 degrees of incidence. sin and cos of minus 5
-   * degrees, to 17 digits. */
-  .alpha_zl = -5.0 * WING_PI / 180.0,
-  .sin_zl = -0.08715574274765817,
-  .cos_zl = 0.9961946980917455,
-  .cd0 = 0.021,           /* a clean foam glider, built up part by part */
-  .k_induced = 0.03323,   /* 1/(pi 0.85 11.27) */
-  .cl_de = -0.257,
-  .cy_beta = -0.376,
-  .cy_dr = 0.179,
-  .cl_beta = -0.182,      /* the polyhedral, 7.3 degrees of it in effect, and the fin */
-  .cl_beta_wing = -0.1608, /* cl_beta less the fin's, scripts/glider-derive.js */
-  .cl_beta_fin = -0.0212, /* scripts/glider-derive.js */
-  .cn_beta_fin = 0.1042, /* scripts/glider-derive.js */
-  .cl_p = -0.786,
-  .cl_da = 0.334,
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0116,
-  .cm_0 = 0.170,          /* trims at 7.7 m/s, the best glide, with the elevator neutral */
-  .cm_alpha = -1.304,     /* static margin 0.23 at the manual's 63 mm CG */
-  .cm_q = -14.6,
-  .cm_de = 0.949,
-  .cn_beta = 0.0967,
-  .cn_beta_fus = -0.0074, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run glider:derive */
-  .cn_r = -0.0719,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.114, /* long outboard ailerons: plenty of adverse yaw */
-  .cn_dr = -0.0573,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* The manual's high rates, 12 mm of elevator and 40 mm of rudder, over
-   * the surfaces' chords at the horn, 29 and 80 mm; the Pro's aileron
-   * travel is not published and is a sailplane's usual 15 degrees. */
-  .throw_a = 15.0 * WING_PI / 180.0,
-  .throw_e = 24.4 * WING_PI / 180.0,
-  .throw_r = 30.0 * WING_PI / 180.0,
-  .surface_max = 15.0 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 9.28,  /* N, a 480 960 kV on 3S with a 9.75 x 7.5 at 196 W */
-  .pitch_speed = 28.758, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 9.75 x 7.5 folding (pitch over diameter 0.77): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9798, 0.9517, 0.9139, 0.8634, 0.7977, 0.7145,
-    0.6152, 0.5003, 0.3760, 0.2471, 0.1170, -0.0095, -0.1358,
-    -0.2621, -0.3884, -0.5147, -0.6410, -0.7672, -0.8935, -1.0198,
-  },
-  .torque_curve = {
-    1.0000, 1.0514, 1.1027, 1.1458, 1.1735, 1.1738, 1.1374,
-    1.0610, 0.9390, 0.7814, 0.5919, 0.3783, 0.1497, -0.0798,
-    -0.3093, -0.5388, -0.7683, -0.9978, -1.2273, -1.4568, -1.6862,
-  },
-  .rpm_no_load = 10656.0,
-  .torque_arm = 0.00994,  /* 82 W of disc power at 8,516 rpm is 0.092 N m at 9.28 N */
-  .j_prop = 0.000077, /* the folding 9.75 x 7.5 with its yoke (20 g) and the 480's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .thrust_z = -0.008,     /* the drawn thrust line, 8 mm under the CG: power lifts the nose */
-  .pfactor = 1.6,         /* the Cub's blade element figure, a tractor turning the same way */
-  .current_full = 21.8,   /* A, measured on the same power system */
-  .v_meas = 3.838, /* V a cell loaded: Model Aviation's 251 W at 21.8 A on 3S; docs/POWER-STAGE1.md */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  /* Centred sticks glide at the trim: the best glide flies 0.6 degrees
-   * nose down, so level on the stick is a little slower than that. */
-  .stab_trim_pitch = 0.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 2.0,    /* the Skyhunter's: the same roll authority per stick */
-  .stab_roll_kd = 0.2,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 0.56 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.280, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 80.0 * WING_PI / 180.0,  /* a glider rolls at 77 deg/s at 12 m/s */
-  .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0119, 0.0203, 0.063 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.7528, 2.9882, 1.7969 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.42, -1.391, -0.86 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 5.0,
-  .acro_roll_kd = 0.4,
-  .acro_roll_ff = 0.7,    /* full aileron rolls 1.34 rad/s at 12 m/s */
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 6.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 1.5,     /* nine tenths of the Skyhunter's rudder, and more adverse yaw */
-  .fold_duty = 0.05,
-  .air_lift = 1,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .stall_arm_ac = 0.0157,
-  .stall_arm_cp = 0.1343,
-  .stall_dw = 0.1117,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.84,
-  .stall_top = 1.4 * WING_PI / 180.0,
-  .strip_c = { 1.101, 1.096, 1.074, 0.775 },
-  .washout = 6.0 * WING_PI / 180.0, /* FITTED, past the 5 deg bound by lead decision, docs/STALL-STAGE1.md */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1238, .slip_yh = 0.2385, .slip_hv = { 0.276, 0.01 }, .slip_ya = { 0.9, 1 },
-  .slip_a0 = 0.04411, .slip_cl_a = 0.3737, .slip_cm_a = -1.382, .slip_cn_b = 0.1043,
-  .slip_cn_r = -0.06673, .slip_cy_b = -0.3254, .slip_cl_b = -0.02115,
-  .slip_loss = { 0.2655, 0.2809, 0.4993 }, /* scripts/wash-derive.js */
-  .side_cda = 0.0936, /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run glider:derive */
-  .side_x = -0.1600, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run glider:derive */
-  .hinge_hold = { 772.7, 1026.3, 229.2 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.4746, 0.4306, 0.4657 }, /* npm run servo:derive */
-  .tail_deda = 0.301, /* d eps / d alpha, scripts/glider-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { -0.0092, 0.0, 0.0613 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.6807, 0.0, 0.075 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* OA Composites' NRJ, docs/DLG-STAGE1.md, where each number has its
- * formula and source and the estimated ones say so; scripts/dlg-derive.js
- * prints them. A 1490 mm F3K discus launch glider of 213 g: flaperons, an
- * elevator and a rudder, 7 degrees of dihedral a panel, and no motor. It
- * is thrown by its left wingtip, climbs 60 m on the throw and stays up in
- * the thermals, the Radian's. */
-const FixedWingParams FW_NRJ1490 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.49,
-  .area = 0.190,
-  .chord = 0.1378,        /* the mean aerodynamic chord of the elliptic planform */
-  .cl_alpha = 5.657,      /* wing and tail, Nelson eq. 2.52 */
-  .cl_alpha_wing = 5.365, /* the wing alone, a_w, scripts/dlg-derive.js */
-  .cl_max = 0.95,
-  /* The zero lift line 3 degrees under the body axis: a thin, lightly
-   * cambered section at about 1 degree of incidence. sin and cos of minus
-   * 3 degrees, to 17 digits. */
-  .alpha_zl = -3.0 * WING_PI / 180.0,
-  .sin_zl = -0.052335956242943835,
-  .cos_zl = 0.9986295347545738,
-  .cd0 = 0.0240,          /* at 5 m/s, cd0_re below: built up part by part */
-  .k_induced = 0.0382,    /* 1/(pi 0.714 11.68), Raymer's e for a straight wing */
-  .cl_de = -0.2267,
-  .cy_beta = -0.365,
-  .cy_dr = 0.2070,
-  .cl_beta = -0.1576,     /* 7 degrees of dihedral a panel, and the fin */
-  .cl_beta_wing = -0.1391, /* cl_beta less the fin's, scripts/dlg-derive.js */
-  .cl_beta_fin = -0.0185, /* scripts/dlg-derive.js */
-  .cn_beta_fin = 0.139, /* scripts/dlg-derive.js */
-  .cl_p = -0.671,
-  .cl_da = 0.537,         /* flaperons 0.08 to 0.70 m out */
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0111,
-  .cm_0 = 0.1157,         /* trims at 5.13 m/s, the best glide, with the elevator neutral */
-  .cm_alpha = -0.959,     /* static margin 0.17 at the manual's 66 mm CG */
-  .cm_q = -13.609,
-  .cm_de = 0.921,
-  .cn_beta = 0.1389,
-  .cn_beta_fus = -0.0001, /* Munk's, the pod's -1.3 Vol / (S b) of cn_beta; npm run dlg:derive */
-  .cn_r = -0.1179,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.1824,
-  .cn_dr = -0.0834,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* The manual's 13 mm of aileron, 9 mm of elevator and 12 mm of rudder
-   * over the surfaces' chords at the horn, 40, 30 and 45 mm. */
-  .throw_a = 19.0 * WING_PI / 180.0,
-  .throw_e = 17.5 * WING_PI / 180.0,
-  .throw_r = 15.5 * WING_PI / 180.0,
-  .surface_max = 19.0 * WING_PI / 180.0,
-  .expo = 0.30,
-  /* No motor: thrust, speed and current all zero, and the plant makes
-   * no thrust and draws nothing (plant_wing_step). The pack is the
-   * receiver's. */
-  .stab_bank_max = 50.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  /* Centred sticks glide a little faster than the best glide, whose
-   * attitude is half a degree nose up. */
-  .stab_trim_pitch = 0.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 1.2,    /* over half the Radian's: two and a half times its roll per stick, against 7 deg of dihedral */
-  .stab_roll_kd = 0.12,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 0.0, /* there is no throttle to close */
-  .stab_trim_throttle = 0.0, /* npm run stab:glide */
-  .acro_roll_rate = 150.0 * WING_PI / 180.0, /* full aileron rolls 163 deg/s at 8 m/s */
-  .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 3.0,
-  .acro_roll_kd = 0.20,
-  .acro_roll_ff = 0.36,   /* full aileron rolls 2.8 rad/s at 9 m/s */
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 6.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 1.5,     /* the Radian's: long flaperons' adverse yaw */
-  .air_lift = 1,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .stall_arm_ac = 0.0510,
-  .stall_arm_cp = 0.0990,
-  .stall_dw = 0.0912,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.80,
-  .stall_top = 1.0 * WING_PI / 180.0,
-  .strip_c = { 1.263, 1.180, 0.994, 0.616 },
-  .cd0_re = 47180.0,      /* 5 m/s on the mean chord */
-  /* The throw: an experienced pilot's 60 m (Lindinger), which this drag
-   * reaches from 41 m/s at 70 degrees; a 1.6 m arm and half span, one turn,
-   * let go at the shoulder's 1.5 m. The preset's elevator trims the zoom
-   * at zero lift: -Cm0 / Cm_de. */
-  .discus_v = 41.0,
-  .discus_r = 1.6,
-  .discus_turn = 2.0 * WING_PI,
-  .discus_pitch = 70.0 * WING_PI / 180.0,
-  .discus_h = 1.5,
-  .discus_de = -0.12563,
-  .tail_deda = 0.292, /* d eps / d alpha, scripts/dlg-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { -0.008, 0.0, 0.0363 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.5677, 0.0, -0.028 }, /* the stabiliser's, npm run ge:derive */
-  .hinge_hold = { 647.2, 1667.4, 1300 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.4763, 0.6189, 0.6965 }, /* npm run servo:derive */
-};
-
 /* The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md, where each number has
  * its formula and source and the estimated ones say so; scripts/
  * bramor-derive.js prints them. A 2.3 m blended wing body flying wing:
@@ -4568,1569 +2349,6 @@ const FixedWingParams FW_BRAMOR2300 = {
   .hinge_alpha = { 0.4626, 0, 0 }, /* npm run servo:derive */
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.1738, 0.0, 0.01 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-};
-
-/* The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md, where each number has its
- * formula and source and the estimated ones say so. Three channels: no
- * ailerons, so it banks on its rudder, the roll stick's as well as the yaw
- * stick's, through twelve degrees of dihedral each side, and that dihedral
- * is also what brings the wings back level with the sticks centred. A
- * geared can motor turning an 11 x 8 in front, clockwise seen from behind,
- * on the stick's line 2.5 mm under the CG. */
-const FixedWingParams FW_SLOWSTICK1180 = {
-  .mix = FW_MIX_RUDDER,
-  .span = 1.176,
-  .area = 0.3264,
-  .chord = 0.2776,        /* S/b */
-  .cl_alpha = 4.58,       /* wing and tail, Nelson eq. 2.52, DATCOM downwash */
-  .cl_alpha_wing = 4.268, /* the wing alone, a_w, scripts/slowstick-derive.js */
-  .cl_max = 1.05,
-  /* The zero lift line 6.06 degrees under the stick: a flat bottomed
-   * section on the saddles at 3 degrees of incidence, less the tail's
-   * share. sin and cos of minus 6.06 degrees, to 17 digits. */
-  .alpha_zl = -6.06 * WING_PI / 180.0,
-  .sin_zl = -0.10556986665660810,
-  .cos_zl = 0.99441188812991665,
-  .cd0 = 0.040,           /* the bare stick, wire gear, open gearbox, foam */
-  .k_induced = 0.0939,    /* 1/(pi 0.80 4.24) */
-  .cl_de = -0.400,
-  .cy_beta = -0.274,
-  .cy_dr = 0.1505,
-  .cl_beta = -0.2416,     /* twelve degrees of dihedral each side, and the fin */
-  .cl_beta_wing = -0.2235, /* cl_beta less the fin's, scripts/slowstick-derive.js */
-  .cl_beta_fin = -0.0181, /* scripts/slowstick-derive.js */
-  .cn_beta_fin = 0.1233, /* scripts/slowstick-derive.js */
-  .cl_p = -0.711,
-  .cl_da = 0.0,           /* no ailerons */
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0100,
-  .cm_0 = 0.0496,         /* trims at 5.5 m/s with the elevator neutral */
-  .cm_alpha = -0.333,     /* static margin 0.073 at the 100 mm CG */
-  .cm_q = -4.19,
-  .cm_de = 0.737,
-  .cn_beta = 0.1233,
-  .cn_r = -0.1211,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = 0.0,
-  .cn_dr = -0.0678,
-  /* A thick flat bottomed section at a Reynolds number of 1e5 stalls from
-   * its trailing edge, and its lift curve rounds over twice the width the
-   * thinner sections of the other planes do. */
-  .stall_blend = 4.0 * WING_PI / 180.0,
-  .throw_a = 0.0,
-  .throw_e = 15.0 * WING_PI / 180.0,
-  .throw_r = 30.0 * WING_PI / 180.0,
-  .surface_max = 0.0,
-  .expo = 0.30,
-  .thrust_static = 2.69,  /* N, GWS's EPS-300C D with the EP1180 at 7.2 V */
-  .pitch_speed = 11.175, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* GWS EP1180, 11 x 8: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9739, 0.9404, 0.8970, 0.8424, 0.7739, 0.6915,
-    0.5952, 0.4854, 0.3671, 0.2446, 0.1206, 0.0000, -0.1201,
-    -0.2403, -0.3605, -0.4807, -0.6009, -0.7211, -0.8413, -0.9615,
-  },
-  .torque_curve = {
-    1.0000, 1.0427, 1.0823, 1.1135, 1.1293, 1.1237, 1.0870,
-    1.0193, 0.9159, 0.7834, 0.6263, 0.4475, 0.2576, 0.0667,
-    -0.1242, -0.3151, -0.5060, -0.6969, -0.8878, -1.0787, -1.2696,
-  },
-  .rpm_no_load = 3882.0,
-  .torque_arm = 0.0122,   /* 11.4 W of disc power at 3,300 rpm is 0.033 N m at 2.69 N */
-  .j_prop = 0.000058, /* GWS's 11 x 8 (13 g), less the 6.6:1 geared can motor's rotor turning the other way, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .thrust_z = -0.0025,    /* the drawn model's shaft, 2.5 mm under the CG */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
-  .current_full = 6.1,
-  .v_meas = 3.600, /* V a cell loaded: GWS's table, 7.2 V at 6.1 A (43.9 W), on 2S; docs/POWER-STAGE1.md */
-  .stab_bank_max = 45.0 * WING_PI / 180.0,
-  .stab_pitch_max = 25.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 1.54,   /* 2.0 over the rudder's 1.301 gain in the wash at the trim, scripts/stab-hold-derive.js */
-  .stab_roll_kd = 0.62,   /* 0.8 over the same gain, scripts/stab-hold-derive.js */
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 8.08 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.514, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 60.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.054, 0.2002 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 0.0088, 0.0034 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.592, -1.528, -0.888 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 3.0,
-  .acro_roll_kd = 0.6,
-  .acro_roll_ff = 0.5,
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 2.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 0.0,     /* the rudder is the roll control: nothing to coordinate with */
-  /* The air over the field is the air: a 420 g aircraft sinking 0.65 m/s
-   * is carried up by a thermal's core faster than anything else here. */
-  .air_lift = 1,
-  .stall_arm_ac = 0.0617, /* the CG 17 mm behind the wing's aerodynamic centre */
-  .stall_arm_cp = 0.097,  /* the plate's centre of pressure at 0.40 of the chord, 27 mm behind it */
-  .lowre_arm_ac = 0.0617, /* the same, its first post stall moment, kept short of the stall */
-  .lowre_arm_cp = 0.097,  /* angle and below the section data's Reynolds numbers */
-  .stall_dw = 0.1313,     /* the tail's lift as the downwash goes, docs/STALL-STAGE1.md */
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.72,
-  .stall_top = 4.4 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1397, .slip_yh = 0.22, .slip_hv = { 0.2, 0.01 }, .slip_ya = { 0.53, 0.588 },
-  .slip_a0 = 0.04292, .slip_cl_a = 0.311, .slip_cm_a = -0.5746, .slip_cn_b = 0.1232,
-  .slip_cn_r = -0.1111, .slip_cy_b = -0.2735, .slip_cl_b = -0.01814,
-  .slip_loss = { 0.2565, 0.2802, 0.4939 }, /* scripts/wash-derive.js */
-  .tail_deda = 0.494, /* d eps / d alpha, scripts/slowstick-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { -0.0516, 0.0, 0.0939 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.5148, 0.0, 0.005 }, /* the stabiliser's, npm run ge:derive */
-  .hinge_hold = { 0, 324.9, 274.1 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0, 0.5578, 0.5014 }, /* npm run servo:derive */
-};
-
-/* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
- * each number has its formula and source and the estimated ones say so. A
- * STOL bush plane: a cantilever high wing with slotted flaps inboard,
- * ailerons outboard and fixed slats along the leading edge, a tractor
- * three blade prop on 4S, clockwise seen from behind, on the CG's height,
- * and a big tail. */
-const FixedWingParams FW_TIMBER1500 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.555,
-  .area = 0.361,
-  .chord = 0.2322,        /* S/b */
-  .cl_alpha = 5.25,       /* wing and tail, Nelson eq. 2.52 */
-  .cl_alpha_wing = 4.838, /* the wing alone, a_w, scripts/timber-derive.js */
-  .cl_max = 1.15,         /* clean, without the slats */
-  /* The zero lift line 5 degrees under the body axis, the Cub's: a thick
-   * semi symmetric section at 1.5 degrees of incidence. */
-  .alpha_zl = -5.0 * WING_PI / 180.0,
-  .sin_zl = -0.08715574274765817,
-  .cos_zl = 0.9961946980917455,
-  .cd0 = 0.042,           /* cantilever wing, tundra tyres, no slats */
-  .k_induced = 0.0609,    /* 1/(pi 0.78 6.70) */
-  .cl_de = -0.498,
-  .cy_beta = -0.369,
-  .cy_dr = 0.155,
-  .cl_beta = -0.047,      /* a flat wing on top, its tips drooped */
-  .cl_beta_wing = -0.032, /* cl_beta less the fin's, scripts/timber-derive.js */
-  .cl_beta_fin = -0.015, /* scripts/timber-derive.js */
-  .cn_beta_fin = 0.104, /* scripts/timber-derive.js */
-  .cl_p = -0.806,
-  .cl_da = 0.391,
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.009,
-  .cm_0 = 0.0853,         /* trims at 13 m/s with the elevator neutral */
-  .cm_alpha = -1.004,     /* static margin 0.19 at E-flite's 60 mm CG */
-  .cm_q = -8.53,
-  .cm_de = 1.175,
-  .cn_beta = 0.087,
-  .cn_beta_fus = -0.0169, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run timber:derive */
-  .cn_r = -0.095,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.133,
-  .cn_dr = -0.0624,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* E-flite's high rates, 33, 20 and 30 mm, over the surfaces' chords. */
-  .throw_a = 30.0 * WING_PI / 180.0,
-  .throw_e = 20.0 * WING_PI / 180.0,
-  .throw_r = 27.0 * WING_PI / 180.0,
-  .surface_max = 30.0 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 25.0,  /* N, BL10 800 kV on 4S with the 11 x 7.5 three blade */
-  .pitch_speed = 31.953, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 11 x 7.5 three blade (0.68): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9550, 0.9018, 0.8395, 0.7672, 0.6856, 0.5953,
-    0.4973, 0.3930, 0.2843, 0.1723, 0.0596, -0.0532, -0.1661,
-    -0.2790, -0.3920, -0.5049, -0.6178, -0.7308, -0.8437, -0.9566,
-  },
-  .torque_curve = {
-    1.0000, 1.0176, 1.0253, 1.0188, 0.9956, 0.9541, 0.8910,
-    0.8077, 0.7026, 0.5760, 0.4294, 0.2633, 0.0920, -0.0786,
-    -0.2492, -0.4198, -0.5904, -0.7610, -0.9315, -1.1021, -1.2727,
-  },
-  .rpm_no_load = 11840.0,
-  .torque_arm = 0.0122,   /* 322 W of disc power at 10,060 rpm is 0.31 N m at 25 N */
-  .j_prop = 0.00023, /* the three blade 11 x 7.5 (45 g) and the BL10's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .thrust_z = 0.0,        /* the thrust line through the CG */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
-  .current_full = 44.0,   /* A, the review's bench figure on 4S */
-  .v_meas = 3.750, /* V a cell loaded: the review's bench, 660 W at 44 A on 4S; docs/POWER-STAGE1.md */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 1.2,
-  .stab_roll_kd = 0.12,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 12.35 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.417, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 180.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0218, 0.0443, 0.0583 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.3223, 0.0041, 1.955 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.59, -2.361, -1.374 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 3.0,
-  .acro_roll_kd = 0.30,
-  .acro_roll_ff = 0.25,   /* under the Cub's: it rolls faster per stick, and overshot a stop at 0.35 */
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 4.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 2.0,     /* 1.4 times the Cub's yaw authority per stick */
-  /* The flaps: E-flite's 20 and 35 mm at the trailing edge of a 64.8 mm
-   * flap, 18.0 and 32.7 degrees, across in 2 s (the manual's flap speed).
-   * Lift, CLmax, drag and moment from Raymer and thin aerofoil theory; the
-   * mix is the manual's 30 percent of the elevator's travel down at full
-   * flap, 16 at half, as a line through both. */
-  .flap_half = 0.31376497222433070,
-  .flap_full = 0.57058379792549596,
-  .flap_rate = 0.285292,
-  .cl_df = 1.2391,
-  .cl_df2 = -0.6681,
-  .clmax_df = 0.7689,
-  .cd_df2 = 0.0666,
-  .cm_dcl_f = 0.0940,
-  .flap_eta = { 0.0669, 0.4296 }, /* scripts/timber-derive.js */
-  .de_df = -0.183531,
-  /* The slats: Raymer's 0.4 c'/c over 78 percent of the area. */
-  .slat_dclmax = 0.305,
-  .slat_cd0 = 0.004,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .stall_arm_cp = 0.15,
-  .stall_dw = 0.1717,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.63,
-  .slat_k = 0.84,
-  .stall_top = 3.7 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1397, .slip_yh = 0.28, .slip_hv = { 0.195, 0.036 }, .slip_ya = { 0.34, 0.7 },
-  .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
-  .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
-  .slip_loss = { 0.2652, 0.2968, 0.5968 }, /* scripts/wash-derive.js */
-  .side_cda = 0.1248, /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run timber:derive */
-  .side_x = -0.1589, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run timber:derive */
-  .hinge_hold = { 257, 315.5, 548.4 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.4677, 0.6053, 0.4596 }, /* npm run servo:derive */
-  .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0061, 0.0, 0.07 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.5525, 0.0, 0.006 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
- * what the floats change in the air. Their wetted area, struts and
- * spreader bars less the wheels and legs they replace add 0.0175 of drag;
- * their sides add side force, under the CG, so a little of the dihedral
- * effect goes; their volume ahead of and behind the CG takes some of the
- * weathercock stability, Nelson eq. 2.72 on 5.6 litres; and they lower
- * the CG under the thrust line, so power pitches the nose down. The
- * floats' drag under the CG is a constant moment coefficient, which the
- * rigging's trim takes out as it did the wheels'; cm_0 is unchanged. */
-const FixedWingParams FW_TIMBER1500F = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.555,
-  .area = 0.361,
-  .chord = 0.2322,        /* S/b */
-  .cl_alpha = 5.25,       /* wing and tail, Nelson eq. 2.52 */
-  .cl_alpha_wing = 4.838, /* the wing alone, a_w, scripts/timber-derive.js */
-  .cl_max = 1.15,         /* clean, without the slats */
-  /* The zero lift line 5 degrees under the body axis, the Cub's: a thick
-   * semi symmetric section at 1.5 degrees of incidence. */
-  .alpha_zl = -5.0 * WING_PI / 180.0,
-  .sin_zl = -0.08715574274765817,
-  .cos_zl = 0.9961946980917455,
-  .cd0 = 0.0595,          /* the wheels off, the floats, their struts and spreaders on */
-  .k_induced = 0.0609,    /* 1/(pi 0.78 6.70) */
-  .cl_de = -0.498,
-  .cy_beta = -0.446,      /* and the floats' sides */
-  .cy_dr = 0.155,
-  .cl_beta = -0.0366,     /* the floats' side force acts under the CG */
-  .cl_beta_wing = -0.032, /* cl_beta less the fin's, scripts/timber-derive.js */
-  .cl_beta_fin = -0.015, /* scripts/timber-derive.js */
-  .cn_beta_fin = 0.104, /* scripts/timber-derive.js */
-  .cl_p = -0.806,
-  .cl_da = 0.391,
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.009,
-  .cm_0 = 0.0853,         /* trims at 13 m/s with the elevator neutral */
-  .cm_alpha = -1.004,     /* static margin 0.19 at E-flite's 60 mm CG */
-  .cm_q = -8.53,
-  .cm_de = 1.175,
-  .cn_beta = 0.0741,      /* less the floats' volume, Munk's moment */
-  .cn_beta_fus = -0.0298, /* Munk's: the Timber's -0.0169 (npm run timber:derive) and the floats' -0.0129 (npm run floats:derive) */
-  .cn_r = -0.095,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.133,
-  .cn_dr = -0.0624,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* E-flite's high rates, 33, 20 and 30 mm, over the surfaces' chords. */
-  .throw_a = 30.0 * WING_PI / 180.0,
-  .throw_e = 20.0 * WING_PI / 180.0,
-  .throw_r = 27.0 * WING_PI / 180.0,
-  .surface_max = 30.0 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 25.0,  /* N, BL10 800 kV on 4S with the 11 x 7.5 three blade */
-  .pitch_speed = 31.953, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 11 x 7.5 three blade (0.68): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9550, 0.9018, 0.8395, 0.7672, 0.6856, 0.5953,
-    0.4973, 0.3930, 0.2843, 0.1723, 0.0596, -0.0532, -0.1661,
-    -0.2790, -0.3920, -0.5049, -0.6178, -0.7308, -0.8437, -0.9566,
-  },
-  .torque_curve = {
-    1.0000, 1.0176, 1.0253, 1.0188, 0.9956, 0.9541, 0.8910,
-    0.8077, 0.7026, 0.5760, 0.4294, 0.2633, 0.0920, -0.0786,
-    -0.2492, -0.4198, -0.5904, -0.7610, -0.9315, -1.1021, -1.2727,
-  },
-  .rpm_no_load = 11840.0,
-  .torque_arm = 0.0122,   /* 322 W of disc power at 10,060 rpm is 0.31 N m at 25 N */
-  .j_prop = 0.00023, /* the three blade 11 x 7.5 (45 g) and the BL10's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .thrust_z = 0.0266,     /* the floats lower the CG under the thrust line */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
-  .current_full = 44.0,   /* A, the review's bench figure on 4S */
-  .v_meas = 3.750, /* V a cell loaded: the review's bench, 660 W at 44 A on 4S; docs/POWER-STAGE1.md */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 1.2,
-  .stab_roll_kd = 0.12,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 13.98 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.503, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 180.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0286, 0.0581, 0.0764 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.1819, 0.0012, 2.0485 }, /* npm run as3x:derive */
-  .as3x_rate = { 3.747, -2.43, -1.637 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 3.0,
-  .acro_roll_kd = 0.30,
-  .acro_roll_ff = 0.25,   /* under the Cub's: it rolls faster per stick, and overshot a stop at 0.35 */
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 4.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 2.0,     /* 1.4 times the Cub's yaw authority per stick */
-  /* The flaps: E-flite's 20 and 35 mm at the trailing edge of a 64.8 mm
-   * flap, 18.0 and 32.7 degrees, across in 2 s (the manual's flap speed).
-   * Lift, CLmax, drag and moment from Raymer and thin aerofoil theory; the
-   * mix is the manual's 30 percent of the elevator's travel down at full
-   * flap, 16 at half, as a line through both. */
-  .flap_half = 0.31376497222433070,
-  .flap_full = 0.57058379792549596,
-  .flap_rate = 0.285292,
-  .cl_df = 1.2391,
-  .cl_df2 = -0.6681,
-  .clmax_df = 0.7689,
-  .cd_df2 = 0.0666,
-  .cm_dcl_f = 0.0940,
-  .flap_eta = { 0.0669, 0.4296 }, /* scripts/timber-derive.js */
-  .de_df = -0.183531,
-  /* The slats: Raymer's 0.4 c'/c over 78 percent of the area. */
-  .slat_dclmax = 0.305,
-  .slat_cd0 = 0.004,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .stall_arm_cp = 0.15,
-  .stall_dw = 0.1717,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.63,
-  .slat_k = 0.84,
-  .stall_top = 3.7 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1397, .slip_yh = 0.28, .slip_hv = { 0.195, 0.036 }, .slip_ya = { 0.34, 0.7 },
-  .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
-  .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
-  .slip_loss = { 0.2652, 0.2968, 0.5968 }, /* scripts/wash-derive.js */
-  .side_cda = 0.1248, /* the Timber's fuselage, npm run timber:derive; the floats' own side is not in it, ESTIMATED */
-  .side_x = -0.1589, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED (the land fuselage's; the floats' own side is not in it, ESTIMATED); npm run timber:derive */
-  .hinge_hold = { 257, 315.5, 548.4 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.4677, 0.6053, 0.4596 }, /* npm run servo:derive */
-  .tail_deda = 0.46, /* d eps / d alpha, scripts/timber-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0061, 0.0, 0.0966 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.5525, 0.0, 0.0326 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
- * floats change in the air, by the Timber's reasoning above, on 5.2
- * litres of float, 0.28 m^2 of wing and 1.4 m of span. */
-const FixedWingParams FW_CUB1400F = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.40,
-  .area = 0.28,
-  .chord = 0.20,
-  .cl_alpha = 5.21,       /* wing and tail, Nelson eq. 2.52 */
-  .cl_alpha_wing = 4.887, /* the wing alone, a_w, scripts/cub-derive.js */
-  .cl_max = 1.15,
-  /* The zero lift line 5 degrees under the body axis: a flat bottomed
-   * section of the USA 35B class set at about 1.5 degrees of incidence.
-   * sin and cos of minus 5 degrees, to 17 digits. */
-  .alpha_zl = -5.0 * WING_PI / 180.0,
-  .sin_zl = -0.08715574274765817,
-  .cos_zl = 0.9961946980917455,
-  .cd0 = 0.0715,          /* the wheels off, the floats and their struts on */
-  .k_induced = 0.0606,    /* 1/(pi 0.75 7) */
-  .cl_de = -0.345,
-  .cy_beta = -0.395,      /* and the floats' sides */
-  .cy_dr = 0.106,
-  .cl_beta = -0.0756,     /* the floats' side force acts under the CG */
-  .cl_beta_wing = -0.0747, /* cl_beta less the fin's, scripts/cub-derive.js */
-  .cl_beta_fin = -0.0143, /* scripts/cub-derive.js */
-  .cn_beta_fin = 0.0779, /* scripts/cub-derive.js */
-  .cl_p = -0.81,
-  .cl_da = 0.40,
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.008,
-  .cm_0 = 0.062,          /* trims at 12 m/s with the elevator neutral */
-  .cm_alpha = -0.62,      /* static margin 0.12 at the manual's 60 mm CG */
-  .cm_q = -7.7,
-  .cm_de = 0.89,
-  .cn_beta = 0.0308,      /* less the floats' volume, Munk's moment */
-  .cn_beta_fus = -0.0474, /* Munk's: the Cub's -0.0302 (npm run cub:derive) and the floats' -0.0172 (npm run floats:derive) */
-  .cn_r = -0.076,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.136,
-  .cn_dr = -0.043,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* The manual's high rates, 16, 16 and 18 mm, over the surfaces' chords. */
-  .throw_a = 18.0 * WING_PI / 180.0,
-  .throw_e = 15.0 * WING_PI / 180.0,
-  .throw_r = 15.0 * WING_PI / 180.0,
-  .surface_max = 18.0 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 13.5,  /* N, 3536 850 kV on 3S with an 11 x 7 */
-  .pitch_speed = 23.765, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 11 x 7, two blade: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9682, 0.9303, 0.8834, 0.8253, 0.7569, 0.6772,
-    0.5851, 0.4839, 0.3756, 0.2631, 0.1494, 0.0370, -0.0752,
-    -0.1875, -0.2997, -0.4120, -0.5243, -0.6365, -0.7488, -0.8611,
-  },
-  .torque_curve = {
-    1.0000, 1.0380, 1.0706, 1.0931, 1.1019, 1.0874, 1.0498,
-    0.9824, 0.8852, 0.7611, 0.6131, 0.4454, 0.2607, 0.0735,
-    -0.1136, -0.3006, -0.4877, -0.6748, -0.8619, -1.0489, -1.2360,
-  },
-  .rpm_no_load = 9435.0,
-  .torque_arm = 0.0113,   /* 128 W of disc power at 8,020 rpm is 0.15 N m at 13.5 N */
-  .j_prop = 0.000132, /* the 11 x 7 (26 g) and the 3536's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .thrust_z = 0.0284,     /* 2 mm over the old CG, which the floats lower 26.4 mm */
-  .pfactor = 1.6,         /* blade element at 0.75 R in a climb */
-  .current_full = 27.0,
-  .v_meas = 3.642, /* V a cell loaded: HobbyKing's 295 W at 27 A on 3S; docs/POWER-STAGE1.md */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 1.2,
-  .stab_roll_kd = 0.12,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 12.30 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.608, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 120.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 80.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0048, 0.013, 0.0615 }, /* npm run as3x:derive */
-  .as3x_kh = { 2.6795, 1.6357, 1.5965 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.024, -2.039, -0.926 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 3.0,
-  .acro_roll_kd = 0.25,
-  .acro_roll_ff = 0.35,
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 4.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 3.0,     /* a third of the Skyhunter's yaw authority per stick */
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .stall_arm_ac = 0.05,
-  .stall_arm_cp = 0.1,
-  .stall_dw = 0.1352,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.72,
-  .stall_top = 4.6 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1397, .slip_yh = 0.19, .slip_hv = { 0.158, 0.01 }, .slip_ya = { 0.28, 0.66 },
-  .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
-  .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
-  .slip_loss = { 0.2312, 0.2836, 0.4694 }, /* scripts/wash-derive.js */
-  .side_cda = 0.1295, /* the Cub's fuselage, npm run cub:derive; the floats' own side is not in it, ESTIMATED */
-  .side_x = -0.1357, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED (the land fuselage's; the floats' own side is not in it, ESTIMATED); npm run cub:derive */
-  .hinge_hold = { 501.2, 635.5, 1128.2 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.4472, 0.4686, 0.473 }, /* npm run servo:derive */
-  .tail_deda = 0.444, /* d eps / d alpha, scripts/cub-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0079, 0.0, 0.1314 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.5125, 0.0, 0.0694 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md, where
- * each number has its formula and source and the estimated ones say so.
- * The Slow Stick's three channels on Joe Konefes' 1940 free flight cabin
- * model: no ailerons, so it banks on its rudder, the roll stick's as well
- * as the yaw stick's, through a polyhedral wing, which also brings the
- * wings back level with the sticks centred; a big stabiliser on a long
- * arm. A Cox Texaco .049 on Cox's 7 x 3.5, clockwise seen from behind,
- * 5.3 mm under the CG, on the Cox throttle conversion: the stick runs it
- * from 40 percent of its rpm to full and it never stops. */
-const FixedWingParams FW_BOMBSHELL1118 = {
-  .mix = FW_MIX_RUDDER,
-  .span = 1.1176,         /* BMJR, 44 in */
-  .area = 0.212903,       /* BMJR, 330 sq in */
-  .chord = 0.1905,        /* S/b */
-  .cl_alpha = 4.991,      /* wing (its panels' cos^2) and tail, DATCOM downwash */
-  .cl_alpha_wing = 4.453, /* the wing alone, a_w, scripts/bombshell-derive.js */
-  .cl_max = 1.0,
-  /* The zero lift line 5.02 degrees under the thrust line: a flat bottomed
-   * section at the plan's 2 degrees of incidence, less the tail's share.
-   * sin and cos of minus 5.02 degrees, to 17 digits. */
-  .alpha_zl = -5.02 * WING_PI / 180.0,
-  .sin_zl = -0.087503474980217169,
-  .cos_zl = 0.99616421430725288,
-  .cd0 = 0.045,           /* tissue over balsa, an open engine, wire gear */
-  .k_induced = 0.07234,   /* 1/(pi 0.75 5.87) */
-  .cl_de = -0.425,
-  .cy_beta = -0.195,
-  .cy_dr = 0.1323,
-  .cl_beta = -0.2949,     /* 5 and 23 degrees of polyhedral, 14.7 as one, and the fin */
-  .cl_beta_wing = -0.2858, /* cl_beta less the fin's, scripts/bombshell-derive.js */
-  .cl_beta_fin = -0.0091, /* scripts/bombshell-derive.js */
-  .cn_beta_fin = 0.093, /* scripts/bombshell-derive.js */
-  .cl_p = -0.742,
-  .cl_da = 0.0,           /* no ailerons */
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0062,
-  .cm_0 = 0.1892,         /* trims at 8 m/s with the elevator neutral */
-  .cm_alpha = -1.4345,    /* static margin 0.287 at 33 percent of the chord */
-  .cm_q = -14.784,
-  .cm_de = 1.277,
-  .cn_beta = 0.0810,      /* the fin's, less the cabin fuselage's */
-  .cn_beta_fus = -0.0121, /* the cabin fuselage's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run bombshell:derive */
-  .cn_r = -0.1002,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = 0.0,
-  .cn_dr = -0.0632,
-  /* A 10 percent flat bottomed section at a Reynolds number of 8e4
-   * stalls from its trailing edge. */
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  .throw_a = 0.0,
-  .throw_e = 15.0 * WING_PI / 180.0,
-  .throw_r = 20.0 * WING_PI / 180.0,
-  .surface_max = 0.0,
-  .expo = 0.30,
-  .thrust_static = 2.824, /* N, Cox's 7 x 3.5 at Cox's 9,350 rpm */
-  .pitch_speed = 13.854, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* Cox 7 x 3.5 (0.50): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9559, 0.9055, 0.8485, 0.7840, 0.7126, 0.6347,
-    0.5500, 0.4610, 0.3671, 0.2696, 0.1695, 0.0680, -0.0344,
-    -0.1367, -0.2390, -0.3414, -0.4437, -0.5460, -0.6483, -0.7507,
-  },
-  .torque_curve = {
-    1.0000, 1.0139, 1.0228, 1.0221, 1.0109, 0.9884, 0.9513,
-    0.8996, 0.8331, 0.7505, 0.6513, 0.5368, 0.4062, 0.2655,
-    0.1256, -0.0143, -0.1541, -0.2940, -0.4339, -0.5737, -0.7136,
-  },
-  .rpm_no_load = 11000.0,
-  .torque_arm = 0.0070,   /* 19.2 W of disc power at 9,350 rpm is 0.0197 N m at 2.82 N */
-  .j_prop = 0.0000115, /* Cox's 7 x 3.5 (6 g) and the .049's crank, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .thrust_z = -0.0053,    /* the drawn model's shaft, 5.3 mm under the CG */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
-  .current_full = 0.0,    /* the engine burns fuel, not the pack */
-  .stab_bank_max = 45.0 * WING_PI / 180.0,
-  .stab_pitch_max = 12.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 1.12,   /* 1.6 over the rudder's 1.430 gain in the wash at the trim, scripts/stab-hold-derive.js */
-  .stab_roll_kd = 0.42,   /* 0.6 over the same gain */
-  .stab_pitch_kp = 3.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 6.09 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.510, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 45.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 30.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.0233, 0.1233 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 1.8132, 0.2423 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.944, -1.032, -0.961 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 3.0,
-  .acro_roll_kd = 0.6,
-  .acro_roll_ff = 0.5,
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 2.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 0.0,     /* the rudder is the roll control: nothing to coordinate with */
-  /* A free flight thermal machine: the 1940 Nationals' record flight
-   * "grabbed a honey of a rising air current". */
-  .air_lift = 1,
-  .stall_arm_ac = 0.0761, /* the CG 14.5 mm behind the wing's aerodynamic centre */
-  .stall_arm_cp = 0.0703, /* the plate's centre of pressure at 0.40 of the chord */
-  .throttle_idle = 0.40,  /* the Cox throttle conversion's 6,500 of 16,000 rpm */
-  /* The tank, docs/POWER-STAGE1.md: the Texaco .049's integral 8.4 cc
-   * (Cox's sheet). A Cox .049 at full throttle burns 1.84 cc/min at 9,000
-   * rpm (Menon's dyno, U. Maryland 2010, at 7 percent efficiency), and
-   * the flow is linear in the rpm through zero, so the idle's is 0.40 of
-   * it. The lean run over the last 5 percent, 5 percent of rpm, is an
-   * estimate: Cox's chart names the lean burst before a dry tank stops
-   * the engine and gives no size. */
-  .tank_m3 = 8.4e-6,
-  .flow_full = 1.84e-6 / 60.0,
-  .flow_idle = 0.40 * (1.84e-6 / 60.0),
-  .lean_frac = 0.05,
-  .lean_gain = 0.05,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .lowre_arm_ac = 0.0761, /* the same arms, its first post stall moment, kept short of */
-  .lowre_arm_cp = 0.0703, /* the stall angle and below the section data's Reynolds numbers */
-  .stall_dw = 0.1881,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.72,
-  .stall_top = 3.7 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.0889, .slip_yh = 0.206, .slip_hv = { 0.129, 0.01 }, .slip_ya = { 0.5, 0.5588 },
-  .slip_a0 = 0.04422, .slip_cl_a = 0.5377, .slip_cm_a = -1.618, .slip_cn_b = 0.09309,
-  .slip_cn_r = -0.08896, .slip_cy_b = -0.1948, .slip_cl_b = -0.009061,
-  .slip_loss = { 0.2655, 0.2847, 0.5182 }, /* scripts/wash-derive.js */
-  .side_cda = 0.0650, /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run bombshell:derive */
-  .side_x = -0.1524, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run bombshell:derive */
-  .hinge_hold = { 0, 1200.6, 938.4 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0, 0.396, 0.5102 }, /* npm run servo:derive */
-  .tail_deda = 0.341, /* d eps / d alpha, scripts/bombshell-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0082, 0.0, 0.0918 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.5664, 0.0, 0.002 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* SIG's Kadet Senior, kit RC58, docs/KADET-STAGE1.md, where each number
- * has its formula and source and the estimated ones say so. The
- * Bombshell's three channels on a 78 in trainer: no ailerons ("will not be
- * suitable for aileron control and in fact, does not need it", SIG's
- * manual), so it banks on its rudder, the roll stick's as well as the yaw
- * stick's, through its dihedral and a high wing on a deep fuselage, which
- * also bring the wings back level with the sticks centred; a big
- * stabiliser on a long arm. An O.S. FS-52 Surpass four stroke on a 12 x
- * 6, clockwise seen from behind, on SIG's 6 degrees of downthrust: the
- * stick runs it from its 2,300 rpm idle to full and it never stops. */
-const FixedWingParams FW_KADET1981 = {
-  .mix = FW_MIX_RUDDER,
-  .span = 1.9812,         /* SIG, 78 in */
-  .area = 0.741934,       /* SIG, 1150 sq in */
-  .chord = 0.374487,      /* S/b */
-  .cl_alpha = 5.029,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
-  .cl_alpha_wing = 4.533, /* the wing alone, a_w, scripts/kadet-derive.js */
-  .cl_max = 1.15,
-  /* The zero lift line 4.62 degrees under the thrust line: a flat bottomed
-   * section at SIG's 1.5 degrees of incidence, less the tail's share. sin
-   * and cos of minus 4.62 degrees, to 17 digits. */
-  .alpha_zl = -4.62 * WING_PI / 180.0,
-  .sin_zl = -0.080546860902663123,
-  .cos_zl = 0.99675082302385232,
-  .cd0 = 0.042,           /* film over a built up frame, an open engine, wire gear */
-  .k_induced = 0.08022,   /* 1/(pi 0.75 5.29) */
-  .cl_de = -0.440,
-  .cy_beta = -0.265,
-  .cy_dr = 0.1699,
-  .cl_beta = -0.1259,     /* 4.4 degrees of dihedral, the high wing and the fin */
-  .cl_beta_wing = -0.1157, /* cl_beta less the fin's, scripts/kadet-derive.js */
-  .cl_beta_fin = -0.0102, /* scripts/kadet-derive.js */
-  .cn_beta_fin = 0.1298, /* scripts/kadet-derive.js */
-  .cl_p = -0.755,
-  .cl_da = 0.0,           /* no ailerons */
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0065,
-  .cm_0 = 0.0494,         /* level at 3/4 throttle with the elevator neutral, SIG's trim; npm run kadet:derive */
-  .cm_alpha = -1.3471,    /* static margin 0.268 at SIG's 3 7/8 in */
-  .cm_q = -10.534,
-  .cm_de = 1.129,
-  .cn_beta = 0.1134,      /* the fin's, less the box fuselage's */
-  .cn_beta_fus = -0.0163, /* the box fuselage's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run kadet:derive */
-  .cn_r = -0.1374,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = 0.0,
-  .cn_dr = -0.0830,
-  /* A 13 percent flat bottomed section at a Reynolds number of 2e5, the
-   * Clark-Y class, blended over the Slow Stick's 4 degrees. */
-  .stall_blend = 4.0 * WING_PI / 180.0,
-  /* SIG's throws: 3/4 in on the 3 in elevator, 7/8 in on the 3.5 in rudder. */
-  .throw_a = 0.0,
-  .throw_e = 14.4775 * WING_PI / 180.0,
-  .throw_r = 14.4775 * WING_PI / 180.0,
-  .surface_max = 0.0,
-  .expo = 0.30,
-  .thrust_static = 27.83, /* N, a 12 x 6 at the measured 9,500 rpm */
-  .pitch_speed = 24.129, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 12 x 6: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9615, 0.9178, 0.8670, 0.8096, 0.7446, 0.6731,
-    0.5957, 0.5136, 0.4272, 0.3375, 0.2447, 0.1497, 0.0543,
-    -0.0411, -0.1367, -0.2323, -0.3278, -0.4234, -0.5190, -0.6145,
-  },
-  .torque_curve = {
-    1.0000, 1.0233, 1.0389, 1.0458, 1.0417, 1.0237, 0.9897,
-    0.9397, 0.8723, 0.7875, 0.6831, 0.5607, 0.4206, 0.2630,
-    0.0960, -0.0691, -0.2343, -0.3994, -0.5645, -0.7297, -0.8948,
-  },
-  .rpm_no_load = 11176.0,
-  .torque_arm = 0.0125,   /* 347 W of disc power at 9,500 rpm is 0.349 N m at 27.8 N */
-  .j_prop = 0.00027, /* the Ugly Stik's 12 x 6 wood prop and crank front, the same engine class, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .thrust_z = 0.0335,     /* 6 degrees of downthrust through the hub: a level line 1.32 in over the CG */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
-  .current_full = 0.0,    /* the engine burns fuel, not the pack */
-  .stab_bank_max = 45.0 * WING_PI / 180.0,
-  .stab_pitch_max = 20.0 * WING_PI / 180.0,
-  .stab_trim_pitch = -2.69 * WING_PI / 180.0, /* level at the trim flies 2.69 deg nose down (npm run stab:glide), as the Tiger Moth's */
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 2.4,
-  .stab_roll_kd = 0.6,
-  .stab_pitch_kp = 3.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 13.46 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.736, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 25.0 * WING_PI / 180.0, /* what full rudder rolls it at, 20 to 25 deg/s */
-  .acro_pitch_rate = 60.0 * WING_PI / 180.0,
-  .as3x_k = { 0, 0.048, 0.196 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 0.4995, 2.0163 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.346, -1.099, -0.812 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 5.0,
-  .acro_roll_kd = 0.6,
-  .acro_roll_ff = 1.5,
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 2.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 0.0,     /* the rudder is the roll control: nothing to coordinate with */
-  .throttle_idle = 0.2421, /* O.S.'s 2,300 rpm, the lowest practical, of the 9,500 */
-  /* The tank, docs/POWER-STAGE1.md: SIG's 12 oz, 355 cc. O.S.'s own
-   * figure for the FS-52's successor, the FSa-56II, 220 cc for about 12
-   * minutes, is 18.3 cc/min, taken as the full throttle flow (a measured
-   * .40 two stroke at full power, Menon 2010, burns 17.9), linear in the
-   * rpm through zero. The lean run is the Bombshell's estimate. */
-  .tank_m3 = 355.0e-6,
-  .flow_full = 18.3e-6 / 60.0,
-  .flow_idle = 0.2421 * (18.3e-6 / 60.0),
-  .lean_frac = 0.05,
-  .lean_gain = 0.05,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .stall_arm_ac = 0.0128, /* the CG 4.8 mm behind the wing's aerodynamic centre */
-  .stall_arm_cp = 0.1372, /* the plate's centre of pressure at 0.40 of the chord */
-  .stall_dw = 0.1721,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.72,
-  .stall_top = 6.7 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1524, .slip_yh = 0.3935, .slip_hv = { 0.259, 0.114 }, .slip_ya = { 0.89, 0.9906 },
-  .slip_a0 = -0.02575, .slip_cl_a = 0.4965, .slip_cm_a = -1.273, .slip_cn_b = 0.1299,
-  .slip_cn_r = -0.1269, .slip_cy_b = -0.2654, .slip_cl_b = -0.01018,
-  .slip_loss = { 0.2655, 0.3311, 0 }, /* scripts/wash-derive.js */
-  .side_cda = 0.3468, /* the drawn box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run kadet:derive */
-  .side_x = -0.2603, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run kadet:derive */
-  .hinge_hold = { 0, 321, 533.2 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0, 0.5115, 0.4531 }, /* npm run servo:derive */
-  .tail_deda = 0.38, /* d eps / d alpha, scripts/kadet-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { -0.0097, 0.0, 0.1158 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.9558, 0.0, -0.033 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md, where each number
- * has its formula and source and the estimated ones say so: the full size
- * P-51D to the kit's span, ailerons, elevator, rudder and plain flaps, a
- * tapered laminar wing washed out 1 deg 58 min, on FMS's 4250 540 kV and a
- * 14 x 8 four blade, clockwise seen from behind, on 4S, on retracts. */
-const FixedWingParams FW_P51D1450 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.450,          /* FMS, 1450 mm */
-  .area = 0.354,          /* FMS, 35.4 dm^2 */
-  .chord = 0.24413793103448276, /* S/b */
-  .cl_alpha = 4.960,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
-  .cl_alpha_wing = 4.665, /* the wing alone, a_w, scripts/p51-derive.js */
-  .cl_max = 1.0711,       /* npm run p51:derive: the wing's CL max at the clean stall's Reynolds number */
-  /* The stall across the Reynolds numbers, docs/P51-STAGE1.md: the UIUC
-   * NACA 2415 and 64A010 standing for the laminar section either side of
-   * its thickness, the wing's CL max on the strips' own terms and its peak
-   * the critical strip's section's plus CL / (pi A e), npm run p51:derive. */
-  .stall_re = { 1.0e5, 2.0e5 },
-  .stall_clmax = { 1.0330, 1.0903 },  /* npm run p51:derive, docs/P51-STAGE1.md */
-  .stall_peak = { 0.3136, 0.3229 },    /* 17.97 and 18.50 deg, npm run p51:derive */
-  /* The rounding to the peak apart from the fall: the 2415 at 2e5 rounds
-   * 5.4 deg to its peak and falls 1.222 to 0.749 within 0.8 deg, so the
-   * fall, the strips and the stall's drag and moments keep stall_blend. */
-  .stall_round = 3.0 * WING_PI / 180.0,  /* the floor, docs/P51-STAGE1.md "stall_round" */
-  /* The zero lift line 1.28 degrees under the thrust line: a 6 series
-   * section's 1.3 deg under its chord at the wing's mean incidence of 0.13
-   * deg, less the tail's share. sin and cos of minus 1.28 degrees. */
-  .alpha_zl = -1.28 * WING_PI / 180.0,
-  .sin_zl = -0.022338356193573706,
-  .cos_zl = 0.99975046778812215,
-  .cd0 = 0.038,           /* 0.030 clean and 0.008 of gear hanging, ESTIMATED */
-  .k_induced = 0.06699,   /* 1/(pi 0.80 5.94) */
-  .cl_de = -0.412,
-  .cy_beta = -0.336,
-  .cy_dr = 0.1982,
-  .cl_beta = -0.0925,     /* 5 degrees of dihedral, less the low wing's, and the fin */
-  .cl_beta_wing = -0.0715, /* cl_beta less the fin's, scripts/p51-derive.js */
-  .cl_beta_fin = -0.021, /* scripts/p51-derive.js */
-  .cn_beta_fin = 0.1152, /* scripts/p51-derive.js */
-  .cl_p = -0.648,
-  .cl_da = 0.2270,
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0177,
-  .cm_0 = 0.0058,         /* level at 3/4 throttle with the elevator neutral, gear up, on the gates' pack, the slipstream over the stabiliser included; npm run p51:derive */
-  .cm_alpha = -0.1684,    /* static margin 0.034 at FMS's 110 mm */
-  .cm_q = -8.305,
-  .cm_de = 1.168,
-  .cn_beta = 0.0992,      /* the fin's, less the long fuselage's */
-  .cn_beta_fus = -0.0160, /* the fuselage's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run p51:derive */
-  .cn_r = -0.1202,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.12,
-  .cn_dr = -0.0969,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* FMS's low rates at the surfaces' widest point: 17 mm on the 50 mm
-   * aileron, 24 on the 55 mm elevator, 21 on the 100 mm rudder, their
-   * arcsines to 0.0001 deg, which configs/tuning.js restates. */
-  .throw_a = 19.8769 * WING_PI / 180.0,
-  .throw_e = 25.8721 * WING_PI / 180.0,
-  .throw_r = 12.1224 * WING_PI / 180.0,
-  .surface_max = 19.8769 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 30.7,  /* N, the 14 x 8 four blade on the 540 kV motor at 4S, ESTIMATED */
-  .pitch_speed = 23.006, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 14 x 8 four blade (0.57): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9656, 0.9250, 0.8770, 0.8205, 0.7556, 0.6807,
-    0.5981, 0.5086, 0.4143, 0.3157, 0.2146, 0.1123, 0.0094,
-    -0.0936, -0.1965, -0.2994, -0.4023, -0.5052, -0.6082, -0.7111,
-  },
-  .torque_curve = {
-    1.0000, 1.0313, 1.0580, 1.0748, 1.0812, 1.0678, 1.0351,
-    0.9797, 0.9020, 0.8018, 0.6776, 0.5310, 0.3625, 0.1752,
-    -0.0147, -0.2042, -0.3938, -0.5834, -0.7729, -0.9625, -1.1520,
-  },
-  .rpm_no_load = 7992.0,
-  .torque_arm = 0.0158,   /* 345 W of disc power at 6,793 rpm is 0.485 N m at 30.7 N */
-  .thrust_z = 0.0129,     /* the thrust line 12.9 mm over the CG */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
-  .current_full = 55.2,   /* A, the static balance of the motor on the pack */
-  .v_meas = 3.258, /* V a cell loaded: the balance's 3.7 open circuit less 55.2 A through 0.008 ohm (scripts/p51-derive.js) */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 2.0,
-  .stab_roll_kd = 0.20,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 17.28 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.776, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
-  .acro_roll_rate = 120.0 * WING_PI / 180.0, /* 0.7 of full aileron's 168 deg/s at 17.5 m/s */
-  .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* at 16 m/s, 2.5 g, the most it pulls short of its stall */
-  .as3x_k = { 0.0095, 0.0123, 0.0429 }, /* npm run as3x:derive */
-  .as3x_kh = { 2.1294, 1.1381, 1.5544 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.312, -6.105, -0.924 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 4.0,
-  .acro_roll_kd = 0.80,   /* retuned with the slipstream: 0.70 left 10.4 deg/s 0.25 s after a partial roll stopped, 0.80 leaves 9.7, docs/FLIGHTMODEL.md */
-  .acro_roll_ff = 0.20,
-  .acro_pitch_kp = 4.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 6.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 1.5,
-  /* The flaps: FMS's 22 and 45 mm on the 78 mm flap at the fuselage, 16.3
-   * and 35.1 deg, plain flaps over the inner 56 percent of the area, on
-   * slow flap servos, ESTIMATED at 3 s across. No mix: FMS gives none. */
-  .flap_half = 0.28510428711100527,
-  .flap_full = 0.61297025535831962,
-  .flap_rate = 0.2043,
-  .cl_df = 1.5431,
-  .cl_df2 = -0.9665,
-  .clmax_df = 0.7370,
-  .cd_df2 = 0.1520,
-  .cm_dcl_f = 0.1959,
-  .flap_eta = { 0.0788, 0.5793 }, /* scripts/p51-derive.js */
-  .de_df = 0.0,
-  /* Past the stall: a 15 percent section at 2e5, the NACA 2415's UIUC
-   * curve standing for the laminar NAA/NACA 45-100, docs/P51-STAGE1.md. */
-  .stall_arm_ac = 0.1303, /* the CG 31.8 mm behind the wing's aerodynamic centre */
-  .stall_arm_cp = 0.0254, /* the plate's centre of pressure at 0.40 of the MAC */
-  .stall_dw = 0.1347,
-  /* The one table that keeps a side: the XP-51 the plant is checked
-   * against dropped a wing in a controls fixed gliding stall (NACA, White,
-   * Hoover and Garris 1943, fig. 42; p51:gates P19), so this airframe's
-   * asymmetry is measured, though not its side. docs/STALL-STAGE1.md. */
-  .stall_asym = 0.0041,
-  .stall_k = 0.76,
-  .stall_top = 4.2 * WING_PI / 180.0,
-  .strip_c = { 1.2507, 1.0836, 0.9164, 0.7493 }, /* the 0.499 taper */
-  .washout = (1.0 + 58.0 / 60.0) * WING_PI / 180.0, /* the full size's +1 deg root, -58 min tip */
-  .j_prop = 0.001170,     /* four 25 g blades, the spinner and the bell */
-  .gear_time = 6.0,       /* FMS's six second P-51 sequencer, ESTIMATED as the gear's travel */
-  .cd_gear = 0.008,
-  .strip_k = { 1.0, 0.9548, 0.9055, 0.8503 }, /* Reynolds number and thickness along the span */
-  /* Each strip's stall by its thickness, 14.6, 13.7, 12.8 and 11.9
-   * percent: from the NACA 2415's rounded stall at 2e5 (15 percent) to the
-   * leading edge stall of McCullough and Gault's 63-012 (12 percent, NACA
-   * TN 2502: a sharp peak, and 0.57 of it kept), linear between. */
-  .strip_top = { 3.69 * WING_PI / 180.0, 2.40 * WING_PI / 180.0, 1.10 * WING_PI / 180.0, 0.0 },
-  .strip_kfall = { 0.737, 0.678, 0.620, 0.570 },
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1778, .slip_yh = 0.258, .slip_hv = { 0.18, 0.01 }, .slip_ya = { 0.45, 0.68 },
-  .slip_a0 = 0.07222, .slip_cl_a = 0.2949, .slip_cm_a = -0.8361, .slip_cn_b = 0.1152,
-  .slip_cn_r = -0.1126, .slip_cy_b = -0.236, .slip_cl_b = -0.02099,
-  .slip_loss = { 0.2506, 0.3193, 0.5109 }, /* scripts/wash-derive.js */
-  .side_cda = 0.1139, /* the drawn rounded fuselage's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run p51:derive */
-  .side_x = -0.1624, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run p51:derive */
-  .hinge_hold = { 1945.6, 450.6, 749.7 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.3968, 0.6795, 0.5318 }, /* npm run servo:derive */
-  .tail_deda = 0.429, /* d eps / d alpha, scripts/p51-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0316, 0.0, -0.0226 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.6647, 0.0, 0.05 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High Performance
- * (FJ21115P), docs/F16-STAGE1.md, where each number has its formula and
- * source and the estimated ones say so. A 1/11.5 scale EPO jet, 878 mm
- * across the tip rails: a 40 deg cropped delta with its strakes, all
- * moving stabilators, ailerons and a rudder, on a 70 mm twelve blade
- * ducted fan. The fan is fan_tau's propulsor: its speed lags the ESC,
- * its thrust falls with airspeed to nothing at 1.6 n D, and its stators
- * take out the rotor's torque, so none reaches the airframe. */
-const FixedWingParams FW_F16878 = {
-  .mix = FW_MIX_TAIL,
-  .span = 0.878,          /* Freewing, over the rails */
-  .area = 0.21484,        /* Model Aviation, 333 sq in */
-  .chord = 0.2856,        /* the manual's top view: the trapezoid's mean chord */
-  .cl_alpha = 3.310,      /* Helmbold's swept wing and the stabilators, Nelson's downwash */
-  .cl_alpha_wing = 3.142, /* the wing alone, a_w, scripts/f16-derive.js */
-  .cl_max = 1.10,
-  /* The zero lift line 1.03 degrees under the body axis: the 64A204's
-   * camber at no incidence, less the tail's share. sin and cos of minus
-   * 1.03 degrees, to 17 digits. */
-  .alpha_zl = -1.03 * WING_PI / 180.0,
-  .sin_zl = -0.017975923049993122,
-  .cos_zl = 0.99983842004120882,
-  /* Gear down: the clean airframe's 0.0357 that flies Freewing's 165 km/h
-   * on this fan, gear up, on the full pack the manual flies it on
-   * (FITTED, npm run f16:derive), and the gear's cd_gear, which the
-   * retracts take away. */
-  .cd0 = 0.0357 + 0.013,
-  .k_induced = 0.1374,    /* 1/(pi 0.75 3.09) */
-  .cl_de = -0.476,        /* all moving: the whole stabilator */
-  .cy_beta = -0.470,
-  .cy_dr = 0.2134,
-  .cl_beta = -0.1061,     /* the sweep's effective dihedral and the fin */
-  .ail_keep = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 }, /* whole: hi_lat carries their measured loss, npm run f16:derive-hilat */
-  /* The full size F-16's measured lateral derivatives, -20 to 90 deg of
-   * alpha (NASA TP-1538, Nguyen et al. 1979, table III: the static ones
-   * sloped between beta +-4 as the paper takes them, p. 12; the rates read
-   * from the scan, pp. 51 to 91; the leading edge flap retracted, the
-   * Freewing's fixed leading edge, to 45 deg and the base table past; the
-   * roll increment is delta_a 20 with 5 deg of differential tail, which
-   * the Freewing lacks, appendix A p. 35), turned into the stability axes
-   * and taken as ratios to their own value at 0 deg, where f16:derive's
-   * linear derivatives are; Cl_r and Cn_p the measured ones, per rad. The
-   * tunnel models' Reynolds number is not given; ESTIMATED within 2 to 3
-   * times the Freewing's. npm run f16:derive-hilat prints every row from
-   * the transcribed tables (~/Desktop/fdfpv-loop/research/F16-HIGH-ALPHA.md). */
-  .hi_lat = {
-    { 0.542, 0.810, 0.996, 1.004, 1.000, 1.099, 1.213, 1.134, 0.657, 0.351, 0.170, -0.740, -0.259, -0.760, -0.155, 0.457, 1.043, 1.090, 0.419, 0.401 },
-    { 0.863, 1.118, 0.532, 0.692, 1.000, 1.480, 1.353, 0.868, 0.659, 1.715, 1.622, 2.544, 3.133, 4.209, 3.262, 0.630, -1.736, -2.176, 0.340, 0.429 },
-    { 0.767, 0.775, 0.785, 0.812, 1.000, 0.907, 0.702, 0.526, 0.380, 0.407, 0.255, 0.637, 0.371, 1.278, 0.882, 0.703, 0.882, 0.019, 0.304, 0.337 },
-    { 1.057, 1.048, 1.036, 0.957, 1.000, 1.038, 1.071, 1.347, 2.084, 2.252, 2.927, 1.694, 1.628, 0.505, 0.660, 0.417, 0.258, 0.429, 0.437, 0.531 },
-    { 0.378, 0.604, 0.639, 0.810, 1.000, 1.077, 1.054, 1.022, 0.816, 0.661, 0.487, 0.318, 0.206, 0.037, -0.105, -0.171, -0.232, -0.248, -0.268, -0.260 },
-    { 0.850, 0.936, 0.969, 0.962, 1.000, 1.022, 1.016, 1.033, 1.094, 1.108, 1.088, 0.961, 0.641, 0.265, 0.160, 0.085, 0.042, 0.028, -0.027, 0.040 },
-    { -0.112, -0.117, -0.121, -0.026, 0.064, 0.126, 0.203, 0.231, 0.344, 0.210, 0.155, -0.991, -0.917, -0.911, -0.245, 0.065, 0.154, -0.117, 0.003, 0.000 },
-    { 0.075, 0.070, 0.066, 0.052, 0.053, -0.007, 0.002, -0.036, -0.155, -0.081, -0.268, -0.185, 0.055, 0.159, -0.177, -0.253, -0.226, -0.020, -0.084, 0.018 },
-  },
-  /* The full size F-16's measured side force (NASA TP-1538, table III:
-   * the leading edge flap retracted to 45 deg, the base table past; the
-   * odd part in beta, the tunnel's asymmetry out), in place of cy_beta's
-   * line, the drag's sideways share and the fuselage's crossflow, which
-   * gave 0.51 of it at 4 deg of sideslip and 3 to 4 times it at 30 deg
-   * past 40 deg of alpha. Its slope at 0 deg is -1.078 per rad, against
-   * the build up's -0.470, the fin and a 0.06 allowance for the body
-   * (scripts/f16-derive.js), which left the most of it out. Coefficients on
-   * the wing's area, the geometry similar (research note, "What
-   * transfers"); the tunnel's Reynolds number ESTIMATED within 2 to 3
-   * times the Freewing's. SOURCED: the rows checked against the scan
-   * (PDF pp. 74 and 75), docs/F16-STAGE1.md. npm run f16:derive-hilat
-   * prints every row. */
-  .cy_tab = {
-    { -0.0259, -0.0336, -0.0358, -0.0366, -0.0374, -0.0373, -0.0374, -0.0372, -0.0297, -0.0294, -0.0288, -0.0198, -0.0237, -0.0364, -0.0240, -0.0255, -0.0261, -0.0242, -0.0207, -0.0233 },
-    { -0.0582, -0.0701, -0.0733, -0.0744, -0.0752, -0.0780, -0.0779, -0.0751, -0.0630, -0.0576, -0.0538, -0.0472, -0.0510, -0.0634, -0.0595, -0.0589, -0.0559, -0.0432, -0.0430, -0.0432 },
-    { -0.1041, -0.1478, -0.1494, -0.1567, -0.1647, -0.1659, -0.1648, -0.1606, -0.1314, -0.1150, -0.0870, -0.0805, -0.0837, -0.1217, -0.0981, -0.1076, -0.1049, -0.0828, -0.0837, -0.0839 },
-    { -0.1291, -0.1864, -0.1910, -0.2029, -0.2091, -0.2096, -0.2117, -0.2060, -0.1643, -0.1249, -0.0980, -0.1001, -0.1019, -0.1438, -0.1187, -0.1286, -0.1236, -0.0966, -0.1061, -0.1079 },
-    { -0.1899, -0.2674, -0.2937, -0.3045, -0.3125, -0.3157, -0.3169, -0.3105, -0.2376, -0.1646, -0.1545, -0.1537, -0.1395, -0.1649, -0.1879, -0.1907, -0.1884, -0.1367, -0.1595, -0.1557 },
-    { -0.2627, -0.3291, -0.3715, -0.4016, -0.4240, -0.4315, -0.4327, -0.4174, -0.3019, -0.2578, -0.2438, -0.1982, -0.1678, -0.1530, -0.1240, -0.1974, -0.2080, -0.1636, -0.2120, -0.1992 },
-    { -0.3194, -0.3840, -0.4485, -0.5021, -0.5378, -0.5408, -0.5214, -0.4911, -0.3810, -0.3779, -0.3368, -0.2490, -0.1886, -0.1575, -0.1358, -0.1532, -0.1716, -0.2178, -0.2545, -0.2486 },
-    { -0.3899, -0.4410, -0.5039, -0.5786, -0.6360, -0.6446, -0.6155, -0.5457, -0.4815, -0.4951, -0.3589, -0.2669, -0.2086, -0.2063, -0.1687, -0.1921, -0.2166, -0.2515, -0.3004, -0.3063 },
-  },
-  .cl_p = -0.3495,
-  .cl_da = 0.1226,
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0292,
-  .cm_0 = 0.0361,         /* level at half throttle with the elevator neutral, on the gates' pack; npm run f16:derive */
-  .cm_alpha = -0.3814,    /* static margin 0.115: the full size F-16's neutral point */
-  .cm_q = -2.263,
-  .cm_de = 0.700,
-  .cn_beta = 0.1420,      /* the fin's, less the long forebody's */
-  .cn_beta_fus = -0.0683, /* the forebody's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run f16:derive */
-  .cn_r = -0.2241,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.05,
-  .cn_dr = -0.1094,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* The full size F-16's surface limits (NASA TP-1538): Freewing gives
-   * its high rates in mm at the trailing edge and not the chords. */
-  .throw_a = 21.5 * WING_PI / 180.0,
-  .throw_e = 25.0 * WING_PI / 180.0,
-  .throw_r = 30.0 * WING_PI / 180.0,
-  .surface_max = 21.5 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 23.536, /* N, Freewing's 2,400 g */
-  .pitch_speed = 76.87,   /* the fan's zero thrust speed, 1.603 n D */
-  /* the fan's straight line to its zero thrust speed (docs/F16-STAGE1.md); its power is its speed's cube whatever the airspeed, the same paper */
-  .axial_curve = {
-    1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4,
-    0.3, 0.2, 0.1, 0.0, -0.1, -0.2, -0.3,
-    -0.4, -0.5, -0.6, -0.7, -0.8, -0.9, -1.0,
-  },
-  .torque_curve = {
-    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-  },
-  .rpm_no_load = 49062.0, /* 2210 kV on 6S */
-  .torque_arm = 0.0,      /* the fan's stators take out its torque */
-  .j_prop = 0.000010, /* the 69 mm twelve blade rotor (12 g) and the 2957 inrunner's rotor, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
-  .current_full = 70.0,   /* A, the fan unit's static figure */
-  .v_meas = 3.700, /* V a cell: rc-castle's "At 22.2v (70A)" on 6S, taken as the loaded voltage; docs/POWER-STAGE1.md */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 3.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 2.0,
-  .stab_roll_kd = 0.10,
-  .stab_pitch_kp = 3.0,
-  .stab_pitch_kd = 0.30,
-  .stab_pitch_down = 9.84 * WING_PI / 180.0, /* to its power off glide, gear down, npm run stab:glide */
-  .stab_trim_throttle = 0.538, /* npm run stab:glide; the stick that flies it level, elevator neutral, gear down */
-  .acro_roll_rate = 300.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 120.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0021, 0.0016, 0.0145 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.2786, 0.0488, 0.2891 }, /* npm run as3x:derive */
-  .as3x_rate = { 4.411, -4.458, -1.898 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 8.0,
-  .acro_roll_kd = 0.10,
-  .acro_roll_ff = 0.14,
-  .acro_pitch_kp = 4.0,
-  .acro_pitch_kd = 0.30,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 4.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 1.0,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. The
-   * strakes' vortex holds the lift 10 deg past the stall, to Freewing's
-   * "high alpha of 30 degrees", then it falls to 0.8 of it. */
-  .stall_arm_ac = -0.0552, /* the CG 16 mm ahead of the wing's aerodynamic centre */
-  .stall_arm_cp = 0.2052,  /* the plate's centre of pressure at 0.40 of the mean chord */
-  .stall_dw = 0.1442,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.80,
-  .stall_top = 10.0 * WING_PI / 180.0,
-  .strip_c = { 1.499, 1.166, 0.834, 0.501 },
-  .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
-  /* The fan and its ESC: NASA's second order spool, scaled to 69 mm, and
-   * the ESC manual's Normal startup, 300 ms to full. */
-  .fan_tau = 0.08,
-  .esc_start = 0.3,
-  /* Freewing's electric retracts, the P-51's system: no travel time is
-   * published, 4 s ESTIMATED; the gear's drag, three legs, their wheels
-   * and the doors, 4.6e-3 m^2 across the flow at a C_D of 0.6 on the
-   * 0.2148 m^2 wing, ESTIMATED (f16:derive). */
-  .gear_time = 4.0,
-  .cd_gear = 0.013,
-  .hinge_hold = { 1192.4, 0, 1361.5 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.2647, 0, 0.2355 }, /* npm run servo:derive */
-  .tail_deda = 0.647, /* d eps / d alpha, scripts/f16-derive.js, Nelson, the one its slope takes; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { -0.0413, 0.0, 0.0 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.4347, 0.0, -0.01 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md, where each number has its
- * formula and source and the estimated ones say so: an EPP flying wing
- * on the planform Trick R/C drew for the Zagi-400 X, elevons and no
- * rudder, winglets, the Zagi 101.4 reflexed section, 25.5 oz, balanced 8
- * in back from the nose, a 3100 kV inrunner turning a 5 x 5 carbon
- * pusher clockwise seen from behind, on 3S. The derivatives are a vortex
- * lattice's on that planform with its winglets, scripts/zagi-derive.js. */
-const FixedWingParams FW_ZAGI1219 = {
-  .mix = FW_MIX_ELEVON,
-  .span = 1.2192,         /* Zagi, 48 in */
-  .area = 0.26012851,     /* Zagi, 2.8 sq ft */
-  .chord = 0.21335338,    /* S/b */
-  .cl_alpha = 4.1152,     /* the lattice, winglets on */
-  .cl_max = 0.9283,       /* 0.9 of the MH45's 1.14 at 2e5, cos of the quarter chord's sweep */
-  .alpha_zl = 0.0,        /* a reflexed section: zero lift on the body axis */
-  .sin_zl = 0.0,
-  .cos_zl = 1.0,
-  .cd0 = 0.0186,          /* a component build up, ESTIMATED */
-  .k_induced = 0.0737,    /* 1/(pi e AR), Raymer's swept e 0.756 */
-  .cl_de = -1.7282,       /* elevon lift, per rad: trailing edge up sheds lift */
-  .cy_beta = -0.2399,
-  .cl_beta = -0.1338,     /* the sweep's, at the cruise's lift, and the winglets' */
-  .cl_p = -0.4697,
-  .cl_da = 0.4157,
-  .cl_r_per_cl = 0.2222,
-  .cm_0 = 0.0498,         /* the reflex: trims at the best glide's CL, elevons neutral */
-  .cm_alpha = -0.4076,    /* static margin 0.099 of S/b at Zagi's 8 in, FITTED */
-  .cm_q = -1.5146,
-  .cm_de = 0.6814,        /* delta_e positive pitches the nose up */
-  .cn_beta = 0.0173,      /* the winglets', short behind the CG */
-  .cn_r = -0.0180,
-  .cn_p_per_cl = -0.1600,
-  .cn_da_per_cl = 0.0153, /* a little proverse: the elevons are at the swept tips */
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* Zagi's throws: 3/8 in each way on either stick on the 1.5 in elevon,
-   * its arcsine to 0.0001 deg, one rate. Each elevon clips at it. No
-   * rudder, so the yaw stick moves nothing. */
-  .throw_a = 14.4775 * WING_PI / 180.0,
-  .throw_e = 14.4775 * WING_PI / 180.0,
-  .throw_r = 0.0,
-  .surface_max = 14.4775 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 7.295, /* N, 202 W on the shaft through the 5 in disc at an APC 5 x 5E's figure of merit */
-  .pitch_speed = 46.567, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 5 x 5 carbon: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9886, 0.9736, 0.9488, 0.9117, 0.8549, 0.7759,
-    0.6692, 0.5410, 0.3984, 0.2498, 0.1012, -0.0422, -0.1858,
-    -0.3295, -0.4731, -0.6167, -0.7603, -0.9039, -1.0475, -1.1912,
-  },
-  .torque_curve = {
-    1.0000, 1.0556, 1.1196, 1.1851, 1.2410, 1.2708, 1.2587,
-    1.1855, 1.0496, 0.8618, 0.6328, 0.3746, 0.1028, -0.1687,
-    -0.4402, -0.7116, -0.9831, -1.2546, -1.5260, -1.7975, -2.0690,
-  },
-  .rpm_no_load = 25882.0, /* the plant's rule: 22,000 is 0.85 of it */
-  .torque_arm = 0.01203,  /* the shaft's 0.0878 N m at 30 A over the static thrust; clockwise from behind */
-  .thrust_z = 0.052,      /* the motor on the tray, its shaft 52 mm over the CG: power pitches the nose down */
-  .current_full = 30.0,   /* A, Zagi's static figure */
-  .v_meas = 3.460, /* V a cell loaded, ESTIMATED: Zagi names no voltage, so the fleet convention, 3.7 open circuit less 30 A through r_cell; docs/POWER-STAGE1.md */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 2.0,    /* the wing's 1.2 through its 25 deg, on 14.5 */
-  .stab_roll_kd = 0.20,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 0.0,   /* its glide is nose higher than the trim: npm run stab:glide */
-  .stab_trim_throttle = 0.246, /* npm run stab:glide; the stick that flies it level, elevons neutral */
-  .acro_roll_rate = 220.0 * WING_PI / 180.0, /* 0.7 of full elevon's 315 deg/s at 15 m/s */
-  .acro_pitch_rate = 100.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0092, 0.0042, 0 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0085, 0.0083, 0 }, /* npm run as3x:derive */
-  .as3x_rate = { 2.833, -1.883, 0 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 5.0,
-  .acro_roll_kd = 0.40,
-  .acro_roll_ff = 0.20,
-  .acro_pitch_kp = 5.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 6.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 0.0,     /* no rudder */
-  .air_lift = 1,          /* "motor up to those distant thermals then power-down and soar", Zagi */
-  /* Past the stall: the MH45 at 1.5e5 (UIUC), the flying wing's arms. */
-  .stall_arm_ac = -0.0990,
-  .stall_arm_cp = 0.2490,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.858,
-  .stall_top = 2.64 * WING_PI / 180.0,
-  .strip_c = { 1.3095, 1.1032, 0.8968, 0.6905 }, /* the 0.416 taper */
-  .j_prop = 0.0000112,    /* the carbon 5 x 5, its adapter and the inrunner's rotor */
-  .strip_tau = { 0.2679, 0.4981, 0.5487, 0.6184 }, /* the 1.5 in elevons, from the bay's edge to the tip */
-  .surf_sep = 0.3325,     /* the elevon's chord fraction at the MAC over its tau */
-  .strip_r = { 0.8308, 1.0065, 1.1188, 1.1386 }, /* the lattice's span loading: the tips most */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { -0.014, 0.0, 0.001 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .hinge_hold = { 1855.7, 0, 0 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.3509, 0, 0 }, /* npm run servo:derive */
-};
-
-/* Phil Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it,
- * plan 939, May and June 1985, docs/UGLYSTIK-STAGE1.md, where each number
- * has its formula and source (scripts/uglystik-derive.js) and the
- * estimated ones say so. A 62 in balsa sport aerobat: a constant chord
- * shoulder wing on a section within a percent of symmetric at half a
- * degree of incidence, 1.5 in of dihedral a side, strip ailerons along
- * the whole trailing edge outside the centre, a flat stabiliser on the
- * fuselage's bottom and the rounded "egg" of a fin; RCM's own travel
- * limits. An O.S. 61FX two stroke on a 12 x 6, clockwise seen from
- * behind, on no thrust offsets ("No thrust offsets are used", Kraft); the
- * stick runs it from its 2,000 rpm idle to full and it never stops. A
- * straight, untwisted wing whose thick section stalls from the trailing
- * edge: it drops its nose and does not drop a wing. */
-const FixedWingParams FW_UGLYSTIK1567 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.5682,         /* the plan, 61.7 in over the aileron tips */
-  .area = 0.51055,        /* the plan: 731 sq in to the hinge line, 60 of strip ailerons */
-  .chord = 0.3256,        /* S/b */
-  .cl_alpha = 4.824,      /* wing (its dihedral's cos^2) and tail, DATCOM downwash */
-  .cl_alpha_wing = 4.427, /* the wing alone, a_w, scripts/uglystik-derive.js */
-  .cl_max = 0.95,         /* a 16 percent near symmetric section at 2.3e5, ESTIMATED */
-  /* The zero lift line 0.43 degrees under the thrust line: the section's
-   * zero at the plan's half degree of incidence, less the tail's share.
-   * sin and cos of minus 0.43 degrees, to 17 digits. */
-  .alpha_zl = -0.43 * WING_PI / 180.0,
-  .sin_zl = -0.0075048453329269677,
-  .cos_zl = 0.99997183825172242,
-  .cd0 = 0.045,           /* an open side mounted engine, a slab box, strip ailerons, strap gear */
-  .k_induced = 0.08811,   /* 1/(pi 0.75 4.82) */
-  .cl_de = -0.3057,
-  .cy_beta = -0.2505,
-  .cy_dr = 0.1403,
-  .cl_beta = -0.0813,     /* 3.07 degrees of dihedral, the shoulder wing and the fin */
-  .cl_beta_wing = -0.0708, /* cl_beta less the fin's, scripts/uglystik-derive.js */
-  .cl_beta_fin = -0.0105, /* scripts/uglystik-derive.js */
-  .cn_beta_fin = 0.1177, /* scripts/uglystik-derive.js */
-  .cl_p = -0.7378,
-  .cl_da = 0.2510,        /* strip ailerons, 9 percent of the chord, from 5.7 in to the tip */
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0059,
-  .cm_0 = 0.0166,         /* level at 3/4 throttle with the elevator neutral, RCM's trim; npm run uglystik:derive */
-  .cm_alpha = -0.4880,    /* static margin 0.101 at the plan's CG, on the main spar */
-  .cm_q = -6.792,
-  .cm_de = 0.6835,
-  .cn_beta = 0.1068,      /* the egg and its sub fin, less the slab box's */
-  .cn_beta_fus = -0.0109, /* the slab box's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run uglystik:derive */
-  .cn_r = -0.1218,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.06,  /* the bellcranks' differential takes half the Cub's adverse yaw */
-  .cn_dr = -0.0659,
-  /* A thick section's trailing edge stall comes on over the P-51's 3 deg,
-   * ESTIMATED. */
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* RCM's travel limits at the trailing edge: 5/16 in up and 1/4 down on
-   * the 1.29 in aileron, their mean; 3/8 in on the 1.67 in elevator; 1 in
-   * on the 3.96 in rudder; their arcsines, which configs/tuning.js
-   * restates. */
-  .throw_a = 12.5969 * WING_PI / 180.0,
-  .throw_e = 12.9765 * WING_PI / 180.0,
-  .throw_r = 14.6270 * WING_PI / 180.0,
-  .surface_max = 12.5969 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 36.206, /* N, APC's 12 x 6 at 10,895 rpm */
-  .pitch_speed = 27.673, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* APC 12 x 6: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9618, 0.9181, 0.8678, 0.8105, 0.7460, 0.6742,
-    0.5975, 0.5154, 0.4281, 0.3384, 0.2457, 0.1507, 0.0552,
-    -0.0422, -0.1395, -0.2368, -0.3340, -0.4313, -0.5285, -0.6258,
-  },
-  .torque_curve = {
-    1.0000, 1.0210, 1.0377, 1.0445, 1.0413, 1.0232, 0.9877,
-    0.9361, 0.8685, 0.7819, 0.6771, 0.5534, 0.4119, 0.2522,
-    0.0771, -0.0954, -0.2679, -0.4403, -0.6128, -0.7853, -0.9578,
-  },
-  .rpm_no_load = 12817.6,
-  .torque_arm = 0.01690,  /* APC's 0.612 N m at 10,895 rpm, the engine's torque, over 36.2 N */
-  .thrust_z = -0.0043,    /* the crankshaft 0.17 in under the CG */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
-  .current_full = 0.0,    /* the engine burns fuel, not the pack */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 2.0,
-  .stab_roll_kd = 0.20,
-  .stab_pitch_kp = 3.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 16.58 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.710, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 80.0 * WING_PI / 180.0, /* 0.85 of full aileron's 95 deg/s at the trim */
-  .acro_pitch_rate = 60.0 * WING_PI / 180.0, /* under the accelerated stall at the trim, 76 deg/s */
-  .as3x_k = { 0.0106, 0.0317, 0.094 }, /* npm run as3x:derive */
-  .as3x_kh = { 2.0536, 2.7086, 2.3758 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.552, -1.593, -0.694 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 4.0,
-  .acro_roll_kd = 0.70,
-  .acro_roll_ff = 0.20,
-  .acro_pitch_kp = 4.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 6.0,
-  .acro_pitch_ki = 8.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 1.5,
-  .throttle_idle = 0.1836, /* O.S.'s 2,000 rpm, the lowest practical, of the 10,895 */
-  /* The tank, docs/POWER-STAGE1.md: RCM's 12 oz, 355 cc. The full
-   * throttle flow a measured .40 two stroke's (Menon 2010, 17.9 cc/min)
-   * scaled by the displacement, 9.95 over 6.5 cc: 27.4 cc/min, linear in
-   * the rpm through zero, ESTIMATED; the lean run the Bombshell's. */
-  .tank_m3 = 355.0e-6,
-  .flow_full = 27.4e-6 / 60.0,
-  .flow_idle = 0.1836 * (27.4e-6 / 60.0),
-  .lean_frac = 0.05,
-  .lean_gain = 0.05,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js: a
-   * 16 percent section within a percent of symmetric at 2.3e5, the NACA
-   * 2415's UIUC curve at 2e5, held 4.2 deg and falling to 0.76. */
-  .stall_arm_ac = 0.0991, /* the CG 1.27 in behind the wing's aerodynamic centre */
-  .stall_arm_cp = 0.0610, /* the plate's centre of pressure at 0.40 of the chord */
-  .stall_dw = 0.1427,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.76,
-  .stall_top = 4.2 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  .washout = 0.0,         /* "Keep the trailing edge flat": built flat on the board */
-  /* The ailerons from 5.7 in out: a quarter of the inner strip, all of
-   * the rest. */
-  .strip_tau = { 0.055, 0.22, 0.22, 0.22 },
-  .j_prop = 0.00027,      /* the 12 x 6's 46 g of wood blades and the crank's front, ESTIMATED */
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1524, .slip_yh = 0.283, .slip_hv = { 0.178, 0.087 }, .slip_ya = { 0.145, 0.784 },
-  .slip_a0 = 0.05137, .slip_cl_a = 0.3967, .slip_cm_a = -0.8873, .slip_cn_b = 0.1178,
-  .slip_cn_r = -0.1107, .slip_cy_b = -0.2505, .slip_cl_b = -0.01054,
-  .slip_loss = { 0.2655, 0.3281, 0.5629 }, /* scripts/wash-derive.js */
-  .side_cda = 0.1422, /* the drawn slab box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run uglystik:derive */
-  .side_x = -0.1419, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run uglystik:derive */
-  .hinge_hold = { 1620.4, 1638.3, 1144.2 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.2169, 0.3004, 0.3297 }, /* npm run servo:derive */
-  .tail_deda = 0.416, /* d eps / d alpha, scripts/uglystik-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { -0.056, 0.0, 0.0646 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.7337, 0.0, -0.0525 }, /* the stabiliser's, npm run ge:derive */
-};
-
-/* Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md, where
- * every number has its formula and source and the estimated ones say so
- * (scripts/tigermoth-derive.js prints them). A 71 in balsa and ply scale
- * de Havilland DH.82A, the full size at 1/4.96 on its span: two wings of
- * one chord and span, both swept back and staggered, the top one 0.113 m
- * ahead at the root, rigged at the full size's 4 deg of incidence; the
- * ailerons on the bottom wing alone and no differential; a long tail on a
- * small fin and a big rudder; an O.S. 61FX on a 12 x 6, the first engine
- * Great Planes list; a taildragger on V strut gear and a tail wheel on a
- * wire in the rudder. The cell's derivatives are on Great Planes' 1360 sq
- * in and the 71 in span, the reference chord the wings' own; the wings
- * themselves are the second wing's (bip_*). Its CG, the kit's 70 mm
- * behind the bottom wing's leading edge, is 0.107 chords behind the
- * cell's aerodynamic centre: the tail holds a static margin of 0.038, and
- * it pitches easily and does not right itself. */
-const FixedWingParams FW_TIGERMOTH1803 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.8034,         /* Great Planes, 71 in, both wings */
-  .area = 0.87742,        /* Great Planes, 1360 sq in, both wings */
-  .chord = 0.2683,        /* the full size's 1.33 m at 1/4.96, both wings */
-  .cl_alpha = 4.6328,     /* the cell in each wing's wash, and the tail, DATCOM downwash */
-  .cl_max = 1.05,         /* each wing's own, a cambered trainer section at 1.8e5, ESTIMATED */
-  /* The zero lift line 5.47 deg under the thrust line: the section's -2
-   * deg at the full size's 4 deg of incidence, less the tail's share.
-   * sin and cos of minus 5.47 deg, to 17 digits. */
-  .alpha_zl = -5.47 * WING_PI / 180.0,
-  .sin_zl = -0.095324551175009861,
-  .cos_zl = 0.99544624663679504,
-  .cd0 = 0.058,           /* two wings, the struts and wires, open cockpits, V strut gear, ESTIMATED */
-  .k_induced = 0.07819,   /* the biplane at its own split, Munk's span 1.137 b, e 0.85: the strips' drag */
-  .cl_de = -0.3359,
-  .cy_beta = -0.3080,
-  .cy_dr = 0.1996,
-  .cl_beta = -0.0577,     /* the two dihedrals, the top wing high over the fuselage, the fin */
-  /* Sideslip past the stall split as the derivation splits cl_beta
-   * (scripts/tigermoth-derive.js): the dihedrals and wing heights, the
-   * fin's share, and the fin's cn_beta. */
-  .cl_beta_wing = -0.0461, /* cl_beta less the fin's, scripts/tigermoth-derive.js */
-  .cl_beta_fin = -0.0116, /* scripts/tigermoth-derive.js */
-  .cn_beta_fin = 0.1078, /* scripts/tigermoth-derive.js */
-  .ail_keep = { 1.0, 0.78, 0.30, 0.16, 0.13, 0.16, 0.18 }, /* TR 419 shifted 2.5 deg, docs/FLIGHTMODEL.md */
-  .fin_keep = { 1.0, 0.84, 0.74, 0.60, 0.31, 0.17, 0.10 }, /* NY-1 TR 456 and the wake geometry, docs/FLIGHTMODEL.md */
-  .cl_p = -0.8070,        /* strip theory on both wings at their own slopes */
-  .cl_da = 0.2696,        /* the bottom wing's ailerons, 0.35 to 0.89 m out */
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0112,
-  .cm_0 = 0.0114,         /* level at 3/4 throttle with the elevator neutral; npm run tigermoth:derive */
-  .cm_alpha = -0.1745,    /* static margin 0.038 at the kit's 70 mm */
-  .cm_q = -8.013,
-  .cm_de = 1.0494,
-  .cn_beta = 0.0965,      /* the small fin and big rudder, less the fuselage's */
-  .cn_beta_fus = -0.0113, /* the fuselage's Nelson eq. 2.64 of cn_beta, on Munk's form; npm run tigermoth:derive */
-  .cn_r = -0.1262,
-  .cn_p_per_cl = -0.125,
-  /* Adverse yaw: Nelson's 2 K CL Cl_da on the bottom wing's own CL, and
-   * the top wing's downwash tilting the lift the ailerons add: no
-   * differential, the ailerons on one wing. */
-  .cn_da_per_cl = -0.0944,
-  .cn_dr = -0.1034,
-  /* A cambered section's trailing edge stall, the Cub's 3 deg. */
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* Great Planes' high rate at the widest part of each surface: aileron
-   * 3/4 in on 67 mm, elevator 1 in on 121 mm, rudder 2 in on 202 mm; their
-   * arcsines, which configs/tuning.js restates. */
-  .throw_a = 16.5003 * WING_PI / 180.0,
-  .throw_e = 12.1141 * WING_PI / 180.0,
-  .throw_r = 14.5859 * WING_PI / 180.0,
-  .surface_max = 16.5003 * WING_PI / 180.0,
-  .expo = 0.30,           /* the house stock expo; Great Planes give none */
-  .thrust_static = 36.206, /* N, the Ugly Stik's 61FX on APC's 12 x 6 at 10,895 rpm */
-  .pitch_speed = 27.673, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* APC 12 x 6: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9618, 0.9181, 0.8678, 0.8105, 0.7460, 0.6742,
-    0.5975, 0.5154, 0.4281, 0.3384, 0.2457, 0.1507, 0.0552,
-    -0.0422, -0.1395, -0.2368, -0.3340, -0.4313, -0.5285, -0.6258,
-  },
-  .torque_curve = {
-    1.0000, 1.0210, 1.0377, 1.0445, 1.0413, 1.0232, 0.9877,
-    0.9361, 0.8685, 0.7819, 0.6771, 0.5534, 0.4119, 0.2522,
-    0.0771, -0.0954, -0.2679, -0.4403, -0.6128, -0.7853, -0.9578,
-  },
-  .rpm_no_load = 12817.6,
-  .torque_arm = 0.01690,  /* APC's 0.612 N m at 10,895 rpm over 36.2 N */
-  .thrust_z = 0.0074,     /* the thrust line 7 mm over the CG, from the masses */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's */
-  .current_full = 0.0,    /* the engine burns fuel, not the pack */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 0.0,   /* level at the trim flies at 0.3 deg nose down: it cruises tail up */
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 2.0,
-  .stab_roll_kd = 0.20,
-  .stab_pitch_kp = 2.0,
-  .stab_pitch_kd = 0.4,
-  .stab_pitch_down = 13.88 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.665, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 75.0 * WING_PI / 180.0, /* 0.85 of full aileron's 88 deg/s at the trim */
-  .acro_pitch_rate = 45.0 * WING_PI / 180.0,
-  .as3x_k = { 0.0375, 0.0831, 0.1869 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.5607, 2.2888, 3.6065 }, /* npm run as3x:derive */
-  .as3x_rate = { 1.38, -2.368, -1.239 }, /* npm run as3x:derive */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 4.0,
-  .acro_roll_kd = 0.70,
-  .acro_roll_ff = 0.20,
-  .acro_pitch_kp = 3.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.30,
-  .acro_roll_ki = 6.0,
-  .acro_pitch_ki = 6.0,
-  .acro_i_max = 0.30,
-  .yaw_coord_k = 1.5,
-  .throttle_idle = 0.1836, /* O.S.'s 2,000 rpm, the lowest practical, of the 10,895 */
-  /* The tank, the Stik's 12 oz, ESTIMATED (Great Planes give no size), and
-   * the Stik's 61FX flow: 27.4 cc/min at full throttle, linear in the
-   * rpm; the lean run the Bombshell's. */
-  .tank_m3 = 355.0e-6,
-  .flow_full = 27.4e-6 / 60.0,
-  .flow_idle = 0.1836 * (27.4e-6 / 60.0),
-  .lean_frac = 0.05,
-  .lean_gain = 0.05,
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/tigermoth-derive.js:
-   * the CG 0.107 chords behind the cell's aerodynamic centre; a Clark-Y
-   * class section at 1.8e5, held 6.2 deg past its peak and falling to
-   * 0.72. */
-  .stall_arm_ac = 0.1068,
-  .stall_arm_cp = 0.0432,
-  .stall_dw = 0.1286,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.72,
-  .stall_top = 6.2 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 }, /* both wings rectangles */
-  .washout = 0.0,         /* built flat; Great Planes give none */
-  /* No strip_tau: the strips judge their stall on the top wing, which
-   * stalls first and has no ailerons. */
-  .j_prop = 0.00027,      /* the Stik's 12 x 6 and the crank's front, ESTIMATED */
-  /* The second wing, scripts/tigermoth-derive.js: the top wing (0) and the
-   * bottom one (1), 0.333 m apart at the root, the top one's quarter chord
-   * 0.108 m ahead at the mean chords, Prandtl's sigma 0.539 on the Trefftz
-   * plane. */
-  .bip_w = { 0.5684, 0.4316 },
-  .bip_r = { 1.1087, 0.8856 },
-  /* The bottom wing of a positively staggered cell stalls 5 to 6 deg after
-   * the top one, its flow held on by the top wing as a slot holds it (NACA
-   * TN 310, Knight and Noyes 1929, figs. 8 and 9, stagger 0.5, gap 1.0, Re
-   * 1.5e5; the model's Re); potential flow, bip_r, gives 3 deg, so 2.5 deg
-   * more on the bottom wing, ESTIMATE for this cell's stagger 0.42 and gap
-   * 1.17 (both shrink it, 4 to 6 deg the band;
-   * ~/Desktop/fdfpv-loop/research/TIGERMOTH-HIGH-ALPHA.md section 3a). */
-  .bip_dstall = { 0.0, 2.5 * WING_PI / 180.0 }, /* NACA TN 310, docs/FLIGHTMODEL.md */
-  .bip_m = { 0.0101, 0.2202 },
-  .bip_x = { 0.1729, -0.2277 },
-  .bip_ki = { 0.02655, 0.02399 },
-  .bip_kx = { 0.01361, 0.01361 },
-  /* The slipstream, scripts/wash-derive.js. */
-  .slip_r = 0.1524, .slip_yh = 0.3025, .slip_hv = { 0.246, 0.081 }, .slip_ya = { 0.35, 0.89 },
-  .slip_a0 = -0.007186, .slip_cl_a = 0.2292, .slip_cm_a = -0.7162, .slip_cn_b = 0.1077,
-  .slip_cn_r = -0.1117, .slip_cy_b = -0.2081, .slip_cl_b = -0.01166,
-  .slip_loss = { 0.2655, 0.3114, 0.5856 }, /* scripts/wash-derive.js */
-  .side_cda = 0.2123, /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run tigermoth:derive */
-  .side_x = -0.2332, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run tigermoth:derive */
-  .hinge_hold = { 491.8, 393, 334.4 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.451, 0.6322, 0.9173 }, /* npm run servo:derive */
-  .tail_deda = 0.4416, /* d eps / d alpha, scripts/tigermoth-derive.js, DATCOM; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77's biplane, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0748, 0.0, 0.2276 }, /* the drawn model's top wing quarter chord, npm run ge:derive */
-  .ge_wing2 = { -0.0325, 0.0, -0.0777 }, /* the bottom wing's, npm run ge:derive */
-  .ge_tail = { -0.8578, 0.0, 0.008 }, /* the stabiliser's, npm run ge:derive */
-  /* The wings' own slope, the cell's a_w, scripts/tigermoth-derive.js (the
-   * tail 0.229 of 4.6328): read only by GROUND EFFECT, so the stall stays
-   * the whole curve's every band was derived on. */
-  .ge_cla_wing = 4.4036,
 };
 
 /* The Striker, docs/COMBAT-DRONES.md section 7: the war's pusher delta as
@@ -6350,853 +2568,4 @@ const FixedWingParams FW_STRIKER_JET = {
   .esc_start = 0.0,
   .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
   .ge_wing = { -0.0478, 0.0, -0.0601 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-};
-
-/* E-flite's Extra 300 3D 1.3m, EFL115500, docs/EXTRA-STAGE1.md and
- * scripts/extra-derive.js, where each number has its formula and source
- * and the estimated ones say so; removed as airframe 14 on 2026-09-29 and
- * back as 29 for the flight model lane (docs/FLIGHTMODEL.md), its table
- * as it was, the slipstream's swirl and the gyroscope the plant's own now.
- * A moulded foam aerobatic monoplane whose static thrust is two and a half
- * times its weight, the one table with the high angles and the slow air's
- * damping:
- * it hangs on its prop, its oversized ailerons, elevator and rudder
- * working in the wash with no airspeed at all, the airframe turning
- * against the prop's torque when they are let go. A 4250 910 kV on 4S
- * turns a 13 x 6 wood prop, clockwise seen from behind, on a thrust line
- * through the CG. */
-const FixedWingParams FW_EXTRA3D1308 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.308,          /* E-flite, 51.5 in */
-  .area = 0.369,          /* E-flite, 36.9 dm^2 */
-  .chord = 0.2927,        /* the mean aerodynamic chord of the measured taper */
-  .cl_alpha = 4.704,      /* wing and tail, Nelson eq. 2.52 */
-  .cl_max = 0.95,         /* a thick symmetric section at 2e5 */
-  /* The stall from a measured section, docs/EXTRA-STAGE1.md: Timmer's
-   * NACA 0018 (Wind Engineering 32(6), 2008), the nearest measured
-   * symmetric section at these Reynolds numbers (the Extra's is 14
-   * percent): CL max 0.988 at 11.6 deg at 1.5e5 and 1.056 at 15.1 at 3e5.
-   * The wing's: 0.9 of the section's (Raymer, Aircraft Design, sec.
-   * 12.4), its peak further on by the induced angle CL / (pi A e); the
-   * wing's own slope extra-derive's a_w, 2 pi A / (A + 2). */
-  .cl_alpha_wing = 4.390,
-  .stall_re = { 1.5e5, 3.0e5 },        /* Timmer 2008 measured at these, docs/EXTRA-STAGE1.md */
-  .stall_clmax = { 0.8892, 0.9504 },   /* 0.9 of 0.988 and 1.056, docs/EXTRA-STAGE1.md */
-  .stall_peak = { 0.2839, 0.3506 },    /* 11.6 and 15.1 deg plus CL / (pi A e), docs/EXTRA-STAGE1.md */
-  /* A symmetric section at no incidence: zero lift on the body axis. */
-  .alpha_zl = 0.0,
-  .sin_zl = 0.0,
-  .cos_zl = 1.0,
-  .cd0 = 0.045,           /* big gear and pants, open hinge gaps, a thick wing */
-  .k_induced = 0.09155,   /* 1/(pi 0.75 4.636) */
-  .cl_de = -0.3537,
-  .cy_beta = -0.5731,
-  .cy_dr = 0.2439,
-  .cl_beta = 0.0105,      /* no dihedral: the low wing's roll, less the fin's */
-  .cl_beta_wing = 0.0317, /* cl_beta less the fin's, scripts/extra-derive.js */
-  .cl_beta_fin = -0.0212, /* scripts/extra-derive.js */
-  .cn_beta_fin = 0.2832, /* scripts/extra-derive.js */
-  .cl_p = -0.6276,
-  .cl_da = 0.3722,
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0112,
-  .cm_0 = 0.0450,         /* trimmed hands off at 15 m/s, the pilot's elevator trim taken as neutral */
-  .cm_alpha = -0.7265,    /* static margin 0.154 at the manual's 95 mm */
-  .cm_q = -9.496,
-  .cm_de = 0.8666,
-  .cn_beta = 0.2405,      /* the big fin and rudder, less the fuselage's */
-  .cn_beta_fus = -0.0428, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run extra:derive */
-  .cn_r = -0.3577,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.08,  /* ESTIMATED: symmetric section, wide chord ailerons */
-  .cn_dr = -0.1492,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* E-flite's high rates, 50, 60 and 100 mm at the surfaces' widest
-   * chords; the control derivatives carry Roskam's large deflection K' at
-   * these throws. */
-  .throw_a = 36.53 * WING_PI / 180.0,
-  .throw_e = 39.67 * WING_PI / 180.0,
-  .throw_r = 55.05 * WING_PI / 180.0,
-  .surface_max = 36.53 * WING_PI / 180.0,
-  .expo = 0.30,           /* E-flite's high rate expo */
-  .thrust_static = 37.86, /* N, ESTIMATED: the 4250 on 4S against APC's 13 x 6.5E, 10,127 rpm */
-  .pitch_speed = 29.077, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 13 x 6 wood (0.46): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9629, 0.9191, 0.8678, 0.8092, 0.7413, 0.6652,
-    0.5813, 0.4898, 0.3926, 0.2921, 0.1897, 0.0876, -0.0116,
-    -0.1108, -0.2100, -0.3092, -0.4084, -0.5076, -0.6067, -0.7059,
-  },
-  .torque_curve = {
-    1.0000, 1.0239, 1.0425, 1.0519, 1.0475, 1.0274, 0.9870,
-    0.9273, 0.8467, 0.7425, 0.6212, 0.4810, 0.3260, 0.1606,
-    -0.0049, -0.1703, -0.3357, -0.5011, -0.6665, -0.8319, -0.9973,
-  },
-  .rpm_no_load = 13468.0,
-  .torque_arm = 0.01719,  /* the prop's 0.651 N m at 37.9 N */
-  .thrust_z = 0.0,        /* the thrust line through the CG */
-  .pfactor = 1.89,        /* the Cub's blade element figure on a 13 in prop */
-  .current_full = 64.4,
-  .v_meas = 3.185, /* V a cell loaded: the balance's 3.7 open circuit less 64.4 A through 0.008 ohm (scripts/extra-derive.js) */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  /* The Cub's loops scaled to throws two and a half times the Cub's. */
-  .stab_roll_kp = 0.6,
-  .stab_roll_kd = 0.06,
-  .stab_pitch_kp = 2.0,
-  .stab_pitch_kd = 0.2,
-  .stab_pitch_down = 13.60 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.365, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 360.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* what full elevator holds at 16 m/s, near CLmax */
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 2.5, /* npm run acro:derive */
-  .acro_roll_kd = 0.645, /* npm run acro:derive */
-  .acro_roll_ff = 0.10,
-  .acro_pitch_kp = 11.4, /* npm run acro:derive */
-  .acro_pitch_kd = 1.99, /* npm run acro:derive */
-  .acro_pitch_ff = 0.15,
-  .acro_roll_ki = 2.42, /* npm run acro:derive */
-  .acro_pitch_ki = 14.9, /* npm run acro:derive */
-  .acro_i_max = 0.666, /* ArduPlane's rate loops' IMAX, https://github.com/ArduPilot/ardupilot (APM_Control), npm run acro:derive */
-  .acro_yaw_kp = 11.4, /* npm run acro:derive */
-  .acro_yaw_ki = 14.9, /* npm run acro:derive */
-  .acro_yaw_kd = 1.99, /* npm run acro:derive */
-  /* A cowled nose: Selig's 80 percent for a cowling, not the profile
-   * foamies' 100; the disc 0.302 m ahead of the CG, the drawn model's
-   * (src/render/extracraft.js, PROP_S to CG_S at the manual's CG). */
-  .jet_kj = 0.80,
-  .prop_x = 0.302,
-  /* E-flite publishes no speed for the Extra's 23 g digital servo
-   * (EFL11598); Hitec's D89MW, a 25 g digital servo of its class, is
-   * "0.11 sec @ 60 deg" at 6 V (hitecrcd.com), 9.52 rad/s. */
-  .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
-  .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.0086, 0.0433, 0.0347 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 2.2719, 0.001 }, /* npm run as3x:derive */
-  .as3x_rate = { 8.795, -4.146, -5.206 }, /* npm run as3x:derive */
-  .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
-  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
-  .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
-  .stall_arm_cp = 0.1482,
-  .stall_dw = 0.2661,
-  /* No built in side: a kit's build tolerance has one, but which this
-   * Extra's is nobody knows, and a fixed left made every power off pull
-   * drop the left wing (the owner, 2026-10-09). What drops a wing is what
-   * drops it on the field: the pilot's own rudder and aileron, the gusts,
-   * and under power the prop's torque and swirl. npm run extra:stab
-   * holds a power off pull level without them and drops the wing a touch
-   * of rudder yaws toward. */
-  .stall_asym = 0.0,
-  .stall_k = 0.70,
-  .stall_top = 2.0 * WING_PI / 180.0,
-  .strip_c = { 1.213, 1.071, 0.929, 0.787 },
-  /* The slipstream, the high angles and the slow air, scripts/extra-derive.js:
-   * the 13 in prop; the stabiliser's half span, the fin over and under the
-   * thrust line, the ailerons' span; the tail's shares. */
-  .slip_r = 0.1651,
-  .slip_yh = 0.2505,
-  .slip_hv = { 0.208, 0.085 },
-  .slip_ya = { 0.077, 0.654 },
-  .slip_a0 = 0.0619,
-  .slip_cl_a = 0.3143,
-  .slip_cm_a = -0.7700,
-  .slip_cn_b = 0.2832,
-  .slip_cn_r = -0.3465,
-  .slip_cy_b = -0.4631,
-  .slip_cl_b = -0.0212,
-  .slip_loss = { 0.2655, 0.3164, 0.6084 }, /* scripts/lib/wash.js slipLoss: the stabiliser 3.09, the fin 3.34 D behind the disc; the fin swirl's too */
-  .strip_tau = { 0.378, 0.378, 0.378, 0.378 }, /* the ailerons run from 0.077 m to the tip */
-  /* The swirl over the wing's root, scripts/extra-derive.js: the fuselage's
-   * side 0.075 m out (E-flite's top view), the wing 0.070 m under the
-   * thrust line (its front photograph), the chord there. */
-  .slip_root = { 0.075, 0.070, 0.3474 },
-  /* FITTED: no measurement gives a wing's lift in a stream this narrow;
-   * the share that gives back Selig's 40 percent of the torque at the
-   * hover, with SWIRL_KEEP's fin, npm run extra:derive. */
-  .slip_root_eta = 0.557,
-  .hi_alpha = 1,
-  .tail_at = 3.699,
-  .tail_av = 3.715,
-  .tail_deda = 0.603,
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0085, 0.0, -0.05 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.701, 0.0, 0.0 }, /* the stabiliser's, npm run ge:derive */
-  .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
-  .side_cda = 0.1723,     /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run extra:derive */
-  .side_x = -0.1999, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run extra:derive */
-  .hinge_hold = { 304.8, 358.7, 209 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.4471, 0.5119, 0.8591 }, /* npm run servo:derive */
-  .rot_k = { 0.01580, 0.04108, 0.03462 },
-  .j_prop = 0.000249,     /* a 35 g wood blade and the outrunner's can, ESTIMATED */
-};
-
-/* E-flite's Night Timber X 1.2m, EFL13850 and EFL13875,
- * docs/NIGHTTIMBER-STAGE1.md and scripts/nighttimber-derive.js, where each
- * number has its formula and source and the estimated ones say so. The
- * Timber X's STOL high wing with oversized surfaces, flown as its manual's
- * 3D setup has it: the flaps mixed into the ailerons at the ailerons'
- * travel, full span ailerons, the flaps still going down together on the
- * flap switch; the slats left in the box, as the manual's CG is given. A
- * BL10 900 kV on 4S turns a 13 x 4, clockwise seen from behind, on a
- * thrust line through the CG: a thrust about one and a half times its
- * weight, so it hangs on the prop, the Extra's high angle terms carrying
- * it there. */
-const FixedWingParams FW_NIGHTTIMBER1200 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.200,          /* E-flite, 47.5 in */
-  .area = 0.2866,         /* E-flite's 34 dm^2 is with the slats: 0.243 of 0.288 of it */
-  .chord = 0.2388,        /* S/b, a constant chord */
-  .cl_alpha = 4.9038,     /* wing and tail, Nelson eq. 2.52 */
-  .cl_alpha_wing = 4.494, /* the wing alone, a_w, scripts/nighttimber-derive.js */
-  .cl_max = 1.15,         /* clean, the Turbo Timber's thick semi symmetric section */
-  /* The zero lift line 5 degrees under the body axis, the Turbo Timber's. */
-  .alpha_zl = -5.0 * WING_PI / 180.0,
-  .sin_zl = -0.08715574274765817,
-  .cos_zl = 0.9961946980917455,
-  .cd0 = 0.0459,          /* the Timber's, its tundra tyres' share on a smaller wing */
-  .k_induced = 0.08121,   /* 1/(pi 0.78 5.025) */
-  .cl_de = -0.4630,
-  .cy_beta = -0.5127,
-  .cy_dr = 0.2096,
-  .cl_beta = -0.0252,     /* a flat high wing, the fin mostly under the thrust line */
-  .cl_beta_wing = -0.0364, /* cl_beta less the fin's, scripts/nighttimber-derive.js */
-  .cl_beta_fin = 0.0112, /* scripts/nighttimber-derive.js */
-  .cn_beta_fin = 0.1946, /* scripts/nighttimber-derive.js */
-  .cl_p = -0.7491,
-  .cl_da = 0.4465,        /* full span: the flaps mixed in at the ailerons' travel */
-  .cl_r_per_cl = 0.25,
-  .cl_dr = -0.0059,
-  .cm_0 = 0.0383,         /* trims at 13 m/s with the elevator neutral */
-  .cm_alpha = -0.3349,    /* static margin 0.068 at the manual's 89 mm */
-  .cm_q = -9.585,
-  .cm_de = 1.0393,
-  .cn_beta = 0.1544,
-  .cn_beta_fus = -0.0402, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run nighttimber:derive */
-  .cn_r = -0.1996,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.133, /* the Turbo Timber's */
-  .cn_dr = -0.1013,
-  .stall_blend = 3.0 * WING_PI / 180.0,
-  /* E-flite's high rates, 45, 55 and 55 mm, over the surfaces' widest
-   * chords; the control derivatives carry Roskam's large deflection K'. */
-  .throw_a = 28.92 * WING_PI / 180.0,
-  .throw_e = 35.81 * WING_PI / 180.0,
-  .throw_r = 33.75 * WING_PI / 180.0,
-  .surface_max = 28.92 * WING_PI / 180.0,
-  .expo = 0.0,            /* the manual sets none: "after first flights, you may adjust expo" */
-  .thrust_static = 25.93, /* N, ESTIMATED: the BL10 on 4S against APC's 13 x 4E, 10,058 rpm */
-  .pitch_speed = 19.172, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 13 x 4: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9546, 0.9059, 0.8519, 0.7949, 0.7329, 0.6679,
-    0.5987, 0.5254, 0.4489, 0.3698, 0.2888, 0.2067, 0.1237,
-    0.0408, -0.0426, -0.1260, -0.2094, -0.2928, -0.3762, -0.4596,
-  },
-  .torque_curve = {
-    1.0000, 1.0000, 0.9947, 0.9838, 0.9678, 0.9459, 0.9138,
-    0.8764, 0.8271, 0.7710, 0.7034, 0.6261, 0.5401, 0.4433,
-    0.3413, 0.2347, 0.1291, 0.0234, -0.0822, -0.1879, -0.2935,
-  },
-  .rpm_no_load = 13320.0,
-  .torque_arm = 0.01459,  /* the prop's 0.378 N m at 25.9 N */
-  .j_prop = 0.000171,     /* a 25 g 13 in blade and the BL10's can, ESTIMATED */
-  .thrust_z = 0.0,        /* the thrust line through the CG */
-  .pfactor = 1.89,        /* the Cub's blade element figure on a 13 in prop, as the Extra's */
-  .current_full = 37.4,
-  .v_meas = 3.401, /* V a cell loaded: the balance's 3.7 open circuit less 37.4 A through 0.008 ohm (scripts/nighttimber-derive.js) */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  /* The Turbo Timber's loops, its throws and surfaces near these. */
-  .stab_roll_kp = 1.2,
-  .stab_roll_kd = 0.12,
-  .stab_pitch_kp = 5.0,
-  .stab_pitch_kd = 0.5,
-  .stab_pitch_down = 12.56 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.457, /* npm run stab:glide; the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 360.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 200.0 * WING_PI / 180.0,
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 2.76, /* npm run acro:derive */
-  .acro_roll_kd = 0.712, /* npm run acro:derive */
-  .acro_roll_ff = 0.25,
-  .acro_pitch_kp = 8.51, /* npm run acro:derive */
-  .acro_pitch_kd = 1.48, /* npm run acro:derive */
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 2.67, /* npm run acro:derive */
-  .acro_pitch_ki = 11.1, /* npm run acro:derive */
-  .acro_i_max = 0.666, /* ArduPlane's rate loops' IMAX, https://github.com/ArduPilot/ardupilot (APM_Control), npm run acro:derive */
-  .acro_yaw_kp = 11.4, /* npm run acro:derive */
-  .acro_yaw_ki = 14.9, /* npm run acro:derive */
-  .acro_yaw_kd = 1.99, /* npm run acro:derive */
-  .as3x_k = { 0.0189, 0.0139, 0.0111 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.0013, 0.1607, 0.0768 }, /* npm run as3x:derive */
-  .as3x_rate = { 6.149, -5.646, -3.006 }, /* npm run as3x:derive */
-  .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
-  /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
-   * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
-   * "SPEED 2.0S"). The mix is the manual's 14 and 20 percent of the
-   * elevator's travel, taken down, as one gain through both notches. */
-  .flap_half = 0.328206,
-  .flap_full = 0.632256,
-  .flap_rate = 0.316128,
-  .cl_df = 1.3649,
-  .cl_df2 = -1.0160,
-  .clmax_df = 0.4819,
-  .cd_df2 = 0.1463,
-  .cm_dcl_f = 0.3984,
-  .flap_eta = { 0.1558, 0.5319 }, /* scripts/nighttimber-derive.js */
-  .de_df = -0.212333,
-  /* No slats: they ship in the box, and the manual's CG is without them. */
-  /* Past the stall, the Turbo Timber's section (docs/STALL-STAGE1.md). */
-  .stall_arm_ac = 0.1227, /* the CG 0.123 of the chord behind the wing's aerodynamic centre */
-  .stall_arm_cp = 0.0273, /* the plate's centre of pressure at 0.40, just behind the CG */
-  .stall_dw = 0.2705,
-  .stall_asym = 0.0,      /* no built in side, docs/STALL-STAGE1.md */
-  .stall_k = 0.63,
-  .stall_top = 3.7 * WING_PI / 180.0,
-  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
-  /* The slipstream, the high angles and the slow air,
-   * scripts/nighttimber-derive.js: the 13 in prop; the stabiliser's half
-   * span, the fin over and under the thrust line, the ailerons' span. */
-  .slip_r = 0.1651,
-  .slip_yh = 0.2475,
-  .slip_hv = { 0.080, 0.147 },
-  .slip_ya = { 0.0935, 0.5629 },
-  .slip_a0 = 0.0272,
-  .slip_cl_a = 0.4095,
-  .slip_cm_a = -0.9192,
-  .slip_cn_b = 0.1946,
-  .slip_cn_r = -0.1881,
-  .slip_cy_b = -0.4027,
-  .slip_cl_b = 0.0112,
-  .slip_loss = { 0.2175, 0.2980, 0.6721 }, /* scripts/lib/wash.js slipLoss: the stabiliser 2.56, the fin 2.69 D behind the disc; the fin swirl's too */
-  .strip_tau = { 0.1749, 0.4643, 0.4643, 0.3496 }, /* the ailerons and flaperons from 0.093 m to 0.563 */
-  .hi_alpha = 1,
-  .tail_at = 3.812,
-  .tail_av = 3.394,
-  .tail_deda = 0.569,
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0293, 0.0, 0.065 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.5362, 0.0, -0.113 }, /* the stabiliser's, npm run ge:derive */
-  .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
-  .side_cda = 0.1522,     /* the drawn rounded box's crossflow, NACA TN 3038, scripts/lib/crossflow.js; npm run nighttimber:derive */
-  .side_x = -0.1527, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run nighttimber:derive */
-  .hinge_hold = { 186.7, 97.6, 216.4 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.5645, 0.6062, 0.6549 }, /* npm run servo:derive */
-  .rot_k = { 0.01132, 0.01439, 0.01218 },
-};
-
-/* AeroTetris's C-130 Hercules 3077, docs/HERCULES-STAGE1.md, where each
- * number has its formula and source and the estimated ones say so: a
- * laser cut balsa and ply C-130H at 1:13.13, the kit's own reference area,
- * mean chord and 16 percent static margin, the full size's planform,
- * tail and 64A series sections scaled to it, on four E-flite Power 25s,
- * each on its own 3S pack, turning APC 12 x 8Es clockwise seen from
- * behind, as the full size's four all turn. Four props on symmetric lines
- * turning the same way sum exactly into the plant's one thrust line, which
- * is how they are taken; their wash is on the wing and the tailplane's
- * inner half, never the fin, which the plant's centreline slipstream
- * cannot place, so slip_r is zero (docs/HERCULES-CONTRACT.md). */
-const FixedWingParams FW_HERCULES3077 = {
-  .mix = FW_MIX_TAIL,
-  .span = 3.077,          /* AeroTetris, 3077 mm; docs/HERCULES-STAGE1.md */
-  .area = 1.0486,         /* AeroTetris's reference area, 104.86 dm^2; docs/HERCULES-STAGE1.md */
-  .chord = 0.3564,        /* AeroTetris's reference length, the mean chord; docs/HERCULES-STAGE1.md */
-  .cl_alpha = 5.688,      /* wing (its dihedral's cos^2) and tail, Nelson eq. 2.52; npm run hercules:derive */
-  .cl_max = 1.10,         /* an 18 percent 64A section at 2.9e5, ESTIMATED; docs/HERCULES-STAGE1.md */
-  /* The zero lift line 3.5 deg under the thrust line: the 64A318's 2 deg,
-   * the wing set at 1.5 deg on the mean of the full size's 3 deg root and
-   * 0 deg tip. sin and cos of minus 3.5 degrees, to 17 digits. */
-  .alpha_zl = -3.5 * WING_PI / 180.0, /* npm run hercules:derive */
-  .sin_zl = -0.061048539534856873, /* npm run hercules:derive */
-  .cos_zl = 0.99813479842186692, /* npm run hercules:derive */
-  .cd0 = 0.0343,          /* Raymer's component build up off the kit's geometry, 0.019 to 0.052, scripts/hercules-derive.js */
-  .k_induced = 0.04508,   /* 1/(pi 0.782 9.029), Raymer eq. 12.48; npm run hercules:derive */
-  .cl_de = -0.6135, /* npm run hercules:derive */
-  .cy_beta = -0.5310, /* npm run hercules:derive */
-  .cy_dr = 0.2975, /* npm run hercules:derive */
-  .cl_beta = -0.1410,     /* 2.5 deg of dihedral, the high wing and the tall fin; npm run hercules:derive */
-  .cl_beta_wing = -0.0931, /* cl_beta less the fin's, scripts/hercules-derive.js */
-  .cl_beta_fin = -0.0479, /* scripts/hercules-derive.js */
-  .cn_beta_fin = 0.1513, /* scripts/hercules-derive.js */
-  .cl_p = -0.6971, /* npm run hercules:derive */
-  .cl_da = 0.2998,        /* ailerons from 0.66 to 0.97 of the half span; npm run hercules:derive */
-  .cl_r_per_cl = 0.25, /* CL/4, Nelson's wing estimate, docs/HERCULES-STAGE1.md */
-  .cl_dr = 0.0338, /* npm run hercules:derive */
-  .cm_0 = 0.0687,         /* level at 1.6 Vs with the elevator neutral; npm run hercules:derive */
-  .cm_alpha = -0.9097,    /* AeroTetris's 16 percent static margin; npm run hercules:derive */
-  .cm_q = -15.83, /* npm run hercules:derive */
-  .cm_de = 1.8527, /* npm run hercules:derive */
-  .cn_beta = 0.0884,      /* the tall fin, less the deep fuselage's; npm run hercules:derive */
-  .cn_beta_fus = -0.0630, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run hercules:derive */
-  .cn_r = -0.1201, /* npm run hercules:derive */
-  .cn_p_per_cl = -0.125, /* -CL/8, Nelson's wing estimate, docs/HERCULES-STAGE1.md */
-  .cn_da_per_cl = -0.12,  /* the P-51's, a cambered section's plain ailerons, ESTIMATED; FITTED: no published figure, docs/HERCULES-STAGE1.md */
-  .cn_dr = -0.1070, /* npm run hercules:derive */
-  .stall_blend = 4.0 * WING_PI / 180.0, /* FITTED: a thick section's rounded stall, as the Kadet's, docs/STALL-STAGE1.md */
-  /* Scale throws, ESTIMATED (the kit has no manual): 15 deg of aileron
-   * and elevator, 25 of rudder. */
-  .throw_a = 15.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
-  .throw_e = 15.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
-  .throw_r = 25.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
-  .surface_max = 15.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
-  .expo = 0.30, /* FITTED: a transmitter setting, the fleet's 30 percent */
-  .thrust_static = 81.30, /* N, four Power 25s on 3S against APC's 12 x 8E, 7,961 rpm, ESTIMATED; npm run hercules:derive */
-  .pitch_speed = 27.799, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* APC 12 x 8E: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9724, 0.9375, 0.8935, 0.8380, 0.7708, 0.6906,
-    0.5972, 0.4931, 0.3800, 0.2628, 0.1438, 0.0288, -0.0835,
-    -0.1964, -0.3092, -0.4220, -0.5349, -0.6477, -0.7605, -0.8734,
-  },
-  .torque_curve = {
-    1.0000, 1.0452, 1.0866, 1.1184, 1.1330, 1.1264, 1.0913,
-    1.0231, 0.9198, 0.7841, 0.6218, 0.4361, 0.2348, 0.0287,
-    -0.1760, -0.3807, -0.5854, -0.7901, -0.9948, -1.1995, -1.4042,
-  },
-  .rpm_no_load = 9657.0, /* npm run hercules:derive */
-  .torque_arm = 0.01857,  /* each prop's 0.377 N m at 20.3 N; four turning the same way; npm run hercules:derive */
-  .thrust_z = 0.0998,     /* the nacelles' thrust lines 0.10 m over the CG; npm run hercules:derive */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's; four the same way sum; docs/FLIGHTMODEL.md */
-  .current_full = 147.1,  /* A, four times 36.8 at the static point; npm run hercules:derive */
-  .v_meas = 3.479, /* V a cell loaded: the balance's 3.7 open circuit less 36.8 A a pack through 0.006 ohm (scripts/hercules-derive.js) */
-  .stab_bank_max = 45.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
-  .stab_pitch_max = 20.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0, /* FITTED: SAFE's level trim, as the fleet's */
-  .stab_deadband = 0.04, /* docs/WING-STAGE1.md */
-  .stab_roll_kp = 2.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .stab_roll_kd = 0.40, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .stab_pitch_kp = 3.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .stab_pitch_kd = 0.5, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .stab_pitch_down = 8.67 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.483, /* the stick that flies it level, elevator neutral; npm run stab:glide */
-  .acro_roll_rate = 60.0 * WING_PI / 180.0, /* FITTED: a rate setting, a scale transport's */
-  .acro_pitch_rate = 30.0 * WING_PI / 180.0, /* FITTED: a rate setting, a scale transport's */
-  .acro_expo = 0.30, /* FITTED: a transmitter setting, the fleet's 30 percent */
-  .acro_err_max = 5.0 * WING_PI / 180.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .acro_roll_kp = 4.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .acro_roll_kd = 0.8, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .acro_roll_ff = 0.30, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .acro_pitch_kp = 4.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .acro_pitch_kd = 0.5, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .acro_pitch_ff = 0.40, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .acro_roll_ki = 4.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .acro_pitch_ki = 6.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .acro_i_max = 0.30, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
-  .as3x_k = { 0.0244, 0.0298, 0.0995 }, /* npm run as3x:derive */
-  .as3x_kh = { 1.4263, 1.7395, 2.4386 }, /* npm run as3x:derive */
-  .as3x_rate = { 0.865, -1.72, -1.401 }, /* npm run as3x:derive */
-  .yaw_coord_k = 1.5, /* FITTED: turn coordination gain, no published figure */
-  /* Past the stall, scripts/stall-derive.js's tailed form on this
-   * aircraft's numbers; the 18 percent section's rounded trailing edge
-   * stall, the Kadet's thick section's figures taken, ESTIMATED. */
-  .stall_arm_ac = 0.0791,
-  .stall_arm_cp = 0.0709, /* npm run hercules:derive */
-  .stall_dw = 0.1849, /* npm run hercules:derive */
-  /* No built in side (#926: no wing drop without a source). The kit has
-   * none; the 0.00281 it carried was scripts/stall-derive.js run on the
-   * Kadet's thick section figures, ESTIMATED, not a measured asymmetry. */
-  .stall_asym = 0.0,
-  .stall_k = 0.72, /* scripts/stall-derive.js */
-  .stall_top = 6.7 * WING_PI / 180.0, /* scripts/stall-derive.js */
-  .strip_c = { 1.2781, 1.0927, 0.9073, 0.7219 }, /* the straight 0.459 taper; npm run hercules:derive */
-  .washout = 3.0 * WING_PI / 180.0, /* the full size's 3 deg root, 0 tip; npm run hercules:derive */
-  .j_prop = 0.000687,     /* four 26 g 12 x 8Es, spinners and cans, ESTIMATED; npm run hercules:derive */
-  .side_cda = 0.5311,     /* the drawn sections' crossflow, NACA TN 3038, on 0.85 of the side view, scripts/hercules-derive.js */
-  .side_x = -0.0669, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run hercules:derive */
-  .hinge_hold = { 743.9, 333.6, 253.2 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.4631, 0.5662, 0.4024 }, /* npm run servo:derive */
-  /* The rear ramp and door, ESTIMATED (scripts/hercules-derive.js): open
-   * in 4 s, a model's slow servo; the open hold's base drag and the hanging
-   * ramp's, 0.0259 on the wing's area, under the CG, so nose down. */
-  .door_time = 4.0,
-  .cd_door = 0.0259,      /* npm run hercules:derive */
-  .cm_door = -0.0091,     /* npm run hercules:derive */
-  .tail_deda = 0.362, /* d eps / d alpha, scripts/hercules-derive.js, Nelson; read only by GROUND EFFECT on a linear table */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0282, 0.0, 0.1675 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -1.07, 0.0, 0.067 }, /* the stabiliser's, npm run ge:derive */
-  /* The wing's own slope, a_w, scripts/hercules-derive.js (Nelson eq.
-   * 2.52 splits cl_alpha into it and the tail's 0.554): read only by GROUND
-   * EFFECT, so the stall stays the whole curve's every band was derived on. */
-  .ge_cla_wing = 5.134,
-};
-
-/* Extreme Flight's 67 in CAP 580, A464, docs/CAP580-STAGE1.md and
- * scripts/cap580-derive.js, where each number has its formula and source
- * and the fitted ones say so. A balsa and carbon IMAC and 3D monoplane on
- * a T-Motor AM670 520 kV turning an 18 x 8 carbon prop, clockwise seen
- * from behind, its thrust and torque T-Motor's measured bench table on 6S:
- * 2.6 times its weight, so it hangs on the prop as the Extra does, the
- * Extra's high angle, slipstream and slow air terms carrying it there. */
-const FixedWingParams FW_CAP1702 = {
-  .mix = FW_MIX_TAIL,
-  .span = 1.7018,         /* Extreme Flight's data sheet, 67 in; docs/CAP580-STAGE1.md */
-  .area = 0.5548,         /* the data sheet, 860 sq in; docs/CAP580-STAGE1.md */
-  .chord = 0.3380,        /* npm run cap580:derive: the mean chord of the measured taper */
-  .cl_alpha = 5.0601,     /* npm run cap580:derive: wing and tail, Nelson eq. 2.52 */
-  .cl_max = 0.9283,       /* npm run cap580:derive: the wing's CL max at the stall's Reynolds number */
-  .cl_alpha_wing = 4.543, /* npm run cap580:derive: the wing's own slope, the stall angle's */
-  .stall_re = { 1.5e5, 3.0e5 },        /* Timmer 2008 measured at these, docs/CAP580-STAGE1.md */
-  .stall_clmax = { 0.8892, 0.9504 },   /* 0.9 of 0.988 and 1.056, docs/CAP580-STAGE1.md */
-  .stall_peak = { 0.2748, 0.3408 },    /* 11.6 and 15.1 deg plus CL / (pi A e), npm run cap580:derive */
-  /* A symmetric section at no incidence (docs/CAP580-STAGE1.md): zero
-   * lift on the body axis. */
-  .alpha_zl = 0.0,
-  .sin_zl = 0.0, /* docs/CAP580-STAGE1.md: a symmetric section, zero lift on the body axis */
-  .cos_zl = 1.0, /* docs/CAP580-STAGE1.md: a symmetric section, zero lift on the body axis */
-  .cd0 = 0.045,           /* docs/CAP580-STAGE1.md: the Extra's class, ESTIMATED */
-  .k_induced = 0.08131,   /* npm run cap580:derive: 1/(pi 0.75 5.22) */
-  .cl_de = -0.5824,       /* npm run cap580:derive */
-  .cy_beta = -0.5569,     /* npm run cap580:derive */
-  .cy_dr = 0.2278,        /* npm run cap580:derive */
-  .cl_beta = 0.0024,      /* npm run cap580:derive: no dihedral, the low wing's roll less the fin's */
-  /* Sideslip past the stall split as the Extra's: the same layout, the
-   * stabiliser on the fuselage at the thrust line and the rudder over it
-   * and running under the fuselage (docs/FLIGHTMODEL.md). */
-  .cl_beta_wing = 0.0290, /* cl_beta less the fin's, npm run cap580:derive */
-  .cl_beta_fin = -0.0265, /* npm run cap580:derive */
-  .cn_beta_fin = 0.2363, /* npm run cap580:derive */
-  .cl_p = -0.6309,        /* npm run cap580:derive */
-  .cl_da = 0.4415,        /* npm run cap580:derive */
-  .cl_r_per_cl = 0.25,    /* docs/EXTRA-STAGE1.md: every table's strip theory figure */
-  .cl_dr = 0.0135,        /* npm run cap580:derive */
-  .cm_0 = 0.0678,         /* npm run cap580:derive: trimmed hands off at 18 m/s */
-  .cm_alpha = -1.0619,    /* npm run cap580:derive: static margin 0.21 */
-  .cm_q = -14.673,        /* npm run cap580:derive */
-  .cm_de = 1.4644,        /* npm run cap580:derive */
-  .cn_beta = 0.1997,      /* npm run cap580:derive */
-  .cn_beta_fus = -0.0366, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run cap580:derive */
-  .cn_r = -0.2612,        /* npm run cap580:derive */
-  .cn_p_per_cl = -0.125,  /* docs/EXTRA-STAGE1.md: every table's */
-  .cn_da_per_cl = -0.08,  /* docs/EXTRA-STAGE1.md: the Extra's, ESTIMATED, a symmetric section and wide chord ailerons */
-  .cn_dr = -0.1205,       /* npm run cap580:derive */
-  .stall_blend = 3.0 * WING_PI / 180.0, /* docs/EXTRA-STAGE1.md */
-  /* Extreme Flight's high rates in degrees, the data sheet: the aileron
-   * the mean of 38 up and 34 down, the elevator 50, the rudder 52.5 of
-   * 50 to 55; the control derivatives carry Roskam's large deflection K'
-   * at these throws (npm run cap580:derive). */
-  .throw_a = 36.00 * WING_PI / 180.0,
-  .throw_e = 50.00 * WING_PI / 180.0, /* the data sheet's high rate, docs/CAP580-STAGE1.md */
-  .throw_r = 52.50 * WING_PI / 180.0, /* the data sheet's high rate, docs/CAP580-STAGE1.md */
-  .surface_max = 36.00 * WING_PI / 180.0, /* the data sheet's high rate, docs/CAP580-STAGE1.md */
-  .expo = 0.60,           /* docs/CAP580-STAGE1.md: the data sheet's high rate expo, one figure for all three */
-  .thrust_static = 94.31, /* N, T-Motor's bench table: 9,617 g at 100 percent; npm run cap580:derive */
-  .pitch_speed = 29.247, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* AMZ carbon 18 x 8: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9595, 0.9128, 0.8596, 0.7993, 0.7325, 0.6582,
-    0.5769, 0.4907, 0.3994, 0.3056, 0.2095, 0.1135, 0.0194,
-    -0.0738, -0.1671, -0.2603, -0.3536, -0.4469, -0.5402, -0.6334,
-  },
-  .torque_curve = {
-    1.0000, 1.0179, 1.0302, 1.0337, 1.0264, 1.0045, 0.9653,
-    0.9083, 0.8344, 0.7411, 0.6323, 0.5040, 0.3613, 0.2062,
-    0.0464, -0.1130, -0.2724, -0.4318, -0.5912, -0.7507, -0.9101,
-  },
-  .rpm_no_load = 10160.0, /* npm run cap580:derive: shows the bench's 8,636 rpm at full */
-  .torque_arm = 0.02224,  /* npm run cap580:derive: the bench's 2.097 N m at 94.3 N */
-  .thrust_z = 0.0,        /* docs/CAP580-STAGE1.md: the thrust line through the CG */
-  /* The 67 in line's 2.5 deg of right thrust (its build guide, air-rc),
-   * docs/CAP580-STAGE1.md, npm run cap580:derive. */
-  .thrust_yaw = 2.50 * WING_PI / 180.0,
-  /* T-Motor's measured rpm over full at the stick's 0, 0.1, ... 1 (the
-   * bench's rows from 0.4; FITTED under it, straight from the ESC's stop),
-   * npm run cap580:derive. */
-  .throttle_rpm = { 0.0000, 0.1246, 0.2491, 0.3737, 0.4983, 0.6000, 0.6997, 0.7943, 0.8839, 0.9627, 1.0000 },
-  .pfactor = 1.89,        /* FITTED: the Cub's blade element figure, as the Extra's; none measured for an 18 in prop */
-  .current_full = 111.11, /* A, T-Motor's bench table at 100 percent; npm run cap580:derive */
-  .v_meas = 3.592, /* V a cell loaded: T-Motor's bench, 21.55 V at 111.1 A on 6S; docs/POWER-STAGE1.md */
-  /* Stabilised: the Extra's limits and loops (docs/EXTRA-STAGE1.md), its
-   * throws near these. */
-  .stab_bank_max = 60.0 * WING_PI / 180.0,
-  .stab_pitch_max = 30.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .stab_deadband = 0.04, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .stab_roll_kp = 0.6,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .stab_roll_kd = 0.06,   /* FITTED: the Extra's */
-  .stab_pitch_kp = 2.0,   /* FITTED: the Extra's */
-  .stab_pitch_kd = 0.2,   /* FITTED: the Extra's */
-  .stab_pitch_down = 13.36 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.395, /* the stick that flies it level, elevator neutral, npm run stab:glide */
-  /* Acro: the Extra's loops (docs/EXTRA-STAGE1.md), FITTED. */
-  .acro_roll_rate = 360.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_expo = 0.30, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_err_max = 5.0 * WING_PI / 180.0, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_roll_kp = 3.43, /* npm run acro:derive */
-  .acro_roll_kd = 0.886, /* npm run acro:derive */
-  .acro_roll_ff = 0.10, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_pitch_kp = 11.4, /* npm run acro:derive */
-  .acro_pitch_kd = 1.99, /* npm run acro:derive */
-  .acro_pitch_ff = 0.15, /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  .acro_roll_ki = 3.32, /* npm run acro:derive */
-  .acro_pitch_ki = 14.9, /* npm run acro:derive */
-  .acro_i_max = 0.666, /* ArduPlane's rate loops' IMAX, https://github.com/ArduPilot/ardupilot (APM_Control), npm run acro:derive */
-  .acro_yaw_kp = 11.4, /* npm run acro:derive */
-  .acro_yaw_ki = 14.9, /* npm run acro:derive */
-  .acro_yaw_kd = 1.99, /* npm run acro:derive */
-  /* A cowled nose: Selig's 80 percent for a cowling (docs/EXTRA-STAGE1.md);
-   * the disc 0.56 m ahead of the CG, npm run cap580:derive. */
-  .jet_kj = 0.80,
-  .prop_x = 0.560, /* npm run cap580:derive */
-  .as3x_frame = 0.011,  /* the data sheet's servos (EF/Theta 989, Savox 1261) are digital: Spektrum's 11 ms frame, docs/CAP580-STAGE1.md */
-  .as3x_k = { 0.0037, 0.0193, 0.0608 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 0.2175, 0.8007 }, /* npm run as3x:derive */
-  .as3x_rate = { 9.306, -5.054, -3.064 }, /* npm run as3x:derive */
-  .yaw_coord_k = 0.25,    /* FITTED: the Extra's, docs/EXTRA-STAGE1.md */
-  /* Past the stall, the Extra's forms and its symmetric section's break,
-   * npm run cap580:derive. */
-  .stall_arm_ac = 0.0632, /* npm run cap580:derive */
-  .stall_arm_cp = 0.0868, /* npm run cap580:derive */
-  .stall_dw = 0.3558,     /* npm run cap580:derive */
-  .stall_asym = 0.0,      /* docs/EXTRA-STAGE1.md: no built in side */
-  .stall_k = 0.70,        /* npm run cap580:derive: the Extra's section */
-  .stall_top = 2.0 * WING_PI / 180.0, /* npm run cap580:derive: the Extra's section */
-  .strip_c = { 1.250, 1.083, 0.917, 0.750 }, /* npm run cap580:derive: the taper's strips */
-  /* The slipstream, the high angles and the slow air, npm run
-   * cap580:derive: the 18 in prop; the stabiliser's half span, the fin
-   * over and under the thrust line, the ailerons' span; the tail's shares. */
-  .slip_r = 0.2286,       /* npm run cap580:derive */
-  .slip_yh = 0.3750,      /* npm run cap580:derive */
-  .slip_hv = { 0.277, 0.075 }, /* npm run cap580:derive */
-  .slip_ya = { 0.1150, 0.8509 }, /* npm run cap580:derive */
-  .slip_a0 = 0.0639,      /* npm run cap580:derive */
-  .slip_cl_a = 0.5174,    /* npm run cap580:derive */
-  .slip_cm_a = -1.3011,   /* npm run cap580:derive */
-  .slip_cn_b = 0.2363,    /* npm run cap580:derive */
-  .slip_cn_r = -0.2500,   /* npm run cap580:derive */
-  .slip_cy_b = -0.4469,   /* npm run cap580:derive */
-  .slip_cl_b = -0.0265,   /* npm run cap580:derive */
-  .slip_loss = { 0.2655, 0.3091, 0.6302 }, /* npm run cap580:derive */
-  .strip_tau = { 0.2064, 0.4492, 0.4492, 0.4492 }, /* npm run cap580:derive: the ailerons from 0.115 m to the tip */
-  .hi_alpha = 1, /* docs/EXTRA-STAGE1.md: the 3D aircraft's high angle terms */
-  .tail_at = 3.740,       /* npm run cap580:derive */
-  .tail_av = 3.701,       /* npm run cap580:derive */
-  .tail_deda = 0.554,     /* npm run cap580:derive */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0215, 0.0, -0.085 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -0.8425, 0.0, 0.027 }, /* the stabiliser's, npm run ge:derive */
-  .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
-  .side_cda = 0.2583,     /* npm run cap580:derive */
-  .side_x = -0.1291, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run cap580:derive */
-  .hinge_hold = { 218.6, 119.3, 408.5 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.6199, 0.7625, 0.7958 }, /* npm run servo:derive */
-  .rot_k = { 0.05099, 0.12406, 0.08237 }, /* npm run cap580:derive */
-  .j_prop = 0.000866,     /* npm run cap580:derive: a 60 g carbon 18 in blade and the AM670's can, ESTIMATED */
-};
-
-/* Extreme Flight's 105.5 in Slick 580 EXP (the V3 on the V2's data sheet),
- * docs/SLICK-STAGE1.md and scripts/slick-derive.js, where each number has
- * its formula and source and the fitted ones say so; npm run slick:derive
- * -- --check holds this table to it. A 35 percent balsa and composite IMAC
- * and 3D aerobat of 12.5 kg on a 2.68 m wing of 1.15 m^2, a scaled Slick
- * 360. A Desert Aircraft DA-120 petrol twin turns Falcon's 28 x 10 carbon
- * prop, clockwise seen from behind, at a measured 6,550 rpm and 31.0 kg
- * standing: two and a half times its weight, so it hangs on its prop as
- * the Extra does, with eight times the Extra's mass and thirty times its
- * pitch inertia. The engine rides today's glow path (docs/POWER-STAGE1.md,
- * plant_wing.c prop_spool's flat torque); a petrol throttle response of its
- * own is the propulsion lane's, and this table's throttle_idle, j_prop and
- * torque_arm are what it would read. The kit's 3 deg of right thrust has no
- * field in the plant yet (docs/SLICK-STAGE1.md says what that leaves out). */
-const FixedWingParams FW_SLICK2680 = {
-  .mix = FW_MIX_TAIL,
-  .span = 2.680,          /* the sheet's 105.5 in drawing, 2680 mm tip to tip, docs/SLICK-STAGE1.md */
-  .area = 1.150,          /* the sheet, 115 dm^2, docs/SLICK-STAGE1.md */
-  .chord = 0.4577,        /* the mean aerodynamic chord of the drawn planform, scripts/slick-derive.js */
-  .cl_alpha = 5.190,      /* wing and tail, Nelson eq. 2.52, scripts/slick-derive.js */
-  .cl_max = 0.9017,       /* the wing's at its stall's Reynolds number, scripts/slick-derive.js */
-  /* The stall from the section's data, docs/SLICK-STAGE1.md: the drawn root
-   * is 12.6 percent thick, the NACA 0012 of Sheldahl and Klimas,
-   * SAND80-2114, Table 2: CL max 0.9811 at 10 deg at 3.6e5 and 1.0749 at
-   * 11 deg at 7e5; 0.9 of it for the wing (Raymer sec. 12.4), the peak
-   * further on by the induced angle. */
-  .cl_alpha_wing = 4.759, /* scripts/slick-derive.js */
-  .stall_re = { 360000, 700000 },      /* SAND80-2114 Table 2, docs/SLICK-STAGE1.md */
-  .stall_clmax = { 0.883, 0.9674 },    /* 0.9 of 0.9811 and 1.0749, scripts/slick-derive.js */
-  .stall_peak = { 0.2267, 0.2492 },    /* 10 and 11 deg plus CL / (pi A e), scripts/slick-derive.js */
-  /* The sheet: main wing and stabiliser incidence 0 deg, a symmetric section. */
-  .alpha_zl = 0.0, /* the sheet's 0 deg incidence, docs/SLICK-STAGE1.md */
-  .sin_zl = 0.0, /* the sheet's 0 deg incidence, docs/SLICK-STAGE1.md */
-  .cos_zl = 1.0, /* the sheet's 0 deg incidence, docs/SLICK-STAGE1.md */
-  .cd0 = 0.0202,          /* Raymer's component build up, scripts/slick-derive.js */
-  .k_induced = 0.05912,   /* 1/(pi e A), e 0.862 by Raymer eq. 12.48, scripts/slick-derive.js */
-  /* Nelson's forms on the drawing's tail, scripts/slick-derive.js. */
-  .cl_de = -0.3972, /* scripts/slick-derive.js */
-  .cy_beta = -0.6355, /* scripts/slick-derive.js */
-  .cy_dr = 0.2518, /* scripts/slick-derive.js */
-  .cl_beta = -0.0429,     /* the fin over the CG, the mid wing's near nothing, scripts/slick-derive.js */
-  /* Sideslip past the stall split as the Extra's: the same layout, the
-   * stabiliser on the fuselage at the thrust line and the rudder over it
-   * and running under the fuselage (docs/FLIGHTMODEL.md). */
-  .cl_beta_wing = -0.0012, /* cl_beta less the fin's, scripts/slick-derive.js */
-  .cl_beta_fin = -0.0417, /* scripts/slick-derive.js */
-  .cn_beta_fin = 0.2685, /* scripts/slick-derive.js */
-  .cl_p = -0.6610, /* scripts/slick-derive.js */
-  .cl_da = 0.3733, /* scripts/slick-derive.js */
-  .cl_r_per_cl = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
-  .cl_dr = 0.0212, /* scripts/slick-derive.js */
-  .cm_0 = 0.0664,         /* trimmed hands off at 22 m/s, scripts/slick-derive.js */
-  .cm_alpha = -0.9608,    /* static margin 0.185 at the tube's middle, scripts/slick-derive.js */
-  .cm_q = -14.633, /* scripts/slick-derive.js */
-  .cm_de = 1.1748, /* scripts/slick-derive.js */
-  .cn_beta = 0.2270, /* scripts/slick-derive.js */
-  .cn_beta_fus = -0.0415, /* Munk's, -1.3 Vol / (S b) of cn_beta; npm run slick:derive */
-  .cn_r = -0.2967, /* scripts/slick-derive.js */
-  .cn_p_per_cl = -0.125,  /* the Extra's, docs/EXTRA-STAGE1.md */
-  .cn_da_per_cl = -0.08,  /* the Extra's: a symmetric section, wide chord ailerons, 38 up and 37 down, docs/EXTRA-STAGE1.md */
-  .cn_dr = -0.1368, /* scripts/slick-derive.js */
-  .stall_blend = 3.0 * WING_PI / 180.0, /* the Extra's, docs/EXTRA-STAGE1.md */
-  /* The sheet's high rates in degrees: aileron 38 up and 37 down, the 3D
-   * elevator's 45 to 50, the rudder's 45; their expo 50 to 60 percent,
-   * docs/SLICK-STAGE1.md. The control derivatives carry Roskam's K'. */
-  .throw_a = 37.5 * WING_PI / 180.0, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
-  .throw_e = 47.5 * WING_PI / 180.0, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
-  .throw_r = 45.0 * WING_PI / 180.0, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
-  .surface_max = 47.5 * WING_PI / 180.0, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
-  .expo = 0.55, /* the data sheet's high rates, docs/SLICK-STAGE1.md */
-  /* The DA-120 on Falcon's 28 x 10: 6,550 rpm and 31.0 kg standing,
-   * Falcon's test chart, MEASURED; the torque APC's 22 x 8 shape's
-   * Cp / Ct, FITTED, scripts/slick-derive.js; the pitch speed and the
-   * curves npm run prop:curves's. */
-  .thrust_static = 304.11, /* scripts/slick-derive.js */
-  .pitch_speed = 27.728, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
-  /* 28 x 10 (0.357): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
-  .axial_curve = {
-    1.0000, 0.9625, 0.9200, 0.8729, 0.8213, 0.7647, 0.7043,
-    0.6393, 0.5703, 0.4984, 0.4229, 0.3453, 0.2644, 0.1824,
-    0.0988, 0.0148, -0.0699, -0.1544, -0.2389, -0.3235, -0.4080,
-  },
-  .torque_curve = {
-    1.0000, 1.0134, 1.0254, 1.0296, 1.0246, 1.0103, 0.9866,
-    0.9500, 0.9024, 0.8444, 0.7694, 0.6789, 0.5741, 0.4521,
-    0.3167, 0.1679, 0.0174, -0.1323, -0.2820, -0.4317, -0.5814,
-  },
-  .rpm_no_load = 7705.9,  /* 6,550 over 0.85, the glow rule, docs/POWER-STAGE1.md */
-  .torque_arm = 0.03083, /* scripts/slick-derive.js */
-  .thrust_z = 0.0390,     /* the CG 39 mm under the thrust line, from the masses, scripts/slick-derive.js */
-  .thrust_yaw = 3.0 * WING_PI / 180.0, /* EF's V2 data sheet "Right thrust: 3 deg", the 120cc build guide's 2.5 to 3, docs/SLICK-STAGE1.md */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's, docs/CUB-STAGE1.md */
-  .current_full = 0.0,    /* the engine burns fuel, not the pack, docs/POWER-STAGE1.md */
-  /* Stabilised and Acro: the Extra's loops (docs/EXTRA-STAGE1.md), held by
-   * npm run slick:stab. */
-  .stab_bank_max = 60.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .stab_pitch_max = 30.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .stab_deadband = 0.04, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .stab_roll_kp = 0.6, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .stab_roll_kd = 0.06, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .stab_pitch_kp = 2.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .stab_pitch_kd = 0.2, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .stab_pitch_down = 2.47 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.155, /* the stick that flies it level, elevator neutral, npm run stab:glide */
-  .acro_roll_rate = 360.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_pitch_rate = 100.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_expo = 0.30, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_err_max = 5.0 * WING_PI / 180.0, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_roll_kp = 7.56, /* npm run acro:derive */
-  .acro_roll_kd = 1.95, /* npm run acro:derive */
-  .acro_roll_ff = 0.10, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_pitch_kp = 11.4, /* npm run acro:derive */
-  .acro_pitch_kd = 1.99, /* npm run acro:derive */
-  .acro_pitch_ff = 0.15, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .acro_roll_ki = 7.31, /* npm run acro:derive */
-  .acro_pitch_ki = 14.9, /* npm run acro:derive */
-  .acro_i_max = 0.666, /* ArduPlane's rate loops' IMAX, https://github.com/ArduPilot/ardupilot (APM_Control), npm run acro:derive */
-  .acro_yaw_kp = 0.644, /* npm run acro:derive */
-  .acro_yaw_ki = 0.84, /* npm run acro:derive */
-  .acro_yaw_kd = 0.112, /* npm run acro:derive */
-  /* A cowled nose: Selig's 80 percent for a cowling (docs/EXTRA-STAGE1.md);
-   * the disc 0.609 m ahead of the CG, the drawing's, scripts/slick-derive.js. */
-  .jet_kj = 0.80, /* the Extra's, held by npm run slick:stab, docs/EXTRA-STAGE1.md */
-  .prop_x = 0.6093, /* the spinner's back plate on EF's data sheet drawing, scripts/slick-derive.js */
-  .as3x_frame = 0.011,  /* the sheet's digital servos (MKS, Savox): Spektrum's 11 ms frame, as the Extra's, docs/FLIGHTMODEL.md */
-  .as3x_k = { 0.009, 0.0308, 0.0874 }, /* npm run as3x:derive */
-  .as3x_kh = { 0, 0.1982, 0.8429 }, /* npm run as3x:derive */
-  .as3x_rate = { 5.797, -4.372, -3.307 }, /* npm run as3x:derive */
-  .yaw_coord_k = 0.25,    /* the Extra's, docs/EXTRA-STAGE1.md */
-  /* The throttle: DA's lowest, 1,300 rpm, of the 6,550, docs/SLICK-STAGE1.md;
-   * the stick's curve HFE's part throttle dyno against this prop, scaled to
-   * Falcon's full throttle point (scripts/slick-derive.js, the propulsion
-   * lane's method, docs/FLIGHTMODEL.md "The Slick's DA-120"). */
-  .throttle_idle = 0.1985, /* scripts/slick-derive.js */
-  .throttle_rpm = { 0.1985, 0.3182, 0.4379, 0.5306, 0.6426, 0.7653, 0.8727, 0.9133, 0.966, 0.9798, 1 }, /* scripts/slick-derive.js */ /* scripts/slick-derive.js */
-  /* The DA-120's torque map, HFE's part throttle dyno scaled to Falcon's
-   * measured full throttle, its idle stop the closed throttle's, docs/
-   * FLIGHTMODEL.md "The engine at a closed throttle". */
-  .engine_q = {
-    { 0.489, 0.247, 0.005, -0.237, -0.479, -0.721, -0.963, -1.205, -1.448, -1.690, -1.932, -2.174, -2.416, -2.658, -2.900 }, /* the idle stop */
-    { 2.421, 2.328, 2.235, 2.142, 1.676, 1.397, 1.397, 0.000, -0.242, -0.484, -0.726, -0.968, -1.211, -1.453, -1.695 }, /* 20 percent */
-    { 2.887, 3.445, 4.004, 4.563, 3.259, 2.607, 2.328, 2.887, 2.328, 0.000, -0.242, -0.484, -0.726, -0.968, -1.211 }, /* 30 percent */
-    { 5.215, 5.308, 5.401, 5.494, 4.842, 4.190, 3.911, 3.818, 4.097, 2.980, 0.000, -0.242, -0.484, -0.726, -0.968 }, /* 40 percent */
-    { 5.773, 5.866, 5.960, 6.053, 5.866, 5.494, 5.308, 5.401, 5.494, 5.401, 5.215, 5.028, 4.656, 0.000, -0.242 }, /* 50 percent */
-    { 5.494, 5.960, 6.425, 6.891, 6.891, 6.984, 6.891, 7.077, 7.077, 7.263, 6.984, 6.705, 6.705, 6.053, 0.000 }, /* 60 percent */
-    { 5.401, 6.053, 6.705, 7.356, 7.449, 7.822, 7.822, 7.915, 8.008, 7.822, 7.822, 7.822, 7.729, 7.356, 6.984 }, /* 70 percent */
-    { 5.028, 5.866, 6.705, 7.543, 7.636, 8.194, 8.288, 8.474, 8.474, 8.288, 8.567, 8.846, 8.474, 8.101, 7.636 }, /* 80 percent */
-    { 5.308, 6.053, 6.798, 7.543, 7.729, 8.288, 8.381, 8.474, 8.567, 8.660, 8.846, 9.032, 8.567, 8.381, 8.008 }, /* 90 percent */
-    { 6.705, 7.077, 7.449, 7.822, 8.101, 8.660, 8.939, 9.219, 9.591, 9.498, 9.452, 9.405, 9.126, 8.753, 8.194 }, /* 100 percent */
-  }, /* N m at 1,000 to 8,000 rpm in 500s, npm run da120:derive */
-  /* Desert Aircraft's published range for the DA-120, 1,300 to 6,900 rpm
-   * (https://www.desertaircraft.com/collections/da-engines/products/da-120).
-   * A real engine can over-rev with its prop unloaded in flight; no in-flight
-   * rpm for this engine and prop is published, so it stops at the range. */
-  .engine_rpm_max = 6900.0,
-  /* The tank, the sheet's 34 oz FlowMaster; the flow at full the shaft power
-   * at HFE's DA120 data sheet's 575 g/kWh, scripts/slick-derive.js; the lean
-   * run the Bombshell's, docs/POWER-STAGE1.md. */
-  .tank_m3 = 1005.5e-6, /* scripts/slick-derive.js */
-  .flow_full = 84.4e-6 / 60.0, /* scripts/slick-derive.js */
-  .flow_idle = 0.1985 * (84.4e-6 / 60.0), /* scripts/slick-derive.js */
-  .lean_frac = 0.05, /* the Bombshell's lean run, docs/POWER-STAGE1.md */
-  .lean_gain = 0.05, /* the Bombshell's lean run, docs/POWER-STAGE1.md */
-  /* Past the stall, docs/SLICK-STAGE1.md: a 12 percent section stalls from
-   * its leading edge (McCullough and Gault, NACA TN 2502), its lift held
-   * 1 deg past the peak and falling to 0.37 of it, SAND80-2114 Table 2. */
-  .stall_arm_ac = 0.0571, /* the CG behind the wing's aerodynamic centre, scripts/slick-derive.js */
-  .stall_arm_cp = 0.0929, /* the plate's centre of pressure at 0.40 of the chord, scripts/slick-derive.js */
-  .stall_dw = 0.2522, /* scripts/slick-derive.js */
-  /* No built in side, as the Extra's (docs/EXTRA-STAGE1.md): what drops a
-   * wing is the pilot's rudder and aileron, the gusts and the prop. */
-  .stall_asym = 0.0, /* docs/SLICK-STAGE1.md */
-  .stall_k = 0.37, /* scripts/slick-derive.js */
-  .stall_top = 1.0 * WING_PI / 180.0, /* SAND80-2114 Table 2, docs/SLICK-STAGE1.md */
-  .strip_c = { 1.326, 1.125, 0.924, 0.723 }, /* the drawn taper, scripts/slick-derive.js */
-  /* The slipstream, the high angles and the slow air, scripts/slick-derive.js:
-   * the 28 in prop; the stabiliser's half span, the fin over and under the
-   * thrust line, the ailerons' span; the tail's shares. */
-  .slip_r = 0.3556, /* scripts/slick-derive.js */
-  .slip_yh = 0.5195, /* scripts/slick-derive.js */
-  .slip_hv = { 0.466, 0.096 }, /* scripts/slick-derive.js */
-  .slip_ya = { 0.181, 1.27 }, /* scripts/slick-derive.js */
-  .slip_a0 = 0.0692, /* scripts/slick-derive.js */
-  .slip_cl_a = 0.4308, /* scripts/slick-derive.js */
-  .slip_cm_a = -1.2739, /* scripts/slick-derive.js */
-  .slip_cn_b = 0.2685, /* scripts/slick-derive.js */
-  .slip_cn_r = -0.2916, /* scripts/slick-derive.js */
-  .slip_cy_b = -0.4944, /* scripts/slick-derive.js */
-  .slip_cl_b = -0.0417, /* scripts/slick-derive.js */
-  .slip_loss = { 0.2395, 0.2879, 0.5854 }, /* scripts/slick-derive.js */
-  .strip_tau = { 0.18, 0.392, 0.392, 0.31 }, /* the ailerons from 0.181 m to the tip rib, scripts/slick-derive.js */
-  .hi_alpha = 1, /* the 3D regime's terms, docs/EXTRA-STAGE1.md */
-  .tail_at = 4.303, /* scripts/slick-derive.js */
-  .tail_av = 3.958, /* scripts/slick-derive.js */
-  .tail_deda = 0.485, /* scripts/slick-derive.js */
-  .ground_effect = 1, /* GROUND EFFECT: NACA TM 77, Report 738; npm run ge:derive */
-  .ge_wing = { 0.0372, 0.0, 0.005 }, /* the drawn model's wing quarter chord, npm run ge:derive */
-  .ge_tail = { -1.325, 0.0, 0.053 }, /* the stabiliser's, npm run ge:derive */
-  .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner, docs/EXTRA-STAGE1.md */
-  .side_cda = 0.6616, /* scripts/slick-derive.js */
-  .side_x = -0.5271, /* the crossflow's centre of pressure, Allen and Perkins on the drawn sections, ESTIMATED; npm run slick:derive */
-  .hinge_hold = { 741.9, 590.3, 397.8 }, /* servo blow back, npm run servo:derive */
-  .hinge_alpha = { 0.5197, 0.7309, 0.8009 }, /* npm run servo:derive */
-  .rot_k = { 0.3889, 0.9415, 0.782 }, /* scripts/slick-derive.js */
-  .j_prop = 0.00931,      /* the listed 28 x 10 blades' masses and the crank, ESTIMATED, scripts/slick-derive.js */
 };

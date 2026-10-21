@@ -77,25 +77,9 @@ const MS = 4;
  * where it has them. The three channel aircraft roll on their rudder. */
 const PLANES = {
   wing: { sim: 2, Vs: 7.25, ail: true, rud: false },
-  sky: { sim: 3, Vs: 9.2, ail: true, rud: true },
-  cub: { sim: 4, Vs: 8.1, ail: true, rud: true },
-  slowstick: { sim: 5, Vs: 4.4, ail: false, rud: true },
-  radian: { sim: 6, Vs: 6.5, ail: false, rud: true },
-  timber: { sim: 7, Vs: 7.2, ail: true, rud: true, flaps: true },
   bramor: { sim: 8, Vs: 13.0, ail: true, rud: false },
-  bombshell: { sim: 11, Vs: 6.49, ail: false, rud: true },
-  kadet: { sim: 12, Vs: 7.15, ail: false, rud: true },
-  p51: { sim: 15, Vs: 10.5, ail: true, rud: true, flaps: true },
-  f16: { sim: 16, Vs: 12.33, ail: true, rud: true },
-  zagi: { sim: 17, Vs: 8.0, ail: true, rud: false },
-  uglystik: { sim: 19, Vs: 9.48, ail: true, rud: true },
-  tigermoth: { sim: 23, Vs: 9.47, ail: true, rud: true },
   /* The war drone has no hangar power: its mass is plant.c's table's. */
   striker: { sim: 27, Vs: 20.0, ail: true, rud: true, mass: 13.8249 },
-  extra: { sim: 29, Vs: 8.31, ail: true, rud: true },
-  nighttimber: { sim: 30, Vs: 9.08, ail: true, rud: true },
-  cap: { sim: 32, Vs: 10.62, ail: true, rud: true },
-  slick: { sim: 33, Vs: 13.88, ail: true, rud: true },
 };
 
 const arg = (k) => {
@@ -126,10 +110,6 @@ function start(sim, pose, speed = 0, flaps = 0) {
   must(sim.e.sim_set_pose(0, 0, 300, ...pose), 'sim_set_pose');
   if (speed > 0) {
     must(sim.e.sim_wing_launch(speed), 'sim_wing_launch');
-  }
-  if (flaps) {
-    must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
-    must(sim.e.sim_wing_flaps_settle(), 'sim_wing_flaps_settle');
   }
 }
 

@@ -3,25 +3,10 @@
  * cross-host check. Loads the module, puts it on the wing, flies the
  * script in tests/lib/wingpilot.js and hands the trace hash back through
  * window.__simHarnessResolve, the way harness.js does for the quad.
- * ?plane=sky replays the Skyhunter's recording on its airframe instead,
- * ?plane=cub the Cub's, from standing on its wheels, ?plane=glider the
- * Radian's, thrown at 80 m short of a thermal, ?plane=slowstick the
- * Slow Stick's, from standing on its wheels, and ?plane=timber the
- * Timber's, from standing on its wheels with half flaps, and
- * ?plane=timberf the Timber on floats', floating on a light swell, and
- * ?plane=bombshell the Buzzard Bombshell's, from standing on its wheels and
- * skid, ?plane=p51 and ?plane=p51-air the P-51's take off and its
- * retracts in the air, ?plane=kadet the Kadet Senior's, from standing on
- * its three wheels, ?plane=uglystik the Ugly Stik's,
- * from standing on its three wheels, ?plane=f16 the F-16's, from
- * standing on its three wheels with its fan stopped, ?plane=zagi the
- * Zagi's, thrown by hand, and ?plane=dlg the NRJ's, thrown by its wingtip
- * from the grass into a thermal, ?plane=tigermoth the Tiger Moth's, from standing on its three points,
- * ?plane=extra the Extra 300 3D's, from standing on its wheels through a hover and a torque roll,
- * ?plane=nighttimber the Night Timber X's, the same from half flaps,
- * and ?plane=cap the CAP 580's, from standing through a hover and a torque roll;
- * with no query
- * it is the wing's, exactly as it always was.
+ * ?plane=bramor replays the Bramor's recording off its catapult instead,
+ * and ?plane=bramor-chute its descent under the canopy; with no query it
+ * is the wing's, exactly as it always was. The other aircraft's
+ * recordings left with them on 2026-10-20.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -42,37 +27,12 @@
 import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
-import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, tigermothGroundPrelude, extraGroundPrelude, herculesGroundPrelude, nighttimberGroundPrelude, slickGroundPrelude, uglystikGroundPrelude, zagiPrelude,
-  slowstickGroundPrelude,
-  timberFloatRecPrelude, timberRecPrelude, wingPrelude,
-} from '../lib/wingpilot.js';
-import { capGroundPrelude } from '../lib/wingpilot.js';
+import { bramorChutePrelude, bramorPrelude, wingPrelude } from '../lib/wingpilot.js';
 
 const PLANES = {
   wing: { rec: '/tests/inputs/wing-baseline.rec', prelude: wingPrelude },
-  sky: { rec: '/tests/inputs/sky-baseline.rec', prelude: skyPrelude },
-  cub: { rec: '/tests/inputs/cub-baseline.rec', prelude: (sim) => cubGroundPrelude(sim) },
-  glider: { rec: '/tests/inputs/glider-baseline.rec', prelude: gliderRecPrelude },
   bramor: { rec: '/tests/inputs/bramor-baseline.rec', prelude: bramorPrelude },
   'bramor-chute': { rec: '/tests/inputs/bramor-chute.rec', prelude: bramorChutePrelude },
-  slowstick: { rec: '/tests/inputs/slowstick-baseline.rec', prelude: (sim) => slowstickGroundPrelude(sim) },
-  timber: { rec: '/tests/inputs/timber-baseline.rec', prelude: timberRecPrelude },
-  timberf: { rec: '/tests/inputs/timberf-baseline.rec', prelude: timberFloatRecPrelude },
-  bombshell: { rec: '/tests/inputs/bombshell-baseline.rec', prelude: (sim) => bombshellGroundPrelude(sim) },
-  kadet: { rec: '/tests/inputs/kadet-baseline.rec', prelude: (sim) => kadetGroundPrelude(sim) },
-  uglystik: { rec: '/tests/inputs/uglystik-baseline.rec', prelude: (sim) => uglystikGroundPrelude(sim) },
-  dlg: { rec: '/tests/inputs/dlg-baseline.rec', prelude: dlgRecPrelude },
-  tigermoth: { rec: '/tests/inputs/tigermoth-baseline.rec', prelude: (sim) => tigermothGroundPrelude(sim) },
-  extra: { rec: '/tests/inputs/extra-baseline.rec', prelude: (sim) => extraGroundPrelude(sim) },
-  hercules: { rec: '/tests/inputs/hercules-baseline.rec', prelude: (sim) => herculesGroundPrelude(sim) },
-  slick: { rec: '/tests/inputs/slick-baseline.rec', prelude: (sim) => slickGroundPrelude(sim) },
-  nighttimber: { rec: '/tests/inputs/nighttimber-baseline.rec', prelude: (sim) => nighttimberGroundPrelude(sim, { flaps: 1 }) },
-  cap: { rec: '/tests/inputs/cap580-baseline.rec', prelude: (sim) => capGroundPrelude(sim) },
-  f16: { rec: '/tests/inputs/f16-baseline.rec', prelude: (sim) => f16GroundPrelude(sim) },
-  p51: { rec: '/tests/inputs/p51-baseline.rec', prelude: p51RecPrelude },
-  'p51-air': { rec: '/tests/inputs/p51-air.rec', prelude: p51AirPrelude },
-  zagi: { rec: '/tests/inputs/zagi-baseline.rec', prelude: (sim) => zagiPrelude(sim) },
 };
 
 async function fetchBytes(url) {

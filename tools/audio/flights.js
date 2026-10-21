@@ -24,8 +24,12 @@
  *             plant's right handed Z up body frame)
  *   x y z     position, metres, world frame (for a listener off board)
  *   amps      pack current, A
- *   flap      the flaps' angle, rad (0 on an aircraft without them)
+ *   flap      the flaps' angle, rad
  *   gear      the retracts, 0 down and locked to 1 up
+ *
+ * flap and gear are 0 in every row: no aircraft left in the module has
+ * flaps or retracts (the combat only cut). The columns stay so the
+ * committed flights and tools/audio/drive.js keep their row layout.
  *
  * Events are what the shell learns from the plant or its contact code and
  * hands the audio as a call rather than a stream: an impact with the
@@ -115,8 +119,8 @@ class Recorder {
         live ? +u.toFixed(2) : 0, live ? +v.toFixed(2) : 0, live ? +w.toFixed(2) : 0,
         +s[1].toFixed(2), +s[2].toFixed(2), +s[3].toFixed(2),
         +s[19].toFixed(1),
-        +this.sim.e.sim_wing_flaps().toFixed(4),
-        +this.sim.e.sim_wing_gear().toFixed(3),
+        0,
+        0,
       ]);
       this.nextRow += ROW_MS;
     }

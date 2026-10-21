@@ -1,6 +1,6 @@
 /*
- * tree-nan-selftest.js: an F-16 into a tree stays a number, and the module
- * flies again after it.
+ * tree-nan-selftest.js: a fixed wing into a tree stays a number, and the
+ * module flies again after it.
  *
  * The swiss2 collision audit (#254, its first finding): an F-16 at 60 m/s
  * into a spruce went from 57 to 252 m/s at t = 0.300 s and was NaN by
@@ -11,9 +11,9 @@
  * which no checks.yml step runs; this is the same failure in seconds, in
  * checks.yml.
  *
- * For the F-16 (plant 16) at 40 and 60 m/s, and the fixed wings PDCS
- * seats at their own speeds (PLANES), level through a conifer's crown to
- * its trunk, crash damage on, on the module dist/sim.wasm:
+ * For the fixed wings PDCS seats at their own speeds (PLANES), the Striker
+ * jet at the audit's 40 and 60 m/s, level through a conifer's crown to its
+ * trunk, crash damage on, on the module dist/sim.wasm:
  *
  *   1. every state of 2 s is finite;
  *   2. no step ends with more than 1 percent more energy than the throw
@@ -23,7 +23,8 @@
  *      a NaN had poisoned flew the next throw wrong, which is the page
  *      freezing seen from the plant.
  *
- * On the module before 74e6b844 rows 1 and 2 fail for both speeds.
+ * On the module before 74e6b844 rows 1 and 2 failed for the F-16 at both
+ * speeds; the F-16 left the module on 2026-10-20 and its row with it.
  *
  *   node scripts/tree-nan-selftest.js [path/to/sim.wasm]
  *
@@ -55,13 +56,12 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasm = new Uint8Array(await readFile(process.argv[2] ?? join(root, 'dist/sim.wasm')));
 const config = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 
-/* The F-16 at the audit's speeds; the kept fixed wings at speeds their
+/* The kept fixed wings at speeds their
  * own rows give (configs/airframes.js: the Striker jet's 66.3 m/s top and
  * the 40 m/s the owner rams at, scripts/war-harness.js striker; the prop's
  * 34.2 m/s top and its 20 m/s cruise; the Bramor's 28.48 m/s top and its
  * 16 m/s VBE, tests/bramor-thresholds.json b1). */
 const PLANES = [
-  { name: 'F-16', id: 16, speeds: [40, 60] },
   { name: 'Striker jet', id: 28, speeds: [40, 60] },
   { name: 'Striker prop', id: 27, speeds: [20, 34] },
   { name: 'Bramor', id: 8, speeds: [16, 28] },

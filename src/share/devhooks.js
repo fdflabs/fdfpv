@@ -204,7 +204,6 @@ export const HOOKS = [
   ['__weatherFlown', null],
   ['__wetFrame', 'draws one frame at a rain intensity'],
   ['__wetHold', 'holds the rain intensity'],
-  ['__wingDoor', null],
   ['__wreckAudit', null],
 ];
 

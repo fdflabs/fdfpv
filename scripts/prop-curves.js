@@ -150,26 +150,8 @@ export async function curves() {
  */
 export const WINGS = [
   { table: 'FW_WING1000', prop: '6 x 4', diaIn: 6, pitchIn: 4, rpm: 17612, files: [['6x4E', 6, 4, 1]], why: 'APC\'s 6 x 4E, the same size' },
-  { table: 'FW_SKY1800', prop: '11 x 5.5', diaIn: 11, pitchIn: 5.5, rpm: 11951, files: [['11x55E', 11, 5.5, 1]], why: 'APC\'s 11 x 5.5E, the same size' },
-  { table: 'FW_CUB1400', prop: '11 x 7, two blade', diaIn: 11, pitchIn: 7, rpm: 8019.75, files: [['11x7E', 11, 7, 1]], why: 'APC\'s 11 x 7E, the same size' },
-  { table: 'FW_CUB1400F', prop: '11 x 7, two blade', diaIn: 11, pitchIn: 7, rpm: 8019.75, files: [['11x7E', 11, 7, 1]], why: 'APC\'s 11 x 7E, the same size' },
-  { table: 'FW_RADIAN2000', prop: '9.75 x 7.5 folding (pitch over diameter 0.77)', diaIn: 9.75, pitchIn: 7.5, rpm: 9057.6, files: [['9x75E', 9, 7.5, 1]], why: 'APC makes no 9.75 x 7.5 or folding blade; its 9 x 7.5E is the nearest pitch over diameter it publishes, 0.83 (its 10 x 7E is 0.70)' },
   { table: 'FW_BRAMOR2300', prop: '12 x 8 folding', diaIn: 12, pitchIn: 8, rpm: 8868.9, files: [['12x8E', 12, 8, 1]], why: 'APC makes no folding blade; its 12 x 8E, the same size' },
-  { table: 'FW_SLOWSTICK1180', prop: 'GWS EP1180, 11 x 8', diaIn: 11, pitchIn: 8, rpm: 3299.7, files: [['11x8E', 11, 8, 1]], why: 'APC makes no GWS slow flyer; its 11 x 8E, the same size (its slow flyers stop at 11 x 7SF)' },
-  { table: 'FW_TIMBER1500', prop: '11 x 7.5 three blade (0.68)', diaIn: 11, pitchIn: 7.5, rpm: 10064, files: [['11x7E-3', 11, 7, 1]], why: 'APC makes no 11 x 7.5 three blade; its 11 x 7E three blade is the nearest pitch over diameter it publishes, 0.64' },
-  { table: 'FW_TIMBER1500F', prop: '11 x 7.5 three blade (0.68)', diaIn: 11, pitchIn: 7.5, rpm: 10064, files: [['11x7E-3', 11, 7, 1]], why: 'APC makes no 11 x 7.5 three blade; its 11 x 7E three blade is the nearest pitch over diameter it publishes, 0.64' },
-  { table: 'FW_BOMBSHELL1118', prop: 'Cox 7 x 3.5 (0.50)', diaIn: 7, pitchIn: 3.5, rpm: 9350, files: [['7x3', 7, 3, 0.5], ['7x4', 7, 4, 0.5]], why: 'APC makes no 7 x 3.5; its 7 x 3 and 7 x 4 sport props, 0.43 and 0.57, either side, half each' },
-  { table: 'FW_KADET1981', prop: '12 x 6', diaIn: 12, pitchIn: 6, rpm: 9499.6, files: [['12x6', 12, 6, 1]], why: 'APC\'s 12 x 6 sport prop, the same size' },
-  { table: 'FW_P51D1450', prop: '14 x 8 four blade (0.57)', diaIn: 14, pitchIn: 8, rpm: 6793.2, files: [['14x8', 14, 8, 1]], why: 'APC makes no four blade 14 x 8; its 14 x 8 sport two blade, the same pitch over diameter' },
-  { table: 'FW_ZAGI1219', prop: '5 x 5 carbon', diaIn: 5, pitchIn: 5, rpm: 22000, files: [['5x5E', 5, 5, 1]], why: 'APC\'s 5 x 5E, the same size' },
-  { table: 'FW_UGLYSTIK1567', prop: 'APC 12 x 6', diaIn: 12, pitchIn: 6, rpm: 10895, files: [['12x6', 12, 6, 1]], why: 'its own file' },
-  { table: 'FW_TIGERMOTH1803', prop: 'APC 12 x 6', diaIn: 12, pitchIn: 6, rpm: 10895, files: [['12x6', 12, 6, 1]], why: 'its own file' },
   { table: 'FW_STRIKER_PROP', prop: '30 x 14 (0.47)', diaIn: 30, pitchIn: 14, rpm: 5000, files: [['27x13E', 27, 13, 1]], why: 'APC publishes no 30 in prop; its 27 x 13E is the nearest pitch over diameter it publishes, 0.48' },
-  { table: 'FW_EXTRA3D1308', prop: '13 x 6 wood (0.46)', diaIn: 13, pitchIn: 6, rpm: 11447.8, files: [['13x65E', 13, 6.5, 1]], why: 'APC makes no 13 x 6; its 13 x 6.5E, the table\'s stand in already, 0.50' },
-  { table: 'FW_NIGHTTIMBER1200', prop: '13 x 4', diaIn: 13, pitchIn: 4, rpm: 11322, files: [['13x4E', 13, 4, 1]], why: 'APC\'s 13 x 4E, the same size' },
-  { table: 'FW_HERCULES3077', prop: 'APC 12 x 8E', diaIn: 12, pitchIn: 8, rpm: 8208.45, files: [['12x8E', 12, 8, 1]], why: 'its own file' },
-  { table: 'FW_CAP1702', prop: 'AMZ carbon 18 x 8', diaIn: 18, pitchIn: 8, rpm: 8636, files: [['18x8E', 18, 8, 1]], why: 'APC makes no carbon blade; its 18 x 8E, the same size, its bench static within a few percent of T-Motor\'s' },
-  { table: 'FW_SLICK2680', prop: '28 x 10 (0.357)', diaIn: 28, pitchIn: 10, rpm: 6550, files: [['22x8', 22, 8, 1]], why: 'APC publishes no 28 x 10; its 22 x 8 is the nearest pitch over diameter it publishes, 0.364, read at the 28 in tips\' speed' },
 ];
 
 const MU_N = 21;

@@ -889,371 +889,6 @@ static void ground_settle(double upz, double vn_plant) {
   }
 }
 
-/*
- * LANDING GEAR, for an airframe that declares wheels (the Cub; every other
- * airframe has none and never enters the loop below).
- *
- * Each wheel touches at its tyre's point nearest the ground, and the ground
- * pushes there with a spring and a damper along the plane's normal, F = k pen - c vn,
- * never pulling. That is the strut and the tyre, and it is what lets the
- * aircraft stand level on three points of different heights and settle
- * onto them from a landing instead of bouncing off a rigid corner.
- * Friction is split along the wheel's own heading and across it, because a
- * wheel is the one contact whose friction is not isotropic: along its
- * heading it rolls, and costs only its rolling resistance, mu_roll N on
- * short grass and the ground's material's share of it elsewhere, more
- * with the brake on (plant_wheel_roll);
- * across it the tyre grips up to mu_side N, a rolling tyre only as far as
- * its slip angle lets it (wheel_side_cap). Each is an impulse that would
- * stop the point's velocity along that direction, through the same
- * effective mass the hull's contact uses, clipped at its cone. The
- * tailwheel's heading turns with the rudder, so it steers.
- *
- * The heading is the wheel's forward axis laid onto the ground plane; a
- * wheel whose axis stands nearly on end, an aircraft on its side, has no
- * rolling direction and gets the normal force alone.
- *
- * Every wheel's strut pushes first, and then the friction of all of them
- * is solved together (wheels_friction). Friction taken one wheel at a
- * time, each straight after its own strut, cannot hold an aircraft still:
- * a strut's push behind or ahead of the CG pitches the body, which moves
- * every contact point along the ground, so each wheel's friction stopped
- * a motion the next wheel's strut undid, and the pass ended with the
- * body moving. A Cub with its engine off crept backwards 2.0 mm/s, and a
- * Kadet at idle, its 1.63 N of thrust under its wheels' 2.14 N of
- * rolling resistance, crept forwards 2.6 mm/s. Order is the table's,
- * deterministic.
- */
-static double g_wheel_load[SIM_WHEELS_MAX];
-/* What the plant's own forces did to the velocity this step, world, and
- * to the body rates, body frame: the wheels' friction holds a point
- * against the next step's push as well as this one's (wheels_friction). */
-
-static void contact_point_vel(const double r[3], double out[3]) {
-  double w[3];
-  contact_rotate(S.omega, w);
-  out[0] = S.vel[0] + (w[1] * r[2] - w[2] * r[1]);
-  out[1] = S.vel[1] + (w[2] * r[0] - w[0] * r[2]);
-  out[2] = S.vel[2] + (w[0] * r[1] - w[1] * r[0]);
-}
-
-/* 1 / (effective mass) of the body at r along the unit direction d. */
-static double contact_k_along(const double r[3], const double d[3]) {
-  double rd[3];
-  rd[0] = r[1] * d[2] - r[2] * d[1];
-  rd[1] = r[2] * d[0] - r[0] * d[2];
-  rd[2] = r[0] * d[1] - r[1] * d[0];
-  double ird[3];
-  contact_iinv(rd, ird);
-  return 1.0 / PLANT.mass_kg + (rd[0] * ird[0] + rd[1] * ird[1] + rd[2] * ird[2]);
-}
-
-/* The impulse j along the unit direction d at r. */
-static void contact_push(const double r[3], const double d[3], double j) {
-  const double J[3] = { j * d[0], j * d[1], j * d[2] };
-  const double invm = 1.0 / PLANT.mass_kg;
-  S.vel[0] += J[0] * invm;
-  S.vel[1] += J[1] * invm;
-  S.vel[2] += J[2] * invm;
-  double w[3];
-  contact_rotate(S.omega, w);
-  double tau[3];
-  tau[0] = r[1] * J[2] - r[2] * J[1];
-  tau[1] = r[2] * J[0] - r[0] * J[2];
-  tau[2] = r[0] * J[1] - r[1] * J[0];
-  double dw[3];
-  contact_iinv(tau, dw);
-  w[0] += dw[0];
-  w[1] += dw[1];
-  w[2] += dw[2];
-  contact_rotate_inv(w, S.omega);
-}
-
-/* Friction along d at r: the impulse that stops the point along d, at most
- * jmax either way. */
-static void wheel_friction(const double r[3], const double d[3], double jmax) {
-  double vp[3];
-  contact_point_vel(r, vp);
-  const double vd = vp[0] * d[0] + vp[1] * d[1] + vp[2] * d[2];
-  const double kd = contact_k_along(r, d);
-  if (!(kd > 1e-12)) {
-    return;
-  }
-  double j = -vd / kd;
-  if (j > jmax) {
-    j = jmax;
-  } else if (j < -jmax) {
-    j = -jmax;
-  }
-  contact_push(r, d, j);
-}
-
-/*
- * A rolling tyre's side grip. A skid, or a tyre held still, grips like any
- * contact: the impulse that stops its point across the heading, up to
- * mu_side N. A tyre rolling along its heading does not: its tread enters
- * the contact patch straight and is dragged sideways only as the wheel
- * slips at an angle to its path, so the side force grows with the slip
- * angle, tan a = |v_across| / |v_along|, and reaches mu_side N only when
- * the whole patch slides. The brush model with a parabolic pressure
- * (Pacejka, Tyre and Vehicle Dynamics, ch. 3) gives the force under that
- * as F / (mu N) = 1 - (1 - s)^3, s = tan a / tan a_sl, where tan a_sl is
- * the tyre's `slide`. As the rolling speed falls to nothing the slip angle
- * goes to 90 deg, the patch slides whole, and this is the skid's grip
- * again; and the force is never more than the impulse that stops the
- * point, so it cannot throw the point back. Pacejka's relaxation length,
- * about the tyre's radius, is left out: at a rolling 0.5 m/s a 22 mm
- * tyre's force follows its slip within 45 ms and at 6 m/s within 4 ms,
- * inside the tenths of a second the roll's swings take. Returns the side
- * row's limit, an impulse, out of the whole grip jmax.
- */
-static double wheel_side_cap(const WheelParams *wp, const double r[3], const double l[3], const double h[3],
-                             double jmax) {
-  double vp[3];
-  contact_point_vel(r, vp);
-  const double vl = vp[0] * l[0] + vp[1] * l[1] + vp[2] * l[2];
-  const double vh = vp[0] * h[0] + vp[1] * h[1] + vp[2] * h[2];
-  const double avl = vl < 0.0 ? -vl : vl;
-  const double avh = vh < 0.0 ? -vh : vh;
-  if (wp->slide > 0.0 && avl < wp->slide * avh) {
-    const double u = 1.0 - avl / (wp->slide * avh);
-    return jmax * (1.0 - u * u * u);
-  }
-  return jmax;
-}
-
-/*
- * One direction of one tyre's friction, a row of the wheels' solve: where
- * it acts and along what, the limit it has now and the grip it has when
- * the tyre is not rolling, both impulses.
- */
-typedef struct {
-  double r[3];
-  double d[3];
-  double cap;
-  double grip;
-} WheelRow;
-
-/* The sweeps of the wheels' solve: at most WHEEL_SWEEPS, and done once no
- * row changes its point's speed by more than WHEEL_SETTLED m/s, which
- * would carry an aircraft 0.4 mm in an hour. A rolling aircraft settles
- * in two or three sweeps. One standing or turning slowly takes four to
- * eleven on average, and up to one solve in five runs out of sweeps: its
- * rows along the ground are nearly the same constraint under a CG high
- * above them, a mode Gauss Seidel closes on slowly, and whose remainder
- * moves nothing (every wheeled aircraft stands to under 0.001 mm/s over
- * 30 s at idle). */
-#define WHEEL_SWEEPS 32
-#define WHEEL_SETTLED 1e-7
-
-/* Projected Gauss Seidel on the rows' own system, K j = b with each j
- * held inside its row's limit: K[a][b] is the speed row a's point takes
- * along its direction from a unit impulse on row b. */
-static void wheels_sweep(int n, const double K[][2 * SIM_WHEELS_MAX], const double *b, const WheelRow *rows,
-                         double *j) {
-  for (int it = 0; it < WHEEL_SWEEPS; it += 1) {
-    double worst = 0.0;
-    for (int a = 0; a < n; a += 1) {
-      if (!(K[a][a] > 1e-12)) {
-        continue;
-      }
-      double res = b[a];
-      for (int c = 0; c < n; c += 1) {
-        res -= K[a][c] * j[c];
-      }
-      double ja = j[a] + res / K[a][a];
-      if (ja > rows[a].cap) {
-        ja = rows[a].cap;
-      } else if (ja < -rows[a].cap) {
-        ja = -rows[a].cap;
-      }
-      const double dv = (ja - j[a]) * K[a][a];
-      j[a] = ja;
-      if ((dv < 0.0 ? -dv : dv) > worst) {
-        worst = dv < 0.0 ? -dv : dv;
-      }
-    }
-    if (!(worst > WHEEL_SETTLED)) {
-      return;
-    }
-  }
-}
-
-/*
- * The wheels' friction, every row together: the impulses that stop every
- * contact point along its row's direction at once, each held inside its
- * limit. A row whose limit binds slides at it, the rolling resistance of
- * a rolling wheel, and one inside its limit holds. Solved on the rows' own
- * small system and then pushed into the body, one impulse a row.
- *
- * Holding is in the next step's terms. The plant moves the body with the
- * velocity its forces leave, before the ground has its say, so a point
- * stopped dead here is moved on by the next step's thrust anyway: a Kadet
- * at idle crept 0.5 mm/s that way with its friction solved exactly. The
- * point is left instead with the speed along d that this step's push gave
- * it, backwards, which the next step's push cancels before it moves
- * anything: the same bookkeeping that leaves a body resting on its struts
- * rising at g dt at the end of each step. It holds exactly while the push
- * holds still, an engine at idle or the slope of the ground; and for a
- * row at its limit it changes nothing.
- *
- * A tyre whose rolling resistance holds it is not rolling, so it has no
- * slip angle, and across its heading it grips as a skid does: once the
- * solve has found which wheels its rolling resistance holds, their side
- * rows get the whole mu_side N and it is solved again. A rolling tyre
- * keeps the brush model's grip for its slip.
- */
-static void wheels_friction(WheelRow *rows, int n) {
-  double dw[3];
-  contact_rotate(g_plant_dw, dw);
-  double rd[2 * SIM_WHEELS_MAX][3], ird[2 * SIM_WHEELS_MAX][3], b[2 * SIM_WHEELS_MAX], j[2 * SIM_WHEELS_MAX];
-  double K[2 * SIM_WHEELS_MAX][2 * SIM_WHEELS_MAX];
-  for (int a = 0; a < n; a += 1) {
-    const double *r = rows[a].r;
-    const double *d = rows[a].d;
-    rd[a][0] = r[1] * d[2] - r[2] * d[1];
-    rd[a][1] = r[2] * d[0] - r[0] * d[2];
-    rd[a][2] = r[0] * d[1] - r[1] * d[0];
-    contact_iinv(rd[a], ird[a]);
-    double vp[3];
-    contact_point_vel(r, vp);
-    const double u[3] = {
-      vp[0] + g_plant_dv[0] + (dw[1] * r[2] - dw[2] * r[1]),
-      vp[1] + g_plant_dv[1] + (dw[2] * r[0] - dw[0] * r[2]),
-      vp[2] + g_plant_dv[2] + (dw[0] * r[1] - dw[1] * r[0]),
-    };
-    b[a] = -(u[0] * d[0] + u[1] * d[1] + u[2] * d[2]);
-    j[a] = 0.0;
-  }
-  const double invm = 1.0 / PLANT.mass_kg;
-  for (int a = 0; a < n; a += 1) {
-    for (int c = 0; c < n; c += 1) {
-      const double *da = rows[a].d;
-      const double *dc = rows[c].d;
-      K[a][c] = (da[0] * dc[0] + da[1] * dc[1] + da[2] * dc[2]) * invm
-          + rd[a][0] * ird[c][0] + rd[a][1] * ird[c][1] + rd[a][2] * ird[c][2];
-    }
-  }
-  wheels_sweep(n, K, b, rows, j);
-  int regrip = 0;
-  for (int a = 0; a + 1 < n; a += 2) {
-    const double aj = j[a + 1] < 0.0 ? -j[a + 1] : j[a + 1];
-    if (aj < rows[a + 1].cap && rows[a].cap < rows[a].grip) {
-      rows[a].cap = rows[a].grip;
-      regrip = 1;
-    }
-  }
-  if (regrip) {
-    wheels_sweep(n, K, b, rows, j);
-  }
-  for (int a = 0; a < n; a += 1) {
-    if (j[a] != 0.0) {
-      contact_push(rows[a].r, rows[a].d, j[a]);
-    }
-  }
-}
-
-/* Returns the number of wheels carrying load this step. */
-static int ground_wheels(void) {
-  const double *n = g_ground_n;
-  double surf[4];
-  plant_plane_surfaces(surf);
-  /* The wheels' axles are along body y, so each tyre is a circle in the
-   * body's x z plane and its point nearest the ground is the axle less r
-   * along the ground normal's part in that plane. */
-  const double yb[3] = { 0.0, 1.0, 0.0 };
-  double axle[3];
-  contact_rotate(yb, axle);
-  const double na = n[0] * axle[0] + n[1] * axle[1] + n[2] * axle[2];
-  double down[3] = { n[0] - na * axle[0], n[1] - na * axle[1], n[2] - na * axle[2] };
-  const double dl = sim_sqrt(down[0] * down[0] + down[1] * down[1] + down[2] * down[2]);
-  if (dl > 1e-6) {
-    down[0] /= dl;
-    down[1] /= dl;
-    down[2] /= dl;
-  } else {
-    down[0] = n[0];
-    down[1] = n[1];
-    down[2] = n[2];
-  }
-  int loaded = 0;
-  /* Two friction rows a loaded wheel, across its heading then along it,
-   * for the solve once every strut has pushed. */
-  WheelRow rows[2 * SIM_WHEELS_MAX];
-  int wi[SIM_WHEELS_MAX];
-  int nw = 0;
-  for (int i = 0; i < PLANT.wheel_count; i += 1) {
-    const WheelParams *wp = &PLANT.wheel[i];
-    g_wheel_load[i] = 0.0;
-    if (CRASH.active && CRASH.wheel_lost[i]) {
-      continue;
-    }
-    /* A retracting wheel carries nothing unless the gear is down and
-     * locked: folding or folded away, it is inside the wing. */
-    if (wp->retract > 0.0 && !plant_wing_gear_down()) {
-      continue;
-    }
-    double r[3];
-    contact_rotate(wp->pos, r);
-    r[0] -= wp->r * down[0];
-    r[1] -= wp->r * down[1];
-    r[2] -= wp->r * down[2];
-    const double side = n[0] * (S.pos[0] + r[0]) + n[1] * (S.pos[1] + r[1]) + n[2] * (S.pos[2] + r[2]);
-    const double pen = g_ground_d - side;
-    if (!(pen > 0.0)) {
-      continue;
-    }
-    double vp[3];
-    contact_point_vel(r, vp);
-    const double vn = vp[0] * n[0] + vp[1] * n[1] + vp[2] * n[2];
-    const double fn = SIM_DAMAGE ? crash_wheel_force(&S, i, r, n, pen, vn) : wp->k * pen - wp->c * vn;
-    if (!(fn > 0.0)) {
-      continue;
-    }
-    const double jn = fn * SIM_DT;
-    contact_push(r, n, jn);
-    g_wheel_load[i] = fn;
-    loaded += 1;
-    if (SIM_DAMAGE) {
-      const double F[3] = { fn * n[0], fn * n[1], fn * n[2] };
-      crash_force_note(&S, r, F, crash_wheel_part(i));
-    }
-
-    /* The rudder's trailing edge left, positive, turns the wheel's front to
-     * the right, which is the body heading rotated by minus the angle. */
-    const double delta = wp->steer * surf[3];
-    const double hb[3] = { sim_cos_small(delta), -sim_sin_small(delta), 0.0 };
-    double hw[3];
-    contact_rotate(hb, hw);
-    const double hn = hw[0] * n[0] + hw[1] * n[1] + hw[2] * n[2];
-    double h[3] = { hw[0] - hn * n[0], hw[1] - hn * n[1], hw[2] - hn * n[2] };
-    const double hl = sim_sqrt(h[0] * h[0] + h[1] * h[1] + h[2] * h[2]);
-    if (!(hl > 0.1)) {
-      continue;
-    }
-    h[0] /= hl;
-    h[1] /= hl;
-    h[2] /= hl;
-    const double grip = wp->mu_side * jn;
-    const double roll = plant_wheel_roll(wp, crash_ground_material(), plant_wing_brake()) * jn;
-    rows[2 * nw] = (WheelRow){
-      { r[0], r[1], r[2] },
-      { n[1] * h[2] - n[2] * h[1], n[2] * h[0] - n[0] * h[2], n[0] * h[1] - n[1] * h[0] },
-      grip, grip,
-    };
-    rows[2 * nw + 1] = (WheelRow){ { r[0], r[1], r[2] }, { h[0], h[1], h[2] }, roll, roll };
-    wi[nw] = i;
-    nw += 1;
-  }
-  /* The side rows' slip, now that every strut has pushed. */
-  for (int k = 0; k < nw; k += 1) {
-    WheelRow *side = &rows[2 * k];
-    side->cap = wheel_side_cap(&PLANT.wheel[wi[k]], side->r, side->d, rows[2 * k + 1].d, side->grip);
-  }
-  wheels_friction(rows, 2 * nw);
-  return loaded;
-}
-
 static void ground_apply(void) {
   g_corner_dvn = 0.0;
   g_corner_dvt[0] = 0.0;
@@ -1266,21 +901,8 @@ static void ground_apply(void) {
   g_ge = g_ground_e;
   crash_surface_mu_e(crash_ground_material(), &g_gmu, &g_ge);
   crash_set_ground_contact();
-  plant_wing_set_on_wheels(0);
-  for (int i = 0; i < SIM_WHEELS_MAX; i += 1) {
-    g_wheel_load[i] = 0.0;
-  }
   if (!g_ground_on || g_stand_on) {
     return;
-  }
-  /* An aircraft on its wheels is resting on them, whatever else touches:
-   * a wingtip on the grass while it rocks back onto its gear must not be
-   * put to sleep by the hull's settle below, which stops a slow rotation
-   * outright and would hold it perched on the tip. */
-  int wheels_loaded = 0;
-  if (PLANT.wheel_count > 0) {
-    wheels_loaded = ground_wheels() > 0;
-    plant_wing_set_on_wheels(wheels_loaded);
   }
   const double vn_plant = S.vel[0] * g_ground_n[0]
       + S.vel[1] * g_ground_n[1]
@@ -1354,9 +976,7 @@ static void ground_apply(void) {
     }
     g_ground_hits = hits;
     ground_project_hull();
-    if (!wheels_loaded) {
-      ground_settle(upz, vn_plant);
-    }
+    ground_settle(upz, vn_plant);
     return;
   }
 
@@ -1398,9 +1018,7 @@ static void ground_apply(void) {
 
   g_ground_hits = hits;
   ground_project_hull();
-  if (!wheels_loaded) {
-    ground_settle(upz, vn_plant);
-  }
+  ground_settle(upz, vn_plant);
 }
 
 /*
@@ -1443,528 +1061,6 @@ static void obstacle_apply(void) {
   if (SIM_DAMAGE) {
     crash_solids_step();
   }
-}
-
-/*
- * FLOATS, for an airframe that declares them (the Timber and the Cub on
- * floats; every other airframe has none and returns at the first line).
- * docs/FLOATS-STAGE1.md derives the model and every number.
- *
- * Each float is cut into SIM_FLOAT_STATIONS strips from bow to stern, and
- * each strip's keel point is held against the water surface under it,
- * which is the wave field of water.c at this step's time. A strip whose
- * keel is under the surface gets, at that point:
- *
- *   BUOYANCY, rho g times its immersed section times its length, straight
- *   up. The section is the float's V bottom to the chines and its sides
- *   above, filled to the immersion along the body's up axis and no higher
- *   than the deck.
- *   THE PLANING FORCE, along the bottom's own normal (the body's up axis
- *   on the flat forebody, leaning aft on the bow's rise and forward on the
- *   afterbody): the momentum the strip gives the water it pushes down. A strip of water the hull passes over
- *   carries the added mass of the section wetted there, (pi/2) rho c^2 per
- *   metre with c the half width Wagner's splash up wets, c = (pi/2) d /
- *   tan(deadrise) to the chines; going aft the hull pushes it down at the
- *   bottom's normal speed, so the force is the forward speed times that
- *   speed times the growth of the added mass over the strip (Zarnick's
- *   strip theory, steady form). Where the wetted width stops growing, at
- *   the step above all, the water has left the hull and there is no force
- *   until a strip further aft goes deeper than the deepest before it:
- *   that is what makes a step a step. With the bow down the normal speed
- *   changes sign and the force pulls the bow in, which is a nose dig.
- *   CROSSFLOW DRAG against the bottom's normal speed, 0.5 rho C (2c) w|w|,
- *   and a linear radiation damping for the waves a heaving float makes,
- *   k_rad rho B sqrt(g B) w; CROSSFLOW DRAG sideways on the immersed
- *   depth, which is what keeps a float from sliding sideways; and SKIN
- *   FRICTION along the keel on the wetted girth.
- *
- * Each float then gets its WAVE MAKING DRAG, the buoyancy it carries
- * times a coefficient that grows with the length Froude number of its
- * wetted length to wave_k, which is the hump: at low speed the hull
- * floats and makes no waves, near hull speed it makes the most it can,
- * and as the planing force lifts it out its buoyancy, and the drag with
- * it, fall away. And its WATER RUDDER at the stern, a small low aspect
- * ratio foil turned with the air rudder, working in proportion to how
- * much of its span is in the water.
- *
- * Every force is an impulse at its point through the body's effective
- * mass, contact_push, the wheels' path. On land the keel's bow, knee,
- * step and stern are skids against the ground plane, sliding at mu_ground
- * every way: a float has no wheel.
- *
- * Deterministic: sqrt, the fixed atan2 and the wave field's fixed sin
- * and cos, a fixed order of strips and floats.
- */
-static double g_float_diag[10];
-/* A buried deck's drag coefficient: a flat plate broadside, Hoerner's 1.17,
- * less for the rounded deck edge. */
-#define FLOAT_BURY_CD 1.0
-/* The most a forebody's suction can pull, Pa: the atmosphere's pressure,
- * past which the water under it would boil or the air come in round the
- * chines. At a float plane's speeds the suction is far under it. */
-#define FLOAT_SUCTION_MAX 101325.0
-
-/*
- * THE FLOATS' ADDED MASS, crash physics (damage mode on) only, so the
- * floats' gates keep their traces with it off. The water a float heaves
- * against moves with it: each wet strip carries the added mass of its
- * section, the (pi/2) rho c^2 per metre the planing force already uses
- * (von Karman 1929, Wagner 1932, Zarnick 1978), along the body's up axis,
- * which is the bottom's normal. On the aircraft that is a 3 x 3 added
- * mass in its heave along body z, its roll and its pitch,
- * M_a = sum m_i j_i j_i^T with j_i = (1, y_i, -x_i) the strip's up speed
- * per unit of (w, p, q). It is 1.8 times the aircraft's own mass at rest
- * (the Timber: 3.47 kg against 1.93), so an explicit force, the added
- * mass times last step's acceleration, would be unstable. It is implicit
- * instead: the whole step's change of (w, p, q), whatever made it, is
- * what the rigid body would do under the step's forces, M d_rigid = F dt,
- * and the aircraft with the water it carries does (M + M_a) d = F dt, so
- * d = (M + M_a)^-1 M d_rigid, which is exact for the step's forces and
- * unconditionally stable. g_float_am is the step's M_a, filled by
- * float_apply, zero when no strip is wet. The 3D end effects that shorten
- * a slender body's added mass at its bow and stern are left out: at a
- * float's 8.5 beams they take roughly a tenth off (Lewis's J factor for a
- * body that slender), inside what the section's shape is known to.
- */
-static double g_float_am[3][3];
-static double g_float_v0[3];
-static double g_float_w0[3];
-
-static double float_keel(const FloatParams *fp, double x) {
-  if (x > fp->x_knee) {
-    return fp->z_keel + fp->bow_rise * (x - fp->x_knee) / (fp->x_bow - fp->x_knee);
-  }
-  if (x >= fp->x_step) {
-    return fp->z_keel;
-  }
-  return fp->z_keel + fp->step_h + (fp->x_step - x) * fp->aft_slope;
-}
-
-/* The keel's slope dz/dx along the body: the bow's rise, the flat
- * forebody's zero, the afterbody's fall going aft. */
-static double float_keel_slope(const FloatParams *fp, double x) {
-  if (x > fp->x_knee) {
-    return fp->bow_rise / (fp->x_bow - fp->x_knee);
-  }
-  if (x >= fp->x_step) {
-    return 0.0;
-  }
-  return -fp->aft_slope;
-}
-
-/* One force F, world frame, at the body offset r, for one step. */
-static int g_float_part = -1;
-
-static void float_force(const double r[3], const double F[3]) {
-  const double fm = sim_sqrt(F[0] * F[0] + F[1] * F[1] + F[2] * F[2]);
-  if (!(fm > 0.0)) {
-    return;
-  }
-  if (SIM_DAMAGE) {
-    crash_force_note(&S, r, F, g_float_part);
-  }
-  const double d[3] = { F[0] / fm, F[1] / fm, F[2] / fm };
-  contact_push(r, d, fm * SIM_DT);
-}
-
-/* A body frame vector to world. */
-static void float_to_world(double x, double y, double z, double out[3]) {
-  const double b[3] = { x, y, z };
-  contact_rotate(b, out);
-}
-
-/* The water's surface and velocity under a world point, in body `wb`. */
-static void float_water(int wb, double t, const double p[3], double ws[6]) {
-  water_sample(wb, p[0], p[1], t, ws);
-}
-
-/* The skids on land. Returns the load they carry, N. */
-static double float_ground(const FloatParams *fp) {
-  if (!g_ground_on || g_stand_on) {
-    return 0.0;
-  }
-  const double *n = g_ground_n;
-  double total = 0.0;
-  const double xs[4] = { fp->x_bow, fp->x_knee, fp->x_step, fp->x_stern };
-  for (int f = 0; f < 2; f += 1) {
-    const double yf = f == 0 ? fp->y : -fp->y;
-    if (CRASH.active && CRASH.float_lost[f]) {
-      continue;
-    }
-    for (int k = 0; k < 4; k += 1) {
-      double r[3];
-      float_to_world(xs[k], yf, float_keel(fp, xs[k]), r);
-      const double side = n[0] * (S.pos[0] + r[0]) + n[1] * (S.pos[1] + r[1]) + n[2] * (S.pos[2] + r[2]);
-      const double pen = g_ground_d - side;
-      if (!(pen > 0.0)) {
-        continue;
-      }
-      double vp[3];
-      contact_point_vel(r, vp);
-      const double vn = vp[0] * n[0] + vp[1] * n[1] + vp[2] * n[2];
-      const double fn = fp->k_ground * pen - fp->c_ground * vn;
-      if (!(fn > 0.0)) {
-        continue;
-      }
-      const double jn = fn * SIM_DT;
-      contact_push(r, n, jn);
-      total += fn;
-      if (SIM_DAMAGE) {
-        const double F[3] = { fn * n[0], fn * n[1], fn * n[2] };
-        crash_force_note(&S, r, F, crash_float_part(f));
-      }
-      /* The keel's heading on the ground and across it, the same grip
-       * both ways. */
-      double hw[3];
-      float_to_world(1.0, 0.0, 0.0, hw);
-      const double hn = hw[0] * n[0] + hw[1] * n[1] + hw[2] * n[2];
-      double h[3] = { hw[0] - hn * n[0], hw[1] - hn * n[1], hw[2] - hn * n[2] };
-      const double hl = sim_sqrt(h[0] * h[0] + h[1] * h[1] + h[2] * h[2]);
-      if (!(hl > 0.1)) {
-        continue;
-      }
-      h[0] /= hl;
-      h[1] /= hl;
-      h[2] /= hl;
-      const double l[3] = {
-        n[1] * h[2] - n[2] * h[1],
-        n[2] * h[0] - n[0] * h[2],
-        n[0] * h[1] - n[1] * h[0],
-      };
-      wheel_friction(r, l, fp->mu_ground * jn);
-      wheel_friction(r, h, fp->mu_ground * jn);
-    }
-  }
-  return total;
-}
-
-static void float_apply(void) {
-  const FloatParams *fp = &PLANT.floats;
-  if (fp->count == 0) {
-    return;
-  }
-  for (int i = 0; i < 10; i += 1) {
-    g_float_diag[i] = 0.0;
-  }
-  for (int i = 0; i < 3; i += 1) {
-    g_float_am[i][0] = g_float_am[i][1] = g_float_am[i][2] = 0.0;
-  }
-  const double ground = float_ground(fp);
-  g_float_diag[6] = ground;
-  int wet = 0;
-  const int wb = water_body_at(S.pos[0], S.pos[1]);
-  if (wb >= 0) {
-    const double rho = 1000.0;
-    const double g = PLANT.gravity;
-    const double PI = 3.14159265358979323846;
-    const double t = (double)(S.step_index + 1) * SIM_DT;
-    const double L = fp->x_bow - fp->x_stern;
-    const double dx = L / (double)SIM_FLOAT_STATIONS;
-    const double half = 0.5 * fp->beam;
-    const double hc = half * fp->tan_dr;
-    const double sin_dr = fp->tan_dr / sim_sqrt(1.0 + fp->tan_dr * fp->tan_dr);
-    const double rad = fp->k_rad * rho * fp->beam * sim_sqrt(g * fp->beam);
-    /* The body's up axis in the world: how far a vertical immersion is
-     * along it, floored so a float on its side still has a section. */
-    double zb[3];
-    float_to_world(0.0, 0.0, 1.0, zb);
-    const double cz = zb[2] > 0.2 ? zb[2] : 0.2;
-    double surf[4];
-    plant_plane_surfaces(surf);
-    for (int f = 0; f < 2; f += 1) {
-      const double yf = f == 0 ? fp->y : -fp->y;
-      if (CRASH.active && CRASH.float_lost[f]) {
-        continue;
-      }
-      g_float_part = crash_float_part(f);
-      double ma_run = 0.0;
-      double d_prev = 0.0;
-      double vn_prev = 0.0;
-      double buoy = 0.0;
-      double xb = 0.0;
-      double usum = 0.0;
-      int nwet = 0;
-      for (int i = 0; i < SIM_FLOAT_STATIONS; i += 1) {
-        const double x = fp->x_bow - ((double)i + 0.5) * dx;
-        const double zk = float_keel(fp, x);
-        double r[3];
-        float_to_world(x, yf, zk, r);
-        const double p[3] = { S.pos[0] + r[0], S.pos[1] + r[1], S.pos[2] + r[2] };
-        double ws[6];
-        float_water(wb, t, p, ws);
-        const double h = ws[0] - p[2];
-        if (!(h > 0.0)) {
-          d_prev = 0.0;
-          vn_prev = 0.0;
-          continue;
-        }
-        wet = 1;
-        const double cap = fp->z_keel + fp->depth - zk;
-        double d = h * cz;
-        if (d > cap) {
-          d = cap;
-        }
-        if (SIM_DAMAGE && i == 0) {
-          /* Crash physics: the bow's own tip under the surface. The slice
-           * entering here was taken as pushed from nothing to d in one
-           * strip, a vertical stem that throws the bow up however it
-           * meets the water, which is right while the keel crosses the
-           * surface behind the tip and wrong once the tip itself has dug
-           * in: then the water runs over the deck, and the bottom meets
-           * the slice at its own slope. That slope is the rocker's, so the
-           * slice's immersion just ahead of the tip is the rocker's line
-           * carried one strip on. */
-          const double xa = x + dx;
-          double ra[3];
-          float_to_world(xa, yf, float_keel(fp, xa), ra);
-          const double pa[3] = { S.pos[0] + ra[0], S.pos[1] + ra[1], S.pos[2] + ra[2] };
-          double wa[6];
-          float_water(wb, t, pa, wa);
-          const double da = (wa[0] - pa[2]) * cz;
-          if (da > 0.0) {
-            d_prev = da;
-          }
-        }
-        const double area = d <= hc ? d * d / fp->tan_dr : hc * hc / fp->tan_dr + fp->beam * (d - hc);
-        const double girth = d <= hc ? 2.0 * d / sin_dr : 2.0 * hc / sin_dr + 2.0 * (d - hc);
-        double c = 0.5 * PI * d / fp->tan_dr;
-        const int chines_dry = c < half;
-        if (!chines_dry) {
-          c = half;
-        }
-        const double ma = 0.5 * PI * rho * c * c;
-        /* The strip's velocity through the water, in the body frame, and
-         * how fast its immersion grows where it is: the surface's own rise
-         * and its slope under the strip's travel, less the strip's sink. */
-        double vp[3];
-        contact_point_vel(r, vp);
-        const double vr[3] = { vp[0] - ws[3], vp[1] - ws[4], vp[2] - ws[5] };
-        double vb[3];
-        contact_rotate_inv(vr, vb);
-        const double u = vb[0], v = vb[1];
-        const double up = u > 0.0 ? u : 0.0;
-        const double hdot = ws[5] + ws[1] * vp[0] + ws[2] * vp[1] - vp[2];
-        /* The rate a slice of water under this strip is pushed down: the
-         * growth of the immersion from the strip ahead to this one at the
-         * forward speed, which is the trim and the keel's own rocker, and
-         * the strip's own sinking. Water is pushed, never pulled. */
-        const double vn = up * (d - d_prev) / dx + hdot * cz;
-        d_prev = d;
-        double fz = 0.0;
-        if (vn > 0.0) {
-          double dm = 0.0;
-          if (ma > ma_run) {
-            dm = up * (ma - ma_run);
-          }
-          if (chines_dry && hdot > 0.0) {
-            /* Wagner's slam: the wetted width growing as the strip drops. */
-            dm += 0.5 * PI * PI * rho * c / fp->tan_dr * hdot * cz * dx;
-          }
-          fz = vn * dm + 0.5 * rho * fp->c_cross * 2.0 * c * vn * vn * dx;
-        }
-        if (ma > ma_run) {
-          ma_run = ma;
-        }
-        /* Crash physics: the forebody's suction running nose low. Going
-         * aft along a keel trimmed nose down the bottom rises away from the
-         * slice of water under it, V_n < 0, and ahead of the step the flow
-         * stays on the bottom and follows it up: the slice's downward
-         * momentum, carried in m_a, is turned upward, and that pulls the
-         * float down, u m_a dV_n per strip, the second half of Zarnick's
-         * d/dt (m_a V_n) that "water is pushed, never pulled" left out.
-         * Only the part of the change below zero counts, so a float trimmed
-         * nose up (V_n > 0 all along) is untouched, and a flat forebody at
-         * a trim of -tau takes the planing lift of +tau with its sign
-         * turned, concentrated where V_n crosses zero, which on a float
-         * running nose low is ahead of the CG. Aft of the step the flow has
-         * left the hull, which is what a step is for, and nothing pulls.
-         * Capped at the atmosphere's pressure on the strip's wetted width.
-         * docs/FLOATS-STAGE1.md, the nose dig. */
-        if (SIM_DAMAGE && x >= fp->x_step) {
-          const double vneg = vn < 0.0 ? vn : 0.0;
-          const double vneg_prev = vn_prev < 0.0 ? vn_prev : 0.0;
-          double fs = ma * up * (vneg - vneg_prev);
-          const double fs_max = FLOAT_SUCTION_MAX * 2.0 * c * dx;
-          if (fs < -fs_max) fs = -fs_max;
-          if (fs > fs_max) fs = fs_max;
-          fz += fs;
-        }
-        vn_prev = vn;
-        if (SIM_DAMAGE) {
-          /* The strip's added mass, along the body's up axis at (x, yf). */
-          const double mi = ma * dx;
-          const double j[3] = { 1.0, yf, -x };
-          for (int a = 0; a < 3; a += 1) {
-            for (int b = 0; b < 3; b += 1) {
-              g_float_am[a][b] += mi * j[a] * j[b];
-            }
-          }
-        }
-        const double fy = -0.5 * rho * fp->c_side * d * v * sim_fabs(v) * dx;
-        const double fx = -0.5 * rho * fp->cf * girth * u * sim_fabs(u) * dx;
-        const double fb = rho * g * area * dx;
-        const double fr = rad * hdot * dx;
-        /* The planing force is a pressure on the bottom, so it acts along
-         * the bottom's own normal, which on the bow's rise leans aft and on
-         * the afterbody leans forward. On a flat bottom at a trim tau the
-         * body's up axis is that normal and the drag lift x tan(tau) comes
-         * from the trim itself (Savitsky 1964, the pressure drag of a
-         * planing surface); on the rise the slope adds its own angle, so a
-         * bow meeting the water hard is pushed back as well as up, low
-         * under the CG, and not only lifted ahead of it. */
-        const double slope = float_keel_slope(fp, x);
-        const double nlen = sim_sqrt(1.0 + slope * slope);
-        const double fxp = fx - fz * slope / nlen;
-        double Fw[3];
-        float_to_world(fxp, fy, fz / nlen, Fw);
-        Fw[2] += fb + fr;
-        /* Crash physics: a bow driven under its own deck. The strip theory
-         * above caps a float's immersion at its deck, which is right for a
-         * float that floats and says nothing about one that has dived: the
-         * water then flows over the deck as well as under the keel, and
-         * that drag, low and far ahead of the CG, is what pitches a float
-         * plane over its bows (docs/FLOATS-STAGE1.md, nose dig, flagged).
-         * A plate's drag on the deck's strip, faded in over half a beam of
-         * burial. Only with the damage mode on, and only under the deck,
-         * which a float that floats and planes never is. */
-        if (SIM_DAMAGE && h * cz > cap) {
-          double bur = (h * cz - cap) / (0.5 * fp->beam);
-          if (bur > 1.0) {
-            bur = 1.0;
-          }
-          const double vm = sim_sqrt(vr[0] * vr[0] + vr[1] * vr[1] + vr[2] * vr[2]);
-          const double kb = -0.5 * rho * FLOAT_BURY_CD * fp->beam * dx * bur * vm;
-          Fw[0] += kb * vr[0];
-          Fw[1] += kb * vr[1];
-          Fw[2] += kb * vr[2];
-        }
-        float_force(r, Fw);
-        buoy += fb;
-        xb += fb * x;
-        usum += u;
-        nwet += 1;
-        g_float_diag[0] += fb;
-        g_float_diag[1] += fz + fr;
-        g_float_diag[2] -= fxp;
-        g_float_diag[3] += area * dx;
-      }
-      g_float_diag[4 + f] = (double)nwet * dx;
-      /* The wave making drag, at the float's centre of buoyancy, against
-       * its run through the water. */
-      if (nwet > 0 && buoy > 0.0) {
-        const double um = usum / (double)nwet;
-        const double fr2 = um * um / (g * (double)nwet * dx);
-        const double fr4 = fr2 * fr2;
-        const double f0 = fp->wave_fr0 * fp->wave_fr0;
-        const double rw = fp->wave_k * fr4 / (fr4 + f0 * f0) * buoy;
-        const double xc = xb / buoy;
-        double r[3];
-        float_to_world(xc, yf, fp->z_keel, r);
-        double Fw[3];
-        float_to_world(um > 0.0 ? -rw : rw, 0.0, 0.0, Fw);
-        float_force(r, Fw);
-        g_float_diag[2] += rw;
-        g_float_diag[8] += rw;
-      }
-      /* The water rudder, as much of it as is in the water. */
-      {
-        double r[3];
-        float_to_world(fp->rudder_x, yf, fp->rudder_z, r);
-        const double p[3] = { S.pos[0] + r[0], S.pos[1] + r[1], S.pos[2] + r[2] };
-        double ws[6];
-        float_water(wb, t, p, ws);
-        double frac = (ws[0] - (p[2] - 0.5 * fp->rudder_span)) / fp->rudder_span;
-        if (frac > 1.0) {
-          frac = 1.0;
-        }
-        if (frac > 0.0) {
-          double vp[3];
-          contact_point_vel(r, vp);
-          const double vr[3] = { vp[0] - ws[3], vp[1] - ws[4], vp[2] - ws[5] };
-          double vb[3];
-          contact_rotate_inv(vr, vb);
-          const double q2 = vb[0] * vb[0] + vb[1] * vb[1];
-          if (q2 > 1e-6) {
-            const double vm = sim_sqrt(q2);
-            const double beta = sim_atan2(vb[1], sim_fabs(vb[0]));
-            double cl = fp->rudder_a * (fp->rudder_steer * surf[3] + beta);
-            if (cl > fp->rudder_clmax) cl = fp->rudder_clmax;
-            if (cl < -fp->rudder_clmax) cl = -fp->rudder_clmax;
-            const double ar = fp->rudder_span * fp->rudder_span / fp->rudder_area;
-            const double cd = 0.02 + cl * cl / (PI * ar);
-            const double qa = 0.5 * rho * q2 * fp->rudder_area * frac;
-            const double fy = -qa * cl;
-            const double fx = -qa * cd * vb[0] / vm;
-            const double fyd = -qa * cd * vb[1] / vm;
-            double Fw[3];
-            float_to_world(fx, fy + fyd, 0.0, Fw);
-            float_force(r, Fw);
-            g_float_diag[7] += fy;
-          }
-        }
-      }
-    }
-  }
-  if (wet || ground > 0.0) {
-    plant_wing_set_on_wheels(1);
-  }
-  g_float_diag[9] = (double)wb;
-}
-
-/* The step's (w, p, q) before anything moved them, for the added mass. */
-static void float_mass_begin(void) {
-  for (int a = 0; a < 3; a += 1) {
-    g_float_v0[a] = S.vel[a];
-    g_float_w0[a] = S.omega[a];
-  }
-}
-
-/* d = (M + M_a)^-1 M d_rigid on (w, p, q), after the step's every force:
- * Gaussian elimination on the 3 x 3, which M_a's being a sum of outer
- * products and M's being positive keeps symmetric positive definite, so it
- * needs no pivoting. A no-op when nothing is wet. */
-static void float_mass_apply(void) {
-  if (!(g_float_am[0][0] > 0.0)) {
-    return;
-  }
-  double zb[3];
-  const double ez[3] = { 0.0, 0.0, 1.0 };
-  contact_rotate(ez, zb);
-  const double dv[3] = { S.vel[0] - g_float_v0[0], S.vel[1] - g_float_v0[1], S.vel[2] - g_float_v0[2] };
-  const double d0[3] = {
-    zb[0] * dv[0] + zb[1] * dv[1] + zb[2] * dv[2],
-    S.omega[0] - g_float_w0[0],
-    S.omega[1] - g_float_w0[1],
-  };
-  const double m[3] = { PLANT.mass_kg, PLANT.inertia[0], PLANT.inertia[1] };
-  double A[3][4];
-  for (int a = 0; a < 3; a += 1) {
-    for (int b = 0; b < 3; b += 1) {
-      A[a][b] = g_float_am[a][b] + (a == b ? m[a] : 0.0);
-    }
-    A[a][3] = m[a] * d0[a];
-  }
-  for (int k = 0; k < 3; k += 1) {
-    for (int a = k + 1; a < 3; a += 1) {
-      const double f = A[a][k] / A[k][k];
-      for (int b = k; b < 4; b += 1) {
-        A[a][b] -= f * A[k][b];
-      }
-    }
-  }
-  double d[3];
-  for (int k = 2; k >= 0; k -= 1) {
-    double r = A[k][3];
-    for (int b = k + 1; b < 3; b += 1) {
-      r -= A[k][b] * d[b];
-    }
-    d[k] = r / A[k][k];
-  }
-  for (int a = 0; a < 3; a += 1) {
-    S.vel[a] += zb[a] * (d[0] - d0[0]);
-  }
-  S.omega[0] += d[1] - d0[1];
-  S.omega[1] += d[2] - d0[2];
 }
 
 SIM_EXPORT int sim_contact(double nx, double ny, double nz,
@@ -2526,13 +1622,8 @@ SIM_EXPORT int sim_set_airframe(int id) {
    * after it an electric motor already running (reset:determinism, the
    * seat in either order). */
   plant_wing_reset();
-  /* A canopy belongs to the aircraft that pulled it, and so do flaps, and
-   * a discus launch to the glider being thrown. */
+  /* A canopy belongs to the aircraft that pulled it. */
   plant_wing_chute(0);
-  plant_wing_discus_stop();
-  plant_wing_flaps_stow();
-  plant_wing_gear_reset();
-  plant_wing_door_reset();
   contact_build_corners();
   /* Only if the host has not raised its own plane. A shell that has already
    * called sim_set_ground owns that number and must not have it taken back. */
@@ -2617,12 +1708,6 @@ SIM_EXPORT int sim_addons_state(double *out) {
     out[3 + a] = PLANT.add_on ? PLANT.add_shift[a] : 0.0;
   }
   out[6] = 0.0;
-  for (int w = 0; w < PLANT.wheel_count; w += 1) {
-    if (PLANT.wheel[w].brake > 0.0 && PLANT.wheel[w].r > 0.0) {
-      out[6] = PLANT.wheel[w].r;
-      break;
-    }
-  }
   out[7] = PLANT.fw ? PLANT.fw->thrust_static : 0.0;
   return SIM_OK;
 }
@@ -2658,30 +1743,6 @@ SIM_EXPORT int sim_wing_set_tune(const double *in) {
 SIM_EXPORT int sim_wing_tune_clear(void) {
   plant_tune_clear();
   contact_build_corners();
-  return SIM_OK;
-}
-
-/* The surface tiers, sim_abi.h. Like the tuning, they move no energy. */
-SIM_EXPORT int sim_wing_set_tiers(const double *in) {
-  if (!g_initialised) {
-    return SIM_ERR_BAD_STATE;
-  }
-  const int rc = plant_set_tiers(in);
-  contact_build_corners();
-  return rc;
-}
-
-SIM_EXPORT int sim_wing_tiers_clear(void) {
-  plant_tiers_clear();
-  contact_build_corners();
-  return SIM_OK;
-}
-
-SIM_EXPORT int sim_wing_tiers(double *out) {
-  if (out == 0 || PLANT.kind != PLANT_KIND_WING || PLANT.fw == 0) {
-    return SIM_ERR_BAD_ARG;
-  }
-  plant_tiers_read(out);
   return SIM_OK;
 }
 
@@ -2780,18 +1841,7 @@ SIM_EXPORT int sim_step(int n) {
     } else {
       S.ground_h = -1.0;
     }
-    const int float_mass = SIM_DAMAGE && PLANT.floats.count > 0;
-    if (float_mass) {
-      float_mass_begin();
-    }
     /* The wing has no controller: the sticks go to its plant as they are. */
-    /* A discus launch's turn is the pilot's hand, not the air: the
-     * aircraft is on its path and meets neither the plant nor the ground
-     * until it is let go (plant_wing.c, THE DISCUS LAUNCH). */
-    if (PLANT.kind == PLANT_KIND_WING && plant_wing_discus_hold(&S)) {
-      S.step_index += 1;
-      continue;
-    }
     const double v0[3] = { S.vel[0], S.vel[1], S.vel[2] };
     const double w0[3] = { S.omega[0], S.omega[1], S.omega[2] };
     if (PLANT.kind == PLANT_KIND_WING) {
@@ -2806,10 +1856,6 @@ SIM_EXPORT int sim_step(int n) {
     crash_batch_begin(&S, 1);
     ground_apply();
     obstacle_apply();
-    float_apply();
-    if (float_mass) {
-      float_mass_apply();
-    }
     crash_step(&S, g_ground_on && !g_stand_on, g_ground_n, g_ground_d);
     crash_batch_end(&S);
     stand_apply();
@@ -2848,46 +1894,11 @@ SIM_EXPORT int sim_wing_launch(double speed) {
   return SIM_OK;
 }
 
-/*
- * sim_wing_discus: the discus launch, on an aircraft whose table has one
- * (FixedWingParams.discus_v): the pilot turns once with the glider by its
- * wingtip and lets it go where it is now, facing the way it faces, its CG
- * discus_h over the ground plane the host raised (or where it is, with no
- * ground), pitched up and at the table's speed. The turn runs in the
- * following steps; sim_wing_discus_phase reads it: 0 none, 1 the turn, 2
- * the zoom under the launch preset. SIM_ERR_BAD_ARG on any other aircraft.
- */
-SIM_EXPORT int sim_wing_discus(void) {
-  if (!g_initialised) {
-    return SIM_ERR_BAD_STATE;
-  }
-  if (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->discus_v > 0.0)) {
-    return SIM_ERR_BAD_ARG;
-  }
-  double z = S.pos[2];
-  if (g_ground_on && g_ground_n[2] > 0.1) {
-    z = (g_ground_d - g_ground_n[0] * S.pos[0] - g_ground_n[1] * S.pos[1]) / g_ground_n[2] + PLANT.fw->discus_h;
-  }
-  return plant_wing_discus_start(&S, z) == 0 ? SIM_OK : SIM_ERR_BAD_ARG;
-}
-
-SIM_EXPORT int sim_wing_discus_phase(void) {
-  return plant_wing_discus_phase();
-}
-
 SIM_EXPORT int sim_wing_debug(double *out) {
   if (out == 0) {
     return SIM_ERR_BAD_ARG;
   }
   plant_wing_debug(out);
-  return SIM_OK;
-}
-
-SIM_EXPORT int sim_wing_biplane(double *out) {
-  if (out == 0) {
-    return SIM_ERR_BAD_ARG;
-  }
-  plant_wing_biplane(out);
   return SIM_OK;
 }
 
@@ -2898,22 +1909,6 @@ SIM_EXPORT int sim_wing_set_gyro(int on) {
 
 SIM_EXPORT int sim_wing_set_mount(int on) {
   plant_wing_set_mount(on);
-  return SIM_OK;
-}
-
-SIM_EXPORT int sim_wing_slip(double *out) {
-  if (out == 0) {
-    return SIM_ERR_BAD_ARG;
-  }
-  plant_wing_slip(out);
-  return SIM_OK;
-}
-
-SIM_EXPORT int sim_wing_yaw_budget(double *out) {
-  if (out == 0) {
-    return SIM_ERR_BAD_ARG;
-  }
-  plant_wing_yaw_budget(out);
   return SIM_OK;
 }
 
@@ -2935,34 +1930,17 @@ SIM_EXPORT int sim_wing_strips(double *out) {
 
 /* The wing's stabiliser: 0 off, 1 stabilised, 2 acro. Kept across
  * resets, like the airframe; the shell sets it from the tune. Additive:
- * 2 arrived after 0 and 1 and they mean what they did. */
+ * 2 arrived after 0 and 1 and they mean what they did. 3, the AS3X rate
+ * damper, left with the aircraft that had one (2026-10-20) and is
+ * refused. */
 SIM_EXPORT int sim_wing_set_stab(int mode) {
   if (!g_initialised) {
     return SIM_ERR_BAD_STATE;
   }
-  if (mode < 0 || mode > 3) {
+  if (mode < 0 || mode > 2) {
     return SIM_ERR_BAD_ARG;
   }
   plant_wing_set_stab(mode);
-  return SIM_OK;
-}
-
-/* The AS3X Heading gain per axis, roll, pitch and yaw, each 0 to 1 of
- * the table's as3x_kh. Kept across resets; the shell sets it from the
- * tune. Additive, version unchanged. */
-SIM_EXPORT int sim_wing_set_heading(const double *in) {
-  if (!g_initialised) {
-    return SIM_ERR_BAD_STATE;
-  }
-  if (in == 0) {
-    return SIM_ERR_BAD_ARG;
-  }
-  for (int i = 0; i < 3; i += 1) {
-    if (!(in[i] >= 0.0 && in[i] <= 1.0)) {
-      return SIM_ERR_BAD_ARG;
-    }
-  }
-  plant_wing_set_heading(in);
   return SIM_OK;
 }
 
@@ -3001,154 +1979,12 @@ SIM_EXPORT double sim_wing_chute_open(void) {
   return plant_wing_chute_open();
 }
 
-/*
- * The flaps and slats, on an aircraft that has them (the Timber).
- * sim_wing_set_flaps(notch): 0 up, 1 half, 2 full, the radio's three
- * position switch; the flaps travel there at the aircraft's own rate. A
- * mode, kept across resets, which put the flaps where the notch has them;
- * an airframe change raises them. SIM_ERR_BAD_ARG for a notch past 0 on an
- * aircraft without flaps. sim_wing_flaps: their angle now, radians,
- * trailing edge down, for the renderer. sim_wing_set_slats(fitted): 1 the
- * slats on, the default, 0 off; no effect on an aircraft without them.
- * Additive, version unchanged.
- */
-SIM_EXPORT int sim_wing_set_flaps(int notch) {
-  if (!g_initialised) {
-    return SIM_ERR_BAD_STATE;
-  }
-  if (notch < 0 || notch > 2) {
-    return SIM_ERR_BAD_ARG;
-  }
-  return plant_wing_set_flaps(notch) == 0 ? SIM_OK : SIM_ERR_BAD_ARG;
-}
-
-SIM_EXPORT double sim_wing_flaps(void) {
-  return plant_wing_flaps();
-}
-
-/*
- * The retracts, on an aircraft that has them (docs/P51-STAGE1.md).
- * sim_wing_set_gear(up): 1 selects the gear up, 0 down; the gear travels
- * at the aircraft's own rate. SIM_ERR_BAD_ARG for 1 on an aircraft without
- * retracts. sim_wing_gear: where it is, 0 down and locked to 1 up, for the
- * renderer and the OSD. A reset and an airframe change put it down and
- * locked. Additive, version unchanged.
- */
-SIM_EXPORT int sim_wing_set_gear(int up) {
-  if (!g_initialised) {
-    return SIM_ERR_BAD_STATE;
-  }
-  if (up != 0 && up != 1) {
-    return SIM_ERR_BAD_ARG;
-  }
-  return plant_wing_set_gear(up) == 0 ? SIM_OK : SIM_ERR_BAD_ARG;
-}
-
-SIM_EXPORT double sim_wing_gear(void) {
-  return plant_wing_gear();
-}
-
-/* What the switch is on, 1 up and 0 down, whatever the gear's travel: a
- * reset puts it down, so a host reads it rather than keeping a copy. */
-SIM_EXPORT int sim_wing_gear_selected(void) {
-  return plant_wing_gear_selected();
-}
-
-/*
- * The cargo doors, on an aircraft that has them (docs/HERCULES-CONTRACT.md).
- * sim_wing_set_door(open): 1 opens them, 0 shuts them, at the aircraft's
- * own rate. SIM_ERR_BAD_ARG for 1 on an aircraft without. sim_wing_door:
- * where they are, 0 shut to 1 open. sim_wing_door_selected: the switch.
- * Additive, version unchanged.
- */
-SIM_EXPORT int sim_wing_set_door(int open) {
-  if (!g_initialised) {
-    return SIM_ERR_BAD_STATE;
-  }
-  if (open != 0 && open != 1) {
-    return SIM_ERR_BAD_ARG;
-  }
-  return plant_wing_set_door(open) == 0 ? SIM_OK : SIM_ERR_BAD_ARG;
-}
-
-SIM_EXPORT double sim_wing_door(void) {
-  return plant_wing_door();
-}
-
-SIM_EXPORT int sim_wing_door_selected(void) {
-  return plant_wing_door_selected();
-}
-
-/* The flaps where the notch has them, at once, as sim_reset puts them: for
- * a host that holds a parked aircraft by not stepping it, during which the
- * servos would have finished moving. */
-SIM_EXPORT int sim_wing_flaps_settle(void) {
-  if (!g_initialised) {
-    return SIM_ERR_BAD_STATE;
-  }
-  plant_wing_flaps_settle();
-  return SIM_OK;
-}
-
-SIM_EXPORT int sim_wing_set_slats(int fitted) {
-  if (fitted != 0 && fitted != 1) {
-    return SIM_ERR_BAD_ARG;
-  }
-  plant_wing_set_slats(fitted);
-  return SIM_OK;
-}
-
-/* The load on each wheel of an airframe with landing gear, newtons, in its
- * table's order (the Cub: left main, right main, tailwheel, prop tip); zero
- * for a wheel off the ground and for every wheel an airframe does not have.
- * Always SIM_WHEELS_MAX values. Additive, version unchanged. */
-SIM_EXPORT int sim_wheel_loads(double *out) {
-  if (out == 0) {
-    return SIM_ERR_BAD_ARG;
-  }
-  for (int i = 0; i < SIM_WHEELS_MAX; i += 1) {
-    out[i] = i < PLANT.wheel_count ? g_wheel_load[i] : 0.0;
-  }
-  return SIM_OK;
-}
-
-/*
- * What the floats did on the last step, for the gates and a renderer:
- * out[0] their buoyancy, N; out[1] the water's force along the body's up
- * axis past the buoyancy, the planing force and the damping, N; out[2]
- * the water's drag along the keels, N, positive holding the aircraft
- * back; out[3] the displaced volume, m^3; out[4], out[5] the wetted
- * length of the left and the right float, m; out[6] the load on the
- * keels on land, N; out[7] the water rudders' side force, N, body y;
- * out[8] the wave making drag, N; out[9] the index of the water body
- * under the aircraft, or -1. All zero, and out[9] zero, on an airframe
- * without floats. Additive, version unchanged.
- */
-SIM_EXPORT int sim_float_state(double *out) {
-  if (out == 0) {
-    return SIM_ERR_BAD_ARG;
-  }
-  for (int i = 0; i < 10; i += 1) {
-    out[i] = PLANT.floats.count ? g_float_diag[i] : 0.0;
-  }
-  return SIM_OK;
-}
-
 SIM_EXPORT int sim_plane_surfaces(double *out) {
   if (out == 0) {
     return SIM_ERR_BAD_ARG;
   }
   plant_plane_surfaces(out);
   return SIM_OK;
-}
-
-/* The rising air at a world position, m/s up, whichever airframe is
- * selected: the thermals of plant_wing.c. Only an airframe whose table
- * says so flies in them. For the gates, and for a shell that wants to
- * show where they are. Additive, version unchanged. */
-SIM_EXPORT double sim_air_lift(double x, double y, double z) {
-  const double pos[3] = { x, y, z };
-  return plant_air_lift(pos);
 }
 
 /* The horizontal wind, plant_wing.c at plant_wind. A world the host
@@ -3184,14 +2020,6 @@ SIM_EXPORT int sim_set_air_vertical(double w) {
   }
   SIM_AIR_W = w;
   SIM_WIND_ON = SIM_WIND[0] != 0.0 || SIM_WIND[1] != 0.0 || SIM_GUST > 0.0 || w != 0.0;
-  return SIM_OK;
-}
-
-SIM_EXPORT int sim_set_brake(double b) {
-  if (!finite_d(b) || !(b >= 0.0) || !(b <= 1.0)) {
-    return SIM_ERR_BAD_ARG;
-  }
-  plant_wing_set_brake(b);
   return SIM_OK;
 }
 

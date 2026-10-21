@@ -56,18 +56,11 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 
-const AIRFRAMES = [
-  ['5in', 0], ['wing1000', 2], ['sky1800', 3], ['cub1400', 4], ['slowstick1180', 5],
-  ['radian2000', 6], ['timber1500', 7], ['bramor2300', 8], ['timber1500f', 9], ['cub1400f', 10],
-  ['bombshell1118', 11], ['kadet1981', 12], ['p51d1450', 15], ['f16878', 16], ['zagi1219', 17],
-  ['uglystik1567', 19], ['nrj1490', 21], ['tigermoth1803', 23], ['extra3d1308', 29], ['nighttimber1200', 30], ['hercules3077', 31],
-  ['cap1702', 32],
-  ['slick2680', 33],
-];
-const MASS = { 0: 0.71, 2: 0.65, 3: 2.10, 4: 1.32, 5: 0.42, 6: 0.98, 7: 1.70, 8: 4.5, 9: 1.934, 10: 1.532, 11: 0.5599, 12: 2.7216, 15: 2.35, 16: 2.116, 17: 0.7229, 19: 2.7216, 21: 0.213, 23: 4.6493, 29: 1.51, 30: 1.698, 31: 6.728, 32: 3.6287, 33: 12.474 };
+const AIRFRAMES = [['5in', 0], ['wing1000', 2], ['bramor2300', 8]];
+const MASS = { 0: 0.71, 2: 0.65, 8: 4.5 };
 /* Removed, each id reserved (sim_abi.h): the whoop on 2026-10-03, the
- * planes on 2026-09-29. */
-const RESERVED_IDS = [1, 13, 14, 18, 20, 22];
+ * planes on 2026-09-29, the recreational fixed wings on 2026-10-20. */
+const RESERVED_IDS = [1, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 29, 30, 31, 32, 33];
 
 let failed = 0;
 let passed = 0;
@@ -116,7 +109,7 @@ for (const [name, id] of AIRFRAMES) {
   check(`${name}: parents precede children, every kind named, hulls and joints present`, order && kinds && hulls && joints);
 }
 
-/* The ids of the aircraft removed on 2026-09-29 stay reserved (sim_abi.h):
+/* The ids of the aircraft removed stay reserved (sim_abi.h):
  * the module refuses them rather than seating another aircraft on them. */
 {
   const sim = await loadSim(wasmBytes);
@@ -174,45 +167,8 @@ if (!findChrome()) {
   }
 }
 
-console.log('6. the gear: rolling resistance by surface, and the brake');
+console.log('6. the Bramor on its back');
 {
-  /* The Cub on its wheels at the drawn rest pose, taxiing at half throttle
-   * for 3 s: how far it gets says what holds it back. */
-  const taxi = async (mat, brake, thr = 0.5) => {
-    const sim = await fresh(4);
-    must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0), 'ground');
-    if (mat !== null) {
-      must(sim.e.sim_set_ground_material(mat), 'material');
-    }
-    if (brake !== null) {
-      must(sim.e.sim_set_brake(brake), 'brake');
-    }
-    must(sim.e.sim_wing_set_stab(0), 'stab');
-    const half = -11.0 * Math.PI / 360;
-    must(sim.e.sim_set_pose(0, 0, 0.1463, Math.cos(half), 0, Math.sin(half), 0), 'pose');
-    must(sim.rest(), 'rest');
-    for (let ms = 0; ms < 3000; ms += 4) {
-      must(sim.input(ms / 1000, 0, 0, 0, thr), 'input');
-      must(sim.step(4), 'step');
-    }
-    return Array.from(sim.readState().state);
-  };
-  const same = (a, b) => a.every((v, i) => Object.is(v, b[i]));
-  const plain = await taxi(null, null);
-  const grass = await taxi(SURFACE.grass, null);
-  check('grass and the default ground roll the same, to the bit', same(plain, grass));
-  check('a brake at 0 is no brake, to the bit', same(plain, await taxi(null, 0)));
-  const asphalt = await taxi(SURFACE.asphalt, null);
-  const sand = await taxi(SURFACE.sand, null);
-  check('asphalt rolls further than grass, and sand much less far', asphalt[1] > grass[1] && sand[1] < 0.5 * grass[1],
-    `${asphalt[1].toFixed(2)} m, ${grass[1].toFixed(2)} m, ${sand[1].toFixed(2)} m`);
-  const braked = await taxi(null, 1);
-  check('the full brake holds it at half throttle', Math.abs(braked[1]) < 0.05 && braked[4] * braked[4] + braked[5] * braked[5] < 1e-4,
-    `${braked[1].toFixed(3)} m`);
-  const sim = await fresh(4);
-  check('sim_set_brake refuses a value past 0 to 1, and NaN',
-    sim.e.sim_set_brake(1.01) !== SIM_OK && sim.e.sim_set_brake(-0.01) !== SIM_OK && sim.e.sim_set_brake(NaN) !== SIM_OK);
-
   /* The Bramor lying on its back on the grass under its open canopy, as a
    * chute landing leaves it: the wind's pull on the canopy (about 100 N
    * at 10 m/s) is past what the grass holds (mu 1.40 of 44 N), so it is
