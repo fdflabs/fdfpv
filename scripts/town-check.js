@@ -427,6 +427,13 @@ async function open(airframe) {
     throw new Error(`the page seated map ${id}, not itaipu`);
   }
   await page.evaluate("(() => { const n = document.getElementById('ui'); if (n) { n.style.display = 'none'; } return 1; })()");
+  /* The page boots to the title, where the plant is not stepped: a flight
+   * row run there sees the clock stand still and passes or fails on that.
+   * hold() once waited out a refill the frames did, which let the shell
+   * reach flight first on a quiet machine; a throw now fills the set at
+   * once. Into flight where the craft is, as contact-golden does. */
+  await page.evaluate('(() => { const s = window.__craftState(); window.__placeCraft(s.worldX, s.worldY, s.worldZ); })()');
+  await page.until("window.__mode === 'flight'", 60000);
   return { page, loadS: (Date.now() - t0) / 1000 };
 }
 
