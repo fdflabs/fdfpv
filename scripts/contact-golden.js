@@ -358,6 +358,53 @@ THROWS.push({
   frames: [FRAME_MS, 17],
 });
 
+/*
+ * A fixed wing's roof: the Bramor belly landed on an Itaipu dam top over
+ * its walls, the cover letting it over them, at the manual's best
+ * endurance speed, VBE 16 m/s (tests/bramor-thresholds.json b1_cruise),
+ * gliding in 3 degrees down from 0.6 m over the top, motor off, along a
+ * run of the top 30 m long that its whole span stays over, with both damage
+ * modes. A kept fixed wing on a kept map's roof, which roof-check's flown
+ * scenarios, set on the retired Skyhunter, find none of on Itaipu.
+ */
+const WING = airframeById('bramor2300');
+const WING_ROOF = {
+  id: 'itaipu-bramor-roof-walls',
+  what: 'the Bramor belly landed on an Itaipu dam top over its walls at 16 m/s, 3 degrees down, motor off',
+  airframe: WING.id,
+  map: 'itaipu',
+  plan: `
+    const s = SPAWN();
+    const st = window.__colliders().static;
+    const a = 3 * Math.PI / 180;
+    const half = ${WING.dims.hullR} + 0.15;
+    const tops = window.__roofs().map((r, i) => ({ r, i, x: (r.minX + r.maxX) / 2, z: (r.minZ + r.maxZ) / 2 }))
+      .filter(({ r }) => r.solids.length && r.solids.every((j) => j < st))
+      .map((o) => ({ ...o, d: Math.hypot(o.x - s.worldX, o.z - s.worldZ) }))
+      .filter((o) => o.d < ${MOVE})
+      .sort((u, v) => u.d - v.d || u.i - v.i);
+    for (const { i, x, z } of tops) {
+      const top = window.__roofTop(i, x, z);
+      if (!(top === window.__surface(x, z, 1e4))) continue;
+      for (const [fx, fz] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+        const x0 = x - 12 * fx, z0 = z - 12 * fz;
+        let on = true;
+        for (let d = 0; d <= 30 && on; d += 1) {
+          for (const w of [-half, 0, half]) {
+            const px = x0 + d * fx - w * fz, pz = z0 + d * fz + w * fx;
+            on = on && window.__roofTop(i, px, pz) === top && window.__surface(px, pz, 1e4) === top;
+          }
+          on = on && window.__nearSolid(x0 + d * fx, top + 1, z0 + d * fz, 0.8) > 0.75;
+        }
+        if (!on) continue;
+        return { throw: { x: x0, y: top + 0.6, z: z0, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: 0,
+          vx: 16 * Math.cos(a) * fx, vy: -16 * Math.sin(a), vz: 16 * Math.cos(a) * fz }, stick: [0, 0, 0, 0] };
+      }
+    }
+    return null;`,
+};
+THROWS.push(WING_ROOF, { ...WING_ROOF, id: `${WING_ROOF.id}-nodamage`, what: `${WING_ROOF.what}, crash damage off`, damage: false });
+
 function seed(airframe, map, damage) {
   const settings = {
     ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),

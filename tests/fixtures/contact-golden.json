@@ -1,4 +1,74 @@
 {
+ "itaipu-bramor-roof-walls": {
+  "what": "the Bramor belly landed on an Itaipu dam top over its walls at 16 m/s, 3 degrees down, motor off",
+  "steps": 1500,
+  "pre": "f7135e846f9607953b474a94",
+  "plane": "0c9539c2872c5494be1aa288",
+  "post": "c83193083a473192fa090808",
+  "throw": {
+   "x": 645.7031957824006,
+   "y": 225.6,
+   "z": -1612.4436383452146,
+   "yaw": -90,
+   "pitch": 0,
+   "vx": 15.978072556073181,
+   "vy": -0.8373752998871012,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 0,
+   "damage": [
+    "camera:break"
+   ],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   },
+   "groundSteps": 1008
+  }
+ },
+ "itaipu-bramor-roof-walls-nodamage": {
+  "what": "the Bramor belly landed on an Itaipu dam top over its walls at 16 m/s, 3 degrees down, motor off, crash damage off",
+  "steps": 1500,
+  "pre": "944e59a1719c8648d045e00c",
+  "plane": "0e61fc3ce31641758b8f00db",
+  "post": "99cb25a1f3f3be32d72ea6cd",
+  "throw": {
+   "x": 645.7031957824006,
+   "y": 225.6,
+   "z": -1612.4436383452146,
+   "yaw": -90,
+   "pitch": 0,
+   "vx": 15.978072556073181,
+   "vy": -0.8373752998871012,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 0,
+   "damage": [],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   },
+   "groundSteps": 1008
+  }
+ },
  "itaipu-quad-pole-refill": {
   "what": "the interceptor into an Itaipu pole at 15 m/s, the streamed set refilled from step 300, in frames of 100 and 17 ms",
   "steps": 1500,
