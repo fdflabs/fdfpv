@@ -148,9 +148,15 @@ const ROWS = `window.__ui.items().filter((it) => !it.bar).map((it) => ({
   id: it.id, label: it.label, value: it.value ?? null, section: Boolean(it.section), action: it.action ?? null,
 }))`;
 
+/* The world is drawn for the picture only (runCase turns the draw off):
+ * on, two frames so one whole frame of the shell is drawn under the
+ * menu, the picture, off again. */
 async function shoot(page, name) {
+  await page.evaluate('window.__drawOff(false)');
+  await page.evaluate('new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))');
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
   await writeFile(join(outDir, `${name}.png`), Buffer.from(data, 'base64'));
+  await page.evaluate('window.__drawOff(true)');
 }
 
 async function runCase(c, record) {
@@ -160,6 +166,14 @@ async function runCase(c, record) {
   });
   try {
     await page.until('!!window.__shellReady', 300000);
+    /* Every assertion reads the shell's state or the page's rows, none a
+     * pixel of the world, and the shell reads the pad once a frame: on a
+     * CI runner a software rasterised frame of the Interior took longer
+     * than the 5 s Start is held, so the press could end unread. The
+     * draw is skipped (the harness hook turtle-check uses) except for
+     * the pictures; the loop, the input and the menus run as they do
+     * with it. */
+    await page.evaluate('window.__drawOff(true)');
     await page.until('window.__map && window.__map().ready', 400000);
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState && window.__craftState().mode === 'flight' && window.__map().ready", 400000);
