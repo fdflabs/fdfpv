@@ -2,11 +2,10 @@
  * The Ui's session side: what the shell pushes in between runs and what
  * floats over the world rather than living on a screen.
  *
- * The shell is the side that knows what can be chased, who is in the room
- * and what the bed is playing, so it pushes rows and views in here
- * (setGhostRow, setLiveRow, setWarLobby, setRoomBar, setMusicNow,
- * setWarState) and the menus read them back as rows (ghostItems,
- * liveItems, friendsItems, roomSeatRows). The chips, the bars and the
+ * The shell is the side that knows who is in the room and what the bed is
+ * playing, so it pushes rows and views in here (setWarLobby, setRoomBar,
+ * setMusicNow, setWarState) and the menus read them back as rows
+ * (friendsItems, roomSeatRows). The chips, the bars and the
  * music dock are redrawn from one place, syncChips, because they share
  * the corner of the screen and which of them is up decides where the
  * others sit. The tutorial column and the handful of predicates the shell
@@ -34,52 +33,21 @@
 
 import { MAPS, mapById } from '../maps/registry.js';
 import { MENU_TRACKS } from '../render/tracks.js';
-import { planesFor } from '../game/verify.js';
-import { TRACK_SYNC_EVENT } from '../share/cloud.js';
-import { airframeById, DEFAULT_AIRFRAME } from '../../configs/airframes.js';
 import { normaliseStickMode, stickCaption } from '../input/stickmode.js';
 import { accountsAvailable, mayPlay } from '../share/account.js';
 import { readAccount } from '../share/pilot.js';
-import { activeCourseSummary } from '../share/summary.js';
 import { str } from '../strings/index.js';
-import { DEFAULTS, saveSettings, seatAirframe } from './settings.js';
+import { DEFAULTS, saveSettings } from './settings.js';
 import { choice } from './rows.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { el, keyHowtoRows, placeSticks, thrNote } from './widgets.js';
 import { SCREEN_TITLES, Ui, craftItem, seatedFreestyleMap } from './ui.js';
-
-/* Both pickers lay their choices out as cards above the rows. The title
- * is not here because it is a card screen only on the gate: Ui.cardScreen
- * is the predicate that knows both. */
-export function isCardScreen(screen) {
-  return screen === 'courses' || screen === 'freestyle';
-}
 
 /* Redraw the menu if the pilot is looking at one of these screens. */
 function redrawOn(ui, screens) {
   if (screens.includes(ui.screen)) {
     ui.renderMenu();
   }
-}
-
-/* A row the shell pushed as { value, note, cycle }: the arrows cycle it
- * through the shell's own choices. The row may be withdrawn between the
- * menu's build and the press, so the press reads the field again. */
-function pushedRow(ui, field, label) {
-  const row = ui[field];
-  if (!row) {
-    return [];
-  }
-  return [{
-    label,
-    value: row.value,
-    note: row.note,
-    adjust: (dir) => {
-      if (ui[field]) {
-        ui[field].cycle(dir);
-      }
-    },
-  }];
 }
 
 /* mm:ss for the lobby's deadline. */
@@ -292,35 +260,6 @@ function repairCursorForBars(ui) {
 const dialogUp = (ui) => Boolean(ui.nameDialog) && !ui.nameDialog.hidden;
 
 export const sessionMethods = {
-  /* The published course this run is flying, or null. A new course has
-   * no posted time yet. */
-  setShare(share) {
-    this.share = share || null;
-    this.timePosted = null;
-    redrawOn(this, ['title', 'courses', 'results']);
-  },
-
-  /* The Ghost row's contents from the shell, null to hide it. */
-  setGhostRow(row) {
-    this.ghostRow = row || null;
-    redrawOn(this, ['title', 'paused']);
-  },
-
-  /* The Live row beside it, pushed the same way; null when the track has
-   * no room. */
-  setLiveRow(row) {
-    this.liveRow = row || null;
-    redrawOn(this, ['title', 'paused']);
-  },
-
-  liveItems() {
-    return pushedRow(this, 'liveRow', str('ui.live'));
-  },
-
-  ghostItems() {
-    return pushedRow(this, 'ghostRow', str('ui.ghost'));
-  },
-
   /* The Fly with friends row, only where the shell has a rooms server to
    * offer (src/share/rooms.js roomsOrigin): a page with no server gets no
    * row rather than one that can only fail. */
@@ -403,11 +342,6 @@ export const sessionMethods = {
         this.setCursor(this.restoreCursor());
       }
     }
-  },
-
-  markTimePosted(posted) {
-    this.timePosted = posted || { ok: true };
-    redrawOn(this, ['title', 'results']);
   },
 
   /* { text, button, act, reload } or null: the room's word to a pilot off
@@ -611,36 +545,6 @@ export const sessionMethods = {
     return this.screen !== 'flight';
   },
 
-  /* Seat an aircraft that may race the seated track, for Fly. */
-  seatCraftForCourse() {
-    if (this.settings.map !== 'track') {
-      return null;
-    }
-    const seat = activeCourseSummary();
-    return seat && seat.doc ? this.seatCraftForDoc(seat.doc) : null;
-  },
-
-  /*
-   * If the seated aircraft may not race this track, seat one that may and
-   * return it; null when nothing moved. Every quad may, and every fixed
-   * wing that fits every gate (src/game/verify.js planesFor); a plane that
-   * does not fit gives way to the racer, DEFAULT_AIRFRAME. The boot path
-   * calls this with a track that arrived by link before anything reads a
-   * seat, because the link filed it under the aircraft flying when it
-   * arrived and the pilot has to land in the seat that holds it.
-   */
-  seatCraftForDoc(doc) {
-    const have = airframeById(this.settings.airframe);
-    if (!doc || !have.fixedWing || planesFor(doc).includes(have.id)) {
-      return null;
-    }
-    const want = airframeById(DEFAULT_AIRFRAME);
-    seatAirframe(this.settings, want.id);
-    this.settings.airframeAsked = true;
-    this.writeSettings();
-    return want;
-  },
-
   /* What the title's Escape hint names: the gate it lands on. The
    * destination rather than Back, see legendFor. */
   gateLabel() {
@@ -652,9 +556,11 @@ export const sessionMethods = {
     return this.screen === 'title' && (this.craftGate || !this.mode);
   },
 
-  /* Every screen drawing some of its choices as cards. */
+  /* Every screen drawing some of its choices as cards: only the gate, since
+   * the Freestyle picker left with free flight (the combat-only cut,
+   * 2026-10-20). */
   cardScreen() {
-    return isCardScreen(this.screen) || this.onGate();
+    return this.onGate();
   },
 };
 
@@ -694,19 +600,12 @@ export function wireFcSession(ui) {
 }
 
 /*
- * The page events the session answers for its whole life. A track going
- * online, or failing to, while My tracks is open redraws its card. Tab is
- * the swap key in flight and a key of the pickers', so there it must not
- * walk the browser's focus; everywhere else the rows and cards are tab
- * stops. A press outside an open drop-down closes it.
+ * The page events the session answers for its whole life. Tab is the swap
+ * key in flight and a key of the pickers', so there it must not walk the
+ * browser's focus; everywhere else the rows and cards are tab stops. A
+ * press outside an open drop-down closes it.
  */
 export function watchSessionEvents(ui) {
-  window.addEventListener(TRACK_SYNC_EVENT, () => {
-    if (ui.screen === 'courses') {
-      ui.loadLocalCourses();
-      ui.renderCourseCards();
-    }
-  });
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Tab' && (ui.screen === 'flight' || ui.carousel.isOpen || ui.hangar.isOpen)) {
       e.preventDefault();

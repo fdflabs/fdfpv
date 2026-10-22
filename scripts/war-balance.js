@@ -74,11 +74,11 @@ import { resolve } from 'node:path';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
 import {
-  FLAG_AIRBORNE, FLAG_CRASHED, PROTO, encodePose,
+  FLAG_AIRBORNE, FLAG_CRASHED, PROTO, ROOM_LEVEL, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { RESULT_MS } from '../edge/rooms/war.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import { loadHeight } from '../edge/rooms/warhunt.js';
 import { poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
@@ -231,7 +231,7 @@ export function runOne({
   for (const b of bots) {
     handle(room.open(b.conn, 0));
     handle(room.message(b.conn, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'balance', name: [b.i, 2, 40 + b.i], profile: {
+      type: 'hello', proto: PROTO, build: 'balance', level: ROOM_LEVEL, name: [b.i, 2, 40 + b.i], profile: {
         airframe: AIRFRAME, map: 'itaipu', figure: 0, livery: null, parts: null,
       },
     }), 0, `10.9.2.${b.i + 1}`, newToken));

@@ -14,16 +14,14 @@
  *
  *   the channel: its surface between two points, its slope, and dry
  *     ground past its half width; the refusals;
- *   a level channel is the lake: the Timber on floats floating, taking off
- *     and flying on a channel at z = 0 is bit for bit the same flight as
- *     on a lake at z = 0;
- *   on a sloped channel, 4.8 m wide over a bed 0.16 m under the surface as
- *     swiss2's stream is drawn: the Timber floats at its lake height over
- *     the local surface, takes off down it inside its banks, lands back
- *     on it, and taxis along it;
- *   a Skyhunter flown into the channel with crash physics on goes into
- *     the water, as into the lake, and the same throw with no channel
- *     declared does not.
+ *   the Bramor and both Strikers flown into the channel with crash physics
+ *     on go into the water, as into the lake, and the same throw with no
+ *     channel declared does not, and each 3 m over the channel off its
+ *     line is not in its water.
+ *
+ * The Timber on floats (floating, taking off and landing on the channel)
+ * and the Skyhunter flew it first; both left the module on 2026-10-20,
+ * the floats with them.
  *
  * Exits 1 on any failure.
  *
@@ -50,7 +48,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK, SIM_ERR_BAD_ARG, SIM_ERR_BAD_STATE } from '../tests/lib/simmod.js';
 import {
-  TIMBERF_AIRFRAME, FLOAT_REST, SKY_AIRFRAME, RC_STEP_MS, floatState, floatTakeoffSticks, attitude, must, rudderHold,
+  BRAMOR_AIRFRAME, STRIKER_PROP_AIRFRAME, STRIKER_JET_AIRFRAME, RC_STEP_MS, must,
 } from '../tests/lib/wingpilot.js';
 import { DAMAGE_FLAGS } from '../configs/parts.js';
 
@@ -74,9 +72,7 @@ const check = (name, ok, detail) => {
   checks.push({ name, ok, detail });
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}: ${detail}`);
 };
-const clamp1 = (x) => Math.max(-1, Math.min(1, x));
 const speed = (s) => Math.hypot(s[4], s[5], s[6]);
-const W_TIMBER = 1.934 * 9.81;
 
 /* swiss2's lower stream: 5.2 m wide as drawn, the water 0.16 m over its
  * bed at the centre (src/render/library/water/stream.js). */
@@ -137,148 +133,14 @@ function sample(x, y) {
     `${refused.join(', ')}; point after a lake ${late}; ninth body ${full}`);
 }
 
-/* The Timber on floats on the water declared by `water`, its bed DEPTH
- * under the surface at x = 0 along the river's slope. */
-function onRiver(water, slope, z0) {
-  must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_set_airframe(TIMBERF_AIRFRAME), 'sim_set_airframe');
-  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
-  must(sim.e.sim_wing_set_flaps(1), 'sim_wing_set_flaps');
-  const n = Math.hypot(slope, 1);
-  must(sim.e.sim_set_ground(1, -slope / n, 0, 1 / n, 0, 0, z0 - DEPTH, 1.4, 0), 'sim_set_ground');
-  must(sim.e.sim_water_clear(), 'sim_water_clear');
-  water();
-  const rest = FLOAT_REST[TIMBERF_AIRFRAME];
-  const h = rest.pitchDeg * Math.PI / 360;
-  must(sim.e.sim_set_pose(0, 0, z0 + rest.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
-}
-
-/* Floats, then a take off down the river on the manual's sticks, then
- * the climb away: the state every step, hashed, and what the run saw. */
-function takeOff(ms0 = 0) {
-  const hash = createHash('sha256');
-  let clock = ms0;
-  const run = { rest: null, lof: null, worstY: 0, climb: null };
-  let onStep = false;
-  let s = sim.readState().state;
-  for (let ms = 0; ms < 16000; ms += RC_STEP_MS) {
-    let sticks = [0, 0, 0, 0];
-    if (ms >= 4000) {
-      const f = floatState(sim);
-      if (!onStep && f[0] < 0.25 * W_TIMBER && ms > 4200) {
-        onStep = true;
-      }
-      const { bank } = attitude(s);
-      const yaw = clamp1(-0.6 * s[2] - 0.8 * s[5]);
-      sticks = run.lof ? [clamp1(-1.2 * bank - 0.12 * s[11]), clamp1(3 * (0.12 - attitude(s).pitch) + 0.3 * s[12]), 0, 1]
-        : floatTakeoffSticks(s, { onStep, vRotate: 7.6 });
-      sticks[2] = run.lof ? 0 : yaw;
-    }
-    must(sim.input(clock / 1000, ...sticks), 'sim_input');
-    must(sim.step(RC_STEP_MS), 'sim_step');
-    clock += RC_STEP_MS;
-    s = sim.readState().state;
-    hash.update(new Uint8Array(Float64Array.from(s).buffer));
-    if (ms === 3996) {
-      run.rest = { z: s[3], pitch: attitude(s).pitch * 180 / Math.PI, x: s[1] };
-    }
-    const f = floatState(sim);
-    if (ms > 4000 && !run.lof) {
-      run.worstY = Math.max(run.worstY, Math.abs(s[2]));
-      if (f[4] + f[5] === 0 && speed(s) > 5) {
-        run.lof = { x: s[1], v: speed(s), t: (ms - 4000) / 1000 };
-      }
-    }
-    run.climb = { x: s[1], y: s[2], z: s[3] };
-  }
-  run.hash = hash.digest('hex').slice(0, 16);
-  return run;
-}
-
-/* A level channel is the lake. */
-{
-  sim = await freshSim();
-  onRiver(() => sim.e.sim_water_add(0, 0, 0), 0, 0);
-  const lake = takeOff();
-  sim = await freshSim();
-  onRiver(() => declareRiver(riverLine(0)), 0, 0);
-  const river = takeOff();
-  check('the Timber floats, takes off and climbs on a level channel exactly as on the lake',
-    lake.hash === river.hash && Boolean(lake.lof),
-    `lake ${lake.hash}, channel ${river.hash}; liftoff ${lake.lof ? `${lake.lof.x.toFixed(1)} m down at ${lake.lof.v.toFixed(2)} m/s` : 'never'}`);
-}
-
-/* On a sloped channel. */
-{
-  onRiver(() => declareRiver(riverLine(SLOPE)), SLOPE, 0);
-  const r = takeOff();
-  const surfaceAtRest = SLOPE * r.rest.x;
-  const over = r.rest.z - surfaceAtRest;
-  const want = FLOAT_REST[TIMBERF_AIRFRAME].z;
-  check('on a sloped channel the Timber floats at its lake height over the surface under it',
-    Math.abs(over - want) < 0.003,
-    `CG ${over.toFixed(4)} m over the surface at x ${r.rest.x.toFixed(2)}, on the lake ${want}; pitch ${r.rest.pitch.toFixed(2)} deg`);
-  check('and takes off down it inside its banks',
-    Boolean(r.lof) && r.worstY < HALF - 0.5,
-    r.lof ? `liftoff ${r.lof.x.toFixed(1)} m down at ${r.lof.v.toFixed(2)} m/s after ${r.lof.t.toFixed(2)} s, at most ${r.worstY.toFixed(2)} m off the line` : 'never left the water');
-
-  /* Down onto it: level at 1.2 m over the surface at 11 m/s, idle, held
-   * off nose up, kept on the line with the rudder, then a taxi. */
-  onRiver(() => declareRiver(riverLine(SLOPE)), SLOPE, 0);
-  const x0 = 20;
-  must(sim.e.sim_set_pose(x0, 0, SLOPE * x0 + 1.2, 1, 0, 0, 0), 'sim_set_pose');
-  must(sim.e.sim_set_velocity(11, 0, -0.3, 0, 0, 0), 'sim_set_velocity');
-  let s = sim.readState().state;
-  let touch = null;
-  let wetFor = 0;
-  let worstY = 0;
-  let clock = 0;
-  let afloat = null;
-  let taxi = null;
-  for (let ms = 0; ms < 26000; ms += RC_STEP_MS) {
-    const { pitch, bank } = attitude(s);
-    const roll = clamp1(-1.2 * bank - 0.12 * s[11]);
-    /* The line on the rudder, heading and centreline (rudderHold): at
-     * idle and at taxi power the swirl turns a floatplane off a line that
-     * the line's offset alone does not hold (docs/FLIGHTMODEL.md). */
-    const yaw = rudderHold(s);
-    const f = floatState(sim);
-    const wet = f[4] + f[5] > 0;
-    let sticks;
-    if (ms < 16000) {
-      sticks = [roll, touch ? 1 : clamp1(3 * (0.1 - pitch) + 0.3 * s[12]), yaw, 0];
-    } else {
-      sticks = [roll, 0.3, yaw, 0.3];
-    }
-    must(sim.input(clock / 1000, ...sticks), 'sim_input');
-    must(sim.step(RC_STEP_MS), 'sim_step');
-    clock += RC_STEP_MS;
-    s = sim.readState().state;
-    if (wet && !touch) {
-      touch = { x: s[1], v: speed(s) };
-    }
-    wetFor = wet ? wetFor + RC_STEP_MS : 0;
-    worstY = Math.max(worstY, Math.abs(s[2]));
-    if (ms === 15996) {
-      afloat = { x: s[1], v: speed(s), buoy: floatState(sim)[0], over: s[3] - SLOPE * s[1], wetFor };
-    }
-    if (ms === 25996) {
-      taxi = { x: s[1], v: speed(s), wetFor };
-    }
-  }
-  check('it lands on the sloped channel from 1.2 m and comes to float on it inside its banks',
-    Boolean(touch) && afloat.wetFor > 5000 && afloat.v < 1.5 && Math.abs(afloat.buoy - W_TIMBER) < 0.25 * W_TIMBER && worstY < HALF - 0.5,
-    touch ? `touched down at x ${touch.x.toFixed(1)}, ${touch.v.toFixed(2)} m/s; 16 s on: ${afloat.v.toFixed(2)} m/s, buoyancy ${afloat.buoy.toFixed(1)} N of a weight ${W_TIMBER.toFixed(1)}, CG ${afloat.over.toFixed(3)} m over the surface, wet ${(afloat.wetFor / 1000).toFixed(1)} s; at most ${worstY.toFixed(2)} m off the line` : 'never touched the water');
-  check('and taxis along it',
-    taxi.wetFor >= 10000 && taxi.x - afloat.x > 5,
-    `${(taxi.x - afloat.x).toFixed(1)} m in 10 s at 30 percent, ${taxi.v.toFixed(2)} m/s, wet throughout: ${taxi.wetFor >= 10000}`);
-}
+/* The kept fixed wings, by sim id (src/native/sim_abi.h). */
+const KEPT_WINGS = [['Bramor', BRAMOR_AIRFRAME], ['Striker prop', STRIKER_PROP_AIRFRAME], ['Striker jet', STRIKER_JET_AIRFRAME]];
 
 /* A landplane into it, crash physics on, the ground at the surface as the
  * shell puts it over water. */
-function skyInto(declare) {
+function skyInto(declare, airframe) {
   must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_set_airframe(SKY_AIRFRAME), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_damage(1), 'sim_set_damage');
   must(sim.e.sim_water_clear(), 'sim_water_clear');
@@ -297,17 +159,18 @@ function skyInto(declare) {
   must(sim.e.sim_set_damage(0), 'sim_set_damage');
   return { wet: (flags & DAMAGE_FLAGS.inWater) !== 0, v: speed(sim.readState().state) };
 }
-{
-  const river = skyInto(true);
-  const dry = skyInto(false);
-  check('a Skyhunter flown into the channel goes into the water, and with no channel it does not',
+/* The same throw on the fixed wings the war and The Interior seat. */
+for (const [name, id] of KEPT_WINGS) {
+  const river = skyInto(true, id);
+  const dry = skyInto(false, id);
+  check(`a ${name} flown into the channel goes into the water, and with no channel it does not`,
     river.wet && !dry.wet,
     `channel: in the water ${river.wet}, ${river.v.toFixed(2)} m/s after 2 s; none: in the water ${dry.wet}, ${dry.v.toFixed(2)} m/s`);
 }
 
 /*
- * A Skyhunter over the channel in the open air, near its bank: two pilots
- * on swiss2 had one break up 3 m over the stream. The plant finds the
+ * A fixed wing over the channel in the open air, near its bank: two pilots
+ * on swiss2 had a Skyhunter break up 3 m over the stream. The plant finds the
  * body under the craft's centre and samples it at every hull point, and a
  * point past every chunk's box (a wing tip out over the bank, its centre
  * inside the half width) read the channel's HIGHEST surface, the head of
@@ -315,9 +178,9 @@ function skyInto(declare) {
  * as swiss2's does from the torrent to the valley floor; the craft flies
  * the level run 3 m up, 2 m off the line, its tip 2.9 m off it.
  */
-function skyAlongBank() {
+function skyAlongBank(airframe) {
   must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_set_airframe(SKY_AIRFRAME), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_damage(1), 'sim_set_damage');
   must(sim.e.sim_water_clear(), 'sim_water_clear');
@@ -340,10 +203,10 @@ function skyAlongBank() {
   must(sim.e.sim_set_damage(0), 'sim_set_damage');
   return { flags, low, v: speed(sim.readState().state) };
 }
-{
-  const r = skyAlongBank();
+for (const [name, id] of KEPT_WINGS) {
+  const r = skyAlongBank(id);
   const wreck = DAMAGE_FLAGS.wingLost | DAMAGE_FLAGS.tailLost | DAMAGE_FLAGS.batteryEjected;
-  check('a Skyhunter 3 m over a channel, off its line, is not in its water: a tip past the chunk boxes reads the surface there, not the head of the stream',
+  check(`a ${name} 3 m over a channel, off its line, is not in its water`,
     (r.flags & DAMAGE_FLAGS.inWater) === 0 && (r.flags & wreck) === 0 && r.low > 1.5,
     `in the water ${(r.flags & DAMAGE_FLAGS.inWater) !== 0}, flags 0x${r.flags.toString(16)}, lowest ${r.low.toFixed(2)} m, ${r.v.toFixed(2)} m/s after 1 s`);
 }

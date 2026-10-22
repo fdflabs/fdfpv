@@ -49,7 +49,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -60,29 +60,27 @@ export const FILES = [
   'src/native/crash.c',
   'src/native/crash_parts.h',
 ];
-export const PINNED_COUNT = 2729;
+export const PINNED_COUNT = 733;
 /* The array and table elements (scanElements) are pinned on their own, so
  * neither count can grow by the other shrinking. water.c holds the sea's
  * spectrum tables; its #defines are not scanned. */
 export const ELEMENT_FILES = [...FILES, 'src/native/water.c'];
-export const PINNED_ELEMENT_COUNT = 2654;
+export const PINNED_ELEMENT_COUNT = 489;
 /* The JavaScript the plant's numbers come from: the hand written configs
  * that hand the plant physics (each derive script's inputs, every
  * scripts/*-derive.js, read at run time so a new one is covered). Not the
  * files a script writes (power-estimates.js, motor-estimates.js,
- * prop-estimates.js, hulls.js, surfaces-tiers.js, surfaces-stats.js):
+ * hulls.js):
  * their numbers are outputs, sourced by their generator's inputs here. */
 export const JS_FILES = [
   'configs/airframes.js',
   'configs/power.js',
   'configs/motors.js',
   'configs/tuning.js',
-  'configs/surfaces.js',
   'configs/combat.js',
   'configs/hangar-parts.js',
-  'configs/hullfit.js',
 ];
-export const PINNED_JS_COUNT = 4781;
+export const PINNED_JS_COUNT = 791;
 /* Every aircraft/<id>/aircraft.js, read at run time: the sections that
  * state the aircraft's physics, its airframe row (mass, size, stall, the
  * camera), its tuning (CG, throws) and its power and props. Not the kit,
@@ -95,7 +93,7 @@ export const PINNED_JS_COUNT = 4781;
  * plant.json is not read: its tables and their comments are generated
  * into plant_wing.c, which scan() reads (docs/AIRCRAFT-FOLDER.md). */
 export const FOLDER_SECTIONS = /^(?!airframe\.rates\b|tuning\.expo\b)(?:airframe|tuning|power\.table|power\.options|hangar\.props)[.[]/;
-export const PINNED_AIRCRAFT_COUNT = 905;
+export const PINNED_AIRCRAFT_COUNT = 265;
 export const PINS = { scalar: PINNED_COUNT, element: PINNED_ELEMENT_COUNT, js: PINNED_JS_COUNT, aircraft: PINNED_AIRCRAFT_COUNT };
 const PIN_NAMES = { scalar: 'PINNED_COUNT', element: 'PINNED_ELEMENT_COUNT', js: 'PINNED_JS_COUNT', aircraft: 'PINNED_AIRCRAFT_COUNT' };
 const BASELINE = 'scripts/physics-sources-baseline.txt';
@@ -437,9 +435,13 @@ export function jsFiles(root) {
   return [...JS_FILES, ...derive];
 }
 
+/* A folder may hold only its plant.json: an aircraft that left the shell
+ * while its plant is still in the module (2026-10-21) has no aircraft.js
+ * to read. */
 export function folderFiles(root) {
   return readdirSync(join(root, 'aircraft'), { withFileTypes: true })
-    .filter((e) => e.isDirectory()).map((e) => `aircraft/${e.name}/aircraft.js`).sort();
+    .filter((e) => e.isDirectory()).map((e) => `aircraft/${e.name}/aircraft.js`)
+    .filter((f) => existsSync(join(root, f))).sort();
 }
 
 export function scanFolder(file, text, cite = CITE, sourceKey = SOURCE_KEY) {

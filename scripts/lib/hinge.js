@@ -28,7 +28,8 @@
  * read): fig. 1(b) p. 4, the experimental (d alpha / d delta) at constant
  * normal force, TAU_E here its magnitude, +-0.015 (the theoretical curve
  * on the same figure reads Glauert's tau, scripts/surfaces-derive.js
- * tauOf, within 0.016 at every cf, which is the check on the read); fig.
+ * tauOf (in git at d281b9911; it left with the surface tiers), within
+ * 0.016 at every cf, which is the check on the read); fig.
  * 2(a) p. 5, the experimental (d ch / d delta) at constant normal force,
  * per deg, +-0.0003; fig. 2(b) p. 5, the experimental (d ch / d cn) at
  * constant delta, +-0.005. The report's eq. (3) and its p. 7 give the

@@ -74,7 +74,7 @@ import EN from '../src/strings/en.js';
 import { PRELOAD_MS, timing, linesOf } from '../src/share/war/film.js';
 import { FILMS, filmFor } from '../src/share/war/films/index.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import { startRooms } from '../edge/rooms/node.js';
 import { WORLD_LEAD_MS } from '../edge/rooms/war.js';
 import { CARD_MS } from '../src/share/war/intro.js';

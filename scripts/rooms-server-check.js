@@ -11,7 +11,6 @@
  * browser does: the front's routes and origin check, a private room made
  * and joined by two pilots, the keepalive, poses batched from one to the
  * other, a wreck (Phase 2) passed on and shown to a pilot who joins after,
- * the host's race track (Phase 4) kept by the room and in a later welcome,
  * quick chat (Phase 5) rebuilt from its index, a code nobody made, the text
  * rate limit, a pilot whose machine vanished dropped and a hidden tab
  * kept, and, when public rooms are open, the room browser: a named public
@@ -38,7 +37,7 @@
  * With no origin it starts edge/rooms/node.js itself, on a scratch SQLite
  * file, and adds what only a process of its own can show: a restart with
  * two pilots flying, after which both reconnect into their own seats of
- * the same private room, with its race track, and the purge alarm carried
+ * the same private room, with its war, and the purge alarm carried
  * across the restart, and the public room listed again straight after it.
  *
  * Then src/share/rooms.js itself, with its storage and socket stood in: a
@@ -84,10 +83,9 @@ import WebSocket from 'ws';
 import {
   ACCOUNT_JOIN, CHAT_PRESETS, CLOSE, CLOSE_SIGNIN, PROTO, ROOM_LEVEL, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
-import { ABANDON_MS, TEXT_CLOSE_PER_S, WATCH_CAP } from '../edge/rooms/core.js';
+import { TEXT_CLOSE_PER_S, WATCH_CAP } from '../edge/rooms/core.js';
 import { DEAD_MS, PROBE_MS } from '../edge/rooms/node.js';
 import { PURGE_MS } from '../edge/rooms/host.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { withHeld } from './lib/held.js';
 
 const given = String(process.argv[2] || '').replace(/\/+$/, '');
@@ -188,11 +186,11 @@ function pilot(path, headers = {}, options = {}) {
   return p;
 }
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3, livery: { scheme: 'sport' }, parts: { prop: 'stock', addons: [] } };
+const profile = { airframe: 'cub1400', map: 'itaipu', figure: 3, livery: { scheme: 'sport' }, parts: { prop: 'stock', addons: [] } };
 async function seat(path, extra = {}, options = {}) {
   const p = pilot(path, {}, options);
   await p.open;
-  p.say({ type: 'hello', proto: PROTO, build: 'check', name: [1, 2, 42], profile, ...extra });
+  p.say({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 2, 42], profile, ...extra });
   p.welcome = await p.until((x) => x.text('welcome')[0] || x.closed);
   p.clockAt = Date.now();
   return p;
@@ -219,14 +217,14 @@ async function adminRefused() {
 /* A named public room made and not listed while empty, a private one
  * never listed, a bad name refused. Its code. Two creates. */
 async function publicMade(privateCode) {
-  const r = await make({ map: 'swiss2', public: true, name: ' Server  check ' });
+  const r = await make({ map: 'itaipu', public: true, name: ' Server  check ' });
   const made = (await r.json()).code;
   check('a named public room is made', r.status === 200 && /^[A-Z0-9]{6}$/.test(made));
   const rooms = await listed();
   /* The owner, 2026-10-02: an empty room is never listed. */
   check('the browser does not list it before anybody joins', rooms.open === true && !rooms.rooms.some((x) => x.code === made), JSON.stringify(rooms.rooms));
   check('and never the private room', !rooms.rooms.some((x) => x.code === privateCode));
-  const bad = await make({ map: 'swiss2', public: true, name: 'fuck this' });
+  const bad = await make({ map: 'itaipu', public: true, name: 'fuck this' });
   check('a name the word filter refuses is refused', bad.status === 400 && (await bad.json()).error === 'name');
   return made;
 }
@@ -238,11 +236,11 @@ async function publicMade(privateCode) {
 async function warCreates() {
   let r = await make({ map: 'yellowstone' });
   check('a room on a retired world is refused (src/maps/retired.js)', r.status === 400 && (await r.json()).error === 'bad');
-  r = await make({ map: 'swiss2', mode: 'war' });
+  r = await make({ map: 'interior', mode: 'war' });
   check('a war room off the war\'s map is refused', r.status === 400 && (await r.json()).error === 'bad');
   r = await make({ map: 'itaipu', mode: 'war', mission: 'nowhere-1' });
   check('a mission nobody wrote is refused', r.status === 400 && (await r.json()).error === 'bad');
-  r = await make({ map: 'swiss2', mission: 'itaipu-1' });
+  r = await make({ map: 'interior', mission: 'itaipu-1' });
   check('a mission for a room not made for the war is refused', r.status === 400 && (await r.json()).error === 'bad');
   /* The release gate (the owner, 2026-10-04: only mission 1 until it is
    * right): no room is made for a mission in development, so the rows
@@ -312,13 +310,13 @@ check(given ? 'GET /v2/version names the commit it runs, or none' : 'GET /v2/ver
   JSON.stringify(version));
 /* The front counts an address's creates over a minute from its first. */
 const frontAt = Date.now();
-res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://evil.example' }, body: '{"map":"swiss2"}' });
+res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://evil.example' }, body: '{"map":"itaipu"}' });
 check('a page on another site is refused', res.status === 403);
 res = await fetch(`${origin}/v2/create`, { method: 'OPTIONS', headers: { origin: 'https://fdflabs.github.io' } });
 check('the simulator\'s origin gets its CORS answer', res.status === 204 && res.headers.get('access-control-allow-origin') === 'https://fdflabs.github.io');
 res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: 'not json' });
 check('a create that is not JSON is refused', res.status === 400);
-res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'swiss2' }) });
+res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'itaipu' }) });
 const { code } = await res.json();
 check('a private room is made', res.status === 200 && /^[A-Z0-9]{6}$/.test(code), code);
 check('with CORS for the page', res.headers.get('access-control-allow-origin') === 'https://fdflabs.github.io');
@@ -356,10 +354,6 @@ if (adminSecret) {
     && health.now && Number.isFinite(health.now.cpu) && Number.isFinite(health.now.lagP99Ms) && health.memory.rss > 0 && health.busy === false,
   JSON.stringify(health && { pilots: health.pilots, rooms: health.rooms, now: health.now }));
   check('and a private room is listed without its code', health && health.perRoom.length >= 1 && health.perRoom.every((r) => r.room !== code));
-  check('and the race witness\'s verdicts, the server\'s, the day\'s and each room\'s (none raced here)', health && health.race
-    && health.race.claims === 0 && health.race.refused === 0 && health.day.raceClaims === 0 && health.day.raceRefused === 0
-    && health.perRoom.every((r) => r.raceClaims === 0 && r.raceRefused === 0),
-  JSON.stringify(health && { race: health.race, perRoom: health.perRoom.map((r) => [r.raceClaims, r.raceRefused]) }));
 }
 
 if (adminSecret) {
@@ -379,10 +373,7 @@ if (adminSecret) {
   JSON.stringify(room && room.seats));
 }
 
-console.log('a race track (Phase 4), a wreck (Phase 2) and quick chat (Phase 5)');
-const raceDoc = mapTrackDocument({ id: 'trk-check001', name: 'Server check', types: ['gate', 'hoop30', 'gate'], radius: 60 });
-a.say({ type: 'track', doc: raceDoc });
-check('the host\'s track reaches the other pilot', Boolean(await b.until((x) => x.got.find((m) => m && m.track && m.track.id === raceDoc.id))));
+console.log('a wreck (Phase 2) and quick chat (Phase 5)');
 const table = [
   { kind: 0, parent: -1, cg: [0, 0, 0], boxMin: [-0.3, -0.1, -0.1], boxMax: [0.3, 0.1, 0.1] },
   { kind: 2, parent: 0, cg: [0, 0.5, 0], boxMin: [-0.1, -0.2, -0.02], boxMax: [0.1, 0.2, 0.02] },
@@ -396,11 +387,10 @@ await c.open;
 await sleep(100);
 const gotBefore = a.got.length + b.got.length;
 serverFlushes = 0;
-c.say({ type: 'hello', proto: PROTO, build: 'check', name: [5, 6, 12], profile });
+c.say({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [5, 6, 12], profile });
 c.welcome = await c.until((x) => x.text('welcome')[0] || x.closed);
 c.clockAt = Date.now();
-check('a pilot who joins after is welcomed with the race track', c.welcome.track && c.welcome.track.id === raceDoc.id && c.welcome.track.gates === 3);
-check('and sees the wreck where it lies', Boolean(await c.until((x) => x.text('event').find((m) => m.kind === 'crash' && m.seat === 1)))
+check('a pilot who joins after sees the wreck where it lies', Boolean(await c.until((x) => x.text('event').find((m) => m.kind === 'crash' && m.seat === 1)))
   && Boolean(await c.until((x) => x.got.find((m) => m instanceof Uint8Array && m[0] === TYPE_PARTS_RELAY))));
 if (!given) {
   await a.until((x) => x.text('join').find((m) => m.seat === c.welcome.seat));
@@ -418,7 +408,7 @@ await sleep(200);
 console.log('refusals');
 const nobody = pilot('room/BCDFGH');
 await nobody.open;
-nobody.say({ type: 'hello', proto: PROTO, build: 'check', name: [1, 2, 3], profile });
+nobody.say({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 2, 3], profile });
 await nobody.until((x) => x.closed);
 check('a code nobody made is answered nosuch', nobody.closed && nobody.closed.code === CLOSE.nosuch, JSON.stringify(nobody.closed));
 const flood = pilot(`room/${code}`);
@@ -439,8 +429,10 @@ if (pub.open) {
   check('a pilot joins it by its code', p.welcome && p.welcome.public === true && p.welcome.code === publicCode && p.welcome.name === 'Server check' && p.welcome.cap === 16, JSON.stringify(p.welcome));
   const line = (await listed()).rooms.find((r) => r.code === publicCode);
   check('and the browser lists it, with its name', line && line.name === 'Server check' && line.n === 1, JSON.stringify(line));
-  const q = await seat('public/swiss2', { name: [2, 3, 44] });
-  check('a quick join on its world lands in the busiest room there', q.welcome && q.welcome.code === publicCode, JSON.stringify(q.welcome && q.welcome.code));
+  const q = await seat(`room/${publicCode}`, { name: [2, 3, 44] });
+  check('a second pilot joins it by its code', q.welcome && q.welcome.code === publicCode, JSON.stringify(q.welcome && q.welcome.code));
+  const quickGone = await fetch(`${origin}/v2/public/itaipu`, { headers: { origin: 'https://fdflabs.github.io' } });
+  check('the quick join of builds before the cut is 404', quickGone.status === 404, `${quickGone.status}`);
   const rooms = await listed();
   check('and the list, read at once, counts both', rooms.rooms.find((r) => r.code === publicCode).n === 2);
   /* Who joins, changed in place by the host with others here
@@ -581,11 +573,12 @@ if (pub.open) {
   const warLine = (await listed()).rooms.find((r) => r.code === pubWar);
   check('with its pilot in, the browser lists it as the war\'s, with its mission', warLine && warLine.mode === 'war' && warLine.game === 'war' && warLine.mission === 'itaipu-drill',
     JSON.stringify(warLine));
-  const quick = await seat('public/itaipu', { name: [2, 5, 31] });
-  check('a quick join on Itaipu is never handed it', quick.welcome && quick.welcome.code && quick.welcome.code !== pubWar && quick.welcome.mode !== 'war',
+  const plainCode = (await (await make({ map: 'itaipu', public: true, name: 'Plain Itaipu' })).json()).code;
+  const quick = await seat(`room/${plainCode}`, { name: [2, 5, 31] });
+  check('a public room on Itaipu not made for the war seats a pilot as any', quick.welcome && quick.welcome.code === plainCode && quick.welcome.mode !== 'war',
     JSON.stringify(quick.welcome && { code: quick.welcome.code, mode: quick.welcome.mode }));
   quick.say({ type: 'war', op: 'start', mission: 'itaipu-1' });
-  check('and the public room it lands in, not made for the war, refuses the war', Boolean(await quick.until((x) => x.text('refused').find((m) => m.why === 'private'))),
+  check('and refuses the war', Boolean(await quick.until((x) => x.text('refused').find((m) => m.why === 'private'))),
     JSON.stringify(quick.text('refused')));
   /* Its lobby (edge/rooms/gamelobby.js): a second pilot, both ready, the
    * five seconds on the room's clock, then mission 2's briefing. */
@@ -680,9 +673,9 @@ function raw(text) {
   globalThis.WebSocket ??= WebSocket;
   const { createRoomLink } = await import('../src/share/rooms.js');
   const states = { first: [], second: [] };
-  const hello = () => ({ name: [5, 6, 40], profile: { airframe: 'cub1400', map: 'alps', figure: 1, livery: null, parts: null } });
+  const hello = () => ({ name: [5, 6, 40], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null } });
   const first = createRoomLink({ onState: (s) => states.first.push(s.phase + (s.reason ? `:${s.reason}` : '')) }, hello);
-  const tabCode = await first.create('alps', false, {});
+  const tabCode = await first.create('itaipu', false, {});
   first.join(tabCode);
   const opened = async (link) => {
     for (let i = 0; i < 100 && link.state().phase !== 'open'; i += 1) {
@@ -722,7 +715,7 @@ function raw(text) {
     }
   };
   const page = createRoomLink({}, hello);
-  const reloadCode = await page.create('alps', false, {});
+  const reloadCode = await page.create('itaipu', false, {});
   page.join(reloadCode);
   const pageIn = await opened(page);
   const before = page.state().welcome;
@@ -748,27 +741,6 @@ function raw(text) {
   anew.leave();
   beside.ws.close(1000);
 
-  /* The link's quick join asks the server for its room with a plain GET,
-   * which carries a signed in pilot's session for the server to leave out
-   * rooms of pilots it blocked (edge/rooms/front.js joinerOf), and then
-   * joins that room by its code. */
-  if (pub.open) {
-    const fetched = [];
-    const realFetch = globalThis.fetch;
-    globalThis.fetch = (input, init) => {
-      fetched.push(String(input));
-      return realFetch(input, init);
-    };
-    const quickLink = createRoomLink({}, hello);
-    quickLink.joinPublic('alps');
-    const quickIn = await opened(quickLink);
-    globalThis.fetch = realFetch;
-    const quickCode = quickLink.state().code;
-    check('the link\'s quick join asks for its room with a plain GET, then joins it by its code',
-      quickIn && fetched.some((u) => u.endsWith('/v2/public/alps')) && Boolean(quickCode) && sockets.at(-1).url.endsWith(`/v2/room/${quickCode}`),
-      JSON.stringify({ fetched, url: sockets.at(-1).url, quickCode }));
-    quickLink.leave();
-  }
   globalThis.WebSocket = WebSocket;
   delete globalThis.window;
 }
@@ -784,9 +756,14 @@ if (server) {
   check('and the server is still up', res.status === 200);
 
   console.log('a restart with two pilots flying (edge/rooms/node.js)');
-  /* A Catch the Ace match on, to come back with them. */
-  a.say({ type: 'tag', op: 'start', goal: 90 });
-  check('the host starts a Catch the Ace match', Boolean(await b.until((x) => x.text('tag').find((m) => m.tag && m.tag.state === 'countdown'))));
+  /* A war on, to come back with them: the room moved to the war's world
+   * first, as its host moves it (core.js world). */
+  const WAR_START = { type: 'war', op: 'start', mission: 'itaipu-1' };
+  const warOn = (m) => m.war && ['briefing', 'countdown', 'live'].includes(m.war.state);
+  a.say({ type: 'world', map: 'itaipu' });
+  await b.until((x) => x.text('world').find((m) => m.map === 'itaipu'));
+  a.say(WAR_START);
+  check('the host starts a war', Boolean(await b.until((x) => x.text('war').find(warOn))));
   const seats = { a: a.welcome, b: b.welcome };
   await server.stop();
   await a.until((x) => x.closed);
@@ -801,29 +778,31 @@ if (server) {
   check('the second pilot is back in seat 2, though it came back first', b2.welcome && b2.welcome.seat === 2 && b2.welcome.code === code, JSON.stringify(b2.welcome));
   check('and the first in seat 1, with the same tokens', a2.welcome && a2.welcome.seat === 1 && a2.welcome.token === seats.a.token && b2.welcome.token === seats.b.token);
   a2.ws.send(pose(a2, 20));
-  check('the room kept its race track across the restart', a2.welcome.track && a2.welcome.track.id === raceDoc.id, JSON.stringify(a2.welcome.track && a2.welcome.track.id));
   check('and they see each other fly again', Boolean(await b2.until((x) => x.got.find((m) => m instanceof Uint8Array && decodeBatch(m)))));
   /* The host across the restart: B came back first and acted for A; A
    * back is the host again, and B is told. */
   check('B, back first, was told it acts as host while A was away', b2.welcome.host === 2, `${b2.welcome.host}`);
   check('A back is the host again, in its welcome and to B', a2.welcome.host === 1
     && Boolean(await b2.until((x) => x.text('host').find((m) => m.seat === 1))));
-  b2.say({ type: 'combat', op: 'start', minutes: 5 });
-  check('so B\'s combat start is refused, and B is told why: host', Boolean(await b2.until((x) => x.text('refused').find((m) => m.why === 'host'))));
-  a2.say({ type: 'combat', op: 'start', minutes: 5 });
-  check('A\'s is refused while the match its two players came back to runs: tag', Boolean(await a2.until((x) => x.text('refused').find((m) => m.why === 'tag'))));
+  b2.say(WAR_START);
+  check('so B\'s war start is refused, and B is told why: host', Boolean(await b2.until((x) => x.text('refused').find((m) => m.why === 'host'))));
+  a2.say(WAR_START);
+  check('A\'s is refused while the war its two players came back to runs: war', Boolean(await a2.until((x) => x.text('refused').find((m) => m.why === 'war'))));
   /* The host hands the room to B and B hands it back, each told. */
   a2.say({ type: 'handhost', seat: 2 });
   check('A hands the room to B: B is told it is the host', Boolean(await b2.until((x) => x.text('host').at(-1)?.seat === 2)));
   b2.say({ type: 'handhost', seat: 1 });
   check('and B hands it back: A is told', Boolean(await a2.until((x) => x.text('host').at(-1)?.seat === 1)));
-  /* B leaves for good: the match has one player, and the room ends it by
-   * itself after ABANDON_MS, with nobody flying to drive the clock. */
+  /* The host ends the war it came back to, and starts the next. A match
+   * left with one player was ended by the room itself here, after
+   * ABANDON_MS, while Catch the Ace's needed two; the war is played alone
+   * (src/share/modes.js minElsewhere 1). */
   b2.ws.close(1000);
-  const ended = await a2.until((x) => x.text('tag').find((m) => m.tag && m.tag.state === 'results'), ABANDON_MS + 5000);
-  check(`the match left with one player ends by itself after ${ABANDON_MS / 1000} s`, Boolean(ended) && ended.tag.winner === null);
-  a2.say({ type: 'combat', op: 'start', minutes: 5 });
-  check('and then the host\'s combat round starts', Boolean(await a2.until((x) => x.text('combat').find((m) => m.state === 'countdown'))));
+  a2.say({ type: 'war', op: 'end' });
+  check('the host ends the war', Boolean(await a2.until((x) => x.text('war').find((m) => m.war && m.war.state === 'ended'))));
+  const warsBefore = a2.text('war').filter(warOn).length;
+  a2.say(WAR_START);
+  check('and then the host\'s next war starts', Boolean(await a2.until((x) => x.text('war').filter(warOn).length > warsBefore)));
   if (publicCode) {
     const again = await listed();
     check('the public room, back after the restart with nobody in it, is not listed', !again.rooms.some((r) => r.code === publicCode), JSON.stringify(again));
@@ -833,7 +812,7 @@ if (server) {
    * the closed file ('statement has been finalized', after hercules:room
    * 2026-10-14). Here a room nobody joined has its purge due 200 ms after
    * the file closes. */
-  const made = await (await make({ map: 'swiss2' })).json();
+  const made = await (await make({ map: 'itaipu' })).json();
   const room = objects.get(`prv:${made.code}`);
   await room.enqueue(() => room.host.closeLater(700));
   const purgeAt = room.host.core.emptySince + PURGE_MS;

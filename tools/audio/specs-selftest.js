@@ -96,8 +96,6 @@ const striker = airframeById('striker2500');
 check('the Striker is heard as the engine it carries',
   engineSpecFor(striker.id, {}, { striker2500: { payload: 'standard', accessories: [], propulsion: 'jet' } }).model === 'turbojet'
   && engineSpecFor(striker.id, {}, { striker2500: { payload: 'standard', accessories: [], propulsion: 'prop' } }).model === 'boxer2');
-check('the F-16 is a ducted fan, not the turbojet', engineSpecFor('f16878', {}, {}).model === 'edf');
-check('a four stroke is heard as one', engineSpecFor('kadet1981', {}, {}).model === 'glow4');
 
 /* The hover table against the plant. */
 const wasm = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));

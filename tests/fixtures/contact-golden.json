@@ -1,130 +1,84 @@
 {
- "quad-wall": {
-  "what": "the interceptor into the face of an Alps wall at 25 m/s",
+ "itaipu-bramor-roof-walls": {
+  "what": "the Bramor belly landed on an Itaipu dam top over its walls at 16 m/s, 3 degrees down, motor off",
   "steps": 1500,
-  "pre": "c1f279bc9e07de07ce6fee1f",
-  "plane": "03ace9c3776e2bf36780744e",
-  "post": "e5a991afcdd9371f45540fb1",
+  "pre": "f7135e846f9607953b474a94",
+  "plane": "0c9539c2872c5494be1aa288",
+  "post": "c83193083a473192fa090808",
   "throw": {
-   "x": 44,
-   "y": 1.6,
-   "z": -53.5,
-   "yaw": 0,
-   "pitch": -25,
-   "vx": 0,
-   "vy": 0,
-   "vz": -25
+   "x": 645.7031957824006,
+   "y": 225.6,
+   "z": -1612.4436383452146,
+   "yaw": -90,
+   "pitch": 0,
+   "vx": 15.978072556073181,
+   "vy": -0.8373752998871012,
+   "vz": 0
   },
   "met": {
-   "obstacleEvents": 14,
-   "contactEvents": 25,
+   "obstacleEvents": 0,
+   "contactEvents": 0,
    "damage": [
-    "battery:crack",
-    "antenna left:knock",
-    "arm front right:break",
-    "arm front left:break",
-    "camera:break",
-    "frame:crush",
-    "battery:crack",
-    "battery:break",
-    "arm rear right:break",
-    "arm rear left:break",
-    "arm front left:settle",
-    "arm front right:settle",
-    "camera:settle",
-    "battery:settle",
-    "arm rear left:settle"
+    "camera:break"
    ],
    "pass": {
     "resolved": 0,
-    "resting": 25,
+    "resting": 0,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 16,
-    "outbound": 9,
+    "inbound": 0,
+    "outbound": 0,
     "plantHeld": 0,
     "unheld": 0
-   }
+   },
+   "groundSteps": 1008
   }
  },
- "quad-wall-glance": {
-  "what": "the interceptor glancing along an Alps wall at 12 m/s, throttle up",
+ "itaipu-bramor-roof-walls-nodamage": {
+  "what": "the Bramor belly landed on an Itaipu dam top over its walls at 16 m/s, 3 degrees down, motor off, crash damage off",
   "steps": 1500,
-  "pre": "4b125a1db1a23ec718a3a18e",
-  "plane": "0e3b1c32361b1d6540c1ae0d",
-  "post": "d4b7e0f7926e88b7cfae85f2",
+  "pre": "944e59a1719c8648d045e00c",
+  "plane": "0e61fc3ce31641758b8f00db",
+  "post": "99cb25a1f3f3be32d72ea6cd",
   "throw": {
-   "x": 26,
-   "y": 2,
-   "z": -57.5,
-   "yaw": -80,
-   "pitch": -10,
-   "vx": 12,
-   "vy": 0,
-   "vz": -1.5
+   "x": 645.7031957824006,
+   "y": 225.6,
+   "z": -1612.4436383452146,
+   "yaw": -90,
+   "pitch": 0,
+   "vx": 15.978072556073181,
+   "vy": -0.8373752998871012,
+   "vz": 0
   },
   "met": {
-   "obstacleEvents": 37,
-   "contactEvents": 49,
-   "damage": [
-    "prop front right:chip",
-    "prop front right:chip",
-    "prop front right:chip",
-    "prop front right:chip",
-    "prop front right:chip",
-    "prop front left:chip",
-    "prop front right:chip",
-    "prop front left:chip",
-    "prop front left:chip",
-    "prop front right:chip",
-    "prop front left:chip",
-    "battery:crack",
-    "arm front right:bend",
-    "prop front left:chip",
-    "camera:knock",
-    "motor front right:break",
-    "prop front left:chip",
-    "prop front left:chip",
-    "prop front left:chip",
-    "battery:crack",
-    "arm front left:break",
-    "camera:break",
-    "prop rear right:chip",
-    "prop rear right:chip",
-    "battery:crack",
-    "arm rear right:break",
-    "prop rear left:chip",
-    "prop rear left:chip",
-    "prop rear left:chip",
-    "motor front right:settle",
-    "camera:settle",
-    "arm front left:settle",
-    "arm rear right:settle"
-   ],
+   "obstacleEvents": 0,
+   "contactEvents": 0,
+   "damage": [],
    "pass": {
     "resolved": 0,
-    "resting": 49,
+    "resting": 0,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 25,
-    "outbound": 20,
+    "inbound": 0,
+    "outbound": 0,
     "plantHeld": 0,
     "unheld": 0
-   }
+   },
+   "groundSteps": 1008
   }
  },
- "quad-pole": {
-  "what": "the interceptor into a swiss2 power pole at 15 m/s",
+ "itaipu-quad-pole-refill": {
+  "what": "the interceptor into an Itaipu pole at 15 m/s, the streamed set refilled from step 300, in frames of 100 and 17 ms",
   "steps": 1500,
-  "pre": "1a6f0f5a9d3bc1a1dc17d744",
-  "plane": "422f9fe9c25fde7d625b48e1",
-  "post": "aa4432e7e787d0c27e7fe743",
+  "pre": "217e4cb6f3cec93aff1fc1bd",
+  "plane": "299bab9f96d2c2a7d478d7d7",
+  "post": "713289ef9c8dc7fb4b4fb26d",
   "throw": {
-   "x": 41,
-   "y": 2.2,
-   "z": 110.5,
+   "x": 568.2018432617188,
+   "y": 227.2,
+   "z": -1614.581787109375,
    "yaw": -90,
    "pitch": -20,
    "vx": 15,
@@ -135,17 +89,241 @@
    "obstacleEvents": 64,
    "contactEvents": 0,
    "damage": [
+    "battery:crack",
     "prop front right:chip",
     "prop front left:chip",
+    "battery:crack",
+    "prop front right:chip",
+    "prop front left:chip",
+    "camera:knock",
     "frame:crush",
     "battery:crack",
-    "antenna left:knock",
+    "battery:break",
+    "battery:settle"
+   ],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   },
+   "groundSteps": 0
+  }
+ },
+ "itaipu-quad-skate-nodamage": {
+  "what": "the interceptor skating along the face of an Itaipu dam block, 4 degrees into it at 10 m/s, rolled into it, crash damage off",
+  "steps": 1500,
+  "pre": "4387aa7a4eb2b2663e4247a9",
+  "plane": "d3d0b9ca00f3e840041a799f",
+  "post": "869c633fc0dc263c03a4fa87",
+  "throw": {
+   "x": 591.3604018753995,
+   "y": 220.5,
+   "z": -1650.5436893241895,
+   "yaw": 81.68716042773453,
+   "pitch": -15,
+   "roll": 25,
+   "vx": -9.89493396194254,
+   "vy": 0,
+   "vz": -1.4457794023660293
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 49,
+   "damage": [],
+   "pass": {
+    "resolved": 48,
+    "resting": 1,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 49,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   },
+   "groundSteps": 2
+  }
+ },
+ "itaipu-quad-wall-face-nodamage": {
+  "what": "the interceptor square into the face of an Itaipu dam block at 25 m/s, crash damage off",
+  "steps": 1000,
+  "pre": "f3a758645b10a9b65dbacbb9",
+  "plane": "71a7ba80bb56e02a44e5cdcc",
+  "post": "f44bdfae03cb16390deb485c",
+  "throw": {
+   "x": 586.6499445815903,
+   "y": 220.6,
+   "z": -1655.1542439663326,
+   "yaw": 167.6871604277345,
+   "pitch": -25,
+   "vx": -5.3312331438064575,
+   "vy": 0,
+   "vz": 24.424944818019867
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 2,
+   "damage": [],
+   "pass": {
+    "resolved": 2,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 2,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   },
+   "groundSteps": 0
+  }
+ },
+ "itaipu-quad-roof-walls": {
+  "what": "the interceptor dropped onto an Itaipu dam top over its walls at 8 m/s, 35 degrees down",
+  "steps": 900,
+  "pre": "02598d1abcf74435699e10c0",
+  "plane": "7fc9aece9bd1b26b3bf5bbfd",
+  "post": "fcbd8474987132125d7e0b54",
+  "throw": {
+   "x": 580.0584980571671,
+   "y": 226.5471528727021,
+   "z": -1632.4615660211675,
+   "yaw": -90,
+   "pitch": -35,
+   "vx": 6.553216354311934,
+   "vy": -4.588611490808368,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 0,
+   "damage": [
+    "battery:crack",
+    "camera:knock"
+   ],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   },
+   "groundSteps": 591
+  }
+ },
+ "itaipu-quad-roof-walls-nodamage": {
+  "what": "the interceptor dropped onto an Itaipu dam top over its walls at 8 m/s, 35 degrees down, crash damage off",
+  "steps": 1500,
+  "pre": "908cabf308cf2cf12d541e76",
+  "plane": "35dd608f0cdb348ee3ee4efb",
+  "post": "d56ec520953e2a593b53cf96",
+  "throw": {
+   "x": 580.0584980571671,
+   "y": 226.5471528727021,
+   "z": -1632.4615660211675,
+   "yaw": -90,
+   "pitch": -35,
+   "vx": 6.553216354311934,
+   "vy": -4.588611490808368,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 0,
+   "damage": [],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   },
+   "groundSteps": 58
+  }
+ },
+ "itaipu-quad-wall": {
+  "what": "the interceptor into the face of an Itaipu wall at 25 m/s",
+  "steps": 1500,
+  "pre": "0dfd93488268bb9534860584",
+  "plane": "617abd6f938bdc4e16d87a36",
+  "post": "7432ffc3b44b3847af35d050",
+  "throw": {
+   "x": 594.8893737792969,
+   "y": 209.45203935733738,
+   "z": -1605.412841796875,
+   "yaw": 0,
+   "pitch": -25,
+   "vx": 0,
+   "vy": 0,
+   "vz": -25
+  },
+  "met": {
+   "obstacleEvents": 44,
+   "contactEvents": 64,
+   "damage": [
+    "battery:crack",
+    "arm front right:bend",
+    "camera:knock",
+    "motor front right:break",
+    "arm rear left:bend",
+    "arm front left:break",
+    "battery:break",
+    "camera:break",
+    "antenna left:break",
+    "arm rear right:break"
+   ],
+   "pass": {
+    "resolved": 0,
+    "resting": 140,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 16,
+    "outbound": 124,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "itaipu-quad-wall-glance": {
+  "what": "the interceptor glancing along an Itaipu wall at 12 m/s, throttle up",
+  "steps": 1500,
+  "pre": "d8ca103ae6daac60076c052b",
+  "plane": "92cd532a7b033fd74e478aae",
+  "post": "157d8dc176d7a94c06b83298",
+  "throw": {
+   "x": 567.7765502929688,
+   "y": 210.0455804344449,
+   "z": -1612.14990234375,
+   "yaw": -80,
+   "pitch": -10,
+   "vx": 12,
+   "vy": 0,
+   "vz": -1.5
+  },
+  "met": {
+   "obstacleEvents": 1,
+   "contactEvents": 0,
+   "damage": [
+    "battery:crack",
     "arm front right:break",
     "arm front left:break",
     "camera:break",
-    "battery:crack",
-    "camera:settle",
-    "arm front left:settle"
+    "antenna left:break"
    ],
    "pass": {
     "resolved": 0,
@@ -160,16 +338,61 @@
    }
   }
  },
- "quad-roof": {
-  "what": "the interceptor dropped onto a swiss2 roof at 8 m/s, 35 degrees down",
+ "itaipu-quad-pole": {
+  "what": "the interceptor into an Itaipu pole at 15 m/s",
   "steps": 1500,
-  "pre": "97a4fb0142a24ea3dc4f493b",
-  "plane": "58bf3291777d1444164beb01",
-  "post": "b86bbe734f4997922e7b10ed",
+  "pre": "8bc28d8645714d9674addd63",
+  "plane": "894b4d3edd9198208dcb45ca",
+  "post": "b8a9d06255d1afda7f711e46",
   "throw": {
-   "x": -48.41424594319382,
-   "y": 3.863259449943706,
-   "z": 94.3257721629803,
+   "x": 568.2018432617188,
+   "y": 227.2,
+   "z": -1614.581787109375,
+   "yaw": -90,
+   "pitch": -20,
+   "vx": 15,
+   "vy": 0,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 64,
+   "contactEvents": 0,
+   "damage": [
+    "battery:crack",
+    "prop front right:chip",
+    "prop front left:chip",
+    "battery:crack",
+    "prop front right:chip",
+    "prop front left:chip",
+    "camera:knock",
+    "frame:crush",
+    "battery:crack",
+    "battery:break",
+    "battery:settle"
+   ],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "itaipu-quad-roof": {
+  "what": "the interceptor dropped onto an Itaipu roof at 8 m/s, 35 degrees down",
+  "steps": 1300,
+  "pre": "f0bc0ef1190a75a11ef33834",
+  "plane": "a87980c1b0d667d87dd39822",
+  "post": "59288f296d6b68adf4531d0c",
+  "throw": {
+   "x": 394.21169591142205,
+   "y": 130.79121722588152,
+   "z": -1353.3,
    "yaw": -90,
    "pitch": -35,
    "vx": 6.553216354311934,
@@ -193,16 +416,16 @@
    }
   }
  },
- "quad-ground-skid": {
-  "what": "the interceptor skidding into the swiss2 grass at 18 m/s, 15 degrees down",
+ "itaipu-quad-ground-skid": {
+  "what": "the interceptor skidding into the Itaipu ground at 18 m/s, 15 degrees down",
   "steps": 1500,
-  "pre": "8c9c2a9e3ff0cfb2370bfc3a",
-  "plane": "de01b483cad069073a012e3e",
-  "post": "3923aa5542a1c4a2c818c660",
+  "pre": "68860eb3ac4e7569b6cf63dc",
+  "plane": "c5e78431e7ca793be7fd7b59",
+  "post": "bc4bafa131a821f9d2d71271",
   "throw": {
-   "x": 25,
-   "y": 1.5,
-   "z": 52,
+   "x": 599.93,
+   "y": 226.5,
+   "z": -1610.45,
    "yaw": 90,
    "pitch": -15,
    "vx": -17.38666487320323,
@@ -210,9 +433,11 @@
    "vz": 0
   },
   "met": {
-   "obstacleEvents": 0,
+   "obstacleEvents": 34,
    "contactEvents": 0,
-   "damage": [],
+   "damage": [
+    "camera:knock"
+   ],
    "pass": {
     "resolved": 0,
     "resting": 0,
@@ -226,121 +451,21 @@
    }
   }
  },
- "quad-wall-skate-nodamage": {
-  "what": "the interceptor skating along an Alps wall, 4 degrees into it at 10 m/s, rolled into it, crash damage off",
-  "steps": 1500,
-  "pre": "f2447a5a543136f7b0df9ae9",
-  "plane": "86b75bf1536a54eb079c32d2",
-  "post": "4e3edd6d129f24ff6eb0583f",
+ "itaipu-quad-corner-nodamage": {
+  "what": "the interceptor into the corner of an Itaipu dam block on the diagonal at 12 m/s, crash damage off",
+  "steps": 1100,
+  "pre": "e3214d2ea85920b37fad3fe1",
+  "plane": "c92cf1e99e3cf2723ba61959",
+  "post": "13442810edc271709b79de41",
   "throw": {
-   "x": 30.5,
-   "y": 1.5,
-   "z": -57,
-   "yaw": -86.00000000000001,
-   "pitch": -15,
-   "roll": 25,
-   "vx": 9.975640502598242,
-   "vy": 0,
-   "vz": -0.697564737441253
-  },
-  "met": {
-   "obstacleEvents": 0,
-   "contactEvents": 61,
-   "damage": [],
-   "pass": {
-    "resolved": 59,
-    "resting": 2,
-    "buried": 0,
-    "sepFail": 0,
-    "dvZero": 0,
-    "inbound": 61,
-    "outbound": 0,
-    "plantHeld": 0,
-    "unheld": 0
-   }
-  }
- },
- "quad-corner-nodamage": {
-  "what": "the interceptor into the corner of an Alps building on the diagonal at 12 m/s, crash damage off",
-  "steps": 1500,
-  "pre": "5d8c3cbd85250de614674e2e",
-  "plane": "255c80f53e835c1dd90dc5f4",
-  "post": "fe56d322c48ebd40c01ef66d",
-  "throw": {
-   "x": -47.093159483779154,
-   "y": 1.6,
-   "z": 101.85445709336929,
-   "yaw": 45,
+   "x": 597.6624400912887,
+   "y": 220.6,
+   "z": -1652.487127863526,
+   "yaw": 122.68716042773451,
    "pitch": -20,
-   "vx": -8.485281374238571,
+   "vx": -10.099581705120526,
    "vy": 0,
-   "vz": -8.485281374238571
-  },
-  "met": {
-   "obstacleEvents": 0,
-   "contactEvents": 61,
-   "damage": [],
-   "pass": {
-    "resolved": 57,
-    "resting": 4,
-    "buried": 0,
-    "sepFail": 0,
-    "dvZero": 0,
-    "inbound": 60,
-    "outbound": 1,
-    "plantHeld": 0,
-    "unheld": 0
-   }
-  }
- },
- "quad-wall-nodamage": {
-  "what": "the interceptor into the face of an Alps wall at 25 m/s, crash damage off",
-  "steps": 1000,
-  "pre": "51ec19049cac5f385b711735",
-  "plane": "99c6a3ffd14e5ffb875a7125",
-  "post": "575b9784cc1afd3aeaccdf4d",
-  "throw": {
-   "x": 44,
-   "y": 1.6,
-   "z": -53.5,
-   "yaw": 0,
-   "pitch": -25,
-   "vx": 0,
-   "vy": 0,
-   "vz": -25
-  },
-  "met": {
-   "obstacleEvents": 0,
-   "contactEvents": 2,
-   "damage": [],
-   "pass": {
-    "resolved": 2,
-    "resting": 0,
-    "buried": 0,
-    "sepFail": 0,
-    "dvZero": 0,
-    "inbound": 2,
-    "outbound": 0,
-    "plantHeld": 0,
-    "unheld": 0
-   }
-  }
- },
- "quad-wall-glance-nodamage": {
-  "what": "the interceptor glancing along an Alps wall at 12 m/s, throttle up, crash damage off",
-  "steps": 800,
-  "pre": "c0d853c32022ea0592273b75",
-  "plane": "0c01056f23acc9a9b25fd6d5",
-  "post": "1e06bffe482c9a710d8ea76f",
-  "throw": {
-   "x": 26,
-   "y": 2,
-   "z": -57.5,
-   "yaw": -80,
-   "pitch": -10,
-   "vx": 12,
-   "vy": 0,
-   "vz": -1.5
+   "vz": 6.4806206413713845
   },
   "met": {
    "obstacleEvents": 0,
@@ -359,16 +484,82 @@
    }
   }
  },
- "quad-pole-nodamage": {
-  "what": "the interceptor into a swiss2 power pole at 15 m/s, crash damage off",
+ "itaipu-quad-wall-nodamage": {
+  "what": "the interceptor into the face of an Itaipu wall at 25 m/s, crash damage off",
   "steps": 1500,
-  "pre": "6843ea0f94d0efa2988f09af",
-  "plane": "8c8b499e2574cb6383a70a09",
-  "post": "bf42b9bb05bf590f1d3906ec",
+  "pre": "95277f4340df1bbd85897a7c",
+  "plane": "5edf6b4bddccd8bba58f3a52",
+  "post": "1e8368584e8a58f96596443b",
   "throw": {
-   "x": 41,
-   "y": 2.2,
-   "z": 110.5,
+   "x": 594.8893737792969,
+   "y": 209.45203935733738,
+   "z": -1605.412841796875,
+   "yaw": 0,
+   "pitch": -25,
+   "vx": 0,
+   "vy": 0,
+   "vz": -25
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 0,
+   "damage": [],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "itaipu-quad-wall-glance-nodamage": {
+  "what": "the interceptor glancing along an Itaipu wall at 12 m/s, throttle up, crash damage off",
+  "steps": 1500,
+  "pre": "ccbc913dca2a0b0e2b890f31",
+  "plane": "26ff680621f5be295793f118",
+  "post": "a6c5b60b05bc70942730278f",
+  "throw": {
+   "x": 567.7765502929688,
+   "y": 210.0455804344449,
+   "z": -1612.14990234375,
+   "yaw": -80,
+   "pitch": -10,
+   "vx": 12,
+   "vy": 0,
+   "vz": -1.5
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 9,
+   "damage": [],
+   "pass": {
+    "resolved": 9,
+    "resting": 0,
+    "buried": 1,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 8,
+    "outbound": 1,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "itaipu-quad-pole-nodamage": {
+  "what": "the interceptor into an Itaipu pole at 15 m/s, crash damage off",
+  "steps": 1500,
+  "pre": "23c96b4631f0b5ed681fe518",
+  "plane": "140bf927f48d9b5e34b00de5",
+  "post": "73b5b81a8fb65aa2e3a28d41",
+  "throw": {
+   "x": 568.2018432617188,
+   "y": 227.2,
+   "z": -1614.581787109375,
    "yaw": -90,
    "pitch": -20,
    "vx": 15,
@@ -377,16 +568,16 @@
   },
   "met": {
    "obstacleEvents": 0,
-   "contactEvents": 31,
+   "contactEvents": 54,
    "damage": [],
    "pass": {
-    "resolved": 31,
+    "resolved": 54,
     "resting": 0,
     "buried": 0,
     "sepFail": 0,
     "dvZero": 0,
-    "inbound": 25,
-    "outbound": 4,
+    "inbound": 47,
+    "outbound": 0,
     "plantHeld": 0,
     "unheld": 0
    }

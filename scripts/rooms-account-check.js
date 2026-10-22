@@ -47,7 +47,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
 import {
-  ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_SIGNIN, PROTO, WAR_JOIN,
+  ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_SIGNIN, PROTO, ROOM_LEVEL, WAR_JOIN,
 } from '../src/share/roomwire.js';
 import { startTracks } from '../tracks-api/node.js';
 import { startRooms } from '../edge/rooms/node.js';
@@ -133,11 +133,11 @@ function pilot(code) {
   return p;
 }
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3 };
+const profile = { airframe: 'cub1400', map: 'itaipu', figure: 3 };
 async function seat(code, extra = {}) {
   const p = pilot(code);
   await p.open;
-  p.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', name: [1, 2, 42], profile, ...extra }));
+  p.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 2, 42], profile, ...extra }));
   /* A clock ping straight behind the hello, as the simulator sends: it
    * must be answered after the welcome, not lost while the session is
    * looked up. */
@@ -148,7 +148,7 @@ async function seat(code, extra = {}) {
 
 /* address: the client address Caddy would send, for a check that makes
  * more rooms than front.js CREATES_PER_MIN allows one address. */
-async function makeRoom(room = { map: 'swiss2' }, address = null, origin = roomsOrigin) {
+async function makeRoom(room = { map: 'itaipu' }, address = null, origin = roomsOrigin) {
   const headers = { origin: PAGE, ...(address ? { 'cf-connecting-ip': address } : {}) };
   const res = await fetch(`${origin}/v2/create`, { method: 'POST', headers, body: JSON.stringify(room) });
   return (await res.json()).code;
@@ -200,7 +200,7 @@ check('and an account with no callsign yet', closedWith(nameless, SIGNIN), JSON.
 const binary = pilot(code);
 await binary.open;
 binary.ws.send(new Uint8Array([0x10, 0, 0]));
-binary.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', name: [2, 3, 19], profile, ...NEW, session }));
+binary.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [2, 3, 19], profile, ...NEW, session }));
 const binaryEnd = await binary.until((x) => x.got.find((m) => m.type === 'welcome') || (x.closed && { closed: x.closed }));
 check('a socket whose first word is not its hello is closed, so no hello rides past the check', binaryEnd && binaryEnd.closed === CLOSE.bad,
   JSON.stringify(binaryEnd));
@@ -208,16 +208,17 @@ const roster = await first.until((x) => x.got.filter((m) => m.type === 'join').l
 check('none of them was ever seated beside the pilots', roster && roster.got.filter((m) => m.type === 'join').length === 1,
   JSON.stringify(roster && roster.got.filter((m) => m.type === 'join')));
 
-console.log('a war, combat and tag room the same');
-for (const room of [{ map: 'itaipu', mode: 'war' }, { map: 'swiss2', mode: 'combat' }, { map: 'swiss2', mode: 'tag' }]) {
+console.log('a war room and a free flight room the same');
+for (const room of [{ map: 'itaipu', mode: 'war' }, { map: 'interior', mode: null }]) {
   const at = await makeRoom(room);
   const war = room.mode === 'war' ? { war: WAR_JOIN } : {};
   const oldOne = await seat(at, war);
   const unsigned = await seat(at, { ...war, ...NEW, name: [4, 5, 21] });
   const pilotOne = await seat(at, { ...war, ...NEW, name: [5, 6, 22], session });
-  check(`${room.mode}: a build from before is sent to reload`, closedWith(oldOne, CLOSE.update), JSON.stringify(oldOne.welcome));
-  check(`${room.mode}: an unsigned seat is refused, to sign in`, closedWith(unsigned, SIGNIN), JSON.stringify(unsigned.welcome));
-  check(`${room.mode}: a signed in pilot is seated, as the room's game`, pilotOne.welcome.seat === 1 && pilotOne.welcome.mode === room.mode,
+  const label = room.mode ?? 'free flight';
+  check(`${label}: a build from before is sent to reload`, closedWith(oldOne, CLOSE.update), JSON.stringify(oldOne.welcome));
+  check(`${label}: an unsigned seat is refused, to sign in`, closedWith(unsigned, SIGNIN), JSON.stringify(unsigned.welcome));
+  check(`${label}: a signed in pilot is seated, as the room's game`, pilotOne.welcome.seat === 1 && pilotOne.welcome.mode === room.mode,
     JSON.stringify(pilotOne.welcome && { seat: pilotOne.welcome.seat, mode: pilotOne.welcome.mode, closed: pilotOne.welcome.closed }));
   pilotOne.ws.close(1000);
 }
@@ -309,7 +310,7 @@ console.log('blocks that outlast a room');
    * joinerOf): a public room holding Iceman is neither listed to Goose,
    * who blocked him, nor picked for Goose's quick join, and is for Viper. */
   r = await api('PUT', '/api/account/blocks', { callsign: 'Iceman', on: true }, session);
-  const icemanRoom = await makeRoom({ map: 'swiss2', public: true }, nextAddress());
+  const icemanRoom = await makeRoom({ map: 'itaipu', public: true }, nextAddress());
   const icemanIn = await seat(icemanRoom, { ...NEW, name: [6, 7, 61], session: other });
   const asking = (sess) => ({ origin: PAGE, 'cf-connecting-ip': nextAddress(), ...(sess ? { authorization: `Bearer ${sess}` } : {}) });
   const listFor = async (sess) => {
@@ -324,10 +325,6 @@ console.log('blocks that outlast a room');
   check('Viper\'s list, and a guest\'s, show the public room Iceman is in', viperList.includes(icemanRoom) && (await listFor(null)).includes(icemanRoom),
     JSON.stringify(viperList));
   check('Goose\'s, who blocked him, leaves it out', !(await listFor(session)).includes(icemanRoom));
-  const pick = async (sess) => (await (await fetch(`${roomsOrigin}/v2/public/swiss2`, { headers: asking(sess) })).json()).code;
-  const goosePick = await pick(session);
-  check('Goose\'s quick join is handed another room', typeof goosePick === 'string' && goosePick !== icemanRoom, goosePick);
-  check('Viper\'s is handed Iceman\'s', await pick(viper) === icemanRoom);
   r = await api('PUT', '/api/account/blocks', { callsign: 'Iceman', on: false }, session);
   check('unblocked, Goose\'s next list shows it again', r.status === 200 && (await listFor(session)).includes(icemanRoom));
   icemanIn.ws.close(1000);
@@ -357,7 +354,7 @@ console.log('blocks that outlast a room');
       }
       return null;
     };
-    ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', name: [n, n + 1, 60 + n], profile, ...NEW }));
+    ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [n, n + 1, 60 + n], profile, ...NEW }));
     p.welcome = await p.until((x) => x.got.find((m) => m.type === 'welcome'));
     return p;
   }

@@ -1,11 +1,12 @@
 /*
- * render-golden/photo-materials.js: the photographed materials the Swiss
- * valley's ground is blended from and its buildings, Itaipu's and the
- * Interior's are finished with (src/maps/swiss2/assets.js when this was
- * recorded), pinned before they move into the shared asset library
- * (docs/ASSET-LIBRARY.md), so the move is proved to change nothing: the
- * layer and surface lists, the terrain layers' two texture arrays to the
- * byte, and each surface's three maps, their files and settings.
+ * render-golden/photo-materials.js: the photographed materials Itaipu's
+ * and the Interior's buildings are finished with, as the Swiss valley's
+ * were (src/maps/swiss2/assets.js when this was recorded), pinned before
+ * they moved into the shared asset library (docs/ASSET-LIBRARY.md), so the
+ * move is proved to change nothing: the surface list and each surface's
+ * three maps, their files and settings. The valley's terrain layers and
+ * their two texture arrays left with the valleys (2026-10-20), and their
+ * cases with them.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -30,12 +31,7 @@ const file = (t) => (t.image && t.image.src ? t.image.src.replace(window.locatio
 
 export function cases() {
   return {
-    lists: () => ({ LAYERS: assets.LAYERS, SURFACES: assets.SURFACES }),
-    terrain: async () => {
-      const table = makeTable();
-      const a = await assets.loadTerrainArrays(64, 4);
-      return { keys: Object.keys(a).sort(), col: describeTexture(a.col, table), nrh: describeTexture(a.nrh, table) };
-    },
+    lists: () => ({ SURFACES: assets.SURFACES }),
     surfaces: async () => {
       const out = {};
       for (const n of assets.SURFACES) {

@@ -10,7 +10,7 @@
  * The methods are called off Ui.prototype on a stand-in Ui, so the same
  * script reads the class before the split and the installed module after
  * it. Every collaborator outside the range (renderMenu, move, adjust, the
- * card and trick painters, the sound and settings hooks) is a stub that
+ * card painters, the sound and settings hooks) is a stub that
  * writes a line to a log, and a small stand-in document records focus,
  * blur, scrolling, events and what each control builds. Each scenario
  * keeps its log, the DOM it left and the Ui fields other code reads, in
@@ -236,7 +236,7 @@ function makeUi(extra = {}) {
   });
   ui.list = [];
   ui.items = () => ui.list;
-  for (const n of ['renderMenu', 'adjust', 'noteInteraction', 'markCards', 'renderTricks', 'refreshBest', 'show']) {
+  for (const n of ['renderMenu', 'adjust', 'markCards', 'refreshBest', 'show']) {
     ui[n] = (...a) => say(n, ...a);
   }
   ui.markBars = (items) => say('markBars', items.length);
@@ -431,12 +431,12 @@ const scenarios = {
 
   helpNode() {
     const ui = makeUi();
-    const names = ['titleHelp', 'howtoHelp', 'trickHelp', 'creditsHelp', 'coursesHelp', 'freestyleHelp', 'pilotHelp', 'friendsHelp',
-      'quadHelp', 'launchHelp', 'standingsHelp', 'ratesHelp', 'pidsHelp', 'fcHelp', 'pausedHelp', 'resultsHelp'];
+    const names = ['titleHelp', 'howtoHelp', 'creditsHelp', 'coursesHelp', 'freestyleHelp', 'pilotHelp', 'friendsHelp',
+      'quadHelp', 'launchHelp', 'ratesHelp', 'pidsHelp', 'fcHelp', 'pausedHelp', 'resultsHelp'];
     for (const n of names) ui[n] = named('div', n);
     const out = {};
-    const screens = ['title', 'howto', 'tricks', 'credits', 'courses', 'freestyle', 'pilot', 'friends', 'rooms', 'roomnew',
-      'quad', 'launch', 'standings', 'rates', 'pids', 'fc', 'paused', 'results', 'hangar', 'bogus'];
+    const screens = ['title', 'howto', 'credits', 'courses', 'pilot', 'friends', 'rooms', 'roomnew',
+      'quad', 'launch', 'rates', 'pids', 'fc', 'paused', 'results', 'hangar', 'bogus'];
     for (const s of screens) {
       ui.screen = s;
       out[s] = show(ui.helpNode() ?? null);
@@ -602,8 +602,6 @@ const scenarios = {
     ui.screen = 'freestyle';
     ui.setCursor(0, true);
     ui.cards = false;
-    ui.screen = 'tricks';
-    ui.setCursor(2);
     ui.onUiSound = null;
     ui.screen = 'quad';
     ui.setCursor(1);

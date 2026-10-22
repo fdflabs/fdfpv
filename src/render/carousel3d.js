@@ -50,7 +50,6 @@ import { craftBuilderFor } from './craft.js';
 import { addNavLights } from './navlights.js';
 import { publishDaytime } from '../share/daytime.js';
 import { dressLivery, liveryFor } from './livery.js';
-import { drawnChords, surfacesFor } from './surfacesource.js';
 import { layerOutline, paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
 import { animateParts, dressParts } from './partsfit.js';
@@ -241,18 +240,14 @@ export function createCarouselStage(renderer) {
     const preview = key === id ? previews.get(id) : undefined;
     const kit = (preview ?? liveryFor(id))?.kit ?? undefined;
     const lights = (preview ?? liveryFor(id))?.lights ?? undefined;
-    /* The bigger control surfaces (src/render/surfacesource.js) are built
-     * in as well, for the aircraft as the pilot has it. */
-    const surfaces = key === id ? surfacesFor(id) : null;
     const fitted = (kit && Object.values(kit).some((o) => o !== 'stock') ? `~${JSON.stringify(kit)}` : '')
-      + (lights ? `*${JSON.stringify(lights)}` : '')
-      + (surfaces ? `^${JSON.stringify(surfaces)}` : '');
+      + (lights ? `*${JSON.stringify(lights)}` : '');
     const at = (combat ? `${key}#${JSON.stringify(combat)}` : key) + fitted;
     let m = models.get(at);
     if (m) {
       return m;
     }
-    const craft = addNavLights(dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights, surfaces: surfaces ?? undefined }), id, preview ?? undefined), id), lights, false);
+    const craft = addNavLights(dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id), lights, false);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -825,11 +820,5 @@ export function createCarouselStage(renderer) {
     return c ? { propulsion: c.propulsion ?? null, antenna: c.antenna ?? null } : null;
   }
 
-  /* The last drawn model's moving surfaces' chords, for the checks. */
-  function chords(id) {
-    const m = lastByKey.get(id);
-    return m ? drawnChords(m.craft.group) : null;
-  }
-
-  return { draw, repaint, paint, pick, pickPart, outline, look, fitted, combat, chords, stats: () => ({ ...stats }) };
+  return { draw, repaint, paint, pick, pickPart, outline, look, fitted, combat, stats: () => ({ ...stats }) };
 }

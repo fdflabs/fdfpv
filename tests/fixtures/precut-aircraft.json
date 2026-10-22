@@ -1,0 +1,3888 @@
+{
+ "source": "configs/airframes.js AIRFRAMES, configs/tuning.js TUNING and configs/power.js TABLE and POWER at 988b8dfc6, before the 20 recreational aircraft left the shell",
+ "order": [
+  "7inch",
+  "10inch",
+  "interceptor",
+  "sky1800",
+  "cub1400",
+  "radian2000",
+  "bramor2300",
+  "slowstick1180",
+  "timber1500",
+  "timber1500f",
+  "cub1400f",
+  "bombshell1118",
+  "kadet1981",
+  "uglystik1567",
+  "tigermoth1803",
+  "extra3d1308",
+  "nighttimber1200",
+  "hercules3077",
+  "cap1702",
+  "slick2680",
+  "p51d1450",
+  "f16878",
+  "zagi1219",
+  "nrj1490",
+  "striker2500"
+ ],
+ "airframes": {
+  "sky1800": {
+   "id": "sky1800",
+   "simId": 3,
+   "fixedWing": true,
+   "stall": 9.2,
+   "topSpeed": 29.26,
+   "name": "Skyhunter",
+   "short": "Skyhunter",
+   "blurb": "An 1800 mm twin boom FPV plane on 4S, with ailerons, elevator and rudder. Throw it, fly it long, land it on its skid.",
+   "facts": [
+    "4S",
+    "1800 mm",
+    "Twin boom"
+   ],
+   "sizeMm": 1800,
+   "grams": 2100,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 4,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "sky-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1397,
+    "hullR": 0.9,
+    "vHalfDown": 0.12,
+    "vHalfUp": 0.219,
+    "bodyLength": 1.225,
+    "bodyWidth": 1.8,
+    "bodyHeight": 0.339
+   }
+  },
+  "cub1400": {
+   "id": "cub1400",
+   "simId": 4,
+   "fixedWing": true,
+   "stall": 8.1,
+   "topSpeed": 22.4,
+   "gear": {
+    "restHeight": 0.1463,
+    "restPitch": 0.19198621771937624
+   },
+   "name": "Piper Cub",
+   "short": "Cub",
+   "blurb": "A 1400 mm Piper J-3 Cub on 3S, a taildragger with ailerons, elevator and rudder. Take off from the strip on its wheels and land it back on them.",
+   "facts": [
+    "3S",
+    "1400 mm",
+    "Taildragger"
+   ],
+   "sizeMm": 1400,
+   "grams": 1320,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 3,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "cub-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1397,
+    "hullR": 0.7,
+    "vHalfDown": 0.163,
+    "vHalfUp": 0.16,
+    "bodyLength": 0.9,
+    "bodyWidth": 1.4,
+    "bodyHeight": 0.323
+   }
+  },
+  "radian2000": {
+   "id": "radian2000",
+   "simId": 6,
+   "fixedWing": true,
+   "stall": 6.49,
+   "topSpeed": 26.51,
+   "name": "Radian",
+   "short": "Radian",
+   "blurb": "A 2 m E-flite Radian motor glider on 3S, with ailerons, elevator and rudder. Climb on the motor, fold the prop, and find the thermals over the field to stay up.",
+   "facts": [
+    "3S",
+    "2000 mm",
+    "Glider"
+   ],
+   "sizeMm": 2000,
+   "grams": 980,
+   "trackClass": "wing",
+   "class": "glider",
+   "roles": [],
+   "cells": 3,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "radian-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1238,
+    "hullR": 1.0093,
+    "vHalfDown": 0.052,
+    "vHalfUp": 0.268,
+    "bodyLength": 1.14,
+    "bodyWidth": 2,
+    "bodyHeight": 0.32
+   }
+  },
+  "slowstick1180": {
+   "id": "slowstick1180",
+   "simId": 5,
+   "fixedWing": true,
+   "stall": 4.43,
+   "topSpeed": 10.28,
+   "gear": {
+    "restHeight": 0.1349,
+    "restPitch": 0.12060225131280816
+   },
+   "name": "Slow Stick",
+   "short": "Stick",
+   "blurb": "A 1176 mm GWS Slow Stick on 2S: rudder, elevator and throttle, no ailerons. The roll stick works the rudder, it floats at a jog, and it levels itself when you let go.",
+   "facts": [
+    "2S",
+    "1176 mm",
+    "Three channels"
+   ],
+   "sizeMm": 1176,
+   "grams": 420,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 2,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "slowstick-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1397,
+    "hullR": 0.6391,
+    "vHalfDown": 0.1575,
+    "vHalfUp": 0.1975,
+    "bodyLength": 0.952,
+    "bodyWidth": 1.176,
+    "bodyHeight": 0.355
+   }
+  },
+  "timber1500": {
+   "id": "timber1500",
+   "simId": 7,
+   "fixedWing": true,
+   "stall": 7.2,
+   "topSpeed": 27.2,
+   "gear": {
+    "restHeight": 0.2115,
+    "restPitch": 0.20612338466053032
+   },
+   "flaps": true,
+   "name": "Turbo Timber",
+   "short": "Timber",
+   "blurb": "A 1555 mm E-flite Turbo Timber Evolution on 4S, a bush plane with slats and big flaps. Full flaps and it is off the strip in two metres and crawls nose high; flaps up and it is quick and aerobatic. F sets the flaps.",
+   "facts": [
+    "4S",
+    "1555 mm",
+    "STOL, flaps"
+   ],
+   "sizeMm": 1555,
+   "grams": 1700,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 4,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "timber-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1397,
+    "hullR": 0.7981,
+    "vHalfDown": 0.227,
+    "vHalfUp": 0.195,
+    "bodyLength": 1.04,
+    "bodyWidth": 1.555,
+    "bodyHeight": 0.422
+   }
+  },
+  "timber1500f": {
+   "id": "timber1500f",
+   "simId": 9,
+   "tunesOf": "timber1500",
+   "fixedWing": true,
+   "stall": 7.68,
+   "topSpeed": 25.3,
+   "gear": {
+    "restHeight": 0.2464,
+    "restPitch": 0.008377580409572781
+   },
+   "floats": {
+    "restHeight": 0.2074,
+    "restPitch": 0.0439822971502571
+   },
+   "flaps": true,
+   "name": "Turbo Timber, floats",
+   "short": "Timber floats",
+   "blurb": "The Turbo Timber on its floats, on 4S. Half flaps, stick back until the floats get on the step, then let it run and rotate; land it back on the lake with full flaps and the stick held back. The water rudders steer it on the water.",
+   "facts": [
+    "4S",
+    "1555 mm",
+    "Floats"
+   ],
+   "sizeMm": 1555,
+   "grams": 1934,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 4,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "timber-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1397,
+    "hullR": 0.7981,
+    "vHalfDown": 0.2484,
+    "vHalfUp": 0.2216,
+    "bodyLength": 1.04,
+    "bodyWidth": 1.555,
+    "bodyHeight": 0.47
+   }
+  },
+  "cub1400f": {
+   "id": "cub1400f",
+   "simId": 10,
+   "tunesOf": "cub1400",
+   "fixedWing": true,
+   "stall": 8.73,
+   "topSpeed": 20.2,
+   "gear": {
+    "restHeight": 0.2171,
+    "restPitch": 0.007504915783575617
+   },
+   "floats": {
+    "restHeight": 0.1765,
+    "restPitch": 0.01117010721276371
+   },
+   "name": "Piper Cub, floats",
+   "short": "Cub floats",
+   "blurb": "The 1400 mm Piper J-3 Cub on floats, on 3S. Full throttle and the stick back to get it on the step, rotate at flying speed, and land it back on the lake nose up. The water rudders steer it on the water.",
+   "facts": [
+    "3S",
+    "1400 mm",
+    "Floats"
+   ],
+   "sizeMm": 1400,
+   "grams": 1532,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 3,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "cub-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1397,
+    "hullR": 0.7,
+    "vHalfDown": 0.2186,
+    "vHalfUp": 0.1864,
+    "bodyLength": 0.9,
+    "bodyWidth": 1.4,
+    "bodyHeight": 0.405
+   }
+  },
+  "bombshell1118": {
+   "id": "bombshell1118",
+   "simId": 11,
+   "fixedWing": true,
+   "stall": 6.49,
+   "topSpeed": 12.52,
+   "gear": {
+    "restHeight": 0.1318,
+    "restPitch": 0.14835298641951802
+   },
+   "name": "Buzzard Bombshell",
+   "short": "Bombshell",
+   "blurb": "A 44 in BMJR Buzzard Bombshell, the 1940 free flight classic in balsa and red tissue, on a Cox .049 glow engine: rudder, elevator and throttle, no ailerons. The roll stick works the rudder, it levels itself when you let go, and it climbs in thermals.",
+   "facts": [
+    "Glow .049",
+    "1118 mm",
+    "Three channels"
+   ],
+   "sizeMm": 1118,
+   "grams": 559.9,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 3,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "bombshell-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.0889,
+    "hullR": 0.6733,
+    "vHalfDown": 0.144,
+    "vHalfUp": 0.1793,
+    "bodyLength": 0.818,
+    "bodyWidth": 1.1176,
+    "bodyHeight": 0.3233
+   }
+  },
+  "kadet1981": {
+   "id": "kadet1981",
+   "simId": 12,
+   "fixedWing": true,
+   "voice": "glow4",
+   "stall": 7.15,
+   "topSpeed": 23.12,
+   "gear": {
+    "restHeight": 0.3072,
+    "restPitch": 0
+   },
+   "name": "Kadet Senior",
+   "short": "Kadet",
+   "blurb": "A 78 in SIG Kadet Senior, the classic balsa trainer in transparent yellow and red film, on an O.S. FS-52 four stroke: rudder, elevator and throttle, no ailerons, and a nose wheel that steers. The roll stick works the rudder and it levels itself when you let go. Fly it against the sun to see its ribs.",
+   "facts": [
+    "Four stroke .52",
+    "1981 mm",
+    "Three channels"
+   ],
+   "sizeMm": 1981,
+   "grams": 2721.6,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 2,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "kadet-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1524,
+    "hullR": 1.1677,
+    "vHalfDown": 0.3072,
+    "vHalfUp": 0.2464,
+    "bodyLength": 1.5834,
+    "bodyWidth": 1.9812,
+    "bodyHeight": 0.5536
+   }
+  },
+  "uglystik1567": {
+   "id": "uglystik1567",
+   "simId": 19,
+   "fixedWing": true,
+   "voice": "glow2",
+   "stall": 9.48,
+   "topSpeed": 28.29,
+   "gear": {
+    "restHeight": 0.2024,
+    "restPitch": -0.035953782591083186
+   },
+   "name": "Ugly Stik",
+   "short": "Stik",
+   "blurb": "Phil Kraft's Das Ugly Stik, 62 in of slab sided balsa in RCM's red with white panels and black crosses, on an O.S. .61 two stroke. The sport plane after the trainer: it rolls on its strip ailerons, loops round at full throttle, flies on its back with a push and goes where you point it until you tell it otherwise.",
+   "facts": [
+    "Two stroke .61",
+    "1567 mm",
+    "Four channels"
+   ],
+   "sizeMm": 1567,
+   "grams": 2721.6,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 2,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "uglystik-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1524,
+    "hullR": 0.8844,
+    "vHalfDown": 0.2032,
+    "vHalfUp": 0.1735,
+    "bodyLength": 1.3061,
+    "bodyWidth": 1.5682,
+    "bodyHeight": 0.3767
+   }
+  },
+  "tigermoth1803": {
+   "id": "tigermoth1803",
+   "simId": 23,
+   "fixedWing": true,
+   "voice": "glow2",
+   "stall": 9.47,
+   "topSpeed": 23.24,
+   "gear": {
+    "restHeight": 0.2654,
+    "restPitch": 0.14241886696273728
+   },
+   "name": "Tiger Moth",
+   "short": "Tiger",
+   "blurb": "Great Planes' Tiger Moth, 71 in of scale de Havilland DH.82A biplane in Cub Yellow with a black cowl, on an O.S. .61 two stroke. The trainer of the 1930s: slow and gentle, its top wing stalls first and the nose drops, but its ailerons on the bottom wing yaw it the wrong way, and every turn wants the rudder with them.",
+   "facts": [
+    "Biplane",
+    "1803 mm",
+    "Two stroke .61"
+   ],
+   "sizeMm": 1803,
+   "grams": 4649.3,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 2,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "tigermoth-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1524,
+    "hullR": 1.0696,
+    "vHalfDown": 0.2921,
+    "vHalfUp": 0.2771,
+    "bodyLength": 1.4706,
+    "bodyWidth": 1.8034,
+    "bodyHeight": 0.5692
+   }
+  },
+  "extra3d1308": {
+   "id": "extra3d1308",
+   "simId": 29,
+   "fixedWing": true,
+   "stall": 8.31,
+   "topSpeed": 30.3,
+   "gear": {
+    "restHeight": 0.2221,
+    "restPitch": 0.11693705988362009
+   },
+   "name": "Extra 300 3D",
+   "short": "Extra",
+   "blurb": "A 1308 mm E-flite Extra 300 3D on 4S, with two and a half times its weight in thrust and control surfaces as big as it can carry. Hang it on the prop, let go of the ailerons and it torque rolls; harrier it in slow at 40 degrees, knife edge it past on the rudder.",
+   "facts": [
+    "4S",
+    "1308 mm",
+    "3D"
+   ],
+   "sizeMm": 1308,
+   "grams": 1510,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 4,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "extra-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1651,
+    "hullR": 0.926,
+    "vHalfDown": 0.2416,
+    "vHalfUp": 0.208,
+    "bodyLength": 1.263,
+    "bodyWidth": 1.308,
+    "bodyHeight": 0.4496
+   }
+  },
+  "nighttimber1200": {
+   "id": "nighttimber1200",
+   "simId": 30,
+   "fixedWing": true,
+   "stall": 9.08,
+   "topSpeed": 23.58,
+   "gear": {
+    "restHeight": 0.2569,
+    "restPitch": 0.08080874436733745
+   },
+   "flaps": true,
+   "name": "Night Timber X",
+   "short": "Night Timber",
+   "blurb": "A 1200 mm E-flite Night Timber X on 4S: the Timber X's STOL wing and big surfaces, with LEDs inside the airframe. Full flaps and it is off the strip in a few metres; flaps mixed into the ailerons, it hangs on the prop and torque rolls. F sets the flaps.",
+   "facts": [
+    "4S",
+    "1200 mm",
+    "STOL",
+    "3D"
+   ],
+   "sizeMm": 1200,
+   "grams": 1698,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 4,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "nighttimber-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1651,
+    "hullR": 0.716,
+    "vHalfDown": 0.2695,
+    "vHalfUp": 0.1651,
+    "bodyLength": 1.055,
+    "bodyWidth": 1.2,
+    "bodyHeight": 0.4346
+   }
+  },
+  "hercules3077": {
+   "id": "hercules3077",
+   "simId": 31,
+   "fixedWing": true,
+   "ramp": true,
+   "voice": "wing",
+   "stall": 9.67,
+   "topSpeed": 28.64,
+   "gear": {
+    "restHeight": 0.2604,
+    "restPitch": 0
+   },
+   "name": "C-130 Hercules",
+   "short": "Hercules",
+   "blurb": "A 3 m AeroTetris balsa C-130H on four electric motors, in USAF grey. Heavy and slow to answer: fly it on a long approach. Press O to open the ramp and P to drop a load under its parachute.",
+   "facts": [
+    "Four motors",
+    "3077 mm",
+    "6.7 kg"
+   ],
+   "sizeMm": 3077,
+   "grams": 6728,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 3,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "hercules-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 0,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1524,
+    "hullR": 1.557,
+    "vHalfDown": 0.2604,
+    "vHalfUp": 0.6194,
+    "bodyLength": 2.25,
+    "bodyWidth": 3.077,
+    "bodyHeight": 0.8798
+   }
+  },
+  "cap1702": {
+   "id": "cap1702",
+   "simId": 32,
+   "fixedWing": true,
+   "stall": 10.62,
+   "topSpeed": 33.09,
+   "gear": {
+    "restHeight": 0.313,
+    "restPitch": 0.1897172896917836
+   },
+   "name": "CAP 580",
+   "short": "CAP",
+   "blurb": "A 1702 mm Extreme Flight CAP 580 on 6S, balsa and carbon, with 2.6 times its weight in thrust on a measured T-Motor bench table. It hovers, torque rolls, harriers and knife edges like the Extra, but at twice the weight it carries its speed through every figure: precise on the lines, heavy in the snap.",
+   "facts": [
+    "6S",
+    "1702 mm",
+    "3D",
+    "IMAC"
+   ],
+   "sizeMm": 1702,
+   "grams": 3628.7,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 6,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "cap-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.2286,
+    "hullR": 1.076,
+    "vHalfDown": 0.3418,
+    "vHalfUp": 0.277,
+    "bodyLength": 1.676,
+    "bodyWidth": 1.702,
+    "bodyHeight": 0.6188
+   }
+  },
+  "slick2680": {
+   "id": "slick2680",
+   "simId": 33,
+   "fixedWing": true,
+   "voice": "glow2",
+   "stall": 13.88,
+   "topSpeed": 42.54,
+   "gear": {
+    "restHeight": 0.4088,
+    "restPitch": 0.16336281798666924
+   },
+   "name": "Slick 580",
+   "short": "Slick",
+   "blurb": "A 2.68 m Extreme Flight Slick 580 on a 120 cc DA-120 petrol twin, 12.5 kg of balsa and carbon in its 10th Anniversary red and white. It hangs on its 28 in prop and torque rolls like the Extra, but with thirty times the Extra's inertia: everything it does it does with momentum. Pull it into the stall at idle and the prop's gyroscope drops the right wing.",
+   "facts": [
+    "DA-120 petrol",
+    "2680 mm",
+    "IMAC and 3D"
+   ],
+   "sizeMm": 2680,
+   "grams": 12474,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 2,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "slick-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.3556,
+    "hullR": 1.7277,
+    "vHalfDown": 0.44,
+    "vHalfUp": 0.505,
+    "bodyLength": 2.497,
+    "bodyWidth": 2.68,
+    "bodyHeight": 0.945
+   }
+  },
+  "p51d1450": {
+   "id": "p51d1450",
+   "simId": 15,
+   "fixedWing": true,
+   "stall": 10.06,
+   "topSpeed": 26.6,
+   "gear": {
+    "restHeight": 0.2291,
+    "restPitch": 0.22916173078685548
+   },
+   "flaps": true,
+   "retracts": true,
+   "name": "P-51D Mustang",
+   "short": "P-51",
+   "blurb": "A 1450 mm FMS P-51D Mustang on 4S, the Second World War fighter in natural metal with a red nose and tail. It swings left as the tail comes up, so feed in right rudder; it keeps its speed, and it drops a wing if you let it get slow. G raises and lowers the retracts, F sets the flaps.",
+   "facts": [
+    "4S",
+    "1450 mm",
+    "Retracts, flaps"
+   ],
+   "sizeMm": 1450,
+   "grams": 2350,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 4,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "p51-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.1778,
+    "hullR": 0.8326,
+    "vHalfDown": 0.2491,
+    "vHalfUp": 0.2303,
+    "bodyLength": 1.2628,
+    "bodyWidth": 1.45,
+    "bodyHeight": 0.4794
+   }
+  },
+  "f16878": {
+   "id": "f16878",
+   "simId": 16,
+   "fixedWing": true,
+   "retracts": true,
+   "voice": "edf",
+   "stall": 11.98,
+   "topSpeed": 45.83,
+   "gear": {
+    "restHeight": 0.14,
+    "restPitch": 0
+   },
+   "name": "F-16 Falcon",
+   "short": "F-16",
+   "blurb": "An 878 mm Freewing F-16 Fighting Falcon on a 70 mm ducted fan and 6S: ailerons, all moving stabilators, a rudder and a steerable nose wheel. The fan takes a moment to spool and its thrust falls away with speed, so it keeps its energy and wants a long, planned approach. G raises and lowers the retracts.",
+   "facts": [
+    "70 mm EDF",
+    "878 mm",
+    "6S"
+   ],
+   "sizeMm": 878,
+   "grams": 2116,
+   "trackClass": "wing",
+   "class": "plane",
+   "roles": [],
+   "cells": 6,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "f16-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.0345,
+    "hullR": 0.71,
+    "vHalfDown": 0.14,
+    "vHalfUp": 0.265,
+    "bodyLength": 1.306,
+    "bodyWidth": 0.878,
+    "bodyHeight": 0.405
+   }
+  },
+  "zagi1219": {
+   "id": "zagi1219",
+   "simId": 17,
+   "fixedWing": true,
+   "stall": 7.36,
+   "topSpeed": 36.8,
+   "name": "Zagi HP",
+   "short": "Zagi",
+   "blurb": "A 48 in Zagi HP on 3S, the EPP flying wing that taught a generation to fly on the slope and in combat. Throw it hard, and go easy on the elevons: it rolls fast and it answers the smallest touch in pitch. No rudder. It glides a long way and slides in on its belly.",
+   "facts": [
+    "3S",
+    "1219 mm",
+    "Flying wing"
+   ],
+   "sizeMm": 1219,
+   "grams": 722.9,
+   "trackClass": "wing",
+   "class": "wing",
+   "roles": [],
+   "cells": 3,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "zagi-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0.0635,
+    "hullR": 0.6657,
+    "vHalfDown": 0.012,
+    "vHalfUp": 0.1267,
+    "bodyLength": 0.4707,
+    "bodyWidth": 1.2192,
+    "bodyHeight": 0.1387
+   }
+  },
+  "nrj1490": {
+   "id": "nrj1490",
+   "simId": 21,
+   "fixedWing": true,
+   "discus": true,
+   "noMotor": true,
+   "stall": 4.35,
+   "topSpeed": 41,
+   "name": "NRJ DLG",
+   "short": "DLG",
+   "blurb": "A 1490 mm OA Composites NRJ, a 213 g carbon discus launch glider with no motor. Spin and throw it by the wingtip to 60 m, then work the thermals to stay up; bring it home on its belly or catch it.",
+   "facts": [
+    "No motor",
+    "1490 mm",
+    "213 g"
+   ],
+   "sizeMm": 1490,
+   "grams": 213,
+   "trackClass": "wing",
+   "class": "glider",
+   "roles": [],
+   "cells": 1,
+   "packVoltages": [
+    4.2,
+    3.8,
+    3.5
+   ],
+   "packLabels": {
+    "4.2": "Charged",
+    "3.8": "Half",
+    "3.5": "Nearly empty"
+   },
+   "defaultTune": "nrj-acro",
+   "gravityBase": 1,
+   "rates": {
+    "type": "ACTUAL",
+    "roll": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "pitch": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "yaw": {
+     "rcRate": 7,
+     "srate": 67,
+     "expo": 0
+    },
+    "throttleCap": 100
+   },
+   "cameraFov": 100,
+   "cameraAngle": 5,
+   "dims": {
+    "arm": 0,
+    "propR": 0,
+    "hullR": 0.7512,
+    "vHalfDown": 0.042,
+    "vHalfUp": 0.18,
+    "bodyLength": 0.959,
+    "bodyWidth": 1.49,
+    "bodyHeight": 0.222
+   }
+  }
+ },
+ "tuning": {
+  "sky1800": {
+   "chord": 0.2,
+   "area": 0.36,
+   "margin": 0.17,
+   "cg": {
+    "mm": 66.7,
+    "datum": "tuning.datum.le",
+    "range": null,
+    "source": "Sonicmodell, \"CG: 1/3 of wing from leading edge\", no range; https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html"
+   },
+   "packKg": 0.5,
+   "nose": 0.36,
+   "tail": -0.75,
+   "throws": {
+    "high": [
+     15,
+     15,
+     25
+    ],
+    "low": [
+     10.5,
+     10.5,
+     17.5
+    ],
+    "source": "high: ESTIMATED, no throws published (docs/SKYHUNTER-STAGE1.md); low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state"
+   },
+   "flaps": null
+  },
+  "cub1400": {
+   "chord": 0.2,
+   "area": 0.28,
+   "margin": 0.119,
+   "cg": {
+    "mm": 60,
+    "datum": "tuning.datum.le",
+    "range": [
+     55,
+     65
+    ],
+    "source": "FMS manual, \"(55-65mm) from the leading edge of the main wing\", p. 11; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dwa89b2e9b/Manuals/FMM106P%20Piper%20J-3%20Cub%20wFloats%201400mm%20V4-Manual-EN%20(2).pdf"
+   },
+   "packKg": 0.19,
+   "nose": 0.2,
+   "tail": -0.54,
+   "firstFlight": {
+    "rate": "low",
+    "source": "FMS manual, control throws: \"Tips: On the first flight, fly the model in low rate.\" It gives no expo, so the stock expo stays; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dwa89b2e9b/Manuals/FMM106P%20Piper%20J-3%20Cub%20wFloats%201400mm%20V4-Manual-EN%20(2).pdf"
+   },
+   "throws": {
+    "high": [
+     18,
+     15,
+     15
+    ],
+    "low": [
+     13.4,
+     11.2,
+     11.6
+    ],
+    "source": "FMS manual p. 10: high 16, 16, 18 mm, low 12, 12, 14 mm, on 50, 60 and 70 mm horn chords; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dwa89b2e9b/Manuals/FMM106P%20Piper%20J-3%20Cub%20wFloats%201400mm%20V4-Manual-EN%20(2).pdf"
+   },
+   "flaps": null
+  },
+  "radian2000": {
+   "chord": 0.1866,
+   "area": 0.355,
+   "margin": 0.228,
+   "cg": {
+    "mm": 63,
+    "datum": "tuning.datum.root_le",
+    "range": null,
+    "source": "E-flite Radian manual, \"2 1/2 inches (63mm) back from leading edge at the root\", no range; https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL4750-Manual-EN.pdf"
+   },
+   "packKg": 0.11,
+   "nose": 0.26,
+   "tail": -0.7,
+   "throws": {
+    "high": [
+     15,
+     24.4,
+     30
+    ],
+    "low": [
+     10.5,
+     18,
+     18.2
+    ],
+    "source": "E-flite Radian manual p. 3: elevator 12 and 9 mm, rudder 40 and 25 mm, dual rates 100/70 percent; the ailerons ESTIMATED (the Radian has none; the Radian Pro's are 15/12 mm high, 11/8 low, https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/PKZ5480-Manual_EN.pdf), their low at 70 percent; https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL4750-Manual-EN.pdf"
+   },
+   "flaps": null
+  },
+  "slowstick1180": {
+   "chord": 0.2776,
+   "area": 0.3264,
+   "margin": 0.073,
+   "cg": {
+    "mm": 100,
+    "datum": "tuning.datum.le",
+    "range": [
+     95,
+     105
+    ],
+    "source": "GWS manual, \"95-105mm (3.74\"-4.13\") from the leading edge of wing at central wing chord\"; http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf"
+   },
+   "packKg": 0.1,
+   "nose": 0.286,
+   "tail": -0.5,
+   "throws": {
+    "high": [
+     0,
+     15,
+     30
+    ],
+    "low": [
+     0,
+     10.5,
+     21
+    ],
+    "source": "GWS manual: elevator 15 to 20 deg, rudder 25 to 35 deg, \"Maximum control throws\", one set; low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state; http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf"
+   },
+   "flaps": null
+  },
+  "timber1500": {
+   "chord": 0.2322,
+   "area": 0.361,
+   "margin": 0.191,
+   "cg": {
+    "mm": 60,
+    "datum": "tuning.datum.root_le",
+    "range": [
+     55,
+     65
+    ],
+    "source": "E-flite manual, \"60mm +/-5mm back from the leading edge of the wing, measured at the wing root\", pp. 3 and 13; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   },
+   "packKg": 0.33,
+   "nose": 0.255,
+   "tail": -0.56,
+   "firstFlight": {
+    "rate": "low",
+    "expo": 5,
+    "source": "E-flite manual: \"Take first flights in Low Rate. For landings, use high rate elevator.\"; its exponential chart, Low Rate 5% on all three (High Rate 10%); https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   },
+   "throws": {
+    "high": [
+     30,
+     20,
+     27
+    ],
+    "low": [
+     22.2,
+     14.9,
+     17.6
+    ],
+    "source": "E-flite manual pp. 3 and 14: high 33, 20, 30 mm, low 25, 15, 20 mm, on 64.8, 60 and 65 mm horn chords; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   },
+   "flaps": {
+    "mix": -0.183531,
+    "angles": [
+     0,
+     0.3137649722243307,
+     0.570583797925496
+    ],
+    "source": "E-flite manual p. 3: half 20 mm, full 35 mm; \"Flap/Down-Elevator Compensation 16% 30%\"; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   }
+  },
+  "bombshell1118": {
+   "chord": 0.1905,
+   "area": 0.212903,
+   "margin": 0.288,
+   "cg": {
+    "mm": 62.9,
+    "datum": "tuning.datum.le",
+    "range": [
+     55.2,
+     81.9
+    ],
+    "source": "the plan's \"BALANCE POINT RANGE\" bracket, which carries no number, measured at 29 to 43 percent of the chord (docs/BOMBSHELL-STAGE1.md); https://outerzone.co.uk/plan_details.asp?ID=2180"
+   },
+   "packKg": 0.07,
+   "nose": 0.107,
+   "tail": -0.58,
+   "throws": {
+    "high": [
+     0,
+     15,
+     20
+    ],
+    "low": [
+     0,
+     10.5,
+     14
+    ],
+    "source": "high: ESTIMATED, no throws published (docs/BOMBSHELL-STAGE1.md); low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state"
+   },
+   "flaps": null
+  },
+  "kadet1981": {
+   "chord": 0.374487,
+   "area": 0.741934,
+   "margin": 0.268,
+   "cg": {
+    "mm": 98.4,
+    "datum": "tuning.datum.spar",
+    "range": null,
+    "source": "SIG, \"Center of Gravity 3 7/8 inch At Main Spar\", no range (the kit manual: \"shown on the plan\"); https://sigmfg.com/products/kadet-senior-kit"
+   },
+   "packKg": 0.1,
+   "nose": 0.335,
+   "tail": -0.95,
+   "throws": {
+    "high": [
+     0,
+     14.4775,
+     14.4775
+    ],
+    "low": [
+     0,
+     10.1,
+     10.1
+    ],
+    "source": "SIG kit manual p. 24: elevator 3/4 in up and down, rudder 7/8 in each way, one set; low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state; https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf"
+   },
+   "flaps": null
+  },
+  "uglystik1567": {
+   "chord": 0.3256,
+   "area": 0.51055,
+   "margin": 0.101,
+   "cg": {
+    "mm": 119.1,
+    "datum": "tuning.datum.root_le",
+    "range": null,
+    "source": "RCM plan 939, its C.G. mark 4.69 in behind the leading edge, and Kraft's \"It should balance approximately on the main spar\", no range; https://outerzone.co.uk/plan_details.asp?ID=6801"
+   },
+   "packKg": 0.1,
+   "nose": 0.2985,
+   "tail": -0.785,
+   "throws": {
+    "high": [
+     12.5969,
+     12.9765,
+     14.627
+    ],
+    "low": [
+     8.8,
+     9.1,
+     10.2
+    ],
+    "source": "RCM plan 939's \"Control Surface Travel Limits (measured at trailing edge)\": ailerons 5/16 in up and 1/4 down on the 1.29 in strip aileron, their mean, elevator 3/8 in on its 1.67 in, rudder 1 in on its 3.96 in (docs/UGLYSTIK-STAGE1.md), one set; low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state; https://outerzone.co.uk/plan_details.asp?ID=6801"
+   },
+   "flaps": null
+  },
+  "tigermoth1803": {
+   "chord": 0.2683,
+   "area": 0.87742,
+   "margin": 0.038,
+   "cg": {
+    "mm": 70,
+    "datum": "tuning.datum.bottom_le",
+    "range": [
+     64,
+     76
+    ],
+    "source": "Great Planes manual p. 21, \"measure back 2-3/4\" [70mm]\" on the top of the bottom wing next to the fuselage, and \"up to 2-1/2\" [64mm] back from the leading edge or 3\" [76mm]\"; https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf"
+   },
+   "packKg": 0.1,
+   "nose": 0.205,
+   "tail": -1.035,
+   "throws": {
+    "high": [
+     16.5003,
+     12.1141,
+     14.5859
+    ],
+    "low": [
+     10.91,
+     9.06,
+     14.59
+    ],
+    "source": "Great Planes manual p. 21, at the widest part of each surface: high rate ailerons 3/4 in, elevator 1 in and rudder 2 in each way, low rate 1/2, 3/4 and 2 in, on the 67 mm aileron, the 121 mm elevator and the 202 mm rudder (docs/TIGERMOTH-STAGE1.md); https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf"
+   },
+   "flaps": null
+  },
+  "extra3d1308": {
+   "chord": 0.2927,
+   "area": 0.369,
+   "margin": 0.154,
+   "cg": {
+    "mm": 95,
+    "datum": "tuning.datum.root_le",
+    "range": [
+     90,
+     100
+    ],
+    "source": "E-flite manual, \"3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage\", pp. 3 and 11; https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf"
+   },
+   "packKg": 0.27,
+   "nose": 0.26,
+   "tail": -0.83,
+   "firstFlight": {
+    "rate": "low",
+    "expo": 15,
+    "source": "E-flite manual p. 4: \"Take first flights in Low Rate. For landings, use high rate elevator.\"; its expo chart, \"Exponential (Low) Rates\" 15% on all three; https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf"
+   },
+   "throws": {
+    "high": [
+     36.53,
+     39.67,
+     55.05
+    ],
+    "low": [
+     20.92,
+     28.6,
+     35
+    ],
+    "source": "E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf"
+   },
+   "flaps": null
+  },
+  "nighttimber1200": {
+   "chord": 0.2388,
+   "area": 0.2866,
+   "margin": 0.067,
+   "expo": 0,
+   "cg": {
+    "mm": 89,
+    "datum": "tuning.datum.root_le",
+    "range": [
+     86,
+     105
+    ],
+    "source": "E-flite manual p. 8, \"89mm +/- 3mm back from the leading edge with the carbon joiner\" or \"102mm +/- 3mm ... with the steel joiner for maximum 3D performance\", without the slats (docs/NIGHTTIMBER-STAGE1.md); https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf"
+   },
+   "packKg": 0.27,
+   "nose": 0.339,
+   "tail": -0.716,
+   "throws": {
+    "high": [
+     28.92,
+     35.81,
+     33.75
+    ],
+    "low": [
+     22.13,
+     28.6,
+     23.82
+    ],
+    "source": "E-flite manual p. 3: high 45, 55 and 55 mm, low 35, 45 and 40 mm, at the surfaces' widest chords, 93, 94 and 99 mm (docs/NIGHTTIMBER-STAGE1.md); https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf"
+   },
+   "flaps": {
+    "mix": -0.212333,
+    "angles": [
+     0,
+     0.328206,
+     0.632256
+    ],
+    "source": "E-flite manual pp. 3 and 4: half 30 mm, full 55 mm; the flap mix 14 percent of the elevator at half and 20 at full; https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf"
+   }
+  },
+  "hercules3077": {
+   "chord": 0.3564,
+   "area": 1.0486,
+   "margin": 0.16,
+   "cg": {
+    "mm": 145,
+    "datum": "tuning.datum.root_le",
+    "range": [
+     145,
+     173.5
+    ],
+    "source": "AeroTetris, \"CG (16%): 923.8 mm\" and \"CG (8%): 952.3 mm\" from the nose of the C-130H's fuselage, the 16 percent static margin taken; the wing's root leading edge 778.8 mm from the nose on the drawn planform (docs/HERCULES-STAGE1.md); https://aerotetris.com/models/c130-3077.php"
+   },
+   "packKg": 1.64,
+   "nose": 0.92,
+   "tail": -1.2,
+   "throws": {
+    "high": [
+     15,
+     15,
+     25
+    ],
+    "low": [
+     10.5,
+     10.5,
+     17.5
+    ],
+    "source": "ESTIMATED: AeroTetris ships no manual; a scale model's usual 15 deg of aileron and elevator and 25 of rudder, well inside the full size's (docs/HERCULES-STAGE1.md); https://aerotetris.com/models/c130-3077.php"
+   },
+   "flaps": null
+  },
+  "cap1702": {
+   "chord": 0.338,
+   "area": 0.5548,
+   "margin": 0.21,
+   "cg": {
+    "mm": 130,
+    "datum": "tuning.datum.root_le",
+    "range": [
+     130,
+     150
+    ],
+    "source": "Extreme Flight's data sheet, \"Center of wing tube for maiden, sport and precision flight\", and the 67 in line's build guide, \"at the former immediately behind the wing tube\"; the tube's station FITTED at 130 mm (docs/CAP580-STAGE1.md), the former about 20 mm behind it; https://extremeflightrc.com/cdn/shop/files/DATASHEET_67_CAP_ecb0e58c-fdbf-409f-85e7-0af3bab79c00.pdf"
+   },
+   "packKg": 0.652,
+   "nose": 0.47,
+   "tail": -1.03,
+   "expo": 60,
+   "throws": {
+    "high": [
+     36,
+     50,
+     52.5
+    ],
+    "low": [
+     17.5,
+     11,
+     20
+    ],
+    "source": "Extreme Flight's data sheet, in degrees: high aileron 38 up 34 down (36 each way), elevator 50, rudder 50 to 55 (52.5); low aileron 15 to 20, elevator 10 to 12, rudder 20 (docs/CAP580-STAGE1.md); https://extremeflightrc.com/cdn/shop/files/DATASHEET_67_CAP_ecb0e58c-fdbf-409f-85e7-0af3bab79c00.pdf; https://extremeflightrc.com/cdn/shop/files/67_Extra260_ARF_Build_guide.pdf"
+   },
+   "flaps": null
+  },
+  "slick2680": {
+   "chord": 0.4577,
+   "area": 1.15,
+   "margin": 0.185,
+   "expo": 55,
+   "cg": {
+    "mm": 169,
+    "datum": "tuning.datum.root_le",
+    "range": [
+     160,
+     179
+    ],
+    "source": "EF's data sheet, \"Center of main wing tube to rear of main wing tube as starting position\": the 38 mm tube's centre at 28 percent of the drawn 570 mm root, 160 mm, to its rear, 179; the middle taken (docs/SLICK-STAGE1.md); https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf"
+   },
+   "packKg": 0.3,
+   "nose": 0.48,
+   "tail": -1.3,
+   "throws": {
+    "high": [
+     37.5,
+     47.5,
+     45
+    ],
+    "low": [
+     20,
+     11,
+     20
+    ],
+    "source": "EF's data sheet and 120cc build guide, in degrees: aileron 38 up and 37 down high, 20 low; elevator 45 to 50 for 3D, 10 to 12 low; rudder 45 and more high, 20 low; the middles taken (docs/SLICK-STAGE1.md); https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf"
+   },
+   "flaps": null
+  },
+  "p51d1450": {
+   "chord": 0.24413793103448275,
+   "area": 0.354,
+   "margin": 0.034,
+   "cg": {
+    "mm": 110,
+    "datum": "tuning.datum.root_le",
+    "range": null,
+    "source": "FMS manual, \"110mm from the wing's leading edge (measured at point of contact with fuselage)\", no range, p. 26; https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf"
+   },
+   "packKg": 0.295,
+   "nose": 0.3,
+   "tail": -0.7,
+   "throws": {
+    "high": [
+     19.8769,
+     25.8721,
+     12.1224
+    ],
+    "low": [
+     13.9,
+     18.1,
+     8.5
+    ],
+    "source": "FMS manual pp. 19 and 20: the low rates, 17, 24 and 21 mm, which the manual says are for normal flying, on the 50, 55 and 100 mm surfaces (docs/P51-STAGE1.md), are the plant's; low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state; https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf"
+   },
+   "flaps": {
+    "mix": 0,
+    "angles": [
+     0,
+     0.2851042871110053,
+     0.6129702553583196
+    ],
+    "source": "FMS manual p. 20: mid 22 mm, full 45 mm, no elevator mix given; https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf"
+   }
+  },
+  "nrj1490": {
+   "chord": 0.1378,
+   "area": 0.19,
+   "margin": 0.17,
+   "cg": {
+    "mm": 66,
+    "datum": "tuning.datum.root_le",
+    "range": [
+     64.5,
+     66.5
+    ],
+    "source": "OA Composites' manual, \"CG between 64.5 and 66.5mm\", 66 for the empty glider; https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf"
+   },
+   "packKg": 0.015,
+   "nose": 0.23,
+   "tail": -0.66,
+   "throws": {
+    "high": [
+     19,
+     17.5,
+     15.5
+    ],
+    "low": [
+     13.3,
+     12.25,
+     10.85
+    ],
+    "source": "OA Composites' manual: ailerons 13 mm each way, elevator 8 to 10 mm, rudder 12 mm, on the 40, 30 and 45 mm surfaces at the horn (docs/DLG-STAGE1.md); no low rate is published, so it is 70 percent; https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf"
+   },
+   "flaps": null
+  },
+  "f16878": {
+   "chord": 0.2856,
+   "area": 0.21484,
+   "margin": 0.115,
+   "cg": {
+    "mm": 90,
+    "datum": "tuning.datum.root_le",
+    "range": null,
+    "source": "Freewing V3 manual p. 9, \"90mm (3-1/2\")\" from the wing's leading edge at the root, no range; https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf"
+   },
+   "packKg": 0.566,
+   "nose": 0.6,
+   "tail": -0.55,
+   "throws": {
+    "high": [
+     21.5,
+     25,
+     30
+    ],
+    "low": [
+     13.975,
+     20,
+     25.5
+    ],
+    "source": "high: the full size F-16's surface limits (NASA TP-1538), Freewing's high rate, 100 percent; low: the manual's own dual rates p. 11, \"D/R Rate: 65%\", \"80%\", \"85%\" of it; https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf"
+   },
+   "flaps": null
+  },
+  "zagi1219": {
+   "chord": 0.21335338,
+   "area": 0.26012851,
+   "margin": 0.099,
+   "cg": {
+    "mm": 203.2,
+    "datum": "tuning.datum.root_le",
+    "range": null,
+    "source": "Zagi HP manual, \"designed to balance at 8\" measured back from the nose\", the \"suggested starting point\", moved back in 1/8 in steps \"until it is almost unflyable (too elevator sensitive)\", no range; https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf"
+   },
+   "packKg": 0.185,
+   "nose": 0.19,
+   "tail": -0.1,
+   "elevons": true,
+   "throws": {
+    "high": [
+     14.4775,
+     14.4775,
+     0
+    ],
+    "low": [
+     10.1,
+     10.1,
+     0
+    ],
+    "source": "Zagi manuals: the elevon throw \"3/8\" in each direction measured 1\" from the tip\" on either stick, one set, on the 1.5 in elevon (docs/ZAGI-STAGE1.md); low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state; https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf"
+   },
+   "flaps": null
+  },
+  "timber1500f": {
+   "chord": 0.2322,
+   "area": 0.361,
+   "margin": 0.191,
+   "cg": {
+    "mm": 60,
+    "datum": "tuning.datum.root_le",
+    "range": [
+     55,
+     65
+    ],
+    "source": "E-flite manual, \"60mm +/-5mm back from the leading edge of the wing, measured at the wing root\", pp. 3 and 13; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   },
+   "packKg": 0.33,
+   "nose": 0.255,
+   "tail": -0.56,
+   "firstFlight": {
+    "rate": "low",
+    "expo": 5,
+    "source": "E-flite manual: \"Take first flights in Low Rate. For landings, use high rate elevator.\"; its exponential chart, Low Rate 5% on all three (High Rate 10%); https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   },
+   "throws": {
+    "high": [
+     30,
+     20,
+     27
+    ],
+    "low": [
+     22.2,
+     14.9,
+     17.6
+    ],
+    "source": "E-flite manual pp. 3 and 14: high 33, 20, 30 mm, low 25, 15, 20 mm, on 64.8, 60 and 65 mm horn chords; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   },
+   "flaps": {
+    "mix": -0.183531,
+    "angles": [
+     0,
+     0.3137649722243307,
+     0.570583797925496
+    ],
+    "source": "E-flite manual p. 3: half 20 mm, full 35 mm; \"Flap/Down-Elevator Compensation 16% 30%\"; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   },
+   "float": true
+  },
+  "cub1400f": {
+   "chord": 0.2,
+   "area": 0.28,
+   "margin": 0.119,
+   "cg": {
+    "mm": 60,
+    "datum": "tuning.datum.le",
+    "range": [
+     55,
+     65
+    ],
+    "source": "FMS manual, \"(55-65mm) from the leading edge of the main wing\", p. 11; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dwa89b2e9b/Manuals/FMM106P%20Piper%20J-3%20Cub%20wFloats%201400mm%20V4-Manual-EN%20(2).pdf"
+   },
+   "packKg": 0.19,
+   "nose": 0.2,
+   "tail": -0.54,
+   "firstFlight": {
+    "rate": "low",
+    "source": "FMS manual, control throws: \"Tips: On the first flight, fly the model in low rate.\" It gives no expo, so the stock expo stays; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dwa89b2e9b/Manuals/FMM106P%20Piper%20J-3%20Cub%20wFloats%201400mm%20V4-Manual-EN%20(2).pdf"
+   },
+   "throws": {
+    "high": [
+     18,
+     15,
+     15
+    ],
+    "low": [
+     13.4,
+     11.2,
+     11.6
+    ],
+    "source": "FMS manual p. 10: high 16, 16, 18 mm, low 12, 12, 14 mm, on 50, 60 and 70 mm horn chords; https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dwa89b2e9b/Manuals/FMM106P%20Piper%20J-3%20Cub%20wFloats%201400mm%20V4-Manual-EN%20(2).pdf"
+   },
+   "flaps": null,
+   "float": true
+  }
+ },
+ "table": {
+  "sky1800": {
+   "simId": 3,
+   "massKg": 2.1,
+   "cells": 4,
+   "rCell": 0.008,
+   "propIn": 11,
+   "cruiseMs": 15,
+   "flightTime": {
+    "kind": "atLeast",
+    "minutesLow": 10,
+    "minutesHigh": 10,
+    "note": "Model Aviation's review, 'flights lasting 10 minutes and longer', 4S 5000 at 2.10 kg",
+    "source": "https://www.modelaviation.com/skyhunter"
+   }
+  },
+  "cub1400": {
+   "simId": 4,
+   "massKg": 1.32,
+   "cells": 3,
+   "rCell": 0.012,
+   "propIn": 11,
+   "cruiseMs": 12,
+   "flightTime": {
+    "kind": "timer",
+    "minutesLow": 4,
+    "minutesHigh": 6,
+    "note": "FMS: a 4 minute first timer, 'approx. flying duration 6min', 3S 2200",
+    "source": "https://www.fmshobby.com/products/fms-1400mm-55-1-j-3-cub-v4-pnp"
+   }
+  },
+  "cub1400f": {
+   "simId": 10,
+   "massKg": 1.532,
+   "cells": 3,
+   "rCell": 0.012,
+   "propIn": 11,
+   "cruiseMs": 12,
+   "flightTime": {
+    "kind": "timer",
+    "minutesLow": 4,
+    "minutesHigh": 6,
+    "note": "FMS, as the Cub on wheels",
+    "source": "https://www.fmshobby.com/products/fms-1400mm-55-1-j-3-cub-v4-pnp"
+   }
+  },
+  "radian2000": {
+   "simId": 6,
+   "massKg": 0.98,
+   "cells": 3,
+   "rCell": 0.015,
+   "propIn": 9.75,
+   "cruiseMs": 7.7,
+   "flightTime": null
+  },
+  "slowstick1180": {
+   "simId": 5,
+   "massKg": 0.42,
+   "cells": 2,
+   "rCell": 0.03,
+   "propIn": 11,
+   "cruiseMs": 5.5,
+   "flightTime": null
+  },
+  "timber1500": {
+   "simId": 7,
+   "massKg": 1.7,
+   "cells": 4,
+   "rCell": 0.008,
+   "propIn": 11,
+   "cruiseMs": 13,
+   "flightTime": {
+    "kind": "timer",
+    "minutesLow": 4,
+    "minutesHigh": 7,
+    "note": "E-flite's manual timers, 4 min first flights and 7 min, on the 4S 3200; Model Aviation flew 5 to 8",
+    "source": "https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   }
+  },
+  "timber1500f": {
+   "simId": 9,
+   "massKg": 1.934,
+   "cells": 4,
+   "rCell": 0.008,
+   "propIn": 11,
+   "cruiseMs": 13,
+   "flightTime": {
+    "kind": "timer",
+    "minutesLow": 4,
+    "minutesHigh": 7,
+    "note": "E-flite, as the Timber on wheels",
+    "source": "https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf"
+   }
+  },
+  "bombshell1118": {
+   "simId": 11,
+   "massKg": 0.5599,
+   "cells": 3,
+   "rCell": 0.03,
+   "propIn": 7,
+   "cruiseMs": 8,
+   "flightTime": null
+  },
+  "nrj1490": {
+   "simId": 21,
+   "massKg": 0.213,
+   "cells": 1,
+   "rCell": 0.1,
+   "propIn": 0,
+   "cruiseMs": 5.14,
+   "flightTime": null
+  },
+  "f16878": {
+   "simId": 16,
+   "massKg": 2.116,
+   "cells": 6,
+   "rCell": 0.006,
+   "propIn": 2.716535433070866,
+   "cruiseMs": 20,
+   "flightTime": {
+    "kind": "mixed",
+    "minutesLow": 4,
+    "minutesHigh": 4,
+    "note": "Model Aviation's review of the V2 6S Pro on a 6S 4000, flown as a jet is: 'Flight duration: 4 minutes'",
+    "source": "https://www.modelaviation.com/freewing-f-16"
+   }
+  },
+  "kadet1981": {
+   "simId": 12,
+   "massKg": 2.7216,
+   "cells": 2,
+   "rCell": 0.03,
+   "propIn": 12,
+   "cruiseMs": 10,
+   "flightTime": {
+    "kind": "mixed",
+    "minutesLow": 19.4,
+    "minutesHigh": 19.4,
+    "note": "O.S.'s 'around 12 minutes' on 220 cc for the FSa-56II, the FS-52S's successor, is 19.4 min on SIG's 355 cc",
+    "source": "https://www.os-engines.co.jp/english/line_up/engine/air/single/img/manual/34330.pdf"
+   }
+  },
+  "uglystik1567": {
+   "simId": 19,
+   "massKg": 2.7216,
+   "cells": 2,
+   "rCell": 0.03,
+   "propIn": 12,
+   "cruiseMs": 17.33,
+   "flightTime": null
+  },
+  "tigermoth1803": {
+   "simId": 23,
+   "massKg": 4.6493,
+   "cells": 2,
+   "rCell": 0.03,
+   "propIn": 12,
+   "cruiseMs": 14.41,
+   "flightTime": null
+  },
+  "nighttimber1200": {
+   "simId": 30,
+   "massKg": 1.698,
+   "cells": 4,
+   "rCell": 0.008,
+   "propIn": 13,
+   "cruiseMs": 13,
+   "flightTime": {
+    "kind": "timer",
+    "minutesLow": 4,
+    "minutesHigh": 4,
+    "note": "E-flite's manual timer, '4 minutes' on the 4S 2200",
+    "source": "https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf"
+   }
+  },
+  "extra3d1308": {
+   "simId": 29,
+   "massKg": 1.51,
+   "cells": 4,
+   "rCell": 0.008,
+   "propIn": 13,
+   "cruiseMs": 15,
+   "flightTime": {
+    "kind": "timer",
+    "minutesLow": 3,
+    "minutesHigh": 3,
+    "note": "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200",
+    "source": "https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf"
+   }
+  },
+  "hercules3077": {
+   "simId": 31,
+   "massKg": 6.728,
+   "cells": 3,
+   "rCell": 0.0015,
+   "propIn": 12,
+   "cruiseMs": 15.46,
+   "flightTime": null
+  },
+  "cap1702": {
+   "simId": 32,
+   "massKg": 3.6287,
+   "cells": 6,
+   "rCell": 0.00346,
+   "propIn": 18,
+   "cruiseMs": 18,
+   "flightTime": null
+  },
+  "slick2680": {
+   "simId": 33,
+   "massKg": 12.474,
+   "cells": 2,
+   "rCell": 0.03,
+   "propIn": 28,
+   "cruiseMs": 22,
+   "flightTime": null
+  },
+  "p51d1450": {
+   "simId": 15,
+   "massKg": 2.35,
+   "cells": 4,
+   "rCell": 0.008,
+   "propIn": 14,
+   "cruiseMs": 15.1,
+   "flightTime": {
+    "kind": "mixed",
+    "minutesLow": 8,
+    "minutesHigh": 8,
+    "note": "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight",
+    "source": "https://www.fmshobby.com/products/fms-1400mm-p-51d-red-tail-v8-pnp"
+   }
+  },
+  "zagi1219": {
+   "simId": 17,
+   "massKg": 0.7229,
+   "cells": 3,
+   "rCell": 0.008,
+   "propIn": 5,
+   "cruiseMs": 10.3,
+   "flightTime": null
+  }
+ },
+ "power": {
+  "sky1800": [
+   {
+    "id": "stock",
+    "name": "power.sky.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 950,
+    "propIn": 11,
+    "pitchIn": 5.5,
+    "blades": 2,
+    "thrustN": 27,
+    "currentA": 43,
+    "rpmNoLoad": 14060,
+    "pitchSpeedMs": 27.826,
+    "lvcV": 3,
+    "massKg": 2.1,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s4000",
+      "cells": 4,
+      "mAh": 4000,
+      "massKg": 0.429,
+      "source": "https://chinahobbyline.com/products/cnhl-4000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug"
+     },
+     {
+      "id": "4s5000",
+      "cells": 4,
+      "mAh": 5000,
+      "massKg": 0.536,
+      "source": "https://chinahobbyline.com/products/cnhl-5000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug"
+     },
+     {
+      "id": "4s6000",
+      "cells": 4,
+      "mAh": 6000,
+      "massKg": 0.62,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-6000mah-14-8v-4s-65c-lipo-battery-with-ec5-plug"
+     },
+     {
+      "id": "4s16000",
+      "cells": 4,
+      "mAh": 16000,
+      "massKg": 1.27,
+      "source": "https://chinahobbyline.com/products/cnhl-16000mah-14-8v-4s-15c-lipo-battery-with-xt90-plug"
+     }
+    ],
+    "pack": "4s5000",
+    "source": [
+     "https://www.modelaviation.com/skyhunter",
+     "https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html"
+    ]
+   },
+   {
+    "id": "920-11x7",
+    "name": "power.sky.920_11x7",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 920,
+    "propIn": 11,
+    "pitchIn": 7,
+    "blades": 2,
+    "thrustN": 24.908891,
+    "currentA": 45,
+    "rpmNoLoad": 13616,
+    "pitchSpeedMs": 34.29643466666666,
+    "lvcV": 3,
+    "massKg": 2.1,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s4000",
+      "cells": 4,
+      "mAh": 4000,
+      "massKg": 0.429,
+      "source": "https://chinahobbyline.com/products/cnhl-4000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug"
+     },
+     {
+      "id": "4s5000",
+      "cells": 4,
+      "mAh": 5000,
+      "massKg": 0.536,
+      "source": "https://chinahobbyline.com/products/cnhl-5000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug"
+     },
+     {
+      "id": "4s6000",
+      "cells": 4,
+      "mAh": 6000,
+      "massKg": 0.62,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-6000mah-14-8v-4s-65c-lipo-battery-with-ec5-plug"
+     },
+     {
+      "id": "4s16000",
+      "cells": 4,
+      "mAh": 16000,
+      "massKg": 1.27,
+      "source": "https://chinahobbyline.com/products/cnhl-16000mah-14-8v-4s-15c-lipo-battery-with-xt90-plug"
+     }
+    ],
+    "pack": "4s5000",
+    "source": [
+     "https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html",
+     "https://sunnyskyusa.com/products/sunnysky-x2820-brushless-motors"
+    ]
+   },
+   {
+    "id": "920-12x6",
+    "name": "power.sky.920_12x6",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 920,
+    "propIn": 12,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 28.047018999999995,
+    "currentA": 48.4,
+    "rpmNoLoad": 13616,
+    "pitchSpeedMs": 29.396944,
+    "lvcV": 3,
+    "massKg": 2.1,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s4000",
+      "cells": 4,
+      "mAh": 4000,
+      "massKg": 0.429,
+      "source": "https://chinahobbyline.com/products/cnhl-4000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug"
+     },
+     {
+      "id": "4s5000",
+      "cells": 4,
+      "mAh": 5000,
+      "massKg": 0.536,
+      "source": "https://chinahobbyline.com/products/cnhl-5000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug"
+     },
+     {
+      "id": "4s6000",
+      "cells": 4,
+      "mAh": 6000,
+      "massKg": 0.62,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-6000mah-14-8v-4s-65c-lipo-battery-with-ec5-plug"
+     },
+     {
+      "id": "4s16000",
+      "cells": 4,
+      "mAh": 16000,
+      "massKg": 1.27,
+      "source": "https://chinahobbyline.com/products/cnhl-16000mah-14-8v-4s-15c-lipo-battery-with-xt90-plug"
+     }
+    ],
+    "pack": "4s5000",
+    "source": [
+     "https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html",
+     "https://sunnyskyusa.com/products/sunnysky-x2820-brushless-motors"
+    ]
+   },
+   {
+    "id": "920-12x6-3s",
+    "name": "power.sky.920_12x6_3s",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 920,
+    "propIn": 12,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 17.455837,
+    "currentA": 29.8,
+    "rpmNoLoad": 10212,
+    "pitchSpeedMs": 22.047707999999997,
+    "lvcV": 3,
+    "massKg": 1.976,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s5000",
+      "cells": 3,
+      "mAh": 5000,
+      "massKg": 0.412,
+      "source": "https://chinahobbyline.com/products/cnhl-5000mah-11-1v-3s-40c-lipo-battery-with-xt90-plug"
+     }
+    ],
+    "pack": "3s5000",
+    "source": [
+     "https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html",
+     "https://sunnyskyusa.com/products/sunnysky-x2820-brushless-motors"
+    ]
+   },
+   {
+    "id": "800-13x8",
+    "name": "power.sky.800_13x8",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 800,
+    "propIn": 13,
+    "pitchIn": 8,
+    "blades": 2,
+    "thrustN": 27.360553499999998,
+    "currentA": 45.2,
+    "rpmNoLoad": 11840,
+    "pitchSpeedMs": 34.08341333333333,
+    "lvcV": 3,
+    "massKg": 2.1,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s4000",
+      "cells": 4,
+      "mAh": 4000,
+      "massKg": 0.429,
+      "source": "https://chinahobbyline.com/products/cnhl-4000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug"
+     },
+     {
+      "id": "4s5000",
+      "cells": 4,
+      "mAh": 5000,
+      "massKg": 0.536,
+      "source": "https://chinahobbyline.com/products/cnhl-5000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug"
+     },
+     {
+      "id": "4s6000",
+      "cells": 4,
+      "mAh": 6000,
+      "massKg": 0.62,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-6000mah-14-8v-4s-65c-lipo-battery-with-ec5-plug"
+     },
+     {
+      "id": "4s16000",
+      "cells": 4,
+      "mAh": 16000,
+      "massKg": 1.27,
+      "source": "https://chinahobbyline.com/products/cnhl-16000mah-14-8v-4s-15c-lipo-battery-with-xt90-plug"
+     }
+    ],
+    "pack": "4s5000",
+    "source": [
+     "https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html",
+     "https://sunnyskyusa.com/products/sunnysky-x2820-brushless-motors"
+    ]
+   }
+  ],
+  "cub1400": [
+   {
+    "id": "stock",
+    "name": "power.cub.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 850,
+    "propIn": 11,
+    "pitchIn": 7,
+    "blades": 2,
+    "thrustN": 13.5,
+    "currentA": 27,
+    "rpmNoLoad": 9435,
+    "pitchSpeedMs": 23.765,
+    "lvcV": 3,
+    "massKg": 1.32,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s2200",
+      "cells": 3,
+      "mAh": 2200,
+      "massKg": 0.16556,
+      "source": "https://www.horizonhobby.com/product/x/SPMX22003S30.html"
+     },
+     {
+      "id": "3s3200",
+      "cells": 3,
+      "mAh": 3200,
+      "massKg": 0.237,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32003S30.html"
+     }
+    ],
+    "pack": "3s2200",
+    "source": [
+     "https://www.fmshobby.com/products/fms-1400mm-55-1-j-3-cub-v4-pnp",
+     "https://cdn-files.myshopline.com/file/store/1772248208561/ZTW.pdf"
+    ]
+   }
+  ],
+  "cub1400f": [
+   {
+    "id": "stock",
+    "name": "power.cub.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 850,
+    "propIn": 11,
+    "pitchIn": 7,
+    "blades": 2,
+    "thrustN": 13.5,
+    "currentA": 27,
+    "rpmNoLoad": 9435,
+    "pitchSpeedMs": 23.765,
+    "lvcV": 3,
+    "massKg": 1.32,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s2200",
+      "cells": 3,
+      "mAh": 2200,
+      "massKg": 0.16556,
+      "source": "https://www.horizonhobby.com/product/x/SPMX22003S30.html"
+     },
+     {
+      "id": "3s3200",
+      "cells": 3,
+      "mAh": 3200,
+      "massKg": 0.237,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32003S30.html"
+     }
+    ],
+    "pack": "3s2200",
+    "source": [
+     "https://www.fmshobby.com/products/fms-1400mm-55-1-j-3-cub-v4-pnp",
+     "https://cdn-files.myshopline.com/file/store/1772248208561/ZTW.pdf"
+    ]
+   }
+  ],
+  "radian2000": [
+   {
+    "id": "stock",
+    "name": "power.radian.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 960,
+    "propIn": 9.75,
+    "pitchIn": 7.5,
+    "blades": 2,
+    "thrustN": 9.28,
+    "currentA": 21.8,
+    "rpmNoLoad": 10656,
+    "pitchSpeedMs": 28.758,
+    "lvcV": 3.108,
+    "massKg": 0.98,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s1300",
+      "cells": 3,
+      "mAh": 1300,
+      "massKg": 0.113,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-1300mah-11-1v-3s-130c-lipo-battery-with-xt60-plug"
+     },
+     {
+      "id": "3s1500",
+      "cells": 3,
+      "mAh": 1500,
+      "massKg": 0.125,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-v2-0-1500mah-11-1v-3s-130c-lipo-battery-with-xt60-plug"
+     },
+     {
+      "id": "3s1800",
+      "cells": 3,
+      "mAh": 1800,
+      "massKg": 0.168,
+      "source": "https://chinahobbyline.com/products/cnhl-1800mah-11-1v-3s-70c-lipo-battery-with-t-dean-plug"
+     },
+     {
+      "id": "3s2200",
+      "cells": 3,
+      "mAh": 2200,
+      "massKg": 0.18,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-2200mah-3s-11-1v-30c-lipo-battery-with-ec3-plug"
+     }
+    ],
+    "pack": "3s1300",
+    "source": [
+     "https://www.modelairplanenews.com/parkzone-radian-pro/",
+     "https://www.modelaviation.com/eflite-night-radian",
+     "https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw5e16af32/Manuals/EFLA1030B_Manual.pdf"
+    ]
+   }
+  ],
+  "slowstick1180": [
+   {
+    "id": "stock",
+    "name": "power.slowstick.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 0,
+    "propIn": 11,
+    "pitchIn": 8,
+    "blades": 2,
+    "thrustN": 2.69,
+    "currentA": 6.1,
+    "rpmNoLoad": 3882,
+    "pitchSpeedMs": 11.175,
+    "lvcV": 2.7,
+    "massKg": 0.42,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "2s1300",
+      "cells": 2,
+      "mAh": 1300,
+      "massKg": 0.074,
+      "source": "https://www.horizonhobby.com/product/x/SPMX133S30.html"
+     }
+    ],
+    "pack": "2s1300",
+    "source": [
+     "http://www.gwsus.com/english/product/powersystem/004.htm",
+     "http://www.gwsus.com/english/product/speedcontroller/009.htm",
+     "http://www.gwsus.com/english/service/book/airplane/New_SlowStick_Manual.rar"
+    ]
+   },
+   {
+    "id": "2212-1047",
+    "name": "power.slowstick.2212_1047",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 1030,
+    "propIn": 10,
+    "pitchIn": 4.7,
+    "blades": 2,
+    "thrustN": 4.4522191,
+    "currentA": 9.2,
+    "rpmNoLoad": 5764.705882352941,
+    "pitchSpeedMs": 9.749366666666667,
+    "lvcV": 3,
+    "massKg": 0.414,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "2s1300",
+      "cells": 2,
+      "mAh": 1300,
+      "massKg": 0.074,
+      "source": "https://www.horizonhobby.com/product/x/SPMX133S30.html"
+     },
+     {
+      "id": "2s2200",
+      "cells": 2,
+      "mAh": 2200,
+      "massKg": 0.15,
+      "source": "https://www.horizonhobby.com/product/x/SPMX223S30.html"
+     }
+    ],
+    "pack": "2s1300",
+    "source": [
+     "http://www.gwsus.com/images/note%20book/gwblm003-1.jpg",
+     "http://www.gwsus.com/english/service/book/airplane/New_SlowStick_Manual.rar"
+    ]
+   },
+   {
+    "id": "2212-1060",
+    "name": "power.slowstick.2212_1060",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 1030,
+    "propIn": 10,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 4.10898635,
+    "currentA": 7.8,
+    "rpmNoLoad": 6470.588235294118,
+    "pitchSpeedMs": 13.969999999999999,
+    "lvcV": 3,
+    "massKg": 0.414,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "2s1300",
+      "cells": 2,
+      "mAh": 1300,
+      "massKg": 0.074,
+      "source": "https://www.horizonhobby.com/product/x/SPMX133S30.html"
+     },
+     {
+      "id": "2s2200",
+      "cells": 2,
+      "mAh": 2200,
+      "massKg": 0.15,
+      "source": "https://www.horizonhobby.com/product/x/SPMX223S30.html"
+     }
+    ],
+    "pack": "2s1300",
+    "source": [
+     "http://www.gwsus.com/images/note%20book/gwblm003-1.jpg",
+     "http://www.gwsus.com/english/service/book/airplane/New_SlowStick_Manual.rar"
+    ]
+   },
+   {
+    "id": "2215-1060-3s",
+    "name": "power.slowstick.2215_1060_3s",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 900,
+    "propIn": 10,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 6.0801229999999995,
+    "currentA": 9.6,
+    "rpmNoLoad": 8043.2941176470595,
+    "pitchSpeedMs": 17.365472,
+    "lvcV": 3,
+    "massKg": 0.45899999999999996,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s1300",
+      "cells": 3,
+      "mAh": 1300,
+      "massKg": 0.111,
+      "source": "https://www.horizonhobby.com/product/x/SPMX133S30.html"
+     },
+     {
+      "id": "3s2200",
+      "cells": 3,
+      "mAh": 2200,
+      "massKg": 0.225,
+      "source": "https://www.horizonhobby.com/product/x/SPMX223S30.html"
+     }
+    ],
+    "pack": "3s1300",
+    "source": [
+     "http://www.gwsus.com/english/product/motor/009.htm",
+     "http://www.gwsus.com/english/service/book/airplane/New_SlowStick_Manual.rar"
+    ]
+   }
+  ],
+  "timber1500": [
+   {
+    "id": "stock",
+    "name": "power.timber.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 800,
+    "propIn": 11,
+    "pitchIn": 7.5,
+    "blades": 3,
+    "thrustN": 25,
+    "currentA": 44,
+    "rpmNoLoad": 11840,
+    "pitchSpeedMs": 31.953,
+    "lvcV": 3.4,
+    "massKg": 1.7,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s2200",
+      "cells": 4,
+      "mAh": 2200,
+      "massKg": 0.27,
+      "source": "https://www.horizonhobby.com/product/x/SPMX224S30.html"
+     },
+     {
+      "id": "4s3200",
+      "cells": 4,
+      "mAh": 3200,
+      "massKg": 0.325,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32004S30.html"
+     },
+     {
+      "id": "4s4000",
+      "cells": 4,
+      "mAh": 4000,
+      "massKg": 0.375,
+      "source": "https://www.horizonhobby.com/product/x/SPMX40004S30.html"
+     },
+     {
+      "id": "4s5000",
+      "cells": 4,
+      "mAh": 5000,
+      "massKg": 0.486,
+      "source": "https://www.horizonhobby.com/product/x/SPMX50004S30.html"
+     }
+    ],
+    "pack": "4s3200",
+    "source": [
+     "https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf",
+     "https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html"
+    ]
+   },
+   {
+    "id": "3s",
+    "name": "power.timber.3s",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 800,
+    "propIn": 11,
+    "pitchIn": 7.5,
+    "blades": 3,
+    "thrustN": 14.062499999999995,
+    "currentA": 24.74999999999999,
+    "rpmNoLoad": 8880,
+    "pitchSpeedMs": 23.964749999999995,
+    "lvcV": 3.4,
+    "massKg": 1.612,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s2200",
+      "cells": 3,
+      "mAh": 2200,
+      "massKg": 0.16556,
+      "source": "https://www.horizonhobby.com/product/x/SPMX22003S30.html"
+     },
+     {
+      "id": "3s3200",
+      "cells": 3,
+      "mAh": 3200,
+      "massKg": 0.237,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32003S30.html"
+     }
+    ],
+    "pack": "3s3200",
+    "source": [
+     "https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html",
+     "https://www.modelaviation.com/turbo-timber-bnf"
+    ]
+   }
+  ],
+  "timber1500f": [
+   {
+    "id": "stock",
+    "name": "power.timber.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 800,
+    "propIn": 11,
+    "pitchIn": 7.5,
+    "blades": 3,
+    "thrustN": 25,
+    "currentA": 44,
+    "rpmNoLoad": 11840,
+    "pitchSpeedMs": 31.953,
+    "lvcV": 3.4,
+    "massKg": 1.7,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s2200",
+      "cells": 4,
+      "mAh": 2200,
+      "massKg": 0.27,
+      "source": "https://www.horizonhobby.com/product/x/SPMX224S30.html"
+     },
+     {
+      "id": "4s3200",
+      "cells": 4,
+      "mAh": 3200,
+      "massKg": 0.325,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32004S30.html"
+     },
+     {
+      "id": "4s4000",
+      "cells": 4,
+      "mAh": 4000,
+      "massKg": 0.375,
+      "source": "https://www.horizonhobby.com/product/x/SPMX40004S30.html"
+     },
+     {
+      "id": "4s5000",
+      "cells": 4,
+      "mAh": 5000,
+      "massKg": 0.486,
+      "source": "https://www.horizonhobby.com/product/x/SPMX50004S30.html"
+     }
+    ],
+    "pack": "4s3200",
+    "source": [
+     "https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw442b6efc/Manuals/EFL105250-Manual-EN.pdf",
+     "https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html"
+    ]
+   },
+   {
+    "id": "3s",
+    "name": "power.timber.3s",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 800,
+    "propIn": 11,
+    "pitchIn": 7.5,
+    "blades": 3,
+    "thrustN": 14.062499999999995,
+    "currentA": 24.74999999999999,
+    "rpmNoLoad": 8880,
+    "pitchSpeedMs": 23.964749999999995,
+    "lvcV": 3.4,
+    "massKg": 1.612,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s2200",
+      "cells": 3,
+      "mAh": 2200,
+      "massKg": 0.16556,
+      "source": "https://www.horizonhobby.com/product/x/SPMX22003S30.html"
+     },
+     {
+      "id": "3s3200",
+      "cells": 3,
+      "mAh": 3200,
+      "massKg": 0.237,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32003S30.html"
+     }
+    ],
+    "pack": "3s3200",
+    "source": [
+     "https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html",
+     "https://www.modelaviation.com/turbo-timber-bnf"
+    ]
+   }
+  ],
+  "bombshell1118": [
+   {
+    "id": "stock",
+    "name": "power.bombshell.stock",
+    "kind": "glow",
+    "voice": "glow2",
+    "propIn": 7,
+    "pitchIn": 3.5,
+    "blades": 2,
+    "thrustN": 2.824,
+    "rpmNoLoad": 11000,
+    "pitchSpeedMs": 13.854,
+    "idle": 0.4,
+    "flowFullM3s": 3.0666666666666663e-8,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 0.5599,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "8.4cc",
+      "cc": 8.4,
+      "m3": 0.0000084,
+      "massKg": 0.007350000000000001,
+      "source": "https://coxengines.ca/public/files/049%20Texaco.pdf"
+     },
+     {
+      "id": "5.1cc",
+      "cc": 5.1,
+      "m3": 0.0000051,
+      "massKg": 0.0044624999999999995,
+      "source": "https://www.antiquemodeler.org/images/Rulebook/2025%20Final%20-%20Jan%2017%202025.pdf"
+     }
+    ],
+    "pack": "8.4cc",
+    "source": [
+     "https://bmjrmodels.com/product/buzzard-bombshell/",
+     "https://coxengines.ca/public/files/049%20Texaco.pdf",
+     "https://api.drum.lib.umd.edu/server/api/core/bitstreams/3ae6ca8c-b068-4d07-90dc-7f5bf6a95b3c/content"
+    ]
+   },
+   {
+    "id": "cox-rc",
+    "name": "power.bombshell.cox_rc",
+    "kind": "glow",
+    "voice": "glow2",
+    "propIn": 5,
+    "pitchIn": 3,
+    "blades": 2,
+    "thrustN": 3.572,
+    "rpmNoLoad": 21176.470588235294,
+    "pitchSpeedMs": 22.86,
+    "idle": 0.37777777777777777,
+    "flowFullM3s": 3.516666666666667e-8,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 0.5599,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "8.4cc",
+      "cc": 8.4,
+      "m3": 0.0000084,
+      "massKg": 0.007350000000000001,
+      "source": "https://coxengines.ca/public/files/049%20Texaco.pdf"
+     },
+     {
+      "id": "5.1cc",
+      "cc": 5.1,
+      "m3": 0.0000051,
+      "massKg": 0.0044624999999999995,
+      "source": "https://www.antiquemodeler.org/images/Rulebook/2025%20Final%20-%20Jan%2017%202025.pdf"
+     }
+    ],
+    "pack": "8.4cc",
+    "source": [
+     "https://www.coxengines.ca/public/files/review.pdf",
+     "https://www.apcprop.com/files/PER3_5x3.dat",
+     "https://api.drum.lib.umd.edu/server/api/core/bitstreams/3ae6ca8c-b068-4d07-90dc-7f5bf6a95b3c/content"
+    ]
+   },
+   {
+    "id": "electric",
+    "name": "power.bombshell.electric",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 1220,
+    "propIn": 8,
+    "pitchIn": 4,
+    "blades": 2,
+    "thrustN": 10.039,
+    "currentA": 17.05,
+    "rpmNoLoad": 14511.764705882353,
+    "pitchSpeedMs": 20.887266666666665,
+    "lvcV": 3,
+    "massKg": 0.61943708028125,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s850",
+      "cells": 3,
+      "mAh": 850,
+      "massKg": null,
+      "source": "https://bmjrmodels.com/product/buzzard-bombshell/"
+     }
+    ],
+    "pack": "3s850",
+    "source": [
+     "https://bmjrmodels.com/product/buzzard-bombshell/",
+     "https://web.archive.org/web/2023id_/https://www.maxxprod.com/pdf/HC2816-xxxx.pdf",
+     "https://www.apcprop.com/files/PER3_8x4E.dat"
+    ]
+   }
+  ],
+  "kadet1981": [
+   {
+    "id": "stock",
+    "name": "power.kadet.stock",
+    "kind": "glow",
+    "voice": "glow4",
+    "propIn": 12,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 27.83,
+    "rpmNoLoad": 11176,
+    "pitchSpeedMs": 24.129,
+    "idle": 0.2421,
+    "flowFullM3s": 3.05e-7,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 2.7216,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "355cc",
+      "cc": 355,
+      "m3": 0.000355,
+      "massKg": 0.310625,
+      "source": "https://sigmfg.com/products/kadet-senior-kit"
+     },
+     {
+      "id": "237cc",
+      "cc": 237,
+      "m3": 0.000237,
+      "massKg": 0.207375,
+      "source": "https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf"
+     }
+    ],
+    "pack": "355cc",
+    "source": [
+     "https://sigmfg.com/products/kadet-senior-kit",
+     "https://www.os-engines.co.jp/english/line_up/engine/air/single/img/manual/34330.pdf",
+     "https://api.drum.lib.umd.edu/server/api/core/bitstreams/3ae6ca8c-b068-4d07-90dc-7f5bf6a95b3c/content"
+    ]
+   },
+   {
+    "id": "fsa56",
+    "name": "power.kadet.fsa56",
+    "kind": "glow",
+    "voice": "glow4",
+    "propIn": 12,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 29.64,
+    "rpmNoLoad": 11522.35294117647,
+    "pitchSpeedMs": 24.876759999999997,
+    "idle": 0.2450479885644272,
+    "flowFullM3s": 3.05e-7,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 2.7066,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "355cc",
+      "cc": 355,
+      "m3": 0.000355,
+      "massKg": 0.310625,
+      "source": "https://sigmfg.com/products/kadet-senior-kit"
+     },
+     {
+      "id": "237cc",
+      "cc": 237,
+      "m3": 0.000237,
+      "massKg": 0.207375,
+      "source": "https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf"
+     }
+    ],
+    "pack": "355cc",
+    "source": [
+     "https://www.os-engines.co.jp/english/line_up/engine/air/single/catalog/34330.html",
+     "https://www.os-engines.co.jp/english/line_up/engine/air/single/img/manual/34330.pdf",
+     "https://www.apcprop.com/files/PER3_12x6.dat"
+    ]
+   },
+   {
+    "id": "fs64",
+    "name": "power.kadet.fs64",
+    "kind": "glow",
+    "voice": "glow4",
+    "propIn": 13,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 34.217,
+    "rpmNoLoad": 11502.35294117647,
+    "pitchSpeedMs": 24.833579999999998,
+    "idle": 0.245474071801166,
+    "flowFullM3s": 3.4771244051665536e-7,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 2.7296,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "355cc",
+      "cc": 355,
+      "m3": 0.000355,
+      "massKg": 0.310625,
+      "source": "https://sigmfg.com/products/kadet-senior-kit"
+     },
+     {
+      "id": "237cc",
+      "cc": 237,
+      "m3": 0.000237,
+      "massKg": 0.207375,
+      "source": "https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf"
+     }
+    ],
+    "pack": "355cc",
+    "source": [
+     "https://www.os-engines.co.jp/english/line_up/engine/air/single/catalog/3AY00.html",
+     "https://www.apcprop.com/files/PER3_13x6.dat"
+    ]
+   },
+   {
+    "id": "electric",
+    "name": "power.kadet.electric",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 530,
+    "propIn": 13,
+    "pitchIn": 8,
+    "blades": 2,
+    "thrustN": 34.359,
+    "currentA": 37.69,
+    "rpmNoLoad": 10760,
+    "pitchSpeedMs": 30.97445333333333,
+    "lvcV": 3,
+    "massKg": 2.908975,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "5s5000",
+      "cells": 5,
+      "mAh": 5000,
+      "massKg": 0.657,
+      "source": "https://chinahobbyline.com/products/cnhl-5000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug"
+     }
+    ],
+    "pack": "5s5000",
+    "source": [
+     "https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc96egarfkadetseniorsporteg.pdf",
+     "https://web.archive.org/web/2023id_/https://www.maxxprod.com/pdf/HC5018-530.pdf",
+     "https://www.apcprop.com/files/PER3_13x8E.dat"
+    ]
+   }
+  ],
+  "uglystik1567": [
+   {
+    "id": "stock",
+    "name": "power.uglystik.stock",
+    "kind": "glow",
+    "voice": "glow2",
+    "propIn": 12,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 36.206,
+    "rpmNoLoad": 12817.6,
+    "pitchSpeedMs": 27.673,
+    "idle": 0.1836,
+    "flowFullM3s": 4.5666666666666665e-7,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 2.7216,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "355cc",
+      "cc": 355,
+      "m3": 0.000355,
+      "massKg": 0.310625,
+      "source": "https://outerzone.co.uk/plan_details.asp?ID=6801"
+     }
+    ],
+    "pack": "355cc",
+    "source": [
+     "https://outerzone.co.uk/plan_details.asp?ID=6801",
+     "https://www.os-engines.co.jp/english/line_up/engine/air/aircraft/manual/50sx_40-91fx.pdf",
+     "https://www.rcuniverse.com/forum/glow-engines-114/6767782-o-s-61-fx-engines.html",
+     "https://www.apcprop.com/files/PER3_12x6.dat",
+     "https://api.drum.lib.umd.edu/server/api/core/bitstreams/3ae6ca8c-b068-4d07-90dc-7f5bf6a95b3c/content"
+    ]
+   },
+   {
+    "id": "fx46",
+    "name": "power.uglystik.fx46",
+    "kind": "glow",
+    "voice": "glow2",
+    "propIn": 11,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 30.506,
+    "rpmNoLoad": 13636.470588235294,
+    "pitchSpeedMs": 29.44114,
+    "idle": 0.21568458286601674,
+    "flowFullM3s": 3.4192629815745396e-7,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 2.5466,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "355cc",
+      "cc": 355,
+      "m3": 0.000355,
+      "massKg": 0.310625,
+      "source": "https://outerzone.co.uk/plan_details.asp?ID=6801"
+     }
+    ],
+    "pack": "355cc",
+    "source": [
+     "https://www.os-engines.co.jp/english/line_up/engine/air/aircraft/manual/50sx_40-91fx.pdf",
+     "https://www.apcprop.com/files/PER3_11x6.dat"
+    ]
+   }
+  ],
+  "tigermoth1803": [
+   {
+    "id": "stock",
+    "name": "power.tigermoth.stock",
+    "kind": "glow",
+    "voice": "glow2",
+    "propIn": 12,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 36.206,
+    "rpmNoLoad": 12817.6,
+    "pitchSpeedMs": 27.673,
+    "idle": 0.1836,
+    "flowFullM3s": 4.5666666666666665e-7,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 4.6493,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "355cc",
+      "cc": 355,
+      "m3": 0.000355,
+      "massKg": 0.310625,
+      "source": "https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf"
+     }
+    ],
+    "pack": "355cc",
+    "source": [
+     "https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf",
+     "https://www.os-engines.co.jp/english/line_up/engine/air/aircraft/manual/50sx_40-91fx.pdf",
+     "https://www.rcuniverse.com/forum/glow-engines-114/6767782-o-s-61-fx-engines.html",
+     "https://www.apcprop.com/files/PER3_12x6.dat",
+     "https://api.drum.lib.umd.edu/server/api/core/bitstreams/3ae6ca8c-b068-4d07-90dc-7f5bf6a95b3c/content"
+    ]
+   },
+   {
+    "id": "fs91",
+    "name": "power.tigermoth.fs91",
+    "kind": "glow",
+    "voice": "glow4",
+    "propIn": 14,
+    "pitchIn": 7,
+    "blades": 2,
+    "thrustN": 36.169,
+    "rpmNoLoad": 9616.470588235294,
+    "pitchSpeedMs": 24.222286666666665,
+    "idle": 0.24467824810374358,
+    "flowFullM3s": 4.947178789938817e-7,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 4.7393,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "355cc",
+      "cc": 355,
+      "m3": 0.000355,
+      "massKg": 0.310625,
+      "source": "https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf"
+     }
+    ],
+    "pack": "355cc",
+    "source": [
+     "https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf",
+     "https://www.os-engines.co.jp/english/line_up/engine/air/single/manual/fs70-91s2_series.pdf",
+     "https://www.apcprop.com/files/PER3_14x7.dat"
+    ]
+   }
+  ],
+  "extra3d1308": [
+   {
+    "id": "stock",
+    "name": "power.extra.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 910,
+    "propIn": 13,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 37.86,
+    "currentA": 64.4,
+    "rpmNoLoad": 13468,
+    "pitchSpeedMs": 29.077,
+    "lvcV": 3,
+    "massKg": 1.51,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s2200",
+      "cells": 4,
+      "mAh": 2200,
+      "massKg": 0.27,
+      "source": "https://www.horizonhobby.com/product/x/SPMX224S30.html"
+     },
+     {
+      "id": "4s3200",
+      "cells": 4,
+      "mAh": 3200,
+      "massKg": 0.325,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32004S30.html"
+     }
+    ],
+    "pack": "4s2200",
+    "source": [
+     "https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf",
+     "https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html",
+     "https://www.apcprop.com/files/PER3_13x65E.dat"
+    ]
+   },
+   {
+    "id": "3s",
+    "name": "power.extra.3s",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 910,
+    "propIn": 13,
+    "pitchIn": 6,
+    "blades": 2,
+    "thrustN": 21.296249999999993,
+    "currentA": 36.224999999999994,
+    "rpmNoLoad": 10101,
+    "pitchSpeedMs": 21.80775,
+    "lvcV": 3,
+    "massKg": 1.40556,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s2200",
+      "cells": 3,
+      "mAh": 2200,
+      "massKg": 0.16556,
+      "source": "https://www.horizonhobby.com/product/x/SPMX22003S30.html"
+     },
+     {
+      "id": "3s3200",
+      "cells": 3,
+      "mAh": 3200,
+      "massKg": 0.237,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32003S30.html"
+     }
+    ],
+    "pack": "3s2200",
+    "source": [
+     "https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf",
+     "https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html"
+    ]
+   }
+  ],
+  "nighttimber1200": [
+   {
+    "id": "stock",
+    "name": "power.nighttimber.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 900,
+    "propIn": 13,
+    "pitchIn": 4,
+    "blades": 2,
+    "thrustN": 25.93,
+    "currentA": 37.4,
+    "rpmNoLoad": 13320,
+    "pitchSpeedMs": 19.172,
+    "lvcV": 3,
+    "massKg": 1.698,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s2200",
+      "cells": 4,
+      "mAh": 2200,
+      "massKg": 0.27,
+      "source": "https://www.horizonhobby.com/product/x/SPMX224S30.html"
+     },
+     {
+      "id": "4s3200",
+      "cells": 4,
+      "mAh": 3200,
+      "massKg": 0.325,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32004S30.html"
+     }
+    ],
+    "pack": "4s2200",
+    "source": [
+     "https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf",
+     "https://www.horizonhobby.com/product/night-timber-x-1.2m-pnp/EFL13875.html",
+     "https://www.apcprop.com/files/PER3_13x4E.dat"
+    ]
+   },
+   {
+    "id": "3s",
+    "name": "power.nighttimber.3s",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 900,
+    "propIn": 13,
+    "pitchIn": 4,
+    "blades": 2,
+    "thrustN": 14.585624999999997,
+    "currentA": 21.03749999999999,
+    "rpmNoLoad": 9990,
+    "pitchSpeedMs": 14.378999999999998,
+    "lvcV": 3,
+    "massKg": 1.5935599999999999,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s2200",
+      "cells": 3,
+      "mAh": 2200,
+      "massKg": 0.16556,
+      "source": "https://www.horizonhobby.com/product/x/SPMX22003S30.html"
+     },
+     {
+      "id": "3s3200",
+      "cells": 3,
+      "mAh": 3200,
+      "massKg": 0.237,
+      "source": "https://www.horizonhobby.com/product/x/SPMX32003S30.html"
+     }
+    ],
+    "pack": "3s2200",
+    "source": [
+     "https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf",
+     "https://www.horizonhobby.com/product/night-timber-x-1.2m-pnp/EFL13875.html"
+    ]
+   }
+  ],
+  "hercules3077": [
+   {
+    "id": "stock",
+    "name": "power.hercules.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 870,
+    "propIn": 12,
+    "pitchIn": 8,
+    "blades": 2,
+    "thrustN": 81.3,
+    "currentA": 147.1,
+    "rpmNoLoad": 9657,
+    "pitchSpeedMs": 27.799,
+    "lvcV": 3,
+    "massKg": 6.728,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s5000x4",
+      "cells": 3,
+      "mAh": 20000,
+      "massKg": 1.64,
+      "source": "https://www.modelairplanenews.com/video-electric-11-foot-c-130/"
+     }
+    ],
+    "pack": "3s5000x4",
+    "source": [
+     "https://www.horizonhobby.com/product/power-25-brushless-outrunner-motor-870kv/EFLM4025A.html",
+     "https://aerotetris.com/models/c130-3077.php",
+     "https://www.apcprop.com/files/PER3_12x8E.dat"
+    ]
+   }
+  ],
+  "cap1702": [
+   {
+    "id": "stock",
+    "name": "power.cap.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 520,
+    "propIn": 18,
+    "pitchIn": 8,
+    "blades": 2,
+    "thrustN": 94.31,
+    "currentA": 111.11,
+    "rpmNoLoad": 10160,
+    "pitchSpeedMs": 29.247,
+    "lvcV": 3,
+    "rpmFull": 8636,
+    "massKg": 3.6287,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "6s4000",
+      "cells": 6,
+      "mAh": 4000,
+      "massKg": 0.566,
+      "source": "https://motionrc.com/products/admiral-4000mah-6s-22-2v-40c-lipo-battery-with-ec5-connector-epr40006e"
+     },
+     {
+      "id": "6s4500",
+      "cells": 6,
+      "mAh": 4500,
+      "massKg": 0.652,
+      "source": "https://motionrc.com/products/admiral-4500mah-6s-22-2v-40c-lipo-battery-with-ec5-connector-epr45006e"
+     }
+    ],
+    "pack": "6s4500",
+    "source": [
+     "https://extremeflightrc.com/products/t-motor-hobby-am670-am116-combo",
+     "https://www.ligpower.com/cn/product/am670-kv520-3D-combo.html",
+     "https://www.apcprop.com/files/PER3_18x8E.dat"
+    ]
+   }
+  ],
+  "slick2680": [
+   {
+    "id": "stock",
+    "name": "power.slick.stock",
+    "kind": "glow",
+    "voice": "glow2",
+    "propIn": 28,
+    "pitchIn": 10,
+    "blades": 2,
+    "thrustN": 304.11,
+    "rpmNoLoad": 7705.9,
+    "pitchSpeedMs": 27.728,
+    "idle": 0.1985,
+    "flowFullM3s": 0.0000014066666666666668,
+    "leanFrac": 0.05,
+    "leanGain": 0.05,
+    "massKg": 12.474,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "1006cc",
+      "cc": 1005.5,
+      "m3": 0.0010055,
+      "massKg": 0.734015,
+      "source": "https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf"
+     }
+    ],
+    "pack": "1006cc",
+    "source": [
+     "https://extremeflightrc.com/cdn/shop/files/105.5SlickDatatSheet.pdf",
+     "https://www.desertaircraft.com/products/da-120",
+     "https://www.falconpropellers.com/wp-content/uploads/2020/04/Falcon-Propeller-Test-Chart.pdf",
+     "https://www.apcprop.com/files/PER3_22x8.dat",
+     "https://hfe.aero/wp-content/uploads/2025/11/DA120-Data-Sheet.pdf"
+    ]
+   }
+  ],
+  "f16878": [
+   {
+    "id": "stock",
+    "name": "power.f16.stock",
+    "kind": "electric",
+    "voice": "edf",
+    "kv": 2210,
+    "propIn": 2.716535433070866,
+    "pitchIn": 0,
+    "blades": 12,
+    "thrustN": 23.536,
+    "currentA": 70,
+    "rpmNoLoad": 49062,
+    "pitchSpeedMs": 76.87,
+    "lvcV": 3.15,
+    "fan": {
+     "tauS": 0.08,
+     "escStartS": 0.3
+    },
+    "massKg": 2.116,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "6s4000",
+      "cells": 6,
+      "mAh": 4000,
+      "massKg": 0.566,
+      "source": "https://motionrc.com/products/admiral-4000mah-6s-22-2v-40c-lipo-battery-with-ec5-connector-epr40006e"
+     },
+     {
+      "id": "6s4500",
+      "cells": 6,
+      "mAh": 4500,
+      "massKg": 0.652,
+      "source": "https://motionrc.com/products/admiral-4500mah-6s-22-2v-40c-lipo-battery-with-ec5-connector-epr45006e"
+     }
+    ],
+    "pack": "6s4000",
+    "source": [
+     "https://www.freewing-model.com/freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html",
+     "https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf",
+     "https://www.rc-castle.com/index.php?route=product/product&product_id=7558",
+     "https://ntrs.nasa.gov/api/citations/20230017299/downloads/Weinstein_SciTech2024_Final.pdf"
+    ]
+   },
+   {
+    "id": "4s",
+    "name": "power.f16.4s",
+    "kind": "electric",
+    "voice": "edf",
+    "kv": 2850,
+    "propIn": 2.716535433070866,
+    "pitchIn": 0,
+    "blades": 12,
+    "thrustN": 13.835140755040003,
+    "currentA": 47.322283046115004,
+    "rpmNoLoad": 37615.8354,
+    "pitchSpeedMs": 58.936229000000004,
+    "lvcV": 3.15,
+    "fan": {
+     "tauS": 0.08,
+     "escStartS": 0.3
+    },
+    "massKg": 1.8,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s4000",
+      "cells": 4,
+      "mAh": 4000,
+      "massKg": 0.386,
+      "source": "https://motionrc.com/products/admiral-4000mah-4s-14-8v-40c-lipo-battery-with-xt60-connector-multi-pack-2-batteries-adm6024-002"
+     }
+    ],
+    "pack": "4s4000",
+    "source": [
+     "https://freewing-model.com/freewing-f-16-v2-4s-standard-70mm-edf-jet-pnp-rc-airplane.html",
+     "https://www.rc-castle.com/index.php?route=product/product&product_id=7558",
+     "https://ntrs.nasa.gov/api/citations/20230017299/downloads/Weinstein_SciTech2024_Final.pdf"
+    ]
+   }
+  ],
+  "p51d1450": [
+   {
+    "id": "stock",
+    "name": "power.p51.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 540,
+    "propIn": 14,
+    "pitchIn": 8,
+    "blades": 4,
+    "thrustN": 30.7,
+    "currentA": 55.2,
+    "rpmNoLoad": 7992,
+    "pitchSpeedMs": 23.006,
+    "lvcV": 3.4,
+    "massKg": 2.35,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s2600",
+      "cells": 4,
+      "mAh": 2600,
+      "massKg": 0.295,
+      "source": "https://www.dynamrc.com/products/14-8v-2600mah-25c-lipo-battery"
+     }
+    ],
+    "pack": "4s2600",
+    "source": [
+     "https://www.fmshobby.com/products/fms-1400mm-p-51d-red-tail-v8-pnp",
+     "https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf"
+    ]
+   },
+   {
+    "id": "kv650",
+    "name": "power.p51.kv650",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 650,
+    "propIn": 14,
+    "pitchIn": 8,
+    "blades": 4,
+    "thrustN": 36.5,
+    "currentA": 78.3,
+    "rpmNoLoad": 9620,
+    "pitchSpeedMs": 27.693,
+    "lvcV": 3.4,
+    "massKg": 2.395,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "4s2600",
+      "cells": 4,
+      "mAh": 2600,
+      "massKg": 0.295,
+      "source": "https://www.dynamrc.com/products/14-8v-2600mah-25c-lipo-battery"
+     }
+    ],
+    "pack": "4s2600",
+    "source": [
+     "https://www.hobbysquawk.com/forum/rc-airplanes/rc-propeller-airplanes/66486-official-fms-1400mm-p-51d-v8-thread/page22",
+     "https://www.fmshobby.com/products/4258-kv650-motor"
+    ]
+   }
+  ],
+  "zagi1219": [
+   {
+    "id": "stock",
+    "name": "power.zagi.stock",
+    "kind": "electric",
+    "voice": "wing",
+    "kv": 3100,
+    "propIn": 5,
+    "pitchIn": 5,
+    "blades": 2,
+    "thrustN": 7.295,
+    "currentA": 30,
+    "rpmNoLoad": 25882,
+    "pitchSpeedMs": 46.567,
+    "lvcV": 3,
+    "massKg": 0.7229,
+    "cgShiftM": 0,
+    "packs": [
+     {
+      "id": "3s1300",
+      "cells": 3,
+      "mAh": 1300,
+      "massKg": 0.113,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-1300mah-11-1v-3s-130c-lipo-battery-with-xt60-plug"
+     },
+     {
+      "id": "3s1500",
+      "cells": 3,
+      "mAh": 1500,
+      "massKg": 0.125,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-v2-0-1500mah-11-1v-3s-130c-lipo-battery-with-xt60-plug"
+     },
+     {
+      "id": "3s2200",
+      "cells": 3,
+      "mAh": 2200,
+      "massKg": 0.18,
+      "source": "https://chinahobbyline.com/products/cnhl-black-series-2200mah-3s-11-1v-30c-lipo-battery-with-ec3-plug"
+     }
+    ],
+    "pack": "3s2200",
+    "source": [
+     "https://web.archive.org/web/2019/https://zagi.com/product/brushless-motor/",
+     "https://web.archive.org/web/2019/https://zagi.com/product/battery-for-hp-and-hp60/",
+     "https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf"
+    ]
+   }
+  ]
+ }
+}

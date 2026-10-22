@@ -57,8 +57,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSim } from '../tests/lib/simmod.js';
 import { decodeRec } from '../tests/lib/recfile.js';
 import {
-  must, wingDebug, wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude,
-  bramorChutePrelude, slowstickGroundPrelude, timberRecPrelude, timberFloatRecPrelude, bombshellGroundPrelude,
+  must, wingDebug, wingPrelude, bramorPrelude, bramorChutePrelude,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -75,35 +74,21 @@ const DEG = 180 / Math.PI;
 const NU = 1.789e-5 / 1.225;
 
 /* From each table in src/native/plant_wing.c: span, mean chord, cl_alpha,
- * the clean CLmax (slats in where fitted), the asymmetry, and the flaps'
- * lift and CLmax per radian where there are flaps. */
+ * the clean CLmax and the asymmetry. The recordings of the aircraft that
+ * left the module on 2026-10-20 went with them. */
 const T = {
   wing: { b: 1.0, c: 0.22, cla: 4.36, clmax: 0.90, asym: 0.00455 },
-  sky: { b: 1.80, c: 0.20, cla: 5.52, clmax: 1.10, asym: 0.005 },
-  cub: { b: 1.40, c: 0.20, cla: 5.21, clmax: 1.15, asym: 0.005 },
-  glider: { b: 2.00, c: 0.1866, cla: 5.709, clmax: 1.05, asym: 0.00536 },
   bramor: { b: 2.30, c: 0.257, cla: 4.77, clmax: 0.722, asym: 0.00389 },
-  slowstick: { b: 1.176, c: 0.2776, cla: 4.58, clmax: 1.05, asym: 0.0036 },
-  timber: { b: 1.555, c: 0.2322, cla: 5.25, clmax: 1.15 + 0.305, asym: 0.00431, cldf: 1.2391, cldf2: -0.6681, clmaxdf: 0.7689 },
-  bombshell: { b: 1.1176, c: 0.1905, cla: 4.991, clmax: 1.0, asym: 0.00525 },
 };
 T.bramorChute = T.bramor;
-T.timberf = T.timber;
 
 /* Recordings that differ for a stated reason other than the stall model. */
 const MOVED = { bramorChute: 'the risers moved from 64 to 48 mm ahead of the CG' };
 
 const RECS = [
   ['wing', 'tests/inputs/wing-baseline.rec', wingPrelude],
-  ['sky', 'tests/inputs/sky-baseline.rec', skyPrelude],
-  ['cub', 'tests/inputs/cub-baseline.rec', (s) => cubGroundPrelude(s)],
-  ['glider', 'tests/inputs/glider-baseline.rec', gliderRecPrelude],
   ['bramor', 'tests/inputs/bramor-baseline.rec', bramorPrelude],
   ['bramorChute', 'tests/inputs/bramor-chute.rec', bramorChutePrelude],
-  ['slowstick', 'tests/inputs/slowstick-baseline.rec', (s) => slowstickGroundPrelude(s)],
-  ['timber', 'tests/inputs/timber-baseline.rec', timberRecPrelude],
-  ['timberf', 'tests/inputs/timberf-baseline.rec', timberFloatRecPrelude],
-  ['bombshell', 'tests/inputs/bombshell-baseline.rec', (s) => bombshellGroundPrelude(s)],
 ];
 
 async function rig(bytes, prelude) {
@@ -122,16 +107,14 @@ const attitude = (s) => ({
 /* How far past its stall a step is: the angle the outermost strip can
  * reach less the first strip's stall angle, radians, and whether the
  * chord's Reynolds number lets the model act at all. */
-function stallReach(t, st, d, flap) {
+function stallReach(t, st, d) {
   const V = Math.hypot(d[15], d[16], d[17]);
   const Vr = Math.max(1, V);
   const y = 0.875 * t.b / 2;
-  const dcl = t.cldf ? t.cldf * flap + t.cldf2 * flap * flap : 0;
-  const clmax = t.clmax + (t.clmaxdf ? t.clmaxdf * flap : 0);
-  const onset = clmax / t.cla - t.asym / 2;
+  const onset = t.clmax / t.cla - t.asym / 2;
   const rates = (Math.abs(st[11]) + Math.abs((V > 1e-9 ? -d[17] / V : 0) * st[13])) * y / Vr;
-  const aa = Math.abs(d[0] + dcl / t.cla);
-  return { V, alpha: d[0], aa, rates, onset, reach: aa + rates - onset, re: V * t.c / NU, dcl };
+  const aa = Math.abs(d[0]);
+  return { V, alpha: d[0], aa, rates, onset, reach: aa + rates - onset, re: V * t.c / NU };
 }
 
 let bad = 0;
@@ -160,8 +143,7 @@ for (const [key, file, prelude] of RECS) {
     must(a.step(1), 'sim_step');
     must(b.step(1), 'sim_step');
     const d = wingDebug(a);
-    const flap = a.e.sim_wing_flaps();
-    const r = stallReach(t, st, d, flap);
+    const r = stallReach(t, st, d);
     sa = a.readState().state;
     sb = b.readState().state;
     if (first === null) {
@@ -207,7 +189,7 @@ for (const [key, file, prelude] of RECS) {
   const inStall = r.reach >= -1e-12 && r.re >= 3.0e4;
   if (!inStall && !MOVED[key]) bad += 1;
   console.log(`${key.padEnd(12)} first differs at ${first.ms} ms: alpha ${(r.alpha * DEG).toFixed(2)} deg`
-    + `${r.dcl ? ` (flaps add ${(r.dcl / t.cla * DEG).toFixed(2)})` : ''}, the rates add ${(r.rates * DEG).toFixed(2)} at the tip strip, `
+    + `, the rates add ${(r.rates * DEG).toFixed(2)} at the tip strip, `
     + `${r.V.toFixed(2)} m/s, Re ${(r.re / 1000).toFixed(0)}k, ${st[3].toFixed(2)} m up; the first strip stalls at ${(r.onset * DEG).toFixed(2)}: `
     + `${inStall ? 'in the stall' : (MOVED[key] ? `moved: ${MOVED[key]}` : 'BELOW THE STALL')}`);
   for (const s of stalls.slice(0, 6)) {

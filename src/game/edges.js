@@ -7,8 +7,8 @@
  * start after RESET_NOTICE_MS of notice, the same reset the R key makes
  * (src/main.js reset), and coming back inside twice the square calls the
  * notice off. Never a wall: nothing here touches the plant, and every
- * world has ground out there to fly over (the alps' far range to 12 km,
- * the terrain engine's apron round Itaipu and the Interior), so the rule
+ * world has ground out there to fly over (the terrain engine's apron
+ * round Itaipu and the Interior), so the rule
  * is the only edge a pilot meets.
  *
  * Squares, not circles, because every world's data is a square round its
@@ -42,16 +42,12 @@
  * Literal, so the boot does not fetch a world's modules to read them;
  * scripts/edges-selftest.js holds each to the constant it is taken from.
  *
- *   alps, swiss2  the valley's field, src/maps/alps/heights.js HALF; the
- *                 far range is drawn to 12 km, so twice it is ground
  *   itaipu        half the data's square, src/maps/itaipu/terrain/frame.js
  *                 RING_HALF / 2, so twice it is the data's edge
  *   interior      the play area, src/share/interior/frame.js PLAY_HALF;
  *                 twice it is on the apron, 150 km of landable country
  */
 export const WORLD_EDGES = Object.freeze({
-  alps: 3000,
-  swiss2: 3000,
   itaipu: 10240,
   interior: 8000,
 });

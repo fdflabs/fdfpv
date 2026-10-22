@@ -345,7 +345,7 @@ function mergeFixed(group, parts) {
  * rebuilt for a new livery, peers.js profileKey). The originals stay in
  * the livery's table, which reads them, and in the palette material's
  * userData.paletteOf, from which a map's look tells each entry's finish
- * (swiss2/craftlook.js). A region in a finish (finish.js) is an entry
+ * (maps/look/craftlook.js). A region in a finish (finish.js) is an entry
  * like any other, its finish carried per entry (finishPalette), so it
  * still draws between the parts it drew between.
  *
@@ -384,7 +384,7 @@ export function paletteFixed(craft) {
     ...Object.values(combat.parts.accessories), combat.parts.payload].filter(Boolean);
   /* The order the decals took their targets in (decals.js targetsOf),
    * and the order a map's look made its materials' twins in, first met
-   * first (swiss2/craftlook.js). */
+   * first (maps/look/craftlook.js). */
   let seq = 0;
   const firstSeq = new Map();
   group.traverse((o) => {

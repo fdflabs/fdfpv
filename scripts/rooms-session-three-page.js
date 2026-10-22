@@ -17,23 +17,22 @@
  *              rest.
  *   world      B goes to the title and C into the hangar; the host A picks
  *              the Swiss valley. The room moves, and all three fly there.
- *   game       B opens the crash cam and C leaves for the title; A starts
- *              a combat round. All three fly in the round, B out of the
- *              replay.
  *   pause      B pauses: A and C name B "here but not flying: paused",
- *              and B is asked to fly while the round is on, from a bar
+ *              and B is asked to fly while the others do, from a bar
  *              whose Fly puts B back in the air.
+ *
+ * A game part, the host's Streamer Combat round taking up all three
+ * pilots, B out of the crash cam's replay, left with the game in the
+ * combat-only cut (2026-10-20).
  *   alone      C leaves for a room nobody else is in: told so, with its
  *              code, over the flight and on the pause menu.
- *   race       A loads a race track in the room while B flies. B wrecks
- *              and pauses: the wreck is still there and nothing was
- *              rebuilt (a teammate's report: pausing in a room with a
- *              track reloaded the track and cleared the wreck).
  *
  * On main every part but the joins fails: the host's pick of a world is
  * the host's alone, a game takes up only the pilots waiting on a room
- * screen, the away line gives no reason, nobody is told they are alone,
- * and the pause seats the room's track.
+ * screen, the away line gives no reason, and nobody is told they are
+ * alone. A race track loaded into the room by A while B flew, and B's
+ * wreck surviving B's pause under it, was the last part until the race
+ * and the track builder left (the combat-only cut, 2026-10-20).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -59,7 +58,6 @@ import { openPage } from '../tests/lib/page.js';
 import { startRooms } from '../edge/rooms/node.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import en from '../src/strings/en.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -125,7 +123,6 @@ async function look(k) {
       screen: window.__ui.screen, flying: c.mode === 'flight' && window.__ui.screen === 'flight',
       peers: r.peers.map((p) => ({ seat: p.seat, name: p.name, drawn: p.drawn })),
       away: window.__peerMarks().away || [], note: window.__peerMarks().note ?? null, bar: r.bar ?? null,
-      combat: window.__combat().round.state,
     };
   })()`);
 }
@@ -181,18 +178,6 @@ try {
   const held = await pages.B.evaluate('window.__rooms().world');
   check('the room holds the world the host picked', held === MOVED, held);
 
-  console.log('the host starts a game');
-  await pages.B.sleep(1500);
-  const opened = await pages.B.evaluate('window.__crashCam.open() !== false');
-  await pages.B.until("window.__craftState().mode === 'replay'", 10000).catch(() => {});
-  await pages.C.evaluate("window.__ui.show('title'); window.__ui.onAction('title'); true");
-  const bMode = (await look('B')).mode;
-  check('B is in the crash cam and C on the title', opened && bMode === 'replay', bMode);
-  await pages.A.evaluate('window.__combatStart(3); true');
-  const s = await allIn(MOVED, 'the host started combat');
-  check('and the round is on every page', names.every((k) => ['countdown', 'on'].includes(s[k].combat)),
-    names.map((k) => `${k} ${s[k].combat}`).join(', '));
-
   console.log('a pause');
   await pages.B.evaluate("window.__ui.act('pause'); window.__ui.show('paused'); true");
   await pages.A.sleep(3500);
@@ -203,11 +188,9 @@ try {
     const mark = (await look(k)).away.find((m) => m.seat === b.seat);
     check(`${k} names B: "${paused}"`, Boolean(mark) && mark.text === paused, JSON.stringify(mark));
   }
-  check('while the round\'s HUD is up, nothing of the room\'s is drawn over it', b.bar === null, String(b.bar));
-  await pages.A.evaluate("window.__ui.onFriends('friends-combat-stop'); true");
   await pages.B.until(`window.__rooms().bar === ${JSON.stringify(en['rooms.fly_prompt'])}`, 15000).catch(() => {});
   const asked = (await look('B')).bar;
-  check(`the round over, B is asked: "${en['rooms.fly_prompt']}"`, asked === en['rooms.fly_prompt'], String(asked));
+  check(`B is asked: "${en['rooms.fly_prompt']}"`, asked === en['rooms.fly_prompt'], String(asked));
   await pages.B.evaluate('window.__ui.roomBarView && window.__ui.roomBarView.act(); true');
   await pages.B.until(flyingIn(MOVED), 30000).catch(() => {});
   check('and its Fly puts B back in the air', (await look('B')).flying);
@@ -225,43 +208,6 @@ try {
   await pages.C.evaluate("window.__ui.act('pause'); window.__ui.show('paused'); true");
   await pages.C.sleep(800);
   check('and on the pause menu', (await look('C')).bar === alone, String((await look('C')).bar));
-
-  console.log('a race track, a wreck and a pause');
-  /* B flies free when the track comes (already, where the room put B). */
-  await pages.B.evaluate("window.__craftState().mode === 'flight' || window.__ui.onAction('fly', window.__ui.settings); true");
-  await pages.A.evaluate("window.__combatStart && window.__ui.onFriends('friends-combat-stop'); true");
-  await pages.A.until("window.__combat().round.state !== 'on' && window.__combat().round.state !== 'countdown'", 15000).catch(() => {});
-  const sp = await pages.A.evaluate('window.__map().spawn');
-  const fx = -Math.sin(sp.yaw);
-  const fz = -Math.cos(sp.yaw);
-  const doc = mapTrackDocument({
-    id: 'trk-session1', name: 'One session', map: MOVED, types: ['gate', 'gate', 'gate'],
-    centre: [sp.x + fx * 90, sp.y + 20, sp.z + fz * 90], radius: 50,
-  });
-  await pages.A.evaluate(`(() => {
-    localStorage.setItem('webfpv.share.import.v1', JSON.stringify({ id: ${JSON.stringify(doc.id)}, name: ${JSON.stringify(doc.name)}, author: '', board: '', document: ${JSON.stringify(doc)}, local: true, importedUtc: new Date().toISOString() }));
-    window.__ui.play();
-    return true;
-  })()`);
-  await pages.A.until("window.__map().ready && window.__map().gates === 3", 120000);
-  await pages.A.evaluate("window.__roomRaceDo('race-send'); true");
-  await pages.B.until("window.__roomRace().track && window.__roomRace().track.id === 'trk-session1'", 15000).catch(() => {});
-  await pages.B.sleep(1500);
-  await pages.B.until(flyingIn(MOVED), 120000).catch(() => {});
-  await pages.B.evaluate(`(() => {
-    const s = window.__craftState();
-    const x = s.worldX + 30, z = s.worldZ - 20, y = window.__heightAt(x, z) + 1.9;
-    window.__crashThrow({ x, y, z, yaw: 90, pitch: -25, roll: 75, vx: -24, vy: -8, vz: 0, fresh: true });
-    return true;
-  })()`);
-  await pages.B.until('window.__crash().wrecked && window.__rooms().ownWreck.length > 0', 20000).catch(() => {});
-  const before = await pages.B.evaluate("({ wrecked: window.__crash().wrecked, pieces: window.__rooms().ownWreck.length, gates: window.__map().gates, seat: window.__ui.settings.map, mode: window.__craftState().mode, summon: window.__rooms().summon ?? null })");
-  check('B flies the room\'s track and wrecks', before.wrecked && before.pieces > 0 && before.seat === 'track', JSON.stringify(before));
-  await pages.B.evaluate("window.__ui.act('pause'); window.__ui.show('paused'); true");
-  await pages.B.sleep(3000);
-  const after = await pages.B.evaluate("({ wrecked: window.__crash().wrecked, pieces: window.__rooms().ownWreck.length, mode: window.__craftState().mode, ready: window.__map().ready, screen: window.__ui.screen, summon: window.__rooms().summon ?? null })");
-  check('a pause leaves the wreck as it was, and nothing is rebuilt',
-    after.wrecked && after.pieces === before.pieces && after.mode === 'paused' && after.ready && after.screen === 'paused', JSON.stringify(after));
 
   const errs = names.flatMap((k) => pages[k].errors).filter((e) => !e.startsWith('network:'));
   check('no page error on any page', errs.length === 0, errs.slice(0, 3).join(' | '));

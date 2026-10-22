@@ -24,9 +24,9 @@
  *   has no entry, so the settings of a pilot who never opened the tab are
  *   what they were.
  *
- *   partsPowerBlock(id, block) is the sim_set_power block with the chosen
- *   prop's thrust, pitch speed and current or rpm laid over it (the power
- *   option's own block untouched for the stock prop), and addonParams the
+ *   partsPowerBlock(id, block) is the sim_set_power block for the chosen
+ *   prop: the power option's own, the only prop offered (PROPS), and
+ *   addonParams the
  *   sim_set_addons block (null for nothing fitted, taped or swapped). Both
  *   are between runs, like the power choice.
  *
@@ -57,9 +57,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { POWER, SIM_POWER } from './power.js';
+import { POWER } from './power.js';
 import { PART_KINDS } from './parts.js';
-import { PROP_ESTIMATES } from './prop-estimates.js';
 import { MOTORS, hasMotors } from './motors.js';
 import { normaliseWearRecord } from './wear.js';
 import { AIRCRAFT } from './aircraft.js';
@@ -68,109 +67,17 @@ import { AIRCRAFT } from './aircraft.js';
 export const SIM_ADDON = { MASS: 0, CG: 1, CDA: 4, DRAG: 5, WHEEL_R: 8, ROLL_K: 9 };
 export const SIM_ADDON_DOUBLES = 10;
 
-const OZ = 0.028349523125;
-const APC = 'https://www.apcprop.com/product/';
-const APC_DATA = 'https://www.apcprop.com/files/PER3_';
-
-/*
- * APC's published weights, ounces, from each prop's product page, for the
- * props below and the proxies that stand in for each option's own.
- */
-const APC_OZ = {
-  '11x7E-3': 1.09, '11x7E': 0.81, '10x7E': 0.71, '11x55E': 0.81, '11x8E': 0.81, '12x6E': 0.95,
-  '13x8E': 1.09, '12x6': 1.62, '12x7': 1.52, '12x8': 1.69, '11x6': 1.41, '11x7': 1.41, '13x6': 1.69, '7x4': 0.42, '6x4': 0.18,
-  '7x3': 0.42, '5x3': 0.21, '8x4E': 0.46, '10x47SF': 0.42, '10x38SF': 0.42, '11x47SF': 0.53,
-  '10x6E': 0.71, '12x8E': 0.92, '13x65E': 1.06, '13x4E': 1.06,
-  '18x8E': 2.57, '18x10E': 2.57, '17x8E': 2.26,
-};
-
-/*
- * THE PROXY for each option's own prop: APC's own where APC makes the
- * kit's prop, else APC's nearest in diameter, pitch, blade count and
- * family (E thin electric, SF slow flyer, plain the sport glow prop).
- * E-flite's 11 x 7.5 three blade on the Timber takes APC's 11 x 7E-3,
- * GWS's EP1180 and EP1047 take APC's 11 x 8E and 10 x 4.7SF, and Cox's 7 x
- * 3.5 takes APC's 7 x 4, the nearer pitch of the two APC makes.
- */
-const PROXY = {
-  '11/7.5/3/electric': '11x7E-3',
-  '11/7/2/electric': '11x7E',
-  '11/5.5/2/electric': '11x55E',
-  '12/6/2/electric': '12x6E',
-  '13/8/2/electric': '13x8E',
-  '13/6/2/electric': '13x65E',
-  '13/4/2/electric': '13x4E',
-  '18/8/2/electric': '18x8E',
-  '11/8/2/electric': '11x8E',
-  '10/4.7/2/electric': '10x47SF',
-  '10/6/2/electric': '10x6E',
-  '8/4/2/electric': '8x4E',
-  '12/8/2/electric': '12x8E',
-  '7/3.5/2/glow': '7x4',
-  '5/3/2/glow': '5x3',
-  '12/6/2/glow': '12x6',
-  '11/6/2/glow': '11x6',
-  '13/6/2/glow': '13x6',
-  '14/7/2/glow': '14x7',
-};
-
-export function propProxy(option) {
-  const key = `${option.propIn}/${option.pitchIn}/${option.blades}/${option.kind}`;
-  const p = PROXY[key];
-  if (!p) {
-    throw new Error(`no APC proxy for ${key}`);
-  }
-  return p;
-}
-
-/* APC's product pages spell a decimal pitch with a hyphen. */
-const APC_SLUG = { '13x65E': '13x6-5e', '11x55E': '11x5-5e', '11x47SF': '11x4-7sf', '10x38SF': '10x3-8sf', '10x47SF': '10x4-7sf' };
-function apcProp(id, apc, propIn, pitchIn, blades) {
-  return { id, name: `parts.prop.${id}`, apc, propIn, pitchIn, blades, massKg: APC_OZ[apc] * OZ, source: [`${APC}${APC_SLUG[apc] ?? apc.toLowerCase()}/`, `${APC_DATA}${apc}.dat`] };
-}
-
 /*
  * PROPS[airframeId]: the first is 'stock', the prop the chosen power
  * option turns (configs/power.js propIn, pitchIn, blades); the rest are
  * APC props of the same diameter or smaller, so no ground clearance the
- * gear was derived for is lost. The Radian's folding prop and the Bramor's
- * (C-Astral publishes neither) have no alternative offered.
+ * gear was derived for is lost. The Bramor's (C-Astral publishes none) has
+ * no alternative offered, so since the recreational planes left
+ * (2026-10-21) no plane offers one.
  */
 const STOCK = { id: 'stock', name: 'parts.prop.stock' };
-const TIMBER_PROPS = [STOCK, apcProp('11x7e', '11x7E', 11, 7, 2), apcProp('10x7e', '10x7E', 10, 7, 2)];
-const CUB_PROPS = [STOCK, apcProp('11x7e-3', '11x7E-3', 11, 7, 3), apcProp('11x55e', '11x55E', 11, 5.5, 2)];
 export const PROPS = {
-  timber1500: TIMBER_PROPS,
-  timber1500f: TIMBER_PROPS,
-  cub1400: CUB_PROPS,
-  cub1400f: CUB_PROPS,
-  sky1800: [STOCK, apcProp('11x7e-3', '11x7E-3', 11, 7, 3), apcProp('11x8e', '11x8E', 11, 8, 2)],
-  slowstick1180: [STOCK, apcProp('11x47sf', '11x47SF', 11, 4.7, 2), apcProp('10x38sf', '10x38SF', 10, 3.8, 2)],
-  bombshell1118: [STOCK, apcProp('6x4', '6x4', 6, 4, 2), apcProp('7x3', '7x3', 7, 3, 2)],
-  kadet1981: [STOCK, apcProp('12x8', '12x8', 12, 8, 2), apcProp('11x7', '11x7', 11, 7, 2)],
-  uglystik1567: [STOCK, apcProp('12x7', '12x7', 12, 7, 2), apcProp('12x8', '12x8', 12, 8, 2)],
-  tigermoth1803: [STOCK, apcProp('13x6', '13x6', 13, 6, 2), apcProp('12x8', '12x8', 12, 8, 2)],
-  extra3d1308: [STOCK, apcProp('13x8e', '13x8E', 13, 8, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
-  nighttimber1200: [STOCK, apcProp('13x65e', '13x65E', 13, 6.5, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
-  hercules3077: [STOCK, apcProp('11x7e', '11x7E', 11, 7, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
-  /* The CAP's alternatives are APC's 18 x 10E, the pitch T-Motor also benches
-   * on the AM670, and the 17 x 8E, smaller: docs/CAP580-STAGE1.md. */
-  cap1702: [STOCK, apcProp('18x10e', '18x10E', 18, 10, 2), apcProp('17x8e', '17x8E', 17, 8, 2)],
-  /* APC measures no 27 or 28 in two blade; Falcon's chart has its 27 x 11
-   * and 28 x 9.5 on the DA-120, a prop kind of its own still to build. */
-  slick2680: [STOCK],
-  radian2000: [STOCK],
   bramor2300: [STOCK],
-  /* A fan is its duct's: Freewing sells the one rotor for it. */
-  f16878: [STOCK],
-  /* FMS's four blade has no APC counterpart to anchor another prop's
-   * figures on, and a two blade would change what the pilot sees turning
-   * on the nose: none offered. */
-  p51d1450: [STOCK],
-  /* Zagi's spoon shaped carbon 5 x 5 flew 10 to 15 mph faster than four
-   * other makers' 5 x 5s on the same Zagi (zagi.com's propeller page), and
-   * APC's own figures cannot say by how much: none offered. */
-  zagi1219: [STOCK],
 };
 
 /* The planes the tab serves: every fixed wing the picker offers. */
@@ -185,33 +92,13 @@ export const PARTS_PLANES = Object.keys(PROPS);
  *   tank   where the smoke tank and pump ride: on the CG, as a smoke
  *          tank is fitted so the balance does not move as the oil burns,
  *          a centimetre aft where the bay is, in the fuselage (the
- *          Bramor's and the Skyhunter's pod, the Slow Stick's stick)
+ *          Bramor's pod)
  *   led    one wing's light strip, from inboard to the tip under the
  *          leading edge, [x, y, z] twice; the other wing mirrors it
  * A plane with an aircraft folder keeps its anchors there.
  */
 export const ANCHORS = {
-  timber1500: AIRCRAFT.ANCHORS.timber1500,
-  timber1500f: AIRCRAFT.ANCHORS.timber1500f,
-  cub1400: AIRCRAFT.ANCHORS.cub1400,
-  cub1400f: AIRCRAFT.ANCHORS.cub1400f,
-  sky1800: AIRCRAFT.ANCHORS.sky1800,
-  radian2000: AIRCRAFT.ANCHORS.radian2000,
-  /* The F-16's `prop` is its fan, inside the fuselage behind the wing. */
-  f16878: AIRCRAFT.ANCHORS.f16878,
   bramor2300: AIRCRAFT.ANCHORS.bramor2300,
-  slowstick1180: AIRCRAFT.ANCHORS.slowstick1180,
-  bombshell1118: AIRCRAFT.ANCHORS.bombshell1118,
-  kadet1981: AIRCRAFT.ANCHORS.kadet1981,
-  uglystik1567: AIRCRAFT.ANCHORS.uglystik1567,
-  tigermoth1803: AIRCRAFT.ANCHORS.tigermoth1803,
-  nighttimber1200: AIRCRAFT.ANCHORS.nighttimber1200,
-  extra3d1308: AIRCRAFT.ANCHORS.extra3d1308,
-  slick2680: AIRCRAFT.ANCHORS.slick2680,
-  hercules3077: AIRCRAFT.ANCHORS.hercules3077,
-  cap1702: AIRCRAFT.ANCHORS.cap1702,
-  p51d1450: AIRCRAFT.ANCHORS.p51d1450,
-  zagi1219: AIRCRAFT.ANCHORS.zagi1219,
 };
 
 /* A body frame point: one mass or drag and where it is. */
@@ -230,18 +117,6 @@ function mid(a, b) {
  * THE ADD-ONS. Each has `fits(id)`, `points(id)` (the masses and drag
  * areas it adds, body frame) and `source`. Where no maker publishes a
  * figure it is ESTIMATED here from what the thing is made of, and says so.
- *
- * TUNDRA TYRES, the Cub: E-flite's 108 mm (4.25 in) foam tundra wheels,
- * the Timber's own (docs/TIMBER-STAGE1.md, TIMBER_DIMS), on the Cub's
- * axles in place of its 70 mm wheels. ESTIMATED mass: 30 g a wheel on its
- * hub against 12 g, a moulded foam tyre of about 0.1 g/cc over a third of
- * its 300 cc envelope. Drag: the Timber's own rule for its tyres, a C_D of
- * 0.25 on the frontal area (diameter by width, 108 by 38 mm against the
- * Cub's 70 by 22), 0.00128 m^2 for the pair. Rolling resistance on
- * yielding ground goes as sqrt(sinkage / diameter) (plant.c, ROLLING
- * RESISTANCE BY SURFACE), so the bigger wheel rolls at sqrt(70 / 108) of
- * the smaller's at the same sinkage: 0.805, on grass and everywhere else.
- * The Timber ships on these tyres and is not offered them again.
  *
  * FPV CAMERA POD: DJI's O3 Air Unit, 36.4 g with its camera, transmission
  * module and antennas (DJI's specifications), in a printed pod under the
@@ -262,18 +137,6 @@ function mid(a, b) {
  * long at C_D 1). The oil's burn over a flight is not taken off: it flies
  * full.
  */
-const TUNDRA = {
-  id: 'tundra',
-  fits: (id) => id === 'cub1400',
-  points: () => [pt([0.075, 0, -0.1327], 2 * (0.030 - 0.012), 0.25 * 2 * (0.108 * 0.038 - 0.070 * 0.022))],
-  wheelR: 0.054,
-  rollK: 0.805,
-  /* Where the Cub stands on them, scripts/parts-check.js --derive: the
-   * plant's settled pose on the strip, as airframes.js gear holds the
-   * kit's. */
-  gear: { restHeight: 0.1593, restPitch: 12.61 * Math.PI / 180 },
-  source: ['docs/TIMBER-STAGE1.md', 'https://www.horizonhobby.com/product/e-flite-turbo-timber-evolution-1.5m-bnf-basic-includes-floats/EFL105250.html'],
-};
 const POD = {
   id: 'pod',
   fits: () => true,
@@ -303,8 +166,8 @@ const SMOKE = {
   },
   source: ['ESTIMATED'],
 };
-export const ADDONS = { tundra: TUNDRA, pod: POD, lights: LIGHTS, smoke: SMOKE };
-export const ADDON_ORDER = ['tundra', 'pod', 'lights', 'smoke'];
+export const ADDONS = { pod: POD, lights: LIGHTS, smoke: SMOKE };
+export const ADDON_ORDER = ['pod', 'lights', 'smoke'];
 
 export function addonsFor(id) {
   return ADDON_ORDER.filter((a) => PROPS[id] && ADDONS[a].fits(id));
@@ -451,16 +314,12 @@ export function propShape(id, option, propId) {
   return { propIn: option.propIn, pitchIn: option.pitchIn, blades: option.blades };
 }
 
-/* Every mass and drag the choice adds, body frame: the add-ons, the prop's
- * mass over the option's own, and each taped part. */
-export function partsPoints(id, entry, option, baseMassKg) {
+/* Every mass and drag the choice adds, body frame: the add-ons and each
+ * taped part. */
+export function partsPoints(id, entry, baseMassKg) {
   const pts = [];
   for (const a of entry.addons) {
     pts.push(...ADDONS[a].points(id, baseMassKg));
-  }
-  const p = propOf(id, entry.prop);
-  if (p.id !== 'stock') {
-    pts.push(pt(ANCHORS[id].prop, p.massKg - APC_OZ[propProxy(option)] * OZ));
   }
   for (const d of (entry.damage ? entry.damage.parts : [])) {
     if (d.state === 'taped') {
@@ -475,12 +334,9 @@ export function partsPoints(id, entry, option, baseMassKg) {
  * when it adds nothing (the stock prop, no add-on, nothing taped), which
  * is sim_addons_clear.
  */
-/* `extra`: points that are not hangar parts but ride as add-ons, the
- * Hercules' cargo still in its hold (src/game/hold.js). */
-export function addonParams(id, entry, option, baseMassKg, extra = []) {
-  const pts = [...partsPoints(id, entry, option, baseMassKg), ...extra];
-  const tundra = entry.addons.includes('tundra');
-  if (!pts.length && !tundra) {
+export function addonParams(id, entry, baseMassKg) {
+  const pts = partsPoints(id, entry, baseMassKg);
+  if (!pts.length) {
     return null;
   }
   const out = new Float64Array(SIM_ADDON_DOUBLES);
@@ -502,48 +358,32 @@ export function addonParams(id, entry, option, baseMassKg, extra = []) {
     out[SIM_ADDON.DRAG + a] = cda > 0 ? dr[a] / cda : 0;
   }
   out[SIM_ADDON.CDA] = cda;
-  out[SIM_ADDON.WHEEL_R] = tundra ? TUNDRA.wheelR : 0;
-  out[SIM_ADDON.ROLL_K] = tundra ? TUNDRA.rollK : 1;
+  /* The kit's own wheels: no add-on changes them since the Cub's tundra
+   * tyres left (2026-10-21); the ABI keeps the slots. */
+  out[SIM_ADDON.WHEEL_R] = 0;
+  out[SIM_ADDON.ROLL_K] = 1;
   return out;
-}
-
-/* Where the plane stands on its gear with the add-ons on: the tundra
- * tyres' pose, or null for the kit's. */
-export function partsGear(id, entry) {
-  return entry.addons.includes('tundra') ? TUNDRA.gear : null;
 }
 
 /*
- * The power block with the chosen prop laid over it: from `block`, the
- * option's own (configs/power.js powerBlock), the thrust, pitch speed and
- * current or full rpm configs/prop-estimates.js derives for the prop on
- * that option. The option's own prop leaves the block as it is.
+ * The power block for the chosen prop: `block`, the option's own
+ * (configs/power.js powerBlock), as the option's own prop is the only one
+ * offered since the recreational planes and their APC props' estimates
+ * (configs/prop-estimates.js) left for Openflight (2026-10-21). Another
+ * prop has no numbers to fly on, so it is refused.
  */
 export function partsPowerBlock(id, optionId, propId, block) {
   const p = propOf(id, propId);
-  if (p.id === 'stock') {
-    return block;
-  }
-  const e = PROP_ESTIMATES[id] && PROP_ESTIMATES[id][optionId] && PROP_ESTIMATES[id][optionId][p.id];
-  if (!e) {
+  if (p.id !== 'stock') {
     throw new Error(`no prop estimate for ${id} ${optionId} ${p.id}`);
   }
-  const out = Float64Array.from(block);
-  out[SIM_POWER.THRUST] = e.thrustN;
-  out[SIM_POWER.PITCH_SPEED] = e.pitchSpeedMs;
-  if (e.currentA != null) {
-    out[SIM_POWER.CURRENT] = e.currentA;
-  }
-  if (e.rpmNoLoad != null) {
-    out[SIM_POWER.RPM] = e.rpmNoLoad;
-  }
-  return out;
+  return block;
 }
 
 /* What the tab reads out: the mass it adds, g, its drag area, cm^2, and
  * how far it moves the CG, mm (forward and up positive). */
-export function partsSummary(id, entry, option, baseMassKg) {
-  const block = addonParams(id, entry, option, baseMassKg);
+export function partsSummary(id, entry, baseMassKg) {
+  const block = addonParams(id, entry, baseMassKg);
   if (!block) {
     return { grams: 0, dragCm2: 0, cgMm: [0, 0, 0] };
   }

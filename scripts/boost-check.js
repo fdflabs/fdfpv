@@ -1,21 +1,32 @@
 /*
- * boost-check.js: Catch the Ace's chase boost in the plant (sim_set_boost,
- * src/native/sim_abi.h), measured. npm run boost:check.
+ * boost-check.js: the plant's prop boost (sim_set_boost,
+ * src/native/sim_abi.h), measured on the war's aircraft. npm run
+ * boost:check.
  *
- * The owner: "if you are NOT the ace, you get a 5% speed boost for
- * chasing". The boost is every prop as if it turned faster, its pitch
- * speed scaled and its thrust by the square (sim_abi.h says why that and
- * not a thrust scale), at CHASE_BOOST (src/share/roomtag.js). This holds:
+ * The war's speed upgrade reaches the plant through it: the loadout's
+ * speedMul, 1 to 1.15 (src/game/campaign.js FAST_SPEED_MUL), is the boost
+ * the shell sets for the flight (src/main.js warSpeedMul). The boost is
+ * every prop as if it turned faster, its pitch speed scaled and its
+ * thrust by the square (sim_abi.h says why that and not a thrust scale).
+ * It was first Catch the Ace's chase boost, the owner's "if you are NOT
+ * the ace, you get a 5% speed boost for chasing", and BOOST and BAND are
+ * that derivation's (commit 147669d7e, docs/TAG-PLAN.md): 1.06, the
+ * factor nearest the owner's 5 percent, held to about 5 percent of level
+ * top speed. The game left PDCS in the combat-only cut (2026-10-20); the
+ * boost and these numbers stay, flown now on the interceptor (the war's
+ * default quad, configs/airframes.js DEFAULT_AIRFRAME) and the Striker on
+ * its prop (WAR_DEFAULT) in place of the five inch and the Cub. This
+ * holds:
  *
- *   1. 1.0 is today: a scripted flight of the five inch and one of the Cub
- *      with sim_set_boost(1) called before and during it are bit identical,
- *      state by state, to the same flights that never call it.
+ *   1. 1.0 is today: a scripted flight of the interceptor and one of the
+ *      Striker with sim_set_boost(1) called before and during it are bit
+ *      identical, state by state, to the same flights that never call it.
  *   2. The mode: 1.0 to 1.5 is taken and anything else refused, and it
  *      survives sim_reset and sim_init as the gravity scale does.
- *   3. The owner's number: at CHASE_BOOST the level top speed at full
- *      throttle rises about 5 percent (BAND) on the five inch and on the
- *      Cub, each flown to a steady level at full throttle by a pilot loop,
- *      and the static pull by the square of the boost.
+ *   3. The number: at BOOST the level top speed at full throttle rises
+ *      about 5 percent (BAND) on the interceptor and on the Striker, each
+ *      flown to a steady level at full throttle by a pilot loop, and the
+ *      Striker's static pull by the square of the boost.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -39,16 +50,23 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
-import {
-  CUB_AIRFRAME, RC_STEP_MS, attitude, levelSpeed, must, wingDebug,
-} from '../tests/lib/wingpilot.js';
-import { CHASE_BOOST } from '../src/share/roomtag.js';
+import { RC_STEP_MS, attitude, must } from '../tests/lib/wingpilot.js';
+import { airframeById } from '../configs/airframes.js';
+import { flyStriker, seatStriker, wingDebug } from './lib/strikerpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasm = await readFile(join(root, 'dist/sim.wasm'));
-const config = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
+const tuneOf = (af) => readFile(join(root, `configs/${af.defaultTune}.diff`), 'utf8');
+const QUAD = airframeById('interceptor');
+const WING = airframeById('striker2500');
+const quadTune = await tuneOf(QUAD);
+const wingTune = await tuneOf(WING);
+/* The Striker bare, on its prop: the plant the boost scales a prop on. */
+const WING_CHOICE = { payload: 'none', accessories: [], propulsion: 'prop' };
 
-/* "About 5 percent": the band the level top speed gain is held to. */
+/* The factor and "about 5 percent", the band the level top speed gain is
+ * held to: the chase boost's (above). */
+const BOOST = 1.06;
 const BAND = { min: 0.04, max: 0.07 };
 
 let failed = 0;
@@ -57,21 +75,20 @@ function check(name, ok, detail = '') {
   failed += ok ? 0 : 1;
 }
 
+/* The interceptor as the shell seats it bare (scripts/combat-gates.js
+ * fresh): its plant, its tune, a reset, a full pack. */
 async function quadSim() {
   const sim = await loadSim(wasm);
-  must(sim.init(config), 'sim_init');
+  must(sim.e.sim_set_airframe(QUAD.simId), 'sim_set_airframe');
+  must(sim.init(quadTune), 'sim_init');
   must(sim.reset(), 'sim_reset');
   must(sim.setCellVoltage(4.2), 'sim_set_cell_voltage');
   return sim;
 }
 
-async function cubSim() {
-  const sim = await loadSim(wasm);
-  must(sim.init(config), 'sim_init');
-  must(sim.e.sim_set_airframe(CUB_AIRFRAME), 'sim_set_airframe');
-  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
-  must(sim.reset(), 'sim_reset');
-  return sim;
+/* The Striker as the shell seats it (scripts/lib/strikerpilot.js). */
+function wingSim() {
+  return seatStriker(loadSim, wasm, wingTune, WING, WING_CHOICE);
 }
 
 /* A scripted flight's digest over every step's state: a punch, a roll, a
@@ -90,10 +107,10 @@ function trace(sim, ms, sticksAt, touch) {
   return h.digest('hex');
 }
 const quadSticks = (i) => [i > 1500 && i < 2500 ? 0.6 : 0, i > 3000 ? -0.4 : 0, 0.1, i < 1000 ? 0.5 : 0.85];
-const cubSticks = (i) => [i > 1500 && i < 2500 ? 0.5 : 0, i > 3000 ? -0.3 : 0.05, 0, 0.9];
+const wingSticks = (i) => [i > 1500 && i < 2500 ? 0.5 : 0, i > 3000 ? -0.3 : 0.05, 0, 0.9];
 
 /*
- * The five inch's level top speed at full throttle: a pilot loop tilts it
+ * The interceptor's level top speed at full throttle: a pilot loop tilts it
  * forward until the climb is gone (acro, attitude held by the sticks), and
  * the horizontal speed over the last 5 of 40 s is the answer. Started
  * already tilted, near the answer, so it settles on the one level
@@ -127,16 +144,17 @@ async function quadTop(boost) {
   return { v: mean(0), vz: mean(1) };
 }
 
-/* The Cub's, from tests/lib/wingpilot.js: wings level, climb held at nil. */
-async function cubTop(boost) {
-  const sim = await cubSim();
+/* The Striker's, as combat-gates flies its top speed: wings level, the
+ * height held, full throttle for 60 s from 22 m/s, the last 8 s. */
+async function wingTop(boost) {
+  const sim = await wingSim();
   must(sim.e.sim_set_boost(boost), 'sim_set_boost');
-  return levelSpeed(sim, 1);
+  return flyStriker(sim, { thr: 1, v0: 22, seconds: 60 });
 }
 
-/* Static pull at full throttle, the Cub held still for a step. */
-async function cubPull(boost) {
-  const sim = await cubSim();
+/* Static pull at full throttle, the Striker held still for a step. */
+async function wingPull(boost) {
+  const sim = await wingSim();
   must(sim.e.sim_set_boost(boost), 'sim_set_boost');
   must(sim.e.sim_set_pose(0, 0, 50, 1, 0, 0, 0), 'sim_set_pose');
   must(sim.input(0, 0, 0, 0, 1), 'sim_input');
@@ -144,7 +162,7 @@ async function cubPull(boost) {
   return wingDebug(sim)[8];
 }
 
-console.log(`the chase boost, CHASE_BOOST ${CHASE_BOOST}`);
+console.log(`the prop boost, at ${BOOST}, on the ${QUAD.id} and the ${WING.id} (${WING_CHOICE.propulsion})`);
 
 console.log('1. at 1.0 it is today, bit for bit');
 {
@@ -152,14 +170,17 @@ console.log('1. at 1.0 it is today, bit for bit');
   const one = (sim) => must(sim.e.sim_set_boost(1), 'sim_set_boost');
   const qa = trace(await quadSim(), 5000, quadSticks, none);
   const qb = trace(await quadSim(), 5000, quadSticks, one);
-  check('the five inch: 5 s punched, rolled and dived, every state the same with sim_set_boost(1) as without', qa === qb, `${qa.slice(0, 16)} ${qb.slice(0, 16)}`);
-  const ca = trace(await cubSim(), 5000, cubSticks, (sim) => must(sim.e.sim_wing_launch(12), 'sim_wing_launch'));
-  const cb = trace(await cubSim(), 5000, cubSticks, (sim) => {
-    must(sim.e.sim_wing_launch(12), 'sim_wing_launch');
-    one(sim);
-  });
-  check('the Cub: 5 s from a throw, every state the same with sim_set_boost(1) as without', ca === cb, `${ca.slice(0, 16)} ${cb.slice(0, 16)}`);
-  const qc = trace(await quadSim(), 5000, quadSticks, (sim) => must(sim.e.sim_set_boost(CHASE_BOOST), 'sim_set_boost'));
+  check('the interceptor: 5 s punched, rolled and dived, every state the same with sim_set_boost(1) as without', qa === qb, `${qa.slice(0, 16)} ${qb.slice(0, 16)}`);
+  const airborne = async () => {
+    const sim = await wingSim();
+    must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
+    must(sim.e.sim_set_velocity(22, 0, 0, 0, 0, 0), 'sim_set_velocity');
+    return sim;
+  };
+  const ca = trace(await airborne(), 5000, wingSticks, none);
+  const cb = trace(await airborne(), 5000, wingSticks, one);
+  check('the Striker: 5 s from 22 m/s level, every state the same with sim_set_boost(1) as without', ca === cb, `${ca.slice(0, 16)} ${cb.slice(0, 16)}`);
+  const qc = trace(await quadSim(), 5000, quadSticks, (sim) => must(sim.e.sim_set_boost(BOOST), 'sim_set_boost'));
   check('and the boost does change the flight', qc !== qa);
 }
 
@@ -168,33 +189,33 @@ console.log('2. a mode');
   const sim = await quadSim();
   const refused = [0.99, 1.51, NaN].every((x) => sim.e.sim_set_boost(x) !== SIM_OK) && sim.e.sim_boost() === 1;
   check('outside 1.0 to 1.5 it is refused, and nothing changes', refused);
-  must(sim.e.sim_set_boost(CHASE_BOOST), 'sim_set_boost');
+  must(sim.e.sim_set_boost(BOOST), 'sim_set_boost');
   must(sim.reset(), 'sim_reset');
   const afterReset = sim.e.sim_boost();
-  must(sim.init(config), 'sim_init');
-  check('it survives sim_reset and sim_init', afterReset === CHASE_BOOST && sim.e.sim_boost() === CHASE_BOOST, `${afterReset} ${sim.e.sim_boost()}`);
+  must(sim.init(quadTune), 'sim_init');
+  check('it survives sim_reset and sim_init', afterReset === BOOST && sim.e.sim_boost() === BOOST, `${afterReset} ${sim.e.sim_boost()}`);
 }
 
-console.log('3. the owner\'s 5 percent');
+console.log('3. about 5 percent');
 {
   const q0 = await quadTop(1);
-  const q1 = await quadTop(CHASE_BOOST);
+  const q1 = await quadTop(BOOST);
   const qGain = q1.v / q0.v - 1;
-  check(`the five inch's level top speed at full throttle rises ${Math.round(BAND.min * 100)} to ${Math.round(BAND.max * 100)} percent`,
+  check(`the interceptor's level top speed at full throttle rises ${Math.round(BAND.min * 100)} to ${Math.round(BAND.max * 100)} percent`,
     qGain >= BAND.min && qGain <= BAND.max && Math.abs(q0.vz) < 0.2 && Math.abs(q1.vz) < 0.2,
     `${q0.v.toFixed(2)} to ${q1.v.toFixed(2)} m/s, ${(qGain * 100).toFixed(1)} percent, climb ${q0.vz.toFixed(3)} and ${q1.vz.toFixed(3)} m/s`);
-  const c0 = await cubTop(1);
-  const c1 = await cubTop(CHASE_BOOST);
+  const c0 = await wingTop(1);
+  const c1 = await wingTop(BOOST);
   const cGain = c1.v / c0.v - 1;
-  check(`the Cub's level top speed at full throttle rises ${Math.round(BAND.min * 100)} to ${Math.round(BAND.max * 100)} percent`,
+  check(`the Striker's level top speed at full throttle rises ${Math.round(BAND.min * 100)} to ${Math.round(BAND.max * 100)} percent`,
     cGain >= BAND.min && cGain <= BAND.max && Math.abs(c0.vz) < 1 && Math.abs(c1.vz) < 1,
     `${c0.v.toFixed(2)} to ${c1.v.toFixed(2)} m/s, ${(cGain * 100).toFixed(1)} percent, climb ${c0.vz.toFixed(2)} and ${c1.vz.toFixed(2)} m/s`);
-  const p0 = await cubPull(1);
-  const p1 = await cubPull(CHASE_BOOST);
+  const p0 = await wingPull(1);
+  const p1 = await wingPull(BOOST);
   /* To a part in a thousand: the pack sags a little more under the
    * larger current (src/native/plant_wing.c power_duty) and takes a
    * sliver back. */
-  check('the Cub\'s static pull rises by the square of the boost', Math.abs(p1 / p0 - CHASE_BOOST * CHASE_BOOST) < 1e-3,
+  check('the Striker\'s static pull rises by the square of the boost', Math.abs(p1 / p0 - BOOST * BOOST) < 1e-3,
     `${p0.toFixed(3)} to ${p1.toFixed(3)} N, ${(p1 / p0).toFixed(6)}`);
 }
 

@@ -22,13 +22,12 @@
  *                             the rooms panel and the music dock at every
  *                             size from a phone to a big screen.
  *   nothing playable          every way in, tried: a hub activity's link
- *                             clicked, a card chosen with the keys, Fly,
- *                             Play and Restart, the track builder, an
- *                             invite code, a quick join, Make a room, and
- *                             a room link opened in the address, and
- *                             every card in the Hangar and row behind
- *                             a menu (aircraft, customise, the sticks,
- *                             how to fly, pilot, rates, tracks). None
+ *                             clicked, a card chosen with the keys, Fly
+ *                             and Restart, an invite code, Make a room,
+ *                             and a room link opened in the address, and
+ *                             every card in the Hangar and row behind a
+ *                             menu (aircraft, customise, the sticks, how
+ *                             to fly, pilot, rates). None
  *                             reaches a flight, a picker or a room, and
  *                             each says to sign in.
  *   sign in                   Google's button, then the callsign, right
@@ -134,7 +133,7 @@ const B = encodeURIComponent(board.origin);
 console.log(`tracks ${accounts.origin}, rooms ${R}, board ${board.origin}`);
 
 async function makeRoom() {
-  const res = await fetch(`${R}/v2/create`, { method: 'POST', body: JSON.stringify({ map: 'swiss2' }) });
+  const res = await fetch(`${R}/v2/create`, { method: 'POST', body: JSON.stringify({ map: 'itaipu' }) });
   return (await res.json()).code;
 }
 
@@ -270,7 +269,7 @@ try {
   for (const [width, height] of [[1280, 720], [1920, 1080], [1024, 768], [768, 1024], [390, 844], [360, 640], [844, 390]]) {
     await p.cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false }, p.sessionId);
     await p.until(`window.innerWidth === ${width} && window.innerHeight === ${height}`, 10000);
-    for (const hub of [null, 'club']) {
+    for (const hub of [null, 'hangar']) {
       await p.evaluate(hub ? `window.__ui.openHub(${JSON.stringify(hub)}); true` : "window.__ui.hub = null; window.__ui.renderMenu(); true");
       await p.sleep(500);
       const v = await p.evaluate(`({
@@ -293,22 +292,22 @@ try {
   await p.evaluate("window.__ui.hub = null; window.__ui.renderMenu(); true");
 
   console.log('nothing playable before signing in');
-  await refused(p, 'a hub activity\'s link on home, clicked', async () => {
+  await refused(p, 'an activity card on home, clicked', async () => {
     await p.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
     await p.sleep(400);
-    check('home has an activity link to click', await p.click('.screen-title .gate-card .gate-link'));
+    check('home has an activity card to click', await p.click('.screen-title .gate-card-interior .gate-card-name'));
   });
   await refused(p, 'a card chosen with the keys', async () => {
-    await p.evaluate("window.__ui.openHub('club'); true");
+    await p.evaluate("window.__ui.hub = null; window.__ui.renderMenu(); window.__ui.setCursor(window.__ui.titleStop()); true");
     await p.sleep(400);
     await p.tap('Enter');
   });
-  for (const action of ['fly', 'play', 'restart']) {
+  for (const action of ['fly', 'restart']) {
     await refused(p, `${action[0].toUpperCase()}${action.slice(1)}`, () => p.evaluate(`window.__ui.onAction(${JSON.stringify(action)}, window.__ui.settings); true`));
   }
   /* The Hangar's cards and the rows behind the menus: looked at, not
    * opened (the owner, 2026-10-04). */
-  for (const action of ['hangar-aircraft', 'customise', 'calibrate', 'howto', 'pilot', 'quad', 'rates', 'pids', 'fc', 'courses', 'mytracks', 'tricks']) {
+  for (const action of ['hangar-aircraft', 'customise', 'calibrate', 'howto', 'pilot', 'quad', 'rates', 'pids', 'fc']) {
     await refused(p, `the ${action} row or card`, () => p.evaluate(`window.__ui.act(${JSON.stringify(action)}); true`));
     const at = await p.evaluate("({ screen: window.__ui.screen, hangar: Boolean(document.querySelector('.hangar:not([hidden]), .screen-hangar:not([hidden])')) })");
     check(`and ${action} left the pilot on home`, at.screen === 'title', JSON.stringify(at));
@@ -319,13 +318,11 @@ try {
     check('the Hangar shows its cards to a visitor', await p.evaluate("document.querySelectorAll('.screen-title .gate-card').length > 1"));
     await p.evaluate(`(() => { const c = [...document.querySelectorAll('.screen-title .gate-card')].find((n) => /customi/i.test(n.textContent)); c && c.click(); return true; })()`);
   });
-  await refused(p, 'the track builder', () => p.evaluate("window.__ui.openBuilder({ map: 'swiss2' }); true"));
   const invite = await makeRoom();
   await refused(p, 'an invite code (Join with a code)', () => p.evaluate(`window.__roomJoin(${JSON.stringify(invite)}); true`));
-  await refused(p, 'a quick join', () => p.evaluate("window.__roomJoinPublic('swiss2'); true"));
   let made = null;
   await refused(p, 'Make a room', async () => {
-    made = await p.evaluate("window.__roomCreate({ map: 'swiss2' }).then(() => 'made', (e) => e.message)");
+    made = await p.evaluate("window.__roomCreate({ map: 'itaipu' }).then(() => 'made', (e) => e.message)");
   });
   check('Make a room made nothing, and said why', made === 'signin', String(made));
   errors.push(...p.errors);

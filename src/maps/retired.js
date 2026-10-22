@@ -9,15 +9,18 @@
  * told why. So a retired id is named here, with the world a setting moves
  * to and the words that say what it was.
  *
- * `to` is the Swiss valley for each: it is the title's world, the Track
- * seat's home and the Free Flight card's home, so it is where a pilot with
+ * `to` is Itaipu for each: it is the title's world (src/boot.js
+ * TITLE_WORLD) and the first in the registry, so it is where a pilot with
  * no world of their own already lands. `name` is a string key, not a
  * string, so this file imports nothing and src/boot.js can read it before
  * anything else loads.
  *
  * The town and the airfield were retired on 2026-09-28 on the owner's ask
- * ("leave only alps and swiss"), and Yellowstone on 2026-10-01 ("kill
- * yellowstone, its useless").
+ * ("leave only alps and swiss"), Yellowstone on 2026-10-01 ("kill
+ * yellowstone, its useless"), and the Alps and the Swiss valley on
+ * 2026-10-20 in the combat-only cut ("leave only combat quads and planes in
+ * pdcs no recreational stuff"). The first three went to the Swiss valley
+ * until it went too.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -36,9 +39,11 @@
  */
 
 const RETIRED_MAPS = {
-  city: { to: 'swiss2', name: 'retired.city' },
-  airfield: { to: 'swiss2', name: 'retired.airfield' },
-  yellowstone: { to: 'swiss2', name: 'retired.yellowstone' },
+  city: { to: 'itaipu', name: 'retired.city' },
+  airfield: { to: 'itaipu', name: 'retired.airfield' },
+  yellowstone: { to: 'itaipu', name: 'retired.yellowstone' },
+  alps: { to: 'itaipu', name: 'retired.alps' },
+  swiss2: { to: 'itaipu', name: 'retired.swiss2' },
 };
 
 /* The retired entry for an id, or null for a map this build has or never

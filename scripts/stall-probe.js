@@ -73,22 +73,7 @@ const MS = 4;
  * stick that yaws it (the flying wings have no rudder: roll instead). */
 const PLANES = {
   wing: { sim: 2, Vs: 7.25, alphaStall: 0.90 / 4.36, rudder: false },
-  sky: { sim: 3, Vs: 9.2, alphaStall: 1.10 / 5.52, rudder: true },
-  cub: { sim: 4, Vs: 8.1, alphaStall: 1.15 / 5.21, rudder: true },
-  slowstick: { sim: 5, Vs: 4.4, alphaStall: 1.05 / 4.58, rudder: true },
-  radian: { sim: 6, Vs: 6.5, alphaStall: 1.05 / 5.709, rudder: true },
-  timber: { sim: 7, Vs: 7.2, alphaStall: (1.15 + 0.305) / 5.25, rudder: true },
-  /* The Timber with its slats off: T3's stall speed. */
-  timbernoslats: { sim: 7, Vs: 8.75, alphaStall: 1.15 / 5.25, rudder: true, slats: 0 },
   bramor: { sim: 8, Vs: 13.0, alphaStall: 0.722 / 4.77, rudder: false },
-  timberf: { sim: 9, Vs: 7.1, alphaStall: (1.15 + 0.305) / 5.25, rudder: true },
-  cubf: { sim: 10, Vs: 8.7, alphaStall: 1.15 / 5.21, rudder: true },
-  bombshell: { sim: 11, Vs: 6.49, alphaStall: 1.0 / 4.991, rudder: true },
-  kadet: { sim: 12, Vs: 7.15, alphaStall: 1.15 / 5.029, rudder: true },
-  f16: { sim: 16, Vs: 12.33, alphaStall: 1.1 / 3.310, rudder: true },
-  uglystik: { sim: 19, Vs: 9.48, alphaStall: 0.95 / 4.824, rudder: true },
-  /* The cell's angle at which the top wing, the first, reaches its CL max. */
-  tigermoth: { sim: 23, Vs: 9.47, alphaStall: 1.05 / (1.1087 * 4.6328), rudder: true },
 };
 
 const onlyArg = process.argv.indexOf('--only');
@@ -114,7 +99,6 @@ const ramp = (ms) => Math.min(1, ms / 2000);
 function flight(sim, p, seconds, hands, stab = 0) {
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_wing_set_stab(stab), 'sim_wing_set_stab');
-  must(sim.e.sim_wing_set_slats(p.slats ?? 1), 'sim_wing_set_slats');
   must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
   must(sim.e.sim_wing_launch(1.15 * p.Vs), 'sim_wing_launch');
   const out = [];
@@ -285,7 +269,6 @@ function recover(sim, p, entry, anti) {
 function accel(sim, p) {
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
-  must(sim.e.sim_wing_set_slats(p.slats ?? 1), 'sim_wing_set_slats');
   must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
   must(sim.e.sim_wing_launch(1.4 * p.Vs), 'sim_wing_launch');
   let aMax = -Infinity, qMax = 0, pMax = 0;

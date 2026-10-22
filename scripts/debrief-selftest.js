@@ -26,12 +26,10 @@
  */
 
 import { EventLog } from '../src/game/events.js';
-import { FreestyleScore } from '../src/game/score.js';
-import { trickNames } from '../src/game/tricks.js';
 import { ACT1, INTERIOR } from '../src/game/campaign.js';
 import { COUNTED, foldEvents, freshProgress } from '../src/game/progress.js';
 import { createOpsCampaignScreen, matchOf } from '../src/ui/opscampaign.js';
-import { CONDITIONS, createRoute, fromFree, fromOps, fromRace, fromRoom, missionEndActions, missionEpilogue, nextActions, replayState, ROUTE_MAX, withBests, withPosted } from '../src/game/debrief.js';
+import { CONDITIONS, createRoute, fromOps, fromRace, missionEndActions, missionEpilogue, nextActions, replayState, ROUTE_MAX, withBests } from '../src/game/debrief.js';
 import { factLines } from '../src/ui/factlines.js';
 import { useLocale } from '../src/strings/index.js';
 import en from '../src/strings/en.js';
@@ -149,12 +147,6 @@ const rt = (events) => JSON.parse(JSON.stringify(events));
   const base = { aircraft: 'whoop65', events: raceRun([{ ms: 40000 }]), recordAtStart: null, flightMs: 1, totalS: 1, replay: ok };
   check('condition: the three words', JSON.stringify(CONDITIONS) === '["operational","impaired","destroyed"]');
   check('condition: race carries each word', CONDITIONS.every((c) => fromRace({ ...base, condition: c }).condition === c));
-  const free = { aircraft: '5inch', summary: { total: 0, timed: false, durationMs: 0 }, events: [], flightMs: 1, totalS: 1, replay: ok };
-  check('condition: freestyle carries each word', CONDITIONS.every((c) => fromFree({ ...free, condition: c }).condition === c));
-  check('condition: freestyle without one has none', fromFree(free).condition === null);
-  const room = { activity: 'tag', aircraft: 'whoop65', place: 2, of: 3, final: true, flightMs: 1, totalS: 1, replay: ok };
-  check('condition: a room carries each word', CONDITIONS.every((c) => fromRoom({ ...room, condition: c }).condition === c));
-  check('condition: a room pilot who did not fly has none', fromRoom(room).condition === null);
   const flight = { aircraft: 'bramor2300', fixedWing: true, flightMs: 1, totalS: 1, replay: ok };
   const mission = { events: [{ seq: 0, type: 'mission_end', simMs: 1, roomMs: null, mission: 'm', match: 'u', won: true, state: 'won', stars: 0, earned: 0, paid: true, airframe: 'x' }], match: 'u', items: [], starsOf: 0 };
   check('condition: an ops flight carries each word', CONDITIONS.every((c) => fromOps({ ...mission, flight: { ...flight, condition: c } }).condition === c));
@@ -168,7 +160,7 @@ const rt = (events) => JSON.parse(JSON.stringify(events));
   check('condition: a fourth word fails loudly', threw);
 }
 {
-  const d = fromRace({ aircraft: 'cub1400', fixedWing: true, events: raceRun([{ ms: 50000 }]), recordAtStart: 49000, flightMs: 60000, totalS: NaN, replay: ok, landed: true });
+  const d = fromRace({ aircraft: 'bramor2300', fixedWing: true, events: raceRun([{ ms: 50000 }]), recordAtStart: 49000, flightMs: 60000, totalS: NaN, replay: ok, landed: true });
   check('race: off the record is complete', d.result.kind === 'complete' && d.records[0].improved === false);
   check('race: a plane reports its landing', d.result.landed === true);
   check('race: no flight time total, no line', d.records.length === 1);
@@ -183,74 +175,10 @@ const rt = (events) => JSON.parse(JSON.stringify(events));
   check('race: first lap on a track is a record', f.result.kind === 'record' && f.records[0].improved === true && f.records[0].before === null);
 }
 
-/* Freestyle. */
-{
-  const summary = { total: 1840, timed: true, durationMs: 120000 };
-  const names = ['Flip', 'Roll', 'Flip', 'Power Loop', 'Roll', 'Flip', 'Yaw Spin', 'Matty Flip', 'Flip', 'Roll', 'Flip', 'Roll'];
-  const log = new EventLog();
-  names.forEach((id, i) => log.append('trick', i * 1000, { id, score: 100 }));
-  log.append('bail', 13000, { cause: 'bounce' });
-  log.append('crash', 14000, { airframe: '5inch' });
-  const d = fromFree({ aircraft: '5inch', summary, events: log.events, flightMs: 118000, totalS: 900, replay: ok, posted: { score: 2000, improved: false } });
-  check('free: complete', d.result.kind === 'complete');
-  check('free: kinds of tricks', d.accuracy[0].n === 5 && d.accuracy[0].of === 12);
-  check('free: crash count, the bails, not the crash flag\'s edge', d.accuracy[1].what === 'debrief.crashes' && d.accuracy[1].n === 1);
-  check('free: board best still stands', d.records[0].improved === false && d.records[0].before === 2000);
-  check('free: run time is the clock', d.time.runMs === 120000);
-  const e = fromFree({ aircraft: '5inch', summary: { total: 0, timed: false, durationMs: 0 }, events: [], flightMs: 5000, totalS: 5, replay: ok });
-  check('free: free flight has no run clock, no tricks', e.result.kind === 'ended' && e.time.runMs === null && e.accuracy.length === 1);
-  check('free: not posted, no board line', e.records.length === 1);
-  const p = withPosted(e, { score: 900, improved: true });
-  check('free: the board answer adds its line first', p.records.length === 2 && p.records[0].what === 'debrief.run_best' && p.records[0].before === 900 && p.records[0].improved === true);
-  check('free: and leaves the record it was given alone', e.records.length === 1);
-  check('free: a second answer replaces the line', withPosted(p, { score: 950, improved: false }).records.filter((r) => r.what === 'debrief.run_best').length === 1);
-  check('free: no score in the answer, no change', withPosted(e, { ok: true }) === e);
-  const w = fromFree({ aircraft: 'cub1400', fixedWing: true, summary: { total: 0, timed: false, durationMs: 0 }, events: [], flightMs: 1, totalS: 1, replay: ok, landed: true });
-  check('free: a plane reports its landing', w.result.landed === true);
-}
-
-/* Flight Club rooms. */
-{
-  const won = fromRoom({ activity: 'roomrace', aircraft: 'whoop65', place: 1, of: 4, final: true, flightMs: 90000, totalS: 100, replay: ok });
-  check('room: first when called is won', won.result.kind === 'won' && won.accuracy[0].what === 'debrief.place' && won.accuracy[0].n === 1 && won.accuracy[0].of === 4);
-  const wait = fromRoom({ activity: 'roomrace', aircraft: 'whoop65', place: 1, of: 4, final: false, flightMs: 90000, totalS: 100, replay: ok });
-  check('room: first while others finish is not yet won', wait.result.kind === 'complete');
-  const tagLog = (points) => [{ seq: 0, type: 'spawned', simMs: 0, roomMs: null }, { seq: 1, type: 'round', simMs: 1, roomMs: null, game: 'tag', world: 'alps', points }];
-  const lost = fromRoom({ activity: 'tag', aircraft: 'cub1400', fixedWing: true, place: 3, of: 3, final: true, events: tagLog(7), flightMs: 1, totalS: 1, replay: ok });
-  check('room: a later place when called is lost, points counted', lost.result.kind === 'lost' && lost.accuracy[1].what === 'debrief.points' && lost.accuracy[1].n === 7 && lost.accuracy[1].of === null);
-  const none = fromRoom({ activity: 'combat', aircraft: 'x', place: null, of: 0, final: true, flightMs: 1, totalS: NaN, replay: ok });
-  check('room: no standing, no place line, no time line', none.accuracy.length === 0 && none.records.length === 0 && none.result.kind === 'complete');
-  check('room: the room rows lead, then the replay and Change aircraft (COMPLETENESS 76)', JSON.stringify(won.next) === '["room","replay","aircraft","title"]');
-}
-
-/*
- * FROM THE LOG (COMPLETENESS.md item 26): a fact the flight's log holds is
- * read from it, so the debrief rebuilt from the saved log (JSON, as a
- * log is) is the one shown. Recorded as src/ui/progress-ui.js logs it.
- */
-{
-  const log = new EventLog();
-  log.append('spawned', 0);
-  log.append('seated', 0, { airframe: 'cub1400', fixedWing: true, power: 'electric', smallestPack: false, crashed: false });
-  log.append('round', 61000, { game: 'tag', world: 'alps', points: 3 });
-  log.append('crash', 70000, { airframe: 'cub1400' });
-  log.append('round', 181000, { game: 'tag', world: 'alps', points: 9 });
-  log.append('round', 190000, { game: 'race', world: 'alps', pilots: 4 });
-  const side = { aircraft: 'cub1400', fixedWing: true, place: 1, of: 3, final: true, flightMs: 175000, totalS: 900, route: null, replay: ok, condition: 'operational' };
-  const shown = fromRoom({ activity: 'tag', ...side, events: log.events });
-  const saved = JSON.parse(JSON.stringify(log.events));
-  check('log: a tag debrief rebuilt from the saved log is the one shown', JSON.stringify(fromRoom({ activity: 'tag', ...side, events: saved })) === JSON.stringify(shown));
-  check('log: its points are the last tag round\'s, not an earlier one\'s or another game\'s', shown.accuracy[1].what === 'debrief.points' && shown.accuracy[1].n === 9);
-  const race = fromRoom({ activity: 'roomrace', ...side, events: saved });
-  check('log: a room race\'s round carries its grid, not points: no points line', race.accuracy.length === 1 && race.accuracy[0].what === 'debrief.place');
-  check('log: no round of the game in the log, no points line', fromRoom({ activity: 'combat', ...side, events: saved }).accuracy.length === 1
-    && fromRoom({ activity: 'tag', ...side }).accuracy.length === 1);
-}
-
 /*
  * EVERY ACTIVITY FROM ITS LOG (COMPLETENESS.md item 26). Each is driven
  * as the shell drives it, the log written beside the thing the screen
- * used to read (race.js's rows, score.js's summary, the room's view), and
+ * used to read (race.js's rows, the room's view), and
  * the debrief built from the log, and from a JSON round trip of it, is
  * the one the old reader built from that thing. The old readers are kept
  * here as the oracles.
@@ -259,9 +187,6 @@ function oldRaceFacts({ log }) {
   const laps = log.filter((l) => Number.isFinite(l.ms)).map((l) => l.ms);
   const fastest = laps.length ? Math.min(...laps) : null;
   return { runMs: fastest, clean: log.length ? { n: laps.length, of: log.length } : null };
-}
-function oldFreeFacts(summary) {
-  return { kind: summary.tricks > 0 ? 'complete' : 'ended', kinds: summary.tricks > 0 ? { n: summary.unique, of: summary.tricks } : null, crashes: summary.crashes };
 }
 let seed = 20261014;
 const rand = () => {
@@ -301,56 +226,6 @@ const pick = (list) => list[Math.floor(rand() * list.length)];
   }
   check(`race from the log: five hundred runs over one to three flights, voids and test flight laps among them, say what race.js's rows said (${same} of 500, ${voids} voided, ${tests} test)`, same === 500 && voids > 100 && tests > 50, bad);
   check(`race from the log: rebuilt from a JSON round trip of the log, the debrief shown (${trips} of 500)`, trips === 500);
-}
-{
-  const names = trickNames();
-  let same = 0;
-  let trips = 0;
-  let bails = 0;
-  let edges = 0;
-  let refused = 0;
-  let bad = '';
-  for (let k = 0; k < 300; k += 1) {
-    /* The shell's freestyle: a scorer and the run's log, a trick logged
-     * when the scorer took it (src/main.js, the trick judge's callback),
-     * a bail at every scoreCrash, the crash flag's edge only for some. */
-    const score = new FreestyleScore({ timed: rand() < 0.5, runMs: 20000 });
-    const log = new EventLog();
-    log.append('spawned', 0);
-    let t = 0;
-    for (let i = 0; i < 40; i += 1) {
-      t += 200 + Math.floor(rand() * 1500);
-      score.tick(t);
-      const r = rand();
-      if (r < 0.6) {
-        const took = score.land({ name: pick(names), execution: pick(['CLEAN', 'SLOPPY', 'BUMP']), endMs: t });
-        if (took) {
-          log.append('trick', t, { id: took.name, score: took.net });
-        } else {
-          refused += 1;
-        }
-      } else if (r < 0.75) {
-        score.crash();
-        log.append('bail', t, { cause: pick(['crash', 'wreck', 'bounce']) });
-        bails += 1;
-        if (rand() < 0.5) {
-          log.append('crash', t, { airframe: '5inch' });
-          edges += 1;
-        }
-      }
-    }
-    const summary = score.summary();
-    const side = { aircraft: '5inch', summary, flightMs: t, totalS: 100, route: null, replay: ok, condition: 'operational' };
-    const shown = fromFree({ ...side, events: log.events });
-    const old = oldFreeFacts(summary);
-    const kinds = shown.accuracy.find((a) => a.what === 'debrief.tricks_kinds') || null;
-    const crashes = shown.accuracy.find((a) => a.what === 'debrief.crashes');
-    if (shown.result.kind === old.kind && JSON.stringify(kinds && { n: kinds.n, of: kinds.of }) === JSON.stringify(old.kinds) && crashes.n === old.crashes && shown.score === summary.total) same += 1;
-    else if (!bad) bad = JSON.stringify({ shown: shown.accuracy, old });
-    if (JSON.stringify(fromFree({ ...side, events: rt(log.events) })) === JSON.stringify(shown)) trips += 1;
-  }
-  check(`free from the log: three hundred scored runs say what score.js's summary said, every bail a crash, the flag's edges not (${same} of 300, ${bails} bails, ${edges} edges, ${refused} refused after the horn)`, same === 300 && bails > edges && edges > 0 && refused > 0, bad);
-  check(`free from the log: rebuilt from a JSON round trip of the log, the debrief shown (${trips} of 300)`, trips === 300);
 }
 {
   /* The Interior's result through its logging point
@@ -469,7 +344,7 @@ const pick = (list) => list[Math.floor(rand() * list.length)];
 /* The bests a run set (src/game/progress.js awardBest, PROGRESSION.md
  * section 3): a "New best" line each, the old value and the new. */
 {
-  const race = fromRace({ aircraft: 'timber1500', events: raceRun([{ ms: 41000 }]), recordAtStart: 42000, flightMs: 60000, totalS: 100, replay: ok });
+  const race = fromRace({ aircraft: 'bramor2300', events: raceRun([{ ms: 41000 }]), recordAtStart: 42000, flightMs: 60000, totalS: 100, replay: ok });
   const bests = [
     { type: 'best', key: 'lap:plane:track:t1', now: 41500, before: 42000, xp: 20 },
     { type: 'best', key: 'lap:plane:track:t1', now: 41000, before: 41500, xp: 0 },
@@ -477,42 +352,33 @@ const pick = (list) => list[Math.floor(rand() * list.length)];
     { type: 'best', key: 'tag:alps', now: 5, before: null, xp: 40 },
   ];
   const d = withBests(race, bests);
-  check('bests: a race shows its lap and run bests first, a tag best is not its', d.records.length === race.records.length + 2
+  check('bests: a race shows its lap and run bests first, a Catch the Ace! best from an old log is not its', d.records.length === race.records.length + 2
     && d.records[0].what === 'debrief.best_lap' && d.records[1].what === 'debrief.best_run' && d.records[2].what === 'debrief.track_record', JSON.stringify(d.records.map((r) => r.what)));
   check('bests: a key bettered twice in a run is one line, from the best held before it to the last', d.records[0].before === 42000 && d.records[0].now === 41000 && d.records[0].improved === true);
   check('bests: a first best has no old value', d.records[1].before === null && d.records[1].now === 41000);
   check('bests: none set leaves the record as it was', withBests(race, []) === race && withBests(race, null) === race);
   check('bests: pure, the record it was given is unchanged', race.records[0].what === 'debrief.track_record');
-  const tag = withBests(fromRoom({ activity: 'tag', aircraft: 'cub1400', place: 1, of: 2, final: true, events: [{ seq: 0, type: 'round', simMs: 1, roomMs: null, game: 'tag', world: 'alps', points: 5 }], flightMs: 1, totalS: 1, replay: ok }), bests);
-  check('bests: a tag match shows its points best only', tag.records.length === 2 && tag.records[0].what === 'debrief.best_score' && tag.records[0].kind === 'tag' && tag.records[0].now === 5);
-  check('bests: a room race shows its lap best, never a run (a room has no solo run)', withBests({ ...race, activity: 'roomrace' }, bests).records.filter((r) => r.kind).map((r) => r.kind).join() === 'lap');
   check('bests: JSON safe', JSON.stringify(JSON.parse(JSON.stringify(d))) === JSON.stringify(d));
-  for (const [lang, label, scoreLabel, first, beat] of [['en', 'New best lap', 'New best score', '41.00, your first', '41.00, was 42.00'], ['es', 'Nueva mejor vuelta', 'Nueva mejor puntuación', '41.00, tu primera marca', '41.00, antes 42.00']]) {
+  for (const [lang, label, first, beat] of [['en', 'New best lap', '41.00, your first', '41.00, was 42.00'], ['es', 'Nueva mejor vuelta', '41.00, tu primera marca', '41.00, antes 42.00']]) {
     await useLocale(lang);
     const lines = factLines(d);
     const row = lines.find((l) => l[0] === label);
     check(`bests: the "New best" row in ${lang}, old and new, a gain`, Boolean(row) && row[1] === beat && row[2] === 'gain', JSON.stringify(row));
     const fresh = factLines(withBests(race, [{ key: 'lap:plane:track:t9', now: 41000, before: null }])).find((l) => l[0] === label);
     check(`bests: a first best in ${lang}`, Boolean(fresh) && fresh[1] === first, JSON.stringify(fresh));
-    const score = factLines(tag).find((l) => l[0] === scoreLabel);
-    const was = factLines(withBests(tag, [{ key: 'tag:alps', now: 7, before: 5 }])).find((l) => l[0] === scoreLabel);
-    check(`bests: a score best in ${lang} is points, not a time`, Boolean(score) && score[1] === first.replace('41.00', '5') && score[2] === 'gain'
-      && Boolean(was) && was[1] === beat.replace('41.00', '7').replace('42.00', '5'), JSON.stringify([score, was]));
   }
   await useLocale('en');
 
   /* An aircraft challenge the run did (progress-ui.js runBests'
    * challenge entries): its line on whichever debrief follows, after the
    * bests, saying which one in the pilot's language. */
-  const did = [...bests, { key: 'challenge:cub1400:landings', airframe: 'cub1400', id: 'landings' }];
+  const did = [...bests, { key: 'challenge:bramor2300:landings', airframe: 'bramor2300', id: 'landings' }];
   const withDid = withBests(race, did);
   check('challenge: a race says it after its bests', withDid.records.map((r) => r.what).slice(0, 4).join() === 'debrief.best_lap,debrief.best_run,debrief.challenge_done,debrief.track_record');
-  const free = withBests(fromFree({ aircraft: 'cub1400', fixedWing: true, summary: { total: 0, durationMs: 1 }, events: [], flightMs: 1, totalS: 1, replay: ok }), did);
-  check('challenge: a free flight says it, and no race best', free.records[0].what === 'debrief.challenge_done' && !free.records.some((r) => r.kind === 'lap'));
-  check('challenge: an entry without its aircraft or id is no line', withBests(race, [{ key: 'challenge:cub1400:lap' }]) === race);
+  check('challenge: an entry without its aircraft or id is no line', withBests(race, [{ key: 'challenge:bramor2300:lap' }]) === race);
   for (const [lang, label, value] of [['en', 'Challenge complete', '3 landings in one flight'], ['es', 'Desafío completado', '3 aterrizajes en un vuelo']]) {
     await useLocale(lang);
-    const row = factLines(free).find((l) => l[0] === label);
+    const row = factLines(withDid).find((l) => l[0] === label);
     check(`challenge: the row in ${lang}, a gain`, Boolean(row) && row[1] === value && row[2] === 'gain', JSON.stringify(row));
   }
   await useLocale('en');
@@ -525,12 +391,6 @@ check('replay: no span does not', replayState(null).why === 'debrief.replay_shor
 check('replay: already open does not', replayState([0, 900, 10, 40], true).why === 'debrief.replay_open');
 check('next: unknown activity is again then title', JSON.stringify(nextActions('nope')) === '["again","title"]');
 check('next: a copy', nextActions('race') !== nextActions('race'));
-/* COMPLETENESS 76: a room's results offer another aircraft for its next
- * round, after the replay (src/ui/items.js resultsRows). */
-check('next: every room game\'s results have Change aircraft after the replay', ['roomrace', 'tag', 'combat'].every((a) => {
-  const n = nextActions(a);
-  return n.indexOf('aircraft') === n.indexOf('replay') + 1;
-}));
 
 /* A mission's end, the host's one press (COMPLETENESS 76). */
 const ends = (o) => JSON.stringify(missionEndActions(o));

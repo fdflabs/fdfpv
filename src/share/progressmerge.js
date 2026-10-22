@@ -100,12 +100,11 @@ import { mergeCampaign } from '../game/campaign.js';
 import { betterMedal } from '../game/medals.js';
 import { COUNTED, bestKind, bestsMap, betterBest } from '../game/progress.js';
 import { CLASSES, retiredAirframe } from '../../configs/airframes.js';
-import { tiersShape } from '../../configs/surfaces.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
 import { cleanPilotCounts, mergePilotCounts } from './pilotcounts.js';
 import { cleanRecords, mergeRecords } from './records.js';
 import {
-  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS, PACKS_MAX, SURFACES_MAX_ENTRIES,
+  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS, PACKS_MAX,
 } from '../../tracks-api/limits.js';
 
 export const SYNCED_SECTIONS = {
@@ -119,8 +118,6 @@ export const SYNCED_SECTIONS = {
   parts: 'keyed',
   power: 'keyed',
   tuning: 'keyed',
-  /* The control surface tiers (configs/surfaces.js), by airframe. */
-  surfaces: 'keyed',
   tuneFor: 'keyed',
   /* The pilot's own camera per aircraft (src/ui/settings.js cameraFor). */
   cameraFor: 'keyed',
@@ -128,7 +125,6 @@ export const SYNCED_SECTIONS = {
    * swapClassRates), beside the seated class's in `rates`. */
   ratesFor: 'keyed',
   pids: 'keyed',
-  floats: 'keyed',
   tune: 'whole',
   rates: 'whole',
   keybinds: 'whole',
@@ -181,7 +177,6 @@ const ENTRY_SHAPES = {
     && typeof b.airframe === 'string' && ID_RE.test(b.airframe) && isRecord(b.fit) && when(b.created) && when(b.updated),
   /* configs/wear.js holds the fields; the server holds the shape. */
   packs: (key, p) => /^[a-z0-9_-]{1,48}$/.test(key) && isRecord(p) && typeof p.spec === 'string' && p.spec.length <= 12,
-  surfaces: (key, e) => ID_RE.test(key) && tiersShape(e),
   cameraFor: (key, e) => ID_RE.test(key) && isRecord(e) && Number.isFinite(e.angle) && Number.isFinite(e.fov),
   ratesFor: (key, e) => CLASSES.includes(key) && isRecord(e),
   favourites: (key, e) => key === 'list' && Array.isArray(e) && e.length <= FAVOURITES_MAX && e.every((id) => typeof id === 'string' && ID_RE.test(id)),
@@ -193,18 +188,24 @@ const ENTRY_SHAPES = {
  * 2026-10-03) is dropped from a clean blob: its motors, props, packs,
  * parts and tune were that aircraft's, and its successor has its own.
  */
-const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'surfaces', 'tuneFor', 'cameraFor', 'floats', 'combat'];
+const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'tuneFor', 'cameraFor', 'combat'];
 
 /*
  * A build as this build of the game holds it: one made on a retired
  * aircraft is moved onto its successor, its name, id and dates kept and its
  * fit back to stock, since every motor, prop and pack in it was the old
- * aircraft's (the owner's five inch builds, 2026-10-03). Here so the
- * server's merge and src/ui/builds.js on load move it the same way.
+ * aircraft's (the owner's five inch builds, 2026-10-03). One made on an
+ * aircraft that went to another game (`moved`, the recreational planes to
+ * Openflight, 2026-10-21) is null, dropped and not turned into a Striker
+ * (lead decision, the PDCS cut). Here so the server's merge and
+ * src/ui/builds.js on load treat it the same way.
  */
 export function currentBuild(b) {
   const gone = isRecord(b) ? retiredAirframe(b.airframe) : null;
-  return gone ? { ...b, airframe: gone.to, fit: {} } : b;
+  if (!gone) {
+    return b;
+  }
+  return gone.moved ? null : { ...b, airframe: gone.to, fit: {} };
 }
 
 /*
@@ -219,7 +220,7 @@ export function currentBuild(b) {
  */
 export function blobRefusal(raw) {
   const data = isRecord(raw) && isRecord(raw.data) ? raw.data : {};
-  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES, packs: PACKS_MAX, surfaces: SURFACES_MAX_ENTRIES };
+  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES, packs: PACKS_MAX };
   for (const [section, shape] of Object.entries(ENTRY_SHAPES)) {
     const value = data[section];
     if (value === undefined) {
@@ -302,7 +303,7 @@ export function cleanBlob(raw) {
     const shape = ENTRY_SHAPES[section];
     let kept = shape ? Object.fromEntries(Object.entries(value).filter(([k, e]) => shape(k, e))) : value;
     if (section === 'builds') {
-      kept = Object.fromEntries(Object.entries(kept).map(([k, b]) => [k, currentBuild(b)]));
+      kept = Object.fromEntries(Object.entries(kept).map(([k, b]) => [k, currentBuild(b)]).filter(([, b]) => b !== null));
     } else if (AIRFRAME_KEYED.includes(section)) {
       kept = Object.fromEntries(Object.entries(kept).filter(([k]) => !retiredAirframe(k)));
     }

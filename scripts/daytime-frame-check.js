@@ -13,9 +13,6 @@
  *   Itaipu         ?time=night solo: the light is 0.05 and the sounds the
  *                  night's (before: perception had full daylight outside
  *                  a war room)
- *   the Swiss      ?time=night solo: a valley that cannot draw night stays
- *   valley         day for the light and the sounds, as its sky does
- *                  (before: night sounds over a day sky)
  *
  *     node scripts/daytime-frame-check.js      (npm run daytime:frame)
  *
@@ -149,20 +146,6 @@ console.log('Itaipu ?time=night, solo');
     const d = list.at(-1);
     check('built at night, and detection and the sounds are night with it', agree(list).length === 0 && d.look === 'night'
       && d.flag === 'night' && d.light === 0.05 && d.audio === 'night', show(d));
-    check('no page error', quiet(p).length === 0, quiet(p).slice(0, 3).join(' | ').slice(0, 600));
-  } finally {
-    await p.close();
-  }
-}
-
-console.log('the Swiss valley ?time=night, solo');
-{
-  const p = await boot('/index.html?map=swiss2&time=night', 'swiss2', 'own');
-  try {
-    const list = await frames(p, 20);
-    const d = list.at(-1);
-    check('a valley that draws no night stays day for the light and the sounds, as its sky does', agree(list).length === 0
-      && d.flag === null && d.light === 1 && d.audio === 'day' && d.night === false, show(d));
     check('no page error', quiet(p).length === 0, quiet(p).slice(0, 3).join(' | ').slice(0, 600));
   } finally {
     await p.close();

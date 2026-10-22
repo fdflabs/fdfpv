@@ -34,12 +34,11 @@ import { bayCount, bayFill, paintChart, unlockedPlanes } from '../game/hangarmin
 import { str } from '../strings/index.js';
 import { customisable, fittedBuild } from './builds.js';
 import { airframeById } from '../../configs/airframes.js';
-import { SURFACE_KEYS, normaliseTiers } from '../../configs/surfaces.js';
 import { flightTotals } from '../share/flighttime.js';
 import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { listClips } from '../replay/store.js';
 import { fetchHangar, fetchWallet, readWallet, signedIn } from '../share/account.js';
-import { hubWays } from './ways.js';
+import { GATE_WAYS } from './ways.js';
 import { el } from './dom.js';
 import { logWarn } from '../share/crashrecord.js';
 
@@ -59,21 +58,11 @@ const STATIONS = {
   door: { action: (ui) => (ui.walk.tier === 'field' ? warWay(ui) : 'fly'), label: 'walk.door' },
 };
 
-/* The field hangar's door goes to the war: the first Operations card the
- * pilot could open from the hub, which needs a rooms server. None, no
- * door. */
-/* A lineup pilot's surface tiers after their aircraft's name, the
- * bigger ones only: ", Extreme ailerons, 3D elevator", or nothing for
- * stock (configs/surfaces.js; the unlock names say it in both languages). */
-function lineupTiers(e) {
-  const t = normaliseTiers(e.surfaces, e.airframe);
-  const big = SURFACE_KEYS.filter((k) => t[k] !== 'stock').map((k) => str(`surfaces.unlock_${k}_${t[k]}`));
-  return big.length ? `, ${big.join(', ')}` : '';
-}
-
+/* The field hangar's door goes to the war: the first card on home the
+ * pilot could open, which needs a rooms server. None, no door. */
 function warWay(ui) {
   const rooms = ui.friendsItems().length > 0;
-  const way = hubWays('ops').find((w) => rooms || !w.room);
+  const way = GATE_WAYS.find((w) => rooms || !w.room);
   return way ? way.action : null;
 }
 
@@ -149,7 +138,8 @@ export const walkMethods = {
     const layout = LAYOUTS[tier];
     this.walk = {
       tier,
-      hub: tier === 'field' ? 'ops' : 'hangar',
+      /* Back returns here: the Hangar, or home for the field hangar. */
+      hub: tier === 'field' ? null : 'hangar',
       /* Another pilot's hangar, read only: the server's visit, or null. */
       visit,
       /* The room's lineup: [{ name, airframe, look, parts, own }], or null. */
@@ -311,7 +301,7 @@ export const walkMethods = {
     w.roomLineup = list;
     this.walkPrompt.hidden = true;
     this.walkLineupName.textContent = str('walk.lineup_room');
-    this.walkLineupFacts.textContent = list.map((e) => `${e.name}: ${airframeById(e.airframe).name}${lineupTiers(e)}`).join('  ·  ');
+    this.walkLineupFacts.textContent = list.map((e) => `${e.name}: ${airframeById(e.airframe).name}`).join('  ·  ');
     this.walkLineup.hidden = false;
     this.syncFrame();
   },

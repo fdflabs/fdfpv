@@ -1,17 +1,15 @@
 /*
  * wing-record.js: write tests/inputs/wing-baseline.rec, the stick stream
- * the cross-host wing check replays, with `sky` the Skyhunter's
- * tests/inputs/sky-baseline.rec, or with `cub` the Cub's
- * tests/inputs/cub-baseline.rec, which takes off from the ground, or with
- * `bramor` and `bramor-chute` the Bramor's tests/inputs/bramor-baseline.rec
- * and bramor-chute.rec, or with `slowstick` the Slow Stick's
- * tests/inputs/slowstick-baseline.rec, which takes off from the ground
- * too. Run it when the pilot in
- * tests/lib/wingpilot.js changes; the recording is committed, like the
- * quad's baseline.rec, so the check never depends on JS maths. The wing's
- * committed recording was made against an earlier plant and this no longer
- * writes the same bytes; the hash is pinned to the committed stream, so
- * it stays as it is.
+ * the cross-host wing check replays, or with `bramor` and `bramor-chute`
+ * the Bramor's tests/inputs/bramor-baseline.rec and bramor-chute.rec. Run
+ * it when the pilot in tests/lib/wingpilot.js changes; the recording is
+ * committed, like the quad's baseline.rec, so the check never depends on
+ * JS maths. The wing's committed recording was made against an earlier
+ * plant and this no longer writes the same bytes; the hash is pinned to
+ * the committed stream, so it stays as it is. The other aircraft's
+ * recorders left with them on 2026-10-20; tests/inputs/p51-air.rec stays
+ * as a stick stream replaylib:selftest flies on the five inch, and can no
+ * longer be written.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -35,63 +33,14 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { encodeRec } from '../tests/lib/recfile.js';
-import {
-  bramorPrelude, recordChuteFlight, recordCubFlight, recordGliderFlight, recordScriptedFlight,
-  recordSlowStickFlight, recordTimberFlight, recordTimberFloatFlight, recordBombshellFlight, recordKadetFlight, recordUglystikFlight, recordP51Flight, recordP51AirFlight, recordF16Flight, recordZagiFlight, recordDlgFlight, recordTigermothFlight, recordExtraFlight, recordHerculesFlight, recordNightTimberFlight, recordSlickFlight, skyPrelude, wingPrelude,
-} from '../tests/lib/wingpilot.js';
-import { recordCapFlight } from '../tests/lib/wingpilot.js';
+import { bramorPrelude, recordChuteFlight, recordScriptedFlight, wingPrelude } from '../tests/lib/wingpilot.js';
 
-/* The wing by default; `sky` records the Skyhunter, with its rudder in the
- * flight, for skyhunter-gates.js S16; `cub` the Cub's take off and flight
- * for cub-gates.js C23; `glider` the Radian's climb, glide and thermal for
- * glider-gates.js G21; `bramor` the Bramor off its catapult and
- * `bramor-chute` its descent under the canopy, for bramor-gates.js;
- * `slowstick` the Slow Stick's take off and flight for slowstick-gates.js
- * S18; `timber` the Timber's take off on half flaps and flight for
- * timber-gates.js T15; `timberf` the Timber on floats' take off off a
- * swell, flight and landing back on the water for floats-gates.js;
- * `bombshell` the Buzzard Bombshell's take off and flight for
- * bombshell-gates.js S18; `kadet` the Kadet Senior's take off and flight
- * for kadet-gates.js S18; `p51` the P-51's take off and flight and
- * `p51-air` its retracts and stall in the air, for p51-gates.js S18; `f16`
- * the F-16's take off and flight, its fan
- * spooling up and down, for f16-gates.js S18; `zagi` the Zagi's hand throw, climb, roll,
- * glide and stall for zagi-gates.js Z18; `uglystik` the Ugly Stik's
- * take off, roll, inverted run and loop for uglystik-gates.js U18; `dlg`
- * the NRJ's discus launch, glide and thermal for dlg-gates.js D14;
- * `tigermoth` the
- * Tiger Moth's take off, adverse yaw, balanced turn entry and stall for
- * tigermoth-gates.js T17; `extra` the Extra 300 3D's take off, hover,
- * torque roll and flight for extra-gates.js E16; `nighttimber` the Night
- * Timber X's for nighttimber-gates.js N16; `hercules` the Hercules'
- * take off, climb, turn and glide for hercules-gates.js H8; `cap` the CAP
- * 580's take off, hover and torque roll for cap580-gates.js C16; `slick`
- * the Slick 580's take off, hover, torque roll and flight for
- * slick-gates.js S16. */
+/* The wing by default; `bramor` the Bramor off its catapult and
+ * `bramor-chute` its descent under the canopy, for bramor-gates.js. */
 const PLANES = {
   wing: { file: 'tests/inputs/wing-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: wingPrelude, rudder: false }) },
-  sky: { file: 'tests/inputs/sky-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: skyPrelude, rudder: true }) },
-  cub: { file: 'tests/inputs/cub-baseline.rec', record: recordCubFlight },
-  glider: { file: 'tests/inputs/glider-baseline.rec', record: recordGliderFlight },
   bramor: { file: 'tests/inputs/bramor-baseline.rec', record: (sim) => recordScriptedFlight(sim, { prelude: bramorPrelude, rudder: false }) },
   'bramor-chute': { file: 'tests/inputs/bramor-chute.rec', record: recordChuteFlight },
-  slowstick: { file: 'tests/inputs/slowstick-baseline.rec', record: recordSlowStickFlight },
-  timber: { file: 'tests/inputs/timber-baseline.rec', record: recordTimberFlight },
-  timberf: { file: 'tests/inputs/timberf-baseline.rec', record: recordTimberFloatFlight },
-  bombshell: { file: 'tests/inputs/bombshell-baseline.rec', record: recordBombshellFlight },
-  f16: { file: 'tests/inputs/f16-baseline.rec', record: recordF16Flight },
-  kadet: { file: 'tests/inputs/kadet-baseline.rec', record: recordKadetFlight },
-  uglystik: { file: 'tests/inputs/uglystik-baseline.rec', record: recordUglystikFlight },
-  dlg: { file: 'tests/inputs/dlg-baseline.rec', record: recordDlgFlight },
-  tigermoth: { file: 'tests/inputs/tigermoth-baseline.rec', record: recordTigermothFlight },
-  p51: { file: 'tests/inputs/p51-baseline.rec', record: recordP51Flight },
-  'p51-air': { file: 'tests/inputs/p51-air.rec', record: recordP51AirFlight },
-  zagi: { file: 'tests/inputs/zagi-baseline.rec', record: recordZagiFlight },
-  extra: { file: 'tests/inputs/extra-baseline.rec', record: recordExtraFlight },
-  hercules: { file: 'tests/inputs/hercules-baseline.rec', record: recordHerculesFlight },
-  slick: { file: 'tests/inputs/slick-baseline.rec', record: recordSlickFlight },
-  nighttimber: { file: 'tests/inputs/nighttimber-baseline.rec', record: recordNightTimberFlight },
-  cap: { file: 'tests/inputs/cap580-baseline.rec', record: recordCapFlight },
 };
 const plane = PLANES[process.argv[2] || 'wing'];
 if (!plane) {

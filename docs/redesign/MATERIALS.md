@@ -9,7 +9,7 @@ and a clear coat with metal flake, chosen per paint region.
 Most of it is live. A "material" here is a finish (configs/paint.js
 FINISHES), chosen per region on the Colours tab, drawn by
 src/render/finish.js on the builder's cel material, with a physically based
-twin in src/maps/swiss2/craftlook.js.
+twin in src/maps/look/craftlook.js.
 
 | Asked for | Exists | Notes |
 | --- | --- | --- |

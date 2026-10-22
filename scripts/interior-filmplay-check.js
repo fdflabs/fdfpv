@@ -86,7 +86,7 @@ function check(name, ok, detail = '') {
 
 const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
 Object.assign(seated, {
-  map: 'swiss2', graphics: 'low', graphicsAuto: false, fpsCap: 0, airframeAsked: true, interiorConsent: true,
+  map: 'interior', graphics: 'low', graphicsAuto: false, fpsCap: 0, airframeAsked: true, interiorConsent: true,
 });
 const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};
@@ -247,6 +247,10 @@ try {
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 }, page.sessionId);
   await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 }, page.sessionId);
   await page.until("window.__ops.view().state !== 'briefing'", 15000).catch(() => {});
+  /* B hears the room's countdown on its own socket, after the host does:
+   * under load the host's page can read the new state before B's message
+   * lands (local-ci 2026-10-21, "countdown / briefing" at load 33). */
+  await B.until("window.__ops.view().state !== 'briefing'", 15000).catch(() => {});
   /* The card closes on the frame after the room leaves its briefing, so
    * reading it on the same tick as the state races the render loop. */
   await page.until('!window.__briefCard().open', 3000).catch(() => {});

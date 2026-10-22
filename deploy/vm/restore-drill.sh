@@ -19,7 +19,7 @@
 #      server starts on them with the restored ADMIN_SECRET and
 #      ACCOUNTS_SECRET, its admin overview counts the same accounts and
 #      tracks as the file, and tracks-api/smoke.js passes against it
-#      (publish, update, refuse, filter, rate limit, then delete).
+#      (health, version, the retired tracks routes' 404, the overview).
 #   5. rooms.db and metrics.db open and pass integrity_check.
 #
 # The container, the servers and the scratch directory (which holds the

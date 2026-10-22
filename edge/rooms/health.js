@@ -8,18 +8,14 @@
  * when the core is short is the loop: ticks start late, batches bunch up,
  * and every pilot in every room sees peers stutter together. So the valve
  * watches the loop's delay and this process's share of the core, and
- * while either stays high, front.js refuses new public rooms (quick joins
- * into a room with a seat still go ahead): a pilot is told the servers
- * are full now rather than everyone flying worse.
+ * while either stays high, front.js refuses new public rooms: a pilot is
+ * told the servers are full now rather than everyone flying worse.
  *
  * Counters, per room and for the server: pilots, rooms, messages and
  * bytes a second each way, the process's CPU and the host's, the loop's
  * delay, memory, and the day's totals (UTC): the cost of the day in
- * egress, messages, pilot hours and room hours. And the race witness's
- * verdicts (edge/rooms/anticheat.js): claims judged and refused, per room
- * and for the server, so a refusal in production is seen. front.js serves
- * them at GET /v2/admin/health with the admin secret, and never to anyone
- * else.
+ * egress, messages, pilot hours and room hours. front.js serves them at
+ * GET /v2/admin/health with the admin secret, and never to anyone else.
  *
  * Valve is the rule alone, fed one sample a second, for rooms:selftest.
  * Health is Node's wiring around it (edge/rooms/node.js): Cloudflare has
@@ -125,11 +121,9 @@ export function roomCounters() {
 }
 
 /*
- * rooms() is the server's rooms: [{ counters, pilots, meta, activity,
- * witness }], meta and witness null for a room object with nothing
- * loaded. A witness counts from when its room was made or woke (judged,
- * flagged), so its own object is the key its growth is measured by.
- * Owns its timer and the loop delay histogram; stop() ends both.
+ * rooms() is the server's rooms: [{ counters, pilots, meta, activity }],
+ * meta null for a room object with nothing loaded. Owns its timer and the
+ * loop delay histogram; stop() ends both.
  */
 export class Health {
   constructor(rooms, { now = () => Date.now() } = {}) {
@@ -138,9 +132,6 @@ export class Health {
     this.valve = new Valve();
     this.started = now();
     this.refused = 0;
-    /* The witness's verdicts since this process started. */
-    this.race = { claims: 0, refused: 0 };
-    this.prevWitness = new Map(); /* witness -> { judged, flagged } a second ago */
     this.history = []; /* one entry a second, newest last */
     this.lag = monitorEventLoopDelay({ resolution: LAG_RESOLUTION_MS });
     this.lag.enable();
@@ -155,7 +146,7 @@ export class Health {
 
   freshDay(ms) {
     return {
-      day: dayOf(ms), inMsgs: 0, inBytes: 0, outMsgs: 0, outBytes: 0, pilotSeconds: 0, roomSeconds: 0, peakPilots: 0, refused: 0, raceClaims: 0, raceRefused: 0,
+      day: dayOf(ms), inMsgs: 0, inBytes: 0, outMsgs: 0, outBytes: 0, pilotSeconds: 0, roomSeconds: 0, peakPilots: 0, refused: 0,
     };
   }
 
@@ -205,20 +196,6 @@ export class Health {
       rooms.push({ ...room, rate: d });
     }
     this.prev = seen;
-    const witnesses = new Map();
-    for (const room of rooms) {
-      const w = room.witness;
-      if (!w) {
-        continue;
-      }
-      const was = this.prevWitness.get(w) || { judged: 0, flagged: 0 };
-      this.race.claims += w.judged - was.judged;
-      this.race.refused += w.flagged - was.flagged;
-      this.day.raceClaims += w.judged - was.judged;
-      this.day.raceRefused += w.flagged - was.flagged;
-      witnesses.set(w, { judged: w.judged, flagged: w.flagged });
-    }
-    this.prevWitness = witnesses;
     const pilots = rooms.reduce((a, r) => a + r.pilots, 0);
     const awake = rooms.filter((r) => r.pilots > 0).length;
     const secs = wallUs / 1e6;
@@ -285,7 +262,6 @@ export class Health {
       busySince: this.valve.since ? new Date(this.valve.since).toISOString() : null,
       closings: this.valve.closings,
       refused: this.refused,
-      race: { ...this.race },
       pilots: last ? last.pilots : 0,
       rooms: last ? last.awake : 0,
       held: last ? last.held : 0,
@@ -304,8 +280,6 @@ export class Health {
         inBytesPerS: r.rate.inBytes,
         outMsgsPerS: r.rate.outMsgs,
         outBytesPerS: r.rate.outBytes,
-        raceClaims: r.witness ? r.witness.judged : 0,
-        raceRefused: r.witness ? r.witness.flagged : 0,
       })) : [],
     };
   }

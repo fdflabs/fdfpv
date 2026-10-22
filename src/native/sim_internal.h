@@ -50,80 +50,6 @@
  * STAGE1.md is a plant tuning constant, chosen to land inside the
  * verification bands; the reasoning lives in PROGRESS.md.
  */
-/*
- * A wheel, for an airframe that stands on landing gear. sim.c applies each
- * one as a spring and damper along the ground normal at its tyre's contact
- * point, and friction split along the wheel's own heading (rolling) and
- * across it (side grip). With no radius and the two frictions equal it is
- * a skid, a hard point that drags: the Cub's prop tip is one.
- * docs/CUB-STAGE1.md derives the numbers and says why this is the model.
- */
-#define SIM_WHEELS_MAX 4
-typedef struct {
-  double pos[3];  /* the axle's centre, body frame, strut unloaded */
-  double r;       /* tyre radius: the contact is the rim's point nearest
-                   * the ground, so it moves round the tyre as the aircraft
-                   * pitches instead of staying one point of the body */
-  double k;       /* strut and tyre stiffness, N/m */
-  double c;       /* damping, N s/m */
-  double mu_roll; /* rolling resistance along the wheel's heading */
-  double mu_side; /* side grip across it */
-  double steer;   /* wheel angle per radian of rudder, the same sign: a
-                   * tailwheel turns its front the way the rudder's trailing
-                   * edge goes, and 0 is a wheel that does not steer */
-  double brake;   /* 1 on a wheel the brake channel acts on, 0 elsewhere */
-  double slide;   /* a rolling tyre's side grip as a slip: tan of the slip
-                   * angle at which its contact patch slides whole, the
-                   * brush model's (sim.c, wheel_side_cap). Zero holds the
-                   * contact across the heading as a skid does, up to
-                   * mu_side N, at any speed. */
-  double retract; /* 1 on a wheel the retracts fold away, which touches
-                   * nothing unless the gear is down and locked
-                   * (plant_wing_gear_down); 0 on a fixed wheel and on every
-                   * skid */
-} WheelParams;
-
-/*
- * FLOATS, for an airframe that sits on water: two float hulls, one each
- * side, the same shape. sim.c samples each along its keel in
- * SIM_FLOAT_STATIONS strips, bow to stern, and each strip in the water
- * gets its buoyancy, the planing force of the water it pushes down, the
- * drag of the water across and along it; each float gets its wave making
- * drag and a water rudder at its stern, steered with the air rudder. On
- * land the keel's bow, knee, step and stern are skids. docs/FLOATS-STAGE1.md
- * derives every number and says why this is the model.
- *
- * The keel, in the body frame: flat at z_keel from the step forward to
- * the knee, rising bow_rise to the bow; aft of the step it is step_h
- * higher and rises aft_slope per metre to the stern. The deck is depth
- * over the forebody keel. Each section is a V of deadrise tan_dr to the
- * chines, then sides straight up.
- */
-#define SIM_FLOAT_STATIONS 20
-typedef struct {
-  int count;          /* 0, an airframe without floats, or 2 */
-  double y;           /* each float's centreline, |body y|, m */
-  double x_bow, x_knee, x_step, x_stern; /* body x, m */
-  double z_keel;      /* the forebody keel, body z, m */
-  double bow_rise;    /* the keel at the bow over z_keel, m */
-  double step_h;      /* the step's height, m */
-  double aft_slope;   /* the afterbody keel's rise per metre aft */
-  double depth;       /* forebody keel to deck, m */
-  double beam;        /* m */
-  double tan_dr;      /* tan of the deadrise angle */
-  /* The water rudder: its blade's centre, body x and z (both floats, at
-   * +-y), its span, its area, its lift slope per rad and CL limit, and
-   * its angle per radian of air rudder, the same sign. */
-  double rudder_x, rudder_z, rudder_span, rudder_area, rudder_a, rudder_clmax, rudder_steer;
-  double cf;          /* skin friction coefficient on the wetted girth */
-  double c_cross;     /* crossflow drag coefficient, normal to the bottom */
-  double c_side;      /* crossflow drag coefficient, sideways */
-  double k_rad;       /* heave radiation damping, per rho B sqrt(g B) */
-  double wave_k;      /* wave making drag at speed, per newton of buoyancy */
-  double wave_fr0;    /* length Froude number where it is half grown */
-  double k_ground, c_ground, mu_ground; /* a keel skid on land */
-} FloatParams;
-
 typedef struct {
   int kind;          /* PLANT_KIND_QUAD or PLANT_KIND_WING */
   double mass_kg;
@@ -243,13 +169,6 @@ typedef struct {
   /* The fixed wing's aero, surfaces, motor and stabiliser, for a table
    * entry of PLANT_KIND_WING; null for a quad, which never reads it. */
   const struct FixedWingParams *fw;
-  /* Landing gear. Zero wheels for every airframe that lands on its hull,
-   * which leaves sim.c's contact path exactly what it was for them. */
-  int wheel_count;
-  WheelParams wheel[SIM_WHEELS_MAX];
-  /* Floats. Zero count for every airframe that does not have them, which
-   * leaves sim.c's step exactly what it was for them. */
-  FloatParams floats;
   /* The hangar's add-ons, sim_set_addons in sim_abi.h: zero on every table
    * and set only on the live copy plant.c builds, and nothing reads the
    * rest unless add_on is 1, so an aircraft without add-ons runs exactly
@@ -269,32 +188,12 @@ typedef struct {
  */
 #define SIM_AIRFRAME_5IN 0
 #define SIM_AIRFRAME_WING1000 2
-#define SIM_AIRFRAME_SKY1800 3
-#define SIM_AIRFRAME_CUB1400 4
-#define SIM_AIRFRAME_SLOWSTICK1180 5
-#define SIM_AIRFRAME_RADIAN2000 6
-#define SIM_AIRFRAME_TIMBER1500 7
 #define SIM_AIRFRAME_BRAMOR2300 8
-#define SIM_AIRFRAME_TIMBER1500F 9
-#define SIM_AIRFRAME_CUB1400F 10
-#define SIM_AIRFRAME_BOMBSHELL1118 11
-#define SIM_AIRFRAME_KADET1981 12
-#define SIM_AIRFRAME_P51D1450 15
-#define SIM_AIRFRAME_F16878 16
-#define SIM_AIRFRAME_ZAGI1219 17
-#define SIM_AIRFRAME_UGLYSTIK1567 19
-#define SIM_AIRFRAME_NRJ1490 21
-#define SIM_AIRFRAME_TIGERMOTH1803 23
 #define SIM_AIRFRAME_7IN 24
 #define SIM_AIRFRAME_10IN 25
 #define SIM_AIRFRAME_INTERCEPTOR 26
 #define SIM_AIRFRAME_STRIKER_PROP 27
 #define SIM_AIRFRAME_STRIKER_JET 28
-#define SIM_AIRFRAME_EXTRA3D1308 29
-#define SIM_AIRFRAME_NIGHTTIMBER1200 30
-#define SIM_AIRFRAME_HERCULES3077 31
-#define SIM_AIRFRAME_CAP1702 32
-#define SIM_AIRFRAME_SLICK2680 33
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -577,12 +476,6 @@ typedef struct FixedWingParams {
   double thrust_z;      /* thrust line height above the CG, m: a line under
                          * the CG pitches the nose up with power. Zero where
                          * the thrust line runs through the CG. */
-  double pfactor;       /* P factor: the yaw arm of the thrust is this times
-                         * the body normal speed over the prop's rate, (-w)/omega,
-                         * which is V sin(alpha)/omega with no trigonometry.
-                         * Positive yaws the nose left at a positive alpha,
-                         * which is a prop turning clockwise seen from behind.
-                         * Zero leaves the yaw moment untouched. */
   double current_full;  /* A at static full thrust */
   double v_meas;        /* V a cell, loaded, that thrust_static and current_full
                          * were measured at: an electric's duty runs at the
@@ -617,48 +510,6 @@ typedef struct FixedWingParams {
   double acro_roll_ki;
   double acro_pitch_ki;
   double acro_i_max;
-  /* Acro's yaw hold, the yaw stick centred (plant_wing.c acro_sticks):
-   * stick per rad of yaw error, per rad s of it, per rad/s of yaw rate.
-   * Zero leaves the rudder the pilot's alone. */
-  double acro_yaw_kp;
-  double acro_yaw_ki;
-  double acro_yaw_kd;
-  /* The rate damper of mode 3 (E-flite's AS3X with SAFE Select off): each
-   * surface is the stick's, at the full throw and expo, less this many
-   * radians of surface per rad/s of the body's roll, pitch and yaw rate,
-   * clipped at the throw. No attitude, no rate cap, no hold. Zero where
-   * the aircraft has no such receiver, and mode 3 there is Manual.
-   * scripts/as3x-derive.js. */
-  /* The prop's jet normal force in a hover (Selig, AIAA 2010-7938, eq.
-   * 13 to 16): k_j, the share of the sideways momentum through the disc
-   * the airframe turns into the slipstream's axis, and prop_x, the disc's
-   * distance ahead of the CG, m. Zero k_j leaves it out. */
-  double jet_kj;
-  double prop_x;
-  /* The thrust line's angle right of the body's axis, rad, seen from
-   * above: an engine mounted with right thrust, as an aerobat's is against
-   * its torque, swirl and P factor (the Slick's data sheet's "Right
-   * thrust: 3 deg"). The thrust's sideways part acts at prop_x ahead of the
-   * CG, so it yaws the nose right. Zero on every table without, which
-   * keeps the thrust along the axis exactly. The thrust line's height over
-   * the CG is thrust_z. */
-  double thrust_yaw;
-  /* The surfaces' servos' rate, rad/s; zero moves them in the step. */
-  double servo_rate;
-  double as3x_k[3];
-  /* The heading hold on top (mode 3), a heading lock gyro's: surface per
-   * rad the aircraft has turned beyond the rate its stick asks for, and
-   * that rate, rad/s per unit stick, signed as the body rate the stick
-   * gives. Zero as3x_kh leaves the damper alone. scripts/as3x-derive.js. */
-  double as3x_kh[3];
-  double as3x_rate[3];
-  /* The gyro's servo frame, s; zero is Spektrum's default, 22 ms. */
-  double as3x_frame;
-  /* The travel the receiver learned, rad at full channel, aileron,
-   * elevator and rudder: the throws under the pilot's tuning, whose rates
-   * are a share of them (plant_tune_over). Zero on every table, which
-   * reads its own throws. */
-  double as3x_travel[3];
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */
@@ -670,9 +521,6 @@ typedef struct FixedWingParams {
    * brakes: its thrust carries on below zero instead of stopping there.
    * Zero is a fixed prop, whose thrust stops at zero as it always did. */
   double fold_duty;
-  /* 1 where the airframe flies in the rising air of plant_wing.c's
-   * thermals, 0 where the air is still. */
-  int air_lift;
   /* A recovery parachute, docs/BRAMOR-STAGE1.md. Zero chute_cda is an
    * aircraft without one, which sim_wing_chute refuses, and then nothing
    * below is read: every step of an aircraft whose chute is stowed runs
@@ -687,25 +535,19 @@ typedef struct FixedWingParams {
    * where no section data exist and a low Reynolds number section's
    * separated flow does not reattach (Lissaman 1983). Where it is not
    * taken the plant keeps the model it had, the stall blend to the flat
-   * plate and the lowre_arm_* moment, which only the Slow Stick has.
+   * plate.
    *
    * stall_top: how far past the stall angle the section holds its lift,
    * rad; stall_k: the share of that lift it keeps once it falls. Both
    * from the section's measured lift curve at the kit's Reynolds number
    * (Selig et al., Summary of Low-Speed Airfoil Data).
    * Past the fall the lift decays to the flat plate's at 90 deg as
-   * Viterna and Corrigan's post stall extrapolation does. slat_k: stall_k
-   * with the slats fitted; zero where there are none.
+   * Viterna and Corrigan's post stall extrapolation does.
    *
    * stall_arm_ac and stall_arm_cp: the CG's distance behind the wing's
    * aerodynamic centre, and the stalled wing's centre of pressure's behind
    * the CG, both per chord. They take back the linear moment's lift the
    * stalled wing does not make and put its normal force where it acts.
-   * stall_dw is the tail's share: the downwash at the tail follows the
-   * lift the wing makes (Nelson eq. 2.22, 2 CL_w / (pi AR)), so as the
-   * stalled wing sheds lift the downwash goes with it and the tail lifts,
-   * nose down, by eta V_H a_t (d epsilon/d alpha) / a_w per unit of lift
-   * lost. Zero on a flying wing, which has no tail.
    *
    * stall_asym: how much sooner the left half of the wing stalls than the
    * right, rad of angle of attack: the build's asymmetry, which trim
@@ -715,78 +557,17 @@ typedef struct FixedWingParams {
    * eighths of the semispan, over the mean chord S/b, from the planform.
    */
   double stall_k;
-  double slat_k;
   double stall_top;
   double stall_arm_ac;
   double stall_arm_cp;
-  double stall_dw;
   double stall_asym;
   double strip_c[4];
-  /* The wing's twist, tip nose down from the root, linear along the span,
-   * rad: only where a strip stalls, which it moves later by its share.
-   * FITTED to each kit's published stall behaviour, docs/STALL-STAGE1.md;
-   * no kit publishes it. Zero is an untwisted wing. */
-  double washout;
-  double lowre_arm_ac;
-  double lowre_arm_cp;
-  /*
-   * FLAPS AND SLATS, docs/TIMBER-STAGE1.md. Zero flap_full is an aircraft
-   * without flaps, which sim_wing_set_flaps refuses past notch 0, so its
-   * flap angle stays exactly +0 and every term below adds a zero through
-   * add_term: its arithmetic is what it was before flaps existed. The flap
-   * angle is positive trailing edge down and moves toward the notch's at
-   * flap_rate, the radio's slowed flap channel. Its lift is fitted as
-   * cl_df d + cl_df2 d^2 through the two notches, its drag as cd_df2 d^2,
-   * its CLmax increment as clmax_df d, and its pitching moment, the
-   * section's own and the downwash it adds at the tail, per unit of the
-   * lift it adds. de_df is the radio's flap to elevator mix, elevator
-   * radians (trailing edge up positive) per radian of flap.
-   */
-  double flap_half;       /* rad at the middle notch */
-  double flap_full;       /* rad at the last notch; 0 without flaps */
-  double flap_rate;       /* rad/s the flaps move at */
-  double cl_df;           /* lift per rad of flap */
-  double cl_df2;          /* lift per rad^2 of flap */
-  double clmax_df;        /* CLmax per rad of flap */
-  double cd_df2;          /* drag per rad^2 of flap */
-  double cm_dcl_f;        /* pitching moment per unit of flap lift, nose up + */
-  /* Where the flaps are along each half, inner and outer edge over the
-   * semispan. The wing's flap lift (cl_df) and CLmax (clmax_df) are the
-   * whole wing's, area weighted; the stall strips take them where the
-   * flaps are and nowhere else, so a part span flap stalls its own strips
-   * first and leaves the rest flying. Zero on a table without flaps. */
-  double flap_eta[2];
-  double de_df;           /* the radio's mix: elevator rad per rad of flap */
-  /* The radio's elevator to flap mix, sim_wing_set_tune: flap, as a share
-   * of flap_full, per unit of up elevator stick. Zero on every table. */
-  double elev_flap;
-  /* Fixed leading edge slats, fitted or not (sim_wing_set_slats): the
-   * CLmax they add, which moves the stall to a higher alpha on the same
-   * lift curve, and the drag they cost. Zero on an aircraft without. */
-  double slat_dclmax;
-  double slat_cd0;
   /* A glow engine's throttle, docs/BOMBSHELL-STAGE1.md: a carburettor
    * whose stop leaves the engine running at this fraction of its full
    * rpm, so the stick runs the rpm from it to full, linearly, and the
    * engine never stops. Zero is an electric motor's duty, the stick
    * itself, and leaves every other aircraft's arithmetic as it was. */
   double throttle_idle;
-  /* An engine's throttle as its dyno has it, docs/FLIGHTMODEL.md "The
-   * Slick's DA-120": its steady speed over full at the stick's 0, 0.1, ...
-   * 1, straight between, in place of throttle_idle's straight line; the
-   * first is the idle's own. A butterfly opens most of the speed in its
-   * first half. Zero on every table without, which keeps the line. */
-  double throttle_rpm[11];
-  /* An engine's torque map, N m, docs/FLIGHTMODEL.md "The engine at a
-   * closed throttle": rows the stick's idle stop and 20, 30, ... 100
-   * percent throttle, columns 1,000 to 8,000 rpm in 500s, straight between
-   * and straight on past the ends. Where it is set the engine drives its
-   * rotor by it against the air's own torque on the prop, so its speed
-   * floats with the airspeed: a closed throttle in a dive brakes a prop the
-   * air drives. Zero on every table without, which keeps the glow method's
-   * flat torque against the static load. */
-  double engine_q[10][15];
-  double engine_rpm_max;
   /*
    * THE TANK, docs/POWER-STAGE1.md, for a glow engine (throttle_idle > 0).
    * Its volume, m^3; the fuel it burns per second at full rpm and at the
@@ -860,39 +641,6 @@ typedef struct FixedWingParams {
    */
   double j_prop;
   /*
-   * RETRACTS, docs/P51-STAGE1.md. gear_time: seconds the gear takes to go
-   * from down and locked to up, or back; zero is fixed gear, which
-   * sim_wing_set_gear refuses to raise, and then nothing below is read.
-   * cd_gear: the drag of the gear hanging in the air, which cd0 carries,
-   * taken out in proportion as it folds away. A wheel with `retract`
-   * touches nothing unless the gear is down and locked.
-   */
-  double gear_time;
-  double cd_gear;
-  /*
-   * THE SECTION ALONG THE SPAN, docs/P51-STAGE1.md. strip_k: each of the
-   * four strips' section CL max over the root strip's, where a tapered
-   * wing's thinner, lower Reynolds number outer sections stall at a lower
-   * lift than its root. The strip whose share of the wing's lift (rr)
-   * over its own section's limit is the largest stalls at the table's
-   * stall angle and the others later by their own ratio, so cl_max is
-   * still the wing's. All zero leaves one section for the whole span.
-   */
-  double strip_k[4];
-  /*
-   * AND HOW EACH STRIP STALLS, docs/P51-STAGE1.md. strip_top: how far
-   * past its own stall angle each strip holds its peak lift, rad, and
-   * strip_kfall the share of it that it keeps once it falls: the table's
-   * stall_top and stall_k, strip by strip. A section of 15 percent or more
-   * stalls from the trailing edge, rounded over and gradually; one near 12
-   * percent from the leading edge, its peak sharp and its lift falling at
-   * once (McCullough and Gault, NACA TN 2502). With slats fitted the
-   * slat_k still rules. strip_kfall all zero takes the table's two for
-   * every strip.
-   */
-  double strip_top[4];
-  double strip_kfall[4];
-  /*
    * THE DUCTED FAN, docs/F16-STAGE1.md. Zero fan_tau is a prop, whose
    * thrust follows the stick in the step it moves, and then nothing below
    * is read: every propeller's arithmetic is what it was. Above zero the
@@ -913,178 +661,11 @@ typedef struct FixedWingParams {
    */
   double fan_tau;
   double esc_start;
-  /*
-   * THE SECOND WING, docs/PITTS-STAGE1.md: a biplane, whose two wings are
-   * each a lifting line in the other's flow. The table's cl_alpha, cl_max
-   * curve and derivatives stay the cell's; the lift is taken on each wing
-   * apart, index 0 the top wing and 1 the bottom one. bip_w: each wing's
-   * share of the cell's linear lift, summing to 1; all zero is a
-   * monoplane, and then nothing below is read. bip_r: each wing's own lift
-   * coefficient, on its own area, over the cell's on the reference area
-   * (the wing ahead, in the other's bound vortex upwash, carries more for
-   * its area, so it reaches its CL max, and stalls, first); each wing is
-   * the table's curve at bip_r times the cell's angle, elevator and flap,
-   * weighted by bip_w / bip_r, its area over the reference. bip_m: the lift
-   * coefficient a wing gains per unit its partner falls short of its
-   * linear lift, a stalled wing's trailing sheet and bound vortex no longer
-   * washing it down (Prandtl's mutual term and the bound vortex, times the
-   * wing's own slope). bip_x: each wing's aerodynamic centre ahead of the
-   * cell's, per chord, the arm its own stall pitches on. bip_ki and bip_kx:
-   * Prandtl's induced drag, sum over the wings of CL_i (bip_ki[i] CL_i +
-   * bip_kx[i] CL_j), in place of k_induced CL^2 (Prandtl, NACA TN 182).
-   */
-  double bip_w[2];
-  double bip_r[2];
-  double bip_m[2];
-  double bip_x[2];
-  double bip_ki[2];
-  double bip_kx[2];
-  /* Each wing's stall later than potential flow puts it, rad of the cell's
-   * angle (the slot effect of the wing above); zero: bip_r's alone. */
-  double bip_dstall[2];
-  /*
-   * THE DRAG ACROSS THE REYNOLDS NUMBERS, docs/DLG-STAGE1.md. Zero cd0_re
-   * is a CD0 that is the same at every speed, every other table's, and then
-   * nothing below is read. Above zero it is the Reynolds number, on the
-   * table's chord, at which the table's cd0 was built up, and the plant
-   * takes it as a laminar skin's, going as Re^-1/2 (Blasius), held at its
-   * value at half the reference below that: a glider that flies from its
-   * stall to a discus launch's release spans a ninefold Reynolds number,
-   * over which its drag coefficient more than halves.
-   */
-  double cd0_re;
-  /* The wing's own lift slope, per rad, where cl_alpha is the wing and
-   * tail's: the stall angle is the wing's, CL max over this, and the
-   * tail's share of the slope lifts on past it. Zero: cl_alpha for both. */
-  double cl_alpha_wing;
-  /* The sideslip derivatives' shares, from each derivation (docs/
-   * FLIGHTMODEL.md, sideslip past the stall): the wing's (dihedral, wing
-   * position) and the fin's of cl_beta, and the fin's of cn_beta. Zero:
-   * the linear derivatives through the stall. */
-  double cl_beta_wing;
-  double cl_beta_fin;
-  double cn_beta_fin;
   /* The fuselage's (and floats') share of cn_beta, Munk's moment, from
    * each derivation; taken on u v / V^2 in the body, sin 2 beta over 2,
    * where the rest is on sin beta (plant_wing.c, MUNK'S MOMENT). Zero:
    * the whole cn_beta on sin beta. */
   double cn_beta_fus;
-  /* Measured lateral derivatives against the body's angle of attack, at
-   * -20 to 90 deg (plant_wing.c, HI_LAT_DEG): cn_beta, cl_beta, cl_p,
-   * cn_r, the ailerons' and the rudder's moments, as ratios to their value
-   * at 0 deg; then Cl_r and Cn_p, per rad, in place of the CL rules. Zero:
-   * none, the linear derivatives at every angle. */
-  double hi_lat[8][20];
-  /* A measured side force coefficient, CY, against the body's angle of
-   * attack at -20 to 90 deg (plant_wing.c, HI_LAT_DEG) and the sideslip,
-   * one row each at 2, 4, 8, 10, 15, 20, 25 and 30 deg (CY_TAB_DEG), in the
-   * body axes on the wing's area, negative for a wind from the right. In
-   * place of cy_beta's line, the drag's sideways share and the crossflow
-   * (plant_wing.c, cy_tab_at). Zero: none, those three. */
-  double cy_tab[8][20];
-  /* A surface's share kept past the stall, at 0, 4, 10, 15, 20, 25 and 35
-   * deg past the wing's own stall angle: the ailerons' and the fin's and
-   * rudder's. Zero: the measured defaults, an unswept wing's ailerons (NACA
-   * TR 419) and a rudder over a low stabiliser (NASA TP-2011). */
-  double ail_keep[7];
-  double fin_keep[7];
-  /* The stall across the Reynolds numbers on the chord: at stall_re[0]
-   * and [1], the wing's CL max and the angle its lift peaks at, rad,
-   * straight between them and held past them. Zero leaves cl_max and
-   * stall_blend as the table has them. */
-  double stall_re[2];
-  double stall_clmax[2];
-  double stall_peak[2];
-  /* The width of the lift's rounding to its peak, rad: the wing's curve
-   * leaves its line this far short of the stall angle and tops out this
-   * far past it (wing_lift). Zero: stall_blend, which also sets the stalled
-   * lift's fall, the drag's and moments' blend and the strips'. A table
-   * that sets it keeps those on stall_blend, and stall_re moves this in
-   * place of stall_blend, held to it as a floor: a section at a low
-   * Reynolds number rounds over 5 deg to its peak and then falls within
-   * one (docs/P51-STAGE1.md). */
-  double stall_round;
-  /*
-   * THE DISCUS LAUNCH, docs/DLG-STAGE1.md, for a glider thrown by its
-   * wingtip. Zero discus_v is an aircraft that is not, which
-   * sim_wing_discus refuses, and then nothing below is read. The pilot
-   * holds the peg and turns discus_turn radians about a point discus_r
-   * from the CG, the CG at discus_h over the ground, at a constant angular
-   * acceleration from standing to discus_v along the circle; the glider
-   * is let go at the end of the turn at discus_v along its nose, pitched
-   * discus_pitch up. Then, until the climb is spent, the radio's launch
-   * preset flies the zoom: in every mode the elevator carries discus_de
-   * on top of what the stick or the stabiliser asks, the elevator that
-   * trims the zoom at the zero lift line, and in Stabilised the pitch held
-   * is the release's (Acro holds the release's attitude as it holds any).
-   */
-  double discus_v;
-  double discus_r;
-  double discus_turn;
-  double discus_pitch;
-  double discus_h;
-  double discus_de;
-  /*
-   * THE SLIPSTREAM over the tail and the ailerons, docs/FLIGHTMODEL.md,
-   * revived from the removed Extra 300's (docs/EXTRA-STAGE1.md in git at
-   * 1c0872b3^) for every aircraft whose prop blows over its tail. slip_r is
-   * the prop's radius; zero is an aircraft whose surfaces are not in its
-   * wash (a pusher behind its tail, a fan whose exhaust passes nothing, a
-   * glider), and then nothing below is read. By momentum theory the wash
-   * far behind the disc carries the disc's pressure jump, T / A, over the
-   * free stream's dynamic pressure, at 2 v_i over the free stream's speed,
-   * in a stream contracted to R sqrt((V + v_i)/(V + 2 v_i)). The share of
-   * each surface inside that stream: the stabiliser's, the contracted
-   * radius over slip_yh, its half span; the fin's, over its height above
-   * the thrust line slip_hv[0] and below it slip_hv[1]; the ailerons', the
-   * share of their roll moment inboard of the contracted radius, from
-   * slip_ya[0] to slip_ya[1] out along the span. A control in the wash
-   * meets the pressure jump on top of the free stream's; an angle or rate
-   * term, a crossflow over a faster stream, meets rho v_i times the
-   * crossflow, which is what makes it act with the aircraft standing still
-   * in the air. The tail's shares of the table's derivatives: its lift
-   * slope and pitch stiffness, taken about slip_a0, the body's angle of
-   * attack at which the stabiliser carries no lift with the elevator
-   * neutral, and the fin's weathercock, yaw damping, side force and roll
-   * per sideslip. cm_q, cm_de, cl_de, cn_dr, cy_dr, cl_dr and cl_da are the
-   * surfaces' alone. scripts/wash-derive.js derives every table's.
-   */
-  double slip_r;
-  double slip_yh;
-  double slip_hv[2];
-  double slip_ya[2];
-  double slip_a0;
-  double slip_cl_a;
-  double slip_cm_a;
-  double slip_cn_b;
-  double slip_cn_r;
-  double slip_cy_b;
-  double slip_cl_b;
-  /* The share of dp the stabiliser's (slip_loss[0]) and the fin's
-   * (slip_loss[1]) controls lose in a static wash, its jet spread by
-   * mixing with still air by the time it reaches them, and of the swirl
-   * the fin meets (slip_loss[2]) (Deters, Ananda and Selig 2015,
-   * scripts/lib/wash.js tailKeep and swirlKeep); nothing of either in a
-   * slipstream with way on. Zero keeps the far wake whole. */
-  double slip_loss[3];
-  /* 1 is a pusher: its prop is behind the wing, so no wing root turns its
-   * swirl back (SWIRL_KEEP is for a tractor's root), and its fin may stand
-   * outside the wash altogether, slip_hv both zero (the Skyhunter's boom
-   * fins). */
-  int slip_pusher;
-  /*
-   * THE SWIRL OVER THE WING'S ROOT, docs/FLIGHTMODEL.md. Where
-   * slip_root_eta is set, the root's share of a tractor's swirl is the lift
-   * the swirl's upwash and downwash make on the wing inside the wash and
-   * outside the fuselage, each side at its own angle, instead of a fixed
-   * (1 - SWIRL_KEEP) of the torque. slip_root: the fuselage's half width at
-   * the wing, the wing's distance from the thrust line, and the root's
-   * chord, m. slip_root_eta: the share of that strip lift a wing makes in
-   * a stream as narrow as the wash. Zero on a table without, which keeps
-   * SWIRL_KEEP's arithmetic exactly.
-   */
-  double slip_root[3];
-  double slip_root_eta;
   /*
    * THE FUSELAGE IN A CROSSFLOW, docs/FLIGHTMODEL.md. side_cda: the side
    * view's crossflow drag area, m^2, eta Cdc S_side, Allen and Perkins'
@@ -1092,12 +673,9 @@ typedef struct FixedWingParams {
    * fineness (NASA TR R-474): a force against the sideways speed squared,
    * which the table's linear side force leaves out and which carries the
    * weight in a knife edge with the thrust's share. Zero is an aircraft
-   * without, and then nothing is read. side_x: where it acts, m ahead of
-   * the CG (negative aft), the centroid of the side view weighted by each
-   * station's crossflow drag (Allen and Perkins); zero takes it at the CG.
+   * without, and then nothing is read. It acts at the CG.
    */
   double side_cda;
-  double side_x;
   /*
    * THE SURFACE'S KNEE, docs/EDGE-STAGE1.md: a plain flap's lift stops
    * growing in proportion to its angle past 15 deg or so as the flow
@@ -1124,93 +702,19 @@ typedef struct FixedWingParams {
    * (dch/dcn) dCN/dalpha over (dCh/d delta)_alpha, scripts/lib/hinge.js. */
   double hinge_alpha[3];
   /*
-   * PAST THE LINEAR ANGLES, docs/EXTRA-STAGE1.md, for an aircraft flown
-   * hanging on its prop, sideways and backwards. hi_alpha 1: the pitching
-   * moment's stiffness term takes the sine of the zero lift line's angle
-   * and every sideslip term the sine of the sideslip, which are the
-   * linear terms at small angles and stay bounded and continuous all the
-   * way round, where the angles themselves wrap at 180 deg and would flip
-   * the moment. rot_k: the air a slow
-   * aircraft turns through, N m s^2, roll, pitch and yaw: each surface's
-   * strips swept through still air by the rotation, a flat plate's normal
-   * force on each, which the linear rate damping, proportional to the
-   * airspeed, loses as the aircraft stops; the two are taken together as
-   * the root of their squares' sum, so either one alone is itself.
-   * Zero in each is an aircraft without, and leaves its arithmetic as it
-   * was. The prop's precession is j_prop's, above.
-   */
-  int hi_alpha;
-  /* With hi_alpha, the tail's own flow (plant_wing.c): the stabiliser's
-   * lift slope a_t, the fin's a_v, the downwash's d eps / d alpha, and the
-   * normal force coefficient each saturates on, a flat plate's. */
-  double tail_at;
-  double tail_av;
-  double tail_deda;
-  double tail_cn;
-  double rot_k[3];
-  /*
    * GROUND EFFECT, plant_wing.c: ground_effect 1 takes the term, 0 (every
-   * table that does not set it) leaves the plant as it was. ge_wing and
-   * ge_tail are the wing's and the stabiliser's quarter chords on their
-   * mean chords, body frame from the CG, m, from the drawn model
-   * (crash_parts.h, npm run ge:derive); a table without a tail leaves
-   * ge_tail zero. The tail's term reads tail_deda. ge_cla_wing is the
-   * wing's own lift slope, per rad, for a table whose stall is the whole
-   * curve's (cl_alpha_wing zero): the term needs the wing's share of
-   * cl_alpha apart from the tail's, and nothing else reads it. Zero: the
-   * table's wing_cla. On a biplane (bip_w) ge_wing is the top wing's
-   * quarter chord and ge_wing2 the bottom one's; a monoplane leaves it
-   * zero.
+   * table that does not set it) leaves the plant as it was. ge_wing is the
+   * wing's quarter chord on its mean chord, body frame from the CG, m,
+   * from the drawn model (crash_parts.h, npm run ge:derive).
    */
   int ground_effect;
   double ge_wing[3];
-  double ge_tail[3];
-  double ge_cla_wing;
-  double ge_wing2[3];
-  /*
-   * THE CARGO DOORS, docs/HERCULES-CONTRACT.md: a rear ramp and door that
-   * open in flight, sim_wing_set_door. door_time is their travel each way,
-   * s; cd_door the drag they add fully open, on the wing's area; cm_door
-   * the pitching moment they add, on its area and chord, nose up positive.
-   * Both go with how far open they are. Zero door_time is an aircraft
-   * without, and then nothing is read.
-   */
-  double door_time;
-  double cd_door;
-  double cm_door;
-  /*
-   * THE SURFACE TIERS' DRAG, sim_wing_set_tiers: the drag a deflected
-   * surface adds over the table's, on the wing's area, per unit of
-   * SURF_DRAG's shape (plant_wing.c), aileron, elevator and rudder. Zero
-   * on every table; only the copy a seated tier builds sets it.
-   */
-  double surf_cd[3];
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
-extern const FixedWingParams FW_SKY1800;
-extern const FixedWingParams FW_CUB1400;
-extern const FixedWingParams FW_RADIAN2000;
 extern const FixedWingParams FW_BRAMOR2300;
-extern const FixedWingParams FW_SLOWSTICK1180;
-extern const FixedWingParams FW_TIMBER1500;
-extern const FixedWingParams FW_TIMBER1500F;
-extern const FixedWingParams FW_CUB1400F;
-extern const FixedWingParams FW_BOMBSHELL1118;
-extern const FixedWingParams FW_KADET1981;
-extern const FixedWingParams FW_P51D1450;
-extern const FixedWingParams FW_F16878;
-extern const FixedWingParams FW_ZAGI1219;
 extern const FixedWingParams FW_STRIKER_PROP;
 extern const FixedWingParams FW_STRIKER_JET;
-extern const FixedWingParams FW_EXTRA3D1308;
-extern const FixedWingParams FW_NIGHTTIMBER1200;
-extern const FixedWingParams FW_HERCULES3077;
-extern const FixedWingParams FW_CAP1702;
-extern const FixedWingParams FW_SLICK2680;
-extern const FixedWingParams FW_UGLYSTIK1567;
-extern const FixedWingParams FW_NRJ1490;
-extern const FixedWingParams FW_TIGERMOTH1803;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
@@ -1243,57 +747,21 @@ void plant_addons_clear(void);
  * power option, tuning and add-ons all. */
 int plant_set_tune(const double *in);
 void plant_tune_clear(void);
-/* THE SURFACE TIERS, sim_wing_set_tiers in sim_abi.h: seated between
- * the power option and the tuning, SIM_OK or SIM_ERR_BAD_ARG;
- * plant_tiers_clear takes them off; plant_tiers_read fills the
- * block in force, ones and zeros where none is seated. */
-int plant_set_tiers(const double *in);
-void plant_tiers_clear(void);
-void plant_tiers_read(double *out);
 void plant_tune_read(double *out);
 int plant_tune_on(void);
 void plant_reseat(void);
 void plant_power_state(const SimState *s, double *out);
 double plant_lipo_ocv(double soc);
 void plant_wing_launch(SimState *s, double speed);
-/* THE DISCUS LAUNCH (FixedWingParams.discus_v). plant_wing_discus_start
- * begins the pilot's turn from where the aircraft is, to be let go at the
- * same x y facing the way it faces, its CG at z_release; -1 on an aircraft
- * without one. plant_wing_discus_hold runs one step of the turn in place
- * of the plant and returns 1, or returns 0 when no turn is under way.
- * plant_wing_discus_phase: 0 none, 1 the turn, 2 the zoom under the
- * launch preset. */
-int plant_wing_discus_start(SimState *s, double z_release);
-int plant_wing_discus_hold(SimState *s);
-int plant_wing_discus_phase(void);
-/* Ends a throw under way, turn or zoom, as an airframe change must. */
-void plant_wing_discus_stop(void);
 void plant_wing_surfaces(double out[2]);
 void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
-void plant_wing_biplane(double out[4]);
-void plant_wing_slip(double out[6]);
-void plant_wing_yaw_budget(double out[26]);
 void plant_wing_command(double out[3]);
 void plant_wing_strips(double out[8]);
 void plant_wing_set_gyro(int on);
 void plant_wing_set_mount(int on);
 void plant_wing_set_stab(int mode);
-void plant_wing_set_heading(const double share[3]);
 int plant_wing_stab(void);
-/* Weight on wheels, set by sim.c after each step's contact: 1 while any
- * wheel carried load. The stabiliser reads it; nothing else does. */
-void plant_wing_set_on_wheels(int on);
-/* The wheel brake, sim_set_brake: 0 off to 1 full, an input cleared by a
- * reset. */
-void plant_wing_set_brake(double b);
-double plant_wing_brake(void);
-/* A wheel's resistance along its heading on ground of material `surf`
- * (SIM_SURF_*), with the brake at `brake`, as a fraction of its load. */
-double plant_wheel_roll(const WheelParams *wp, int surf, double brake);
-/* The rising air at a world position, m/s up: the thermals every airframe
- * with air_lift flies in. */
-double plant_air_lift(const double pos[3]);
 /* Horizontal wind, sim_set_wind: the mean, m/s world frame, and the gusts'
  * RMS per axis. SIM_WIND_ON is 0 while all three are zero, and then no
  * step reads any of it, which is what keeps every trace without wind bit
@@ -1314,38 +782,6 @@ void plant_wind(long long step, double out[3]);
  * plant_wing_chute_open is how far the canopy is open, 0 stowed to 1. */
 int plant_wing_chute(int deploy);
 double plant_wing_chute_open(void);
-/* Flaps: 0 up, 1 half, 2 full; returns -1 for a notch past 0 on an
- * aircraft without flaps. A mode, kept across resets, which put the flaps
- * where the notch has them; plant_wing_flaps is their angle now, rad,
- * trailing edge down. plant_wing_flaps_stow raises them at once and
- * selects notch 0, for an airframe change. */
-int plant_wing_set_flaps(int notch);
-double plant_wing_flaps(void);
-void plant_wing_flaps_stow(void);
-/* The flaps where the notch has them, at once, as a reset puts them. */
-void plant_wing_flaps_settle(void);
-/* Slats: 1 fitted, the default, 0 removed. A mode; no effect on an
- * aircraft without slats. */
-void plant_wing_set_slats(int fitted);
-/* Retracts: 1 selects the gear up and returns 0, on an aircraft whose
- * table has them (gear_time > 0), -1 elsewhere; 0 selects it down. The
- * gear travels at its own rate; plant_wing_gear is where it is, 0 down and
- * locked to 1 up, and plant_wing_gear_down is 1 only while it is down and
- * locked, when the retracting wheels carry the aircraft. A reset and an
- * airframe change put it down and locked at once: every run starts on its
- * wheels. */
-int plant_wing_set_gear(int up);
-double plant_wing_gear(void);
-int plant_wing_gear_selected(void);
-int plant_wing_gear_down(void);
-void plant_wing_gear_reset(void);
-/* The cargo doors (FixedWingParams.door_time): selected open (1) or shut
- * (0); where they are, 0 shut to 1 open. A reset and an airframe change
- * shut them. */
-int plant_wing_set_door(int open);
-double plant_wing_door(void);
-int plant_wing_door_selected(void);
-void plant_wing_door_reset(void);
 
 /*
  * WATER, src/native/water.c: the bodies of water a host declares, still
@@ -1442,8 +878,6 @@ typedef struct {
   double cg_shift[3];      /* where the CG moved, body frame, m, from the
                             * table's origin; the wing's aero reference stays
                             * where it was, so its forces get this arm */
-  int wheel_lost[SIM_WHEELS_MAX];
-  int float_lost[2];       /* left, right */
 } CrashEffects;
 extern CrashEffects CRASH;
 /* The damage mode, sim_set_damage. A mode: kept across sim_reset. */
@@ -1497,13 +931,6 @@ void crash_step(SimState *s, int ground_on, const double gn[3], double gd);
 /* Dynamic state cleared: every part attached and whole, no free bodies, no
  * events, CRASH inactive and the plant table in force again. */
 void crash_reset(void);
-/* The part carrying a PlantParams wheel, or a float (0 left, 1 right). */
-int crash_wheel_part(int w);
-/* A wheel's strut force, damage mode only: the plant's spring and damper,
- * k pen - c vn, until a music wire leg's root reaches its plastic hinge,
- * where it bends and folds instead (crash.c, WIRE GEAR FOLDS). */
-double crash_wheel_force(const SimState *s, int w, const double r[3], const double n[3], double pen, double vn);
-int crash_float_part(int f);
 /* A non default surface's own mu and e, written over the caller's. */
 void crash_surface_mu_e(int mat, double *mu, double *e);
 /* The readback and set up that need the craft's state, for sim.c's

@@ -162,22 +162,11 @@ function surfaceAt(grid, table, x, z) {
  *
  * Itaipu: the dam crest, from dam/index.js's main dam frame, at the crest
  * road's 225 m; the air spilling over 196 m of concrete is rough.
- * Swiss2 and the Alps (one valley, src/maps/alps/terrain.js and swiss2's
- * ground, measured with window.__heightAt on a 100 m grid, 2026-10-08): a
- * floor about 600 m wide at x 0 running north and south, walls to 1200 to
- * 1500 m from x -1500 and x 1500. Wind in a deep valley is channelled
- * along its axis, the floor is sheltered from the wind aloft, and the rims
- * are where it breaks into rotor and turbulence.
  * The Interior: rolling ground 230 to 360 m. Paraguay's prevailing wind
  * is from the north east; the only shelter worth a zone is Rio Sereno's
  * lowland (src/share/interior/hydro.js RIVER, inside the played square,
  * simplified to 250 m), a little calmer and a little rougher at the banks'
  * tree lines. */
-const VALLEY = [
-  { line: [[0, -4500], [0, 4500]], r: 700, shelter: 0.65, gust: 0.3, top: 300, lift: 0 },
-  { line: [[-1700, -4500], [-1700, 4500]], r: 600, shelter: 1, gust: 2, top: 1500, lift: 0.65 },
-  { line: [[1700, -4500], [1700, 4500]], r: 600, shelter: 1, gust: 2, top: 1500, lift: 0.65 },
-];
 const RIO_SERENO = [
   [-8586, -4388], [-8008, -4555], [-7573, -3750], [-6869, -4377], [-5872, -4371], [-4628, -2829],
   [-3490, -2170], [-3569, -1088], [-2911, 236], [-455, -90], [437, 480], [1098, 210], [1220, 770],
@@ -189,8 +178,6 @@ export const MAPS = {
     base: 220, toX: 0.6, toZ: 0.8,
     zones: [{ line: [[-352.9, -1826.5], [636.7, -1610.5]], r: 260, shelter: 0.8, gust: 2.5, top: 60, lift: 0.6 }],
   },
-  swiss2: { base: 0, toX: 0, toZ: -1, zones: VALLEY },
-  alps: { base: 0, toX: 0, toZ: -1, zones: VALLEY },
   interior: {
     base: 240, toX: -0.6, toZ: 0.8,
     zones: [{ line: RIO_SERENO, r: 400, shelter: 0.85, gust: 0.4, top: 80, lift: 0 }],

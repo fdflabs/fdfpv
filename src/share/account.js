@@ -16,18 +16,18 @@
  * too wherever this page talks to no tracks server (a page off a loopback
  * address without ?tracks=), since that is where accounts live: a fork
  * or a local build with no server plays as the game did before accounts.
- * The deployed site always has one (src/share/cloud.js tracksOrigin), so
+ * The deployed site always has one (src/share/tracksorigin.js), so
  * there the sign in is always asked.
  *
  * THE GATE (mayPlay, needSignIn). Every way into a flight or a room asks
- * needSignIn first: a title or hub card (src/ui/ui.js pickForWay), Fly,
- * Play and Restart (src/main.js ui.onAction), the track builder
- * (ui.onBuild), and making or joining a room, which is where room links,
- * invite codes and a reload's rejoin all go (src/share/rooms.js). So
- * does every card and row that opens something (src/ui/ui.js act and its
- * OPEN_ACTIONS): the menus are for looking at until then. It
- * hands the pilot to the sign in panel (src/ui/accountui.js) and, once
- * they are signed in with a callsign, runs what they asked for. This is
+ * needSignIn first: a title or hub card (src/ui/ui.js pickForWay), Fly
+ * and Restart (src/main.js ui.onAction), and making or joining a room,
+ * which is where room links, invite codes and a reload's rejoin all go
+ * (src/share/rooms.js). So does every card and row that opens something
+ * (src/ui/ui.js act and its OPEN_ACTIONS): the menus are for looking at
+ * until then. It hands the pilot to the sign in panel
+ * (src/ui/accountui.js) and, once they are signed in with a callsign,
+ * runs what they asked for. This is
  * the page's half and anybody with the developer tools can step round
  * it; what cannot be stepped round is the servers': progress is only
  * kept for a session, and a room seats only a session the accounts
@@ -41,8 +41,8 @@
  *
  *   1. Google Identity Services hands the page an ID token, which goes to
  *      the tracks server once, and the server answers with its own session.
- *   2. THE PILOT KEY. Names and times on the board and tracks on the
- *      server belong to a browser's pilot key (identity.js). The account
+ *   2. THE PILOT KEY. Names and times on the board and tracks stored on
+ *      the server belong to a browser's pilot key (identity.js). The account
  *      carries one. If it has none yet, this computer's becomes it; if it
  *      has one and this computer holds another, this computer's names,
  *      times and tracks are handed to the account's key (the board's
@@ -53,8 +53,7 @@
  *      first (so it is never a name the board gave somebody else), then
  *      on the accounts server.
  *   4. Progress syncs (syncProgress, progressmerge.js): unlocks, paint,
- *      power, parts, tunes, loadouts and the My Hangar builds. The
- *      account's tracks are pulled into My tracks.
+ *      power, parts, tunes, loadouts and the My Hangar builds.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -76,7 +75,7 @@ import {
   createIdentity, keyLinkMessage, memoryStorage, nameClaimMessage,
 } from './identity.js';
 import { ACCOUNT_KEY, normaliseName, readAccount } from './pilot.js';
-import { pullOwnTracks, tracksConfigured, tracksOrigin } from './cloud.js';
+import { tracksConfigured, tracksOrigin } from './tracksorigin.js';
 import { boardConfigured, boardOrigin } from './board.js';
 import { mergeBlobs, pickSynced, stampChanges } from './progressmerge.js';
 
@@ -296,9 +295,7 @@ export async function signIn(credential, ask) {
       }
       await identity.importText(accountText);
     }
-    const record = writeAccount({ callsign: got.callsign ?? null, publicKey: accountKey, keyIsAccounts: true });
-    pullOwnTracks().catch(() => {});
-    return record;
+    return writeAccount({ callsign: got.callsign ?? null, publicKey: accountKey, keyIsAccounts: true });
   } catch (e) {
     /* Nothing of this computer's changed until the key was swapped, which
      * is the last step, so the session alone is let go. */

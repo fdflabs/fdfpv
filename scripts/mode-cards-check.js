@@ -1,34 +1,19 @@
 /*
- * mode-cards-check.js: the home's three hubs and Flight Club's
- * cards, and the two room game cards driven through the real shell the way
- * a pilot drives them, against a local rooms server (never the live one):
+ * mode-cards-check.js: home's cards and the Hangar's driven through the
+ * real shell the way a pilot drives them, against a local rooms server
+ * (never the live one):
  *
  *   SIM_GPU=1 npm run modes:card                       starts its own on a free port
  *   SIM_GPU=1 npm run modes:card -- http://127.0.0.1:8797 [outdir]
  *
- * Page A, 1280 by 720: home is three hubs, Operations, Flight Club and
- * the Hangar (docs/redesign/PLAN.md 2.2), each with a picture, a plan and
- * its activities as links, inside the window at 1280x720, 1920x1080,
- * 2560x1080, 390x844, 360x640 and 844x390. Enter on Flight Club opens
- * its four cards, laid out the same way with the rooms panel, the
- * breadcrumb naming the hub; Fly with friends is not one of them (the
- * owner, 2026-10-02). The arrows walk the row. Enter on Streamer Combat
- * is the one press into a combat lobby, a public room made for combat:
- * Ready under the cursor, no Fly, no other games. Page B clicks Streamer
- * Combat's link on home, one click, and is in A's lobby. Both ready: the
- * round counts down on both pages and A is in the air.
- *
- * CONTINUE (docs/redesign/COMPLETENESS.md item 57): none on a fresh
- * profile; after the flight A and B leave and A reloads, and home's Flight
- * Club shows Continue in Streamer Combat's link, its links no higher than
- * with that card's label and the hubs inside the window at every size
- * above; one click on it is Streamer Combat's press, into a public combat
- * lobby.
- *
- * Page C clicks Catch the Ace's link on home, one click, into its lobby;
- * page D, a phone held upright, opens Flight Club, walks the stacked cards
- * with ArrowDown and taps Catch the Ace into C's. Both ready, and both
- * pages count down to the go.
+ * Page A, 1280 by 720: home is the Operations cards themselves, Defend
+ * the Paraná, The Interior and Defence training, then the war's field
+ * hangar and the Hangar as one card with its cards as links (the lead,
+ * 2026-10-20, ASK 4: no hub layer since Flight Club left with its games),
+ * inside the window at 1280x720, 1920x1080, 2560x1080, 390x844, 360x640
+ * and 844x390. Enter on the Hangar opens its six cards, laid out the
+ * same way, the breadcrumb naming it. The arrows walk the row. A fresh
+ * profile has no Continue (docs/redesign/COMPLETENESS.md item 57).
  *
  * THE ROOMS PANEL (the owner, 2026-09-30: "prominent place to choose rooms
  * right at the main page") is laid out with the cards at every size: in
@@ -52,11 +37,11 @@
  * same way and Enter on it reloads.
  *
  * Page H, in Spanish (?lang=es), which runs longer (docs/redesign/
- * COMPLETENESS.md item 39): home's hubs, Flight Club's cards and Streamer
- * Combat's lobby with the command bar, at 1280 by 720, 390 by 844, 360 by
- * 640 and 844 by 390, and no word of theirs is cut: text running past the
- * box that clips it, an ellipsis included (scripts/device-check.js
- * cutIn). A word cut on purpose must be found first.
+ * COMPLETENESS.md item 39): home's cards, the Hangar's and Make a room
+ * with the command bar, at 1280 by 720, 390 by 844, 360 by 640 and 844 by
+ * 390, and no word of theirs is cut: text running past the box that
+ * clips it, an ellipsis included (scripts/device-check.js cutIn). A word
+ * cut on purpose must be found first.
  *
  * No page error on any page. Pictures in outdir, not in the repository.
  *
@@ -109,17 +94,17 @@ async function shot(page, name) {
   console.log(`  shot ${path}`);
 }
 
-const HUBS = 'Flight Club,Operations,Hangar';
-/* Flight Club's cards in the registry's order, Trick Battle since
- * 9da784b30. */
-const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Trick Battle,Learn to fly';
-const N_CARDS = NAMES.split(',').length;
-/* Each hub's links, in order, as home draws them. */
-/* Operations: the war's campaign and The Interior beside it
- * (docs/campaign/interior/TECH-NEEDS.md N20), then the war's field hangar
- * (2bc31815e). The Hangar: the walk, the aircraft and its customising,
+/* Home's cards in order (src/ui/actions.js homeCards): the war's campaign
+ * and The Interior beside it (docs/campaign/interior/TECH-NEEDS.md N20),
+ * Defence training, the war's field hangar (2bc31815e), the Hangar. */
+const HOME = 'Defend the Paraná,The Interior,Defence training,Field hangar,Hangar';
+const N_HOME = HOME.split(',').length;
+/* The Hangar's cards: the walk, the aircraft and its customising,
  * Upgrades (the hangar lane), the Controller (5d14c657f), How to fly. */
-const LINKS = `${NAMES}|Defend the Paraná,The Interior,Field hangar|Walk in,Aircraft,Customise,Upgrades,Controller,How to fly`;
+const NAMES = 'Walk in,Aircraft,Customise,Upgrades,Controller,How to fly';
+const N_CARDS = NAMES.split(',').length;
+/* Each home card's links, in order: only the Hangar's has any. */
+const LINKS = `||||${NAMES}`;
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
@@ -196,48 +181,29 @@ async function click(page, selector) {
   }
 }
 
-/* Flight Club, by a click on its card on home: the rooms panel is there. */
-async function toClub(page) {
-  await page.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-club')", 60000).catch(() => {});
-  if (await page.evaluate("window.__ui.hub !== 'club'")) {
-    await click(page, '.gate-card-hub-club .gate-card-name');
-    await page.until("window.__ui.hub === 'club'", 10000).catch(() => {});
+/* Home, where the rooms panel is. */
+async function toHome(page) {
+  await page.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-hangar')", 60000).catch(() => {});
+  if (await page.evaluate('window.__ui.hub !== null')) {
+    await page.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
+    await page.until('window.__ui.hub === null', 10000).catch(() => {});
   }
 }
 
 const HERE = '(() => { const it = window.__ui.items()[window.__ui.cursor]; return it ? [it.action, it.label] : []; })()';
 
-/* A game room's lobby as drawn: its panel, the rows under it, the room. */
-const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
-const LOBBY_OF = `(() => {
-  const box = document.querySelector('.war-lobby');
-  const ui = window.__ui;
-  const here = ui.items()[ui.cursor] || {};
-  const r = window.__rooms();
-  return {
-    title: box ? (box.querySelector('.war-lobby-title') || {}).textContent || '' : '',
-    line: box ? (box.querySelector('.war-lobby-mission') || {}).textContent || '' : '',
-    rows: ui.items().map((it) => it.action || it.label),
-    here: here.action || here.label || null,
-    code: r.code, public: r.public, mode: r.mode,
-  };
-})()`;
-
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
-console.log(`the room game cards, rooms at ${rooms}`);
+console.log(`home's cards and the Hangar's, rooms at ${rooms}`);
 const a = await openPage({ root, url, width: 1280, height: 720 });
-const b = await openPage({ root, url, width: 1280, height: 720 });
-const c = await openPage({ root, url, width: 1280, height: 720 });
-const d = await openPage({ root, url, width: 390, height: 844 });
-const pages = [a, b, c, d];
+const pages = [a];
 try {
   for (const p of pages) {
     await p.until('window.__shellReady === true', 300000);
-    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000);
-    await p.until(`${LAYOUT}.cards.every((c) => c.loaded)`, 30000);
+    await p.until(`window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === ${N_HOME}`, 60000);
+    await p.until(`${LAYOUT}.cards.filter((c) => c.loaded).length === 3`, 30000);
   }
 
-  /* HOME: THE THREE HUBS AT EVERY SIZE. */
+  /* HOME: THE FIVE CARDS AT EVERY SIZE. */
   const SIZES = [[1280, 720, true], [1920, 1080, true], [2560, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]];
   const shapeOf = (v, row) => {
     const tops = v.cards.map((x) => x.box[1]);
@@ -246,14 +212,16 @@ try {
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
   };
   const home = await a.evaluate(LAYOUT);
-  check('home is three hubs, Flight Club, Operations, Hangar, in that order (the owner, 2026-10-03)', home.cards.map((x) => x.name).join() === HUBS, home.cards.map((x) => x.name).join());
+  check('home is the Operations cards, the field hangar and the Hangar, in that order (the lead, 2026-10-20, ASK 4)', home.cards.map((x) => x.name).join() === HOME, home.cards.map((x) => x.name).join());
   /* The cards' numbers are a CSS counter in their order (index.html,
    * .gate-card-art::before), so the first card is [ 01 ]. */
-  check('and opens on Flight Club, the cursor\'s card, first in the row, so numbered 01', home.cards.filter((x) => x.on).map((x) => x.name).join() === 'Flight Club'
-    && await a.evaluate("document.querySelector('.screen-title .gate-cards').firstElementChild.classList.contains('gate-card-hub-club')"),
+  check('and opens on Defend the Paraná, the cursor\'s card, first in the row, so numbered 01', home.cards.filter((x) => x.on).map((x) => x.name).join() === 'Defend the Paraná'
+    && await a.evaluate("document.querySelector('.screen-title .gate-cards').firstElementChild.classList.contains('gate-card-campaign')"),
   home.cards.filter((x) => x.on).map((x) => x.name).join());
-  check('each hub with its picture loaded and its mark drawn', home.cards.every((x) => x.loaded && x.mark));
-  check('each hub lists its activities as links: Flight Club\'s cards; the war, The Interior and the field hangar; the Hangar\'s six',
+  check('the campaign, Defence training and the Hangar with their pictures loaded; every card but the field hangar with its mark drawn',
+    home.cards.filter((x) => x.loaded).map((x) => x.name).join() === 'Defend the Paraná,Defence training,Hangar' && home.cards.every((x) => x.mark || x.name === 'Field hangar'),
+    JSON.stringify(home.cards.map((x) => [x.name, x.loaded, x.mark])));
+  check('only the Hangar lists its cards as links: the walk, the aircraft, its customising, Upgrades, the Controller, How to fly',
     home.cards.map((x) => x.links.join()).join('|') === LINKS, home.cards.map((x) => x.links.join()).join('|'));
   check('a fresh profile has no Continue on home (docs/redesign/COMPLETENESS.md item 57)', await a.evaluate("document.querySelector('.gate-card-continue') === null"));
   check('home shows the rooms panel (the owner, 2026-10-03), above the cards and clear of them and of the corner chips', panelLaidOut(home),
@@ -261,27 +229,26 @@ try {
   for (const [w, h, row] of SIZES) {
     await resize(a, w, h);
     const v = await a.evaluate(LAYOUT);
-    check(`${w} by ${h}: home's three hubs ${row ? 'in a row' : 'stacked'}, inside the window, links clear of the bar, no sideways scroll, the rooms panel above them`,
-      laidOut(v, 3) && shapeOf(v, row) && panelLaidOut(v), `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw} panel ${JSON.stringify(v.panel)}`);
+    check(`${w} by ${h}: home's five cards ${row ? 'in a row' : 'stacked'}, inside the window, links clear of the bar, no sideways scroll, the rooms panel above them`,
+      laidOut(v, N_HOME) && shapeOf(v, row) && panelLaidOut(v), `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw} panel ${JSON.stringify(v.panel)}`);
     await shot(a, `home-${w}x${h}`);
   }
   await resize(a, 1280, 720);
 
-  /* INTO FLIGHT CLUB, by the keyboard: its cards at every size. */
-  await a.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'club')); return true; })()");
+  /* INTO THE HANGAR, by the keyboard: its cards at every size. */
+  await a.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'hangar')); return true; })()");
   await a.tap('Enter');
-  await a.until(`window.__ui.hub === 'club' && ${LAYOUT}.cards.length === 5 && ${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
+  await a.until(`window.__ui.hub === 'hangar' && ${LAYOUT}.cards.length === ${N_CARDS}`, 30000).catch(() => {});
   const first = await a.evaluate(LAYOUT);
-  check(`Enter on Flight Club opens its ${N_CARDS} cards, in order, no Fly with friends (the owner, 2026-10-02)`, first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
-  check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
-  check('and the breadcrumb names the hub', /Flight Club$/.test(first.crumb), first.crumb);
+  check(`Enter on the Hangar opens its ${N_CARDS} cards, in order`, first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
+  check('the aircraft and its customising with their plans drawn', first.cards.filter((x) => ['Aircraft', 'Customise'].includes(x.name)).every((x) => x.mark), JSON.stringify(first.cards.map((x) => [x.name, x.mark])));
+  check('and the breadcrumb names the Hangar', /Hangar$/.test(first.crumb), first.crumb);
   for (const [w, h, row] of SIZES) {
     await resize(a, w, h);
     const v = await a.evaluate(LAYOUT);
     check(`${w} by ${h}: ${N_CARDS} cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
       laidOut(v) && shapeOf(v, row), `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
-    check(`${w} by ${h}: the rooms panel in the window without scrolling, above the cards, clear of them and of the corner chips`,
-      panelLaidOut(v), `panel ${JSON.stringify(v.panel)} chips ${JSON.stringify(v.chips)} first card ${JSON.stringify(v.cards[0].box)}`);
+    check(`${w} by ${h}: no rooms panel in the Hangar`, v.panel === null, JSON.stringify(v.panel));
     await shot(a, `gate-${w}x${h}`);
   }
   await resize(a, 1280, 720);
@@ -294,136 +261,13 @@ try {
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  for (let i = 0; i < N_CARDS - 2; i += 1) {
+  for (let i = 0; i < N_CARDS - 1; i += 1) {
     await a.tap('ArrowLeft');
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  const back = NAMES.split(',').slice(1, -1).reverse();
-  check(`Right walks all ${N_CARDS} cards and Left steps back to Free Flight`, walk.join('>') === `${NAMES.split(',').join('>')}>${back.join('>')}`, walk.join(' > '));
-  await a.tap('ArrowRight');
-  await a.sleep(150);
-
-  /* STREAMER COMBAT: A's one press, the keyboard's. */
-  await a.tap('Enter');
-  await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
-  await a.sleep(800);
-  const la = await a.evaluate(LOBBY_OF);
-  const code = la.code;
-  check('Enter on it, one press: A is in the LOBBY of a public room made for combat, Ready under the cursor',
-    la.title === 'LOBBY' && la.public && la.mode === 'combat' && /Streamer Combat/.test(la.line) && la.here === 'friends-lobby-ready', JSON.stringify(la));
-  check('and no free flight, no other game: no Fly, no world, no race, tag or war rows',
-    !la.rows.some((r) => r === 'fly' || /^friends-(tag|race|war|combat)-/.test(r || '')), la.rows.join());
-  await shot(a, 'combat-lobby');
-
-  /* B: Streamer Combat's link on home, one click, into A's lobby. */
-  const bClicks = b.clicks;
-  await b.click('.gate-card-combat');
-  await b.until(`window.__rooms().code === ${JSON.stringify(code)} && ${IN_LOBBY}`, 60000).catch(() => {});
-  check(`B clicks its link on home (${b.clicks - bClicks} click) and is in A's lobby`, b.clicks - bClicks === 1 && (await b.evaluate('window.__rooms().code')) === code,
-    String(await b.evaluate('window.__rooms().code')));
-  await shot(b, 'combat-lobby-b');
-
-  await a.tap('KeyR');
-  await b.tap('KeyR');
-  for (const p of [a, b]) {
-    await p.until("['countdown', 'on'].includes(window.__combat().round.state)", 20000).catch(() => {});
-  }
-  const rounds = await Promise.all([a, b].map((p) => p.evaluate('window.__combat().round.state')));
-  check('both ready: the round counts down on both pages', rounds.every((st) => st === 'countdown' || st === 'on'), rounds.join(' '));
-  await a.until("window.__craftState().mode === 'flight'", 400000).catch(() => {});
-  check('and A goes up with it', await a.evaluate("window.__craftState().mode === 'flight'"));
-  await a.sleep(1500);
-  await shot(a, 'combat-countdown');
-
-  /* CONTINUE (docs/redesign/PLAN.md phase 27): A and B leave the room
-   * after the flight, so no room is listed and none is mid round, and A
-   * reloads; Continue stands in Streamer Combat's link on home, every hub
-   * as high as it was, and is that card's press, into a public combat
-   * lobby. */
-  for (const p of [a, b]) {
-    await p.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
-    await p.until('window.__rooms().code === null', 20000).catch(() => {});
-  }
-  await a.evaluate('(() => { window.__beforeReload = true; return true; })()');
-  await a.cdp.send('Page.navigate', { url: `${a.origin}${url}` }, a.sessionId);
-  await a.until('window.__beforeReload !== true && window.__shellReady === true', 300000);
-  await a.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000).catch(() => {});
-  const cont = await a.evaluate(LAYOUT);
-  check('after the flight and a reload: home\'s Flight Club shows Continue in Streamer Combat\'s place, no other hub any',
-    cont.cards[0].links.join() === NAMES.replace('Streamer Combat', 'Continue') && cont.cards.slice(1).every((x) => !x.links.includes('Continue')),
-    cont.cards.map((x) => x.links.join()).join('|'));
-  /* Flight Club's links as high with Continue as with the label it
-   * stands in for, put back for the measure. */
-  const LINKS_TALL = `(() => {
-    const links = document.querySelector('.gate-card-hub-club .gate-links');
-    const link = links.querySelector('.gate-card-continue');
-    const tall = () => Math.round(links.getBoundingClientRect().height);
-    const with_ = tall();
-    link.textContent = 'Streamer Combat';
-    const own = tall();
-    link.textContent = 'Continue';
-    return [with_, own];
-  })()`;
-  for (const [w, h, row] of SIZES) {
-    await resize(a, w, h);
-    const v = await a.evaluate(LAYOUT);
-    const [withIt, own] = await a.evaluate(LINKS_TALL);
-    check(`${w} by ${h}, with Continue: Flight Club's links no higher than with Streamer Combat's label, home's hubs ${row ? 'in a row' : 'stacked'}, inside the window, links clear of the bar, the rooms panel above them`,
-      withIt <= own && laidOut(v, 3) && shapeOf(v, row) && panelLaidOut(v),
-      `links ${withIt} vs ${own} ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw} panel ${JSON.stringify(v.panel)}`);
-    await shot(a, `continue-home-${w}x${h}`);
-  }
-  await resize(a, 1280, 720);
-  await a.click('.gate-card-continue');
-  await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
-  await a.sleep(800);
-  const lcont = await a.evaluate(LOBBY_OF);
-  check('Continue, one click: A is in the LOBBY of a public room made for combat, Ready under the cursor',
-    lcont.title === 'LOBBY' && lcont.public && lcont.mode === 'combat' && /Streamer Combat/.test(lcont.line) && lcont.here === 'friends-lobby-ready', JSON.stringify(lcont));
-
-  /* CATCH THE ACE: C's click; D, a phone, the same card. */
-  await c.click('.gate-card-ace');
-  await c.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
-  await c.sleep(800);
-  const lc = await c.evaluate(LOBBY_OF);
-  check('C clicks Catch the Ace\'s link on home, one click, into the LOBBY of a public room made for it', lc.title === 'LOBBY' && lc.public && lc.mode === 'tag'
-    && /Catch the Ace/.test(lc.line) && lc.here === 'friends-lobby-ready', JSON.stringify(lc));
-  await shot(c, 'ace-lobby');
-
-  /* D, upright: down the stacked hubs to Flight Club, Enter, then down
-   * its stacked cards. */
-  await d.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
-  for (let i = 0; i < 3 && (await onCard(d)) !== 'Flight Club'; i += 1) {
-    await d.tap('ArrowDown');
-    await d.sleep(150);
-  }
-  await d.tap('Enter');
-  await d.until("window.__ui.hub === 'club'", 10000).catch(() => {});
-  await d.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
-  const phone = [await onCard(d)];
-  for (let i = 0; i < 3; i += 1) {
-    await d.tap('ArrowDown');
-    await d.sleep(150);
-    phone.push(await onCard(d));
-  }
-  check('on the upright phone ArrowDown walks down the stack to Catch the Ace!', phone[phone.length - 1] === 'Catch the Ace!', phone.join(' > '));
-  await d.click('.gate-card-ace');
-  await d.until(`window.__rooms().code === ${JSON.stringify(lc.code)} && ${IN_LOBBY}`, 60000).catch(() => {});
-  const dRoom = await d.evaluate('window.__rooms()');
-  /* Not seat 2: the room's AI pilots sit between C and D (a567f50a5). */
-  check('D taps the card into C\'s lobby', dRoom.phase === 'open' && dRoom.code === lc.code && dRoom.seat > 1, `${dRoom.phase} ${dRoom.code} ${dRoom.seat}`);
-  await shot(d, 'ace-lobby-phone');
-
-  await c.tap('KeyR');
-  await d.tap('KeyR');
-  for (const p of [c, d]) {
-    await p.until("['countdown', 'ace', 'hunter'].includes(window.__roomTag().role)", 60000).catch(() => {});
-  }
-  const roles = await Promise.all([c, d].map((p) => p.evaluate('window.__roomTag().role')));
-  check('both ready: both pages count down to the go', roles.every((r) => ['countdown', 'ace', 'hunter'].includes(r)), roles.join(' '));
-  await c.sleep(1500);
-  await shot(c, 'ace-countdown');
+  const back = NAMES.split(',').slice(0, -1).reverse();
+  check(`Right walks all ${N_CARDS} cards and Left steps back to the first`, walk.join('>') === `${NAMES.split(',').join('>')}>${back.join('>')}`, walk.join(' > '));
 
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on any page', errs.length === 0, errs.slice(0, 3).join(' | '));
@@ -434,9 +278,8 @@ try {
 }
 
 /* The server as the VM's: its valve (edge/rooms/health.js) refuses a new
- * public room while the process is busy, and four pages with the AI
- * pilots of Catch the Ace keep it busy. They are closed; the rooms panel
- * needs it calm again, which the valve says after 30 s of quiet. */
+ * public room while the process is busy. The page is closed; the rooms
+ * panel needs it calm, which the valve says after 30 s of quiet. */
 let calm = false;
 for (let i = 0; i < 120 && !calm; i += 1) {
   calm = (await (await fetch(`${rooms}/v2/public`)).json()).busy === false;
@@ -444,18 +287,18 @@ for (let i = 0; i < 120 && !calm; i += 1) {
     await new Promise((r) => setTimeout(r, 1000));
   }
 }
-check('the rooms server is calm again once A to D have left', calm);
+check('the rooms server is calm once A has left', calm);
 
 /* THE ROOMS PANEL, driven. A public room with a name to find. */
 const OPEN = `Open Club ${100 + Math.floor(Math.random() * 900)}`;
 const made = await (await fetch(`${rooms}/v2/create`, {
-  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: OPEN }),
+  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true, name: OPEN }),
 })).json();
 check('a public room is made for the panel to show', /^[A-Z0-9]{6}$/.test(made.code || ''), JSON.stringify(made));
 /* The longest name a room can have (src/share/roomwire.js ROOM_NAME_MAX). */
 const LONG = 'Sunday Morning Freestyle Session';
 const madeLong = await (await fetch(`${rooms}/v2/create`, {
-  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: LONG }),
+  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true, name: LONG }),
 })).json();
 check('and one with a name of the full 32 letters', LONG.length === 32 && /^[A-Z0-9]{6}$/.test(madeLong.code || ''), JSON.stringify(madeLong));
 /* A pilot in each: an empty room is never listed (the owner, 2026-10-02). */
@@ -474,7 +317,7 @@ const roomAction = `lobby:friends-room-${made.code}`;
 try {
   for (const p of [e, f]) {
     await p.until('window.__shellReady === true', 300000);
-    await toClub(p);
+    await toHome(p);
     await p.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)}) && window.__ui.items().some((it) => it.label === ${JSON.stringify(LONG)})`, 60000).catch(() => {});
   }
   const panel = await e.evaluate(PANEL);
@@ -491,14 +334,14 @@ try {
     const cut = await e.evaluate(CUT(PANEL_TEXT));
     const v = await e.evaluate(LAYOUT);
     check(`${w} by ${h}: no room name, load or count in the panel is cut, the 32 letter name too`, cut.length === 0, cut.join(' | '));
-    check(`${w} by ${h}: and with three rooms in it the panel and the cards still fit`, panelLaidOut(v) && laidOut(v),
+    check(`${w} by ${h}: and with three rooms in it the panel and the cards still fit`, panelLaidOut(v) && laidOut(v, N_HOME),
       `panel ${JSON.stringify(v.panel)} cards ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar}`);
     await shot(e, `panel-rooms-${w}x${h}`);
   }
   await resize(e, 1280, 720);
 
   /* E, the keyboard: Right off the last card lands on the panel's first room. */
-  const lastCard = await e.evaluate("window.__ui.items().findIndex((it) => it.card === 'ace')");
+  const lastCard = await e.evaluate("window.__ui.items().findLastIndex((it) => Boolean(it.card))");
   await e.evaluate(`(() => { window.__ui.setCursor(${lastCard}); return true; })()`);
   const walked = [];
   for (let i = 0; i < 6 && (await e.evaluate(HERE))[0] !== roomAction; i += 1) {
@@ -517,7 +360,7 @@ try {
   await shot(f, 'panel-390x844');
   const fCut = await f.evaluate(CUT(PANEL_TEXT));
   check('390 by 844: no room name, load or count in the panel is cut', fCut.length === 0, fCut.join(' | '));
-  const fLast = await f.evaluate("window.__ui.items().findIndex((it) => it.card === 'ace')");
+  const fLast = await f.evaluate("window.__ui.items().findLastIndex((it) => Boolean(it.card))");
   await f.evaluate(`(() => { window.__ui.setCursor(${fLast}); return true; })()`);
   const pad = (nav) => f.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
   for (let i = 0; i < 8 && (await f.evaluate(HERE))[0] !== 'lobby:rooms'; i += 1) {
@@ -540,7 +383,7 @@ try {
   await f.tap('Escape');
   await f.tap('Escape');
   await f.tap('Escape');
-  await f.until("window.__ui.onGate() && window.__ui.hub === 'club'", 10000).catch(() => {});
+  await f.until('window.__ui.onGate() && window.__ui.hub === null', 10000).catch(() => {});
   await click(f, '.gate-room-make');
   await f.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
   check('a click on Make a room opens Make a room', await f.evaluate("window.__ui.screen === 'roomnew'"), await f.evaluate('window.__ui.screen'));
@@ -548,8 +391,8 @@ try {
   /* THREE 32 LETTER NAMES at the top of the panel, the most a room's name
    * may be (src/share/roomwire.js ROOM_NAME_MAX): two more such
    * rooms, newest, beside the one above. Every name whole at every size,
-   * the panel and the cards still fit; an upright phone's panel lists two
-   * of them (src/ui/roombrowser.js TITLE_ROOMS_UPRIGHT). A minute first:
+   * the panel and the cards still fit; a short upright phone's panel
+   * lists two of them (src/ui/roombrowser.js HOME_ROOMS_SHORT). A minute first:
    * the rooms server makes six rooms a minute for an address. */
   await f.sleep(61000);
   /* E leaves Open Club, which its pilot made the busiest room and so the
@@ -561,7 +404,7 @@ try {
   panelPilots[0].close();
   for (const [i, name] of longNames.slice(1).entries()) {
     const longMade = await (await fetch(`${rooms}/v2/create`, {
-      method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name }),
+      method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true, name }),
     })).json();
     panelPilots.push(await seatPilot(rooms, longMade.code, [6 + i, 6 + i, 66 + i]));
   }
@@ -575,13 +418,15 @@ try {
     await f.sleep(300);
   }
   await f.until('window.__ui.onGate()', 10000).catch(() => {});
-  await toClub(f);
+  await toHome(f);
   /* A listed room's name, not the Watch beside it, which wears the same
    * name class. */
   const LISTED_NAMES = "[...document.querySelectorAll('.gate-rooms-list .gate-room:not(.gate-room-watch) .gate-room-name')].map((n) => n.textContent)";
-  /* How many rooms the panel lists (src/ui/roombrowser.js): one on a
-   * short upright phone, two on an upright one, three otherwise. */
-  for (const [w, h, n] of [[390, 844, 2], [360, 640, 1], [844, 390, 3], [1280, 720, 3]]) {
+  /* How many of the three rooms home's panel lists (src/ui/roombrowser.js
+   * HOME_ROOMS_*): two on a short upright phone, all three otherwise (five
+   * fit on an upright phone, three on one on its side, four at 1280 by
+   * 720). Flight Club's corner panel, which listed fewer, left with it. */
+  for (const [w, h, n] of [[390, 844, 3], [360, 640, 2], [844, 390, 3], [1280, 720, 3]]) {
     await resize(f, w, h);
     await f.until(`${LISTED_NAMES}.length === ${n}`, 15000).catch(() => {});
     const listed = await f.evaluate(LISTED_NAMES);
@@ -589,7 +434,7 @@ try {
     const v = await f.evaluate(LAYOUT);
     check(`${w} by ${h}, three 32 letter names: the panel lists ${['none', 'one', 'two', 'three'][n]}, every name whole`,
       listed.length === n && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
-    check(`${w} by ${h}, three 32 letter names: the panel and the cards still fit`, panelLaidOut(v) && laidOut(v),
+    check(`${w} by ${h}, three 32 letter names: the panel and the cards still fit`, panelLaidOut(v) && laidOut(v, N_HOME),
       `panel ${JSON.stringify(v.panel)} cards ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar}`);
     await shot(f, `panel-long-${w}x${h}`);
   }
@@ -620,7 +465,7 @@ const updateUp = '(() => { window.__ui.updateReady = true; window.__ui.syncChips
 const gPad = (nav) => g.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
 try {
   await g.until('window.__shellReady === true', 300000);
-  await toClub(g);
+  await toHome(g);
   await g.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.lobby === 'room')`, 60000).catch(() => {});
   await g.evaluate(updateUp);
   for (const [w, h] of [[1280, 720], [1920, 1080], [390, 844], [360, 640], [844, 390]]) {
@@ -644,7 +489,7 @@ try {
     (await g.evaluate(HERE))[0] === 'update-reload' && (await g.evaluate(BAR)).lit, (await g.evaluate(HERE)).join());
   await g.tap('ArrowDown');
   await g.sleep(150);
-  check('and Down goes back to the first card, unlit', (await onCard(g)) === 'Track Day' && !(await g.evaluate(BAR)).lit);
+  check('and Down goes back to the first card, unlit', (await onCard(g)) === 'Defend the Paraná' && !(await g.evaluate(BAR)).lit);
   await g.tap('ArrowUp');
   await g.sleep(150);
   await g.evaluate('(() => { window.__beforeReload = true; return true; })()');
@@ -654,7 +499,7 @@ try {
 
   /* The pad: up onto Reload, select reloads. */
   await g.until(`window.__ui.onGate()`, 60000).catch(() => {});
-  await toClub(g);
+  await toHome(g);
   await g.evaluate(updateUp);
   await g.evaluate('(() => { window.__ui.setCursor(0); return true; })()');
   await gPad({});
@@ -669,7 +514,7 @@ try {
   /* In a room the room bar asks for the reload instead (src/main.js
    * roomBarView), and its button is a stop the same way. */
   await g.until(`window.__ui.onGate()`, 60000).catch(() => {});
-  await toClub(g);
+  await toHome(g);
   await g.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)})`, 30000).catch(() => {});
   await g.evaluate(`(() => { window.__ui.act(${JSON.stringify(roomAction)}); return true; })()`);
   await g.until(`window.__rooms().phase === 'open' && window.__ui.screen === 'friends'`, 30000).catch(() => {});
@@ -741,28 +586,32 @@ try {
   for (const [w, hh] of ES_SIZES) {
     await resize(h, w, hh);
     const cut = await h.evaluate(CUT_IN('.screen-title .gate-card'));
-    check(`es, ${w} by ${hh}: no word on home's hubs is cut`, cut.length === 0, cut.join(' | '));
+    check(`es, ${w} by ${hh}: no word on home's cards is cut`, cut.length === 0, cut.join(' | '));
     await shot(h, `es-home-${w}x${hh}`);
   }
   await resize(h, 1280, 720);
-  await toClub(h);
+  await toHome(h);
+  await h.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'hangar')); return true; })()");
+  await h.tap('Enter');
+  await h.until(`window.__ui.hub === 'hangar' && ${LAYOUT}.cards.length === ${N_CARDS}`, 30000).catch(() => {});
+  check('H is in the Hangar', await h.evaluate("window.__ui.hub === 'hangar'"));
   for (const [w, hh] of ES_SIZES) {
     await resize(h, w, hh);
     const cut = await h.evaluate(CUT_IN('.screen-title .gate-card, .crumb'));
-    check(`es, ${w} by ${hh}: no word on Flight Club's cards is cut`, cut.length === 0, cut.join(' | '));
-    await shot(h, `es-club-${w}x${hh}`);
+    check(`es, ${w} by ${hh}: no word on the Hangar's cards is cut`, cut.length === 0, cut.join(' | '));
+    await shot(h, `es-hangar-${w}x${hh}`);
   }
   await resize(h, 1280, 720);
-  const combat = await h.evaluate("window.__ui.items().findIndex((it) => it.card === 'combat')");
-  await h.evaluate(`(() => { window.__ui.setCursor(${combat}); return true; })()`);
-  await h.tap('Enter');
-  await h.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
-  check('H is in Streamer Combat\'s lobby', await h.evaluate(IN_LOBBY), String(combat));
+  await h.tap('Escape');
+  await h.until('window.__ui.onGate() && window.__ui.hub === null', 10000).catch(() => {});
+  await h.evaluate("(() => { window.__ui.act('lobby:roomnew'); return true; })()");
+  await h.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
+  check('H is on Make a room', await h.evaluate("window.__ui.screen === 'roomnew'"), await h.evaluate('window.__ui.screen'));
   for (const [w, hh] of ES_SIZES) {
     await resize(h, w, hh);
-    const cut = await h.evaluate(CUT_IN('.screen-friends, .frame-bot'));
-    check(`es, ${w} by ${hh}: no word in the lobby or the command bar is cut`, cut.length === 0, cut.join(' | '));
-    await shot(h, `es-lobby-${w}x${hh}`);
+    const cut = await h.evaluate(CUT_IN('.screen-roomnew, .frame-bot'));
+    check(`es, ${w} by ${hh}: no word on Make a room or the command bar is cut`, cut.length === 0, cut.join(' | '));
+    await shot(h, `es-roomnew-${w}x${hh}`);
   }
   const hErrs = h.errors.filter((x) => !x.startsWith('network:'));
   check('no page error on the Spanish page', hErrs.length === 0, hErrs.slice(0, 3).join(' | '));

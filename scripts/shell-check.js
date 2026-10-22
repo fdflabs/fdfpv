@@ -43,7 +43,6 @@ import {
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { HOOKS, LOCAL_HOST, devOpen } from '../src/share/devhooks.js';
 
@@ -60,21 +59,10 @@ const LIBRARY_GLOBALS = new Set(['__THREE__']);
 const BASELINE_PATH = join(ROOT, 'tests', 'shell-baseline.json');
 
 const SCREENS = [
-  'title', 'courses', 'freestyle', 'quad', 'pilot', 'launch', 'rates', 'pids', 'fc', 'paused',
-  'results', 'howto', 'tricks', 'credits',
+  'title', 'quad', 'pilot', 'rates', 'pids', 'fc', 'paused',
+  'results', 'howto', 'credits',
 ];
 const FC_TABS = ['setup', 'configuration', 'pid', 'receiver', 'motors'];
-
-/* Owned by src/trackbuilder/storage.js and src/share/trackseat.js, neither of
- * which exports its key. */
-const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
-const IMPORT_KEY = 'webfpv.share.import.v1';
-
-const LIBRARY_DOCS = [0, 1].map((i) => ({
-  ...mapTrackDocument({ id: `trk-5e1f00${i}0`, name: `Ring ${i + 1} (mine)` }),
-  modifiedUtc: `2026-0${i + 1}-01T00:00:00.000Z`,
-}));
-const LIBRARY = Object.fromEntries(LIBRARY_DOCS.map((doc) => [doc.id, doc]));
 
 const BASELINE_NOTE = "Today's overflow, in CSS pixels, at the window below. Not a target: a screen may already overflow. The check fails when a screen gets worse than this.";
 
@@ -267,7 +255,7 @@ function idsProbe(ui, { screens }) {
   })]));
 }
 
-function behaviourProbe(ui, { screens, tabs, importKey }) {
+function behaviourProbe(ui, { screens, tabs }) {
   const out = {};
   const items = () => ui.items();
   const indexOf = (pred) => items().findIndex(pred);
@@ -286,19 +274,6 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     ui.show('pilot');
     const got = items()[ui.cursor].label;
     return { want, got, ok: want === got };
-  });
-
-  out.trickFilm = caught(() => {
-    ui.show('tricks');
-    ui.setCursor(ui.firstStop(items()));
-    const first = ui.trickName.textContent;
-    ui.move(1);
-    const second = ui.trickName.textContent;
-    ui.move(1);
-    const third = ui.trickName.textContent;
-    return {
-      first, second, third, rows: items().length, ok: Boolean(first) && first !== second && second !== third,
-    };
   });
 
   out.freshOpen = caught(() => {
@@ -614,7 +589,7 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
       ui.show(room);
     };
     const result = {};
-    for (const room of ['freestyle', 'launch', 'pilot']) {
+    for (const room of ['pilot']) {
       reset(room);
       if (!go(`${room}:a-quad`)) {
         result[room] = { missing: true };
@@ -624,8 +599,8 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
       ui.back();
       result[room] = { at, back: ui.screen };
     }
-    reset('freestyle');
-    go('freestyle:a-quad');
+    reset('pilot');
+    go('pilot:a-quad');
     go('quad:a-rates');
     const deep = [ui.screen];
     ui.back();
@@ -635,7 +610,7 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     result.deep = deep;
     ui.show('title');
     ui.returnTo = 'paused';
-    ui.roomFrom = 'freestyle';
+    ui.roomFrom = 'pilot';
     ui.show('quad');
     ui.back();
     result.paused = ui.screen;
@@ -880,7 +855,6 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     return result;
   });
 
-  /* One try for both, so a throw anywhere leaves mine absent. */
   const gate = caught(() => {
     const saved = { mode: ui.mode, firstRun: ui.firstRun, craftGate: ui.craftGate };
     const cards = () => [...document.querySelectorAll('.screen-title .gate-card')].map((card) => {
@@ -891,7 +865,6 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
         wide: card.getBoundingClientRect().width > 0,
       };
     });
-    const pictured = (list) => list.every((c) => c.shot && c.drawn);
 
     ui.firstRun = false;
     ui.craftGate = true;
@@ -903,10 +876,10 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     const home = labels(homeItems);
     const homeCards = cards();
 
-    ui.openHub('club');
+    ui.openHub('hangar');
     const gateItems = stopItems();
     const gateLabels = labels(gateItems);
-    const clubCards = cards();
+    const hangarCards = cards();
 
     ui.mode = 'race';
     ui.show('title');
@@ -919,51 +892,7 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
         .filter((n) => n.getBoundingClientRect().height > 0).length,
     };
 
-    ui.craftGate = true;
-    ui.mode = null;
-    ui.show('title');
-    ui.settings.airframe = '7inch';
-    ui.act('way-race-5inch');
-    const whoop = {
-      craft: ui.settings.airframe,
-      mode: ui.mode,
-      screen: ui.screen,
-      gate: ui.onGate(),
-      menu: labels(stopItems()),
-      cards: items().filter((r) => r.card).length,
-    };
-
-    ui.show('courses');
-    const isLocal = (r) => r.course && r.course.kind === 'local';
-    const localCards = items().filter(isLocal);
-    const picked = (localCards[0] && localCards[0].course.track) || null;
-    const seatedOk = picked ? ui.seatLocal(picked.id) : false;
-    let seat = null;
-    try {
-      seat = JSON.parse(localStorage.getItem(importKey));
-    } catch (e) {
-      /* An unreadable seat is judged the same as no seat. */
-      seat = null;
-    }
-    const mine = {
-      count: localCards.length,
-      names: labels(localCards),
-      pickedId: picked ? picked.id : null,
-      seatedOk,
-      seat: seat ? { id: seat.id, local: seat.local, map: seat.document && seat.document.map } : null,
-      listedAfter: items().filter(isLocal).length,
-    };
-
-    ui.show('title');
-    ui.back();
-    const backFromWhoop = labels(stopItems());
-
-    ui.settings.airframe = 'bramor2300';
-    ui.act('way-race-5inch');
-    const landed = ui.screen;
-    const planeCraft = ui.settings.airframe;
-    ui.show('title');
-    const race = labels(items());
+    ui.craftGate = false;
     ui.mode = 'freestyle';
     const free = labels(items());
     ui.mode = saved.mode;
@@ -971,40 +900,29 @@ function behaviourProbe(ui, { screens, tabs, importKey }) {
     ui.craftGate = saved.craftGate;
     ui.show('title');
 
+    /* Home since Flight Club left (the combat-only cut, 2026-10-20): the
+     * Operations cards themselves (Defend the Paraná only with a rooms
+     * server), the field hangar, the Hangar; the Hangar's cards behind
+     * its card. The Hangar's cards carry a plan, not a picture. */
     const modeGate = {
       gate: gateLabels,
-      cards: clubCards,
-      backFromWhoop,
-      whoop,
+      cards: hangarCards,
       home,
       homeCards,
-      asksHubs: home.join(',') === 'Flight Club,Operations,Hangar' && homeItems.every((it) => it.card)
-        && homeCards.length === 3 && pictured(homeCards),
-      asksWays: gateLabels.length === 3 && gateLabels.join(',') === 'Track Day,Free Flight,Learn to fly'
+      asksHubs: home.slice(-2).join(',') === 'Field hangar,Hangar' && home.includes('The Interior') && home.includes('Defence training')
+        && homeItems.every((it) => it.card) && homeCards.length === home.length && homeCards.every((c) => c.wide),
+      asksWays: gateLabels.join(',') === 'Walk in,Aircraft,Customise,Upgrades,Controller,How to fly'
         && !gateItems.some((it) => !it.card),
-      asCards: clubCards.length === 3 && pictured(clubCards),
+      asCards: hangarCards.length === gateLabels.length && hangarCards.every((c) => c.wide),
       modeSetGate,
-      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 3
+      gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === hangarCards.length
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
-      onePress: whoop.craft === '7inch' && whoop.mode === 'race' && whoop.screen === 'courses'
-        && !whoop.gate && whoop.cards === 0 && !whoop.menu.includes('Freestyle'),
-      escapeToGate: backFromWhoop.join(',') === gateLabels.join(','),
-      answered: landed === 'courses',
-      landed,
-      planeCraft,
-      race,
       free,
-      raceNamesTrack: race.includes('Track') && !race.includes('Race') && !race.includes('Freestyle'),
-      freeNamesMap: free.includes('The world') && !free.includes('Race') && !free.includes('Freestyle'),
+      freeNamesMap: !free.includes('Fly') && !free.includes('The world') && !free.includes('Race') && !free.includes('Freestyle'),
     };
-    return { mine, modeGate };
+    return { modeGate };
   });
-  if (gate.error) {
-    out.modeGate = gate;
-  } else {
-    out.mine = gate.mine;
-    out.modeGate = gate.modeGate;
-  }
+  out.modeGate = gate.error ? gate : gate.modeGate;
 
   return out;
 }
@@ -1115,13 +1033,6 @@ const BEHAVIOUR = [
       fail(`focus memory: left Settings on "${r.want}", came back on "${r.got}"`);
     }
   }],
-  ['trickFilm', 'trick film', (r, fail, note) => {
-    if (!r.ok) {
-      fail(`trick film: the panel does not follow the cursor. Across three rows it showed "${r.first}", "${r.second}", "${r.third}"`);
-    } else {
-      note(`trick film: follows the cursor across ${r.rows} tricks`);
-    }
-  }],
   ['freshOpen', null, (r, fail) => {
     if (!r || r.error || !r.ok) {
       fail(`fresh open: ${(r && r.error) || 'did not land on a stop'}`);
@@ -1173,39 +1084,14 @@ const BEHAVIOUR = [
       }
     }
   }],
-  ['mine', null, (r, fail) => {
-    if (!r) {
-      fail('My tracks: the library seat probe returned nothing');
-      return;
-    }
-    const n = LIBRARY_DOCS.length;
-    if (r.count !== n) {
-      fail(`My tracks lists ${r.count} of the pilot's own ${n} saved track(s): ${or(r.names, 'none')}`);
-    }
-    if (!r.pickedId || !(r.pickedId in LIBRARY)) {
-      fail(`My tracks offered ${r.pickedId || 'no'} saved track, which the seeded library does not carry`);
-    }
-    if (!r.seatedOk || !r.seat || r.seat.id !== r.pickedId || r.seat.local !== true) {
-      fail(`choosing a saved track seated ${JSON.stringify(r.seat)}, not ${r.pickedId} as the pilot's own`);
-    }
-    if (r.listedAfter !== n) {
-      fail(`with one saved track seated My tracks lists ${r.listedAfter}, not ${n}`);
-    }
-  }],
   ['modeGate', 'the gate', (r, fail) => {
     const m = r.modeSetGate;
-    const w = r.whoop;
     const checks = [
-      [r.asksHubs, `home opens on ${or(r.home, 'nothing')} drawn as ${JSON.stringify(r.homeCards)}, not on Flight Club, Operations and the Hangar, each with a picture and a plan`],
-      [r.asksWays, `Flight Club opens on ${or(r.gate, 'nothing')}, not on the three ways in`],
-      [r.asCards, `the gate: ${r.cards.length} card(s) drawn as ${JSON.stringify(r.cards)}, so a card is a row again or has lost its picture or its plan`],
+      [r.asksHubs, `home opens on ${or(r.home, 'nothing')} drawn as ${JSON.stringify(r.homeCards)}, not on the Operations cards, the field hangar and the Hangar`],
+      [r.asksWays, `the Hangar opens on ${or(r.gate, 'nothing')}, not on its six cards`],
+      [r.asCards, `the Hangar: ${r.cards.length} card(s) drawn as ${JSON.stringify(r.cards)}, so a card is a row again or is not drawn`],
       [r.gateWithMode, `the gate: with the mode already answered it drew ${m.cards.length} card(s), ${m.cards.filter((c) => c.wide).length} of them visible, is-gate ${m.isGate}, ${m.keepNote} menu note(s) still showing`],
-      [r.onePress, `the gate: Track mode with the whoop seated left ${w.craft} in ${w.mode} on ${w.screen}, gate ${w.gate}, and landed on ${or(w.menu, 'nothing')}`],
-      [r.escapeToGate, `the gate: Escape from the menu reached ${or(r.backFromWhoop, 'nothing')}, not the three cards`],
-      [r.answered, `the gate: answering Track mode with a plane seated stayed on ${r.landed}, not My tracks`],
-      [r.planeCraft === 'bramor2300', `the gate: Track mode with a plane seated seated ${r.planeCraft}, and a plane that fits a track races it`],
-      [r.raceNamesTrack, `the title in Race names ${r.race.join(', ')}, which is not a Track row without a mode beside it`],
-      [r.freeNamesMap, `the title in Freestyle names ${r.free.join(', ')}, which is not a The world row without a mode beside it`],
+      [r.freeNamesMap, `the title in Freestyle names ${r.free.join(', ')}: a Fly or The world row, which left with free flight`],
     ];
     for (const [ok, said] of checks) {
       if (!ok) {
@@ -1283,7 +1169,7 @@ const BEHAVIOUR = [
     }
   }],
   ['roomReturn', 'room return', (r, fail) => {
-    for (const room of ['freestyle', 'launch', 'pilot']) {
+    for (const room of ['pilot']) {
       const it = r[room];
       if (!it || it.missing) {
         fail(`room return: ${room} has no door into Quad, so nothing was exercised`);
@@ -1297,8 +1183,8 @@ const BEHAVIOUR = [
       }
     }
     const deep = (r.deep || []).join(' -> ');
-    if (deep !== 'rates -> quad -> freestyle') {
-      fail(`room return: freestyle to quad to rates and back twice went "${deep}"`);
+    if (deep !== 'rates -> quad -> pilot') {
+      fail(`room return: pilot to quad to rates and back twice went "${deep}"`);
     }
     if (r.paused !== 'paused') {
       fail(`room return: a paused run lost its pause chain, Back landed on "${r.paused}"`);
@@ -1476,8 +1362,8 @@ function judgeHookIndex(fail, note) {
       }
     }
   }
-  /* Not every hook is a plain assignment: orbit.js sets __orbitCached
-   * through Object.assign. Named anywhere but the index will do. */
+  /* Not every hook is a plain assignment (Object.assign, a destructured
+   * name): named anywhere but the index will do. */
   const others = texts.filter(({ file }) => !file.endsWith(join('share', 'devhooks.js')));
   for (const [name] of HOOKS) {
     const word = new RegExp(`\\b${name}\\b`);
@@ -1547,12 +1433,9 @@ async function main() {
     s.graphicsAuto = false;
     localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s));
   } catch (e) { /* storage refused: the run goes on with defaults */ }`;
-  const librarySeed = `try {
-    localStorage.setItem(${JSON.stringify(LIBRARY_KEY)}, ${JSON.stringify(JSON.stringify(LIBRARY))});
-  } catch (e) { /* storage refused: My tracks will say so */ }`;
 
   const page = await openPage({
-    root: ROOT, width: opts.w, height: opts.h, seed: [settingsSeed, librarySeed],
+    root: ROOT, width: opts.w, height: opts.h, seed: [settingsSeed],
   });
   const results = {};
   try {
@@ -1561,9 +1444,7 @@ async function main() {
     results.walk = await runProbe(page, walkProbe, { screens: SCREENS });
     results.escape = await runProbe(page, escapeProbe, { screens: SCREENS });
     results.fcTabs = await runProbe(page, fcTabsProbe, { tabs: FC_TABS });
-    results.behaviour = await runProbe(page, behaviourProbe, {
-      screens: SCREENS, tabs: FC_TABS, importKey: IMPORT_KEY,
-    });
+    results.behaviour = await runProbe(page, behaviourProbe, { screens: SCREENS, tabs: FC_TABS });
     results.ids = await runProbe(page, idsProbe, { screens: SCREENS });
     results.devHelp = await page.evaluate('window.__dev ? window.__dev.help().map((h) => h.name) : null');
     await page.evaluate('window.__ui.show("title")');

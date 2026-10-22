@@ -324,7 +324,14 @@ console.log('the envelope round trips');
 console.log('reset settings and reset progress each keep the other half');
 {
   const { freshProgress } = await import('../src/game/progress.js');
-  const good = FIXTURE['v3-profile'];
+  /* The fixture's profile flies the Swiss valley, which left with the
+   * valleys (the combat-only cut, 2026-10-20), and the new profile's
+   * default seat is Itaipu: seated on the Interior here, so the reset
+   * still has a world choice to undo. */
+  const good = {
+    ...FIXTURE['v3-profile'],
+    [SETTINGS_KEY]: JSON.stringify({ ...JSON.parse(FIXTURE['v3-profile'][SETTINGS_KEY]), map: 'interior' }),
+  };
   const blob = JSON.parse(good[SETTINGS_KEY]);
   const was = readAll(new Storage(good));
   const defaults = readAll(new Storage({})).settings;
@@ -381,7 +388,6 @@ console.log('each save point writes its key, and nothing else writes');
   const { EventLog } = await import('../src/game/events.js');
   const { freshProgress } = await import('../src/game/progress.js');
   const { createCampaignStore, emptyCampaign, cleanCampaign } = await import('../src/game/campaign.js');
-  const { Race } = await import('../src/game/race.js');
   const { saveSettings } = await import('../src/ui/settings.js');
   const { saveBuilds } = await import('../src/ui/builds.js');
   const { saveStickMap, forgetStickMap, savePadChoice } = await import('../src/input/stickstore.js');
@@ -401,9 +407,6 @@ console.log('each save point writes its key, and nothing else writes');
     const before = store.dump();
     store.writes = 0;
     await fn(store);
-    /* The best lap is written when the page is idle (race.js saveRecord),
-     * a timer in Node. */
-    await new Promise((r) => { setTimeout(r, 5); });
     return { keys: changed(before, store.dump()), writes: store.writes, store };
   }
   const covered = new Set();
@@ -431,14 +434,14 @@ console.log('each save point writes its key, and nothing else writes');
    * shell drives it: a run seated (startRun), frames (tick), gates passed
    * (gatePass); each pays through progress.js awardFlight, the one place
    * an achievement is paid, and saves when anything was. */
-  const { RunWatch, challengeRun } = await import('../src/game/progress.js');
+  const { RunWatch } = await import('../src/game/progress.js');
   const progress = () => {
     const u = ui();
     u.settings.progress = u.settings.progress ?? freshProgress(false);
     u.persistSettings = Ui.prototype.persistSettings;
     const p = Object.create(Progress.prototype);
     Object.assign(p, {
-      ui: u, show: () => {}, toast: () => {}, flight: new EventLog(), runLog: [], folded: 0, bests: [], run: challengeRun(),
+      ui: u, show: () => {}, toast: () => {}, flight: new EventLog(), runLog: [], folded: 0, bests: [],
       watch: new RunWatch(), simMs: 0, wasCrashed: false, heldTrack: null, placeWorld: null, placeSkip: null, lesson: null,
     });
     return p;
@@ -460,33 +463,27 @@ console.log('each save point writes its key, and nothing else writes');
     point('Unlock all', got, [SETTINGS_KEY]);
   }
   {
-    /* The profile without its hoops_10, so ten gates in a row pay it. */
-    const blob = JSON.parse(good[SETTINGS_KEY]);
-    delete blob.progress.challenges.hoops_10;
-    const undone = { ...good, [SETTINGS_KEY]: JSON.stringify(blob) };
+    /* The profile without its hoops_10, so ten gates in a row pay it. The
+     * gate events are logged and folded as the race's gatePass did; the
+     * race left with the combat-only cut (2026-10-20), and the challenge
+     * stays until its own PR. */
+    /* Gates in a row paid the ten in a row challenge until the
+     * challenges left with Flight Club (the combat-only cut, 2026-10-20):
+     * now they pay nothing, so nothing is written. */
     const gates = (p, n) => {
       p.startRun({ airframe: 'interceptor', fixedWing: false, power: 'electric' });
-      for (let i = 0; i < n; i += 1) p.gatePass();
+      for (let i = 0; i < n; i += 1) {
+        p.event('gate');
+        p.foldFlight();
+      }
     };
-    none('nine gates in a row', await written(() => { gates(progress(), 9); }, undone));
-    point('a challenge done (hoops_10)', await written((store) => {
-      gates(progress(), 10);
-      check('and the challenge is stored', progressOf(store).challenges.hoops_10 === true);
-    }, undone), [SETTINGS_KEY]);
-    const again = await written(() => { gates(progress(), 20); }, undone);
-    check('the same challenge twice writes once', again.writes === 1, `${again.writes}`);
+    none('ten gates in a row', await written(() => { gates(progress(), 10); }));
   }
   point('a landing counted', await written((store) => {
     const p = progress();
     p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
     flyAndLand(p);
     check('and the landing is stored', Object.values(progressOf(store).landings ?? {}).some((n) => n > 0));
-  }), [SETTINGS_KEY]);
-  point('a challenge paid on a landing (deadstick)', await written((store) => {
-    const p = progress();
-    p.startRun({ airframe: 'timber1500', fixedWing: true, power: 'electric' });
-    flyAndLand(p, 'warning');
-    check('and the challenge is stored', progressOf(store).challenges.deadstick === true);
   }), [SETTINGS_KEY]);
   none('frames in the air with nothing to count', await written(() => {
     const p = progress();
@@ -555,7 +552,7 @@ console.log('each save point writes its key, and nothing else writes');
   const shell = () => Object.assign(Object.create(Ui.prototype), { settings: loadSettings(), buildList: loadBuilds() });
   {
     point('a build saved', await written(() => {
-      const id = shell().addBuild('W43', 'timber1500', {}).id;
+      const id = shell().addBuild('W43', 'bramor2300', {}).id;
       check('and it reads back', loadBuilds().some((b) => b.id === id && b.name === 'W43'));
     }), [BUILDS_KEY]);
     /* The profile's own build, b1. */
@@ -578,16 +575,9 @@ console.log('each save point writes its key, and nothing else writes');
     covered.add('fdfpv.voice');
   }
 
-  /* records: a new best lap, and only a new best. */
-  const race = (bestMs) => {
-    const r = Object.create(Race.prototype);
-    Object.assign(r, { key: 'webfpv.best.w43', bestMs, lapPoints: 0, splits: [], log: [], laps: [], lap: 0 });
-    return r;
-  };
-  point('a new best lap', await written(() => { race(50000).closeLap(41000, false, 0); }), ['webfpv.best.w43']);
-  point('a first lap on a course', await written(() => { race(null).closeLap(52000, false, 0); }), ['webfpv.best.w43']);
-  none('a slower lap', await written(() => { race(41000).closeLap(45000, false, 0); }));
-  none('an equal lap', await written(() => { race(41000).closeLap(41000, false, 0); }));
+  /* records: a better one from the account, and only a better one. The
+   * race that wrote a new best lap left with the combat-only cut
+   * (2026-10-20); the laps it kept stay and sync. */
   none('a record from the account no better than this one', await written(() => {
     keepRecords({ 'webfpv.best.a1b2c3.4.2.interceptor': '45000' });
   }));
@@ -609,28 +599,43 @@ console.log('each save point writes its key, and nothing else writes');
   check('nothing saves on beforeunload', !src('src/main.js').includes('beforeunload'));
 }
 
-/* The owner hid AS3X on 2026-10-16 and put the fixed wings back on Acro:
- * a profile that stored an AS3X tune, seated or remembered for a plane,
- * flies that plane's default, Acro, by the rule for a tune the aircraft
- * no longer offers (settings.js). */
-console.log('a stored AS3X tune loads as the plane\'s Acro');
+/* A profile that stored a tune the plane no longer offers, seated or
+ * remembered for it, flies that plane's default, by the rule for a tune
+ * the aircraft no longer offers (settings.js). The owner hid AS3X on
+ * 2026-10-16 by this rule; the planes that had an AS3X tune left the
+ * shell on 2026-10-21, so the kept wings stand for it with an AS3X id
+ * of their own name that they never offered. */
+console.log('a stored tune the plane does not offer loads as its default');
 {
   const { seatAirframe } = await import('../src/ui/settings.js');
   const { airframeById } = await import('../configs/airframes.js');
-  const AS3X = {
-    cub1400: 'cub', cub1400f: 'cub', radian2000: 'radian', slowstick1180: 'slowstick', timber1500: 'timber',
-    timber1500f: 'timber', bombshell1118: 'bombshell', kadet1981: 'kadet', uglystik1567: 'uglystik',
-    tigermoth1803: 'tigermoth', extra3d1308: 'extra', nighttimber1200: 'nighttimber', hercules3077: 'hercules',
-    cap1702: 'cap', slick2680: 'slick', p51d1450: 'p51', f16878: 'f16', zagi1219: 'zagi',
-  };
-  for (const [airframe, p] of Object.entries(AS3X)) {
-    const got = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe, tune: `${p}-as3x` }) })).settings;
-    check(`${airframe}: ${p}-as3x loads as ${p}-acro, its default`,
-      got.airframe === airframe && got.tune === `${p}-acro` && airframeById(airframe).defaultTune === `${p}-acro`, `${got.airframe} ${got.tune}`);
+  const GONE = { bramor2300: 'wing-as3x', striker2500: 'striker-as3x' };
+  for (const [airframe, tune] of Object.entries(GONE)) {
+    const want = airframeById(airframe).defaultTune;
+    const got = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe, tune }) })).settings;
+    check(`${airframe}: ${tune} loads as ${want}, its default`, got.airframe === airframe && got.tune === want, `${got.airframe} ${got.tune}`);
   }
-  const s = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe: 'interceptor', tuneFor: { extra3d1308: 'extra-as3x' } }) })).settings;
-  seatAirframe(s, 'extra3d1308');
-  check('a remembered extra-as3x seats the Extra on extra-acro', s.tune === 'extra-acro', s.tune);
+  const s = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe: 'interceptor', tuneFor: { bramor2300: 'wing-as3x' } }) })).settings;
+  seatAirframe(s, 'bramor2300');
+  check('a remembered wing-as3x seats the Bramor on its default', s.tune === airframeById('bramor2300').defaultTune, s.tune);
+}
+
+/* settings.buildFits keeps its shape, { build, airframe, stock: { [airframe
+ * id]: fit } }, after the float planes, which shared their land plane's
+ * entry, left (src/ui/builds.js): a kept plane's worn build reads back as
+ * it was stored, and a float family's entry, on planes this build lacks,
+ * is dropped. */
+console.log('a worn build stored before the float planes left still reads');
+{
+  const { normaliseFit } = await import('../src/ui/builds.js');
+  const fit = { livery: { scheme: 'ppx' } };
+  const stored = {
+    bramor2300: { build: 'b1', airframe: 'bramor2300', stock: { bramor2300: fit } },
+    timber1500: { build: 'b2', airframe: 'timber1500f', stock: { timber1500: {}, timber1500f: {} } },
+  };
+  const got = readAll(new Storage({ [SETTINGS_KEY]: show({ airframeAsked: true, airframe: 'bramor2300', buildFits: stored }) })).settings.buildFits;
+  check('the Bramor\'s entry reads back whole', show(got.bramor2300) === show({ build: 'b1', airframe: 'bramor2300', stock: { bramor2300: normaliseFit('bramor2300', fit) } }), show(got.bramor2300));
+  check('the float Timber\'s family entry is dropped', !('timber1500' in got), show(Object.keys(got)));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

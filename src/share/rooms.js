@@ -3,8 +3,8 @@
  * src/share/roomwire.js, the design in docs/MULTIPLAYER-PLAN.md).
  *
  * A pilot makes a room, public or private and named if they like, or
- * joins one: a public room from the room browser (src/share/roomlist.js)
- * or a quick join, a private one with the code a friend read out. Every
+ * joins one: a public room from the room browser (src/share/roomlist.js),
+ * a private one with the code a friend read out. Every
  * room has a code; a public room's is how the browser joins it and the
  * pilot never sees it. One WebSocket per room, a hello with the
  * picker name and the profile (airframe, paint, add ons, pilot figure,
@@ -317,16 +317,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   const clock = new RoomClock();
   let syncTimer = null;
   let keepTimer = null;
-  /* A quick join asks for a public room by map, not code (edge/rooms/front.js);
-   * once the room answers, its code is this tab's and a reconnect uses it. */
-  let publicMap = null;
-  /* The room the server picked for that quick join (pickPublic), or null
-   * while there is none and the socket asks by map. */
-  let picked = null;
   /* Joined to watch (edge/rooms/core.js watch): the hello asks for no
    * seat, and nothing this tab flies is sent. */
   let watching = false;
-  let fullRetried = false;
   /* The server said it was restarting, and the link has not been back
    * since: every retry until the next welcome is waiting on that restart. */
   let restarting = false;
@@ -336,7 +329,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     reason = why;
     if (handlers.onState) {
       handlers.onState({
-        phase, reason, code, publicMap, attempt, attempts: RETRY_MS.length,
+        phase, reason, code, attempt, attempts: RETRY_MS.length,
       });
     }
   }
@@ -361,14 +354,13 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
 
   function open() {
     const origin = roomsOrigin();
-    if ((!code && !publicMap) || !origin || typeof WebSocket === 'undefined') {
+    if (!code || !origin || typeof WebSocket === 'undefined') {
       setPhase('failed', 'noserver');
       return;
     }
     let socket;
     try {
-      const path = publicMap ? (picked ? `room/${picked}` : `public/${publicMap}`) : `room/${code}`;
-      socket = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/${path}`);
+      socket = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/room/${code}`);
     } catch (e) {
       setPhase('failed', 'noserver');
       return;
@@ -443,12 +435,6 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         if (!watching) {
           write('session', TOKEN_KEY, m.token);
         }
-        if (publicMap) {
-          code = normaliseCode(m.code);
-          publicMap = null;
-          picked = null;
-          fullRetried = false;
-        }
         write('session', ROOM_KEY, code);
         dropRoomLink();
         clock.resync();
@@ -504,12 +490,6 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.weather = { preset: m.preset, seed: m.seed };
         }
         handlers.onWeather?.();
-      } else if (m.type === 'stockSurfaces') {
-        /* The host set the room to stock control surfaces, or back
-         * (edge/rooms/core.js stockSurfaces). */
-        if (welcome && typeof m.on === 'boolean') {
-          welcome.stockSurfaces = m.on;
-        }
       } else if (m.type === 'daytime') {
         /* The room's game clock moved (edge/rooms/core.js daytimeNews). */
         if (welcome) {
@@ -561,19 +541,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       ws = null;
       stopTimers();
       const final = FINAL.get(ev.code);
-      if (!code && !publicMap) {
+      if (!code) {
         setPhase('idle');
-        return;
-      }
-      /* A public room that filled between the lobby's count and this
-       * quick join: ask the lobby again, once, for another. */
-      if (final === 'full' && publicMap && !fullRetried) {
-        fullRetried = true;
-        setPhase('connecting', 'retrying');
-        retry = setTimeout(() => {
-          retry = null;
-          openPublic();
-        }, 1000);
         return;
       }
       if (final) {
@@ -605,48 +574,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     write('session', TOKEN_KEY, null);
   }
 
-  /*
-   * A quick join: the room the server picks for this pilot, asked with a
-   * plain GET that carries the signed in pilot's session, as /v2/dev does,
-   * so the pick leaves out rooms of pilots it blocked or who blocked it
-   * (edge/rooms/front.js joinerOf), then joined by its code. A server from
-   * before, or one that cannot answer, gives no code, and the socket asks
-   * by map as it always did, meeting the same refusal there (busy, rate).
-   * The one answer not gone past is the accounts server down: that pick
-   * would leave out nothing, which is the guess the server refused.
-   */
-  function openPublic() {
-    const map = publicMap;
-    const origin = roomsOrigin();
-    const account = readAccount();
-    const ask = origin && typeof fetch === 'function'
-      ? fetch(`${origin}/v2/public/${map}`, { headers: account && account.session ? { authorization: `Bearer ${account.session}` } : {}, cache: 'no-store' })
-        .then(async (res) => {
-          const body = await res.json().catch(() => ({}));
-          return res.ok ? { code: normaliseCode(body.code) } : { code: null, refused: body.error === 'accounts' ? 'accounts' : null };
-        })
-        .catch(() => ({ code: null }))
-      : Promise.resolve({ code: null });
-    ask.then((got) => {
-      /* Left, or moved on, while it was asked. */
-      if (publicMap !== map || ws || retry) {
-        return;
-      }
-      if (got.refused) {
-        publicMap = null;
-        setPhase('failed', got.refused);
-        return;
-      }
-      picked = got.code;
-      open();
-    });
-  }
-
   function leave() {
     code = null;
-    publicMap = null;
-    picked = null;
-    fullRetried = false;
     welcome = null;
     restarting = false;
     clock.reset();
@@ -724,29 +653,15 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       if (ws || retry) {
         return;
       }
-      publicMap = null;
       code = next;
       watching = watch;
       attempt = 0;
       open();
     },
-    /* A public room on `map`, wherever the lobby has a seat. */
-    joinPublic(map) {
-      if (gated(() => link.joinPublic(map))) {
-        return;
-      }
-      leave();
-      write('session', TOKEN_KEY, null);
-      publicMap = map;
-      watching = false;
-      attempt = 0;
-      setPhase('connecting');
-      openPublic();
-    },
     leave,
     state() {
       return {
-        phase, reason, code, publicMap, welcome, attempt, attempts: RETRY_MS.length,
+        phase, reason, code, welcome, attempt, attempts: RETRY_MS.length,
       };
     },
     /* A rooms server to offer: one is configured and can be reached, or
@@ -794,11 +709,6 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     sendWeather(preset) {
       sendText({ type: 'weather', preset });
     },
-    /* The host sets the room to stock control surfaces, or lets each
-     * pilot fly their own (edge/rooms/core.js stockSurfaces). */
-    sendStockSurfaces(on) {
-      sendText({ type: 'stockSurfaces', on: Boolean(on) });
-    },
     /* The host sets the room's time of day, a TIME_NAMES name or null
      * (edge/rooms/core.js setDaytime). */
     sendDaytime(time) {
@@ -808,7 +718,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       sendText({ type: 'kick', seat });
     },
     /* The messages the room's modules own: the safety messages
-     * (src/share/roomsafety.js) and the race's (src/share/roomrace.js). */
+     * (src/share/roomsafety.js) and the games'. */
     send(obj) {
       sendText(obj);
     },

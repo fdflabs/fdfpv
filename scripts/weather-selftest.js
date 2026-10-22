@@ -132,16 +132,6 @@ check('over the dam crest: less mean, more gust', crest[0] < open[0] && crest[1]
 const crestHigh = speed(br, 142, 220 + 400, -1718, 0);
 const openHigh = speed(br, 3000, 220 + 400, 3000, 0);
 check('400 m over the dam the air is the open air\'s', crestHigh[0] === openHigh[0] && crestHigh[1] === openHigh[1]);
-for (const m of ['swiss2', 'alps']) {
-  const v = makeWeather(m, 'breeze', 3);
-  const floor = speed(v, 0, 20, 0, 0);
-  const rim = speed(v, -1700, 1300, 0, 0);
-  const mid = speed(v, -900, 20, 0, 0);
-  check(`${m}: the valley floor is sheltered, the rim is rough`, floor[0] < mid[0] && rim[1] > floor[1] + 1.5,
-    `floor ${floor[0].toFixed(2)} m/s gust ${floor[1].toFixed(2)}, rim gust ${rim[1].toFixed(2)}`);
-  v.at(0, 500, 0, 0, o);
-  check(`${m}: the wind runs along the valley`, Math.abs(o.z) > 2 * Math.abs(o.x), `${o.x.toFixed(2)}, ${o.z.toFixed(2)}`);
-}
 const inr = makeWeather('interior', 'breeze', 3);
 const river = speed(inr, 1098, 250, 210, 0);
 const plain = speed(inr, -4000, 300, 4000, 0);
@@ -220,7 +210,7 @@ console.log('3c. the ground under the air');
    * air on every map is what it was before the surface existed (hashes
    * recorded on main at 10fc77de, 20000 samples over 16 km and 600 m). */
   const FRONT = {
-    itaipu: '62de2697fd1d88bb', swiss2: '1ef6c18e8a90d883', alps: '1ef6c18e8a90d883', interior: 'c2aa6ceba8e24836',
+    itaipu: '62de2697fd1d88bb', interior: 'c2aa6ceba8e24836',
   };
   for (const [m, want] of Object.entries(FRONT)) {
     const w = makeWeather(m, 'front', 12345);
@@ -250,9 +240,8 @@ console.log('3c. the ground under the air');
     check(`itaipu ${preset}: over the reservoir no thermal, weak sink (0 to -0.5 m/s)`, most <= 0 && least < 0 && least > -0.5,
       `${least.toFixed(2)} to ${most.toFixed(2)} m/s`);
   }
-  check('the Interior\'s river and the Swiss lake are water on their grids',
-    [[0, 2400, 'swiss2'], [0, 2400, 'alps']].every(([x, z, m]) => groundClass(m, x, z) === CLASS.water)
-    && MAPS.interior.zones[0].line.some(([x, z]) => groundClass('interior', x, z) === CLASS.water));
+  check('the Interior\'s river is water on its grid',
+    MAPS.interior.zones[0].line.some(([x, z]) => groundClass('interior', x, z) === CLASS.water));
   /* The same air over ground of one class everywhere (a map made here,
    * the Interior's with a uniform grid): every thermal's rise and sink is
    * open ground's times the class's share, and water's is sink only. */

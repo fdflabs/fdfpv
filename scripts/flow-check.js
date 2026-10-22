@@ -214,7 +214,7 @@ try {
   await page.evaluate("(() => { window.__ui.settings.warConsent = true; window.__ui.persistSettings(); return true; })()");
   const LOBBY_UP = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
   const cards = [];
-  for (const [way, game] of [['race-5inch', 'race'], ['freestyle-wing1000', null], ['combat', 'combat'], ['ace', 'tag'], ['campaign', 'war']]) {
+  for (const [way, game] of [['race-5inch', 'race'], ['freestyle-wing1000', null], ['campaign', 'war']]) {
     await page.evaluate(`(() => { window.__ui.act('mode-gate'); window.__ui.pickForWay('way-${way}'); return true; })()`);
     /* The campaign's page, its missions, before any room. */
     let page1 = null;
@@ -232,7 +232,7 @@ try {
     await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
     await page.until("window.__rooms().phase === 'idle' && window.__ui.screen === 'title'", 10000).catch(() => {});
   }
-  check('each of the five cards is one press into the lobby of a room made for its game (Defend the Paraná: its page, then Play), and Leave is out again', cards.every((c) => c.ok),
+  check('each card is one press into the lobby of a room made for its game (Defend the Paraná: its page, then Play), and Leave is out again', cards.every((c) => c.ok),
     JSON.stringify(cards));
 
   /* THE CARD'S WORLD WINS. */

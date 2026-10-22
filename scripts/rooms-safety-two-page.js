@@ -7,8 +7,8 @@
  *   node scripts/rooms-safety-two-page.js [rooms-url] [outdir]
  *
  * Page A is in English and flies a Cub, page B in Spanish and flies a
- * P-51. Neither has a code: both press "Join a public room" on the Swiss
- * valley and the lobby must put them in the same public room. Then A says
+ * P-51. Neither has a code: both press "Join a public room" on the
+ * Interior and the lobby must put them in the same public room. Then A says
  * a preset phrase and waves, and B must read both in Spanish under A's
  * Spanish picker name; B mutes A, and A's next phrase and A's name tag
  * must be gone from B's screen while A's aircraft is still drawn; B
@@ -60,8 +60,8 @@ function check(name, ok, detail = '') {
 
 function seedFor(id) {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
-  s.map = 'swiss2';
-  s.freestyleMap = 'swiss2';
+  s.map = 'interior';
+  s.freestyleMap = 'interior';
   s.graphics = 'low';
   s.flightMode = 'angle';
   s.fpsCap = 0;
@@ -101,15 +101,16 @@ try {
     await p.until('window.__shellReady === true', 300000);
     await p.until('window.__map && window.__map().ready', 400000);
   }
-  await a.evaluate("window.__roomJoinPublic('swiss2'); true");
+  await a.evaluate("window.__roomCreate({ public: true }); true");
   await a.until("window.__rooms().phase === 'open'", 30000);
-  await b.evaluate("window.__roomJoinPublic('swiss2'); true");
+  const madeCode = await a.evaluate('window.__rooms().code');
+  await b.evaluate(`window.__roomJoin(${JSON.stringify(madeCode)}); true`);
   for (const p of [a, b]) {
     await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1 && window.__rooms().roomNow != null", 30000);
   }
   const ra = await a.evaluate('window.__rooms()');
   const rb = await b.evaluate('window.__rooms()');
-  check('with no code typed, the lobby puts both pages in one public room', ra.public && rb.public && ra.code && ra.code === rb.code,
+  check('a public room made on one page and joined by its code on the other holds both', ra.public && rb.public && ra.code && ra.code === rb.code,
     `rooms ${ra.code} ${rb.code}`);
 
   for (const p of [a, b]) {

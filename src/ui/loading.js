@@ -27,7 +27,6 @@ import { str } from '../strings/index.js';
  *   three    the renderer import, start and end only. Byte progress from a
  *            streamed prefetch was tried and dropped: the browser fetched
  *            three.module.js twice (see src/boot.js).
- *   board    the published track's round trip, start and end.
  *   sim      bytes of dist/sim.wasm, through fetchWithProgress, which the
  *            shell needs to fetch anyway.
  *   module   resource timing entries under the map's path (moduleCounter):
@@ -73,9 +72,6 @@ import { str } from '../strings/index.js';
  */
 export const MEASURED_MS = {
   three: 73,
-  /* A warm local board answering. A Render instance waking from sleep takes
-   * about a minute; that is the stall line's job, not the weight's. */
-  board: 60,
   sim: 22,
   module: 29,
   world: 2964,
@@ -84,7 +80,6 @@ export const MEASURED_MS = {
 
 const STAGE_LABEL = {
   three: str('loading.stage_renderer'),
-  board: str('loading.stage_board'),
   sim: str('loading.flight_controller'),
   module: str('loading.stage_map'),
   world: str('loading.stage_world'),
@@ -97,7 +92,6 @@ const STAGE_LABEL = {
  */
 const STAGE_DOING = {
   three: str('loading.loading_the_renderer'),
-  board: str('loading.asking_the_leaderboard'),
   sim: str('loading.starting_the_flight_controller'),
   module: str('loading.loading_the_map'),
   world: str('loading.building_the_world'),
@@ -106,7 +100,7 @@ const STAGE_DOING = {
 
 /* The screen a stage belongs to. A load only moves forward through them,
  * and the map's 'shaders' phase opens the finalizing screen early. */
-const STAGE_SCREEN = { three: 1, board: 2, sim: 2, module: 3, world: 3, frame: 4 };
+const STAGE_SCREEN = { three: 1, sim: 2, module: 3, world: 3, frame: 4 };
 
 /*
  * Every stage is drawn at least this wide. A world build is most of any
@@ -147,7 +141,7 @@ const COLOURED_STATES = ['ready', 'loading', 'fail'];
  * names each to its progress callback as it starts. Each phase stands
  * behind one or more rows:
  *
- *   valleys (src/maps/alps.js valleyPhases; swiss2 adds finish)
+ *   the valleys, until they left (2026-10-20)
  *     look        sky, light, materials          ENVIRONMENT
  *     terrain     heightfield and ground         TERRAIN DATA, HEIGHTMAPS
  *     nature      forest, meadow, water          VEGETATION
@@ -196,7 +190,6 @@ const ROW_ELEMENT = {
   'system:input': 'sys-input',
   'system:audio': 'sys-audio',
   'system:telemetry': 'sys-telemetry',
-  'system:online': 'sys-online',
   'map:terrain': 'map-terrain',
   'map:satellite': 'map-satellite',
   'map:height': 'map-height',

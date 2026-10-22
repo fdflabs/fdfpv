@@ -74,7 +74,7 @@
  */
 
 import { str } from '../strings/index.js';
-import { formatTime, formatRunClock } from './ui.js';
+import { formatTime } from './ui.js';
 
 /* The instruments' grid, the PAL one. */
 export const OSD_COLS = 30;
@@ -1190,12 +1190,6 @@ export class FpvOsd {
     const packV = this.vFilt;
     const sym = batterySymbol(cellV, this.batt);
     const pack = [mode, `${sym}${cellV.toFixed(2)}V`, `${sym}${packV.toFixed(packV >= 10 ? 1 : 2)}V`];
-    if (x.fixedWing && v.flaps != null) {
-      pack.unshift([str('osd.flaps_up'), str('osd.flaps_half'), str('osd.flaps_full')][v.flaps]);
-    }
-    if (x.fixedWing && v.gear != null) {
-      pack.unshift(v.gear === 'up' ? str('osd.gear_up') : v.gear === 'down' ? str('osd.gear_down') : str('osd.gear_moving'));
-    }
     this.readout('mode-batt', 'l', 'b', pack);
     const amps = x.armed ? x.st[19] : 0;
     /* A glow engine's tank, over the current. */
@@ -1417,8 +1411,6 @@ export class FpvOsd {
       homeDist: dist,
       homeDir: dir,
       horizonElevDeg: ladder ? ladder.elevDeg : null,
-      flaps: v.flaps,
-      gear: v.gear ?? null,
       home: { x: x.home.x, y: x.home.y, z: x.home.z },
     });
   }
@@ -1441,24 +1433,16 @@ export class FpvOsd {
 
   /*
    * The game's own clocks, in the firmware's type, top centre: the lap or
-   * the run, the gate, the gate's cue, last and best, and the ghost's gap
-   * while it is lit. A race keeps all five rows, lit or not, so what hangs
-   * under the readout does not jump when a line comes and goes.
+   * the run, the gate, the gate's cue, and last and best. A race keeps all
+   * four rows, lit or not, so what hangs under the readout does not jump
+   * when a line comes and goes.
    */
   buildRace(v) {
     const up = (s) => s.toUpperCase();
     const fit = (s) => (s.length > RACE_WIDE ? s.slice(0, RACE_WIDE) : s);
     let clock;
     if (v.mode === 'freestyle') {
-      if (v.runScored === false) {
-        clock = str('osd.air', { t: v.lapMs != null && Number.isFinite(v.lapMs) ? formatTime(v.lapMs) : '0.00' });
-      } else if (v.runTimed === false) {
-        clock = str('osd.free');
-      } else {
-        const ready = v.runState !== 'flying' && v.runState !== 'over';
-        clock = str('osd.run', { t: ready ? '2:00' : formatRunClock(Number.isFinite(v.runRemainMs) ? v.runRemainMs : 0) });
-      }
-      clock = fit(up(clock));
+      clock = fit(up(str('osd.air', { t: v.lapMs != null && Number.isFinite(v.lapMs) ? formatTime(v.lapMs) : '0.00' })));
       this.values.clock = clock;
       return this.readout('race', 'c', 't', [clock]);
     }
@@ -1474,13 +1458,8 @@ export class FpvOsd {
       parts.push(str('osd.best', { t: formatTime(this.x.bestMs) }));
     }
     const laps = fit(up(parts.join('  ')));
-    let ghost = '';
-    if (v.ghostGapMs != null) {
-      const gap = `${v.ghostGapMs <= 0 ? '-' : '+'}${(Math.abs(v.ghostGapMs) / 1000).toFixed(2)}`;
-      ghost = fit(up(str(v.ghostFinal ? 'osd.ghost_lap' : 'osd.ghost', { gap })));
-    }
-    Object.assign(this.values, { clock, gate, cue, laps, ghost });
-    return this.readout('race', 'c', 't', [clock, gate, cue, laps, ghost]);
+    Object.assign(this.values, { clock, gate, cue, laps });
+    return this.readout('race', 'c', 't', [clock, gate, cue, laps]);
   }
 
   /* renderOsdWarning's order, over the conditions the shell can be in, and

@@ -33,9 +33,6 @@
 import { readFileSync } from 'node:fs';
 import { MAPS } from '../src/maps/registry.js';
 import { RESET_NOTICE_MS, WORLD_EDGES, edgeState, edgeStep } from '../src/game/edges.js';
-import { HALF as VALLEY_HALF } from '../src/maps/alps/heights.js';
-import { makeValleyWorld } from '../src/share/valley/world.js';
-import { SWISS_WORLD } from '../src/maps/swiss2/field.js';
 import { RING_HALF } from '../src/maps/itaipu/terrain/frame.js';
 import { HALF as INTERIOR_HALF, PLAY_HALF } from '../src/share/interior/frame.js';
 import en from '../src/strings/en.js';
@@ -61,11 +58,7 @@ check('no square for anything that is not a loadable world', Object.keys(WORLD_E
 /* The interior's apron (src/maps/interior/terrain.js imports three, so
  * its depth is read off the source). */
 const apron = Number(readFileSync(new URL('../src/maps/interior/terrain.js', import.meta.url), 'utf8').match(/APRON = \{[^}]*depth: (\d+)/)[1]);
-const valleyFar = makeValleyWorld('alps').far.size / 2;
-const swissFar = makeValleyWorld('swiss2', SWISS_WORLD).far.size / 2;
 const SOURCES = {
-  alps: [VALLEY_HALF, 'alps/heights.js HALF', valleyFar, 'the far range'],
-  swiss2: [VALLEY_HALF, 'alps/heights.js HALF', swissFar, 'the far range'],
   itaipu: [RING_HALF / 2, 'itaipu/terrain/frame.js RING_HALF / 2', RING_HALF, 'the data'],
   interior: [PLAY_HALF, 'share/interior/frame.js PLAY_HALF', INTERIOR_HALF + apron, 'the data and its apron'],
 };

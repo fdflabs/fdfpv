@@ -65,6 +65,8 @@
  *   5. no boom is decided later than LATE_MS and a tick after it happened
  * Run 1 has exact clocks; run 2 puts each client's clock off by up to 10 ms
  * either way and reports the bands of 3 and 4 rather than holding them.
+ * The pass and the swarm run on the airframes the war seats
+ * (keptScenarios), and the cost on the interceptor.
  *
  *   node scripts/war-harness.js [--seeds=6] [--runs=16] [--run=1|2|cost]
  *
@@ -87,10 +89,10 @@
  */
 
 import {
-  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, decodePose, encodePose,
+  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, ROOM_LEVEL, decodePose, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import { MISSIONS, WARHEADS } from '../edge/rooms/war.js';
 import { PRACTICE_ID } from '../src/share/war/missions/itaipu-practice.js';
 import { LATE_MS, hullDistance, hullFor } from '../src/game/midair.js';
@@ -119,6 +121,11 @@ const STALL_MS = 200;
 const STALL_P = 0.25;
 const GO = COUNTDOWN_MS; /* the host starts at room ms 0 */
 const Y = 300;
+/* The Cub's referee hull reach, m (src/game/midair.js hullFor('cub1400'),
+ * configs/hulls.js at bc2b0170f: 0.7662), what the cost's shell layout
+ * was set on; the Cub went to Openflight, and the layout keeps its
+ * fractions of that reach. */
+const CUB_REACH = 0.7662;
 const DEEP_M = 0.15;
 const INTERP_M = 0.05;
 const BALL = 3;
@@ -288,11 +295,10 @@ function radiusOf(sc, seat) {
 /* Head on: the Strike along +x through the origin, 300 m after its birth
  * at GO + 1 s, the defender along -x at `speed` with its nearest part
  * passing `reach` from it. `lead` is a briefing before the countdown
- * (BRIEF_MS, or 0 for none); `airframe` the defender, a Cub unless another
- * is named; `warhead` the loadout it sends (none: the standard). `chain`
+ * (BRIEF_MS, or 0 for none); `airframe` the defender; `warhead` the loadout it sends (none: the standard). `chain`
  * puts a second Strike flying alongside the first, that many metres from
  * it on the side away from the defender, for the blast to take with it. */
-function pass(reach, lead = 0, airframe = 'cub1400', { speed = 20, warhead = null, chain = null } = {}) {
+function pass(reach, lead, airframe, { speed = 20, warhead = null, chain = null } = {}) {
   const air = [airframe];
   const off = offsetFor(air[0], -speed, reach);
   const meet = GO + lead + 1000 + (300 / KIND.strike.speed) * 1000;
@@ -303,7 +309,7 @@ function pass(reach, lead = 0, airframe = 'cub1400', { speed = 20, warhead = nul
     routes.beside = [[-300, Y, -chain], [300, Y, -chain]];
   }
   const m = mission('pass', waves, routes);
-  const label = [lead ? 'briefed' : '', airframe === 'cub1400' ? '' : airframe, warhead || '', speed === 20 ? '' : `${speed} m/s`].filter(Boolean).join(' ');
+  const label = [lead ? 'briefed' : '', airframe, warhead || '', speed === 20 ? '' : `${speed} m/s`].filter(Boolean).join(' ');
   const sc = {
     name: `${label ? `${label} ` : ''}pass ${reach.toFixed(2)} m${chain != null ? `, second ${chain.toFixed(2)} m` : ''}`,
     kind: 'pass', reach, air, mission: m, paths: [level(off, -speed, speed * meet / 1000)], end: meet + 1500, lead, warheads: warhead ? [warhead] : null,
@@ -323,9 +329,8 @@ function pass(reach, lead = 0, airframe = 'cub1400', { speed = 20, warhead = nul
 }
 
 /* Waves of six FPVs through the ball from four sides, every 2.5 s. */
-function swarm(seed) {
+function swarm(seed, air, tag = '') {
   const rand = rng(seed * 31 + 7);
-  const air = ['cub1400', 'interceptor', 'p51d1450', 'bombshell1118'];
   const L = 700;
   const routes = {
     e: [[-L, Y, 0], [L, Y, 0]], w: [[L, Y + 2, 0], [-L, Y + 2, 0]], n: [[0, Y - 2, L], [0, Y - 2, -L]], s: [[3, Y, -L], [3, Y, L]],
@@ -339,7 +344,7 @@ function swarm(seed) {
   }
   waves.sort((a, b) => a.at - b.at);
   return {
-    name: `swarm ${seed}`, kind: 'swarm', air, mission: mission('swarm', waves, routes), paths: air.map(() => wander(rand)), end: GO + 36000,
+    name: `swarm ${seed}${tag}`, kind: 'swarm', air, mission: mission('swarm', waves, routes), paths: air.map(() => wander(rand)), end: GO + 36000,
   };
 }
 
@@ -428,7 +433,7 @@ function runOne(cfg) {
   const hello = (c, t, extra = {}) => {
     deliver(room.open(c.conn, t), t);
     deliver(room.message(c.conn, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null }, ...extra,
+      type: 'hello', proto: PROTO, build: 'harness', level: ROOM_LEVEL, name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null }, ...extra,
     }), t, `10.9.0.${c.i + 1}`, newToken), t);
     const warhead = sc.warheads && sc.warheads[c.i];
     if (warhead) {
@@ -573,14 +578,15 @@ function sweep(sc, clock) {
 /*
  * Eight pilots, sixty attackers: fifty two jammers parked and eight hunters
  * born 1.4 km out (too far to arrive in the thirty seconds measured). Two
- * layouts of the Cubs and the parked jammers:
+ * layouts of the pilots and the parked jammers:
  *
- *   crowd  the eight Cubs holding still on a circle 4 m across the middle,
+ *   crowd  the eight pilots holding still on a circle 4 m across the middle,
  *          the jammers on a shell 11.5 m round it: every one of the 416
  *          pairs is near enough to pass the room's cheap test and be
  *          judged by within() on every millisecond, none within reach
- *   shell  a Cub every 120 m, and over and under each, six or seven
- *          jammers 6.45 to 6.6 m from its centre: outside BLAST_M of any
+ *   shell  a pilot every 120 m, and over and under each, six or seven
+ *          jammers 0.45 to 0.59 of its hull's reach past BLAST_M (6.45 to
+ *          6.6 m on the Cub it was set on): outside BLAST_M of any
  *          part, inside BLAST_M plus the hull's reach, where within()
  *          would measure the hull (hullDistance) on every millisecond,
  *          held for thirty seconds by all 52: what the room's hull
@@ -589,9 +595,17 @@ function sweep(sc, clock) {
  * The CPU the room spends in its own calls (poses and ticks), per second
  * of play from the go.
  */
-function cost(layout, parked = 52, hunters = 8) {
+function cost(layout, parked, hunters, airframe) {
   const seats = 8;
-  const air = Array.from({ length: seats }, () => 'cub1400');
+  const air = Array.from({ length: seats }, () => airframe);
+  /* The shell's jammers sat 6.45 to 6.59 m from a Cub's centre: 0.45 to
+   * 0.59 m past BLAST_M, inside its hull's 0.766 m reach. A hull takes the
+   * same fractions of its own reach (src/game/midair.js hullFor), so it
+   * is as hard for the broadphase as the Cub's was. */
+  const fit = hullFor(airframe).hull.reach / CUB_REACH;
+  if (!(fit > 0)) {
+    throw new Error(`cost: ${airframe} has no referee hull`);
+  }
   const crowd = layout === 'crowd';
   const at = air.map((_, i) => (crowd ? [2 * Math.cos(i * Math.PI / 4), Y, 2 * Math.sin(i * Math.PI / 4)] : [i * 120 - 420, Y, 0]));
   const routes = {};
@@ -609,7 +623,8 @@ function cost(layout, parked = 52, hunters = 8) {
       const k = Math.floor(n / seats);
       const ang = (k * 2 * Math.PI) / 7 + i;
       const up = k % 2 ? -1 : 1;
-      p = [at[i][0] + 0.3 * Math.cos(ang), Y + up * (6.45 + (0.14 * k) / Math.ceil(parked / seats)), at[i][2] + 0.3 * Math.sin(ang)];
+      const out = BLAST_M + fit * (0.45 + (0.14 * k) / Math.ceil(parked / seats));
+      p = [at[i][0] + 0.3 * fit * Math.cos(ang), Y + up * out, at[i][2] + 0.3 * fit * Math.sin(ang)];
     }
     routes[`j${n}`] = [[p[0] - 0.5, p[1], p[2]], p];
     waves.push({ at: 0.5, kind: 'jammer', n: 1, route: `j${n}` });
@@ -626,7 +641,7 @@ function cost(layout, parked = 52, hunters = 8) {
   for (const c of conns) {
     room.open(c, 0);
     room.message(c, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 'harness', level: ROOM_LEVEL, name: [c.i, 2, 40 + c.i], profile: { airframe: air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null },
     }), 0, `10.9.1.${c.i + 1}`, () => (tokens += 1).toString(16).padStart(32, '0'));
   }
   room.message(conns[0], JSON.stringify({ type: 'war', op: 'start', mission: 'cost' }), 0, '10.9.1.1');
@@ -686,18 +701,23 @@ const pct = (xs, p) => {
   return s[Math.min(s.length - 1, Math.floor(p * s.length))];
 };
 
-function scenarios() {
+/* On the airframes the war seats (configs/airframes.js WAR_AIRFRAMES):
+ * the head on pass with the interceptor as the defender, its offset from
+ * its own hull (offsetFor), and the swarm with the seven inch, the
+ * interceptor, the Striker and the ten inch. The Cub's rows, with the
+ * P-51 and the Bombshell in its swarm, left with them for Openflight. */
+function keptScenarios() {
   const out = [];
   for (let dm = 50; dm <= 70; dm += 1) {
-    out.push(pass(dm / 10));
+    out.push(pass(dm / 10, 0, 'interceptor'));
   }
   for (let s = 1; s <= SEEDS; s += 1) {
-    out.push(swarm(s));
+    out.push(swarm(s, ['7inch', 'interceptor', 'striker2500', '10inch'], ' (kept)'));
   }
   return out;
 }
 
-function report(clock, results) {
+function report(clock, results, tag = '') {
   let failed = 0;
   const row = (name, ok, detail) => {
     console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
@@ -707,7 +727,7 @@ function report(clock, results) {
   const all = (f) => results.flatMap((r) => r[f]);
   const passes = results.filter((r) => r.kind === 'pass');
   const swarms = results.filter((r) => r.kind === 'swarm');
-  console.log(`\nrun ${clock + 1}, ${clock ? 'clocks off by up to 10 ms either way' : 'exact clocks'}: ${sum('runs')} runs, ${sum('onTime')} of them inside LATE_MS`);
+  console.log(`\nrun ${clock + 1}${tag}, ${clock ? 'clocks off by up to 10 ms either way' : 'exact clocks'}: ${sum('runs')} runs, ${sum('onTime')} of them inside LATE_MS`);
   console.log(`    swarms: ${swarms.length} seeds x ${RUNS} runs, ${sum('booms', swarms)} detonations in ${sum('boomRuns', swarms)} runs`);
   const band = passes.map((r) => `${r.reach.toFixed(2)}:${Math.round((100 * r.boomRuns) / Math.max(1, r.runs))}%`).join(' ');
   console.log(`    head on pass, closest truth reach from the Strike's centre in m: percent of runs that went off (BLAST_M ${BLAST_M} m)\n      ${band}`);
@@ -744,7 +764,7 @@ function briefing() {
   };
   const go = GO + BRIEF_MS;
   const reaches = [5.5, 6.5];
-  const briefed = reaches.map((r) => sweep(pass(r, BRIEF_MS), 0));
+  const briefed = reaches.map((r) => sweep(pass(r, BRIEF_MS, 'interceptor'), 0));
   let shifted = 0;
   let states = 0;
   let early = 0;
@@ -753,8 +773,8 @@ function briefing() {
   for (const r of reaches) {
     for (const seed of [1, 2, 3]) {
       const zero = (sc) => runOne({ sc, seed, clock: 0, links: sc.air.map(() => ({ base: 0, jitter: 0 })) });
-      const plain = zero(pass(r)).log.map((e) => `${e.what}:${e.seat}:${e.t + BRIEF_MS}`).join(',');
-      const withIt = zero(pass(r, BRIEF_MS));
+      const plain = zero(pass(r, 0, 'interceptor')).log.map((e) => `${e.what}:${e.seat}:${e.t + BRIEF_MS}`).join(',');
+      const withIt = zero(pass(r, BRIEF_MS, 'interceptor'));
       shifted += withIt.log.map((e) => `${e.what}:${e.seat}:${e.t}`).join(',') === plain ? 0 : 1;
       for (const c of withIt.clients) {
         clients += 1;
@@ -888,7 +908,7 @@ function wires() {
   const waves = Array.from({ length: 40 }, (_, i) => ({ at: 1 + i * 0.5, kind: 'strike', n: 1, route: 'across' }));
   const m = mission('wires', waves, { across: route });
   const sc = {
-    name: 'wires', kind: 'wires', air: ['cub1400'], mission: m, paths: [hover([mid[0], mid[1] + 400, mid[2] + 3000])], end: GO + 1000 + 40 * 500 + ((2 * L) / KIND.strike.speed) * 1000,
+    name: 'wires', kind: 'wires', air: ['striker2500'], mission: m, paths: [hover([mid[0], mid[1] + 400, mid[2] + 3000])], end: GO + 1000 + 40 * 500 + ((2 * L) / KIND.strike.speed) * 1000,
   };
   const run = (seed) => {
     const res = runOne({
@@ -990,7 +1010,7 @@ function latejoin() {
     /* Long enough after a change for every view it caused to be heard. */
     const settled = (t) => t + 2 * (links[0].base + links[0].jitter + links[1].base + links[1].jitter) + 200;
     const sc = {
-      name: 'latejoin', kind: 'latejoin', air: ['cub1400', 'interceptor'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
+      name: 'latejoin', kind: 'latejoin', air: ['striker2500', 'interceptor'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
     };
     const res = runOne({
       sc, seed: 1, clock: 0, links,
@@ -1031,7 +1051,7 @@ function latejoin() {
     /* C, new to the match, takes B's seat while B is away. */
     const sc2 = {
       ...sc,
-      air: ['cub1400', 'interceptor', 'cub1400'],
+      air: ['striker2500', 'interceptor', 'striker2500'],
       paths: [away, hold, away],
       at: [{}, { join: JOIN, leave: LEAVE, back: BACK }, { join: GO + 13000, token: 'c'.repeat(32), seat: bWelcome.seat }],
     };
@@ -1103,11 +1123,11 @@ function practice() {
 
 const clocks = arg('run', 'both') === 'both' ? [0, 1] : arg('run', '') === 'cost' ? [] : [Number(arg('run', 1)) - 1];
 const started = Date.now();
-const list = scenarios();
-console.log(`war harness: ${list.length} scenarios, ${RUNS} random link sets each (bases ${BASES.join('/')} ms, jitter ${JITTERS.join('/')} ms), ${SEEDS} swarm seeds`);
+const kept = keptScenarios();
+console.log(`war harness: ${kept.length} scenarios, ${RUNS} random link sets each (bases ${BASES.join('/')} ms, jitter ${JITTERS.join('/')} ms), ${SEEDS} swarm seeds`);
 let failed = 0;
 for (const clock of clocks) {
-  failed += report(clock, list.map((sc) => sweep(sc, clock)));
+  failed += report(clock, kept.map((sc) => sweep(sc, clock)), ', the airframes the war seats');
 }
 if (arg('run', 'both') !== 'cost') {
   failed += briefing();
@@ -1121,11 +1141,11 @@ if (arg('run', 'both') !== 'cost') {
  * once in any Act 1 mission at 8 pilots is its largest round: 52
  * (First Light's last), and the most Hunters in one is 5 (itaipu-4's
  * last), so both rows bound every one. */
-for (const [parked, hunters] of [[52, 8], [115, 5]]) {
+for (const [airframe, parked, hunters] of [['interceptor', 52, 8], ['interceptor', 115, 5]]) {
   const all = parked + hunters;
-  console.log(`\nthe cost of a war room: 8 pilots, ${all} attackers (${hunters} hunters), 30 s of play`);
+  console.log(`\nthe cost of a war room: 8 pilots on the ${airframe}, ${all} attackers (${hunters} hunters), 30 s of play`);
   for (const layout of ['crowd', 'shell']) {
-    const c = cost(layout, parked, hunters);
+    const c = cost(layout, parked, hunters, airframe);
     const ok = c.msPerS < CPU_MS_PER_S && c.alive >= all - 1 && c.booms === 0;
     console.log(`  ${ok ? 'pass' : 'FAIL'}  ${layout}: the room's CPU for 8 pilots and ${all} attackers is under ${CPU_MS_PER_S} ms a second  (${c.msPerS.toFixed(1)} ms a second; ${c.alive.toFixed(1)} alive, ${c.pairs} pairs, ${c.booms} detonations)`);
     failed += ok ? 0 : 1;

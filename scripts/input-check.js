@@ -53,6 +53,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { deviceKey } from '../src/input/padprofiles.js';
+import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -698,7 +699,7 @@ async function mouseFlight(page, ev) {
   await came(page, 'window.__input.channels.throttle > 0.09', 3000);
   const notch = await json(ev('const l = window.__mouseLock(); return JSON.stringify({ thr: l.channels.throttle, step: l.step, af: window.__craft().run });'));
   check('five notches up is five steps of the aircraft\'s notch, 2 percent on a quad and 5 on a plane',
-    Math.abs(notch.thr - 5 * notch.step) < 1e-9 && notch.step === (/inch|whoop/.test(notch.af) ? 0.02 : 0.05), show(notch));
+    Math.abs(notch.thr - 5 * notch.step) < 1e-9 && notch.step === (airframeById(notch.af).fixedWing ? 0.05 : 0.02), show(notch));
   await page.tap('Escape');
   check('Escape pauses and lets the pointer go', await came(page, "window.__ui.screen === 'paused' && !window.__mouseLock().locked", 5000),
     await ev("return ui.screen + ' ' + JSON.stringify(window.__mouseLock());"));

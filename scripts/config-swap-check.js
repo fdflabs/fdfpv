@@ -18,8 +18,12 @@
  *     is never flown, and Fly waits for the load that is current when it
  *     settles, not for the one that was current when Fly was pressed.
  *
- * Two pages: a five inch on the Swiss valley for the clocks and the rate
- * change, and a fixed wing (three tunes) for the tune loads.
+ * Two pages: a five inch on the Interior for the clocks and the rate
+ * change, and the Bramor for the tune loads. Every kept fixed wing has two
+ * tunes, so the overtaking pick is the way back to the tune already
+ * flying: swapTune moves the generation for it too, which is what drops
+ * the slower fetch picked in between. The three-tune Skyhunter that raced
+ * two fetches left with the recreational planes (2026-10-21).
  *
  * Exit 0 when every check passed and neither page logged a console error.
  *
@@ -45,7 +49,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
-import { tunesFor } from '../configs/registry.js';
+import { tunePath, tunesFor } from '../configs/registry.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const WAIT = 60000;
@@ -62,7 +66,7 @@ function seedFor(airframe) {
   const settings = {
     ...seatAirframe({ airframe, rates: airframeById(airframe).rates }, airframe),
     airframeAsked: true,
-    map: 'swiss2',
+    map: 'interior',
     graphics: 'low',
     graphicsAuto: false,
     crashDamage: false,
@@ -110,7 +114,7 @@ async function frames(page, n) {
 }
 
 async function boot(airframe) {
-  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=swiss2', seed: seedFor(airframe) });
+  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=interior', seed: seedFor(airframe) });
   await page.until('window.__shellReady && window.__map && window.__map().ready', 120000);
   await page.sleep(1000);
   /* Nothing here reads a pixel. On a CI runner, which renders in software
@@ -210,11 +214,30 @@ async function rateChange(page) {
 
 async function tuneLoads(page, tunes) {
   const start = await json(page, '({ t: window.__tune().id, g: window.__stickPath().configGen })');
-  const [b, c] = tunes.filter((t) => t !== start.t);
   const a = start.t;
-  console.log(`\na fixed wing on ${a}, generation ${start.g}: ${b} and ${c} picked in a hurry`);
+  const [b, ...rest] = tunes.filter((t) => t !== a);
+  check(`the fixed wing has exactly two tunes, ${a} flying`, b !== undefined && rest.length === 0, JSON.stringify(tunes));
+  const c = a;
+  console.log(`\na fixed wing on ${a}, generation ${start.g}: ${b} and back to ${c} picked in a hurry`);
+  /* c is already flying, so its pick loads nothing; the drop to prove is
+   * b's, which happens when b's fetch lands. Count b's fetches whose body
+   * has been read, page side, and wait for the one this pick makes. The
+   * resource timing buffer cannot say: the boot fills it. */
+  const bFile = JSON.stringify(tunePath(b).replace(/^.*\//, '/'));
+  await page.evaluate(`(() => {
+    window.__bLanded = 0;
+    const fetchWas = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await fetchWas(...args);
+      if (String(args[0]).endsWith(${bFile})) {
+        response.clone().arrayBuffer().then(() => { window.__bLanded += 1; });
+      }
+      return response;
+    };
+    return true;
+  })()`);
   await page.evaluate(`(window.__setTune(${JSON.stringify(b)}), window.__setTune(${JSON.stringify(c)}), true)`);
-  await page.until(`window.__tune().id === ${JSON.stringify(c)}`, WAIT);
+  await page.until('window.__bLanded > 0', WAIT);
   await frames(page, 10);
   const two = await json(page, '({ t: window.__tune().id, g: window.__stickPath().configGen, trail: window.__cfg.trail })');
   check(`${b} overtaken by ${c}: ${c} flies and ${b} never did`, two.t === c && !two.trail.some((e) => e.split(' ')[1] === b),
@@ -266,7 +289,7 @@ async function tuneLoads(page, tunes) {
 let errors = 0;
 for (const [airframe, run] of [
   ['interceptor', rateChange],
-  ['sky1800', (page) => tuneLoads(page, tunesFor('sky1800').map((t) => t.id))],
+  ['bramor2300', (page) => tuneLoads(page, tunesFor('bramor2300').map((t) => t.id))],
 ]) {
   const page = await boot(airframe);
   try {

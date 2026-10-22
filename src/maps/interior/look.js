@@ -51,9 +51,9 @@ import * as THREE from 'three';
 import { loadSurface, SURFACES } from '../../render/library/surfaces.js';
 import { makePhotoLook, finishScene } from '../../render/library/photolook.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { buildPhotoComposer } from '../swiss2/post.js';
-import { makeClouds } from '../swiss2/clouds.js';
-import { photoCraftLook } from '../swiss2/craftlook.js';
+import { buildPhotoComposer } from '../look/post.js';
+import { makeClouds } from '../look/clouds.js';
+import { photoCraftLook } from '../look/craftlook.js';
 import { makeLit } from '../../render/library/lit.js';
 import { skyBackdrop, airFor } from '../itaipu/look/sky.js';
 import { loadGroundArrays, noiseTexture } from '../itaipu/look/ground.js';
@@ -474,7 +474,6 @@ export async function makeLook({
   const heights = { texture: { value: null }, grid: { value: new THREE.Vector3() } };
   const look = makePhotoLook({
     surfaces,
-    marks: {},
     ground: () => {
       throw new Error('interior look: the ground is the terrain\'s own material (ground.js), not a kit piece');
     },
@@ -583,7 +582,7 @@ export async function makeLook({
     finish() {
       finishScene(scene, lit);
     },
-    updateShadowFocus(target) {
+    updateShadowFocus(target, drawn = true) {
       const [near, far] = sun.lights;
       if (far && groundAt) {
         const over = camera.position.y - groundAt(camera.position.x, camera.position.z);
@@ -600,7 +599,7 @@ export async function makeLook({
         near.visible = sunDir.y >= 0.3;
       }
       sun.update(target, camera);
-      sky.updateCube(renderer, camera);
+      sky.updateCube(renderer, camera, drawn);
     },
     compose(shell, map) {
       sunState.at = lit.sun;
@@ -615,7 +614,7 @@ export async function makeLook({
       const sceneDispose = map.dispose;
       map.post = post;
       map.scene.userData.post = post;
-      /* Rain thickens the air (src/main.js rainFrame, swiss2/post.js setWet). */
+      /* Rain thickens the air (src/main.js rainFrame, maps/look/post.js setWet). */
       map.setWet = post.setWet;
       shell.setCraftLook(photoCraftLook(lit));
       map.dispose = () => {

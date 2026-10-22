@@ -56,6 +56,7 @@ import {
 } from '../../src/share/roomwire.js';
 import { reportRoom } from './lobby.js';
 import { retiredMap } from '../../src/maps/retired.js';
+import { modeById } from '../../src/share/modes.js';
 
 /*
  * AN EMPTY ROOM CLOSES PURGE_MS AFTER ITS LAST PILOT LEFT, and a pilot
@@ -114,6 +115,16 @@ export class RoomHost {
     if (!meta) {
       return null;
     }
+    /* A room stored for a game this build no longer has is closed as it
+     * wakes, and answers as a code nobody made (nosuch): there is no game
+     * to wake it into, and a free flight room in its place is not what its
+     * code was given out for. meta.mode is only ever null or a registry id
+     * (front.js create, core.js setup), so an id the registry does not know
+     * is a game since removed (the combat-only cut, 2026-10-18). */
+    if (meta.mode != null && !modeById(meta.mode)) {
+      await this.ctx.storage.deleteAll();
+      return null;
+    }
     /* A room stored on a world since retired (src/maps/retired.js) wakes
      * in the world that replaced it, as a pilot's own stored setting does,
      * rather than being closed: its code stays good for the friends it was
@@ -131,13 +142,21 @@ export class RoomHost {
       publicRooms: this.env.PUBLIC_ROOMS === 'on',
     });
     /* Every key a { store } action wrote is the name of the core's part
-     * that keeps it (core.race for 'race'), restored before the seats. A
-     * key with no such part is a bug and throws here, not a race that
-     * silently comes back empty. */
+     * that keeps it (core.tag for 'tag'), restored before the seats. A
+     * key with no such part is one stored by a build that had it, a part
+     * since removed (the Hercules' drops in a free flight room, after the
+     * combat-only cut): it is left unread, and the room's purge takes it.
+     * The log names it, since a part renamed without its key reads the
+     * same way and its state comes back empty. */
     for (const [key, value] of await this.ctx.storage.list()) {
-      if (key !== 'meta') {
-        this.core[key].restore(value);
+      if (key === 'meta') {
+        continue;
       }
+      if (typeof this.core[key]?.restore !== 'function') {
+        console.error(`room ${meta.code}: stored '${key}' has no part in this build; left unread`);
+        continue;
+      }
+      this.core[key].restore(value);
     }
     this.core.restore(this.ctx.getWebSockets().map((ws) => ({ conn: ws, attachment: ws.deserializeAttachment() })));
     /* After a hibernation or a restart, when the room went empty is what

@@ -314,9 +314,9 @@
     },
     "map-isolation": {
       "num": 16,
-      "swiss2_modules_min": {
-        "value": 45,
-        "source": "Choosing the Swiss valley with the Alps already built fetches swiss2.js and the files under src/maps/swiss2/ it imports, 49 by its static import closure on 2026-09-28 (the Alps modules it builds through are already there). A floor rather than an equality because the browser may serve some from cache within one page life; anything near this number means the graph really arrived. It replaced the city's floor of 55 when the city was retired, and it is the same property: a world's modules arrive when it is chosen and not before."
+      "interior_modules_min": {
+        "value": 12,
+        "source": "Choosing the Interior with Itaipu already built fetches interior.js and the files under src/maps/interior/ it imports, 13 by its static import closure on 2026-10-20 (the six Itaipu modules it builds with are under Itaipu's prefix and already there), and 13 fetched by npm run lint:memory's own run of the same switch on 2026-10-20 (URLs containing /src/maps/interior after choosing it). The floor stands one under the measured count, as the Swiss valley's did (38 under 39) until the valleys left on 2026-10-20. A floor rather than an equality because the browser may serve some from cache within one page life; anything near this number means the graph really arrived."
       }
     }
   }

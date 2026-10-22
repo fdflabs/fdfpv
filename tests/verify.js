@@ -189,18 +189,19 @@ function audioBed() {
 }
 
 /*
- * Checks 15 and 16: one page run over two worlds. The Alps are the smallest
- * world left and the Swiss valley builds through their modules, so the pair
- * only works this way round: Alps first, valley second, Alps again. Every
- * URL the page requested is read while the Alps are selected and again
- * after the valley is chosen, which makes the valley's absence a measurement
- * and its arrival the proof the loader works. The Alps' budget is taken at
- * boot and again after the round trip, because a leak on the valley's way
- * out is invisible until the Alps are measured on the far side of it.
+ * Checks 15 and 16: one page run over two worlds. The Interior builds with
+ * six of Itaipu's modules, so the pair only works this way round: Itaipu
+ * first, the Interior second, Itaipu again. Every URL the page requested is
+ * read while Itaipu is selected and again after the Interior is chosen,
+ * which makes the Interior's absence a measurement and its arrival the
+ * proof the loader works. Itaipu's budget is taken at boot and again after
+ * the round trip, because a leak on the Interior's way out is invisible
+ * until Itaipu is measured on the far side of it. The pair was the Alps and
+ * the Swiss valley until they left (2026-10-20).
  */
 const PARK_FOV = 44;
-const BASE_MAP = 'alps';
-const OTHER_MAP = 'swiss2';
+const BASE_MAP = 'itaipu';
+const OTHER_MAP = 'interior';
 const collectUrls = "JSON.stringify({ tag: 'urls', urls: performance.getEntriesByType('resource').map((e) => e.name) })";
 
 /*

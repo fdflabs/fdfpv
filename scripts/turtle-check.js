@@ -11,7 +11,7 @@
  * own crashflip, held on T at any attitude off the ground, which the
  * scripted turtle and a perch both keep out.
  *
- * This loads index.html with a five inch on the Swiss valley and drives
+ * This loads index.html with a five inch on the Interior and drives
  * both through the window.__* hooks and real key events, recording every
  * frame the turtle's flags as the harness reads them (__craftState,
  * __crash) and asserting the order they change in. The flip's end pose is
@@ -56,7 +56,7 @@ function check(name, ok, detail = '') {
 const settings = {
   ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor'),
   airframeAsked: true,
-  map: 'swiss2',
+  map: 'interior',
   graphics: 'low',
   graphicsAuto: false,
   crashDamage: false,
@@ -299,7 +299,7 @@ async function heldT(page) {
   await page.evaluate('window.__stick(0, 0, 0, 0)');
 }
 
-const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=swiss2', seed });
+const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=interior', seed });
 let errors = 0;
 try {
   await page.until('window.__shellReady && window.__map && window.__map().ready', 120000);

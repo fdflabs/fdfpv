@@ -156,56 +156,6 @@ export const AIRFRAMES = [
    */
   airframeOf('interceptor'),
   /*
-   * The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md: a twin boom pusher
-   * with ailerons, an elevator and a rudder, simId 3, on the wing's
-   * plant with its own table. It flies the wing's track class, the
-   * airfield, because it is the same kind of flying. The stock kit has
-   * no rudder servo; this one has one, so the yaw stick does something.
-   *
-   * The row is its folder's, aircraft/sky1800/aircraft.js. `stall`: Clean
-   * stall, m/s, sqrt(2W / rho S CLmax): tests/skyhunter-thresholds.json
-   * s2_stall. `topSpeed`: Level speed at full throttle, m/s:
-   * tests/skyhunter-thresholds.json s4_top, derived. `dims`: The drawn
-   * machine, src/render/skycraft.js SKY_DIMS: half span, the skid 0.12 m
-   * under the CG (the contact box's floor, src/native/plant.c) and the
-   * fins' tops 0.219 m over it.
-   */
-  airframeOf('sky1800'),
-  /*
-   * The Piper J-3 Cub, docs/CUB-STAGE1.md: the FMS 1400 mm, a high wing
-   * taildragger with a tractor prop, simId 4 on the fixed wing plant.
-   * The first aircraft here with wheels: it sits on its gear and takes
-   * off down the strip rather than being thrown (L still throws it).
-   * `gear` is where it rests, from the plant's settled pose, which the
-   * drawn wheels in src/render/cubcraft.js match: the CG 0.1463 m over
-   * the ground and 11 degrees nose up, tail down.
-   *
-   * The row is its folder's, aircraft/cub1400/aircraft.js. `stall`: Clean
-   * stall, m/s, sqrt(2W / rho S CLmax): tests/cub-thresholds.json
-   * c2_stall. `topSpeed`: Level speed at full throttle, m/s:
-   * tests/cub-thresholds.json c4_top, derived. `dims`: The drawn machine,
-   * src/render/cubcraft.js CUB_DIMS: half span, the wheels' lowest drawn
-   * point and the fin's top.
-   */
-  airframeOf('cub1400'),
-  /*
-   * The E-flite Radian Pro, docs/GLIDER-STAGE1.md: a 2 m powered glider
-   * with ailerons, an elevator and a rudder, simId 6 on the fixed wing
-   * plant (5 is the Slow Stick). Thrown by hand and landed on
-   * its belly; its prop folds back when the throttle is closed, and it
-   * climbs in the thermals over the airfield, which it and the Slow
-   * Stick fly in.
-   *
-   * The row is its folder's, aircraft/radian2000/aircraft.js. `stall`:
-   * Clean stall, m/s, sqrt(2W / rho S CLmax): tests/glider-thresholds.json
-   * g3_stall. `topSpeed`: Level speed at full throttle, m/s: npm run
-   * glider:derive, G5 at 100 percent. `dims`: The drawn machine,
-   * src/render/glidercraft.js GLIDER_DIMS: the tip's trailing corner
-   * (1.000 m out, 0.137 m aft), the belly 0.052 m under the CG, where the
-   * plant's hull rests it, and the fin's top.
-   */
-  airframeOf('radian2000'),
-  /*
    * The C-Astral Bramor C4EYE, docs/BRAMOR-STAGE1.md: a 2.3 m blended
    * wing body flying wing with a gimballed camera ball in its nose,
    * simId 8 on the fixed wing plant. It took the flying wing's place:
@@ -229,367 +179,6 @@ export const AIRFRAMES = [
    * the contact box's floor and roof in src/native/plant.c.
    */
   airframeOf('bramor2300'),
-  /*
-   * The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md: 1176 mm, 420 g, simId 5
-   * on the fixed wing plant. Three channels and no ailerons: the roll
-   * stick drives the rudder as well as the yaw stick does, and it banks
-   * through its dihedral, which also levels it when the sticks are let
-   * go, and it rises in the airfield's thermals as the Radian does. It
-   * stands on a wire gear and a tailwheel like the Cub, so
-   * throttle rolls it off the strip (L still throws it); `gear` is the
-   * plant's settled pose, which the drawn wheels in
-   * src/render/slowstickcraft.js match: the CG 0.1349 m over the ground
-   * and 6.9 degrees nose up.
-   *
-   * The row is its folder's, aircraft/slowstick1180/aircraft.js. `stall`:
-   * Clean stall, m/s, sqrt(2W / rho S CLmax):
-   * tests/slowstick-thresholds.json s2_stall. `topSpeed`: Level speed at
-   * full throttle, m/s: tests/slowstick-thresholds.json s4_top, derived.
-   * `dims`: The drawn machine, src/render/slowstickcraft.js
-   * SLOWSTICK_DIMS: the furthest reach in plan, the elevator's outer
-   * trailing corner, the wheels' lowest drawn point and the fin's top.
-   */
-  airframeOf('slowstick1180'),
-  /*
-   * The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md: a
-   * STOL bush plane on 4S, simId 7 on the fixed wing plant, with
-   * ailerons, an elevator, a rudder, slotted flaps and fixed slats. It
-   * stands on big foam tyres and a tailwheel like the Cub, so throttle
-   * rolls it off the strip (L still throws it); `gear` is the plant's
-   * settled pose, which the drawn wheels in src/render/timbercraft.js
-   * match: the CG 0.2115 m over the ground and 11.8 degrees nose up.
-   * `flaps` says it has them: F steps them up, half and full, and the
-   * OSD says where they are.
-   *
-   * The row is its folder's, aircraft/timber1500/aircraft.js. `stall`:
-   * Clean stall, m/s, sqrt(2W / rho S CLmax): flaps up, slats on,
-   * tests/timber-thresholds.json t2_stall_slats. `topSpeed`: Level speed
-   * at full throttle, m/s: docs/TIMBER-STAGE1.md T1, measured in the
-   * plant. `dims`: The drawn machine, src/render/timbercraft.js
-   * TIMBER_DIMS: the furthest reach in plan, the drooped tip's trailing
-   * corner, the tyres' lowest drawn point and the fin's top.
-   */
-  airframeOf('timber1500'),
-  /*
-   * The Turbo Timber on the float set it ships with, docs/FLOATS-STAGE1.md:
-   * simId 9, the same aircraft with its main gear off and the floats on.
-   * It floats and planes on a map's water (src/game/water.js names the
-   * Alps' lake, which swiss2 shares) and starts afloat on it; on a map
-   * without water it stands on its keels on the strip, where they slide,
-   * so it needs half throttle to move and full power to drag itself off.
-   * `floats` is where it rests on still water and `gear` where it rests on
-   * its keels on the ground, both the plant's settled poses; the drawn
-   * floats in src/render/timbercraft.js are the plant's floats.
-   *
-   * The row is its folder's, aircraft/timber1500f/aircraft.js. `stall`:
-   * Clean stall, m/s, sqrt(2W / rho S CLmax): the landplane's 7.20 at
-   * 1.934 kg over 1.70, docs/FLOATS-STAGE1.md. `topSpeed`: Level speed at
-   * full throttle, m/s: docs/FLOATS-STAGE1.md, measured in the plant.
-   * `dims`: The drawn machine on floats, TIMBER_FLOAT_DIMS: the keels are
-   * its lowest point, the fin's top the CG's 26.6 mm drop higher.
-   */
-  airframeOf('timber1500f'),
-  /*
-   * The FMS Cub on its floats, docs/FLOATS-STAGE1.md: simId 10, on the
-   * Timber on floats' terms. Its thrust to weight on floats is 0.9, so it
-   * needs most of its throttle to get over the hump.
-   *
-   * The row is its folder's, aircraft/cub1400f/aircraft.js. `stall`: Clean
-   * stall, m/s, sqrt(2W / rho S CLmax): docs/FLOATS-STAGE1.md, the Cub
-   * having no flaps. `topSpeed`: Level speed at full throttle, m/s:
-   * docs/FLOATS-STAGE1.md, measured in the plant. `dims`: The drawn
-   * machine on floats, CUB_FLOAT_DIMS.
-   */
-  airframeOf('cub1400f'),
-  /*
-   * BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md: Joe
-   * Konefes' 1940 free flight cabin model at 44 in, 560 g of balsa and
-   * tissue, simId 11 on the fixed wing plant. The Slow Stick's three
-   * channels: no ailerons, the roll stick drives the rudder as well as
-   * the yaw stick does, and it banks through a polyhedral wing, which
-   * also levels it when the sticks are let go; it rises in the
-   * airfield's thermals, which is what it was designed for. A Cox Texaco
-   * .049 glow engine on the Cox throttle conversion: the stick runs it
-   * from idle to full and closing it idles the engine, it never stops.
-   * The pack is BMJR's 3S 850 on the radio, which the engine draws
-   * nothing from. It stands on wire gear and a tail skid, so throttle
-   * rolls it off the strip, the big stabiliser lifting the tail by
-   * itself (L still throws it); `gear` is the plant's settled pose, which
-   * the drawn wheels and skid in src/render/bombshellcraft.js match: the
-   * CG 0.1318 m over the ground and 8.5 degrees nose up.
-   *
-   * The row is its folder's, aircraft/bombshell1118/aircraft.js. `stall`:
-   * Clean stall, m/s, sqrt(2W / rho S CLmax):
-   * tests/bombshell-thresholds.json s2_stall. `topSpeed`: Level speed at
-   * full throttle, m/s: tests/bombshell-thresholds.json s4_top, derived.
-   * `dims`: The drawn machine, src/render/bombshellcraft.js
-   * BOMBSHELL_DIMS: the furthest reach in plan, the elevator's outer
-   * trailing corner, the wheels' lowest drawn point and the polyhedral
-   * tips' tops, which stand over the fin.
-   */
-  airframeOf('bombshell1118'),
-  /*
-   * SIG's Kadet Senior, kit RC58, docs/KADET-STAGE1.md: Claude
-   * McCullough's 78 in balsa trainer, 2.72 kg, simId 12 on the fixed wing
-   * plant. The Bombshell's three channels: SIG built it without ailerons,
-   * so the roll stick drives the rudder as well as the yaw stick does,
-   * and it banks through its dihedral, which also levels it when the
-   * sticks are let go. An O.S. FS-52 Surpass four stroke on a 12 x 6: the
-   * stick runs it from its 2,300 rpm idle to full and it never stops, and
-   * `voice` is the four stroke's thump in the mix (src/render/audio.js).
-   * The pack is a 2S receiver pack, which the engine draws nothing from.
-   * It stands level on a tricycle gear whose nose wheel steers with the
-   * rudder, so throttle rolls it off the strip and up elevator lifts it
-   * off; `gear` is the plant's settled pose, which the drawn wheels in
-   * src/render/kadetcraft.js match: the CG 0.3072 m over the ground,
-   * level. Covered in transparent yellow and red film, whose frame shows
-   * against the sun.
-   *
-   * The row is its folder's, aircraft/kadet1981/aircraft.js. `stall`:
-   * Clean stall, m/s, sqrt(2W / rho S CLmax): tests/kadet-thresholds.json
-   * s2_stall. `topSpeed`: Level speed at full throttle, m/s:
-   * tests/kadet-thresholds.json s4_top, derived. `dims`: The drawn
-   * machine, src/render/kadetcraft.js KADET_DIMS: the furthest reach in
-   * plan is the elevator's rounded outer trailing corner, the lowest drawn
-   * point the wheels' and the highest the fin's top.
-   */
-  airframeOf('kadet1981'),
-  /*
-   * Phil Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it,
-   * plan 939, docs/UGLYSTIK-STAGE1.md: a 62 in balsa sport aerobat, 96 oz
-   * ready to fly, simId 19 on the fixed wing plant. A constant chord
-   * shoulder wing on a section within a percent of symmetric, strip
-   * ailerons, a flat stabiliser under the tail and the egg of a fin over
-   * it: it rolls on its ailerons, loops, flies on its back with a push,
-   * holds the bank it is left in and drops its nose, not a wing, when it
-   * stalls. An O.S. 61FX two stroke on a 12 x 6: the stick runs it from
-   * its 2,000 rpm idle to full and it never stops, and `voice` is the two
-   * stroke's note in the mix (src/render/audio.js). The pack is a 4.8 V
-   * receiver pack, which the engine draws nothing from. It stands on a
-   * tricycle gear whose nose wheel steers with the rudder, nose down as
-   * the plan draws it; `gear` is the plant's settled pose idling, which
-   * the drawn wheels in src/render/uglystikcraft.js match: the CG 0.2024
-   * m over the ground and 2.06 degrees nose down.
-   *
-   * The row is its folder's, aircraft/uglystik1567/aircraft.js. `stall`:
-   * Clean stall, m/s, sqrt(2W / rho S CLmax):
-   * tests/uglystik-thresholds.json u2_stall. `topSpeed`: Level speed at
-   * full throttle, m/s: tests/uglystik-thresholds.json u4_top, derived.
-   * `dims`: The drawn machine, src/render/uglystikcraft.js UGLYSTIK_DIMS:
-   * the furthest reach in plan is the rudder's trailing edge, 0.884 m aft,
-   * further than the tips; the lowest drawn point the mains' and the
-   * highest the fin's top.
-   */
-  airframeOf('uglystik1567'),
-  /*
-   * Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md: a 71
-   * in balsa and ply scale de Havilland DH.82A, the full size at 1/4.96,
-   * 10.25 lb, simId 23 on the fixed wing plant. A biplane (the plant's
-   * second wing, bip_*): two wings of one span and chord, the top one
-   * staggered ahead and stalling first, so it drops its nose and no wing;
-   * ailerons on the bottom wing alone with no differential, so a turn
-   * entered on them yaws the wrong way first and wants the rudder with
-   * them. An O.S. 61FX two stroke on a 12 x 6, the first engine Great
-   * Planes list: the stick runs it from its 2,000 rpm idle to full and it
-   * never stops, and `voice` is the two stroke's note in the mix. The
-   * pack is a 4.8 V receiver pack, which the engine draws nothing from. It
-   * stands on V strut main gear and a tail wheel whose wire is set in the
-   * rudder; `gear` is the plant's settled pose, which the drawn wheels in
-   * src/render/tigermothcraft.js match: the CG 0.2654 m over the ground
-   * and 8.16 degrees nose up.
-   *
-   * The row is its folder's, aircraft/tigermoth1803/aircraft.js. `stall`:
-   * Clean stall, m/s, sqrt(2W / rho S CLmax) on the cell:
-   * tests/tigermoth-thresholds.json t2_stall. `topSpeed`: Level speed at
-   * full throttle, m/s: tests/tigermoth-thresholds.json t4_top, derived.
-   * `dims`: The drawn machine, src/render/tigermothcraft.js
-   * TIGERMOTH_DIMS: the furthest reach in plan is the rudder's trailing
-   * edge, 1.070 m aft, further than the tips' 0.902 m; the lowest drawn
-   * point the mains' and the highest the top wing's tips.
-   */
-  airframeOf('tigermoth1803'),
-  /*
-   * E-flite's Extra 300 3D 1.3m, EFL115500, docs/EXTRA-STAGE1.md: a
-   * moulded foam aerobatic monoplane, 1.51 kg on 4S, simId 29 on the
-   * fixed wing plant (14 until it was removed on 2026-09-29; back for the
-   * flight model lane under a new id, docs/FLIGHTMODEL.md). Its thrust is two and a half times its weight, so
-   * it hangs on its prop: its oversized ailerons, elevator and rudder
-   * work in the slipstream with no airspeed at all, and the airframe
-   * turns against the prop's torque when they are let go. A taildragger
-   * on spatted wheels; `gear` is the plant's settled pose, which the
-   * drawn wheels in src/render/extracraft.js match: the CG 0.2221 m over
-   * the ground and 6.7 degrees nose up, tail down.
-   *
-   * The row is its folder's, aircraft/extra3d1308/aircraft.js. `stall`:
-   * Clean stall, m/s, sqrt(2W / rho S CLmax): tests/extra-thresholds.json
-   * e2_stall. `topSpeed`: Level speed at full throttle, m/s:
-   * tests/extra-thresholds.json e4_top, derived. `dims`: The drawn
-   * machine, src/render/extracraft.js EXTRA_DIMS: the furthest reach in
-   * plan is the rudder's trailing edge, 0.926 m aft, further than the
-   * tips; the lowest drawn point the wheels' and the highest the rudder's
-   * top.
-   */
-  airframeOf('extra3d1308'),
-  /*
-   * E-flite's Night Timber X 1.2m, EFL13850 and EFL13875,
-   * docs/NIGHTTIMBER-STAGE1.md: the Timber X's STOL high wing with its
-   * oversized surfaces and factory LED lights, 1.70 kg on 4S, simId 30
-   * on the fixed wing plant. Its thrust is about one and a half times
-   * its weight, so it hangs on its prop, the flaps mixed in as full
-   * span ailerons reaching the slipstream. A taildragger on tundra
-   * tyres; `gear` is the plant's settled pose, which the drawn wheels in
-   * src/render/nighttimbercraft.js match: the CG 0.2569 m over the
-   * ground and 4.63 degrees nose up (nighttimber:gates N13). `flaps`:
-   * F sets them.
-   *
-   * The row is its folder's, aircraft/nighttimber1200/aircraft.js.
-   * `stall`: Clean stall, m/s, sqrt(2W / rho S CLmax):
-   * tests/nighttimber-thresholds.json n2_stall. `topSpeed`: Level speed at
-   * full throttle, m/s: tests/nighttimber-thresholds.json n4_top, derived.
-   * `dims`: The drawn machine, src/render/nighttimbercraft.js
-   * NIGHTTIMBER_DIMS: the furthest reach in plan is the rudder's trailing
-   * edge, 0.716 m aft, further than the tips; the highest the prop's tip.
-   */
-  airframeOf('nighttimber1200'),
-  /*
-   * AeroTetris's C-130 Hercules 3077, docs/HERCULES-STAGE1.md: a laser
-   * cut balsa and ply C-130H at 1:13.13, 6.73 kg on four Power 25s each
-   * on its own 3S pack, simId 31 on the fixed wing plant, which takes the
-   * four props as one thrust line (docs/HERCULES-CONTRACT.md). A high
-   * wing, the upswept tail with its rear ramp and cargo door, which O
-   * opens in flight, and a fixed tricycle gear in the sponsons whose nose
-   * wheel steers; `gear` is the plant's settled pose, which the drawn
-   * wheels in src/render/herculescraft.js match: level, the CG 0.2604 m
-   * over the ground.
-   *
-   * The row is its folder's, aircraft/hercules3077/aircraft.js. `ramp`: A
-   * rear ramp and cargo door the plant opens in flight (O), and the
-   * paradrop out of it (P): docs/HERCULES-CONTRACT.md. `stall`: Clean
-   * stall, m/s, sqrt(2W / rho S CLmax): tests/hercules-thresholds.json
-   * h1_stall. `topSpeed`: Level speed at full throttle, m/s:
-   * tests/hercules-thresholds.json h4_top, derived. `dims`: The drawn
-   * machine, src/render/herculescraft.js HERCULES_DIMS: the furthest reach
-   * in plan is a tip's trailing corner, the lowest drawn point the wheels'
-   * and the highest the fin's top.
-   */
-  airframeOf('hercules3077'),
-  /*
-   * Extreme Flight's 67 in CAP 580, A464, docs/CAP580-STAGE1.md: a balsa
-   * and carbon IMAC and 3D monoplane, 3.63 kg on 6S, simId 32 on the
-   * fixed wing plant. T-Motor's bench table gives it 2.6 times its
-   * weight in thrust, so it hangs on the prop as the Extra does, at
-   * twice the Extra's weight and its wing loading half again. A
-   * taildragger on carbon legs and pants; `gear` is the plant's settled
-   * pose, which the drawn wheels in src/render/capcraft.js match: the CG
-   * 0.313 m over the ground and 10.87 degrees nose up (cap580:gates C13).
-   * The row is its folder's, aircraft/cap1702/aircraft.js. `stall` is the
-   * clean stall, m/s, sqrt(2W / rho S CLmax), tests/cap580-thresholds.json
-   * c2_stall; `topSpeed` the level speed at full throttle, m/s, c4_top,
-   * derived; `dims` the drawn machine, src/render/capcraft.js CAP_DIMS.
-   */
-  airframeOf('cap1702'),
-  /*
-   * Extreme Flight's 105.5 in Slick 580 EXP (the V3 on the V2's data
-   * sheet), docs/SLICK-STAGE1.md: a 35 percent balsa and composite IMAC
-   * and 3D aerobat, 12.47 kg with its 34 oz tank full, simId 33 on the
-   * fixed wing plant. A Desert Aircraft DA-120 petrol twin turns a 28 x 10
-   * carbon prop at Falcon's measured 6,550 rpm and 31.0 kg standing, two
-   * and a half times its weight, so it hangs on its prop as the Extra
-   * does with thirty times the Extra's pitch inertia; the stick runs the
-   * engine from its 1,300 rpm idle to full and it never stops, and
-   * `voice` is the two stroke's note in the mix (src/render/audio.js). The
-   * pack is the receiver's, which the engine draws nothing from. A
-   * taildragger on pants; `gear` is the plant's settled pose idling,
-   * which the drawn wheels in src/render/slickcraft.js match: the CG
-   * 0.4088 m over the ground and 9.36 degrees nose up (slick:gates S13).
-   * The row is its folder's, aircraft/slick2680/aircraft.js. `stall` is
-   * the clean stall, m/s, sqrt(2W / rho S CLmax), tests/slick-thresholds.json
-   * s2_stall; `topSpeed` the level speed at full throttle, m/s, s4_top,
-   * derived. `dims` is the drawn machine, src/render/slickcraft.js
-   * SLICK_DIMS: the furthest reach in plan is the rudder's foot's trailing
-   * edge, 1.728 m aft, further than the tips; the lowest drawn point the
-   * wheels' and the highest the rudder's top.
-   */
-  airframeOf('slick2680'),
-  /*
-   * FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md: the full size
-   * P-51D to the kit's span, 2.35 kg of foam, simId 15 on the fixed wing
-   * plant, with ailerons, an elevator, a rudder, plain flaps and electric
-   * retracts, on FMS's 4250 540 kV and a 14 x 8 four blade on 4S. It
-   * stands on three points at 13 degrees and swings left on the take off
-   * roll, which right rudder holds; it drops a wing at the stall. The row
-   * is its folder's, aircraft/p51d1450/aircraft.js (docs/AIRCRAFT-FOLDER.md).
-   * `gear` is the plant's settled pose, which the drawn wheels in
-   * src/render/p51craft.js match: the CG 0.2291 m over the ground and
-   * 13.13 degrees nose up. `flaps` says it has flaps (F) and `retracts`
-   * that G raises and lowers the gear, which the OSD shows. `stall` is the
-   * clean stall, m/s, sqrt(2W / rho S CLmax), tests/p51-thresholds.json
-   * p2_stall; `topSpeed` the level speed at full throttle with the gear
-   * up, m/s, p4_top, derived. `dims` is the drawn machine,
-   * src/render/p51craft.js P51_DIMS: the furthest reach in plan is the
-   * rudder's trailing edge, the lowest drawn point the main tyres' and the
-   * highest the fin's top.
-   */
-  airframeOf('p51d1450'),
-  /*
-   * Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High
-   * Performance PNP (FJ21115P), docs/F16-STAGE1.md: a 1/11.5 scale EPO
-   * jet, 878 mm across its tip rails, 2.116 kg on a 6S 4000, simId 16 on
-   * the fixed wing plant. Ailerons, all moving stabilators and a rudder.
-   * Its 70 mm twelve blade fan is the plant's ducted fan: the thrust
-   * lags the stick as the fan spools and falls away with airspeed, and
-   * the ESC stops the fan with the stick closed. `voice` is the fan's
-   * whine (src/render/audio.js). It stands level on a tricycle gear
-   * whose nose wheel steers with the rudder and which retracts on G
-   * (`retracts`, the P-51's system); `gear` is the plant's
-   * settled pose, which the drawn wheels in src/render/f16craft.js
-   * match: the CG 0.140 m over the runway.
-   *
-   * The row is its folder's, aircraft/f16878/aircraft.js. `stall`: Clean
-   * stall, m/s, sqrt(2W / rho S CLmax): tests/f16-thresholds.json
-   * s2_stall. `topSpeed`: Level speed at full throttle, m/s: Freewing's
-   * 165 km/h, tests/f16-thresholds.json s4_top. `dims`: The drawn machine,
-   * src/render/f16craft.js F16_DIMS: the furthest reach in plan is the
-   * pitot's tip, the lowest drawn point the wheels' and the highest the
-   * fin's top.
-   */
-  airframeOf('f16878'),
-  /*
-   * Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md: the slope soaring and
-   * combat classic as Zagi sells it today, an EPP flying wing on a 3100
-   * kV inrunner and a 5 x 5 carbon pusher on 3S, 723 g, simId 17 on the
-   * fixed wing plant. Elevons and no rudder; thrown by hand and landed
-   * on its belly, as the Radian is, and it rises in the thermals over
-   * the field as the gliders do.
-   *
-   * The row is its folder's, aircraft/zagi1219/aircraft.js. `stall`:
-   * Trimmed stall, m/s, with the elevons holding the wing at its CL max:
-   * tests/zagi-thresholds.json z2_stall. `topSpeed`: Level speed at full
-   * throttle, m/s: tests/zagi-thresholds.json z4_top, derived. `dims`: The
-   * drawn machine, src/render/zagicraft.js ZAGI_DIMS: the furthest reach
-   * in plan is the winglet's top trailing corner, the lowest drawn point
-   * the belly at the root and the highest the winglets' tops.
-   */
-  airframeOf('zagi1219'),
-  /*
-   * OA Composites' NRJ, docs/DLG-STAGE1.md: a 1490 mm F3K discus launch
-   * glider of 213 g, simId 21 on the fixed wing plant, flaperons, an
-   * elevator and a rudder, and no motor at all. `discus` is its launch:
-   * L, or the throttle stick up, and the pilot turns once with it by
-   * the peg on its left wingtip and lets it go climbing at 41 m/s
-   * (sim_wing_discus), to about 60 m, where it has to find a thermal,
-   * the Radian's, to stay up. `noMotor`: the hangar has no power to
-   * offer, and says so. It comes home on its belly, or into the hand.
-   *
-   * The row is its folder's, aircraft/nrj1490/aircraft.js. `stall`: Clean
-   * stall, m/s, sqrt(2W / rho S CLmax): tests/dlg-thresholds.json
-   * d3_stall. `topSpeed`: The release, m/s: the fastest it flies is the
-   * throw. `dims`: The drawn machine, src/render/dlgcraft.js DLG_DIMS: the
-   * tips' trailing corners 0.7512 m from the CG, the rudder's trailing
-   * edge 0.700 m aft, the pod's belly 0.042 m under the CG and the fin's
-   * top 0.180 m over it.
-   */
-  airframeOf('nrj1490'),
   /*
    * THE STRIKER, plants 27 and 28, docs/COMBAT-DRONES.md section 7: the
    * war's pusher delta as a playable aircraft, at the size the war draws
@@ -687,10 +276,10 @@ export function airframeById(id) {
  * The flying wing went on the Bramor's arrival. The Edge 540, the Extra
  * 300, the Pitts S-1S, the Wot 4 and the Quickie 500 were removed on
  * 2026-09-29 at the owner's request ("ok just delete quickie 500, delete
- * edge 540, eliminate extra, eliminate pitts, eliminate wot 4"): the
- * Pitts's successor is the other biplane, the Tiger Moth; the rest go to
- * the Ugly Stik, the sport aerobat that is left. Their sim ids stay
- * reserved (src/native/sim_abi.h), so nothing is ever flown on them again.
+ * edge 540, eliminate extra, eliminate pitts, eliminate wot 4"); their
+ * successors, the Tiger Moth and the Ugly Stik, went in turn (below). Their
+ * sim ids stay reserved (src/native/sim_abi.h), so nothing is ever flown on
+ * them again.
  *
  * The five inch and the 65 mm whoop were removed on 2026-10-03 at the
  * owner's request ("eliminate the 5 inch model and the 65mm whoop model as
@@ -699,16 +288,47 @@ export function airframeById(id) {
  * start. Sim id 0 is NOT reserved the way the planes' are: plant 0 stays in
  * the module as the reference stage 1 verification flies, and no pilot is
  * seated on it.
+ *
+ * The twenty recreational planes left on 2026-10-21 at the owner's request
+ * ("leave only combat quads and planes in pdcs no recreational stuff"):
+ * they fly on in Openflight (openfieldrc.com/openflight), which is what
+ * `moved` says, so a build made on one is not turned into a Striker
+ * (src/share/progressmerge.js currentBuild). Each, and each of the
+ * aerobats retired onto the Ugly Stik and the Tiger Moth before them, is
+ * seated on the Striker: the war's default fixed wing, open from the
+ * start (src/game/progress.js STARTER_PLANES), so the rule above holds. Their plants stay in the module for now, unseated, as the 1000 mm
+ * wing's does.
  */
+const OPENFLIGHT = 'openflight';
 const RETIRED_AIRFRAMES = {
   '5inch': { to: 'interceptor', name: 'Five inch' },
   whoop65: { to: 'interceptor', name: '65 mm whoop' },
   wing1000: { to: 'bramor2300', name: 'Fixed wing' },
-  edge1524: { to: 'uglystik1567', name: 'Edge 540' },
-  extra1308: { to: 'uglystik1567', name: 'Extra 300 3D' },
-  pitts850: { to: 'tigermoth1803', name: 'Pitts S-1S' },
-  wot41334: { to: 'uglystik1567', name: 'Wot 4' },
-  quickie1293: { to: 'uglystik1567', name: 'Quickie 500' },
+  edge1524: { to: 'striker2500', name: 'Edge 540' },
+  extra1308: { to: 'striker2500', name: 'Extra 300 3D' },
+  pitts850: { to: 'striker2500', name: 'Pitts S-1S' },
+  wot41334: { to: 'striker2500', name: 'Wot 4' },
+  quickie1293: { to: 'striker2500', name: 'Quickie 500' },
+  sky1800: { to: 'striker2500', name: 'Skyhunter', moved: OPENFLIGHT },
+  radian2000: { to: 'striker2500', name: 'Radian', moved: OPENFLIGHT },
+  cub1400: { to: 'striker2500', name: 'Piper Cub', moved: OPENFLIGHT },
+  cub1400f: { to: 'striker2500', name: 'Piper Cub, floats', moved: OPENFLIGHT },
+  slowstick1180: { to: 'striker2500', name: 'Slow Stick', moved: OPENFLIGHT },
+  timber1500: { to: 'striker2500', name: 'Turbo Timber', moved: OPENFLIGHT },
+  timber1500f: { to: 'striker2500', name: 'Turbo Timber, floats', moved: OPENFLIGHT },
+  bombshell1118: { to: 'striker2500', name: 'Buzzard Bombshell', moved: OPENFLIGHT },
+  kadet1981: { to: 'striker2500', name: 'Kadet Senior', moved: OPENFLIGHT },
+  uglystik1567: { to: 'striker2500', name: 'Ugly Stik', moved: OPENFLIGHT },
+  tigermoth1803: { to: 'striker2500', name: 'Tiger Moth', moved: OPENFLIGHT },
+  extra3d1308: { to: 'striker2500', name: 'Extra 300 3D', moved: OPENFLIGHT },
+  nighttimber1200: { to: 'striker2500', name: 'Night Timber X', moved: OPENFLIGHT },
+  hercules3077: { to: 'striker2500', name: 'C-130 Hercules', moved: OPENFLIGHT },
+  cap1702: { to: 'striker2500', name: 'CAP 580', moved: OPENFLIGHT },
+  slick2680: { to: 'striker2500', name: 'Slick 580', moved: OPENFLIGHT },
+  p51d1450: { to: 'striker2500', name: 'P-51D Mustang', moved: OPENFLIGHT },
+  f16878: { to: 'striker2500', name: 'F-16 Falcon', moved: OPENFLIGHT },
+  zagi1219: { to: 'striker2500', name: 'Zagi HP', moved: OPENFLIGHT },
+  nrj1490: { to: 'striker2500', name: 'NRJ DLG', moved: OPENFLIGHT },
 };
 for (const [id, gone] of Object.entries(RETIRED_AIRFRAMES)) {
   if (AIRFRAME_IDS.includes(id) || !AIRFRAME_IDS.includes(gone.to)) {
@@ -727,45 +347,4 @@ export function retiredAirframe(id) {
 export function currentAirframeId(id) {
   const gone = retiredAirframe(id);
   return gone ? gone.to : id;
-}
-
-/*
- * THE FLOAT VERSIONS. A plane on floats is its own airframe to the module
- * (its own simId, plant and physics) but not to the pilot: it is the land
- * plane with the Floats toggle on, beside the span and the weight in the
- * hangar. The picker and the progression show the land plane alone. A
- * float version is the row with `floats` whose `tunesOf` names its land
- * plane, which is how the table already said so.
- */
-const LAND_OF = Object.fromEntries(AIRFRAMES.filter((a) => a.floats && a.tunesOf).map((a) => [a.id, a.tunesOf]));
-const FLOATS_OF = Object.fromEntries(Object.entries(LAND_OF).map(([f, land]) => [land, f]));
-
-/* The land plane a float version is, or the id itself. */
-export function landPlaneOf(id) {
-  return LAND_OF[id] ?? id;
-}
-
-/* The float version of a land plane, or null for one that has none. */
-export function floatVersionOf(id) {
-  return FLOATS_OF[id] ?? null;
-}
-
-/* Whether this id is a float version. */
-export function isFloatVersion(id) {
-  return Object.hasOwn(LAND_OF, id);
-}
-
-// The plant number for a stored id; an unknown id gets the default
-// aircraft's rather than an error.
-export function simIdFor(id) {
-  return airframeById(id).simId;
-}
-
-/*
- * The kind of course an aircraft races: 'full' for the 60 by 40 m quad
- * field, 'micro' for an indoor room, 'wing' for a 400 by 300 m airfield.
- * The builder, the world, the gates and the board all go by it.
- */
-export function trackClassFor(id) {
-  return airframeById(id).trackClass;
 }

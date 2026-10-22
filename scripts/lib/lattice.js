@@ -1,9 +1,10 @@
 /*
  * lattice.js: a vortex lattice on a planar flying wing with winglets, and
  * its stability derivatives by central differences. It is
- * scripts/zagi-derive.js's solver taken out whole, formula for formula, so
- * every flying wing's derivation runs the one lattice (the Zagi's, and the
- * Striker's in scripts/combat-derive.js). It never loads the plant.
+ * scripts/zagi-derive.js's solver taken out whole, formula for formula (in
+ * git at b420b0e51; it left with the Zagi on 2026-10-20), so every flying
+ * wing's derivation runs the one lattice (the Striker's in
+ * scripts/combat-derive.js). It never loads the plant.
  * Harness arithmetic in JS maths, which is allowed here because nothing it
  * prints is hashed.
  *

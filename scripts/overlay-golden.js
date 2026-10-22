@@ -10,9 +10,9 @@
  * Every method is called through Ui.prototype on a stand-in Ui, so the
  * same script reads the old class body and the moved modules alike. The
  * stand-in document logs every write a node takes (text, class, style,
- * hidden, disabled, value), and the per-frame methods (setOsd, setBanner,
- * setTargetLock) are called twice with the same values so the record
- * holds the fact that a frame with nothing new writes nothing. Storage,
+ * hidden, disabled, value), and the per-frame methods (setOsd and
+ * setBanner) are called twice with the same values so the record holds
+ * the fact that a frame with nothing new writes nothing. Storage,
  * timers and the calls out to the rest of the Ui (show, renderMenu,
  * writeSettings and so on) are logged too. Recorded in English and Spanish.
  *
@@ -152,19 +152,17 @@ function take(node) {
 const { Ui } = await import('../src/ui/ui.js');
 const { el, makeGimbal, makeWeightSlider } = await import('../src/ui/widgets.js');
 const { DEFAULTS, SETTINGS_KEY, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK } = await import('../src/ui/settings.js');
-const { writeShareImport, writeEditKey, writeBind } = await import('../src/share/trackseat.js');
 const { MAPS } = await import('../src/maps/registry.js');
 const { currentLocale, useLocale } = await import('../src/strings/index.js');
 const { StickRef } = await import('../src/ui/stickref.js');
 const { COLUMNS } = await import('../src/share/controlrec.js');
 
 const FREESTYLE_MAP = MAPS.find((m) => m.mode === 'freestyle').id;
-const RACE_MAP = MAPS.find((m) => m.mode !== 'freestyle').id;
 
-const SPIES = ['show', 'renderMenu', 'renderHowto', 'maybeOfferFeel', 'writeSettings', 'onSettings'];
+const SPIES = ['show', 'renderMenu', 'renderHowto', 'writeSettings', 'onSettings'];
 const FIELDS = [
   'calCanSave', 'calCanSkip', 'calCanReverse', 'calCanZeroThrottle', 'calMoving', 'calOnConfirm', 'padPickPhase',
-  'padPickReason', 'roomResults', 'freestyleRun', 'runPosted', 'timePosted', 'resultsFastest', 'lastBestMs', 'osdMode',
+  'padPickReason', 'roomResults', 'osdMode',
   'stickModeDrawn', 'airHintDone', 'bannerText', 'padInfo', 'gpuInfo', 'everyoneFlightS', 'everyoneFlightAsked',
 ];
 
@@ -175,20 +173,12 @@ function stubUi() {
   for (const name of SPIES) ui[name] = (...args) => note(`call.${name}`, JSON.stringify(args.length ? args[0] : null));
   /* onSettings is handed the whole profile; its weight is the range's part. */
   ui.onSettings = (s) => note('call.onSettings', JSON.stringify({ weight: s.weight, same: s === ui.settings }));
-  ui.settings = { ...DEFAULTS, map: RACE_MAP, stickMode: 2, weight: WEIGHT_STOCK, freestyleScoring: 'scored' };
+  ui.settings = { ...DEFAULTS, map: FREESTYLE_MAP, stickMode: 2, weight: WEIGHT_STOCK };
   ui.screen = 'flight';
-  ui.share = null;
-  ui.scoreHud = {
-    setCalloutsOnly: (on) => note('score.setCalloutsOnly', on),
-    setVisible: (on) => note('score.setVisible', on),
-    update: (v) => note('score.update', JSON.stringify(v)),
-    events: (l) => note('score.events', JSON.stringify(l)),
-    reset: () => note('score.reset'),
-  };
   for (const k of ['brandSub', 'titleBest', 'osdBest', 'resultsBody', 'resultsFacts', 'resultsNote', 'resultsKicker', 'resultsHead',
     'resultsHeroCap', 'resultsHeroTime', 'resultsHeroMeta', 'announcer', 'osdTopBlock',
-    'osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdGhost', 'osdPackBar', 'osdSpeed', 'osdFlight',
-    'osdFlaps', 'osdGear', 'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits', 'osdSticks',
+    'osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdPackBar', 'osdSpeed', 'osdFlight',
+    'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits', 'osdSticks',
     'calPrompt', 'calKicker', 'calHint', 'calList', 'calAxes', 'calSaveBtn', 'calSkipBtn', 'calZeroBtn', 'calRevBtn',
     'calModeBtn', 'padPrompt', 'padKicker', 'padHint', 'padCards', 'padYesBtn', 'padNoBtn', 'padSkipBtn']) {
     ui[k] = el('div', k);
@@ -211,9 +201,6 @@ function stubUi() {
   ui.padCardNodes = new Map();
   ui.airHintDone = false;
   ui.airHintTimer = 0;
-  ui.timePosted = null;
-  ui.freestyleRun = null;
-  ui.runPosted = null;
   ui.padInfo = { count: 0, using: 'Keyboard' };
   ui.gpuInfo = null;
   ui.stickProbe = null;
@@ -271,19 +258,12 @@ async function snapshot() {
 
   out.best = await scenario((ui, step) => {
     const n = () => ({ brandSub: ui.brandSub, titleBest: ui.titleBest, osdBest: ui.osdBest });
-    call(ui, 'setBest', 61234, 'race'); step('record', n());
-    call(ui, 'setBest', null); step('no record', n());
+    call(ui, 'setBest'); step('world', n());
     call(ui, 'refreshBest'); step('refresh', n());
-    call(ui, 'setBest', undefined); step('unbuilt race seat', n());
-    ui.settings.map = FREESTYLE_MAP;
-    call(ui, 'setBest', undefined); step('unbuilt freestyle seat', n());
-    call(ui, 'setBest', 5000, 'freestyle'); step('freestyle scored', n());
-    ui.settings.freestyleScoring = 'free'; ui.screen = 'paused';
-    call(ui, 'refreshBest'); step('freestyle free paused', n());
-    ui.settings.freestyleScoring = 'off';
-    call(ui, 'refreshBest'); step('freestyle off', n());
-    ui.settings.map = 'track';
-    call(ui, 'setBest', 4000, 'race'); step('track seat', n());
+    ui.settings.map = 'nowhere';
+    call(ui, 'setBest'); step('unknown world', n());
+    ui.screen = 'paused';
+    call(ui, 'refreshBest'); step('paused', n());
     const bare = stubUi();
     bare.titleBest = null;
     out.bestNoTitle = call(bare, 'refreshBest');
@@ -293,45 +273,6 @@ async function snapshot() {
     screen: ui.screens.results, kicker: ui.resultsKicker, head: ui.resultsHead, cap: ui.resultsHeroCap,
     time: ui.resultsHeroTime, meta: ui.resultsHeroMeta, facts: ui.resultsFacts, body: ui.resultsBody, note: ui.resultsNote,
   });
-  out.results = await scenario((ui, step) => {
-    call(ui, 'showResults', [], null, null); step('empty', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 42000 }], 42000, null); step('first lap, first record', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 42000 }, { n: 2, ms: null, reason: 'Missed\nGATE 3' }, { n: 3, ms: 39000 }], 39000, 41000, 'Beat the ghost by 0.4 s');
-    step('record beaten, void lap, ghost note', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 41000 }, { n: 2, ms: 43000 }], 41000, 41000); step('matched', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 39000 }], 39000, 41000, null, {
-      activity: 'race', aircraft: 'whoop65', fixedWing: false, result: { kind: 'record', landed: null }, route: null,
-      time: { flightMs: 64000, runMs: 39000 }, accuracy: [{ what: 'debrief.clean_laps', n: 1, of: 2 }],
-      records: [{ what: 'debrief.track_record', now: 39000, before: 41000, improved: true },
-        { what: 'debrief.aircraft_time', now: 7380, before: 7316, improved: null }],
-      replay: { ok: true, why: null }, next: ['again', 'replay', 'aircraft', 'title'],
-    });
-    step('debrief facts', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 45500 }, { n: 2, ms: 44000 }, { n: 3, ms: 50000 }], 40000, 40000); step('off the record', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 30000, score: 120 }, { n: 2, ms: 31000, score: 80 }, { n: 3, ms: null }], 29000, 29000);
-    step('scored plane laps', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: null, reason: 'Cut' }], 30000, 30000); step('only a void lap', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 0 }], null, NaN); step('zero lap, NaN record', resultNodes(ui));
-    call(ui, 'showResults', [{ n: 1, ms: 4000 }, { n: 2, ms: 60000 }], 4000, 5000); step('short lap floors its bar', resultNodes(ui));
-  });
-  const doc = (name) => ({ schemaVersion: 4, name, map: 'alps', elements: [] });
-  out.resultsTrack = await scenario((ui, step) => {
-    ui.settings.map = 'track';
-    call(ui, 'showResults', [{ n: 1, ms: 50000 }], 50000, null); step('track, nothing seated', resultNodes(ui));
-    ui.share = { id: 'abc', name: 'Valley', author: 'Rita' };
-    call(ui, 'showResults', [{ n: 1, ms: 50000 }], 50000, null); step('share with author', resultNodes(ui));
-    ui.share = { id: 'abc' };
-    call(ui, 'showResults', [{ n: 1, ms: 50000 }], 50000, null); step('share without name', resultNodes(ui));
-    ui.share = null;
-    const local = writeShareImport({ id: 'loc1', name: 'Mine', document: doc('Mine'), local: true });
-    call(ui, 'showResults', [{ n: 1, ms: 52000 }], 52000, null); step(`local seat ${local}`, resultNodes(ui));
-    const comm = writeShareImport({ id: 'pub1', name: 'Public', document: doc('Public'), author: 'Ana' });
-    call(ui, 'showResults', [{ n: 1, ms: 53000 }], 53000, 60000); step(`community seat ${comm}`, resultNodes(ui));
-    writeEditKey('pub1', 'k');
-    writeBind('pub1', { board: 'b', author: 'Ana', nameOnBoard: 'Public', layoutFingerprint: 'different' });
-    call(ui, 'showResults', [{ n: 1, ms: 54000 }], 54000, 60000); step('owned with drift', resultNodes(ui));
-  });
-
   out.room = await scenario((ui, step) => {
     ui.screen = 'flight';
     const v = { kicker: 'Room 7', head: 'You won', heroCap: 'Place', heroTime: '1st', heroMeta: 'of 3', win: true,
@@ -340,36 +281,6 @@ async function snapshot() {
     call(ui, 'showRoomResults', v); step('first', resultNodes(ui));
     ui.screen = 'results';
     call(ui, 'showRoomResults', { ...v, win: false, head: 'Second', rows: [] }); step('again on results', resultNodes(ui));
-  });
-
-  out.freestyle = await scenario((ui, step) => {
-    const rows = Array.from({ length: 12 }, (_, i) => ({ name: `Trick ${i}`, count: (i % 3) + 1, points: i === 9 ? 30 : 1200 - i * 100 }));
-    call(ui, 'showFreestyleResults', { tricks: 0, unique: 0, total: 0, bestCombo: 0, bonus: 0, crashes: 0, rows: [] });
-    step('nothing landed', resultNodes(ui));
-    call(ui, 'showFreestyleResults', { timed: false, tricks: 0, unique: 0, total: 0, bestCombo: 0, bonus: 0, crashes: 2, rows: [] });
-    step('free flight, nothing landed', resultNodes(ui));
-    const clean = { tricks: 14, unique: 12, total: 9876, bestCombo: 1500, bonus: 300, crashes: 0, rows };
-    call(ui, 'showFreestyleResults', clean); step('clean, twelve kinds', resultNodes(ui));
-    call(ui, 'showFreestyleResults', { ...clean, crashes: 1, bestCombo: 0, bonus: 0, rows: rows.slice(0, 11) }); step('one crash, eleven kinds', resultNodes(ui));
-    call(ui, 'showFreestyleResults', { ...clean, timed: false, crashes: 3, rows: [{ name: 'Flip', count: 1, points: 0 }] }); step('zero point row', resultNodes(ui));
-    call(ui, 'markRunPosted', null); step('posted off results', {});
-    ui.screen = 'results';
-    call(ui, 'markRunPosted', { ok: false, why: 'x' }); step('posted on results', {});
-    call(ui, 'resetScore'); step('reset', {});
-  });
-
-  out.score = await scenario((ui, step) => {
-    ui.osdMode = 'freestyle';
-    for (const [screen, scoring] of [['flight', 'scored'], ['paused', 'free'], ['title', 'scored'], ['flight', 'off']]) {
-      ui.screen = screen; ui.settings.freestyleScoring = scoring;
-      call(ui, 'syncScoreVisible'); step(`${screen} ${scoring}`, {});
-    }
-    ui.osdMode = 'race'; ui.screen = 'flight';
-    call(ui, 'syncScoreVisible'); step('race', {});
-    call(ui, 'setScore', { total: 5 }); call(ui, 'scoreEvents', [{ name: 'Flip' }]); step('view and events', {});
-    const bare = stubUi();
-    bare.scoreHud = null;
-    out.scoreNoHud = call(bare, 'syncScoreVisible');
   });
 
   out.banner = await scenario((ui, step) => {
@@ -389,59 +300,35 @@ async function snapshot() {
     out.announceNoNode = call(ui, 'announce', 'x');
   });
 
-  out.lock = await scenario((ui, step) => {
-    out.lockBeforeBuild = call(ui, 'setTargetLock', { show: true, x: 1, y: 1, size: 10, angle: 0, edge: false, wrong: false, distance: 5, fade: 1 });
-    const node = Ui.prototype.buildTargetLock.call(ui);
-    const n = () => ({ lock: node });
-    step('built', n());
-    const base = { show: true, x: 100.04, y: 200.06, size: 80.4, angle: 12.34, edge: false, wrong: false, distance: 24.6, fade: 1 };
-    call(ui, 'setTargetLock', base); step('in frame', n());
-    call(ui, 'setTargetLock', base); step('same again', n());
-    call(ui, 'setTargetLock', { ...base, x: 100.01, distance: 24.7 }); step('sub rounding move', n());
-    call(ui, 'setTargetLock', { ...base, edge: true, wrong: true, angle: -45.06, fade: 0.5 }); step('edge, wrong, faded', n());
-    call(ui, 'setTargetLock', { ...base, fade: 0.996, size: 30 }); step('back in frame', n());
-    call(ui, 'setTargetLock', { show: false }); step('off', n());
-    call(ui, 'setTargetLock', { show: false }); step('off again', n());
-  });
-
-  const osdNodes = (ui) => Object.fromEntries(['osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdGhost',
-    'osdPackBar', 'osdSpeed', 'osdFlight', 'osdFlaps', 'osdGear', 'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits']
+  const osdNodes = (ui) => Object.fromEntries(['osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast',
+    'osdPackBar', 'osdSpeed', 'osdFlight', 'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits']
     .map((k) => [k, ui[k]]));
   const frame = {
     mode: 'race', lapMs: null, lastLapMs: null, gate: 1, gateCount: 8, gateCue: '', volts: 16.84, packFrac: 0.99994,
     altitude: 2.345, speedKph: 41.6, throttle: 0.5, flightMode: 'acro', bounces: 0, launchState: 0, launchPitch: 0,
-    ghostGapMs: null, ghostFinal: false,
   };
   out.osd = await scenario((ui, step) => {
     const frames = [
       ['race, before the first gate', frame],
       ['same frame again', frame],
       ['tiny pack move', { ...frame, packFrac: 0.99996 }],
-      ['racing', { ...frame, lapMs: 12345, lastLapMs: 40000, gate: 3, gateCue: 'left', ghostGapMs: -420, flightMode: 'angle', bounces: 1 }],
-      ['behind ghost, final', { ...frame, lapMs: 22000, gate: 8, ghostGapMs: 1234, ghostFinal: true, flightMode: 'stab', bounces: 3, throttle: 1.4 }],
-      ['ghost gap zero', { ...frame, lapMs: 1, ghostGapMs: 0, flightMode: 'manual', packFrac: -0.2 }],
+      ['racing', { ...frame, lapMs: 12345, lastLapMs: 40000, gate: 3, gateCue: 'left', flightMode: 'angle', bounces: 1 }],
+      ['last gate, stab', { ...frame, lapMs: 22000, gate: 8, flightMode: 'stab', bounces: 3, throttle: 1.4 }],
+      ['manual, pack under empty', { ...frame, lapMs: 1, flightMode: 'manual', packFrac: -0.2 }],
       ['turtle', { ...frame, flightMode: 'turtle', launchState: 1 }],
       ['launch armed', { ...frame, launchState: 1, launchPitch: 2 }],
       ['launch hot', { ...frame, launchState: 2, launchPitch: 14.6 }],
       ['launch go', { ...frame, launchState: 3 }],
-      ['plane flaps gear', { ...frame, flaps: 1, gear: 'up' }],
-      ['plane flaps full gear down', { ...frame, flaps: 2, gear: 'down' }],
-      ['plane gear moving', { ...frame, flaps: 0, gear: 'moving' }],
-      ['freestyle scoring off', { ...frame, mode: 'freestyle', runScored: false, lapMs: 65000, lastLapMs: 3000, ghostGapMs: 10 }],
-      ['freestyle scoring off, waiting', { ...frame, mode: 'freestyle', runScored: false, lapMs: NaN }],
-      ['freestyle free flight', { ...frame, mode: 'freestyle', runTimed: false }],
-      ['freestyle ready', { ...frame, mode: 'freestyle', runState: 'ready', runRemainMs: 120000 }],
-      ['freestyle flying', { ...frame, mode: 'freestyle', runState: 'flying', runRemainMs: 65400 }],
-      ['freestyle last ten', { ...frame, mode: 'freestyle', runState: 'flying', runRemainMs: 10000 }],
-      ['freestyle over', { ...frame, mode: 'freestyle', runState: 'over', runRemainMs: undefined }],
+      ['freestyle', { ...frame, mode: 'freestyle', lapMs: 65000, lastLapMs: 3000 }],
+      ['freestyle, waiting', { ...frame, mode: 'freestyle', lapMs: NaN }],
       ['bounces back to zero', { ...frame, bounces: 0 }],
     ];
     for (const [name, f] of frames) {
       call(ui, 'setOsd', f);
       step(name, osdNodes(ui));
     }
-    for (const k of ['osdGhost', 'osdFlight', 'osdFlaps', 'osdGear', 'osdLaunch', 'osdHits']) ui[k] = null;
-    call(ui, 'setOsd', { ...frame, lapMs: 5000, ghostGapMs: 100, flaps: 1, gear: 'up', launchState: 2, bounces: 2 });
+    for (const k of ['osdFlight', 'osdLaunch', 'osdHits']) ui[k] = null;
+    call(ui, 'setOsd', { ...frame, lapMs: 5000, launchState: 2, bounces: 2 });
     step('optional readouts absent', osdNodes(ui));
   });
 

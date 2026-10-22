@@ -362,7 +362,7 @@ after #426 and P3 is in the P3 section at the end.
    from `poll` (src/render/sensorview.js:395): 436 ms of every second. A
    synchronous round trip to the GPU process every frame; most of the
    3.0 ms "scene" bucket.
-2. **Render submit, 1.7 ms** (three.js; swiss2/post.js `render`, the
+2. **Render submit, 1.7 ms** (three.js; maps/look/post.js `render`, the
    lake's `render` at src/maps/swiss2/water/lake.js:126).
 3. **GPU outside the composer, 1.4 ms** (floor 0.7): the sensor view's
    `drawScene` (sensorview.js:519) and the lake's mirror.
@@ -452,7 +452,7 @@ render state, the motors apart for their thermal kind, 40 meshes to 16
 for a stock 7 inch or 10 inch, 48 to 29 for the interceptor. 381 at
 Low, 726 at Medium, 739 at High. That took a palette carrying the
 highlight per entry (celmat.js), a photographed twin per palette in
-the look swiss2, itaipu and the interior share (swiss2/craftlook.js),
+the look swiss2, itaipu and the interior share (maps/look/craftlook.js),
 and decals cut per joined part (decals.js), each in its old order: the
 materials' order without a look, the order their twins were made under
 one, the meshes' order for the layers. Pixels: an in page A/B of each

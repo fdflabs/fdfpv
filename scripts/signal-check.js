@@ -55,7 +55,7 @@ import { RcLink } from '../src/input/link.js';
 import { createFpvFail } from '../src/render/fpvfail.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import {
-  must, attitude, wingDebug, skyPrelude, bramorPrelude, RC_STEP_MS,
+  must, attitude, wingDebug, bramorPrelude, STRIKER_PROP_AIRFRAME, RC_STEP_MS,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -156,7 +156,7 @@ const LOW = { x: GORGE.x, y: groundAt(GORGE.x, GORGE.z) + 10, z: GORGE.z };
 const HIGH = { x: GORGE.x, y: groundAt(GORGE.x, GORGE.z) + 400, z: GORGE.z };
 const RELAY_AT = { x: -350, z: -350 };
 const RELAY = {
-  x: RELAY_AT.x, y: groundAt(RELAY_AT.x, RELAY_AT.z) + 300, z: RELAY_AT.z, airframe: 'sky1800',
+  x: RELAY_AT.x, y: groundAt(RELAY_AT.x, RELAY_AT.z) + 300, z: RELAY_AT.z, airframe: 'bramor2300',
 };
 const base = { station: STATION, finestAt, waterAt, waterTop: RESERVOIR_Y };
 
@@ -408,11 +408,12 @@ const sim = await loadSim(new Uint8Array(await readFile(join(root, 'dist/sim.was
 must(sim.init(await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8')), 'init');
 must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0), 'ground');
 {
-  /* The Skyhunter in Manual, climbing out banked hard right under power,
+  /* The Striker in Manual, climbing out banked hard right under power,
    * then the link goes. The rule must level it and cut the motor. */
   must(sim.reset(), 'reset');
   must(sim.e.sim_wing_set_stab(0), 'manual');
-  skyPrelude(sim);
+  must(sim.e.sim_set_airframe(STRIKER_PROP_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   const bank = 35 * Math.PI / 180;
   must(sim.e.sim_set_pose(0, 0, 150, Math.cos(bank / 2), Math.sin(bank / 2), 0, 0), 'pose');
   must(sim.e.sim_wing_launch(16), 'launch');

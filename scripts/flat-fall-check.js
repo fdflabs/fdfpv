@@ -26,10 +26,8 @@
  * sits flat: never a second with the nose more than flatDeg off the path
  * while turning slower than spinDps.
  *
- * Manual, and AS3X as it ships (Heading 0, a rate damper, measured with
- * the damper on). AS3X with full Heading is the hangar's choice; it
- * holds the attitude it was let go at and is judged on the last part
- * alone, never flat.
+ * Each in the modes its tunes ship (KEPT). The seven aircraft first held
+ * to this, and AS3X with them, left the module on 2026-10-20.
  *
  *   node scripts/flat-fall-check.js   (npm run flat-fall:check)
  *
@@ -59,6 +57,8 @@ import { fileURLToPath } from 'node:url';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { must, wingDebug } from '../tests/lib/wingpilot.js';
+import { seatStriker } from './lib/strikerpilot.js';
+import { combatChoice } from '../configs/combat.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -67,16 +67,47 @@ const FLAT_FALL = JSON.parse(await readFile(join(root, 'tests/flatfall-threshold
 const DEG = 180 / Math.PI;
 const G = 9.80665;
 const MS = 4;
-const STAB_OFF = 0, STAB_AS3X = 3;
+const STAB_OFF = 0;
 /* The fall the moments are measured in, m/s; they go as its square. */
 const V_REF = 10;
 /* The rate the damping is measured at, rad/s. */
 const W_REF = 1;
-/* How long a held state is held before its moment is read: AS3X's frame
- * and its servos' slew have answered by then. */
+/* How long a held state is held before its moment is read: the
+ * stabiliser's servos have answered by then. */
 const HOLD_MS = 150;
 
-const PLANES = ['extra3d1308', 'cap1702', 'slick2680', 'cub1400', 'timber1500', 'nighttimber1200', 'p51d1450'];
+const STAB_ON = 1;
+/*
+ * The fixed wings PDCS seats, each in the modes its tunes ship: Manual and
+ * Stabilised (wingStab 1: aircraft/bramor2300/aircraft.js, the wing-stab
+ * tune; aircraft/striker2500/aircraft.js, striker-stab). The Bramor is the
+ * plant as the shell seats its stock build; the Striker is seated as the
+ * shell seats it, on each propulsion with its standard warhead and the
+ * bay's trim lead (scripts/lib/strikerpilot.js seatStriker): the bare
+ * plant flies at the CG the lead moves.
+ */
+const strikerAf = AIRFRAMES.find((a) => a.id === 'striker2500');
+const strikerTune = await readFile(join(root, `configs/${strikerAf.defaultTune}.diff`), 'utf8');
+const KEPT = [
+  {
+    id: 'bramor2300',
+    seat: async () => {
+      const sim = await loadSim(wasmBytes);
+      must(sim.init(configText), 'sim_init');
+      must(sim.e.sim_set_airframe(AIRFRAMES.find((a) => a.id === 'bramor2300').simId), 'sim_set_airframe');
+      must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+      return sim;
+    },
+  },
+  ...['prop', 'jet'].map((propulsion) => ({
+    id: `striker2500 ${propulsion}`,
+    seat: async () => {
+      const sim = await seatStriker(loadSim, wasmBytes, strikerTune, strikerAf, combatChoice(strikerAf, { propulsion }));
+      must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+      return sim;
+    },
+  })),
+];
 
 function qmul(a, b) {
   return [
@@ -160,10 +191,9 @@ function swing(table, damp, iax, mass) {
 /* The drop flown: from rest at the case's attitude, 10 s. When the nose
  * first comes within noseDeg of the flight path, and the longest stretch
  * of the last five seconds sat flat. */
-function drop(sim, c, stab, heading) {
+function drop(sim, c, stab) {
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_wing_set_stab(stab), 'sim_wing_set_stab');
-  must(sim.setHeading([heading, heading, heading]), 'sim_wing_set_heading');
   must(sim.e.sim_set_pose(0, 0, 800, ...c.base), 'sim_set_pose');
   must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
   let into = null, flat = 0, worst = 0;
@@ -189,17 +219,11 @@ const say = (ok, what) => {
   console.log(`  ${ok ? 'pass' : 'FAIL'}  ${what}`);
   if (!ok) bad += 1;
 };
-for (const id of PLANES) {
-  const af = AIRFRAMES.find((a) => a.id === id);
-  const sim = await loadSim(wasmBytes);
-  must(sim.init(configText), 'sim_init');
-  must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');
-  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+async function judge(id, sim, modes) {
   const [mass, ...iner] = inertia(sim);
   for (const c of CASES) {
-    for (const [mode, stab] of [['Manual', STAB_OFF], ['AS3X', STAB_AS3X]]) {
+    for (const [mode, stab] of modes) {
       must(sim.e.sim_wing_set_stab(stab), 'sim_wing_set_stab');
-      must(sim.setHeading([0, 0, 0]), 'sim_wing_set_heading');
       const table = [];
       for (let th = 90; th >= 40; th -= 10) {
         const h = held(sim, c, th, 0);
@@ -210,16 +234,17 @@ for (const id of PLANES) {
       const limit = FLAT_FALL.multiple * t1;
       const m90 = table[0].c * V_REF * V_REF;
       const m95 = held(sim, c, 95, 0).m;
-      const flown = drop(sim, c, stab, 0);
+      const flown = drop(sim, c, stab);
       const tag = `${id} ${c.name}, ${mode}`;
       say(m90 > 0 && m95 > 0, `${tag}: at 90 and 95 deg the air turns the nose into the fall (${m90.toFixed(3)}, ${m95.toFixed(3)} N m at ${V_REF} m/s)`);
       say(flown.into != null && flown.into <= limit,
         `${tag}: nose within ${FLAT_FALL.noseDeg} deg of the path at ${flown.into == null ? 'never' : flown.into.toFixed(2) + ' s'}, within ${limit.toFixed(2)} s (${FLAT_FALL.multiple} x its own swing, ${t1.toFixed(2)} s; damping ${damp.toFixed(4)} N m s/m)`);
       say(flown.flat === 0, `${tag}: never flat over the last 5 s (${flown.flat.toFixed(2)} s more than ${FLAT_FALL.flatDeg} deg off the path turning under ${FLAT_FALL.spinDps} deg/s)`);
     }
-    const held1 = drop(sim, c, STAB_AS3X, 1);
-    say(held1.flat === 0, `${id} ${c.name}, AS3X at full Heading: never flat over the last 5 s (${held1.flat.toFixed(2)} s; nose within ${FLAT_FALL.noseDeg} deg of the path at ${held1.into == null ? 'never' : held1.into.toFixed(2) + ' s'})`);
   }
+}
+for (const k of KEPT) {
+  await judge(k.id, await k.seat(), [['Manual', STAB_OFF], ['Stabilised', STAB_ON]]);
 }
 if (bad) {
   console.log(`${bad} FAILED`);

@@ -15,9 +15,7 @@
  *    quarter of the span (or the next of 0.35, 0.45, 0.55 that clears the
  *    wheels) and with none; the change in the vertical speed is the lift
  *    scripts/lib/groundeffect.js gives, within 3 percent, and the change
- *    in the pitch rate its pitching moment, within 5. A biplane's terms
- *    are its two wings' (biplaneGroundTerms), its moment with the couple
- *    of their uneven upwash at each wing's aerodynamic centre.
+ *    in the pitch rate its pitching moment, within 5.
  *
  * Usage: node scripts/wing-ge-selftest.js [--pin path/to/sim.wasm]
  *
@@ -45,7 +43,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
-import { GE_HB_MAX, biplaneGroundTerms, groundTerms } from './lib/groundeffect.js';
+import { GE_HB_MAX, groundTerms } from './lib/groundeffect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const pinAt = process.argv.indexOf('--pin');
@@ -56,15 +54,10 @@ const wingC = readFileSync(join(root, 'src/native/plant_wing.c'), 'utf8');
 const plantC = readFileSync(join(root, 'src/native/plant.c'), 'utf8');
 
 /* Every fixed wing: [name, airframe id, the suffix of its FW_ table and
- * its SIM_AIRFRAME_ entry]. */
+ * its SIM_AIRFRAME_ entry]. The twenty that left the module on 2026-10-20
+ * took their rows and pins with them. */
 const PLANES = [
-  ['wing', 2, 'WING1000'], ['sky', 3, 'SKY1800'], ['cub', 4, 'CUB1400'], ['slowstick', 5, 'SLOWSTICK1180'],
-  ['radian', 6, 'RADIAN2000'], ['timber', 7, 'TIMBER1500'], ['bramor', 8, 'BRAMOR2300'], ['timberf', 9, 'TIMBER1500F'],
-  ['cubf', 10, 'CUB1400F'], ['bombshell', 11, 'BOMBSHELL1118'], ['kadet', 12, 'KADET1981'], ['p51', 15, 'P51D1450'],
-  ['f16', 16, 'F16878'], ['zagi', 17, 'ZAGI1219'], ['uglystik', 19, 'UGLYSTIK1567'], ['nrj', 21, 'NRJ1490'],
-  ['tigermoth', 23, 'TIGERMOTH1803'], ['strikerprop', 27, 'STRIKER_PROP'], ['strikerjet', 28, 'STRIKER_JET'],
-  ['extra', 29, 'EXTRA3D1308'], ['nighttimber', 30, 'NIGHTTIMBER1200'], ['hercules', 31, 'HERCULES3077'],
-  ['cap580', 32, 'CAP1702'], ['slick', 33, 'SLICK2680'],
+  ['wing', 2, 'WING1000'], ['bramor', 8, 'BRAMOR2300'], ['strikerprop', 27, 'STRIKER_PROP'], ['strikerjet', 28, 'STRIKER_JET'],
 ].map(([name, id, suffix]) => ({ name, id, table: `FW_${suffix}`, frame: `SIM_AIRFRAME_${suffix}` }));
 /* The traces of part 1 on the build before the term. A table's start
  * height is its wing's (ge_wing), so a table that takes the term later is
@@ -123,29 +116,9 @@ const PLANES = [
  * f77ccae2a596aa22). */
 const PINS = {
   wing: 'ad4d4675b539f7ac',
-  sky: '6ec975f7afcb036b',
-  cub: '7f26c298362cc8e0',
-  slowstick: '731483e6eb017e98',
-  radian: '80300ab2345b8d8f',
-  timber: '4b2f4b3fb5f79720',
   bramor: '997e5371cc805783',
-  timberf: '8d8de74bcbab6724',
-  cubf: '7d63c9e2c78386ee',
-  bombshell: '65e981219dac8893',
-  kadet: '0a09240a3d188fec',
-  p51: '960d687d68dd1fc2',
-  f16: 'd5f224c3b1ec6518',
-  zagi: 'abccd77d1b7b9034',
-  uglystik: '0e6442ae5529b6b8',
-  nrj: '31151485dea980a5',
-  tigermoth: 'ab1925996216026f',
   strikerprop: 'cc5c73165bbbee13',
   strikerjet: '3a313d5090f2f3fb',
-  extra: 'e2126e2b566fa933',
-  nighttimber: 'c6d1310b299055bc',
-  hercules: 'eb28e3fc65379972',
-  cap580: '344350ea67641586',
-  slick: '1172512292cfbb69',
 };
 
 /* A table's field: a number or a sum of products of numbers and WING_PI. */
@@ -160,11 +133,6 @@ const vec = (body, name) => {
   const m = new RegExp(`\\.${name} = \\{([^}]*)\\}`).exec(body);
   return m ? m[1].split(',').map(Number) : [0, 0, 0];
 };
-/* A table's pair, each a number or a product with WING_PI, as field. */
-const pair = (body, name) => {
-  const m = new RegExp(`\\.${name} = \\{([^}]*)\\}`).exec(body);
-  return m ? m[1].split(',').map((x) => field(`\n  .v = ${x.trim()},`, 'v')) : [0, 0];
-};
 function tableOf(plane) {
   const body = new RegExp(`const FixedWingParams ${plane.table} = \\{([\\s\\S]*?)\\n\\};`).exec(wingC)[1];
   const pbody = new RegExp(`\\[${plane.frame}\\] = \\{([\\s\\S]*?)\\n\\},`).exec(plantC)[1];
@@ -174,8 +142,7 @@ function tableOf(plane) {
     cla: field(body, 'cl_alpha'), cma: field(body, 'cm_alpha'), slipCma: field(body, 'slip_cm_a'), hi: /\.hi_alpha = 1/.test(body), aw: field(body, 'ge_cla_wing') || field(body, 'cl_alpha_wing') || field(body, 'cl_alpha'),
     claStall: field(body, 'cl_alpha_wing') || field(body, 'cl_alpha'),
     dd: field(body, 'tail_deda'), clmax: field(body, 'cl_max'), azl: field(body, 'alpha_zl'),
-    wing: vec(body, 'ge_wing'), tail: vec(body, 'ge_tail'), wing2: vec(body, 'ge_wing2'),
-    bipW: pair(body, 'bip_w'), bipR: pair(body, 'bip_r'), bipDstall: pair(body, 'bip_dstall'), bipX: pair(body, 'bip_x'), armAc: field(body, 'stall_arm_ac'),
+    wing: vec(body, 'ge_wing'), tail: vec(body, 'ge_tail'),
     m: Number(/\.mass_kg = ([\d.]+)/.exec(pbody)[1]), iyy: Number(/\.inertia = \{ [\d.]+, ([\d.]+)/.exec(pbody)[1]), rho: Number(/\.rho = ([\d.]+)/.exec(pbody)[1]),
   };
   /* Level at a CL of 0.5. */
@@ -248,15 +215,6 @@ for (const plane of PLANES) {
       must(sim.input(0.001, 0, 0, 0, 0), 'input');
       must(sim.step(1), 'step');
       out.contacts += sim.e.sim_ground_contacts();
-      const p = sim.e.malloc(4 * 8);
-      must(sim.e.sim_wheel_loads(p), 'wheel loads');
-      out.contacts += Array.from(new Float64Array(sim.e.memory.buffer, p, 4)).filter((f) => f !== 0).length;
-      sim.e.free(p);
-      const fl = sim.e.malloc(10 * 8);
-      must(sim.e.sim_float_state(fl), 'floats');
-      const fs = new Float64Array(sim.e.memory.buffer, fl, 10);
-      out.contacts += fs[0] !== 0 || fs[1] !== 0 || fs[6] !== 0 ? 1 : 0;
-      sim.e.free(fl);
       const s1 = sim.readState().state;
       out.dvz.push(s1[6] - s0[6]);
       out.dq.push(s1[12] - s0[12]);
@@ -272,13 +230,7 @@ for (const plane of PLANES) {
   const { dvz, dq, alphaBody, contacts } = run;
   /* The wing's own lift at the plant's stall angle holds its term. */
   const geo = { b: t.b, S: t.S, aw: t.aw, dd: t.dd, clmax: t.clmax * (t.aw / t.claStall), wing: [t.wing[0], t.wing[2]], tail: t.tail[0] < 0 ? [t.tail[0], t.tail[2]] : null };
-  const biplane = t.bipW[0] > 0;
-  /* The bottom wing's height at the attitude the top wing's is set at. */
-  const h2 = hb * t.b + (-Math.sin(2 * th) * (t.wing2[0] - t.wing[0]) + Math.cos(2 * th) * (t.wing2[2] - t.wing[2]));
-  const g = biplane
-    ? biplaneGroundTerms({ ...geo, cla: t.claStall, clmax: t.clmax, bipW: t.bipW, bipR: t.bipR, bipDstall: t.bipDstall, wing2: [t.wing2[0], t.wing2[2]] }, [hb * t.b, h2], alphaBody, alphaBody - t.azl)
-    : groundTerms(geo, hb * t.b, alphaBody, alphaBody - t.azl);
-  const couple = biplane ? t.cla * [0, 1].reduce((a, i) => a + t.bipW[i] / t.bipR[i] * (t.armAc + t.bipX[i]) * g.bipDa[i], 0) : 0;
+  const g = groundTerms(geo, hb * t.b, alphaBody, alphaBody - t.azl);
   const tailCl = (t.cla - t.aw) / (1 - t.dd);
   const dCl = t.cla * g.dAlpha + tailCl * g.dTail;
   const predicted = 0.5 * t.rho * t.v * t.v * t.S * dCl / t.m * 0.001;
@@ -286,14 +238,14 @@ for (const plane of PLANES) {
   /* The tail's moment per rad of its own angle: its lift share at its arm,
    * or a hi_alpha table's slip_cm_a over (1 - d eps / d alpha). */
   const tailCm = t.hi ? t.slipCma / (1 - t.dd) : tailCl * t.tail[0] / t.c;
-  const dCm = t.cma * g.dAlpha + tailCm * g.dTail + couple;
+  const dCm = t.cma * g.dAlpha + tailCm * g.dTail;
   const qPred = -0.5 * t.rho * t.v * t.v * t.S * t.c * dCm / t.iyy * 0.001;
   const qFlown = dq[0] - dq[1];
   const fx = (v) => [].concat(v).map((x) => x.toFixed(3)).join(' ');
   check(`at ${hb} of the span the lift rises as groundeffect.js has it`, contacts === 0 && Math.abs(flown / predicted - 1) < 0.03,
     `contacts ${contacts}, alpha ${(alphaBody * 180 / Math.PI).toFixed(2)} deg, sigma ${fx(g.sigma)}, R ${fx(g.R)}, dCL ${dCl.toFixed(4)} (wing ${(t.cla * g.dAlpha).toFixed(4)}, tail ${(tailCl * g.dTail).toFixed(4)}), dvz ${flown.toExponential(3)} against ${predicted.toExponential(3)}`);
   check('and its pitching moment as groundeffect.js has it', Math.abs(qFlown / qPred - 1) < 0.05,
-    `dCm ${dCm.toFixed(4)} (wing ${(t.cma * g.dAlpha).toFixed(4)}, tail ${(tailCm * g.dTail).toFixed(4)}${biplane ? `, the wings' couple ${couple.toFixed(4)}` : ''}), dq ${qFlown.toExponential(3)} against ${qPred.toExponential(3)}`);
+    `dCm ${dCm.toFixed(4)} (wing ${(t.cma * g.dAlpha).toFixed(4)}, tail ${(tailCm * g.dTail).toFixed(4)}), dq ${qFlown.toExponential(3)} against ${qPred.toExponential(3)}`);
 }
 if (pinAt > 0) {
   console.log(JSON.stringify(pins, null, 2));

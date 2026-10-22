@@ -70,7 +70,6 @@ const VIEWS = {
   quad: { yaw: Math.PI - 0.7, elev: 0.5, zoom: 0.8, along: -0.2, up: 0.1 },
   canopy: { yaw: Math.PI - 0.7, elev: 0.3, zoom: 0.58, along: -0.35, up: 0.2 },
   fuse_trim: { yaw: Math.PI - 0.6, elev: 0.2, zoom: 0.62, along: -0.6, up: 0 },
-  floats: { yaw: Math.PI / 2 + 0.35, elev: 0.06, zoom: 0.82, along: 0, up: -0.45 },
   airframe: OVERVIEW,
   /* The paint shop's views for placing decals (src/ui/hangar-paint.js):
    * straight down from behind, so a number on the wing reads upright, and

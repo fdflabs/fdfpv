@@ -391,8 +391,6 @@
    "resize",
    "setChute",
    "setCraftLook",
-   "setFlaps",
-   "setGear",
    "setProp",
    "setSurfaces",
    "swapCraft"
@@ -443,14 +441,6 @@
      ],
      [
       "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
       null
      ],
      [
@@ -562,14 +552,6 @@
       null
      ],
      [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
       "launcher",
       null
      ],
@@ -601,94 +583,12 @@
       true
      ],
      [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
       "launcher",
       true
      ],
      [
       "launcherRest",
       true
-     ]
-    ]
-   },
-   {
-    "quad": true,
-    "discs": true,
-    "blades": true,
-    "cameraMount": true,
-    "propSpin": true,
-    "optional": [
-     [
-      "setSurfaces",
-      true
-     ],
-     [
-      "setProp",
-      null
-     ],
-     [
-      "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      true
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
-      "launcher",
-      null
-     ],
-     [
-      "launcherRest",
-      null
-     ]
-    ]
-   },
-   {
-    "quad": true,
-    "discs": true,
-    "blades": true,
-    "cameraMount": true,
-    "propSpin": true,
-    "optional": [
-     [
-      "setSurfaces",
-      true
-     ],
-     [
-      "setProp",
-      null
-     ],
-     [
-      "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      true
-     ],
-     [
-      "setGear",
-      true
-     ],
-     [
-      "launcher",
-      null
-     ],
-     [
-      "launcherRest",
-      null
      ]
     ]
    },
@@ -709,14 +609,6 @@
      ],
      [
       "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
       null
      ],
      [
@@ -783,8 +675,6 @@
    "resize",
    "setChute",
    "setCraftLook",
-   "setFlaps",
-   "setGear",
    "setProp",
    "setSurfaces",
    "swapCraft"
@@ -835,14 +725,6 @@
      ],
      [
       "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
       null
      ],
      [
@@ -954,14 +836,6 @@
       null
      ],
      [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
       "launcher",
       null
      ],
@@ -993,94 +867,12 @@
       true
      ],
      [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
       "launcher",
       true
      ],
      [
       "launcherRest",
       true
-     ]
-    ]
-   },
-   {
-    "quad": true,
-    "discs": true,
-    "blades": true,
-    "cameraMount": true,
-    "propSpin": true,
-    "optional": [
-     [
-      "setSurfaces",
-      true
-     ],
-     [
-      "setProp",
-      null
-     ],
-     [
-      "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      true
-     ],
-     [
-      "setGear",
-      null
-     ],
-     [
-      "launcher",
-      null
-     ],
-     [
-      "launcherRest",
-      null
-     ]
-    ]
-   },
-   {
-    "quad": true,
-    "discs": true,
-    "blades": true,
-    "cameraMount": true,
-    "propSpin": true,
-    "optional": [
-     [
-      "setSurfaces",
-      true
-     ],
-     [
-      "setProp",
-      null
-     ],
-     [
-      "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      true
-     ],
-     [
-      "setGear",
-      true
-     ],
-     [
-      "launcher",
-      null
-     ],
-     [
-      "launcherRest",
-      null
      ]
     ]
    },
@@ -1101,14 +893,6 @@
      ],
      [
       "setChute",
-      null
-     ],
-     [
-      "setFlaps",
-      null
-     ],
-     [
-      "setGear",
       null
      ],
      [

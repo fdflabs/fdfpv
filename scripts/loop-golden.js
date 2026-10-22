@@ -17,7 +17,7 @@
  * the run mode and screen, the craft's flags, the step trace (count, the
  * last state hash and the last stick frame stamped into the plant), the
  * camera, the intro shot's clock, and what the loop handed ui.setOsd,
- * ui.setBanner, ui.setStickOverlay, ui.setScore and audio.update. Each
+ * ui.setBanner, ui.setStickOverlay and audio.update. Each
  * field's stream over the scenario is digested; the record keeps the
  * digest and every 20th frame's value for the diagnostic.
  *
@@ -174,8 +174,11 @@ const PROGRAMS = {
  * Fly action waits on a sign in and the title's world.
  */
 const PAGES = [
+  /* On the Interior, a world PDCS keeps. These replaced the same seats on
+   * the Swiss valley and the Alps, recorded on the code those were before
+   * they left with their maps (the combat-only cut, 2026-10-20). */
   {
-    id: 'swiss2', map: 'swiss2', settings: {},
+    id: 'interior', map: 'interior', settings: {},
     scenarios: [
       { id: 'fly', start: { dy: 0.3 }, program: 'fly', frames: 700 },
       { id: 'restart', start: 'reset', program: 'fly', frames: 240 },
@@ -185,27 +188,18 @@ const PAGES = [
     ],
   },
   {
-    id: 'latency-standard', map: 'swiss2', settings: { latencyMode: 'standard' },
+    id: 'interior-latency-standard', map: 'interior', settings: { latencyMode: 'standard' },
     scenarios: [{ id: 'fly', start: { dy: 0.3 }, program: 'fly', frames: 500 }],
   },
   {
-    id: 'link-elrs150', map: 'swiss2', settings: { link: 'elrs150' },
+    id: 'interior-link-elrs150', map: 'interior', settings: { link: 'elrs150' },
     scenarios: [{ id: 'fly', start: { dy: 0.3 }, program: 'fly', frames: 500 }],
   },
   {
-    id: 'alps-scored', map: 'alps', settings: { freestyleScoring: 'scored' },
+    id: 'interior-scored', map: 'interior', settings: {},
     scenarios: [{ id: 'tricks', start: { dy: 0.3 }, program: 'tricks', frames: 600 }],
   },
-  {
-    id: 'track', map: 'track', settings: {},
-    scenarios: [{ id: 'fly', start: { dy: 0.3 }, program: 'fly', frames: 500 }],
-  },
 ];
-
-const TRACK_DOC = JSON.parse(readFileSync(join(root, 'tests', 'fixtures', 'map-track-v4.json'), 'utf8'));
-const TRACK_SEAT = `localStorage.setItem('webfpv.share.import.v1', ${JSON.stringify(JSON.stringify({
-  id: TRACK_DOC.id, name: TRACK_DOC.name, author: '', board: '', document: TRACK_DOC, local: true,
-}))});`;
 
 function seed(page) {
   const settings = {
@@ -224,7 +218,6 @@ function seed(page) {
     Object.assign(s, ${JSON.stringify(settings)});
     localStorage.setItem(k, JSON.stringify(s));
     localStorage.setItem('webfpv.airhint.v2', '1');
-    ${page.map === 'track' ? TRACK_SEAT : ''}
   } catch (e) { /* Storage refused; the run boots on defaults and the record says so. */ }`];
 }
 
@@ -239,7 +232,6 @@ const SPIES = `(() => {
   wrap(window.__ui, 'setBanner');
   wrap(window.__ui, 'setOsd');
   wrap(window.__ui, 'setStickOverlay');
-  wrap(window.__ui, 'setScore');
   wrap(window.__audio, 'update');
   return true;
 })()`;
@@ -286,10 +278,9 @@ const RUN = (sc) => `(() => {
       lastStamp: t.inputs.length ? t.inputs[t.inputs.length - 1] : null,
       cam: [cam.x, cam.y, cam.z, cam.quat[0], cam.quat[1], cam.quat[2], cam.quat[3], cam.fov].map(sig),
       intro: window.__intro().ms,
-      osd: osd ? [osd.lapMs, osd.altitude, osd.speedKph, osd.throttle, osd.flightMode, osd.launchState, osd.gate, osd.bounces, osd.volts, osd.runState].map(sig) : null,
+      osd: osd ? [osd.lapMs, osd.altitude, osd.speedKph, osd.throttle, osd.flightMode, osd.launchState, osd.gate, osd.bounces, osd.volts].map(sig) : null,
       stick: st ? [st.show, st.roll, st.pitch, st.yaw, st.throttle] : null,
       audio: au ? [au[0] ? Array.from(au[0]).map(sig) : null, sig(au[1])] : null,
-      score: spy.setScore ? spy.setScore[0].total : null,
     };
   };
   return JSON.stringify(window.__vt.advance(${sc.frames}, ${JSON.stringify(DTS)}, (i) => {

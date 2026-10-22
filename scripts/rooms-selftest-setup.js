@@ -3,13 +3,15 @@
  * between rounds (edge/rooms/core.js setup, COMPLETENESS 77), driven on a
  * RoomCore in Node. Part of npm run rooms:selftest.
  *
- * Catch the Ace to a race and the race to the war, each pilot told the new
- * game's lobby; into the war, the second pilot's consent given (both
+ * Free flight to the war, each pilot told the new game's lobby; into the
+ * war, the second pilot's consent given (both
  * fight) and declined (the host fights alone, the decliner sits it out in
  * the lobby, not waited for, its ready passed over, and still out after a
  * reload). The refusals: not the host, a public room, a round on, free
- * flight flying, the war off its world. The war left for another game
- * takes its match and mission with it.
+ * flight flying, the war off its world, a game this build no longer has.
+ * The war left for free flight takes its match and mission with it. Catch
+ * the Ace and Streamer Combat, the games this moved between until the
+ * combat-only cut (2026-10-20), are no activity now.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -29,12 +31,11 @@
 
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { LOBBY_COUNTDOWN_MS } from '../edge/rooms/gamelobby.js';
-import { GOALS } from '../src/share/roomtag.js';
 import { PROTO, PUBLIC_CAP, ROOM_LEVEL, WAR_JOIN } from '../src/share/roomwire.js';
 
 /* A room at room ms 0 with `n` pilots, made for `mode` on `map`. */
 function setupRoom({
-  n = 2, mode = 'tag', map = 'itaipu', open = false,
+  n = 2, mode = null, map = 'itaipu', open = false,
 } = {}) {
   const r = new RoomCore({
     code: 'SETUP1', cap: open ? PUBLIC_CAP : PRIVATE_CAP, friendly: false, map, epoch: 0, public: open, mode, mission: null,
@@ -54,7 +55,7 @@ function setupRoom({
   };
   const hello = (i, token = null) => JSON.stringify({
     type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: WAR_JOIN, name: [i, i, 30 + i],
-    profile: { airframe: 'cub1400', map, figure: 1, livery: null, parts: null }, ...(token ? { token } : {}),
+    profile: { airframe: 'bramor2300', map, figure: 1, livery: null, parts: null }, ...(token ? { token } : {}),
   });
   e.join = (i, token = null) => {
     const so = { name: `setup${i}`, address: `10.6.6.${i + 1}`, got: [] };
@@ -91,25 +92,27 @@ export function setupSection(check) {
   {
     const e = setupRoom();
     check('the welcome says the room takes a change of activity', e.socks[0].welcome.setupInPlace === true);
-    e.say(1, { type: 'setup', mode: 'race' });
-    check('only its host changes it', e.refused(1).includes('host') && e.r.meta.mode === 'tag');
+    e.say(1, { type: 'setup', mode: 'war' });
+    check('only its host changes it', e.refused(1).includes('host') && e.r.meta.mode === null);
     e.say(0, { type: 'setup', mode: 'nowhere' });
-    check('an activity there is not is passed over', e.r.meta.mode === 'tag' && !e.told(0, 'setup').length);
-    e.say(0, { type: 'setup', mode: 'race' });
+    check('an activity there is not is passed over', e.r.meta.mode === null && !e.told(0, 'setup').length);
+    e.say(0, { type: 'setup', mode: 'tag' });
+    check('and so is a game this build no longer has (Catch the Ace, an older page\'s)', e.r.meta.mode === null && !e.told(0, 'setup').length);
+    e.say(0, { type: 'setup', mode: 'war' });
     const told = e.told(1, 'setup').at(-1);
-    check('tag to race: everybody told the race and its lobby, no track yet, nobody ready',
-      Boolean(told) && told.mode === 'race' && told.mission === null && told.lobby.track === null && JSON.stringify(told.lobby.ready) === '{}'
-      && e.r.meta.mode === 'race' && e.stored.mode === 'race', JSON.stringify(told));
+    check('free flight to the war: everybody told the war, its mission and its lobby, nobody ready',
+      Boolean(told) && told.mode === 'war' && told.mission === 'itaipu-1' && told.lobby.mission === 'itaipu-1' && JSON.stringify(told.lobby.ready) === '{}'
+      && e.r.meta.mode === 'war' && e.stored.mode === 'war', JSON.stringify(told));
     const late = e.join(2);
-    check('a pilot who joins after is welcomed into the race', late.welcome.mode === 'race' && late.welcome.lobby.track === null, JSON.stringify(late.welcome.lobby));
+    check('a pilot who joins after is welcomed into the war', late.welcome.mode === 'war' && late.welcome.lobby.mission === 'itaipu-1', JSON.stringify(late.welcome.lobby));
   }
   {
-    const e = setupRoom({ mode: 'race' });
+    const e = setupRoom();
     e.at(100);
     e.say(0, { type: 'setup', mode: 'war' });
     const told = e.told(1, 'setup').at(-1);
     const bToken = e.socks[1].welcome.token;
-    check('race to the war: everybody told the war, its mission and its lobby, the second pilot sitting out until they consent',
+    check('into the war: everybody told the war, its mission and its lobby, the second pilot sitting out until they consent',
       Boolean(told) && told.mode === 'war' && told.mission === 'itaipu-1' && told.lobby.mission === 'itaipu-1' && JSON.stringify(told.lobby.out) === '{"2":true}'
       && JSON.stringify(e.r.meta.unconsented) === JSON.stringify([bToken]), JSON.stringify(told));
     check('kept with the room, so a restart keeps it', JSON.stringify(e.stored.unconsented) === JSON.stringify([bToken]));
@@ -119,17 +122,17 @@ export function setupSection(check) {
     e.say(1, { type: 'lobby', op: 'ready', ready: true });
     e.at(100 + LOBBY_COUNTDOWN_MS + 200);
     check('both ready: the war starts with both of them', e.r.war.on() && JSON.stringify(e.players()) === '[1,2]', JSON.stringify(e.players()));
-    e.say(0, { type: 'setup', mode: 'tag' });
+    e.say(0, { type: 'setup', mode: null });
     check('while it runs, the host cannot change the activity: refused, the war', e.refused(0).includes('war') && e.r.meta.mode === 'war');
     e.say(0, { type: 'war', op: 'end' });
     e.at(e.clock + 200);
-    e.say(0, { type: 'setup', mode: 'tag' });
-    check('ended, the war to Catch the Ace: its match and mission go with it', e.r.meta.mode === 'tag' && e.r.war.match === null && e.r.meta.mission === null
+    e.say(0, { type: 'setup', mode: null });
+    check('ended, the war to free flight: its match and mission go with it', e.r.meta.mode === null && e.r.war.match === null && e.r.meta.mission === null
       && e.told(1, 'setup').at(-1).mission === null, JSON.stringify({ mode: e.r.meta.mode, mission: e.r.meta.mission }));
     check('and every page is told the war is back to no match', e.told(1, 'war').at(-1)?.war?.state === 'lobby', JSON.stringify(e.told(1, 'war').at(-1)));
   }
   {
-    const e = setupRoom({ mode: 'race' });
+    const e = setupRoom();
     e.at(100);
     e.say(0, { type: 'setup', mode: 'war' });
     e.say(1, { type: 'lobby', op: 'ready', ready: true });
@@ -146,23 +149,16 @@ export function setupSection(check) {
     check('consenting while it runs, it joins the war', JSON.stringify(e.players()) === '[1,2]', JSON.stringify(e.players()));
   }
   {
-    const e = setupRoom();
-    e.say(0, { type: 'tag', op: 'start', goal: GOALS[0].goal });
-    e.say(0, { type: 'setup', mode: 'combat' });
-    check('a Catch the Ace match on: refused, tag', e.refused(0).includes('tag') && e.r.meta.mode === 'tag', JSON.stringify(e.refused(0)));
     const pub = setupRoom({ open: true });
-    pub.say(0, { type: 'setup', mode: 'combat' });
-    check('a public room keeps the activity it is listed for: refused', pub.refused(0).includes('setup_public') && pub.r.meta.mode === 'tag');
-    const swiss = setupRoom({ map: 'swiss2' });
+    pub.say(0, { type: 'setup', mode: 'war' });
+    check('a public room keeps the activity it is listed for: refused', pub.refused(0).includes('setup_public') && pub.r.meta.mode === null);
+    const swiss = setupRoom({ map: 'interior' });
     swiss.say(0, { type: 'setup', mode: 'war' });
-    check('the war off a war mission\'s world: refused', swiss.refused(0).includes('war_map') && swiss.r.meta.mode === 'tag');
-    swiss.say(0, { type: 'setup', mode: null });
-    check('Catch the Ace to free flight', swiss.r.meta.mode === null && swiss.told(1, 'setup').at(-1).mode === null && swiss.lobby(1).live === false,
-      JSON.stringify(swiss.lobby(1)));
+    check('the war off a war mission\'s world: refused', swiss.refused(0).includes('war_map') && swiss.r.meta.mode === null);
     swiss.say(0, { type: 'lobby', op: 'ready', ready: true });
     swiss.say(1, { type: 'lobby', op: 'ready', ready: true });
     swiss.at(LOBBY_COUNTDOWN_MS + 200);
-    swiss.say(0, { type: 'setup', mode: 'tag' });
+    swiss.say(0, { type: 'setup', mode: 'war' });
     check('free flight flying, which runs until the room empties: refused', swiss.refused(0).includes('setup_flying') && swiss.r.meta.mode === null,
       JSON.stringify(swiss.refused(0)));
   }

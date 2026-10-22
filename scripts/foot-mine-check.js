@@ -50,7 +50,8 @@ import { startAccounts, seedSignedIn } from '../tests/lib/account.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { BUILDS_KEY, buildsBlob } from '../src/ui/builds.js';
 import { ROOM_BUDGET, TIER_LEVELS } from '../src/game/hangarroom.js';
-import { CHALLENGES, LEVEL_XP, everyFirst } from '../src/game/progress.js';
+import { LEVEL_XP, everyFirst } from '../src/game/progress.js';
+import { ACT1, INTERIOR, released } from '../src/game/campaign.js';
 import { itemById } from '../src/game/economy.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -85,33 +86,49 @@ const build = (id, name, airframe, scheme, at) => ({
 
 /*
  * THE PILOTS. Wren: below the workshop's level (a garage corner, no
- * bays) once the shell has paid her mission's firsts, one build, a
- * mission flown to three stars (the ribbon decal, earned). Kite: level 8 with Unlock all (the airfield hangar,
- * three bays, the newest plane of all on one), two builds,
- * every challenge done (the gold finish, earned, and the 350 tokens that
- * buy the satin, 300).
+ * bays) once the shell has paid her mission's firsts, one build kept and
+ * one on a plane that left, a mission flown to three stars (the ribbon
+ * decal, earned). Kite: level 8 with Unlock all (the airfield hangar,
+ * three bays, two of them his builds, as no plane is left to unlock), two
+ * kept builds,
+ * every released mission won with a star each (the gold finish, earned,
+ * and the tokens their firsts pay buy the satin).
  */
 const WREN = {
   callsign: 'Wren',
-  seated: 'timber1500',
+  seated: 'striker2500',
   graphics: 'low',
   progress: progress(0, 3),
   campaign: { v: 1, missions: { 'itaipu-1': { stars: 3, won: true, credits: 400 } }, earned: 400, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {} },
-  builds: [build('wrencub', 'Wren Cub', 'cub1400', 'l4', 1760000000000)],
+  /* The Cub build is one a pilot made before the recreational planes went
+   * to Openflight: dropped on load, never turned into a Striker
+   * (src/share/progressmerge.js currentBuild). */
+  builds: [
+    build('wrenbramor', 'Wren Bramor', 'bramor2300', 'hivis', 1760000000000),
+    build('wrencub', 'Wren Cub', 'cub1400', 'l4', 1760000500000),
+  ],
   buy: [],
 };
 const KITE = {
   callsign: 'Kite',
   seated: 'striker2500',
   graphics: 'medium',
-  progress: progress(LEVEL_XP[7], 6, Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), true),
-  campaign: null,
+  progress: progress(LEVEL_XP[7], 6, {}, true),
+  campaign: {
+    v: 1, missions: Object.fromEntries([...ACT1, ...INTERIOR].filter((m) => released(m.id)).map((m) => [m.id, { stars: 1, won: true, credits: 0 }])),
+    earned: 0, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {},
+  },
   builds: [
-    build('kitetimber', 'Kite Timber', 'timber1500', 'timber_x', 1760000000000),
+    build('kitestriker', 'Kite Striker', 'striker2500', 'olive', 1760000000000),
     build('kitebramor', 'Kite Bramor', 'bramor2300', 'hivis', 1760000500000),
   ],
   buy: ['finish:satin'],
 };
+
+/* The trophy wall's slots (src/render/hangarroomview.js TROPHY_ROWS 3 by
+ * TROPHY_COLS 6): it stands as many firsts as it has slots. Kite's
+ * campaign wins pay more firsts than that. */
+const WALL_SLOTS = 18;
 
 const accounts = await startAccounts();
 
@@ -230,22 +247,25 @@ try {
     check('Wren: no bays in a garage corner, nothing parked', s.view.bays === 0 && s.mine.bays.length === 0, JSON.stringify(s.mine.bays));
     check('Wren: the chart hangs her wallet, the ribbon only', same(s.mine.chart, { finishes: [], decals: ['ribbon'] }) && s.view.chart === 1, `${JSON.stringify(s.mine.chart)}, ${s.view.chart} chip(s)`);
     check('Wren: the trophy wall holds her own firsts and medals', s.view.trophies === me.firsts + me.medals && s.view.trophies >= 3, `${s.view.trophies} cups, ${me.firsts} firsts, ${me.medals} medals`);
-    check('Wren: her build is in her own list', same(me.builds, ['wrencub']), JSON.stringify(me.builds));
+    check('Wren: her build is in her own list, the one on the Cub that went to Openflight is not', same(me.builds, ['wrenbramor']), JSON.stringify(me.builds));
     await roomShot(page, 'wren-garage');
 
-    /* A lap through the progress path a pilot's lap takes: up a level. */
+    /* XP through the progress path a pilot's run takes: up a level. The
+     * events are a lap's, logged and folded as Progress.lap did until the
+     * race left (the combat-only cut, 2026-10-20); the fold still pays
+     * the laps already in pilots' logs. */
     await page.tap('Escape');
     await need(page, "window.__ui.screen !== 'walk'", 'Wren: out of the room');
     /* As many first laps as it takes, each a course flown once. */
     for (let k = 0; k < 8 && (await page.evaluate('window.__ui.progress.state.xp')) < LEVEL_XP[TIER_LEVELS.workshop - 1]; k += 1) {
-      await page.evaluate(`window.__ui.progress.lap({ key: 'foot-mine-lap-${k}', kind: 'map' }); true`);
+      await page.evaluate(`(() => { const p = window.__ui.progress; p.event('lap', { ms: 40000, airframe: p.airframe, medal: null, kind: 'map', course: 'foot-mine-lap-${k}', n: 1, of: 1 }); p.foldFlight(); return true; })()`);
     }
     const after = await page.evaluate(own);
     check('Wren: the lap took her to the workshop\'s level', after.xp >= LEVEL_XP[TIER_LEVELS.workshop - 1], `${me.xp} -> ${after.xp} XP`);
     const grown = await walkIn(page, 'Wren, a level up');
     rooms.wrenUp = grown;
     check('Wren, a level up: the room grew to the workshop', grown.tier === 'workshop', grown.tier);
-    check('Wren, a level up: her build on the workshop\'s bay', same(grown.mine.bays, [{ airframe: 'cub1400', build: 'wrencub' }]) && same(grown.view.bayAirframes, ['cub1400']),
+    check('Wren, a level up: her build on the workshop\'s bay', same(grown.mine.bays, [{ airframe: 'bramor2300', build: 'wrenbramor' }]) && same(grown.view.bayAirframes, ['bramor2300']),
       `${JSON.stringify(grown.mine.bays)}, drawn ${JSON.stringify(grown.view.bayAirframes)}`);
     await roomShot(page, 'wren-workshop');
     check('Wren: no page errors', faults(page).length === 0, faults(page).slice(0, 3).join(' | ') || 'none');
@@ -262,14 +282,12 @@ try {
     check('Kite: the airfield hangar, his level\'s room', s.tier === 'airfield', `${s.tier} at ${me.xp} XP`);
     const want = [
       { airframe: 'bramor2300', build: 'kitebramor' },
-      { airframe: 'timber1500', build: 'kitetimber' },
-      /* The highest unlock level (src/game/hangarmine.js): the Slick's 12. */
-      { airframe: 'slick2680', build: null },
+      { airframe: 'striker2500', build: 'kitestriker' },
     ];
-    check('Kite: his builds on the bays, the last saved first, then the newest plane Unlock all opened',
+    check('Kite: his builds on the bays, the last saved first',
       same(s.mine.bays, want) && same(s.view.bayAirframes, want.map((b) => b.airframe)), `${JSON.stringify(s.mine.bays)}, drawn ${JSON.stringify(s.view.bayAirframes)}`);
     check('Kite: the chart hangs his wallet, the satin and the gold', same(s.mine.chart, { finishes: ['satin', 'gold'], decals: [] }) && s.view.chart === 2, `${JSON.stringify(s.mine.chart)}, ${s.view.chart} chip(s)`);
-    check('Kite: the trophy wall holds his own firsts and medals', s.view.trophies === me.firsts + me.medals && s.view.trophies >= 6, `${s.view.trophies} cups, ${me.firsts} firsts, ${me.medals} medals`);
+    check(`Kite: the trophy wall full, ${WALL_SLOTS} of his own firsts and medals`, me.firsts + me.medals > WALL_SLOTS && s.view.trophies === WALL_SLOTS, `${s.view.trophies} cups, ${me.firsts} firsts, ${me.medals} medals`);
     check('Kite: nothing of Wren\'s in his room', !JSON.stringify(s.mine).includes('wren'), JSON.stringify(s.mine));
     await page.sleep(1500);
     const v = (await page.evaluate('window.__walkStats()')).view;

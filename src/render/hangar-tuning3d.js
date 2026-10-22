@@ -13,7 +13,7 @@
  *            scale, the maker's range lit green, the kit's mark a tick,
  *            and the plumb line turns red past the range.
  *   RATES    the surfaces sweeping through the throws and the expo on
- *            show, and the Timber's flaps where the run starts them.
+ *            show.
  *   STAND    the prop turning at the bench's rpm, its disc drawn as in
  *            flight.
  *
@@ -206,9 +206,6 @@ export function dressTuning(craft, tab, dt) {
       craft.setSurfaces(0, 0, 0, 0);
     }
   }
-  if (craft.setFlaps) {
-    craft.setFlaps(tab.flaps || 0);
-  }
   const rpm = tab.rpm || 0;
   const turn = rpm * SPIN_PER_RPM * dt * 60;
   if (craft.blades && craft.blades[0]) {
@@ -222,8 +219,7 @@ export function dressTuning(craft, tab, dt) {
   /* A folding prop opens with the motor and folds when it stops, on the
    * stand only, so the other pages leave it as it stood. */
   if (craft.setProp && tab.section === 'stand') {
-    /* setProp takes the motor's rate in rad/s (glidercraft.js); the
-     * Extra's blur disc reads it as a share of full. */
+    /* setProp takes the motor's rate in rad/s (bramorcraft.js). */
     craft.setProp(rpm * Math.PI / 30);
   }
 }
@@ -236,9 +232,6 @@ export function undressTuning(craft) {
   }
   if (craft.setSurfaces) {
     craft.setSurfaces(0, 0, 0, 0);
-  }
-  if (craft.setFlaps) {
-    craft.setFlaps(0);
   }
   for (const d of craft.discs || []) {
     d.visible = false;

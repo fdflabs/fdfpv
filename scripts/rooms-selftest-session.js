@@ -1,7 +1,7 @@
 /*
  * rooms-selftest-session.js: the room as one shared session, the server's
  * half, a section of npm run rooms:selftest kept in its own file as the
- * combat and browser sections are.
+ * war and browser sections are.
  *
  * The owner, 2026-09-29: "i cant see the 3 people in my room, force
  * everyone in the same game and the same thing". What the room holds for
@@ -35,10 +35,10 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { CLOSE, PROTO, ROOM_LEVEL, ROOM_STATUSES, checkProfile } from '../src/share/roomwire.js';
+import { CLOSE, PROTO, ROOM_FLOOR, ROOM_LEVEL, ROOM_STATUSES, checkProfile } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 
-const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 
 export function sessionSection(check) {
   console.log('one session');
@@ -60,22 +60,22 @@ export function sessionSection(check) {
     return actions;
   };
   const hello = (room, s, extra = {}) => run(room.hello(s, {
-    type: 'hello', proto: PROTO, build: 'fdfpv', name: [1, 2, 30], profile, ...extra,
+    type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, name: [1, 2, 30], profile, ...extra,
   }, now, `10.0.1.${s.name.length}`, newToken));
   const say = (room, s, msg) => run(room.message(s, JSON.stringify(msg), now));
   const got = (s, type) => s.got.filter((m) => m.type === type);
 
   /* The world. */
-  const meta = { code: 'SESS22', cap: PRIVATE_CAP, friendly: false, map: 'alps', epoch: now - 1000 };
+  const meta = { code: 'SESS22', cap: PRIVATE_CAP, friendly: false, map: 'interior', epoch: now - 1000 };
   const room = new RoomCore(meta);
   const host = sock('host');
   const b = sock('bb');
   hello(room, host, { level: ROOM_LEVEL });
   hello(room, b, { level: ROOM_LEVEL });
-  check('the room\'s world is in the welcome', got(b, 'welcome')[0].map === 'alps');
+  check('the room\'s world is in the welcome', got(b, 'welcome')[0].map === 'interior');
   say(room, b, { type: 'world', map: 'itaipu' });
   check('a pilot who is not the host cannot move the room',
-    meta.map === 'alps' && got(b, 'refused').some((m) => m.why === 'host') && got(host, 'world').length === 0);
+    meta.map === 'interior' && got(b, 'refused').some((m) => m.why === 'host') && got(host, 'world').length === 0);
   const stored = say(room, host, { type: 'world', map: 'itaipu' });
   check('the host moves it, and the room keeps it with its meta',
     meta.map === 'itaipu' && stored.some((a) => a.store === 'meta' && a.value.map === 'itaipu'));
@@ -88,16 +88,16 @@ export function sessionSection(check) {
   const c = sock('ccc');
   hello(room, c, { level: ROOM_LEVEL });
   check('a joiner is welcomed into the world the host moved it to', got(c, 'welcome')[0].map === 'itaipu');
-  run(room.message(host, JSON.stringify({ type: 'combat', op: 'start', minutes: 3 }), now));
-  const busy = say(room, host, { type: 'world', map: 'alps' });
+  run(room.message(host, JSON.stringify({ type: 'war', op: 'start', mission: 'itaipu-drill' }), now));
+  const busy = say(room, host, { type: 'world', map: 'interior' });
   check('not while a game is on, and it says which',
-    meta.map === 'itaipu' && busy.some((a) => a.send === host && JSON.parse(a.data).why === 'combat'));
-  const pub = new RoomCore({ ...meta, code: 'PUBL22', map: 'alps', public: true });
+    meta.map === 'itaipu' && busy.some((a) => a.send === host && JSON.parse(a.data).why === 'war'));
+  const pub = new RoomCore({ ...meta, code: 'PUBL22', map: 'interior', public: true });
   const ph = sock('pubhost');
   hello(pub, ph, { level: ROOM_LEVEL });
-  say(pub, ph, { type: 'world', map: 'swiss2' });
+  say(pub, ph, { type: 'world', map: 'itaipu' });
   check('a public room stays in the world it is listed under',
-    pub.meta.map === 'alps' && got(ph, 'refused').some((m) => m.why === 'world_public'));
+    pub.meta.map === 'interior' && got(ph, 'refused').some((m) => m.why === 'world_public'));
 
   /* The status. */
   for (const status of ROOM_STATUSES) {
@@ -110,30 +110,37 @@ export function sessionSection(check) {
   /* The pause rule (docs/redesign/SESSIONS.md, COMPLETENESS 23): a pause
    * is the pilot's own; in a room nothing else stops. */
   const seatOf = (sk) => [...room.seats.entries()].find(([conn]) => conn === sk)?.[1];
-  check('the pause stops nothing in the room: the combat round runs on, the pilot still seated, its seat kept',
-    room.combat.on() && Boolean(seatOf(b)) && !got(host, 'leave').some((m) => m.seat === seatOf(b).seat));
+  check('the pause stops nothing in the room: the war runs on, the pilot still seated, its seat kept',
+    room.war.on() && Boolean(seatOf(b)) && !got(host, 'leave').some((m) => m.seat === seatOf(b).seat));
 
   /* The level. */
   now += 10;
-  const lvl = new RoomCore({ ...meta, code: 'LEVL22', map: 'swiss2' });
+  const lvl = new RoomCore({ ...meta, code: 'LEVL22', map: 'itaipu' });
+  const none = sock('none1');
+  const noneOut = hello(lvl, none, { level: undefined });
+  const below = sock('below1');
+  const belowOut = hello(lvl, below, { level: ROOM_FLOOR - 1 });
+  check(`a tab below the floor (${ROOM_FLOOR}), or from before levels, is told to reload on an empty room, never seated`,
+    none.closed?.code === CLOSE.update && below.closed?.code === CLOSE.update && !noneOut.some((a) => a.attach) && !belowOut.some((a) => a.attach)
+    && lvl.seats.size === 0);
   const old1 = sock('old1');
   const old2 = sock('old22');
-  hello(lvl, old1);
-  hello(lvl, old2);
-  check('tabs of one level fly together as they did', !old1.closed && !old2.closed && got(old2, 'welcome').length === 1);
+  hello(lvl, old1, { level: ROOM_FLOOR });
+  hello(lvl, old2, { level: ROOM_FLOOR });
+  check('tabs of one level at the floor fly together as they did', !old1.closed && !old2.closed && got(old2, 'welcome').length === 1);
   const fresh = sock('fresh1');
-  hello(lvl, fresh, { level: ROOM_LEVEL });
+  hello(lvl, fresh, { level: ROOM_LEVEL + 1 });
   check('a newer tab has the older ones told to reload',
     old1.closed?.code === CLOSE.update && old2.closed?.code === CLOSE.update && !fresh.closed);
   run(lvl.close(old1, now, CLOSE.update));
   run(lvl.close(old2, now, CLOSE.update));
   const late = sock('late22');
-  const lateOut = hello(lvl, late);
+  const lateOut = hello(lvl, late, { level: ROOM_FLOOR });
   check('and an older tab coming in after is told the same, never seated',
     late.closed?.code === CLOSE.update && !lateOut.some((a) => a.attach));
 
   /* The drop. */
-  const d = new RoomCore({ ...meta, code: 'DROP22', map: 'swiss2' });
+  const d = new RoomCore({ ...meta, code: 'DROP22', map: 'itaipu' });
   const d1 = sock('d1');
   const d2 = sock('d22');
   const d3 = sock('d333');

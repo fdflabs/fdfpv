@@ -205,7 +205,7 @@ try {
     r.pick(o.value);
     return true;
   })()`);
-  await a.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); window.__ui.act('roomnew'); return true; })()");
+  await a.evaluate("(() => { window.__ui.act('lobby:rooms'); window.__ui.act('roomnew'); return true; })()");
   await a.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
   const picked = [await pick('Who joins', 'Public'), await pick('The world', 'Itaipu'), await pick('Game', 'Defend the Paraná'), await pick('Mission', 'Mission 1')];
   check('Make a room: Public, Itaipu, Defend the Paraná, Mission 1', picked.every(Boolean), JSON.stringify(picked));
@@ -369,8 +369,7 @@ try {
   /* HOT JOIN: B out, the room to battle, B in from Rooms straight into it. */
   await b.evaluate("(() => { window.__ui.act('friends-leave'); window.__ui.act('mode-gate'); return true; })()");
   await b.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
-  /* The rooms panel is Flight Club's (src/ui/ui.js HUBS, #382). */
-  await b.evaluate("(() => { window.__ui.openHub('club'); return true; })()");
+  /* The rooms panel is home's (src/ui/items.js gateRows). */
   await a.evaluate("(() => { window.__warDo('start', 'itaipu-1'); return true; })()");
   await a.until("window.__war().view.state === 'live'", 60000).catch(() => {});
   await b.until(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(`lobby:${rowAction}`)}) || {}).join === 'Join battle'`, 30000).catch(() => {});

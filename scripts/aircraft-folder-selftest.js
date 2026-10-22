@@ -165,22 +165,24 @@ report(`assembled rows equal the hand modules (${folders.map((f) => f.id).join('
 
 /* Negative controls: each change, made to a copy, must be caught. The
  * folder changed is the first that states every row the changes touch. A
- * row stated null that the hand module has must be caught too. */
+ * row stated null that the hand module has must be caught too. No kept
+ * aircraft has landing gear or an unlock level since the recreational
+ * planes left (2026-10-21): the gear's control went with them, and the
+ * level is set where it was null. */
 const MUTATIONS = [
   ['airframe stall', (f) => { f.airframe.stall += 1e-9; }],
-  ['gear rest pitch', (f) => { f.airframe.gear.restPitchDeg += 1e-9; }],
   ['tuning cg mm', (f) => { f.tuning.cg.mm += 1; }],
   ['power option kv', (f) => { f.power.options[0].kv += 1; }],
   ['hangar anchor', (f) => { f.hangar.anchors.prop[0] = -f.hangar.anchors.prop[0]; }],
   ['livery colour', (f) => { f.livery.regions[0].stock = '#000000'; }],
   ['tune note', (f) => { f.tunes[0].note += ' '; }],
-  ['progress level', (f) => { f.progress.level += 1; }],
+  ['progress level', (f) => { f.progress.level = (f.progress.level ?? 0) + 1; }],
   ['es string', (f) => { const k = Object.keys(f.strings.es)[0]; f.strings.es[k] += '.'; }],
   ['kit drawn', (f) => { f.kit.drawn = !f.kit.drawn; }],
   ['extra airframe field', (f) => { f.airframe.extra = 1; }],
   ['tuning stated null', (f) => { f.tuning = null; }],
 ];
-const full = folders.findIndex((f) => f.airframe.gear && f.tuning && f.power.options && f.hangar.anchors && f.livery && f.tunes.length && f.progress.level !== null);
+const full = folders.findIndex((f) => f.tuning && f.power.options && f.hangar.anchors && f.livery && f.tunes.length);
 for (const [name, mutate] of MUTATIONS) {
   const copy = structuredClone(folders);
   mutate(copy[full]);

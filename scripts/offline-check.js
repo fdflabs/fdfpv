@@ -11,8 +11,8 @@
  *   online: the room games are on the hubs.
  *   the device offline (Chromium's own network emulation, so
  *     navigator.onLine is false and every fetch fails): the pilot is told
- *     once, the room games leave the hubs, and the Free Flight and Track
- *     Day cards each reach a flight.
+ *     once, the room games leave the hubs, and the Free Flight card
+ *     reaches a flight.
  *     Signed in, the account's sync sends nothing and says no failure.
  *   back online: told so, the room games back, and what changed offline
  *     is sent at once.
@@ -103,12 +103,13 @@ const BACK = en['offline.back'];
 const count = (said, text) => said.filter((t) => t === text).length;
 const SYNC_FAILED = en['account.sync_failed'].split('{')[0];
 
-/* Whether the shell offers rooms, and whether a room game's card is on
- * Flight Club's hub. */
+/* Whether the shell offers rooms, and whether a room game's card (the
+ * campaign's, Defend the Parana, since the combat-only cut took Streamer
+ * Combat) is on its hub. */
 const OFFER = `(() => {
   const ui = window.__ui;
   ui.act('mode-gate');
-  return { rooms: ui.friendsItems().length > 0, combat: document.querySelector('.screen-title').textContent.includes(${JSON.stringify(en['combat.card'])}) };
+  return { rooms: ui.friendsItems().length > 0, combat: document.querySelector('.screen-title').textContent.includes(${JSON.stringify(en['campaign.card'])}) };
 })()`;
 
 async function network(page, offline) {
@@ -134,22 +135,7 @@ async function press(page, way, craft) {
     return true;
   })()`);
   await page.sleep(800);
-  /* Track Day's way in is My tracks: the first track on it, then its Fly
-   * and the launch's Go, as a pilot presses them. */
-  if (await page.evaluate("window.__ui.screen === 'courses'")) {
-    await page.evaluate(`(() => {
-      const ui = window.__ui;
-      ui.setCursor(ui.items().findIndex((it) => it.course));
-      ui.select();
-      return true;
-    })()`);
-    await page.until('Boolean(window.__ui.cardSubject)', 10000).catch(() => {});
-    await page.evaluate("(() => { window.__ui.act('card-fly'); return true; })()");
-    await page.until("window.__ui.screen === 'launch' && window.__map().ready", 400000).catch(() => {});
-    await page.evaluate("(() => { window.__ui.act('launch-go'); return true; })()");
-  } else {
-    await page.evaluate("(() => { window.__ui.act('fly'); return true; })()");
-  }
+  await page.evaluate("(() => { window.__ui.act('fly'); return true; })()");
   await page.until("window.__ui.screen === 'flight' && window.__craftState().mode === 'flight'", 400000).catch(() => {});
   await page.sleep(1500);
   const flown = await page.evaluate("({ screen: window.__ui.screen, mode: window.__craftState().mode, airframe: window.__ui.settings.airframe, phase: window.__rooms().phase })");
@@ -182,21 +168,19 @@ try {
   check('no rooms offered, the room games off the hub', !off.rooms && !off.combat, JSON.stringify(off));
   const free = await press(page, 'way-freestyle-wing1000', 'bramor2300');
   check('Free Flight flies solo', free.solo && free.screen === 'flight' && free.mode === 'flight' && free.phase === 'idle', JSON.stringify(free));
-  const track = await press(page, 'way-race-5inch', 'bramor2300');
   const syncsOff = await page.evaluate('window.__w43Syncs');
   await page.evaluate("(() => { window.__ui.progress.setUnlockAll(!window.__ui.progress.state.unlockAll); return true; })()");
   const offSync = await page.evaluate('window.__accountSync()');
   await page.sleep(1500);
   check('the account\'s sync sends nothing and fails nothing', offSync === false && await page.evaluate('window.__w43Syncs') === syncsOff
     && !(await page.evaluate(SAID)).some((t) => t.startsWith(SYNC_FAILED)), JSON.stringify(await page.evaluate(SAID)));
-  check('Track Day flies solo', track.solo && track.screen === 'flight' && track.mode === 'flight' && track.phase === 'idle', JSON.stringify(track));
   check('and the pilot was told once', count(await page.evaluate(SAID), DOWN) === 1, JSON.stringify(await page.evaluate(SAID)));
 
   console.log('back online');
   /* Offline, a file the page has not fetched yet cannot be (no service
-   * worker, item 11's own scope): the Track Day tune's is one, said on
-   * screen and left loud in the console by its reader (src/main.js
-   * readTuneText). Those are listed, and nothing else may be. */
+   * worker, item 11's own scope): a tune's is one, said on screen and
+   * left loud in the console by its reader (src/main.js readTuneText).
+   * Those are listed, and nothing else may be. */
   const offlineErrors = page.errors.slice(errorsBefore);
   for (const e of offlineErrors) console.log(`  offline: ${e.split('\n')[0]}`);
   check('offline, the only page errors are fetches that could not go out',

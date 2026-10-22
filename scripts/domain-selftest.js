@@ -48,7 +48,7 @@ globalThis.window = win;
 
 const api = await import('../src/share/api.js');
 const { roomsOrigin } = await import('../src/share/rooms.js');
-const { tracksOrigin } = await import('../src/share/cloud.js');
+const { tracksOrigin } = await import('../src/share/tracksorigin.js');
 const { boardConfigured, boardOrigin, PRODUCTION_BOARD_ORIGIN } = await import('../src/share/board.js');
 const front = (await import('../edge/rooms/front.js')).default;
 const { originAllowed } = await import('../edge/rooms/front.js');

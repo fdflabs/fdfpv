@@ -5,11 +5,9 @@
  *   act(action, picked, { keepWorld })   every action name, one table
  *   back()                               Escape and the Back row
  *   select()                             Enter on the row under the cursor
- *   hubCards, hangarCards, openHub       home and its three hubs
+ *   homeCards, hangarCards, openHub      home and the Hangar
  *   continueWay                          home's Continue, the last session
  *   seatMap, flown, seatMatchesMode      the seat and the first flight
- *   openBuilder, actOnCard, duplicateCard, storeCardChange,
- *   openBoardCourse                      the rows of a chosen course card
  *
  * The shell hears of a press through the on* hooks main.js installs
  * (onAction, onSettings, onUiSound and the rest); nothing here flies or
@@ -34,7 +32,7 @@
 import { KEYBIND_PREFIX, keybindAction } from './controls.js';
 import { FLY_WITH_PREFIX, answerFlyWith } from './flywith.js';
 import { MAPS } from '../maps/registry.js';
-import { airframeById } from '../../configs/airframes.js';
+import { AIRFRAME_IDS, airframeById } from '../../configs/airframes.js';
 import { clearPidsFor } from '../../configs/pids.js';
 import { RATE_DEFAULTS, normaliseRates } from '../../configs/rates.js';
 import { deleteRatePreset, presetMatching, saveRatePreset } from '../../configs/ratepresets.js';
@@ -43,23 +41,16 @@ import { resetProgress, resetSettings } from '../share/save.js';
 import { released } from '../game/campaign.js';
 import { MODES } from '../share/modes.js';
 import { freshProgress } from '../game/progress.js';
-import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTrackDocument } from '../share/board.js';
-import { tracksConfigured } from '../share/cloud.js';
-import { hasFlyableTrack } from '../share/listing.js';
-import { clearShareImport, readShareImport } from '../share/trackseat.js';
-import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { str } from '../strings/index.js';
-import { duplicateTrack, normalize } from '../trackbuilder/model.js';
-import { deleteTrack, loadMapTrack, saveTrack } from '../trackbuilder/storage.js';
 import { customisable } from './builds.js';
 import { CAMPAIGN_MISSIONS, wayOfActivity } from './continuity.js';
 import { downloadCli } from './fc.js';
 import { fitsAsSegments } from './rows.js';
 import { pickStickRef } from './stickref.js';
 import { saveSettings, seatAirframe } from './settings.js';
-import { HUBS, OPEN_ACTIONS, WAYS, boardCraft, craftSvg, hubOfAction, hubWays, reticleSvg } from './ways.js';
+import { GATE_WAYS, HUBS, OPEN_ACTIONS, WAYS, craftSvg } from './ways.js';
 /* A cycle: ui.js installs this module. Read inside methods only. */
-import { ROOM_PARENTS, courseCardKey, seatIsRace, seatedFreestyleMap } from './ui.js';
+import { ROOM_PARENTS, seatedFreestyleMap } from './ui.js';
 import { logError } from '../share/crashrecord.js';
 
 /* ---- small shared steps ---- */
@@ -70,10 +61,6 @@ const tellShell = (ui) => { if (ui.onSettings) ui.onSettings(ui.settings); };
 
 /* Where Back goes after this press: a run paused behind the menus is kept. */
 const pauseOrTitle = (ui) => (ui.screen === 'paused' || ui.screen === 'quick' ? 'paused' : 'title');
-
-const noteOn = (node, text) => { node.textContent = text; };
-
-const boardTab = (ui, board) => openNamedWindow(boardPageUrl(board, boardCraft(ui.settings.airframe)), BOARD_WINDOW);
 
 /* The credits page pins itself in the hash; show() would map the title
  * back onto it, so the pin goes before the screen does. */
@@ -114,13 +101,18 @@ function fcLeave(ui) {
 
 /* Screens a plain row opens. Opened from a room, Back returns to that
  * room; opened over a paused run, Back returns to the pause menu. */
-const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'friends', 'controls'];
+const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'credits', 'friends', 'controls'];
 
 function openScreen(ui, screen) {
   ui.roomFrom = ROOM_PARENTS.has(ui.screen) && ui.screen !== screen ? ui.screen : null;
   ui.returnTo = pauseOrTitle(ui);
   ui.show(screen);
 }
+
+/* The title's rooms panel's way into the room screen: any aircraft, flown
+ * free, in a room. The Fly with friends card was this until the
+ * combat-only cut (2026-10-20); the panel keeps what pressing it did. */
+const ROOMS_PANEL = { airframes: AIRFRAME_IDS, mode: 'freestyle', room: true };
 
 /* The one gate question, answered by a card: aircraft, mode, and the seat
  * the mode flies in, or the room that can choose one. */
@@ -145,10 +137,6 @@ function answerGate(ui, way, picked, keepWorld) {
   tellShell(ui);
   ui.returnTo = 'title';
   ui.roomFrom = null;
-  if (way.mode === 'race') {
-    ui.show('courses');
-    return;
-  }
   const worlds = MAPS.filter((m) => m.mode === 'freestyle');
   const home = way.home && !keepWorld ? worlds.find((m) => m.id === way.home) : null;
   const seated = seatedFreestyleMap(ui.settings);
@@ -159,12 +147,10 @@ function answerGate(ui, way, picked, keepWorld) {
     if (way.room) ui.show('friends');
     return;
   }
+  /* No world picker since free flight left (the combat-only cut,
+   * 2026-10-20): the remembered world, else the first. */
   const remembered = worlds.find((m) => m.id === ui.settings.freestyleMap);
-  const world = home || remembered || (worlds.length === 1 ? worlds[0] : null);
-  if (!world) {
-    ui.show('freestyle');
-    return;
-  }
+  const world = home || remembered || worlds[0];
   ui.setCursor(ui.titleStop());
   if (way.room) {
     /* The room screen is up before the seat changes, so the world swap
@@ -174,94 +160,6 @@ function answerGate(ui, way, picked, keepWorld) {
   } else {
     ui.seatMap(world.id);
   }
-}
-
-/* What a chosen course card's rows do, by kind of course. A cloud card
- * answers two of them; the rest are the library's and the board's. */
-const CARD_ROWS = {
-  'card-fly'(ui, card) {
-    const t = card.course.track;
-    ui.cardSubject = null;
-    if (card.course.kind === 'cloud') {
-      ui.seatCloud(t, () => ui.play());
-      return;
-    }
-    /* In a race lobby the host's choice becomes the room's track and the
-     * lobby takes over; otherwise the seat flies. */
-    const go = () => { if (!(ui.onTrackChosen && ui.onTrackChosen())) ui.play(); };
-    if (card.course.kind === 'board') {
-      ui.openBoardCourse(t.id, go);
-    } else if (ui.seatLocal(t.id)) {
-      go();
-    }
-  },
-  'card-editcopy'(ui, card) {
-    if (card.course.kind === 'cloud') ui.editCloudCopy(card.course.track);
-  },
-  'card-board'(ui, card) {
-    boardTab(ui, card.course.track.board);
-  },
-  'card-standings'(ui, card) {
-    if (card.course.kind === 'board') ui.showStandings(card.course.track);
-  },
-  'card-edit'(ui, card) {
-    const t = card.course.track;
-    ui.openBuilder({ map: t.map, id: t.id });
-  },
-  'card-duplicate'(ui, card) {
-    ui.duplicateCard(card.course.track, card.course.kind === 'board');
-  },
-  'card-rename'(ui, card) {
-    const t = card.course.track;
-    ui.askForm({
-      title: str('ui.rename_this_track'),
-      confirmLabel: str('ui.rename'),
-      fields: [{ key: 'name', label: str('main.track_name'), value: t.name, maxLength: 80, placeholder: str('main.track_name') }],
-    }).then((values) => {
-      const doc = values && values.name ? loadMapTrack(t.id) : null;
-      if (!doc) return;
-      doc.name = values.name;
-      ui.storeCardChange(saveTrack(doc), `local:${doc.id}`);
-    });
-  },
-  'card-delete'(ui, card) {
-    const t = card.course.track;
-    ui.askConfirm({
-      title: str('ui.delete', { name: t.name }),
-      detail: tracksConfigured() ? str('cloud.delete_detail') : str('ui.this_browser_holds_the_only_copy'),
-      yes: str('ui.delete_label'),
-      no: str('ui.keep_it'),
-      danger: true,
-    }).then((ok) => {
-      if (!ok) return;
-      const seat = readShareImport();
-      if (seat && seat.id === t.id) {
-        clearShareImport();
-        ui.setShare(null);
-      }
-      ui.storeCardChange(deleteTrack(t.id), null);
-    });
-  },
-};
-const CLOUD_CARD_ROWS = new Set(['card-fly', 'card-editcopy']);
-
-/* Rows a cloud card does not offer are ignored on it. */
-function cardRow(ui, action, card) {
-  const row = CARD_ROWS[action];
-  if (!row || (card.course.kind === 'cloud' && !CLOUD_CARD_ROWS.has(action))) return;
-  row(ui, card);
-}
-
-/* The chosen card's rows, dispatched from act(): a subject that has gone
- * (deleted in another tab) closes the card's rows instead. */
-function onSubjectCard(ui, action) {
-  const card = ui.subjectCard();
-  if (!card) {
-    ui.cardSubject = null;
-    ui.renderMenu();
-    return;
-  }
-  ui.actOnCard(action, card);
 }
 
 /* Exact action names. Each handler ends the press unless it returns
@@ -333,79 +231,18 @@ const ACTIONS = {
      * hangar is then a change to that build. */
     ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe));
   },
-  /* One named tab for the board, so it does not multiply and the sim
-   * stays where it is. */
-  leaderboard(ui) { boardTab(ui, ui.share && ui.share.board); },
   feel(ui) { ui.openFeelReport(); },
-  /* The guided first flight launches straight past the launch card. */
-  firstflight(ui) {
-    ui.flown();
-    ui.guided = true;
-    tellShell(ui);
-    if (ui.onAction) ui.onAction('fly', ui.settings);
-  },
-  'card-back'(ui) {
-    ui.cardSubject = null;
-    ui.renderMenu();
-    ui.renderCourseCards();
-    ui.setCursor(ui.cardCursor());
-  },
-  'card-standings'(ui) {
-    const card = ui.subjectCard();
-    if (card && card.course && card.course.kind === 'board') ui.showStandings(card.course.track);
-  },
-  /* The standings screen has the board row with no card behind it. */
-  'card-board'(ui, action) {
-    if (ui.screen !== 'standings') {
-      onSubjectCard(ui, action);
-      return;
-    }
-    if (ui.standingsFor) boardTab(ui, ui.standingsFor.board);
-  },
-  'weekly-event'(ui) {
-    const e = ui.weeklyEvent;
-    /* The event is all the hub has of the track: enough to seat it, since
-     * its document is fetched by id. */
-    if (e && e.trackId) ui.openBoardCourse(e.trackId, () => ui.play(), { id: e.trackId, name: e.name, map: e.map, author: '', board: boardOrigin() });
-  },
-  'standings-fly'(ui) {
-    const t = ui.standingsFor;
-    if (t && t.id) ui.openBoardCourse(t.id, () => ui.play());
-  },
-  /* Race the record: the ghost is armed through the shell first, then
-   * the track is seated and played the way a chase link does it. */
-  'standings-ghost'(ui) {
-    const top = (ui.standingsTimes || []).find((x) => x.hasGhost && x.id);
-    const t = ui.standingsFor;
-    if (!top || !t || !t.id) return;
-    if (ui.onStandingsGhost) ui.onStandingsGhost(t, top);
-    ui.openBoardCourse(t.id, () => ui.play());
-  },
-  'cloud-more'(ui) { ui.loadCloudCourses(true); },
-  newtrack(ui) { toggleNewTrack(ui, true); },
-  'newtrack-back'(ui) { toggleNewTrack(ui, false); },
   rooms(ui) { ui.show('rooms'); },
   roomnew(ui) { ui.show('roomnew'); },
   fly(ui) {
-    /* A plane too wide for the track's gates gives way to the racer on
-     * the way to the card, which says which machine the run counts for. */
-    ui.seatCraftForCourse();
     if (!ui.seatMatchesMode()) {
-      ui.returnTo = pauseOrTitle(ui);
-      ui.show(ui.mode === 'freestyle' ? 'freestyle' : 'courses');
-      return undefined;
-    }
-    if (seatIsRace(ui.settings)) {
-      ui.returnTo = pauseOrTitle(ui);
-      ui.show('launch');
+      /* Free flight has no world picker since it left (the combat-only
+       * cut, 2026-10-20): a seat that is no world is put on the first.
+       * Nothing else can miss its seat (seatMatchesMode). */
+      ui.seatMap(MAPS.find((m) => m.mode === 'freestyle').id);
       return undefined;
     }
     return FALL_THROUGH;
-  },
-  /* The launch card's own button: the shell has always launched on 'fly'. */
-  'launch-go'(ui) {
-    ui.flown();
-    if (ui.onAction) ui.onAction('fly', ui.settings);
   },
   rates(ui) {
     /* Reached from the Controller, Settings or Quad, Back returns there;
@@ -531,25 +368,14 @@ const ACTIONS = {
   resetsettings(ui) { askReset(ui, 'settings', () => resetSettings()); },
   resetprogress(ui) { askReset(ui, 'progress', () => resetProgress({ progress: freshProgress(false) })); },
   back(ui) { ui.back(); },
-  /* Escape from the title, as a row: both halves of the gate cleared. A
-   * lobby's card came from a hub, and the gate reopens on that hub. */
+  /* Escape from the title, as a row: both halves of the gate cleared,
+   * the gate reopening on home. */
   'mode-gate'(ui) {
     ui.mode = null;
     ui.craftGate = true;
-    const hub = ui.lobbyCard && hubOfAction(ui.lobbyCard);
-    if (hub) ui.hub = hub;
     ui.show('title');
     ui.setCursor(ui.titleStop());
     ui.renderMenu();
-  },
-  /* My tracks from a run or its results: the run ends as quitting to the
-   * title ends it, and the list opens on its newest card. */
-  mytracks(ui) {
-    ui.show('title');
-    if (ui.onAction) ui.onAction('title', ui.settings);
-    ui.returnTo = 'title';
-    ui.show('courses');
-    ui.setCursor(ui.firstStop(ui.items()));
   },
   title(ui) {
     ui.show('title');
@@ -582,26 +408,17 @@ for (const screen of SCREEN_ROWS) {
   ACTIONS[screen] = (ui) => openScreen(ui, screen);
 }
 
-function toggleNewTrack(ui, open) {
-  ui.newTrackOpen = open;
-  ui.renderMenu();
-  ui.setCursor(ui.firstStop(ui.items(), ui.rowOffset));
-}
-
 /* Action families named by prefix, with the rest of the name as the argument. */
 const PREFIXES = [
-  ['card-', onSubjectCard],
-  ['newtrack:', (ui, action, map) => { ui.newTrackOpen = false; ui.openBuilder({ map }); }],
-  ['casualtrack:', (ui, action, map) => { ui.newTrackOpen = false; ui.openBuilder({ map, casual: true }); }],
   ['friends-', (ui, action) => { if (ui.onFriends) ui.onFriends(action); }],
   /* A pilot in the room the pilot is in, visited straight from the
    * walkable hangar's command bar (src/ui/hangarwalk.js). */
   ['walk-visit:', (ui, action, callsign) => ui.visitHangar(callsign)],
-  /* The gate's rooms panel: the friends card's way in, then the room,
-   * the lobby or Make a room, with the card's world left unbuilt because
-   * the room's welcome seats its own. */
+  /* The gate's rooms panel: the room screen first, then the room, the
+   * lobby or Make a room, with the world left unbuilt because the room's
+   * welcome seats its own. */
   ['lobby:', (ui, action, rest) => {
-    ui.act(WAYS.find((w) => w.id === 'friends').action, null, { keepWorld: true });
+    answerGate(ui, ROOMS_PANEL, null, true);
     ui.act(rest);
   }],
   ['fc-preset:', (ui, action, id) => {
@@ -659,12 +476,6 @@ const BACK_FROM = {
     } else {
       ui.act(ui.padPickReason === 'menu' ? 'padpick-cancel' : 'padpick-skip');
     }
-    return true;
-  },
-  /* Escape closes the chosen card's rows before it leaves the list. */
-  courses(ui) {
-    if (!ui.cardSubject) return false;
-    ui.act('card-back');
     return true;
   },
   results(ui) {
@@ -768,15 +579,6 @@ const ROW_KINDS = [
   /* Nothing to open and nothing to fire: say so rather than read as a
    * dead key. */
   [(ui, it) => it.adjust || it.step, (ui) => sound(ui, 'back')],
-  /* A course card is chosen, not pressed: its rows appear, the cursor
-   * on Fly it. Choosing another card moves to it. */
-  [(ui, it) => ui.screen === 'courses' && it.course, (ui, it) => {
-    ui.cardSubject = courseCardKey(it);
-    sound(ui, 'select');
-    ui.renderMenu();
-    ui.renderCourseCards();
-    ui.setCursor(ui.firstStop(ui.items(), ui.rowOffset));
-  }],
   [(ui, it) => it.hub && ui.onGate(), (ui, it) => {
     sound(ui, 'select');
     ui.openHub(it.hub);
@@ -871,40 +673,43 @@ export const actionMethods = {
     then(this, it);
   },
 
-  /* The three hub cards with their activities as links. A hub with
-   * nothing to offer (Operations without a rooms server) is left out. */
-  hubCards(rooms) {
-    const ways = (id) => hubWays(id).filter((w) => rooms || !w.room).map((w) => ({ label: w.label, action: w.action, key: w.id }));
-    /* Operations also holds the war's field hangar, which needs no rooms
-     * server to walk round. */
-    const field = { label: str('walk.field'), action: 'field-walk', key: 'ops-field' };
-    const own = (hub) => {
-      if (hub.id === 'hangar') {
-        return this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card }));
-      }
-      return hub.id === 'ops' ? [...ways(hub.id), field] : ways(hub.id);
-    };
-    /* Continue stands in the last activity's own link, its press that
-     * card's (src/ui/cards.js gateLinks, pickForWay), so the session is
-     * the one the pilot last chose for it. In its place, not beside it:
-     * the label is no longer than any activity's it replaces, in either
-     * language, so the links' wrapping never gains a line and the hub no
-     * height. It keeps the activity's key, so the link still wears that
-     * card's class (src/ui/cards.js gateLinks) and is the same thing at
-     * home and in the hub. */
+  /* Home's cards: the Operations cards themselves (the lead, 2026-10-20,
+   * ASK 4: no hub layer), the war's field hangar, which needs no rooms
+   * server to walk round, and the Hangar as one card with its own cards
+   * as links. A room card is left out on a page with no rooms server;
+   * home says why (src/ui/items.js gateRows). */
+  homeCards(rooms) {
+    /* Continue stands on the last activity's own card, as it stood in
+     * that card's hub link: one link under the card, its press the
+     * campaign's next mission (continueLink, src/ui/cards.js gateLinks).
+     * It keeps the activity's key, so it wears that card's class. */
     const last = this.continueWay();
-    const linksOf = (hub) => own(hub).map((l) => (last && l.action === last.way.action ? continueLink(l, last) : l));
-    return HUBS.map((hub) => ({
+    const ways = GATE_WAYS.filter((w) => rooms || !w.room).map((w) => ({
+      label: w.label,
+      card: w.id,
+      art: w.art,
+      svg: w.svg ?? craftSvg(airframeById(w.airframes[0])),
+      blurb: w.blurb,
+      facts: w.facts,
+      action: w.action,
+      ...(last && last.way.id === w.id ? { links: [continueLink({ label: w.label, action: w.action, key: w.id }, last)] } : {}),
+    }));
+    const field = {
+      label: str('walk.field'), card: 'ops-field', svg: null, blurb: str('walk.field_blurb'), facts: [], action: 'field-walk',
+    };
+    const hub = HUBS[0];
+    const hangar = {
       label: str(hub.label),
       card: `hub-${hub.id}`,
       hub: hub.id,
       art: hub.art,
-      svg: hub.id === 'ops' ? reticleSvg() : craftSvg(airframeById(this.settings.airframe)),
+      svg: craftSvg(airframeById(this.settings.airframe)),
       blurb: str(hub.blurb),
       facts: [],
-      links: linksOf(hub),
+      links: this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card })),
       action: `hub-${hub.id}`,
-    })).filter((card) => card.links.length > 0);
+    };
+    return [...ways, field, hangar];
   },
 
   /* What home's Continue holds, { way, mission }, or null: none yet, an
@@ -947,32 +752,11 @@ export const actionMethods = {
 
   openHub(id) {
     this.hub = id;
-    if (id === 'club') {
-      this.loadWeeklyEvent();
-    }
     this.setCursor(this.firstStop(this.items()));
     this.renderMenu();
   },
 
-  /* This week's event, read each time Flight Club opens so its standings
-   * are fresh; until it answers (or with no board) the hub has no card
-   * for it. */
-  loadWeeklyEvent() {
-    if (!boardConfigured()) {
-      return;
-    }
-    fetchCurrentEvent().then((event) => {
-      const had = JSON.stringify(this.weeklyEvent || null);
-      this.weeklyEvent = event;
-      if (had !== JSON.stringify(event) && this.hub === 'club') {
-        this.renderMenu();
-      }
-    }).catch(() => {
-      /* No board this time: the hub reads as it did before events. */
-    });
-  },
-
-  /* The one place a world or track becomes the seat: written, handed to
+  /* The one place a world becomes the seat: written, handed to
    * the shell (which swaps the world), and the pilot put back where the
    * choice was made, unless `stay` keeps them on the screen a room's
    * welcome seated from. */
@@ -987,8 +771,9 @@ export const actionMethods = {
     tellShell(this);
   },
 
-  /* The first launch ends the first visit. Stored, or the guided flight
-   * would be offered again next load. */
+  /* The first launch ends the first visit. Stored, or the first visit's
+   * welcome (the Fly with question, the title's first look) would be
+   * offered again next load. */
   flown() {
     if (!this.firstRun) return;
     this.firstRun = false;
@@ -1000,84 +785,6 @@ export const actionMethods = {
    * no Fly row to guard. */
   seatMatchesMode() {
     if (this.mode === 'freestyle') return Boolean(seatedFreestyleMap(this.settings));
-    if (this.mode === 'race') return this.settings.map === 'track' && hasFlyableTrack();
     return true;
-  },
-
-  openBuilder({ map, id = null, casual = false }) {
-    if (!this.onBuild) return;
-    Promise.resolve(this.onBuild({ map, id, casual })).catch((e) => {
-      /* The one honest failure: the track was deleted in another tab
-       * since the list was read. The list is read again either way. */
-      logError('save', e);
-      noteOn(this.localNote, str('ui.that_track_is_no_longer_saved'));
-      this.loadLocalCourses();
-      this.renderMenu();
-    });
-  },
-
-  actOnCard(action, card) {
-    cardRow(this, action, card);
-  },
-
-  /* A copy under a new id, named as one, of the pilot's own track or of
-   * a board track fetched for it; the copy is theirs to edit and publish. */
-  duplicateCard(t, board) {
-    const keep = (doc) => {
-      const copy = duplicateTrack(normalize(doc).doc, str('ui.copy_of', { name: t.name }));
-      this.storeCardChange(saveTrack(copy), `local:${copy.id}`);
-    };
-    if (!board) {
-      const doc = loadMapTrack(t.id);
-      if (doc) keep(doc);
-      return;
-    }
-    noteOn(this.boardNote, str('ui.loading_2', { name: t.name }));
-    fetchTrackDocument(t.id, t.board)
-      .then((payload) => {
-        noteOn(this.boardNote, '');
-        keep(payload.document || payload);
-      })
-      .catch((err) => noteOn(this.boardNote, str('ui.could_not_be_loaded', { name: t.name, v2: err.message ?? err })));
-  },
-
-  /* After a card's row wrote the library: say if the browser refused,
-   * read the list again, and land on the card `key` names (the copy, the
-   * renamed track) or on the first card when it is gone. */
-  storeCardChange(ok, key) {
-    noteOn(this.localNote, ok ? '' : str('ui.this_browser_would_not_store_that'));
-    this.loadLocalCourses();
-    this.cardSubject = null;
-    this.lastCardKey = key;
-    this.renderMenu();
-    this.renderCourseCards();
-    this.setCursor(this.cardCursor());
-  },
-
-  /* Seat a board track through the shell, which owns the fetch, then
-   * `then`. One at a time: a second press while one loads is ignored. */
-  openBoardCourse(id, then = null, known = null) {
-    const listed = (this.boardCourses || []).find((t) => t.id === id);
-    const track = listed || known || (this.standingsFor && this.standingsFor.id === id ? this.standingsFor : null);
-    if (!track || this.openingBoardCourse) return;
-    const failed = (why) => {
-      this.openingBoardCourse = false;
-      noteOn(this.boardNote, why);
-    };
-    this.openingBoardCourse = true;
-    noteOn(this.boardNote, str('ui.loading_2', { name: track.name }));
-    if (!this.onBoardCourse) {
-      failed(str('ui.could_not_be_loaded_from_the', { name: track.name }));
-      return;
-    }
-    this.onBoardCourse(track).then((ok) => {
-      if (!ok) {
-        failed(str('ui.could_not_be_loaded_from_the', { name: track.name }));
-        return;
-      }
-      this.openingBoardCourse = false;
-      noteOn(this.boardNote, '');
-      if (then) then();
-    }).catch((err) => failed(str('ui.could_not_be_loaded', { name: track.name, v2: err.message ?? err })));
   },
 };

@@ -2,17 +2,18 @@
  * bramor-gates.js: the Bramor C4EYE's plant against the bands in
  * tests/bramor-thresholds.json.
  *
- * Fourteen checks, B1 to B14, from docs/BRAMOR-STAGE1.md. The first nine
+ * Fifteen checks, B1 to B15, from docs/BRAMOR-STAGE1.md. The first nine
  * fly the plant headless with the pilot in tests/lib/wingpilot.js, as the
  * other fixed wings' gates do, with the catapult in place of the throw:
  * cruise, stall, glide, top speed, roll, turn, climb, the release off the
  * rail and the climb out, and a throttle chop. B10 to B12 pull the
  * parachute from cruise over a ground plane: the descent rate, the
  * attitude under the canopy, and how it comes to rest. B13 replays the
- * five inch and the four other fixed wings and holds their hashes where
- * they were before the Bramor existed; B14 replays the Bramor's two
- * recordings, the catapult flight and the descent, in Node and in headless
- * Chrome and holds the hashes equal. Bands are never widened here: a plant
+ * five inch and the 1000 mm wing and holds their hashes where they were
+ * before the Bramor existed; B14 replays the Bramor's two recordings, the
+ * catapult flight and the descent, in Node and in headless Chrome and
+ * holds the hashes equal, and B15 holds those two hashes where they are
+ * pinned. Bands are never widened here: a plant
  * outside one is a finding for the derivation. Run with npm run bramor:gates.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -43,7 +44,7 @@ import { startServer } from '../tests/lib/server.js';
 import { GROUND_MU } from '../src/game/collide.js';
 import {
   BRAMOR_AIRFRAME, levelSpeed, glide, rollRate, turn, bestClimb, stallSpeed, chop, catapultTest, chuteTest,
-  bramorPrelude, bramorChutePrelude, wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude,
+  bramorPrelude, bramorChutePrelude, wingPrelude,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -172,11 +173,8 @@ const u = th.b13_unmoved;
 const got = {
   quad: await hashOf('tests/inputs/baseline.rec'),
   wing: await hashOf('tests/inputs/wing-baseline.rec', wingPrelude),
-  sky: await hashOf('tests/inputs/sky-baseline.rec', skyPrelude),
-  cub: await hashOf('tests/inputs/cub-baseline.rec', (s) => cubGroundPrelude(s)),
-  radian: await hashOf('tests/inputs/glider-baseline.rec', gliderRecPrelude),
 };
-gate('B13', 'the five inch and the other wings unmoved', Object.keys(got).every((k) => got[k] === u[k]), Object.values(got).join(', '), Object.keys(got).map((k) => u[k]).join(', '));
+gate('B13', 'the five inch and the 1000 mm wing unmoved', Object.keys(got).every((k) => got[k] === u[k]), Object.values(got).join(', '), Object.keys(got).map((k) => u[k]).join(', '));
 
 const planes = [['bramor', 'tests/inputs/bramor-baseline.rec', bramorPrelude], ['bramor-chute', 'tests/inputs/bramor-chute.rec', bramorChutePrelude]];
 const node = [];
@@ -203,6 +201,9 @@ if (!findChrome()) {
     await server.close();
   }
 }
+const r15 = th.b15_recorded;
+gate('B15', 'its own two recordings unmoved', node[0].hash === r15.bramor && node[1].hash === r15.bramorChute,
+  node.map((n) => n.hash).join(', '), `${r15.bramor}, ${r15.bramorChute}`);
 
 console.log('');
 for (const [id, name, measured, b, status] of rows) {

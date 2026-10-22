@@ -45,7 +45,7 @@
  * restart, which the client (src/share/rooms.js) answers by reconnecting.
  *
  * On SIGUSR2 the process drains instead (drain below, docs/ROOMS-DRAIN.md):
- * a new room, a quick join and a socket to a code it does not hold are
+ * a new room and a socket to a code it does not hold are
  * refused 503 busy, the rooms it holds fly on and take their pilots back,
  * and it exits once nobody is connected, or at DRAIN_CAP_MS with today's
  * 1012. That is the old half of a deploy whose new process already serves
@@ -104,11 +104,10 @@ function roomNameOf(pathname) {
   return code ? `prv:${code}` : null;
 }
 
-/* The largest message the simulator sends is a host's race track, logos
- * stripped (src/share/roomrace.js), which the room caps at 64 kB (race.js
- * TRACK_MAX_BYTES). A MiB is that many times over, and even an unstripped
- * track fits (the tracks server's documents are at most 512 kB).
- * Cloudflare takes up to 32 MiB, which a process capped at 256 MB must not. */
+/* Sized when the largest message the simulator sent was a race room
+ * host's track, which the room capped at 64 kB: a MiB is that many times
+ * over. Cloudflare takes up to 32 MiB, which a process capped at 256 MB
+ * must not. */
 const MAX_MESSAGE_BYTES = 1024 * 1024;
 const CLOSE_RESTART = 1012;
 
@@ -672,7 +671,7 @@ export async function startRooms({
   env.HEALTH = new Health(() => [...env.ROOMS.objects.values()].map((room) => {
     const core = room.host.core;
     return {
-      counters: room.counters, pilots: core ? core.people().length : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null, witness: core ? core.race.witness : null,
+      counters: room.counters, pilots: core ? core.people().length : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null,
     };
   }));
 
@@ -733,9 +732,6 @@ export async function startRooms({
     const url = new URL(request.url);
     if (url.pathname === '/v2/create') {
       return request.method === 'POST';
-    }
-    if (url.pathname.startsWith('/v2/public/')) {
-      return true;
     }
     const name = roomNameOf(url.pathname);
     return Boolean(name) && !holds(name);

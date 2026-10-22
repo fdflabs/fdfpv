@@ -43,16 +43,16 @@
  *   crash world after a refill renumbers the streamed set, the crash
  *               world (src/main.js declareCrashWorld) is declared again
  *               from the new generation (window.__crash().streamGen);
- *   wires       a Skyhunter flown level into a conductor is a wreck, and
+ *   wires       a Bramor flown level into a conductor is a wreck, and
  *               its crash met the surface `wire`;
- *   towers      a Skyhunter flown level into a tower is a wreck;
- *   renumber    a Skyhunter flown into a streamed wall just after a refill
+ *   towers      a Bramor flown level into a tower is a wreck;
+ *   renumber    a Bramor flown into a streamed wall just after a refill
  *               renumbered the set is met by it, with no host contact the
  *               plant did not hold (window.__contacts().unheld).
  *
  *   node scripts/town-check.js [--node | --sky] [--shots=DIR]
  *
- * --node runs the Node half alone, --sky the Node half and the Skyhunter's
+ * --node runs the Node half alone, --sky the Node half and the Bramor's
  * page. --shots=DIR also leaves pictures of
  * the town in DIR, with the draw calls and triangles each view costs and
  * the town's own share of them (SIM_GPU=1 for the machine's GPU).
@@ -73,6 +73,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { readFileSync } from 'node:fs';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
@@ -112,6 +113,16 @@ const STREAM_BUDGET = 25000;
  * #192), so the town must fit in the rest wherever the pilot is. */
 const TOWN_SHARE = STREAM_BUDGET - 12500;
 const ROOFS = 20;
+/*
+ * The fixed wing the wires, towers and renumber rows fly: the Bramor, a
+ * kept aircraft (the Skyhunter they flew is retired). Flown level at the
+ * Bramor user manual's best endurance speed, VBE 16 m/s, on the throttle
+ * the thrust model says holds it level there (tests/bramor-thresholds.json
+ * b1_cruise, speed0 and duty, which npm run bramor:gates holds the plant
+ * to), 3 m/s over its 13 m/s stall (b2_stall).
+ */
+const WING = 'bramor2300';
+const CRUISE = JSON.parse(readFileSync(join(root, 'tests', 'bramor-thresholds.json'), 'utf8')).b1_cruise;
 const OSM_FILES = ['osm/buildings.json', 'osm/roads.json', 'osm/power.json', 'osm/landuse.json'];
 
 const failures = [];
@@ -416,6 +427,13 @@ async function open(airframe) {
     throw new Error(`the page seated map ${id}, not itaipu`);
   }
   await page.evaluate("(() => { const n = document.getElementById('ui'); if (n) { n.style.display = 'none'; } return 1; })()");
+  /* The page boots to the title, where the plant is not stepped: a flight
+   * row run there sees the clock stand still and passes or fails on that.
+   * hold() once waited out a refill the frames did, which let the shell
+   * reach flight first on a quiet machine; a throw now fills the set at
+   * once. Into flight where the craft is, as contact-golden does. */
+  await page.evaluate('(() => { const s = window.__craftState(); window.__placeCraft(s.worldX, s.worldY, s.worldZ); })()');
+  await page.until("window.__mode === 'flight'", 60000);
   return { page, loadS: (Date.now() - t0) / 1000 };
 }
 
@@ -689,17 +707,18 @@ async function quadChecks(nodeTown) {
 }
 
 /*
- * A Skyhunter flown level at `speed` from `back` metres off, toward
- * (x, y, z) along (dx, dz), hands off: the flight's log.
+ * The Bramor flown level at `speed` from `back` metres off, toward
+ * (x, y, z) along (dx, dz), hands off at its cruise throttle: the flight's
+ * log.
  */
-async function throwAt(page, target, dir, back = 40, speed = 16) {
+async function throwAt(page, target, dir, back = 40, speed = CRUISE.speed0) {
   const [x, y, z] = target;
   const [dx, dz] = dir;
   const yaw = (Math.atan2(-dx, -dz) * 180) / Math.PI;
   await hold(page, {
     x: x - dx * back, y, z: z - dz * back, yaw, pitch: 0, vx: dx * speed, vy: 0, vz: dz * speed, fresh: true,
   });
-  await page.evaluate('window.__stick(0, 0, 0, 0.6)');
+  await page.evaluate(`window.__stick(0, 0, 0, ${CRUISE.duty})`);
   await page.sleep(300);
   const c0 = await js(page, CRAFT);
   await page.evaluate('window.__releasePose()');
@@ -707,9 +726,9 @@ async function throwAt(page, target, dir, back = 40, speed = 16) {
   return { c0, log, end: log[log.length - 1] };
 }
 
-async function skyhunterChecks(nodeTown) {
-  console.log('\nheadless Chromium, the Itaipu map, a Skyhunter with crash damage on');
-  const { page } = await open('sky1800');
+async function wingChecks(nodeTown) {
+  console.log(`\nheadless Chromium, the Itaipu map, a Bramor with crash damage on, ${CRUISE.speed0} m/s at throttle ${CRUISE.duty}`);
+  const { page } = await open(WING);
   try {
     await page.evaluate('window.__drawOff(true)');
     /* A conductor: a 500 kV span's middle, 100 m and more from its towers. */
@@ -735,9 +754,9 @@ async function skyhunterChecks(nodeTown) {
       /* The crash names what it met (src/main.js onDamageEvent's log). */
       const met = await js(page, '[...new Set(window.__crashLog().map((e) => e.surface))]');
       if (fly.end.wrecked && met.includes('wire')) {
-        ok(`wires: a Skyhunter level into a conductor at (${span.x.toFixed(0)}, ${span.y.toFixed(1)}, ${span.z.toFixed(0)}), 16 m/s, is a wreck on the wire (${fly.end.flags}; crash met ${met.join(',')}; host saw ${kinds})`);
+        ok(`wires: a Bramor level into a conductor at (${span.x.toFixed(0)}, ${span.y.toFixed(1)}, ${span.z.toFixed(0)}), ${CRUISE.speed0} m/s, is a wreck on the wire (${fly.end.flags}; crash met ${met.join(',')}; host saw ${kinds})`);
       } else {
-        fail(`wires: a Skyhunter level into a conductor at (${span.x.toFixed(0)}, ${span.y.toFixed(1)}, ${span.z.toFixed(0)}) is not a wreck on the wire: ${JSON.stringify(fly.end)}; crash met ${met.join(',')}; host saw ${kinds}`);
+        fail(`wires: a Bramor level into a conductor at (${span.x.toFixed(0)}, ${span.y.toFixed(1)}, ${span.z.toFixed(0)}) is not a wreck on the wire: ${JSON.stringify(fly.end)}; crash met ${met.join(',')}; host saw ${kinds}`);
       }
     }
 
@@ -761,9 +780,9 @@ async function skyhunterChecks(nodeTown) {
       const closest = Math.min(...fly.log.map((r) => Math.hypot(r.x - tower.x, r.z - tower.z)));
       console.log(`  towers: closest ${closest.toFixed(2)} m from the tower's axis, ${fly.end.events - fly.c0.events} damage events`);
       if (fly.end.wrecked) {
-        ok(`towers: a Skyhunter level into tower ${tower.id} where a face's diagonals cross, ${tower.y.toFixed(1)} m, 16 m/s, is a wreck (${fly.end.flags}; host saw ${kinds})`);
+        ok(`towers: a Bramor level into tower ${tower.id} where a face's diagonals cross, ${tower.y.toFixed(1)} m, ${CRUISE.speed0} m/s, is a wreck (${fly.end.flags}; host saw ${kinds})`);
       } else {
-        fail(`towers: a Skyhunter level into tower ${tower.id} flew on: ${JSON.stringify(fly.end)}; host saw ${kinds}`);
+        fail(`towers: a Bramor level into tower ${tower.id} flew on: ${JSON.stringify(fly.end)}; host saw ${kinds}`);
       }
     }
 
@@ -777,9 +796,9 @@ async function skyhunterChecks(nodeTown) {
     const y = b.base + 0.3 + 2.5;
     const back = b.hw + 30;
     await hold(page, {
-      x: b.x - ux * back, y, z: b.z - uz * back, yaw: (Math.atan2(-ux, -uz) * 180) / Math.PI, pitch: 0, vx: ux * 16, vy: 0, vz: uz * 16, fresh: true,
+      x: b.x - ux * back, y, z: b.z - uz * back, yaw: (Math.atan2(-ux, -uz) * 180) / Math.PI, pitch: 0, vx: ux * CRUISE.speed0, vy: 0, vz: uz * CRUISE.speed0, fresh: true,
     });
-    await page.evaluate('window.__stick(0, 0, 0, 0.6)');
+    await page.evaluate(`window.__stick(0, 0, 0, ${CRUISE.duty})`);
     await page.sleep(300);
     const c0 = await js(page, CRAFT);
     await page.evaluate('window.__releasePose()');
@@ -802,7 +821,7 @@ async function skyhunterChecks(nodeTown) {
     console.log(`  renumber: OSM ${b.osm}, gen ${gen0} to ${end.mapGen}, crash world at ${end.gen}; wall contacts ${walls}, `
       + `samples inside ${inside}, wrecked ${end.wrecked} (${end.flags}), unheld ${unheld}`);
     if (end.mapGen > gen0 && first0 !== first1 && end.gen === end.mapGen && inside === 0 && unheld === 0 && (end.wrecked || walls > 0)) {
-      ok('renumber: after a refill renumbered the set, the wall stops the Skyhunter and every host contact is one the plant holds');
+      ok('renumber: after a refill renumbered the set, the wall stops the Bramor and every host contact is one the plant holds');
     } else {
       fail('renumber: the crash world did not follow a renumbering refill (see the line above)');
     }
@@ -884,7 +903,7 @@ async function main() {
     if (!SKY_ONLY) {
       await quadChecks(town);
     }
-    await skyhunterChecks(town);
+    await wingChecks(town);
   }
   console.log('');
   if (failures.length) {

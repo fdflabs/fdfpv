@@ -1,20 +1,19 @@
 /*
- * progress.js: what a pilot has earned, what it opens, and the challenges.
+ * progress.js: what a pilot has earned and what it opens.
  *
  * The owner wants plane racing casual, finishable by a small child. So
  * there is one number, XP, earned by finishing things, and a level it
  * makes; each level opens something: a plane, a power option, a paint
- * scheme, or anything another module registers. And there is a short list
- * of challenges, each a small story about one plane or one setup ("round a
- * course on the small tank before the engine quits"), worth a lump of XP.
+ * scheme, or anything another module registers. The short list of
+ * challenges, each a small story about one plane or one setup, left with
+ * Flight Club in the combat-only cut (2026-10-20); its XP paid stays.
  *
  * THE CURVE IS GENTLE AND FAST AT THE START. A new pilot has three planes
  * that forgive everything (the Timber, the Cub, the Slow Stick). One lap
  * of any course is worth a level at first: level 2 is 60 XP and a first
  * lap on a course is 40 plus a 40 bonus the first time on that course, so
- * the first lap ever opens the Kadet. The levels then stretch, but a
- * challenge is worth two or three laps, so a child who flies for twenty
- * minutes has seen most of the hangar. UNLOCK ALL (settings, and the top
+ * the first lap ever opens the Kadet. The levels then stretch, so a child
+ * who flies for twenty minutes has seen most of the hangar. UNLOCK ALL (settings, and the top
  * of the hangar's Challenges tab) opens everything for anyone who wants it
  * now; a profile from before progression existed starts with it on, so no
  * pilot loses a plane they were already flying.
@@ -33,7 +32,7 @@
  * decal that has not merged simply does not appear.
  *
  * THE ACHIEVEMENTS (lap XP and a course's first lap, medals, bests, the
- * challenges, the aircraft challenges, places found and the firsts) are
+ * aircraft challenges, places found and the firsts) are
  * paid by one function, awardFlight, from the flight's event log
  * (src/game/events.js), each once. RunWatch only detects what a frame
  * shows and the log then says: a landing, the engine quitting, LOW
@@ -61,7 +60,6 @@ import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
-import { tierUnlockables } from '../../configs/surfaces.js';
 import {
   DECAL_KINDS, DECAL_KIND_IDS, FINISHES, SHOP_DECALS, SHOP_FINISHES,
 } from '../../configs/paint.js';
@@ -88,62 +86,13 @@ export const FIRST_LAP_XP = 40;
 export const MEDAL_XP = 40;
 
 /* The planes a new pilot has, and the level each other one opens at.
- * Float planes go with their land plane. Quads are never locked, and nor
- * is the Striker, the war's own fixed wing: it flies there beside the
- * combat quads, open from the start as they are. */
-export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180', 'striker2500'];
-/* The Ugly Stik at 3, with the Skyhunter: the step after the Kadet, as
- * the sport plane has always been the second model after the trainer.
- * The first on the curve with ailerons that does not fly itself (RCM:
- * "no hands off inherent stability like a J-3 Cub", "not a beginner's
- * trainer"), but on RCM's travel limits it rolls at under 100 deg/s,
- * stalls straight and lands on a tricycle at 11 m/s: nothing it does
- * needs the P-51's rudder. The P-51 at 7: it has the heaviest wing
- * loading here but one (65 N/m^2 against the Timber's 46 and the Kadet's
- * 36), it swings on the take off roll until the pilot's rudder holds it,
- * and it drops a wing at the stall; FMS rate it for an intermediate
- * pilot. The F-16 last: the fastest here, the hottest landing, and a fan whose thrust has to be planned ahead of the
- * stick; Motion RC sells the 6S version "for skilled intermediate or
- * advanced pilots with experience flying at least two EDFs", the only
- * kit here whose maker asks for experience on its own kind. The Zagi
- * with the Bombshell: past the trainers and the Skyhunter, because it has
- * no rudder, rolls fast and answers the smallest touch in pitch, but
- * before the Radian's thermals and the heavier machines, because it is
- * light, slow to stall, and slides in on its belly anywhere; Zagi sold it
- * to beginners as much as to combat pilots. The NRJ at 6, beside the
- * Bramor: the Radian at 5 teaches the thermals with a motor to climb back
- * on, and the discus launch glider takes the motor away. It is gentle to
- * fly (docs/DLG-STAGE1.md) and hard to keep up, which is a soaring skill
- * and not a stick one, so it sits after the Radian and ahead of the fast
- * and the aerobatic. Shared rather than slotted in, so no plane a pilot
- * already has goes back behind a lock. The Tiger Moth at 4 with the
- * Bombshell and the Zagi: slow, and its stall drops the nose and no wing, but it asks for the rudder in every turn (its ailerons on
- * the bottom wing alone yaw it the wrong way) and on every take off (a
- * taildragger on a two stroke's torque), and Great Planes say it "does
- * not, however, possess the self-recovery characteristics of a primary
- * R/C trainer". Nothing it does needs the P-51's speed. The Edge 540,
- * the Extra 300, the Pitts S-1S, the Wot 4 and the Quickie 500 held 10,
- * 9, 8, 4 and 7 until they were removed on 2026-09-29 at the owner's
- * request; the F-16 stays at 11 rather than move, since where a plane
- * opens is the owner's call. The Extra 300 3D came back on 2026-10-08
- * (docs/FLIGHTMODEL.md) at its old 9: a hover and a torque roll are
- * skills the P-51 does not teach. The Night Timber X
- * (docs/NIGHTTIMBER-STAGE1.md) opens at 6, the lead's call: the Timber's
- * STOL wing a starter pilot knows, with the 3D the Extra asks for. The
- * Hercules opens at 8 (the lead's decision, 2026-10-08,
- * docs/HERCULES-CONTRACT.md). Extreme Flight's CAP 580
- * (docs/CAP580-STAGE1.md) opens at 10, the lane's call by analogy with
- * the Extra (2026-10-11): the Extra's hover, torque roll and harrier on a
- * balsa IMAC airframe 2.4 times its mass and 1.6 times its wing loading,
- * faster and heavier in every figure, so after the Extra at 9 and before
- * the F-16 at 11. The Slick 580
- * (docs/SLICK-STAGE1.md) opens last, at 12, its lane's call by analogy for the
- * biggest and most advanced: the Extra's hover and torque roll with
- * twelve and a half kilograms of momentum, and its maker asks for
- * experience, "If this is your first aerobatic RC aircraft, it is highly
- * recommended that you recruit an experienced giant scale RC enthusiast"
- * (the 120cc build guide), as Motion RC asks of the F-16's. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, nighttimber1200: 6, p51d1450: 7, extra3d1308: 9, hercules3077: 8, cap1702: 10, f16878: 11, slick2680: 12 };
+ * Quads are never locked, and nor is the Striker, the war's own fixed
+ * wing: it flies there beside the combat quads, open from the start as
+ * they are. The Bramor opened at 6 on the recreational planes' curve; with
+ * those planes gone (2026-10-21) there is no curve to sit on, and it is
+ * open from the start beside the Striker (lead decision, the PDCS cut). */
+export const STARTER_PLANES = ['striker2500', 'bramor2300'];
+export const PLANE_LEVELS = {};
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;
@@ -152,38 +101,10 @@ const FREE_DECALS = 3;
 /* An item another module registers without a level. */
 const DEFAULT_LEVEL = 3;
 
-/* Gates that a touch counts against: a gate's pipe, a wide gate, a
- * pylon, a sky hoop's rim (src/game/collide.js KINDS). */
-export const RIM_KINDS = ['gate', 'banner', 'pylon', 'hoop'];
-
 /* How long the craft must be off the ground to count as flying, and on
  * it, whole and still in one piece, to count as landed: sim ms. */
 const AIRBORNE_MS = 2000;
 const LANDED_MS = 1000;
-/* Hoops in a row for the clean streak. */
-export const STREAK_HOOPS = 10;
-
-/*
- * THE CHALLENGES (COMPLETENESS.md item 28): each a row, judged on one
- * event type (`on`) by a condition (`when`) over the run so far
- * (challengeRun), and only on the plane and power it names (fits).
- * `plane` is the plane (by family) it is flown on, or null for any;
- * `power` narrows it to a kind of power. The words are
- * progress.challenge.<id> and progress.challenge.<id>_note.
- */
-export const CHALLENGES = [
-  { id: 'first_course', plane: null, xp: 40, on: 'lap', when: () => true },
-  { id: 'timber_clean', plane: 'timber1500', xp: 120, on: 'lap', when: (r) => r.lapClean },
-  { id: 'hoops_10', plane: null, xp: 150, on: 'gate', when: (r) => r.streak >= STREAK_HOOPS },
-  { id: 'slowstick_three', plane: 'slowstick1180', xp: 120, on: 'lap', when: (r) => r.laps >= 3 },
-  { id: 'kadet_small_tank', plane: 'kadet1981', power: 'glow', xp: 200, on: 'lap', when: (r) => r.ctx.smallestPack && !r.engineOut },
-  { id: 'deadstick', plane: null, power: 'electric', xp: 200, on: 'landing', when: (r) => r.lowBattery && !r.brokeSince },
-  { id: 'bombshell_glide', plane: 'bombshell1118', power: 'glow', xp: 200, on: 'landing', when: (r) => r.engineOut && !r.brokeSince },
-];
-
-export function challengeById(id) {
-  return CHALLENGES.find((c) => c.id === id) ?? null;
-}
 
 export function levelStart(n) {
   if (n <= LEVEL_XP.length) {
@@ -377,19 +298,15 @@ export function countMap(o) {
 
 /*
  * A flight's events folded into progress, in place, from the event at
- * `from` on: the COUNTED ones per aircraft, and a room game's `round`
- * {game, world} as played there. Returns { at, counted }: where the next
- * fold starts, and how many events it took. Folding the same log again
- * from `at` takes nothing twice.
+ * `from` on: the COUNTED ones per aircraft. A room game's `round`, which
+ * Streamer Combat and Catch the Ace! logged until the combat-only cut
+ * (2026-10-20), folds as nothing: their `played` flags stay as stored.
+ * Returns { at, counted }: where the next fold starts, and how many events
+ * it took. Folding the same log again from `at` takes nothing twice.
  */
 export function foldEvents(progress, events, from = 0) {
   let counted = 0;
   for (const e of events.slice(from)) {
-    if (e.type === 'round' && PLAYED_GAMES.includes(e.game) && WORLDS.includes(e.world)) {
-      progress.played ??= {};
-      progress.played[`${e.game}:${e.world}`] = true;
-      counted += 1;
-    }
     const map = COUNTED[e.type];
     /* An Interior match's result logged for its debrief and paid before
      * (src/ui/opscampaign.js record) is not completed again. */
@@ -489,10 +406,6 @@ export function bestsOf(events, from = 0) {
   const start = events.length && events[0].type === 'spawned' ? events[0].simMs : null;
   for (let i = from; i < events.length; i += 1) {
     const e = events[i];
-    if (e.type === 'round' && PLAYED_GAMES.includes(e.game) && WORLDS.includes(e.world) && Number.isInteger(e.points) && e.points > 0) {
-      out.push({ key: `${e.game}:${e.world}`, value: e.points, at: i });
-      continue;
-    }
     const cls = e.type === 'lap' ? classOf(e.airframe) : null;
     if (!cls || typeof e.course !== 'string' || !e.course || !Number.isFinite(e.ms) || e.ms <= 0 || start == null || e.ms > e.simMs - start) {
       continue;
@@ -641,12 +554,6 @@ export function unlockables() {
       });
     }
   }
-  /* The control surface tiers (configs/surfaces.js): Sport, 3D and
-   * Extreme a level, two and three after their plane, earned and never
-   * bought, since they change how it flies. */
-  for (const t of tierUnlockables()) {
-    add({ key: itemKey('surface', t.id, t.airframe), kind: 'surface', id: t.id, airframe: t.airframe, level: planeLevel(t.airframe) + t.step, name: t.name });
-  }
   /* The paint shop's (src/ui/hangar-paint.js), on every plane alike: the
    * first finish and the first few decals are free, so a new pilot can
    * paint a number and a stripe on the first day, and the rest open two a
@@ -709,7 +616,7 @@ export function opensAt(n) {
 /*
  * XP added to progress, in place: what it opened comes back as events,
  * the level first, then each item, in catalogue order. `why` is what the
- * XP is for: { kind: 'lap', course } or { kind: 'challenge', id }.
+ * XP is for, as { kind: 'lap', course } or the like.
  */
 export function addXp(progress, xp, why) {
   const before = levelOf(progress.xp);
@@ -754,16 +661,6 @@ export function awardMedal(progress, key, medal) {
   return [{ type: 'medal', key, medal }, ...addXp(progress, MEDAL_XP * steps.length, { kind: 'medal', key, medal })];
 }
 
-/* A challenge done: its XP once, and nothing the second time. */
-export function awardChallenge(progress, id) {
-  const c = challengeById(id);
-  if (!c || progress.challenges[id]) {
-    return [];
-  }
-  progress.challenges[id] = true;
-  return [{ type: 'challenge', id }, ...addXp(progress, c.xp, { kind: 'challenge', id })];
-}
-
 /*
  * FIRSTS (PROGRESSION.md section 3, docs/ECONOMY.md): a thing done for
  * the first time pays XP once, and the same thing again pays nothing. The
@@ -782,40 +679,27 @@ export const FIRST_XP = { win: 100, star: 40, flight: 40, ten: 60, hour: 150, le
 export const MILESTONE_S = { flight: 1, ten: 600, hour: 3600 };
 const MISSION_IDS = new Set([...ACT1, ...INTERIOR].map((m) => m.id));
 /*
- * A ROOM GAME FINISHED, ONCE PER WORLD (PROGRESSION.md section 3): a
- * Streamer Combat round or a Catch the Ace! match this pilot had a seat
- * in, at its end, on each world. Kept as `played`, flags of
- * '<game>:<world>' (folded from the log's `round` event, foldEvents),
- * and paid as the first 'game:<game>:<world>'. FIRST_XP.game is the
- * lead's ruling of 2026-10-13: the Flight Club activity firsts are a
- * course's first lap (FIRST_LAP_XP, 40) and a lesson (60), and the lower
- * pays. The worlds are the registry's (src/maps/registry.js MAPS less
- * the track seat, which is no world), listed here because the registry
- * pulls the string table and the server reads this file; the selftest
- * holds the two equal.
+ * FIRST_XP.game is the lead's ruling of 2026-10-13: the Flight Club
+ * activity firsts are a course's first lap (FIRST_LAP_XP, 40) and a lesson
+ * (60), and the lower pays. It paid a room game finished once per world
+ * (the first 'game:<game>:<world>', from `played`) until Streamer Combat
+ * and Catch the Ace! left in the combat-only cut (2026-10-20); a first
+ * paid then stays paid (progress.firsts, the wallet's grants), and
+ * PLACE_XP still pays it.
  */
-export const PLAYED_GAMES = ['combat', 'tag'];
-export const WORLDS = ['alps', 'swiss2', 'itaipu', 'interior'];
 const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) => af.id);
 
 /* Every first the facts show, paid or not: [{ key, xp }], in a fixed order. */
 /*
  * A LESSON PAYS ONLY IF IT WAS FLOWN (lead decision 2026-10-07): "I fly
- * already" (src/game/training.js SKIPS) marks the lessons it covers passed
- * in `lessons` without their being flown; the lesson actually flown is
- * also flagged in `lessonsFlown`, and only a flagged one is a first, so a
- * skip is no shortcut to XP or tokens. A covered lesson flown later is
- * flagged then and pays then.
+ * already" marked the lessons it covered passed in `lessons` without
+ * their being flown, until it left with Flight Club's lessons (the
+ * combat-only cut, 2026-10-20); the lesson actually flown is also
+ * flagged in `lessonsFlown`, and only a flagged one is a first, so a skip
+ * was no shortcut to XP or tokens.
  */
-export function firstsOf({ campaign = null, seconds = {}, lessons = {}, flown = {}, played = {} } = {}) {
+export function firstsOf({ campaign = null, seconds = {}, lessons = {}, flown = {} } = {}) {
   const out = [];
-  for (const g of PLAYED_GAMES) {
-    for (const w of WORLDS) {
-      if (isRecord(played) && played[`${g}:${w}`] === true) {
-        out.push({ key: `game:${g}:${w}`, xp: FIRST_XP.game });
-      }
-    }
-  }
   for (const l of LESSONS) {
     if (isRecord(lessons) && Number.isFinite(lessons[l.id]) && lessons[l.id] > 0 && isRecord(flown) && flown[l.id] === true) {
       out.push({ key: `lesson:${l.id}`, xp: FIRST_XP.lesson });
@@ -858,7 +742,6 @@ export function everyFirst() {
     seconds: Object.fromEntries(MASTERED.map((id) => [id, MILESTONE_S.hour])),
     lessons: Object.fromEntries(LESSONS.map((l) => [l.id, 1])),
     flown: Object.fromEntries(LESSONS.map((l) => [l.id, true])),
-    played: Object.fromEntries(PLAYED_GAMES.flatMap((g) => WORLDS.map((w) => [`${g}:${w}`, true]))),
   });
 }
 
@@ -924,8 +807,8 @@ export function awardPlace(progress, world, id) {
  *
  *   landings   LANDING_STREAK landings in one flight with no crash
  *              between, on the one aircraft. 3, the approaches lesson's
- *              three (src/game/training.js wing_approaches), read from
- *              the lesson so the two never disagree.
+ *              three (wing_approaches, in git history since the
+ *              combat-only cut).
  *   lap        a lap of a casual sky track (the lap event's kind
  *              'casual', a track whose size is fixed: src/builder/
  *              course.js CASUAL, 8 gates 45 m apart for a quad, 400 m
@@ -933,21 +816,18 @@ export function awardPlace(progress, world, id) {
  *              class's pace gives: the track's length over that pace,
  *              rounded up to the second. A multirotor's pace is the AI
  *              pilot's measured one, 13 m/s, the fastest it follows the
- *              plant through gates (scripts/aipilot-harness.js; the
+ *              plant through gates (scripts/aipilot-harness.js, in git
+ *              history since the combat-only cut, 2026-10-19; the
  *              casual quad oval is sized to that line's tightest turn):
  *              28 s. A plane's and a wing's is the middle of its own
  *              measured stall and top speed (configs/airframes.js
  *              `stall` and `topSpeed`, each held by its stage's checks),
- *              a brisk cruise. A glider's is its best glide, the speed
- *              its plant trims at (docs/GLIDER-STAGE1.md, the Radian's
- *              7.7 m/s; docs/DLG-STAGE1.md, the NRJ's 5.13 m/s), since a
- *              glider's top speed is a dive or, on the NRJ, the throw: a
- *              lap at best glide asks for lift, which is the glider's
- *              skill. The lane's call on the paces, reversible.
+ *              a brisk cruise. The lane's call on the paces,
+ *              reversible. A glider had its best glide until the gliders
+ *              left (2026-10-21): the class has no row and no amounts.
  *   endurance  one flight of ENDURANCE_S in the air, from the take off to
  *              the landing that ends it, without a crash: half the ten
- *              minute milestone (MILESTONE_S.ten), 300 s, and the whole
- *              of it, 600 s, on a glider, whose flight is soaring.
+ *              minute milestone (MILESTONE_S.ten), 300 s.
  *
  * The brief named a trick too; the event log carries no trick (the
  * detectors land them on the freestyle scorer, src/main.js), so the
@@ -958,19 +838,19 @@ export function awardPlace(progress, world, id) {
  */
 export const AIRCRAFT_CHALLENGE_IDS = ['landings', 'lap', 'endurance'];
 export const AIRCRAFT_CHALLENGE_XP = FIRST_XP.lesson;
-export const LANDING_STREAK = LESSONS.find((l) => l.id === 'wing_approaches').steps.length;
+/* The approaches lesson's three landings, held as a number since that
+ * lesson left with Flight Club's lessons (the combat-only cut, 2026-10-20). */
+export const LANDING_STREAK = 3;
 /* src/builder/course.js CASUAL: gates times spacing; the selftest holds
  * them equal (that module draws on the builder, which Node's server side
  * readers of this file do not load). */
 export const CASUAL_LAP_M = { quad: 8 * 45, plane: 8 * 400 };
 export const QUAD_PACE = 13;
-export const BEST_GLIDE = { radian2000: 7.7, nrj1490: 5.13 };
 const midRange = (af) => (af.stall + af.topSpeed) / 2;
 export const CLASS_CHALLENGES = Object.freeze({
   multirotor: { lapM: CASUAL_LAP_M.quad, pace: () => QUAD_PACE, airS: MILESTONE_S.ten / 2 },
   plane: { lapM: CASUAL_LAP_M.plane, pace: midRange, airS: MILESTONE_S.ten / 2 },
   wing: { lapM: CASUAL_LAP_M.plane, pace: midRange, airS: MILESTONE_S.ten / 2 },
-  glider: { lapM: CASUAL_LAP_M.plane, pace: (af) => BEST_GLIDE[af.id], airS: MILESTONE_S.ten },
 });
 
 /* An aircraft's three amounts, { landings, lapMs, airMs }, or null for an
@@ -1065,81 +945,13 @@ export function courseKind(id, progress) {
   return progress && progress.casual && progress.casual[id] ? 'casual' : 'built';
 }
 
-/* Whether challenge c can be flown with the plane and power in ctx. */
-export function fits(c, ctx) {
-  if (!ctx || !ctx.fixedWing && (c.plane || c.power)) {
-    return false;
-  }
-  if (c.plane && liveryKey(ctx.airframe) !== c.plane) {
-    return false;
-  }
-  return !c.power || ctx.power === c.power;
-}
-
-/*
- * A run's state as the challenges read it, folded from the log: what it
- * is flown on (ctx, the `seated` event's { airframe, fixedWing, power,
- * smallestPack }), laps closed, gates in a row with no rim touched or
- * crash between, whether this lap has touched a rim or crashed, whether
- * the engine has quit or LOW BATTERY shown, and whether the craft broke
- * since the later of those. A new `seated` is a new run.
- */
-export function challengeRun(ctx = null) {
-  return { ctx, laps: 0, streak: 0, lapClean: true, engineOut: false, lowBattery: false, brokeSince: false };
-}
-
-function broke(run) {
-  run.streak = 0;
-  run.lapClean = false;
-  run.brokeSince = true;
-}
-
-/*
- * One event into a run's state, in place: the ids of the challenges it
- * makes true, in CHALLENGES order, which may include ones already done
- * (awardChallenge pays those nothing). A `seated` with `crashed` was
- * seated mid crash, which the run reads as a crash: the old judge was
- * told the crash flag fresh after a new seat.
- */
-export function challengesOn(run, e) {
-  if (e.type === 'seated') {
-    Object.assign(run, challengeRun({ airframe: e.airframe, fixedWing: e.fixedWing, power: e.power, smallestPack: e.smallestPack }));
-    if (e.crashed) {
-      broke(run);
-    }
-    return [];
-  }
-  if (e.type === 'crash') {
-    broke(run);
-  } else if (e.type === 'engine_out') {
-    run.engineOut = true;
-    run.brokeSince = false;
-  } else if (e.type === 'battery_low') {
-    run.lowBattery = true;
-    run.brokeSince = false;
-  } else if (e.type === 'touch' && RIM_KINDS.includes(e.kind)) {
-    run.streak = 0;
-    run.lapClean = false;
-  } else if (e.type === 'gate') {
-    run.streak += 1;
-  } else if (e.type === 'lap') {
-    run.laps += 1;
-  }
-  const out = CHALLENGES.filter((c) => c.on === e.type && fits(c, run.ctx) && c.when(run)).map((c) => c.id);
-  if (e.type === 'lap') {
-    run.lapClean = true;
-  }
-  return out;
-}
-
 /*
  * THE ONE PLACE ACHIEVEMENTS ARE PAID (COMPLETENESS.md item 28): a
  * flight's log from the event at `from` on, in log order, into progress
  * in place. For each event: a lap's XP (awardLap, a course's first lap
  * once) and its medal (awardMedal), the bests it sets (bestsOf), the
- * aircraft challenges it does (aircraftChallengesOf), the challenges it
- * makes true (challengesOn over `run`, the run's state, carried across
- * the flights of one run by the caller) and a place `found`; then the
+ * aircraft challenges it does (aircraftChallengesOf) and a place `found`;
+ * then the
  * counts (foldEvents), and last the firsts, which are read from the
  * pilot's record and not from the log: a mission's win and stars are the
  * campaign's (merged from every computer), an aircraft's milestones its
@@ -1152,7 +964,7 @@ export function challengesOn(run, e) {
  * from there pays nothing twice. Returns { at, counted, awards }: awards
  * a list of groups, each one thing paid and its XP's events, in order.
  */
-export function awardFlight(progress, events, from, run, outside = null) {
+export function awardFlight(progress, events, from, outside = null) {
   const awards = [];
   const bests = bestsOf(events, from);
   const feats = aircraftChallengesOf(events, from);
@@ -1175,9 +987,6 @@ export function awardFlight(progress, events, from, run, outside = null) {
     for (const c of feats.filter((x) => x.at === i)) {
       add(awardAircraftChallenge(progress, c.airframe, c.id));
     }
-    for (const id of challengesOn(run, e)) {
-      add(awardChallenge(progress, id));
-    }
     if (e.type === 'found') {
       add(awardPlace(progress, e.world, e.id));
     }
@@ -1185,7 +994,7 @@ export function awardFlight(progress, events, from, run, outside = null) {
   const { at, counted } = foldEvents(progress, events, from);
   if (outside) {
     add(awardFirsts(progress, {
-      ...outside, lessons: progress.lessons, flown: progress.lessonsFlown, played: progress.played,
+      ...outside, lessons: progress.lessons, flown: progress.lessonsFlown,
     }));
   }
   return { at, counted, awards };

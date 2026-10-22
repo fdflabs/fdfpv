@@ -140,12 +140,8 @@ if (DUMP) {
 }
 const { Ui } = await import('../src/ui/ui.js');
 const { DEFAULTS } = await import('../src/ui/settings.js');
-const { writeShareImport, writeBind, writePendingTime, writePostedBest } = await import('../src/share/trackseat.js');
-const { layoutFingerprint } = await import('../src/share/listing.js');
 const { normaliseRates, RATE_DEFAULTS } = await import('../configs/rates.js');
 const { setPidSlider, setPidsExpert, SLIDER_KEYS, PID_AXES, PID_FIELDS } = await import('../configs/pids.js');
-
-const TRACK_DOC = JSON.parse(readFileSync(join(root, 'tests', 'fixtures', 'map-track-v4.json'), 'utf8'));
 
 /* ---- seeding ---- */
 
@@ -176,22 +172,6 @@ function seedPresets(presets) {
   store.set('fdfpv.rates.library.v1', JSON.stringify(library));
 }
 
-/* A track of the pilot's own in the seat: flyable, on no board. */
-function seedLocalSeat() {
-  writeShareImport({ id: TRACK_DOC.id, name: TRACK_DOC.name, document: TRACK_DOC, local: true });
-}
-
-/* A board track in the seat, bound to the board under its own layout
- * (so a time can be posted) or under another one (so it cannot). */
-function seedBoardSeat({ moved = false, author = 'Ace' } = {}) {
-  writeShareImport({
-    id: 'board-golden', name: TRACK_DOC.name, author, board: 'https://board.test', document: TRACK_DOC, local: false,
-  });
-  writeBind('board-golden', {
-    board: 'https://board.test', author, nameOnBoard: TRACK_DOC.name, layoutFingerprint: moved ? 'moved' : layoutFingerprint(TRACK_DOC),
-  });
-}
-
 /* The state every scenario starts from. The hooks main.js installs are
  * recorders; the methods other modules install on Ui.prototype are the
  * real ones, called with this state. */
@@ -209,23 +189,7 @@ function makeUi(fields = {}) {
     padInfo: null,
     gpuInfo: null,
     pidsLive: null,
-    standingsFor: null,
-    standingsTimes: [],
-    resultsFastest: null,
-    timePosted: null,
-    osdMode: 'race',
-    freestyleRun: null,
-    runPosted: null,
     ratesNotice: '',
-    cardSubject: null,
-    newTrackOpen: false,
-    cloudNext: null,
-    localCourses: [],
-    cloudCourses: [],
-    boardCourses: [],
-    coursesLede: new FakeElement('p'),
-    liveRow: null,
-    ghostRow: null,
     warLobbyOn: false,
     roomResults: false,
     updateBar: { hidden: true },
@@ -237,7 +201,6 @@ function makeUi(fields = {}) {
     everyoneFlightAsked: true,
     everyoneFlightS: null,
     stickProbe: null,
-    trickList: null,
     fc: { items: () => [{ label: 'bench row', action: 'fc-row' }] },
     friendsRow: null,
     friendsRows: null,
@@ -350,7 +313,6 @@ function recordScenario(scenario, locale) {
     items: items.map((it, i) => ({ ...plain(it), drives: drives(scenario, locale, i, it) })),
   };
   if (calls.length) entry.buildCalls = [...calls];
-  if (ui.screen === 'courses') entry.lede = ui.coursesLede.textContent;
   /* The bar stops and the lit button, at every cursor position. */
   const bars = ui.barStops().map(plain);
   if (bars.length) {
@@ -385,35 +347,10 @@ const friendsRowsStarted = () => [
   ...friendsRowsPlain(),
 ];
 
-/* A live row and a ghost row the way main.js hands them in. */
-const liveRow = () => ({ value: 'Off', note: 'Nobody is watching.', cycle: (d) => { calls.push(`live.cycle:${d}`); } });
-const ghostRow = () => ({ value: 'Best lap', note: 'Your best, beside you.', cycle: (d) => { calls.push(`ghost.cycle:${d}`); } });
-
-const localCourses = () => [
-  { id: 'own-1', name: 'Barn loop', map: 'alps', gates: 6, planes: [] },
-  { id: 'own-2', name: 'One gate', map: 'swiss2', gates: 1, planes: ['cub1400'] },
-  { id: 'own-3', name: 'Empty field', map: 'swiss2', gates: 0, planes: [] },
-];
-const cloudCourses = () => [
-  { id: 'cloud-1', name: 'Valley run', map: 'swiss2', gates: 8, planes: ['cub1400'], author: 'Bea' },
-  { id: 'cloud-2', name: 'Nameless', map: 'swiss2', gates: 4, planes: [], author: '' },
-  { id: 'cloud-3', name: 'Old world', map: 'yellowstone', gates: 4, planes: [], author: 'Cy' },
-];
-const boardCourses = () => [
-  { id: 'board-1', name: 'Hung track', map: 'alps', gates: 5, planes: [], author: 'Dee' },
-  { id: 'board-2', name: 'No author', map: 'alps', gates: 5, planes: [], author: '' },
-];
-
 function pidsLiveFor(s, baselineMode = 'RPY') {
   const pids = Object.fromEntries(PID_AXES.map((axis) => [axis, Object.fromEntries(PID_FIELDS.map((f, k) => [f, 40 + k * 7]))]));
   return { tune: s.tune, baselineMode, baseline: Object.fromEntries(SLIDER_KEYS.map((k) => [k, 100])), pids };
 }
-
-const standingsTimes = () => [
-  { id: 't1', lapMs: 61234, name: 'Ace', hasGhost: false },
-  { id: 't2', lapMs: 62345, name: '', hasGhost: true },
-  { id: 't3', lapMs: 63456, name: 'Cy', hasGhost: true },
-];
 
 /*
  * Each scenario builds a fresh Ui from scratch (and reseeds storage), so
@@ -442,22 +379,18 @@ function functionsOf(fields) {
 }
 
 const SCENARIOS = [
-  /* The title: the gate (home, each hub), and the menu behind it. */
+  /* The title: the gate (home, with and without rooms, and the Hangar), and the menu behind it. */
   scenario('title-gate-home', { fields: { mode: null, craftGate: true } }),
   scenario('title-gate-home-rooms', { fields: { mode: null, craftGate: true, friendsRow: friendsRowOut, titleRooms: (home) => [{ label: `Rooms panel home=${home}`, lobby: 'room', action: 'lobby:owls' }] } }),
-  scenario('title-gate-club', { fields: { mode: null, craftGate: true, hub: 'club', friendsRow: friendsRowOut, titleRooms: (home) => [{ label: `Rooms panel home=${home}`, lobby: 'room', action: 'lobby:owls' }], padInfo: padGuessing } }),
-  scenario('title-gate-ops', { fields: { mode: null, craftGate: true, hub: 'ops', padInfo: padNoButtons } }),
-  scenario('title-gate-ops-rooms', { fields: { mode: null, craftGate: true, hub: 'ops', friendsRow: friendsRowOut } }),
+  scenario('title-gate-home-pad', { fields: { mode: null, craftGate: true, padInfo: padNoButtons } }),
   scenario('title-gate-hangar', { fields: { mode: null, craftGate: true, hub: 'hangar', padInfo: padNoYaw } }),
-  scenario('title-gate-plane', { settings: { airframe: 'cub1400' }, fields: { mode: null, craftGate: true } }),
+  scenario('title-gate-plane', { settings: { airframe: 'bramor2300' }, fields: { mode: null, craftGate: true } }),
   scenario('title-race-no-seat', { fields: { padInfo: padFine } }),
-  scenario('title-race-seated', { seed: seedLocalSeat, fields: { padInfo: padGuessing } }),
-  scenario('title-race-first-flight', { seed: seedLocalSeat, fields: { firstRun: true } }),
   scenario('title-race-first-no-seat', { fields: { firstRun: true } }),
-  scenario('title-race-named', { seed: () => { store.set('webfpv.pilot.name', 'Ace Pilot'); seedBoardSeat(); }, fields: { friendsRow: friendsRowInRoom, inRoom: () => true } }),
-  scenario('title-freestyle', { settings: { map: 'swiss2', freestyleMap: 'swiss2' }, fields: { mode: 'freestyle', firstRun: true } }),
+  scenario('title-race-named', { seed: () => { store.set('webfpv.pilot.name', 'Ace Pilot'); }, fields: { friendsRow: friendsRowInRoom, inRoom: () => true } }),
+  scenario('title-freestyle', { settings: { map: 'interior', freestyleMap: 'interior' }, fields: { mode: 'freestyle', firstRun: true } }),
   scenario('title-freestyle-not-loaded', { settings: { map: 'track' }, fields: { mode: 'freestyle' } }),
-  scenario('title-plane', { settings: { airframe: 'cub1400', tune: 'cub-manual' }, fields: {} }),
+  scenario('title-plane', { settings: { airframe: 'bramor2300', tune: 'wing-manual' }, fields: {} }),
   scenario('title-update-bar', { fields: { updateBar: { hidden: false } } }),
   scenario('title-both-bars', { fields: { updateBar: { hidden: false }, roomBar: { hidden: false }, roomBarView: { button: 'Rejoin', text: 'OWLS is still open.' } } }),
   scenario('title-room-bar-no-button', { fields: { roomBar: { hidden: false }, roomBarView: { button: '', text: 'nothing' } } }),
@@ -470,32 +403,18 @@ const SCENARIOS = [
   scenario('friends-out', { fields: { screen: 'friends', friendsRow: friendsRowOut, friendsRows: friendsRowsPlain } }),
   scenario('friends-in-race', { fields: { screen: 'friends', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
   scenario('friends-in-started', { fields: { screen: 'friends', friendsRow: friendsRowInRoom, friendsRows: friendsRowsStarted, inRoom: () => true } }),
-  scenario('friends-in-freestyle', { settings: { map: 'swiss2' }, fields: { screen: 'friends', mode: 'freestyle', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
-  scenario('friends-in-freestyle-shown', { settings: { map: 'swiss2' }, fields: { screen: 'friends', mode: 'freestyle', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, craftShown: () => '7inch' } }),
-  scenario('friends-paused-freestyle', { settings: { map: 'swiss2' }, fields: { screen: 'friends', mode: 'freestyle', returnTo: 'paused', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain } }),
-  scenario('friends-war', { settings: { map: 'swiss2' }, fields: { screen: 'friends', mode: 'freestyle', warLobbyOn: true, friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
+  scenario('friends-in-freestyle', { settings: { map: 'interior' }, fields: { screen: 'friends', mode: 'freestyle', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
+  scenario('friends-in-freestyle-shown', { settings: { map: 'interior' }, fields: { screen: 'friends', mode: 'freestyle', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, craftShown: () => '7inch' } }),
+  scenario('friends-paused-freestyle', { settings: { map: 'interior' }, fields: { screen: 'friends', mode: 'freestyle', returnTo: 'paused', friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain } }),
+  scenario('friends-war', { settings: { map: 'interior' }, fields: { screen: 'friends', mode: 'freestyle', warLobbyOn: true, friendsRow: friendsRowInRoom, friendsRows: friendsRowsPlain, inRoom: () => true } }),
   scenario('friends-war-paused', { fields: { screen: 'friends', returnTo: 'paused', warLobbyOn: true, friendsRow: friendsRowInRoom, friendsRows: friendsRowsStarted } }),
   scenario('rooms', { fields: { screen: 'rooms', roomRows: (screen) => [{ label: `rows of ${screen}`, action: 'friends-room-owls' }] } }),
   scenario('rooms-no-hook', { fields: { screen: 'rooms' } }),
   scenario('roomnew', { fields: { screen: 'roomnew', roomRows: (screen) => [{ label: `rows of ${screen}`, action: 'friends-make' }] } }),
 
-  /* My tracks. */
-  scenario('courses-empty', { fields: { screen: 'courses' } }),
-  scenario('courses-lists', { fields: { screen: 'courses', localCourses: localCourses(), cloudCourses: cloudCourses(), boardCourses: boardCourses(), cloudNext: 'page2' } }),
-  scenario('courses-plane', { settings: { airframe: 'cub1400' }, fields: { screen: 'courses', localCourses: localCourses(), cloudCourses: cloudCourses(), boardCourses: boardCourses() } }),
-  scenario('courses-chosen-local', { fields: { screen: 'courses', localCourses: localCourses(), cardSubject: 'local:own-1' } }),
-  scenario('courses-chosen-cloud', { fields: { screen: 'courses', cloudCourses: cloudCourses(), cardSubject: 'cloud:cloud-1' } }),
-  scenario('courses-chosen-cloud-retired', { fields: { screen: 'courses', cloudCourses: cloudCourses(), cardSubject: 'cloud:cloud-3' } }),
-  scenario('courses-chosen-board', { fields: { screen: 'courses', boardCourses: boardCourses(), cardSubject: 'board:board-2', newTrackOpen: true } }),
-  scenario('courses-chosen-gone', { fields: { screen: 'courses', localCourses: localCourses(), cardSubject: 'local:nope' } }),
-  scenario('courses-new-track', { fields: { screen: 'courses', localCourses: localCourses(), newTrackOpen: true } }),
-  scenario('courses-new-track-plane', { settings: { airframe: 'cub1400' }, fields: { screen: 'courses', newTrackOpen: true } }),
-
-  scenario('tricks', { fields: { screen: 'tricks' } }),
-
-  /* Freestyle: scoring off and on. */
-  scenario('freestyle-off', { settings: { map: 'swiss2' }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
-  scenario('freestyle-on-arcade', { settings: { map: 'swiss2', freestyleScoring: 'on', flightStyle: 'arcade', crashDamage: false }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
+  /* Freestyle: as it stands and arcade with crash damage off. */
+  scenario('freestyle-off', { settings: { map: 'interior' }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
+  scenario('freestyle-arcade', { settings: { map: 'interior', flightStyle: 'arcade', crashDamage: false }, fields: { screen: 'freestyle', mode: 'freestyle' } }),
 
   /* Quad: between runs, paused with and without the hot swap, the yaw tip. */
   scenario('quad', { fields: { screen: 'quad' } }),
@@ -508,7 +427,7 @@ const SCENARIOS = [
   scenario('quad-angle-max', { settings: { cameraAngle: 90, cameraFov: 120 }, fields: { screen: 'quad' } }),
   scenario('quad-adjusted', { settings: { pids: { 'betaflight-interceptor': { mode: 'sliders', sliders: { master: 120 } } } }, fields: { screen: 'quad' } }),
   scenario('quad-custom-tune', { seed: () => { store.set('fdfpv.fc.v1', '# dump'); store.set('fdfpv.fc.airframe.v1', 'interceptor'); }, settings: { tune: 'custom' }, fields: { screen: 'quad' } }),
-  scenario('quad-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab' }, fields: { screen: 'quad' } }),
+  scenario('quad-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab' }, fields: { screen: 'quad' } }),
 
   /* Pilot: guest, accounts on, signed in, mouse flight, flight time. */
   scenario('pilot-guest', { fields: { screen: 'pilot' } }),
@@ -529,58 +448,27 @@ const SCENARIOS = [
   scenario('controller-radio', { fields: { screen: 'controller', padInfo: { ...padFine, device: 'radio', profile: 'edgetx-usb', feel: { deadZone: 4, expo: 0 } } } }),
   scenario('controller-gamepad', { fields: { screen: 'controller', padInfo: { ...padFine, using: 'Joystick 1, Xbox', calibrated: false, device: 'gamepad', profile: 'standard', feel: { deadZone: 8, expo: 25 } } } }),
   scenario('controller-unknown', { fields: { screen: 'controller', padInfo: { ...padGuessing, device: 'radio', profile: 'aetr', feel: { deadZone: 0, expo: 0 } } } }),
-  scenario('controller-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab' }, fields: { screen: 'controller', padInfo: { count: 0 } } }),
+  scenario('controller-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab' }, fields: { screen: 'controller', padInfo: { count: 0 } } }),
   scenario('controller-wing', { settings: { airframe: 'striker2500' }, fields: { screen: 'controller', padInfo: { count: 0 } } }),
   scenario('flywith-gamepad', { fields: { screen: 'flywith', padInfo: { ...padFine, device: 'gamepad', profile: 'standard' } } }),
 
-  /* Standings. */
-  scenario('standings-none', { fields: { screen: 'standings' } }),
-  scenario('standings-empty', { fields: { screen: 'standings', standingsFor: { id: 'board-1', name: 'Hung track' } } }),
-  scenario('standings-times', { fields: { screen: 'standings', standingsFor: { id: 'board-1', name: 'Hung track' }, standingsTimes: standingsTimes() } }),
-  scenario('standings-ghost-first', { fields: { screen: 'standings', standingsFor: { id: 'board-1', name: 'Hung track' }, standingsTimes: standingsTimes().reverse() } }),
-
-  /* The launch card. */
-  scenario('launch-no-seat', { fields: { screen: 'launch' } }),
-  scenario('launch-seated', { seed: seedLocalSeat, fields: { screen: 'launch', liveRow: liveRow(), ghostRow: ghostRow() } }),
-  scenario('launch-arcade-weight', { seed: seedBoardSeat, settings: { flightStyle: 'arcade', weight: 120, laps: 1, packVoltage: 3.7, link: 'elrs250', crashDamage: false }, fields: { screen: 'launch' } }),
-  scenario('launch-weight-perfect', { seed: seedBoardSeat, settings: { weight: 80, laps: 5 }, fields: { screen: 'launch' } }),
-  scenario('launch-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'launch' } }),
-
-  /* Paused: alone, in a room, with the live and ghost rows, off a track. */
+  /* Paused: alone, in a room, planes. */
   scenario('paused', { fields: { screen: 'paused', returnTo: 'paused' } }),
-  scenario('paused-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'paused', returnTo: 'paused', liveRow: liveRow(), ghostRow: ghostRow(), friendsRow: friendsRowOut } }),
+  scenario('paused-rows', { settings: { map: 'interior', graphics: 'medium' }, fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowOut } }),
   scenario('paused-in-room', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, roomBar: { hidden: false }, roomBarView: { button: 'Room', text: 'OWLS' } } }),
   scenario('paused-watching', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, watching: () => true } }),
-  scenario('paused-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'paused', returnTo: 'paused' } }),
-  /* The pause menu's Flight panel: a quad, a quad with the race rows, planes. */
+  scenario('paused-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab', map: 'interior' }, fields: { screen: 'paused', returnTo: 'paused' } }),
+  /* The pause menu's Flight panel: a quad, a quad with its rows, planes. */
   scenario('quick', { fields: { screen: 'quick', returnTo: 'paused' } }),
-  scenario('quick-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused', liveRow: liveRow(), ghostRow: ghostRow() } }),
-  scenario('quick-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
-  scenario('quick-extra', { settings: { airframe: 'extra3d1308', tune: 'extra-acro', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-rows', { settings: { map: 'interior', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab', map: 'interior' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-striker', { settings: { airframe: 'striker2500', tune: 'striker-manual', map: 'interior' }, fields: { screen: 'quick', returnTo: 'paused' } }),
 
-  /* Results: a room's, freestyle, a free world, a track. */
+  /* Results: a room's, a free world, no seat. */
   scenario('results-room', { fields: { screen: 'results', roomResults: true, roomResultsRows: () => [{ label: 'Room results', action: 'friends-results' }, { label: 'Back to title', action: 'title' }], inRoom: () => true } }),
   scenario('results-room-no-rows', { fields: { screen: 'results', roomResults: true } }),
-  scenario('results-freestyle-nothing', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle' } }),
-  scenario('results-freestyle-run', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5 } } }),
-  scenario('results-freestyle-untimed', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5, timed: false } } }),
-  scenario('results-freestyle-assisted', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5, assisted: true } } }),
-  scenario('results-freestyle-posted', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5 }, runPosted: { rank: 3, score: 1234 } } }),
-  scenario('results-freestyle-posted-norank', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 1234, tricks: 5 }, runPosted: { score: 1234 } } }),
-  scenario('results-freestyle-stands', { settings: { map: 'swiss2' }, fields: { screen: 'results', osdMode: 'freestyle', freestyleRun: { total: 900, tricks: 2 }, runPosted: { improved: false, score: 1500 }, inRoom: () => true } }),
-  scenario('results-free-world', { settings: { map: 'alps' }, fields: { screen: 'results' } }),
+  scenario('results-free-world', { settings: { map: 'interior' }, fields: { screen: 'results' } }),
   scenario('results-no-seat', { fields: { screen: 'results' } }),
-  scenario('results-local-seat', { seed: seedLocalSeat, fields: { screen: 'results', resultsFastest: 61234 } }),
-  scenario('results-board-no-lap', { seed: seedBoardSeat, fields: { screen: 'results' } }),
-  scenario('results-board-lap', { seed: seedBoardSeat, fields: { screen: 'results', resultsFastest: 61234 } }),
-  scenario('results-board-new-best', { seed: () => { seedBoardSeat(); writePostedBest('board-golden', 65000); }, fields: { screen: 'results', resultsFastest: 61234 } }),
-  scenario('results-board-not-best', { seed: () => { seedBoardSeat(); writePostedBest('board-golden', 60000); }, fields: { screen: 'results', resultsFastest: 61234 } }),
-  scenario('results-board-pending', { seed: () => { seedBoardSeat(); writePendingTime({ trackId: 'board-golden', lapMs: 59999 }); }, fields: { screen: 'results' } }),
-  scenario('results-board-pending-other', { seed: () => { seedBoardSeat(); writePendingTime({ trackId: 'other', lapMs: 59999 }); }, fields: { screen: 'results' } }),
-  scenario('results-board-moved', { seed: () => seedBoardSeat({ moved: true }), fields: { screen: 'results', resultsFastest: 61234 } }),
-  scenario('results-board-posted', { seed: seedBoardSeat, fields: { screen: 'results', resultsFastest: 61234, timePosted: { ok: true, rank: 2 } } }),
-  scenario('results-board-posted-norank', { seed: seedBoardSeat, fields: { screen: 'results', resultsFastest: 61234, timePosted: { ok: true } } }),
-  scenario('results-board-plane', { seed: () => { seedBoardSeat(); writePendingTime({ trackId: 'board-golden', lapMs: 59999, craft: 'cub1400' }); }, settings: { airframe: 'cub1400', tune: 'cub-stab' }, fields: { screen: 'results' } }),
 
   /* Rates: no presets, a matching one, an unrelated one, split, notice. */
   scenario('rates-stock', { fields: { screen: 'rates' } }),
@@ -588,7 +476,7 @@ const SCENARIOS = [
   scenario('rates-preset-loaded', { seed: () => seedPresets([['Bando', RATE_DEFAULTS]]), fields: { screen: 'rates' } }),
   scenario('rates-presets-unmatched', { seed: () => seedPresets([['Bando', { ...clone(RATE_DEFAULTS), roll: { rcRate: 10, srate: 80, expo: 20 } }], ['Smooth', { ...clone(RATE_DEFAULTS), type: 'BETAFLIGHT' }]]), fields: { screen: 'rates' } }),
   scenario('rates-quick-touch', { settings: { rates: normaliseRates({ ...clone(RATE_DEFAULTS), type: 'QUICK' }) }, fields: { screen: 'rates', stickProbe: () => ({ source: 'touch' }) } }),
-  scenario('rates-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab' }, fields: { screen: 'rates' } }),
+  scenario('rates-plane', { settings: { airframe: 'bramor2300', tune: 'wing-stab' }, fields: { screen: 'rates' } }),
 
   /* PIDs: loading, sliders, a moved slider, expert, RP sliders, paused. */
   scenario('pids-loading', { fields: { screen: 'pids' } }),

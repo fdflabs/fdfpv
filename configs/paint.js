@@ -5,9 +5,8 @@
  * A livery entry (configs/liveries.js) is a scheme and a colour per
  * region. The paint shop adds two things to it:
  *
- *   finishes  a FINISH per region: gloss, matte, metallic or chrome, or
- *             film on a region of see through film, whose kit finish it
- *             is. A region left out wears what its builder made.
+ *   finishes  a FINISH per region: gloss, matte, metallic or chrome. A
+ *             region left out wears what its builder made.
  *   decals    up to MAX_DECALS stickers, each a KIND (a race number, a
  *             stripe, a roundel, a generic sponsor style shape), placed on
  *             the model where the pilot picked: a point and the surface's
@@ -53,12 +52,11 @@
 
 import { badWordIn } from '../tracks-api/words.js';
 
-/* The finishes a region can wear. `film` only on a film region, where it
- * is the kit's own; the others there make the film an opaque paint. */
 /* The patterns a region can wear in a second colour, drawn by
  * src/render/finish.js finPattern as their place in this list plus one. */
 export const PATTERNS = ['checks', 'stripes', 'camo', 'splinter'];
 
+/* The finishes a region can wear. */
 export const FINISHES = ['gloss', 'matte', 'metallic', 'chrome', 'carbon', 'aluminium', 'satin', 'pearl', 'candy', 'gold', 'flake', 'brushed'];
 
 /* The finishes and decals that are owned, not unlocked: sold for tokens or
@@ -292,9 +290,7 @@ export function checkDecal(d) {
  * regions: { finishes, decals, dropped }, `dropped` counting what was
  * thrown away. The settings take what is left (a stale blob must never
  * stop the page booting); a code is refused if anything was dropped.
- * `regions` is the plane's region list (configs/liveries.js), each with
- * `film` for a film region and `finish: false` for one whose finish is
- * another region's.
+ * `regions` is the plane's region list (configs/liveries.js).
  */
 export function checkPaint(regions, entry) {
   let dropped = 0;
@@ -305,11 +301,10 @@ export function checkPaint(regions, entry) {
     } else {
       for (const [id, f] of Object.entries(entry.finishes)) {
         const r = regions.find((x) => x.id === id);
-        const ok = r && r.finish !== false && (FINISHES.includes(f) || (f === 'film' && r.film));
-        if (!ok) {
-          dropped += 1;
-        } else if (!(f === 'film' && r.film)) {
+        if (r && FINISHES.includes(f)) {
           finishes[id] = f;
+        } else {
+          dropped += 1;
         }
       }
     }
@@ -344,7 +339,7 @@ export function checkPaint(regions, entry) {
 /* The finish a region wears under an entry: its own, else the kit's. */
 export function finishOf(region, entry) {
   const f = entry && entry.finishes && entry.finishes[region.id];
-  return f ?? (region.film ? 'film' : 'kit');
+  return f ?? 'kit';
 }
 
 /* A new decal of a kind, at a point on the model, in the kind's first

@@ -48,11 +48,12 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { FOLDERS } from '../configs/aircraft.js';
+import { retiredAirframe } from '../configs/airframes.js';
 import { LIVERIES, liveryKey } from '../configs/liveries.js';
 import { TUNES, tunePath } from '../configs/registry.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -61,7 +62,6 @@ import { MISSIONS as WAR_MISSIONS } from '../src/share/war/missions/index.js';
 import { FILMS as WAR_FILMS } from '../src/share/war/films/index.js';
 import { MISSIONS as OPS_MISSIONS } from '../src/share/ops/missions.js';
 import { FILMS as INTERIOR_FILMS } from '../src/share/interior/films/index.js';
-import { COURSES } from './itaipu-courses.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -116,13 +116,22 @@ const INTERIOR_FILM_SUPPORT = {
   'stills.js': 'the photographs the BOARD shows',
 };
 
+/* The recreational aircraft left the shell (2026-10-21) before their
+ * plants leave the module: each folder keeps only its plant.json, which
+ * aircraft:ctable generates plant_wing.c from, until the plant cut deletes
+ * it. Only a retired id moved to Openflight qualifies. */
+const PLANT_ONLY = Object.fromEntries(dirsIn('aircraft')
+  .filter((id) => retiredAirframe(id)?.moved && !existsSync(join(root, 'aircraft', id, 'aircraft.js'))
+    && existsSync(join(root, 'aircraft', id, 'plant.json')))
+  .map((id) => [id, 'a retired aircraft\'s plant table alone, until its plant leaves the module']));
+
 /* Each row's checks: what holds the kind beyond being registered. */
 const ROWS = [
   {
     kind: 'airframes', where: 'aircraft/', owner: 'configs/aircraft.js',
     files: dirsIn('aircraft'),
     entries: FOLDERS.map((f) => f.id),
-    support: {}, complete: true,
+    support: PLANT_ONLY, complete: true,
     checks: ['aircraft:folder', 'airframes:check', 'hulls:check'],
   },
   {
@@ -144,7 +153,10 @@ const ROWS = [
     kind: 'worlds', where: 'src/maps/<id>/', owner: 'src/maps/registry.js',
     files: dirsIn('src/maps'),
     entries: MAPS.filter((m) => m.load).map((m) => m.id),
-    support: { terrain: 'the terrain engine every world builds on' },
+    support: {
+      terrain: 'the terrain engine every world builds on',
+      look: 'the photographic look Itaipu, the Interior and the Swiss valley draw with',
+    },
     /* Not every world has a folder of its own: the Swiss valley is one
      * module over the alps' builders and one assets.js. */
     complete: false,
@@ -156,13 +168,6 @@ const ROWS = [
     entries: MAPS.filter((m) => m.poster).map((m) => basename(m.poster)),
     support: {}, complete: true,
     checks: [],
-  },
-  {
-    kind: 'tracks', where: 'docs/itaipu-courses/', owner: 'scripts/itaipu-courses.js',
-    files: filesIn('docs/itaipu-courses'),
-    entries: COURSES.map((c) => c.file),
-    support: {}, complete: true,
-    checks: ['itaipu:courses', 'track:golden', 'world:spawns'],
   },
   {
     kind: 'missions', where: 'src/share/war/missions/', owner: 'src/share/war/missions/index.js',
@@ -280,13 +285,12 @@ const copyOf = (where) => {
 };
 const CONTROLS = [
   ['an aircraft folder no registry lists', 'aircraft/', (r) => { r.files.push('harrier900'); }],
-  ['a registered aircraft with no folder', 'aircraft/', (r) => { r.files = r.files.filter((f) => f !== 'cub1400'); }],
-  ['a stray file in an aircraft folder', 'aircraft/<id>/', (r) => { r.files.push('cub1400/notes.txt'); }],
+  ['a registered aircraft with no folder', 'aircraft/', (r) => { r.files = r.files.filter((f) => f !== 'bramor2300'); }],
+  ['a stray file in an aircraft folder', 'aircraft/<id>/', (r) => { r.files.push('bramor2300/notes.txt'); }],
   ['a quad with a plant table', 'aircraft/<id>/', (r) => { r.files.push('7inch/plant.json'); }],
   ['a world module no loader imports', 'src/maps/', (r) => { r.files.push('yellowstone.js'); }],
   ['a world folder for no world', 'src/maps/<id>/', (r) => { r.files.push('yellowstone'); }],
   ['a poster for no world', 'assets/posters/', (r) => { r.files.push('yellowstone.jpg'); }],
-  ['a course the generator does not write', 'docs/itaipu-courses/', (r) => { r.files.push('dam-sprint.json'); }],
   ['a mission file the registry does not import', 'src/share/war/missions/', (r) => { r.files.push('itaipu-7'); }],
   ['a registered mission with no file', 'src/share/interior/missions/', (r) => { r.files = r.files.filter((f) => f !== 'interior-2'); }],
   ['a film the registry does not import', 'src/share/war/films/', (r) => { r.files.push('night-raid'); }],

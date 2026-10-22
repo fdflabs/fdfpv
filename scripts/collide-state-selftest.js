@@ -5,8 +5,9 @@
  *
  * Covers what collide:golden reaches only in passing: the clip watch over
  * scripted and seeded frame streams (its whole object after every tick),
- * setCraftAirframe over every airframe in configs/airframes.js and bad
- * dimension sets (the seated live bindings after each, throws included),
+ * setCraftAirframe over every airframe configs/airframes.js held before
+ * the PDCS cut (scripts/lib/precut.js) and bad dimension sets (the seated
+ * live bindings after each, throws included),
  * the moving and box setters, and a Colliders' own fields after
  * construction, after build and after hit() calls that miss, hit and bail.
  * Floats are recorded exactly (canon prints the shortest round trip), so a
@@ -29,7 +30,8 @@
  */
 
 import * as C from '../src/game/collide.js';
-import { AIRFRAMES, airframeById } from '../configs/airframes.js';
+import { airframeById } from '../configs/airframes.js';
+import { PRECUT_AIRFRAMES } from './lib/precut.js';
 import { canon, transcript, seeded, pick } from './lib/transcript.js';
 
 const t = transcript();
@@ -43,8 +45,10 @@ const FIVE_INCH = seated();
 /* ------------------------------------------------------------- airframes */
 
 t.note('five inch at load', FIVE_INCH);
+/* The airframes as configs/airframes.js listed them before the PDCS cut
+ * (scripts/lib/precut.js): the recreational planes' dims stay inputs. */
 const dimSets = [
-  ...AIRFRAMES.map((a) => [a.id, a.dims]),
+  ...PRECUT_AIRFRAMES.map((a) => [a.id, a.dims]),
   ['unknown id', airframeById('no-such-craft')?.dims],
   ['undefined', undefined],
   ['null', null],

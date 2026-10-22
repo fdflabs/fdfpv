@@ -85,15 +85,6 @@
            "osd-best"
           ]
          ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-ghost is-off"
-          ]
-         ]
         }
        ]
       },
@@ -175,33 +166,6 @@
           [
            "class",
            "osd-value"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-sub osd-mode"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-sub osd-mode"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-sub osd-mode"
           ]
          ]
         },
@@ -613,280 +577,12 @@
          "osd-launch is-off"
         ]
        ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "lock is-off"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "lock-box"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "i",
-           "attrs": [
-            [
-             "class",
-             "lc tl"
-            ]
-           ]
-          },
-          {
-           "tag": "i",
-           "attrs": [
-            [
-             "class",
-             "lc tr"
-            ]
-           ]
-          },
-          {
-           "tag": "i",
-           "attrs": [
-            [
-             "class",
-             "lc bl"
-            ]
-           ]
-          },
-          {
-           "tag": "i",
-           "attrs": [
-            [
-             "class",
-             "lc br"
-            ]
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "lock-arrow"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "lock-dist"
-          ]
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
-   "div.score-hud.is-off": {
-    "after": "div.osd",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "score-hud is-off"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-lines"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-total"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "score-label"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Score"
-          },
-          {
-           "tag": "span",
-           "attrs": [
-            [
-             "class",
-             "score-beta"
-            ]
-           ],
-           "kids": [
-            {
-             "t": "in development"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "score-value score-cut"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "0"
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-names"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-combo is-off"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "score-combo-line score-cut"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "span",
-           "attrs": [
-            [
-             "class",
-             "score-combo-points"
-            ]
-           ],
-           "kids": [
-            {
-             "t": "0"
-            }
-           ]
-          },
-          {
-           "tag": "span",
-           "attrs": [
-            [
-             "class",
-             "score-combo-mult"
-            ]
-           ]
-          },
-          {
-           "tag": "span",
-           "attrs": [
-            [
-             "class",
-             "score-tier"
-            ],
-            [
-             "hidden",
-             ""
-            ]
-           ],
-           "kids": [
-            {
-             "tag": "span",
-             "attrs": [
-              [
-               "class",
-               "score-tier-en"
-              ]
-             ]
-            },
-            {
-             "tag": "span",
-             "attrs": [
-              [
-               "class",
-               "score-tier-jp"
-              ]
-             ]
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "score-combo-bar"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "div",
-           "attrs": [
-            [
-             "class",
-             "score-combo-fill"
-            ]
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-verdict score-cut"
-        ]
-       ]
       }
      ]
     }
    },
    "div.frame-top": {
-    "after": "div.score-hud.is-off",
+    "after": "div.osd",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -1995,192 +1691,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-tricks": {
-    "after": "div.screen.screen-page.screen-howto",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-tricks"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Trick list"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ],
-       "kids": [
-        {
-         "t": "Every trick the scorer is known to name, what it pays, and what it looks like. Pick one and watch it: the picture is drawn from the same definition the scorer matches against, so what you see is exactly what it is waiting for. Each one has been flown and scored in testing, which is what earns it a place here. Points are before the combo, which multiplies them."
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "trick-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "canvas",
-         "attrs": [
-          [
-           "class",
-           "trick-film"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "trick-side"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "div",
-           "attrs": [
-            [
-             "class",
-             "trick-name"
-            ]
-           ]
-          },
-          {
-           "tag": "div",
-           "attrs": [
-            [
-             "class",
-             "trick-meta"
-            ]
-           ]
-          },
-          {
-           "tag": "p",
-           "attrs": [
-            [
-             "class",
-             "trick-how"
-            ]
-           ]
-          },
-          {
-           "tag": "div",
-           "attrs": [
-            [
-             "class",
-             "trick-view"
-            ]
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Goes back. Arrow keys move through the list."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-credits": {
-    "after": "div.screen.screen-page.screen-tricks",
+    "after": "div.screen.screen-page.screen-howto",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -3067,270 +2579,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-maps.screen-courses": {
-    "after": "div.screen.screen-page.screen-credits",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-maps screen-courses"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "My tracks"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "screen-lede"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "card-strip"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "strip-label"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Yours first, then the board, most flown first"
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "map-cards course-cards"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "board-note"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "board-note"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "↑↓"
-            }
-           ]
-          },
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Enter"
-            }
-           ]
-          },
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Arrow keys move, Enter chooses. Escape goes back. On a radio: pitch to move, roll right to choose."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
-   "div.screen.screen-page.screen-courses.screen-freestyle": {
-    "after": "div.screen.screen-page.screen-maps.screen-courses",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-courses screen-freestyle"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Freestyle"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ],
-       "kids": [
-        {
-         "t": "A whole valley and no gates. Fly it, and this is where the machine you fly it on lives. Scoring is the switch below and it starts off, because the part that names what you flew is still being built."
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "map-cards"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-quad": {
-    "after": "div.screen.screen-page.screen-courses.screen-freestyle",
+    "after": "div.screen.screen-page.screen-credits",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -3976,249 +3226,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-standings": {
-    "after": "div.screen.screen-page.screen-roomnew",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-standings"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Standings"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "standings-table"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Goes back to the track list."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
-   "div.screen.screen-page.screen-launch": {
-    "after": "div.screen.screen-page.screen-standings",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-launch"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Before you fly"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Enter"
-            }
-           ]
-          },
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Enter flies it. Escape goes back without flying."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-rates": {
-    "after": "div.screen.screen-page.screen-launch",
+    "after": "div.screen.screen-page.screen-roomnew",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -7149,11 +6158,11 @@
      ],
      "on": [
       [
-       19,
+       18,
        "click"
       ],
       [
-       20,
+       19,
        "keydown"
       ]
      ],
@@ -7502,38 +6511,6 @@
              "attrs": [
               [
                "class",
-               "hangar-floats carousel-floats"
-              ],
-              [
-               "data-key",
-               "floats"
-              ],
-              [
-               "role",
-               "switch"
-              ],
-              [
-               "type",
-               "button"
-              ]
-             ],
-             "on": [
-              [
-               12,
-               "click"
-              ]
-             ],
-             "kids": [
-              {
-               "t": "Floats"
-              }
-             ]
-            },
-            {
-             "tag": "button",
-             "attrs": [
-              [
-               "class",
                "hangar-floats carousel-fav"
               ],
               [
@@ -7551,7 +6528,7 @@
              ],
              "on": [
               [
-               13,
+               12,
                "click"
               ]
              ],
@@ -7590,7 +6567,7 @@
              ],
              "on": [
               [
-               14,
+               13,
                "click"
               ]
              ],
@@ -7618,7 +6595,7 @@
              ],
              "on": [
               [
-               15,
+               14,
                "click"
               ]
              ],
@@ -7691,7 +6668,7 @@
              ],
              "on": [
               [
-               16,
+               15,
                "click"
               ]
              ],
@@ -7715,7 +6692,7 @@
              ],
              "on": [
               [
-               18,
+               17,
                "click"
               ]
              ],
@@ -7739,7 +6716,7 @@
              ],
              "on": [
               [
-               17,
+               16,
                "click"
               ]
              ],
@@ -7791,11 +6768,11 @@
      ],
      "on": [
       [
-       44,
+       43,
        "click"
       ],
       [
-       45,
+       44,
        "keydown"
       ]
      ],
@@ -7810,7 +6787,7 @@
        ],
        "on": [
         [
-         39,
+         38,
          "focusin"
         ]
        ],
@@ -7892,27 +6869,27 @@
            ],
            "on": [
             [
-             9,
+             8,
              "pointerdown"
             ],
             [
-             10,
+             9,
              "wheel"
             ],
             [
-             11,
+             10,
              "pointermove"
             ],
             [
-             12,
+             11,
              "pointerup"
             ],
             [
-             13,
+             12,
              "pointercancel"
             ],
             [
-             14,
+             13,
              "pointerleave"
             ]
            ],
@@ -7948,11 +6925,11 @@
              ],
              "on": [
               [
-               15,
+               14,
                "pointerdown"
               ],
               [
-               16,
+               15,
                "click"
               ]
              ],
@@ -7993,11 +6970,11 @@
                ],
                "on": [
                 [
-                 17,
+                 16,
                  "pointerdown"
                 ],
                 [
-                 18,
+                 17,
                  "click"
                 ]
                ],
@@ -8029,11 +7006,11 @@
                ],
                "on": [
                 [
-                 19,
+                 18,
                  "pointerdown"
                 ],
                 [
-                 20,
+                 19,
                  "click"
                 ]
                ],
@@ -8065,11 +7042,11 @@
                ],
                "on": [
                 [
-                 21,
+                 20,
                  "pointerdown"
                 ],
                 [
-                 22,
+                 21,
                  "click"
                 ]
                ],
@@ -8101,11 +7078,11 @@
                ],
                "on": [
                 [
-                 23,
+                 22,
                  "pointerdown"
                 ],
                 [
-                 24,
+                 23,
                  "click"
                 ]
                ],
@@ -8137,11 +7114,11 @@
                ],
                "on": [
                 [
-                 25,
+                 24,
                  "pointerdown"
                 ],
                 [
-                 26,
+                 25,
                  "click"
                 ]
                ],
@@ -8173,11 +7150,11 @@
                ],
                "on": [
                 [
-                 27,
+                 26,
                  "pointerdown"
                 ],
                 [
-                 28,
+                 27,
                  "click"
                 ]
                ],
@@ -8224,11 +7201,11 @@
              ],
              "on": [
               [
-               29,
+               28,
                "pointerdown"
               ],
               [
-               30,
+               29,
                "click"
               ]
              ],
@@ -8265,19 +7242,19 @@
              ],
              "on": [
               [
-               40,
+               39,
                "pointerdown"
               ],
               [
-               41,
+               40,
                "pointermove"
               ],
               [
-               42,
+               41,
                "pointerup"
               ],
               [
-               43,
+               42,
                "pointercancel"
               ]
              ],
@@ -8554,38 +7531,6 @@
               ],
               [
                "data-key",
-               "tab-surfaces"
-              ],
-              [
-               "role",
-               "tab"
-              ],
-              [
-               "type",
-               "button"
-              ]
-             ],
-             "on": [
-              [
-               4,
-               "click"
-              ]
-             ],
-             "kids": [
-              {
-               "t": "Surfaces"
-              }
-             ]
-            },
-            {
-             "tag": "button",
-             "attrs": [
-              [
-               "class",
-               "carousel-tab hangar-tab-btn"
-              ],
-              [
-               "data-key",
                "tab-shop"
               ],
               [
@@ -8599,7 +7544,7 @@
              ],
              "on": [
               [
-               5,
+               4,
                "click"
               ]
              ],
@@ -8631,7 +7576,7 @@
              ],
              "on": [
               [
-               6,
+               5,
                "click"
               ]
              ],
@@ -8663,7 +7608,7 @@
              ],
              "on": [
               [
-               7,
+               6,
                "click"
               ]
              ],
@@ -8695,7 +7640,7 @@
              ],
              "on": [
               [
-               8,
+               7,
                "click"
               ]
              ],
@@ -8717,7 +7662,7 @@
            ],
            "on": [
             [
-             31,
+             30,
              "pointerleave"
             ]
            ]
@@ -8778,7 +7723,7 @@
                ],
                "on": [
                 [
-                 32,
+                 31,
                  "click"
                 ]
                ],
@@ -8810,7 +7755,7 @@
                ],
                "on": [
                 [
-                 33,
+                 32,
                  "click"
                 ]
                ],
@@ -8842,7 +7787,7 @@
                ],
                "on": [
                 [
-                 34,
+                 33,
                  "click"
                 ]
                ],
@@ -8881,7 +7826,7 @@
                ],
                "on": [
                 [
-                 37,
+                 36,
                  "click"
                 ]
                ],
@@ -8909,7 +7854,7 @@
                ],
                "on": [
                 [
-                 35,
+                 34,
                  "click"
                 ]
                ],
@@ -8937,7 +7882,7 @@
                ],
                "on": [
                 [
-                 36,
+                 35,
                  "click"
                 ]
                ],
@@ -8994,7 +7939,7 @@
          "value": "#000000",
          "on": [
           [
-           38,
+           37,
            "input"
           ]
          ]
@@ -9112,15 +8057,6 @@
            "osd-best"
           ]
          ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-ghost is-off"
-          ]
-         ]
         }
        ]
       },
@@ -9202,33 +8138,6 @@
           [
            "class",
            "osd-value"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-sub osd-mode"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-sub osd-mode"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "osd-sub osd-mode"
           ]
          ]
         },
@@ -9640,280 +8549,12 @@
          "osd-launch is-off"
         ]
        ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "lock is-off"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "lock-box"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "i",
-           "attrs": [
-            [
-             "class",
-             "lc tl"
-            ]
-           ]
-          },
-          {
-           "tag": "i",
-           "attrs": [
-            [
-             "class",
-             "lc tr"
-            ]
-           ]
-          },
-          {
-           "tag": "i",
-           "attrs": [
-            [
-             "class",
-             "lc bl"
-            ]
-           ]
-          },
-          {
-           "tag": "i",
-           "attrs": [
-            [
-             "class",
-             "lc br"
-            ]
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "lock-arrow"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "lock-dist"
-          ]
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
-   "div.score-hud.is-off": {
-    "after": "div.osd",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "score-hud is-off"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-lines"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-total"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "score-label"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Score"
-          },
-          {
-           "tag": "span",
-           "attrs": [
-            [
-             "class",
-             "score-beta"
-            ]
-           ],
-           "kids": [
-            {
-             "t": "in development"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "score-value score-cut"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "0"
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-names"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-combo is-off"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "score-combo-line score-cut"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "span",
-           "attrs": [
-            [
-             "class",
-             "score-combo-points"
-            ]
-           ],
-           "kids": [
-            {
-             "t": "0"
-            }
-           ]
-          },
-          {
-           "tag": "span",
-           "attrs": [
-            [
-             "class",
-             "score-combo-mult"
-            ]
-           ]
-          },
-          {
-           "tag": "span",
-           "attrs": [
-            [
-             "class",
-             "score-tier"
-            ],
-            [
-             "hidden",
-             ""
-            ]
-           ],
-           "kids": [
-            {
-             "tag": "span",
-             "attrs": [
-              [
-               "class",
-               "score-tier-en"
-              ]
-             ]
-            },
-            {
-             "tag": "span",
-             "attrs": [
-              [
-               "class",
-               "score-tier-jp"
-              ]
-             ]
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "score-combo-bar"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "div",
-           "attrs": [
-            [
-             "class",
-             "score-combo-fill"
-            ]
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "score-verdict score-cut"
-        ]
-       ]
       }
      ]
     }
    },
    "div.frame-top": {
-    "after": "div.score-hud.is-off",
+    "after": "div.osd",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -11022,192 +9663,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-tricks": {
-    "after": "div.screen.screen-page.screen-howto",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-tricks"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Trick list"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ],
-       "kids": [
-        {
-         "t": "Every trick the scorer is known to name, what it pays, and what it looks like. Pick one and watch it: the picture is drawn from the same definition the scorer matches against, so what you see is exactly what it is waiting for. Each one has been flown and scored in testing, which is what earns it a place here. Points are before the combo, which multiplies them."
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "trick-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "canvas",
-         "attrs": [
-          [
-           "class",
-           "trick-film"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "trick-side"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "div",
-           "attrs": [
-            [
-             "class",
-             "trick-name"
-            ]
-           ]
-          },
-          {
-           "tag": "div",
-           "attrs": [
-            [
-             "class",
-             "trick-meta"
-            ]
-           ]
-          },
-          {
-           "tag": "p",
-           "attrs": [
-            [
-             "class",
-             "trick-how"
-            ]
-           ]
-          },
-          {
-           "tag": "div",
-           "attrs": [
-            [
-             "class",
-             "trick-view"
-            ]
-           ]
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Goes back. Arrow keys move through the list."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-credits": {
-    "after": "div.screen.screen-page.screen-tricks",
+    "after": "div.screen.screen-page.screen-howto",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -12094,270 +10551,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-maps.screen-courses": {
-    "after": "div.screen.screen-page.screen-credits",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-maps screen-courses"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "My tracks"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "screen-lede"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "card-strip"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "strip-label"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Yours first, then the board, most flown first"
-          }
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "map-cards course-cards"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "board-note"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "board-note"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "↑↓"
-            }
-           ]
-          },
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Enter"
-            }
-           ]
-          },
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Arrow keys move, Enter chooses. Escape goes back. On a radio: pitch to move, roll right to choose."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
-   "div.screen.screen-page.screen-courses.screen-freestyle": {
-    "after": "div.screen.screen-page.screen-maps.screen-courses",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-courses screen-freestyle"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Freestyle"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ],
-       "kids": [
-        {
-         "t": "A whole valley and no gates. Fly it, and this is where the machine you fly it on lives. Scoring is the switch below and it starts off, because the part that names what you flew is still being built."
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "map-cards"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-quad": {
-    "after": "div.screen.screen-page.screen-courses.screen-freestyle",
+    "after": "div.screen.screen-page.screen-credits",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -13003,249 +11198,8 @@
      ]
     }
    },
-   "div.screen.screen-page.screen-standings": {
-    "after": "div.screen.screen-page.screen-roomnew",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-standings"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Standings"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "standings-table"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Goes back to the track list."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
-   "div.screen.screen-page.screen-launch": {
-    "after": "div.screen.screen-page.screen-standings",
-    "tree": {
-     "tag": "div",
-     "attrs": [
-      [
-       "class",
-       "screen screen-page screen-launch"
-      ],
-      [
-       "style",
-       "display: none;"
-      ]
-     ],
-     "kids": [
-      {
-       "tag": "h2",
-       "kids": [
-        {
-         "t": "Before you fly"
-        }
-       ]
-      },
-      {
-       "tag": "p",
-       "attrs": [
-        [
-         "class",
-         "rates-lede"
-        ]
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "menu-stage"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu menu-scroll"
-          ],
-          [
-           "role",
-           "listbox"
-          ]
-         ]
-        },
-        {
-         "tag": "div",
-         "attrs": [
-          [
-           "class",
-           "menu-help"
-          ]
-         ]
-        }
-       ]
-      },
-      {
-       "tag": "div",
-       "attrs": [
-        [
-         "class",
-         "hint"
-        ]
-       ],
-       "kids": [
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-keys"
-          ]
-         ],
-         "kids": [
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Enter"
-            }
-           ]
-          },
-          {
-           "tag": "kbd",
-           "kids": [
-            {
-             "t": "Esc"
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "tag": "span",
-         "attrs": [
-          [
-           "class",
-           "hint-copy"
-          ]
-         ],
-         "kids": [
-          {
-           "t": "Enter flies it. Escape goes back without flying."
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   },
    "div.screen.screen-page.screen-rates": {
-    "after": "div.screen.screen-page.screen-launch",
+    "after": "div.screen.screen-page.screen-roomnew",
     "tree": {
      "tag": "div",
      "attrs": [
@@ -16176,11 +14130,11 @@
      ],
      "on": [
       [
-       19,
+       18,
        "click"
       ],
       [
-       20,
+       19,
        "keydown"
       ]
      ],
@@ -16529,38 +14483,6 @@
              "attrs": [
               [
                "class",
-               "hangar-floats carousel-floats"
-              ],
-              [
-               "data-key",
-               "floats"
-              ],
-              [
-               "role",
-               "switch"
-              ],
-              [
-               "type",
-               "button"
-              ]
-             ],
-             "on": [
-              [
-               12,
-               "click"
-              ]
-             ],
-             "kids": [
-              {
-               "t": "Floats"
-              }
-             ]
-            },
-            {
-             "tag": "button",
-             "attrs": [
-              [
-               "class",
                "hangar-floats carousel-fav"
               ],
               [
@@ -16578,7 +14500,7 @@
              ],
              "on": [
               [
-               13,
+               12,
                "click"
               ]
              ],
@@ -16617,7 +14539,7 @@
              ],
              "on": [
               [
-               14,
+               13,
                "click"
               ]
              ],
@@ -16645,7 +14567,7 @@
              ],
              "on": [
               [
-               15,
+               14,
                "click"
               ]
              ],
@@ -16718,7 +14640,7 @@
              ],
              "on": [
               [
-               16,
+               15,
                "click"
               ]
              ],
@@ -16742,7 +14664,7 @@
              ],
              "on": [
               [
-               18,
+               17,
                "click"
               ]
              ],
@@ -16766,7 +14688,7 @@
              ],
              "on": [
               [
-               17,
+               16,
                "click"
               ]
              ],
@@ -16818,11 +14740,11 @@
      ],
      "on": [
       [
-       44,
+       43,
        "click"
       ],
       [
-       45,
+       44,
        "keydown"
       ]
      ],
@@ -16837,7 +14759,7 @@
        ],
        "on": [
         [
-         39,
+         38,
          "focusin"
         ]
        ],
@@ -16919,27 +14841,27 @@
            ],
            "on": [
             [
-             9,
+             8,
              "pointerdown"
             ],
             [
-             10,
+             9,
              "wheel"
             ],
             [
-             11,
+             10,
              "pointermove"
             ],
             [
-             12,
+             11,
              "pointerup"
             ],
             [
-             13,
+             12,
              "pointercancel"
             ],
             [
-             14,
+             13,
              "pointerleave"
             ]
            ],
@@ -16975,11 +14897,11 @@
              ],
              "on": [
               [
-               15,
+               14,
                "pointerdown"
               ],
               [
-               16,
+               15,
                "click"
               ]
              ],
@@ -17020,11 +14942,11 @@
                ],
                "on": [
                 [
-                 17,
+                 16,
                  "pointerdown"
                 ],
                 [
-                 18,
+                 17,
                  "click"
                 ]
                ],
@@ -17056,11 +14978,11 @@
                ],
                "on": [
                 [
-                 19,
+                 18,
                  "pointerdown"
                 ],
                 [
-                 20,
+                 19,
                  "click"
                 ]
                ],
@@ -17092,11 +15014,11 @@
                ],
                "on": [
                 [
-                 21,
+                 20,
                  "pointerdown"
                 ],
                 [
-                 22,
+                 21,
                  "click"
                 ]
                ],
@@ -17128,11 +15050,11 @@
                ],
                "on": [
                 [
-                 23,
+                 22,
                  "pointerdown"
                 ],
                 [
-                 24,
+                 23,
                  "click"
                 ]
                ],
@@ -17164,11 +15086,11 @@
                ],
                "on": [
                 [
-                 25,
+                 24,
                  "pointerdown"
                 ],
                 [
-                 26,
+                 25,
                  "click"
                 ]
                ],
@@ -17200,11 +15122,11 @@
                ],
                "on": [
                 [
-                 27,
+                 26,
                  "pointerdown"
                 ],
                 [
-                 28,
+                 27,
                  "click"
                 ]
                ],
@@ -17251,11 +15173,11 @@
              ],
              "on": [
               [
-               29,
+               28,
                "pointerdown"
               ],
               [
-               30,
+               29,
                "click"
               ]
              ],
@@ -17292,19 +15214,19 @@
              ],
              "on": [
               [
-               40,
+               39,
                "pointerdown"
               ],
               [
-               41,
+               40,
                "pointermove"
               ],
               [
-               42,
+               41,
                "pointerup"
               ],
               [
-               43,
+               42,
                "pointercancel"
               ]
              ],
@@ -17581,38 +15503,6 @@
               ],
               [
                "data-key",
-               "tab-surfaces"
-              ],
-              [
-               "role",
-               "tab"
-              ],
-              [
-               "type",
-               "button"
-              ]
-             ],
-             "on": [
-              [
-               4,
-               "click"
-              ]
-             ],
-             "kids": [
-              {
-               "t": "Surfaces"
-              }
-             ]
-            },
-            {
-             "tag": "button",
-             "attrs": [
-              [
-               "class",
-               "carousel-tab hangar-tab-btn"
-              ],
-              [
-               "data-key",
                "tab-shop"
               ],
               [
@@ -17626,7 +15516,7 @@
              ],
              "on": [
               [
-               5,
+               4,
                "click"
               ]
              ],
@@ -17658,7 +15548,7 @@
              ],
              "on": [
               [
-               6,
+               5,
                "click"
               ]
              ],
@@ -17690,7 +15580,7 @@
              ],
              "on": [
               [
-               7,
+               6,
                "click"
               ]
              ],
@@ -17722,7 +15612,7 @@
              ],
              "on": [
               [
-               8,
+               7,
                "click"
               ]
              ],
@@ -17744,7 +15634,7 @@
            ],
            "on": [
             [
-             31,
+             30,
              "pointerleave"
             ]
            ]
@@ -17805,7 +15695,7 @@
                ],
                "on": [
                 [
-                 32,
+                 31,
                  "click"
                 ]
                ],
@@ -17837,7 +15727,7 @@
                ],
                "on": [
                 [
-                 33,
+                 32,
                  "click"
                 ]
                ],
@@ -17869,7 +15759,7 @@
                ],
                "on": [
                 [
-                 34,
+                 33,
                  "click"
                 ]
                ],
@@ -17908,7 +15798,7 @@
                ],
                "on": [
                 [
-                 37,
+                 36,
                  "click"
                 ]
                ],
@@ -17936,7 +15826,7 @@
                ],
                "on": [
                 [
-                 35,
+                 34,
                  "click"
                 ]
                ],
@@ -17964,7 +15854,7 @@
                ],
                "on": [
                 [
-                 36,
+                 35,
                  "click"
                 ]
                ],
@@ -18021,7 +15911,7 @@
          "value": "#000000",
          "on": [
           [
-           38,
+           37,
            "input"
           ]
          ]
@@ -18057,9 +15947,6 @@
    "node": "#ui/div.banner"
   },
   "barStopCount": 0,
-  "boardNote": {
-   "node": "#ui/div.screen.screen-page.screen-maps.screen-courses.2.3"
-  },
   "brandSub": {
    "node": "#ui/div.screen.screen-title.0.0.0.1"
   },
@@ -18162,21 +16049,6 @@
   "controlsMenu": {
    "node": "#ui/div.screen.screen-page.screen-pilot.screen-controls.2.0"
   },
-  "courseCardHost": {
-   "node": "#ui/div.screen.screen-page.screen-maps.screen-courses.2.1"
-  },
-  "courseStrip": {
-   "node": "#ui/div.screen.screen-page.screen-maps.screen-courses.2"
-  },
-  "coursesHelp": {
-   "node": "#ui/div.screen.screen-page.screen-maps.screen-courses.3.1"
-  },
-  "coursesLede": {
-   "node": "#ui/div.screen.screen-page.screen-maps.screen-courses.1"
-  },
-  "coursesMenu": {
-   "node": "#ui/div.screen.screen-page.screen-maps.screen-courses.3.0"
-  },
   "craftCanvas": {
    "node": "#ui/div.screen.screen-page.screen-quad.2.0.0.0"
   },
@@ -18254,15 +16126,6 @@
   },
   "frameTop": {
    "node": "#ui/div.frame-top"
-  },
-  "freestyleCards": {
-   "node": "#ui/div.screen.screen-page.screen-courses.screen-freestyle.2"
-  },
-  "freestyleHelp": {
-   "node": "#ui/div.screen.screen-page.screen-courses.screen-freestyle.3.1"
-  },
-  "freestyleMenu": {
-   "node": "#ui/div.screen.screen-page.screen-courses.screen-freestyle.3.0"
   },
   "friendsHelp": {
    "node": "#ui/div.screen.screen-page.screen-friends.3.1"
@@ -18379,41 +16242,6 @@
   "keepNote": {
    "node": "#ui/div.screen.screen-title.0.0.0.4"
   },
-  "launchHelp": {
-   "node": "#ui/div.screen.screen-page.screen-launch.2.1"
-  },
-  "launchLede": {
-   "node": "#ui/div.screen.screen-page.screen-launch.1"
-  },
-  "launchMenu": {
-   "node": "#ui/div.screen.screen-page.screen-launch.2.0"
-  },
-  "localNote": {
-   "node": "#ui/div.screen.screen-page.screen-maps.screen-courses.2.2"
-  },
-  "lock": {
-   "node": "#ui/div.osd.5"
-  },
-  "lockArrow": {
-   "node": "#ui/div.osd.5.1"
-  },
-  "lockBox": {
-   "node": "#ui/div.osd.5.0"
-  },
-  "lockDist": {
-   "node": "#ui/div.osd.5.2"
-  },
-  "lockMemo": {
-   "keys": [
-    [
-     "fade",
-     ""
-    ]
-   ]
-  },
-  "mapCardHost": {
-   "node": "detached div.map-cards"
-  },
   "musicDock": {
    "node": "#ui/div.music-dock"
   },
@@ -18467,7 +16295,7 @@
    ]
   },
   "osdAlt": {
-   "node": "#ui/div.osd.2.5"
+   "node": "#ui/div.osd.2.2"
   },
   "osdBest": {
    "node": "#ui/div.osd.0.4"
@@ -18475,26 +16303,14 @@
   "osdClockLabel": {
    "node": "#ui/div.osd.0.0"
   },
-  "osdFlaps": {
-   "node": "#ui/div.osd.2.2"
-  },
   "osdFlight": {
    "node": "#ui/div.osd.2.1"
   },
   "osdGate": {
    "node": "#ui/div.osd.0.2"
   },
-  "osdGear": {
-   "node": "#ui/div.osd.2.3"
-  },
-  "osdGhost": {
-   "node": "#ui/div.osd.0.5"
-  },
   "osdHits": {
    "node": "#ui/div.osd.1.3"
-  },
-  "osdHold": {
-   "node": "#ui/div.osd.2.4"
   },
   "osdLast": {
    "node": "#ui/div.osd.0.3"
@@ -18579,7 +16395,7 @@
    "node": "#ui/div.osd.3"
   },
   "osdThrBar": {
-   "node": "#ui/div.osd.2.7.0"
+   "node": "#ui/div.osd.2.4.0"
   },
   "osdTimer": {
    "node": "#ui/div.osd.0.1"
@@ -18808,9 +16624,6 @@
     ]
    ]
   },
-  "scoreHud": {
-   "instance": "ScoreHud"
-  },
   "screens": {
    "keys": [
     [
@@ -18826,27 +16639,9 @@
      }
     ],
     [
-     "tricks",
-     {
-      "node": "#ui/div.screen.screen-page.screen-tricks"
-     }
-    ],
-    [
      "credits",
      {
       "node": "#ui/div.screen.screen-page.screen-credits"
-     }
-    ],
-    [
-     "courses",
-     {
-      "node": "#ui/div.screen.screen-page.screen-maps.screen-courses"
-     }
-    ],
-    [
-     "freestyle",
-     {
-      "node": "#ui/div.screen.screen-page.screen-courses.screen-freestyle"
      }
     ],
     [
@@ -18877,18 +16672,6 @@
      "roomnew",
      {
       "node": "#ui/div.screen.screen-page.screen-roomnew"
-     }
-    ],
-    [
-     "standings",
-     {
-      "node": "#ui/div.screen.screen-page.screen-standings"
-     }
-    ],
-    [
-     "launch",
-     {
-      "node": "#ui/div.screen.screen-page.screen-launch"
      }
     ],
     [
@@ -18977,18 +16760,6 @@
   "signinPanel": {
    "node": "#ui/div.signin-panel"
   },
-  "standingsHelp": {
-   "node": "#ui/div.screen.screen-page.screen-standings.2.2"
-  },
-  "standingsLede": {
-   "node": "#ui/div.screen.screen-page.screen-standings.1"
-  },
-  "standingsMenu": {
-   "node": "#ui/div.screen.screen-page.screen-standings.2.1"
-  },
-  "standingsTable": {
-   "node": "#ui/div.screen.screen-page.screen-standings.2.0"
-  },
   "stickRef": {
    "instance": "StickRef"
   },
@@ -19006,31 +16777,6 @@
   },
   "titleMenu": {
    "node": "#ui/div.screen.screen-title.0.3.1.0"
-  },
-  "trickCanvas": {
-   "node": "#ui/div.screen.screen-page.screen-tricks.2.0"
-  },
-  "trickHelp": {
-   "node": "#ui/div.screen.screen-page.screen-tricks.3.1"
-  },
-  "trickHow": {
-   "node": "#ui/div.screen.screen-page.screen-tricks.2.1.2"
-  },
-  "trickMenu": {
-   "node": "#ui/div.screen.screen-page.screen-tricks.3.0"
-  },
-  "trickMeta": {
-   "node": "#ui/div.screen.screen-page.screen-tricks.2.1.1"
-  },
-  "trickName": {
-   "node": "#ui/div.screen.screen-page.screen-tricks.2.1.0"
-  },
-  "trickPlayer": {
-   "instance": "TrickFilmPlayer"
-  },
-  "trickShown": "",
-  "trickView": {
-   "node": "#ui/div.screen.screen-page.screen-tricks.2.1.3"
   },
   "updateBar": {
    "node": "#ui/div.frame-bot.3"

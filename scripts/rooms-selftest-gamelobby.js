@@ -11,15 +11,10 @@
  * every flag, and its end finding the lobby again; no lobby during a
  * match, and a free flight room's lobby starting no war.
  *
- * Then combat's and tag's: the lobby in the welcome with the round's
- * setting, the host's alone to change; one pilot ready of two gives the
- * 45 s; both give the five seconds and the game's own countdown, with the
- * room's clock running for it; a round's end back in the lobby with
- * nobody ready, and combat's no next round on its own; one pilot alone
- * plays either (the owner, 2026-10-02: "ready to go either single or
- * multi"), a round that lasts past ABANDON_MS. A race room's lobby waits
- * for its track, then its race goes off the grid; free flight's round is
- * on from its start until the room is empty.
+ * Then a newcomer to the war's round, enlisted as its allowDropIn says,
+ * and free flight's round, on from its start until the room is empty.
+ * Streamer Combat's and Catch the Ace!'s lobbies left with the games (the
+ * combat-only cut, 2026-10-20).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -38,18 +33,15 @@
  */
 
 import { ABANDON_MS, PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
-import { ROUND_MINUTES } from '../edge/rooms/combat.js';
-import { GOALS } from '../src/share/roomtag.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { LOBBY_COUNTDOWN_MS, LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
-import { FLAG_AIRBORNE, PROTO, encodePose } from '../src/share/roomwire.js';
+import { FLAG_AIRBORNE, PROTO, ROOM_LEVEL, encodePose } from '../src/share/roomwire.js';
 import { RESTART_STARS } from '../edge/rooms/war.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { withHeld } from './lib/held.js';
 import { stagesOf } from '../src/share/war/stages.js';
 import { modeById } from '../src/share/modes.js';
 import { createLobbyReady } from '../src/share/roomlobby.js';
-import { FINISH_RESEND_MS } from '../src/share/roomrace.js';
+import { READY_RESEND_MS } from '../src/share/roomlobby.js';
 
 /* A room at room ms 0, its `n` pilots seated: made for the war unless
  * `mode` says otherwise. `dev` starts the campaign's missions in
@@ -80,7 +72,7 @@ function lobbyRoom({
     env.socks[i] = so;
     env.apply(r.open(so, env.clock));
     env.apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', war: 1, name: [i, i, 30 + i], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: 1, name: [i, i, 30 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), env.clock, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };
@@ -113,7 +105,7 @@ function lobbyRoom({
     env.socks[i] = so;
     env.apply(r.open(so, env.clock));
     env.apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', war: 1, token: was.token, name: [i, i, 30 + i], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, war: 1, token: was.token, name: [i, i, 30 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), env.clock, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };
@@ -388,136 +380,7 @@ export function warLobbySection(check) {
 }
 
 export function gameLobbySection(check) {
-  console.log('combat and tag: the lobby');
-  {
-    const e = lobbyRoom({ mode: 'combat', mission: null });
-    const w = e.socks[0].got.find((m) => m.type === 'welcome');
-    check('a room made for combat welcomes with its lobby: the round\'s minutes, nobody ready, no times',
-      JSON.stringify(w.lobby) === `{"minutes":${ROUND_MINUTES[0]},"ready":{},"countdownAt":null,"deadlineAt":null}`, JSON.stringify(w.lobby));
-    e.say(1, { type: 'lobby', op: 'minutes', minutes: 5 });
-    check('the minutes are the host\'s to change', e.socks[1].got.some((m) => m.type === 'refused' && m.why === 'host') && e.lobby(0).minutes === ROUND_MINUTES[0]);
-    e.say(0, { type: 'lobby', op: 'minutes', minutes: 4 });
-    check('minutes combat does not play are passed over', e.lobby(0).minutes === ROUND_MINUTES[0]);
-    e.say(0, { type: 'lobby', op: 'minutes', minutes: 5 });
-    check('the host sets 5: everybody told, the room keeps it', e.lobby(1).minutes === 5 && e.r.meta.minutes === 5, JSON.stringify(e.lobby(1)));
-    e.at(1000);
-    e.ready(0);
-    check('one ready of two: the 45 s, no five seconds', e.lobby(1).ready['1'] === true && e.lobby(1).deadlineAt === 1000 + LOBBY_DEADLINE_MS
-      && e.lobby(1).countdownAt === null, JSON.stringify(e.lobby(1)));
-    check('the browser lists it waiting, one ready', e.r.activity(0).state === 'waiting' && e.r.activity(0).ready === 1, JSON.stringify(e.r.activity(0)));
-    e.at(2000);
-    e.ready(1);
-    check('both ready: the five seconds', e.lobby(0).countdownAt === 2000 + LOBBY_COUNTDOWN_MS && e.lobby(0).deadlineAt === 1000 + LOBBY_DEADLINE_MS,
-      JSON.stringify(e.lobby(0)));
-    e.at(2000 + LOBBY_COUNTDOWN_MS + 100);
-    const round = e.r.combat.round;
-    check('at their end the room\'s combat round counts down, 5 minutes, and the lobby is cleared', round.state === 'countdown' && round.minutes === 5 && round.n === 1
-      && JSON.stringify(e.lobby(1).ready) === '{}', JSON.stringify({ round, lobby: e.lobby(1) }));
-    check('with the room\'s clock running for it, nobody flying', e.r.ticking === true);
-    check('the browser lists it in round 1', e.r.activity(0).round === 1 && e.r.activity(0).game === 'combat', JSON.stringify(e.r.activity(0)));
-    e.ready(0);
-    check('a ready during the round is passed over', JSON.stringify(e.lobby(0).ready) === '{}');
-    e.at(round.endsAt + 200);
-    check('the round over: back in the lobby, nobody ready, and no next round on its own',
-      e.r.combat.round.state === 'over' && e.r.combat.round.nextAt === 0 && e.r.gameLobby.open(e.r) && JSON.stringify(e.lobby(0).ready) === '{}',
-      JSON.stringify({ state: e.r.combat.round.state, nextAt: e.r.combat.round.nextAt }));
-    e.at(e.clock + 30000);
-    check('and none 30 s on either', e.r.combat.round.state === 'over' && e.r.combat.round.n === 1);
-  }
-  {
-    const e = lobbyRoom({ mode: 'combat', mission: null, n: 1 });
-    e.at(100);
-    e.ready(0);
-    check('one pilot alone, ready: the five seconds', e.lobby(0).countdownAt === 100 + LOBBY_COUNTDOWN_MS, JSON.stringify(e.lobby(0)));
-    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    check('and a combat round of one counts down', e.r.combat.on(), JSON.stringify(e.r.combat.round));
-    e.at(e.clock + 20000 + 15000);
-    check('and is still on past ABANDON_MS, played alone', e.r.combat.round.state === 'on', e.r.combat.round.state);
-  }
-  {
-    const e = lobbyRoom({ mode: 'combat', mission: null });
-    e.at(100);
-    e.ready(0);
-    e.ready(1);
-    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    e.join(2);
-    check('a pilot who joins the round is seated in it with full paper (hot join)', e.r.combat.on() && e.r.combat.seats.has(3)
-      && e.r.combat.seats.get(3).owed === e.r.combat.seats.get(1).owed, JSON.stringify([...e.r.combat.seats.keys()]));
-  }
-  {
-    const e = lobbyRoom({ mode: 'tag', mission: null });
-    const w = e.socks[0].got.find((m) => m.type === 'welcome');
-    check('a room made for tag welcomes with its lobby: the goal, nobody ready',
-      JSON.stringify(w.lobby) === `{"goal":${GOALS[0].goal},"ready":{},"countdownAt":null,"deadlineAt":null}`, JSON.stringify(w.lobby));
-    e.say(0, { type: 'lobby', op: 'goal', goal: 3 });
-    check('a goal under tag\'s least is passed over', e.lobby(0).goal === GOALS[0].goal);
-    e.ready(0);
-    e.ready(0, false);
-    e.say(0, { type: 'lobby', op: 'goal', goal: 30 });
-    check('the host sets 30', e.lobby(1).goal === 30 && e.r.meta.goal === 30);
-    e.at(500);
-    e.ready(0);
-    e.ready(1);
-    e.at(500 + LOBBY_COUNTDOWN_MS + 100);
-    check('both ready: the room\'s tag match counts down to 30, the lobby cleared', e.r.tag.on() && e.r.tag.match.goal === 30 && e.r.tag.match.state === 'countdown'
-      && JSON.stringify(e.lobby(0).ready) === '{}', JSON.stringify(e.r.tag.view(e.r)));
-    check('with the room\'s clock running for it, nobody flying', e.r.ticking === true);
-    e.say(0, { type: 'tag', op: 'end' });
-    e.at(e.clock + 200);
-    check('the match ended: back in the lobby, nobody ready', !e.r.tag.on() && e.r.gameLobby.open(e.r) && JSON.stringify(e.lobby(1).ready) === '{}');
-  }
-  {
-    const e = lobbyRoom({ mode: 'tag', mission: null, n: 3 });
-    e.at(500);
-    e.ready(0);
-    e.ready(1);
-    e.at(500 + LOBBY_DEADLINE_MS - 100);
-    check('two of three ready: nothing before the 45 s', !e.r.tag.on());
-    e.at(500 + LOBBY_DEADLINE_MS + 100);
-    check('at 45 s the match starts with whoever is ready', e.r.tag.on(), JSON.stringify(e.r.tag.view(e.r)));
-  }
-  {
-    const e = lobbyRoom({ mode: 'tag', mission: null, n: 1 });
-    e.at(100);
-    e.ready(0);
-    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    check('Catch the Ace alone, ready: its match counts down', e.r.tag.on(), JSON.stringify(e.r.tag.view(e.r)));
-  }
-  {
-    const e = lobbyRoom({ mode: 'race', mission: null });
-    const w = e.socks[0].got.find((m) => m.type === 'welcome');
-    check('a race room welcomes with its lobby, no track yet', JSON.stringify(w.lobby) === '{"track":null,"ready":{},"countdownAt":null,"deadlineAt":null}',
-      JSON.stringify(w.lobby));
-    e.at(100);
-    e.ready(0);
-    e.ready(1);
-    check('both ready with no track: kept, and no time runs', e.lobby(0).ready['1'] && e.lobby(0).ready['2'] && e.lobby(0).countdownAt === null
-      && e.lobby(0).deadlineAt === null, JSON.stringify(e.lobby(0)));
-    e.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-lobby001' }) });
-    check('the host\'s track, nobody on its grid yet: still no time', e.lobby(1).countdownAt === null, JSON.stringify(e.lobby(1)));
-    e.say(0, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
-    e.say(1, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
-    check('pilots on its grid: the lobby says the track, and the five seconds run', e.lobby(1).track === 'trk-lobby001'
-      && e.lobby(1).countdownAt === 100 + LOBBY_COUNTDOWN_MS, JSON.stringify(e.lobby(1)));
-    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    const race = e.r.race.race;
-    check('at their end the race goes off the grid with both on it', race && race.state === 'on' && race.racers.join() === '1,2', JSON.stringify(race));
-    e.join(2);
-    check('a pilot who comes during it has no lobby and is no racer', !e.r.gameLobby.open(e.r) && !race.racers.includes(3));
-    /* The same race with allowDropIn turned over in the room's registry:
-     * the newcomer is put on the grid, so the field is the rule. */
-    const f = lobbyRoom({ mode: 'race', mission: null, flip: 'race' });
-    f.at(100);
-    f.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-lobby001' }) });
-    f.say(0, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
-    f.say(1, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
-    f.ready(0);
-    f.ready(1);
-    f.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    f.join(2);
-    check('with the race\'s allowDropIn turned over, that pilot is put on the grid', f.r.race.race && f.r.race.race.state === 'on' && f.r.race.race.racers.join() === '1,2,3',
-      JSON.stringify(f.r.race.race && f.r.race.race.racers));
-  }
+  console.log('a newcomer, and free flight: the lobby');
   {
     /* The war drops a newcomer in (allowDropIn true): enlisted. Turned
      * over, it waits: never a player, told the attackers as a watcher. */
@@ -535,49 +398,6 @@ export function gameLobbySection(check) {
     const outWar = start(flipped);
     check('with the war\'s allowDropIn turned over, that pilot waits: no player, the war still on',
       !outWar.includes(3) && outWar.length === 2 && flipped.r.war.on(), JSON.stringify(outWar));
-  }
-  {
-    /* Combat, the Ace and the jam read the same field (COMPLETENESS 7):
-     * each game's newcomer, then the same with the field turned over. */
-    const begun = (e) => {
-      e.at(100);
-      e.ready(0);
-      e.ready(1);
-      e.at(100 + LOBBY_COUNTDOWN_MS + 100);
-      e.join(2);
-      return e;
-    };
-    const combat = begun(lobbyRoom({ mode: 'combat', mission: null, flip: 'combat' }));
-    check('with combat\'s allowDropIn turned over, a pilot who comes mid round has no paper and is no player',
-      combat.r.combat.on() && !combat.r.combat.seats.has(3) && !combat.r.combat.players().includes(3), JSON.stringify([...combat.r.combat.seats.keys()]));
-    combat.say(2, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 2, livery: null, parts: null } });
-    check('nor after a change of aircraft', !combat.r.combat.seats.has(3));
-    combat.at(combat.r.combat.round.endsAt + 200);
-    combat.ready(0);
-    combat.ready(1);
-    combat.ready(2);
-    combat.at(combat.clock + LOBBY_COUNTDOWN_MS + 100);
-    check('and in the next round it has its paper like the others', combat.r.combat.round.n === 2 && combat.r.combat.seats.has(3)
-      && combat.r.combat.seats.get(3).owed === combat.r.combat.seats.get(1).owed, JSON.stringify({ n: combat.r.combat.round.n, seats: [...combat.r.combat.seats.keys()] }));
-
-    const tag = begun(lobbyRoom({ mode: 'tag', mission: null }));
-    tag.at(tag.r.tag.match.goAt + 100);
-    tag.fly(2);
-    check('a pilot who comes during a tag match and flies is one of its hunters', Object.hasOwn(tag.r.tag.match.players, 3), JSON.stringify(Object.keys(tag.r.tag.match.players)));
-    const tagOut = begun(lobbyRoom({ mode: 'tag', mission: null, flip: 'tag' }));
-    tagOut.at(tagOut.r.tag.match.goAt + 100);
-    tagOut.fly(2);
-    check('with the Ace\'s allowDropIn turned over, that pilot flies but is no hunter and not drawn',
-      tagOut.r.tag.on() && !Object.hasOwn(tagOut.r.tag.match.players, 3) && !tagOut.r.tag.flying(tagOut.r).some((f) => f.seat === 3),
-      JSON.stringify(Object.keys(tagOut.r.tag.match.players)));
-
-    const jam = begun(lobbyRoom({ mode: 'jam', mission: null }));
-    check('a pilot who comes during a jam watches it out: no turn', jam.r.jam.on() && !Object.hasOwn(jam.r.jam.match.players, 3) && !jam.r.jam.match.order.includes(3),
-      JSON.stringify(jam.r.jam.match.order));
-    const jamIn = begun(lobbyRoom({ mode: 'jam', mission: null, flip: 'jam' }));
-    check('with the jam\'s allowDropIn turned over, that pilot is one of its pilots, its turn last this round',
-      jamIn.r.jam.on() && jamIn.r.jam.players(jamIn.r).includes(3) && jamIn.r.jam.match.order.at(-1) === 3 && jamIn.socks[0].got.filter((m) => m.type === 'jam').at(-1).jam.order.includes(3),
-      JSON.stringify(jamIn.r.jam.match.order));
   }
   {
     const e = lobbyRoom({ mode: null });
@@ -626,17 +446,6 @@ export function emptyRoomSection(check) {
       `${e.war().state}`);
   }
   {
-    const e = lobbyRoom({ mode: 'combat', mission: null, n: 1 });
-    e.say(0, { type: 'combat', op: 'start', minutes: 3 });
-    e.at(30000);
-    const left = e.r.combat.round.endsAt - e.r.roomMs(e.clock);
-    e.r.close(e.socks[0], e.clock);
-    e.at(e.clock + 60000);
-    e.join(1);
-    check('a combat round in an empty room is paused too: the same time left when a pilot is back', e.r.combat.round.endsAt - e.r.roomMs(e.clock) === left,
-      `${e.r.combat.round.endsAt - e.r.roomMs(e.clock)} ${left}`);
-  }
-  {
     const e = lobbyRoom({ n: 1, dev: true });
     e.say(0, { type: 'war', op: 'start', mission: 'itaipu-1' });
     e.at(e.war().goAt + 1000);
@@ -656,15 +465,15 @@ export function emptyRoomSection(check) {
 /*
  * A Ready the room dropped (a page's texts on joining fill the room's
  * rate for a second, edge/rooms/core.js TEXT_PER_S): the page's half
- * (src/share/roomlobby.js) says it again every FINISH_RESEND_MS until the
+ * (src/share/roomlobby.js) says it again every READY_RESEND_MS until the
  * room's lobby lists it.
  */
 export function lobbyReadySection(check) {
   console.log('the lobby: a dropped Ready is said again');
-  /* Pilot 0's page on a room made for tag, its sends delivered at the
+  /* Pilot 0's page on a room made for the war, its sends delivered at the
    * room's clock except the first `drop`. */
   const page = (drop) => {
-    const e = lobbyRoom({ n: 2, mode: 'tag', mission: null });
+    const e = lobbyRoom({ n: 2 });
     const sent = [];
     const lr = createLobbyReady((obj) => {
       sent.push(obj);
@@ -685,13 +494,13 @@ export function lobbyReadySection(check) {
   check('the first Ready dropped: said again, the room lists it, and then nothing more', once.sent.length === 2 && once.e.lobby(0).ready[once.seat] === true
     && once.lr.pending() === null, JSON.stringify({ sent: once.sent.length, ready: once.e.lobby(0).ready }));
   const twice = page(2);
-  check(`two dropped: a third, ${FINISH_RESEND_MS} ms apart, and listed`, twice.sent.length === 3 && twice.e.lobby(0).ready[twice.seat] === true);
+  check(`two dropped: a third, ${READY_RESEND_MS} ms apart, and listed`, twice.sent.length === 3 && twice.e.lobby(0).ready[twice.seat] === true);
   const fine = page(0);
   check('none dropped: said once', fine.sent.length === 1 && fine.e.lobby(0).ready[fine.seat] === true);
   /* The negative control: a page that says it once, as before, and the
    * room drops it. */
   {
-    const e = lobbyRoom({ n: 2, mode: 'tag', mission: null });
+    const e = lobbyRoom({ n: 2 });
     let n = 0;
     const lr = createLobbyReady((obj) => {
       n += 1;
@@ -706,7 +515,7 @@ export function lobbyReadySection(check) {
   }
   /* The real drop: the room's own rate, filled by a burst of texts. */
   {
-    const e = lobbyRoom({ n: 2, mode: 'tag', mission: null });
+    const e = lobbyRoom({ n: 2 });
     const seat = e.socks[0].got.find((m) => m.type === 'welcome').seat;
     /* A page's burst on joining, as one was seen dropping a Ready: its
      * films seen, its profile, the day's time, and the clock's pings. */
@@ -725,7 +534,7 @@ export function lobbyReadySection(check) {
     check('over the room\'s rate: the first Ready is dropped, the next one lands', !first && e.lobby(0).ready[seat] === true, JSON.stringify({ first }));
   }
   {
-    const e = lobbyRoom({ n: 2, mode: 'tag', mission: null });
+    const e = lobbyRoom({ n: 2 });
     const sent = [];
     const lr = createLobbyReady((obj) => sent.push(obj));
     lr.set(true, e.lobby(0), 0, e.clock);
@@ -748,7 +557,7 @@ export function loadFailSection(check) {
   const told = (e, i) => e.socks[i].got.filter((m) => m.type === 'fail').at(-1);
   {
     const e = lobbyRoom({ n: 3, dev: true });
-    fail(e, 2, 'swiss2');
+    fail(e, 2, 'interior');
     check('a failure on a world that is not the room\'s is passed over', !told(e, 0) && !e.r.failed([...e.r.seats.values()][2]));
     fail(e, 2);
     check('the room\'s world: everybody is told the seat, the failing page too', told(e, 0) && told(e, 0).seat === 3 && told(e, 0).map === 'itaipu' && told(e, 2) && told(e, 2).seat === 3,
@@ -768,84 +577,22 @@ export function loadFailSection(check) {
     e.at(100 + LOBBY_COUNTDOWN_MS + 100);
     check('the war goes without it: two players, the failed seat not enlisted', e.r.war.on() && e.r.war.players(e.r).join() === '1,2'
       && !Object.hasOwn(e.r.war.match.players, 3), JSON.stringify(Object.keys(e.r.war.match.players)));
-    e.say(2, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null, status: 'loading' } });
+    e.say(2, { type: 'profile', profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null, status: 'loading' } });
     check('loading the world again is not standing on it', e.r.failed([...e.r.seats.values()][2]));
-    e.say(2, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null } });
+    e.say(2, { type: 'profile', profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null } });
     check('its profile on the room\'s world: counted in again, and everybody told map null', !e.r.failed([...e.r.seats.values()][2]) && told(e, 0).seat === 3 && told(e, 0).map === null,
       JSON.stringify(told(e, 0)));
   }
   {
-    /* A page rebuilding the room's world (a time of day, a graphics level)
-     * says so in its profile, loading, on the world it is taking down: not
-     * a second pilot for a game started in passing until it stands again. */
-    const e = lobbyRoom({ mode: null, mission: null });
-    const loading = (status) => e.say(1, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null, ...(status ? { status } : {}) } });
-    loading('loading');
-    const counted = e.r.fielded();
-    e.say(0, { type: 'tag', op: 'start', goal: 5 });
-    const refused = e.socks[0].got.filter((m) => m.type === 'tag' && m.error).map((m) => m.error).join();
-    check('a pilot loading the room\'s world again is not fielded: a match started in passing is refused alone', counted === 1 && e.r.tag.match === null && refused === 'alone',
-      JSON.stringify({ counted, refused }));
-    loading(null);
-    e.say(0, { type: 'tag', op: 'start', goal: 5 });
-    check('its world standing again, it is: the match starts', e.r.fielded() === 2 && e.r.tag.match && e.r.tag.match.state === 'countdown', String(e.r.fielded()));
-  }
-  {
     /* Every pilot here failed: nobody to play the round, which the room
      * abandons as it does a round its players left. */
-    const e = lobbyRoom({ mode: 'combat', mission: null, n: 1 });
+    const e = lobbyRoom({ n: 1, dev: true });
     e.at(100);
     e.ready(0);
     e.at(100 + LOBBY_COUNTDOWN_MS + 100);
     fail(e, 0);
     e.at(e.clock + ABANDON_MS + 200);
-    check('a combat round whose one pilot failed is ended after ABANDON_MS', !e.r.combat.on() && e.r.combat.round.state === 'idle', e.r.combat.round.state);
-  }
-  {
-    const e = lobbyRoom({ mode: 'race', mission: null });
-    e.at(100);
-    e.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-fail0001' }) });
-    e.say(0, { type: 'race', op: 'ready', track: 'trk-fail0001', ready: true });
-    e.say(1, { type: 'race', op: 'ready', track: 'trk-fail0001', ready: true });
-    e.say(0, { type: 'race', op: 'start', laps: 3 });
-    fail(e, 1);
-    const r = e.r.race.race;
-    check('a racer whose page fails mid race is retired from it, the race on', r.state === 'on' && r.out[2] === 'retired' && !e.r.race.readySeats().includes(2),
-      JSON.stringify(r.out));
-  }
-  for (const mode of ['tag', 'jam']) {
-    const e = lobbyRoom({ mode, mission: null, n: 3 });
-    fail(e, 2);
-    e.at(100);
-    e.ready(0);
-    e.ready(1);
-    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    const g = e.r[mode];
-    check(`${mode === 'tag' ? 'a tag match' : 'a jam'} goes without the failed seat: not one of its players${mode === 'jam' ? ', no turn' : ''}`,
-      g.on() && !Object.hasOwn(g.match.players, 3) && !g.players(e.r).includes(3) && (mode !== 'jam' || !g.match.order.includes(3)),
-      JSON.stringify(Object.keys(g.match.players)));
-  }
-  {
-    /* A start in passing counts the pilots on the room's world and not
-     * failed (core.js fielded): with the only other one failed, or still
-     * on another world, the host is alone, and the room refuses rather
-     * than start a round it would abandon ABANDON_MS later. */
-    const e = lobbyRoom({ mode: null, mission: null });
-    const errors = (type) => e.socks[0].got.filter((m) => m.type === type && m.error).map((m) => m.error).join();
-    e.at(100);
-    fail(e, 1);
-    e.say(0, { type: 'tag', op: 'start', goal: 5 });
-    e.say(0, { type: 'jam', op: 'start', seconds: 45 });
-    check('with the other pilot failed, tag and jam in passing are refused as alone, nothing on, nothing to abandon',
-      !e.r.tag.on() && !e.r.jam.on() && errors('tag') === 'alone' && errors('jam') === 'alone' && e.r.abandoned.size === 0,
-      JSON.stringify({ tag: errors('tag'), jam: errors('jam') }));
-    e.say(1, { type: 'profile', profile: { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null } });
-    e.say(0, { type: 'tag', op: 'start', goal: 5 });
-    check('one on another world is not counted either', !e.r.tag.on() && errors('tag') === 'alone,alone', errors('tag'));
-    e.at(1200);
-    e.say(1, { type: 'profile', profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null } });
-    e.say(0, { type: 'tag', op: 'start', goal: 5 });
-    check('standing on the room\'s world again, the start goes', e.r.tag.on(), errors('tag'));
+    check('a war whose one pilot failed is ended after ABANDON_MS, abandoned', !e.r.war.on() && e.war().state === 'ended' && e.r.war.match.abandoned === true, e.war().state);
   }
 }
 
@@ -877,67 +624,6 @@ export function sessionStatesSection(check) {
     e.socks.forEach((so, i) => e.say(i, { type: 'fail', map: 'itaipu' }));
     e.at(e.clock + ABANDON_MS + 200);
   };
-  {
-    const e = lobbyRoom({ mode: 'tag', mission: null });
-    e.at(100);
-    go(e);
-    e.at(e.r.tag.match.goAt + 100);
-    e.say(0, { type: 'tag', op: 'end' });
-    go(e);
-    e.at(e.r.tag.match.goAt + 100);
-    abandon(e);
-    check('Catch the Ace: lobby, countdown, live, over, then countdown, live, abandoned', heard(e, view('tag')) === 'lobby,countdown,live,over,countdown,live,abandoned',
-      heard(e, view('tag')));
-  }
-  {
-    const e = lobbyRoom({ mode: 'race', mission: null });
-    e.at(100);
-    e.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-named001' }) });
-    e.say(0, { type: 'race', op: 'ready', track: 'trk-named001', ready: true });
-    e.say(1, { type: 'race', op: 'ready', track: 'trk-named001', ready: true });
-    go(e);
-    const goAt = e.r.race.race.goAt;
-    e.at(goAt + 100);
-    /* The race says nothing at its go: a pass after it is its next word. */
-    e.say(0, { type: 'race', op: 'retire', race: e.r.race.race.id });
-    e.say(0, { type: 'race', op: 'end' });
-    check('a race: lobby, countdown, live once its go has passed, over', heard(e, view('race')) === 'lobby,countdown,live,over', heard(e, view('race')));
-  }
-  {
-    const e = lobbyRoom({ mode: 'jam', mission: null });
-    e.at(100);
-    go(e);
-    while (e.r.jam.on()) {
-      e.at(e.clock + 1000);
-    }
-    const first = heard(e, view('jam'));
-    check('a jam: lobby, countdown, live, between its rounds, live, over', /^lobby,countdown,live,(between,live,)+over$/.test(first), first);
-  }
-  {
-    /* A jam skips a runner not here, so one with nobody left runs out to
-     * its results; started in passing in a free flight room, where two are
-     * its least, one counted out abandons it. */
-    const e = lobbyRoom({ mode: null });
-    e.at(100);
-    e.say(0, { type: 'jam', op: 'start', seconds: 45 });
-    e.at(e.clock + 100);
-    e.say(1, { type: 'fail', map: 'itaipu' });
-    e.at(e.clock + ABANDON_MS + 200);
-    check('a jam in passing: countdown, live, abandoned when one of its two failed', heard(e, view('jam')) === 'lobby,countdown,live,abandoned', heard(e, view('jam')));
-  }
-  {
-    /* Combat started in passing in a free flight room runs round after
-     * round with results between; two are its least there. */
-    const e = lobbyRoom({ mode: null });
-    e.at(100);
-    e.say(0, { type: 'combat', op: 'start', minutes: ROUND_MINUTES[0] });
-    e.at(e.r.combat.round.endsAt + 200);
-    e.at(e.r.combat.round.nextAt + 200);
-    e.say(1, { type: 'fail', map: 'itaipu' });
-    e.at(e.clock + ABANDON_MS + 200);
-    const combat = (m) => (m.type === 'combat' ? m.session : null);
-    check('combat in passing: countdown, live, between, countdown, abandoned when one of its two failed', heard(e, combat) === 'countdown,live,between,countdown,abandoned', heard(e, combat));
-  }
   {
     const e = lobbyRoom({ dev: true });
     e.at(100);

@@ -37,14 +37,11 @@
 
 import { str } from '../strings/index.js';
 import { touchWanted } from '../input/touchsticks.js';
-import { tracksConfigured } from '../share/cloud.js';
 import { WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP } from './settings.js';
 import {
   btn, el, hintWithKeys, makeGimbal, makeWeightSlider, wordmark,
 } from './widgets.js';
-import { ScoreHud } from './scorehud.js';
 import { StickRef } from './stickref.js';
-import { TrickFilmPlayer } from './trickfilm.js';
 import { fillCredits } from './credits.js';
 import { mountRatesPanel } from './ratespanel.js';
 import { mountPidsPanel } from './pidspanel.js';
@@ -98,14 +95,14 @@ function actionButton(shell, className, label, action) {
   return b;
 }
 
-/* The flight overlay, the score beside it and nothing else in flight. */
+/* The flight overlay and nothing else in flight. */
 export function buildFlightOverlay(shell) {
   const root = shell.root;
   root.textContent = '';
   shell.osd = el('div', 'osd');
 
   /* The clock is labelled because it is a lap in a race and an airtime in
-   * freestyle. The ghost line is off until the first gate gives it a gap. */
+   * freestyle. */
   const head = el('div', 'osd-top');
   head.append(
     keep(shell, 'osdClockLabel', 'div', 'osd-label', str('ui.lap_label')),
@@ -113,7 +110,6 @@ export function buildFlightOverlay(shell) {
     keep(shell, 'osdGate', 'div', 'osd-gate', ''),
     keep(shell, 'osdLast', 'div', 'osd-best', ''),
     keep(shell, 'osdBest', 'div', 'osd-best', ''),
-    keep(shell, 'osdGhost', 'div', 'osd-ghost is-off', ''),
   );
   shell.osdTopBlock = head;
 
@@ -130,15 +126,12 @@ export function buildFlightOverlay(shell) {
     keep(shell, 'osdHits', 'div', 'osd-sub osd-hits', ''),
   );
 
-  /* Flaps, gear and the hold stay empty on an aircraft without them. Launch is not a
-   * corner line: it sits on the overlay itself, after the sticks. */
+  /* Launch is not a corner line: it sits on the overlay itself, after the
+   * sticks. */
   const right = el('div', 'osd-corner osd-right');
   right.append(
     keep(shell, 'osdSpeed', 'div', 'osd-value', ''),
     keep(shell, 'osdFlight', 'div', 'osd-sub osd-mode', ''),
-    keep(shell, 'osdFlaps', 'div', 'osd-sub osd-mode', ''),
-    keep(shell, 'osdGear', 'div', 'osd-sub osd-mode', ''),
-    keep(shell, 'osdHold', 'div', 'osd-sub osd-mode', ''),
   );
   const launch = keep(shell, 'osdLaunch', 'div', 'osd-launch is-off', '');
   right.append(
@@ -173,11 +166,8 @@ export function buildFlightOverlay(shell) {
   shell.osdSticks = sticks;
   shell.bindAirSlider();
 
-  shell.osd.append(head, left, right, sticks, launch, shell.buildTargetLock());
+  shell.osd.append(head, left, right, sticks, launch);
   root.append(shell.osd);
-  /* A sibling of the overlay, not a child: the overlay is hidden off
-   * flight and the score has to outlive it into results. */
-  shell.scoreHud = new ScoreHud(root);
 }
 
 /*
@@ -285,37 +275,6 @@ function howtoRig(shell) {
   return body;
 }
 
-/* The trick list's film and the words beside it, over the list itself. */
-function trickStage(shell) {
-  const side = el('div', 'trick-side');
-  side.append(
-    keep(shell, 'trickName', 'div', 'trick-name', ''),
-    keep(shell, 'trickMeta', 'div', 'trick-meta', ''),
-    keep(shell, 'trickHow', 'p', 'trick-how', ''),
-    keep(shell, 'trickView', 'div', 'trick-view', ''),
-  );
-  const stage = el('div', 'trick-stage');
-  stage.append(keep(shell, 'trickCanvas', 'canvas', 'trick-film'), side);
-  return stage;
-}
-
-/*
- * My tracks' strip: the pilot's track cards first, the board's after, and
- * one line each for an empty list and for what the board said.
- * mapCardHost is made for the Freestyle room's world cards
- * (renderMapCards) and never placed here.
- */
-function courseStrip(shell) {
-  shell.mapCardHost = el('div', 'map-cards');
-  const strip = keep(shell, 'courseStrip', 'div', 'card-strip');
-  strip.append(
-    el('div', 'strip-label', tracksConfigured() ? str('cloud.strip_label') : str('ui.yours_first_then_the_board_most')),
-    keep(shell, 'courseCardHost', 'div', 'map-cards course-cards'),
-    keep(shell, 'localNote', 'div', 'board-note', ''),
-    keep(shell, 'boardNote', 'div', 'board-note', ''),
-  );
-  return strip;
-}
 
 /* The airframe showcase, seated in the first column of Quad's menu. */
 function quadShowcase(shell) {
@@ -358,21 +317,6 @@ const PAGES = {
       shell.renderHowto();
     },
   },
-  /* The catalogue's own patterns, so nothing listed is a trick the scorer
-   * would not score. See src/ui/trickfilm.js. */
-  tricks: {
-    classes: 'screen-page screen-tricks',
-    title: 'ui.trick_list',
-    lede: ['rates-lede', 'ui.every_trick_the_scorer_is_known'],
-    body: (shell) => [trickStage(shell)],
-    menu: 'trick',
-    scroll: true,
-    hint: [['Esc'], 'ui.goes_back_arrow_keys_move_through'],
-    then: (shell) => {
-      shell.trickPlayer = new TrickFilmPlayer(shell.trickCanvas);
-      shell.trickShown = '';
-    },
-  },
   credits: {
     classes: 'screen-page screen-credits',
     title: 'ui.credits',
@@ -383,28 +327,6 @@ const PAGES = {
     },
     menu: 'credits',
     hint: ESC_STILL_MOVE,
-  },
-  /* Which aircraft the list is for is said in the lede, written by
-   * items(): a plane sees only the tracks it fits. */
-  courses: {
-    classes: 'screen-page screen-maps screen-courses',
-    title: 'ui.my_tracks',
-    lede: ['screen-lede', null],
-    ledeField: 'coursesLede',
-    body: (shell) => [courseStrip(shell)],
-    menu: 'courses',
-    scroll: true,
-    hint: [['↑↓', 'Enter', 'Esc'], 'ui.arrow_keys_move_enter_chooses_escape'],
-  },
-  /* The world cards and their rows; nothing here is timed or posted, so
-   * there is no publish cluster and no hint line. */
-  freestyle: {
-    classes: 'screen-page screen-courses screen-freestyle',
-    title: 'ui.freestyle',
-    lede: ['rates-lede', 'ui.a_whole_valley_and_no_gates'],
-    body: (shell) => [keep(shell, 'freestyleCards', 'div', 'map-cards')],
-    menu: 'freestyle',
-    scroll: true,
   },
   /* Quad holds what survives a change of pilot, Settings (pilot) what
    * survives a change of quad; the run's own choices are the launch card. */
@@ -487,29 +409,6 @@ const PAGES = {
     menu: (shell, block) => { shell.roomPages.roomnew = block; },
     scroll: true,
     hint: ESC_STORED,
-  },
-  /* The board's times for a track, from the endpoint the ghost picker
-   * already calls, so seeing a record never means leaving the game. */
-  standings: {
-    classes: 'screen-page screen-standings',
-    title: 'ui.standings',
-    lede: ['rates-lede', null],
-    ledeField: 'standingsLede',
-    menu: 'standings',
-    scroll: true,
-    seat: (shell) => keep(shell, 'standingsTable', 'div', 'standings-table'),
-    hint: [['Esc'], 'ui.goes_back_to_the_track_list'],
-  },
-  /* Laps, pack charge and flight model belong to the run, they are what a
-   * lap time means (recordKey), so they are asked here, before a race. */
-  launch: {
-    classes: 'screen-page screen-launch',
-    title: 'ui.before_you_fly',
-    lede: ['rates-lede', null],
-    ledeField: 'launchLede',
-    menu: 'launch',
-    scroll: true,
-    hint: [['Enter', 'Esc'], 'ui.enter_flies_it_escape_goes_back'],
   },
   /* The rates curve beside the rows, from the numbers Betaflight flies. */
   rates: {
@@ -811,7 +710,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
+  ...['howto', 'credits', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'rates', 'planerates', 'pids', 'controls', 'controller', 'flywith'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,

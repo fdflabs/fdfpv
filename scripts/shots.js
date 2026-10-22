@@ -14,7 +14,6 @@
  *   --touch=1        touch emulation, so the thumb sticks mount.
  *   --jpeg=Q         every capture a JPEG at quality Q (.jpg); 0 is PNG.
  *   --graphics=P     the quality preset P, seeded as chosen.
- *   --course=FILE    a track built in a world, seeded and raced in Track mode.
  *   --airframe=ID    seat aircraft ID, first-run aircraft question answered.
  *
  * Steps (kind:argument, run in order):
@@ -53,8 +52,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage, keyInfo } from '../tests/lib/page.js';
@@ -104,14 +103,6 @@ function settingsSeed(body) {
   } catch (e) { /* Storage refused: the app boots on its defaults. */ }`;
 }
 
-async function loadCourse(file) {
-  const doc = JSON.parse(await readFile(isAbsolute(file) ? file : join(root, file), 'utf8'));
-  if (!(doc.schemaVersion >= 4 && doc.map)) {
-    throw new Error(`--course ${file} is not a track built in a world`);
-  }
-  return doc;
-}
-
 /*
  * The scripts that run before the first line of the app, through the same
  * storage the pilot uses rather than a test-only hook.
@@ -127,26 +118,13 @@ async function buildSeeds(opts) {
     `try { localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true })); } catch (e) { /* Storage refused: nothing to opt out of. */ }`,
     'performance.setResourceTimingBufferSize(100000);',
   ];
-  let url = opts.url ?? '/index.html';
+  const url = opts.url ?? '/index.html';
   /* Pinned like --w/--h pin the window: boot lowers a DETECTED preset to
    * Low on a CPU rasteriser, which headless Chrome always is, so a world's
    * cost would be measured at Low here and at High on a GPU machine.
    * graphicsAuto false is what marks the value as chosen. */
   if (opts.graphics) {
     seeds.push(settingsSeed(`s.graphics = ${JSON.stringify(String(opts.graphics))}; s.graphicsAuto = false;`));
-  }
-  if (opts.course) {
-    const doc = await loadCourse(String(opts.course));
-    const wing = Boolean(opts.airframe) && airframeById(String(opts.airframe)).fixedWing;
-    const seat = wing ? 'webfpv.share.import.wing.v1' : 'webfpv.share.import.v1';
-    const entry = { id: doc.id, name: doc.name, author: '', board: '', document: doc, local: true };
-    seeds.push(settingsSeed(`localStorage.setItem(${JSON.stringify(seat)}, ${JSON.stringify(JSON.stringify(entry))}); s.map = 'track';`));
-    /* The seat alone is not enough: a page that names no world opens on the
-     * title's own valley (src/boot.js) and the track stays unbuilt until
-     * Fly. A url that already names a map wins. */
-    if (!/[?&]map=/.test(url)) {
-      url += `${url.includes('?') ? '&' : '?'}map=track`;
-    }
   }
   /* The first-run aircraft question is modal, so a capture past it would
    * photograph the question. Seated through the shell's own function from

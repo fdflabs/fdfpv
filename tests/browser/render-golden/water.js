@@ -1,12 +1,12 @@
 /*
- * render-golden/water.js: the Swiss valley's water as a material and a
- * stream (surface.js, waves.js and stream.js, under
- * src/maps/swiss2/water/ when this was recorded), pinned before they move
- * into the shared asset library (docs/ASSET-LIBRARY.md), so the move is
- * proved to change nothing: the wave texture, the water and bed
- * materials in every combination the map asks for, with their shader
- * text and program keys, a stream's ribbon, surface and gravel bars, and
- * the planar mirror (lake.js) Itaipu's water holds up too.
+ * render-golden/water.js: the Swiss valley's water as a material
+ * (surface.js and waves.js, under src/maps/swiss2/water/ when this was
+ * recorded), pinned before they moved into the shared asset library
+ * (docs/ASSET-LIBRARY.md), so the move is proved to change nothing: the
+ * wave texture, the water and bed materials in every combination the map
+ * asks for, with their shader text and program keys, and the planar
+ * mirror (lake.js) Itaipu's water holds up too. Its stream (stream.js)
+ * left with the valleys on 2026-10-20, and its cases with it.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -27,10 +27,8 @@
 import * as THREE from 'three';
 import * as surface from '../../../src/render/library/water/surface.js';
 import * as waves from '../../../src/render/library/water/waves.js';
-import * as stream from '../../../src/render/library/water/stream.js';
 import { planarMirror } from '../../../src/render/library/water/mirror.js';
 import { makeWaves } from '../../../src/render/lakewaves.js';
-import { makeRng } from '../../../src/render/library/noise.js';
 import {
   describeGeometry, describeMaterial, describeTexture, makeTable, hashText, describeValue,
 } from '../render-golden-lib.js';
@@ -98,19 +96,9 @@ function options() {
   };
 }
 
-/* A stream that bends both ways and drops down a slope. */
-function line() {
-  const pts = [];
-  for (let k = 0; k < 60; k += 1) {
-    pts.push({ x: 8 * k, z: 30 * Math.sin(k / 6) + 4 * Math.sin(k * 1.7) });
-  }
-  return pts;
-}
-const groundAt = (x, z) => 100 - 0.05 * x + 0.8 * Math.sin(z / 3) + 0.3 * Math.cos(x / 5);
-
 export function cases() {
   return {
-    exports: () => ({ surface: exportsOf(surface), waves: exportsOf(waves), stream: exportsOf(stream), lift: stream.STREAM_LIFT }),
+    exports: () => ({ surface: exportsOf(surface), waves: exportsOf(waves) }),
     waveTexture: () => {
       const table = makeTable();
       return { full: describeTexture(waves.waveTexture(), table), small: describeTexture(waves.waveTexture(64), table) };
@@ -131,17 +119,6 @@ export function cases() {
         };
       }
       return round(out);
-    },
-    stream: () => {
-      const table = makeTable();
-      const pts = line();
-      return {
-        ribbon: describeGeometry(stream.streamGeometry(pts, 5.2, groundAt), table),
-        lifted: describeGeometry(stream.streamGeometry(pts.slice(0, 20), 3.6, groundAt, 0.3), table),
-        surface: round(stream.streamSurface(pts, groundAt)),
-        surfaceLifted: round(stream.streamSurface(pts.slice(5, 15), groundAt, 0.3)),
-        bars: describeGeometry(stream.gravelBarGeometry(pts, 5.2, groundAt, makeRng(7)), table),
-      };
     },
     /* The mirror drawn for one camera over a scene with a box in it:
      * where it reads the target (matrix), how much of the target the

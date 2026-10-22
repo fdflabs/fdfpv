@@ -375,7 +375,7 @@ void main() {
 
 /*
  * THE FLIPBOOK'S DEPTH. The pools are transparent and write no depth, so
- * the photographic chain's air (src/maps/swiss2/post.js aerial) veiled a
+ * the photographic chain's air (src/maps/look/post.js aerial) veiled a
  * fireball by whatever was behind it: under the horizon by the far water
  * and land, a kilometre and more of haze, and over it by nothing, the sky
  * being left alone. Where a fireball crossed the far horizon that drew a

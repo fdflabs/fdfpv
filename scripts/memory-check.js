@@ -1,13 +1,13 @@
 /*
  * memory-check.js: a world costs nothing until it is chosen and gives its
- * memory back when it is left. Boots on the Alps, asserts no lazily loaded
+ * memory back when it is left. Boots on Itaipu, asserts no lazily loaded
  * world's modules were fetched at boot, then for each lazily loaded world
  * switches to it, asserts it fetched its own modules and no other world's
  * (declared shared code aside), switches back and asserts the live three.js
  * geometry and texture counts return to about the baseline.
  *
  *     node scripts/memory-check.js                  (npm run lint:memory)
- *     node scripts/memory-check.js --map=swiss2     (one world)
+ *     node scripts/memory-check.js --map=interior   (one world)
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -32,13 +32,12 @@
  * paying. Both halves break easily and invisibly until a tab runs out of
  * memory somewhere else.
  *
- * verify's check 16 is the reference for the Swiss valley: not fetched while
- * the Alps are selected, a full graph once chosen, MAP_MODULE_COUNT matching
- * the browser's fetches, the Alps' draw cost unchanged. This does not repeat
- * it. It adds the other lazily loaded worlds, that choosing one drags in no
- * other world's directory, and release: a lazy load that never frees is a
- * leak with extra steps. It is not in CI because verify builds the WASM and
- * this has nothing to say about the flight model.
+ * verify's check 16 is the reference for the Interior: not fetched while
+ * Itaipu is selected, a full graph once chosen, MAP_MODULE_COUNT matching
+ * the browser's fetches, Itaipu's draw cost unchanged. This does not repeat
+ * it. It adds that choosing a lazily loaded world drags in no other lazily
+ * loaded world's directory, and release: a lazy load that never frees is a
+ * leak with extra steps.
  *
  * Resource timing is the witness: it is the browser's own record of every
  * URL fetched, and a loader
@@ -56,29 +55,22 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /*
- * The baseline is the world loaded at boot, the smallest there is. It is
- * named in the address because a page naming no world opens on the title's
- * own valley (src/boot.js), and this measures what boot fetches with the
- * baseline selected. It is never measured as lazily loaded: the title always
- * has a world. It was the race field, then the airfield, until each was
- * retired.
+ * The baseline is the world loaded at boot: the title's (src/boot.js
+ * TITLE_WORLD), so this measures what most pilots' boot fetches. It is named
+ * in the address all the same, so the measurement does not move if the
+ * title does. It is never measured as lazily loaded: the title always has a
+ * world. It was the race field, then the airfield, then the Alps, until
+ * each was retired.
+ *
+ * The Interior builds with six of Itaipu's modules (src/maps/interior.js
+ * imports them), which the baseline has already fetched; they are under
+ * Itaipu's prefix, not the Interior's, so they are neither its count nor a
+ * bleed. No lazily loaded world shares another's directory, so there is no
+ * list of declared shares (there was while the Swiss valley built through
+ * the Alps' modules, until 2026-10-20).
  */
-const BASELINE = 'alps';
-const LAZY = ['swiss2', 'itaipu'];
-
-/*
- * swiss2 is the Alps' valley drawn in a second style by the Alps' own
- * builders (src/maps/swiss2.js), so choosing it fetches src/maps/alps.js and
- * src/maps/alps/; copying them would keep six thousand lines twice. Itaipu
- * is swiss2's look on purpose (docs/ITAIPU-PLAN.md section 1, point 5), and
- * its terrain engine, src/maps/terrain/, is no world's. Only a declared
- * dependency is let through: swiss2 pulling in Itaipu is still a fault, and
- * so is the Alps pulling in swiss2, which the boot half catches.
- */
-const SHARES = {
-  swiss2: ['alps'],
-  itaipu: ['swiss2'],
-};
+const BASELINE = 'itaipu';
+const LAZY = ['interior'];
 
 const ofWorld = (id) => (url) => url.includes(`/src/maps/${id}/`) || url.endsWith(`/src/maps/${id}.js`);
 
@@ -164,9 +156,8 @@ async function main() {
         failures.push(`${id}: choosing it fetched no ${id} module at all, so the first half proves nothing`);
       }
       visited.add(id);
-      const allowed = SHARES[id] || [];
       for (const other of LAZY) {
-        if (other === id || allowed.includes(other)) {
+        if (other === id) {
           continue;
         }
         const bled = slice.filter(ofWorld(other));

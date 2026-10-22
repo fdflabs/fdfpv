@@ -26,8 +26,10 @@
  *   contact on it. Judged: the craft must never be past the wall's face by
  *   more than a part's own spring travel (0.1 m).
  *
- * At several offsets across the wall, for the Skyhunter and the Cub, at
- * 13.3 m/s (the station's) and 20 m/s. Exits 1 on any failure.
+ * At several offsets across the wall, for the Bramor and both Strikers,
+ * at 13.3 m/s (the station's) and 20 m/s. The Skyhunter and the Cub flew
+ * it too until they left the module on 2026-10-20. Exits 1 on any
+ * failure.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -89,10 +91,12 @@ async function fly(id, speed, yOff, holdMet) {
   let prev = r.state();
   let deepest = -Infinity;
   let dropped = 0;
+  let partDeepest = -Infinity;
   for (let ms = 0; ms < 1500; ms += PASS_MS) {
     r.run(PASS_MS, [0, 0, 0, 0.45]);
     const s = r.state();
     r.partsState().forEach((p, i) => {
+      partDeepest = Math.max(partDeepest, p.pos[0]);
       ps[i * PART_STATE_DOUBLES] = p.status;
       ps[i * PART_STATE_DOUBLES + 2] = p.pos[0];
       ps[i * PART_STATE_DOUBLES + 3] = p.pos[1];
@@ -137,21 +141,27 @@ async function fly(id, speed, yOff, holdMet) {
     deepest = Math.max(deepest, prev[1]);
   }
   const s = r.state();
-  return { deepest, x: s[1], v: Math.hypot(s[4], s[5], s[6]), dropped };
+  return { deepest, partDeepest, x: s[1], v: Math.hypot(s[4], s[5], s[6]), dropped };
 }
 
 let failed = 0;
-for (const [name, id] of [['Skyhunter', 3], ['Cub', 4]]) {
+/* The Bramor and both Strikers, the fixed wings the war and The Interior
+ * seat, into the wall the Skyhunter and the Cub met, at the same speeds. */
+for (const [name, id] of [['Bramor', 8], ['Striker prop', 27], ['Striker jet', 28]]) {
   for (const speed of [13.3, 20]) {
     for (const holdMet of [false, true]) {
       let worst = -Infinity;
+      let partWorst = -Infinity;
       let through = 0;
+      let partThrough = 0;
       let dropped = 0;
       const offsets = [-0.4, -0.2, 0, 0.2, 0.4];
       for (const y of offsets) {
         const o = await fly(id, speed, y, holdMet);
         worst = Math.max(worst, o.deepest);
         through += o.deepest > THROUGH ? 1 : 0;
+        partWorst = Math.max(partWorst, o.partDeepest);
+        partThrough += o.partDeepest > THROUGH ? 1 : 0;
         dropped += o.dropped;
       }
       const judged = holdMet;
@@ -159,6 +169,16 @@ for (const [name, id] of [['Skyhunter', 3], ['Cub', 4]]) {
       failed += ok ? 0 : 1;
       console.log(`${judged ? (ok ? 'PASS' : 'FAIL') : 'info'} ${name} at ${speed} m/s, ${holdMet ? 'the met wall declared (the shell now)' : 'the wall not declared (as it was)'}: `
         + `${through} of ${offsets.length} through, deepest ${worst.toFixed(2)} m past the face, ${dropped} host contacts dropped`);
+      /* The CG is the craft's middle: on the Striker the nose is 1.5 m
+       * ahead of it (src/native/plant.c, its camera_x), so a CG short of
+       * the face says little there. Every part's centre, attached or
+       * broken off, is held to the same spring travel. */
+      if (judged) {
+        const partOk = partThrough === 0;
+        failed += partOk ? 0 : 1;
+        console.log(`${partOk ? 'PASS' : 'FAIL'} ${name} at ${speed} m/s, the met wall declared: no part's centre past the face by more than ${THROUGH} m, `
+          + `${partThrough} of ${offsets.length} through, deepest ${partWorst.toFixed(2)} m`);
+      }
     }
   }
 }

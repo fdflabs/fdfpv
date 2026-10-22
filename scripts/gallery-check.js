@@ -5,7 +5,7 @@
  *
  *   node scripts/gallery-check.js [outdir]
  *
- * Another pilot (Painter) has published two Timber liveries through the
+ * Another pilot (Painter) has published two Striker liveries through the
  * API. The page is signed in as Pilot. The hangar's Colours tab, Gallery
  * page: both entries listed newest first with the publisher's callsign;
  * Like counts on the server and turns to Liked; Most liked puts the liked
@@ -97,8 +97,8 @@ async function account(sub, callsign) {
 }
 
 const painter = await account('painter', 'Painter');
-const lime = (await api('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Lime Timber', { scheme: 'timber_x' }) }, painter)).entry;
-const plain = (await api('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Plain Timber', {}) }, painter)).entry;
+const lime = (await api('POST', '/api/account/gallery', { code: encodeLivery('striker2500', 'Olive Striker', { scheme: 'olive' }) }, painter)).entry;
+const plain = (await api('POST', '/api/account/gallery', { code: encodeLivery('striker2500', 'Plain Striker', {}) }, painter)).entry;
 const pilot = await account('pilot', 'Pilot');
 const me = await api('GET', '/api/account', undefined, pilot);
 
@@ -106,7 +106,7 @@ const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};
   const s = JSON.parse(localStorage.getItem(k) || '{}');
   Object.assign(s, {
-    airframeAsked: true, fpsCap: 0, graphics: 'low', map: 'swiss2', freestyleMap: 'swiss2',
+    airframeAsked: true, fpsCap: 0, graphics: 'low', map: 'interior', freestyleMap: 'interior',
     progress: { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, unlockAll: true },
   });
   localStorage.setItem(k, JSON.stringify(s));
@@ -148,9 +148,9 @@ async function main() {
     await page.until('!!window.__shellReady', 300000);
     await page.evaluate('window.__ui.openCraftRow(false); true');
     await page.until('window.__ui.carousel.isOpen', 10000);
-    await page.evaluate("window.__ui.carousel.setFilter('all'); window.__ui.carousel.goTo(window.__ui.carousel.ids.indexOf('timber1500')); true");
+    await page.evaluate("window.__ui.carousel.setFilter('all'); window.__ui.carousel.goTo(window.__ui.carousel.ids.indexOf('striker2500')); true");
     await page.tap('KeyC');
-    await page.until("window.__ui.hangar.isOpen && window.__ui.hangar.id === 'timber1500'", 20000);
+    await page.until("window.__ui.hangar.isOpen && window.__ui.hangar.id === 'striker2500'", 20000);
     await press(page, key('tab-colours'));
     await press(page, key('page-gallery'));
     await page.until(`(${rowText(lime.id)}).includes('Painter') && (${rowText(plain.id)}).length > 0`, 20000);
@@ -161,7 +161,7 @@ async function main() {
 
     await press(page, key(`glike-${lime.id}`));
     await page.until(`(${rowText(lime.id)}).includes('1 like') && (${rowText(lime.id)}).includes('Liked')`, 10000);
-    const listed = await api('GET', '/api/gallery?family=timber1500&sort=liked');
+    const listed = await api('GET', '/api/gallery?family=striker2500&sort=liked');
     check('the like reached the server and Most liked has it first', listed.items[0].id === lime.id && listed.items[0].likes === 1, JSON.stringify(listed.items.map((x) => [x.name, x.likes])));
     await press(page, key('sort-liked'));
     await page.until(`document.querySelector('.hangar [data-gallery]') && document.querySelector('.hangar [data-gallery]').dataset.gallery === ${JSON.stringify(lime.id)}`, 10000);
@@ -173,10 +173,10 @@ async function main() {
     check('the report reached the admin list', reported.items.some((x) => x.id === plain.id && x.reports === 1), JSON.stringify(reported));
 
     await press(page, key(`gwear-${lime.id}`));
-    await page.until("window.__ui.hangar.entry && window.__ui.hangar.entry.scheme === 'timber_x'", 10000);
+    await page.until("window.__ui.hangar.entry && window.__ui.hangar.entry.scheme === 'olive'", 10000);
     const lib = await page.evaluate("window.__ui.hangar.shop.library.map((x) => x.name)");
-    check('Wear puts it on the plane and into My liveries', lib.includes('Lime Timber'), JSON.stringify(lib));
-    await page.until("(document.querySelector('.hangar .gallery-note') || {}).textContent === 'Wearing \"Lime Timber\". It is in your liveries now.'", 10000);
+    check('Wear puts it on the plane and into My liveries', lib.includes('Olive Striker'), JSON.stringify(lib));
+    await page.until("(document.querySelector('.hangar .gallery-note') || {}).textContent === 'Wearing \"Olive Striker\". It is in your liveries now.'", 10000);
     await shot(page, 'gallery-worn');
 
     await press(page, key('gallery-publish'));
@@ -187,7 +187,7 @@ async function main() {
     await shot(page, 'gallery-published');
     await press(page, key(`gremove-${mine}`));
     await page.until(`!document.querySelector('.hangar [data-gallery="${mine}"]')`, 10000);
-    const after = await api('GET', '/api/gallery?family=timber1500');
+    const after = await api('GET', '/api/gallery?family=striker2500');
     check('Remove takes it off the server', !after.items.some((x) => x.id === mine) && after.items.length === 2);
 
     const f = page.errors.filter((e) => !e.startsWith('network:'));

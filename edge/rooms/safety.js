@@ -77,11 +77,11 @@ export { REPORT_WINDOW_MS };
 export const REPORTS_PER_WINDOW = 3;
 export const REMOVE_MS = 30 * 60 * 1000;
 export const SPAWN_MS = 5000;
-/* src/game/verify.js TELEPORT_SPEED, the same number the board refuses a
- * lap at: terminal velocity is 30 to 40 m/s and the fastest planes and race
- * lines sit under 50, so 100 m/s is flight on one side and a jump on the
- * other. Kept here, not imported, because verify.js pulls the race and the
- * builder into the Worker's bundle; rooms:selftest checks the two agree. */
+/* Terminal velocity is 30 to 40 m/s and the fastest planes sit under 50,
+ * so 100 m/s is flight on one side and a jump on the other. The same number
+ * the leaderboard's own copy of verify.js refuses a lap at (TELEPORT_SPEED);
+ * the race and its verify.js left this repo with the combat-only cut, and
+ * rooms:selftest pins the number. */
 export const POSE_MAX_SPEED = 100;
 /* Further out than any world reaches (the Alps valley is six kilometres),
  * and a sample time further from the room's clock than any honest clock
@@ -134,8 +134,7 @@ export class RoomSafety {
 
   seatConn(seat) {
     for (const [conn, s] of this.core.seats) {
-      /* An AI pilot is nobody to report or mute (roombots.js). */
-      if (s.seat === seat && !s.bot) {
+      if (s.seat === seat) {
         return conn;
       }
     }
@@ -265,7 +264,6 @@ export class RoomSafety {
     this.core.seats.delete(conn);
     /* Gone from the games as a kick is (core.js kick). */
     this.core.referee.leave(s.seat);
-    this.core.combat.leave(s.seat);
     this.core.war.leave(s.seat);
     this.reports = this.reports.filter((r) => r.target !== s.token);
     return [

@@ -16,8 +16,8 @@
  *             (AGENTS, 0xA0), because the room steers it at the pilots
  *   warheads  a defender detonates when any part box of it comes within
  *             its fuze radius of an attacker's centre: src/game/midair.js
- *             within, tag's bubble, with the attacker as the Ace. The
- *             radius is the seat's airframe and warhead's
+ *             within, Catch the Ace's bubble rule, with the attacker as
+ *             the Ace. The radius is the seat's airframe and warhead's
  *             (src/share/war/fuze.js fuzeM, blastOf). It kills the
  *             attacker, the defender, and every other attacker within
  *             the same radius of that attacker's centre then. A hunter
@@ -70,7 +70,8 @@
  *             rack and rackMax are the airframes the match's pilots have
  *             left this round and could have
  *
- * ONE TIMELINE, JUDGED IN ORDER: tag's (edge/rooms/tag.js). Everything is
+ * ONE TIMELINE, JUDGED IN ORDER: as Catch the Ace's was (edge/rooms/tag.js,
+ * in git history since the combat-only cut, 2026-10-20). Everything is
  * decided on the room clock over the span every seat heard from in the
  * last WAIT_MS has covered, or LATE_MS behind the room clock, whichever is
  * later: the frontier f. The earliest event wins: a detonation (a tie to
@@ -313,9 +314,8 @@ import {
 } from '../../src/share/war/contain.js';
 import { REST, leafTurn } from '../../src/share/war/leaf.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
-import { COUNTDOWN_MS } from './race.js';
+import { COUNTDOWN_MS, WAIT_MS } from './timing.js';
 import { AHEAD_MS } from './referee.js';
-import { WAIT_MS } from './tag.js';
 import { POSE_MAX_SPEED } from './safety.js';
 import { CLEAR_M as HUNTER_CLEAR_M, Hunters, loadHeight } from './warhunt.js';
 import { HERE_MS, interestEvery, watchedView } from './core.js';

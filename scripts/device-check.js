@@ -67,7 +67,7 @@ const DEVICES = [
 const LANGS = ['en', 'es'];
 
 const SCREENS = [
-  'title', 'courses', 'freestyle', 'quad', 'pilot', 'launch', 'rates', 'pids', 'fc', 'paused',
+  'title', 'quad', 'pilot', 'rates', 'pids', 'fc', 'paused',
   'results', 'howto', 'credits',
 ];
 

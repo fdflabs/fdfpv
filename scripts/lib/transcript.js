@@ -78,15 +78,17 @@ export function transcript() {
     note(label, value) {
       lines.push(`${label} = ${canon(value)}`);
     },
-    // Exits non-zero when the digest differs from the pinned one.
-    finish(name, pinned) {
+    // Exits non-zero when the digest differs from the pinned one. `flag`
+    // names the --<flag>=<file> that dumps this transcript, for a selftest
+    // that pins more than one.
+    finish(name, pinned, flag = 'dump') {
       const text = `${lines.join('\n')}\n`;
       const digest = createHash('sha256').update(text).digest('hex');
-      const dump = process.argv.find((a) => a.startsWith('--dump='));
-      if (dump) writeFileSync(dump.slice(7), text);
+      const dump = process.argv.find((a) => a.startsWith(`--${flag}=`));
+      if (dump) writeFileSync(dump.slice(flag.length + 3), text);
       if (digest !== pinned) {
         console.log(`FAIL  ${name}: ${lines.length} records, digest ${digest}, pinned ${pinned}`);
-        console.log('      rerun with --dump=<file> here and at the old revision, and diff the two');
+        console.log(`      rerun with --${flag}=<file> here and at the old revision, and diff the two`);
         process.exit(1);
       }
       console.log(`ok  ${name}: ${lines.length} records match the pinned transcript`);

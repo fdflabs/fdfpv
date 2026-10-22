@@ -28,9 +28,7 @@
  * which are cut from every mesh under the craft (src/render/wreck.js),
  * carry the decals that were on them.
  *
- * A decal is a sticker: opaque, over the paint and over the Kadet's film
- * alike, so against the sun a number on the translucent fuselage is the
- * dark shape on the glowing film that a vinyl number is. It stands off the
+ * A decal is a sticker: opaque, over the paint. It stands off the
  * skin by DECAL_LIFT along the normal and draws after the opaque skin with
  * the depth test and no depth write, so it never fights the skin and a
  * later decal lies over an earlier one where they cross, in list order.
@@ -227,7 +225,7 @@ function targetsOf(craft) {
       normalHome: new THREE.Matrix3().setFromMatrix4(home).transpose(),
       twoSided: mats.some((x) => x.side === THREE.DoubleSide),
       /* As it is now: a map's look may draw a palette's entries in
-       * another order (swiss2/craftlook.js) before the layers are cut. */
+       * another order (maps/look/craftlook.js) before the layers are cut. */
       geometry: o.geometry,
       from: 0,
       to: o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count,

@@ -30,6 +30,12 @@ concurrency:
 jobs:
   shard-1:
     runs-on: ubuntu-latest
+    # PDCS boots on Itaipu, so every check that opens the game reads its
+    # map data: its own public repository, at a pinned commit
+    # (tests/lib/server.js serves FDFPV_ITAIPU_DATA as itaipu-data/).
+    # Outside CI the server falls back to ~/Desktop/fdfpv-itaipu-data.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       # lint:catalog reads parameter_names.h out of the Betaflight submodule to
       # prove the catalog covers every firmware key, so the submodule is needed.
@@ -42,6 +48,11 @@ jobs:
       # ws, the one dependency: rooms:server starts the VM's rooms server,
       # edge/rooms/node.js, and speaks to it.
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       # A deploy under an open tab: every module and the wasm at the
       # page's version, the new-version bar held off the flight screen and
       # shown on Paused and the title, its Reload landing on the new deploy
@@ -58,22 +69,11 @@ jobs:
       - run: npm run paint:workshop:paint
       # The admin page's livery gallery moderation (docs/LIVERY-GALLERY.md).
       - run: npm run gallery:admin
-      # Every tractor's slipstream terms against their geometry
-      # (scripts/wash-derive.js, docs/FLIGHTMODEL.md).
-      - run: npm run wash:derive -- --check
-      - run: npm run stab:hold
       # Each stab selftest's straight throw, derived (scripts/lib/throwflight.js).
       - run: npm run stab:straight
-      - run: npm run knife:throttle
-      - run: npm run knife:budget
-      - run: npm run as3x:derive
       # Each table's servo hold against its surfaces' hinge moment and its
       # servos' published torque (scripts/servo-derive.js, servo blow back).
       - run: npm run servo:derive
-      - run: npm run as3x:margins
-      - run: npm run acro:derive
-      - run: npm run as3x:feel
-      - run: npm run as3x:tenths
       # The wings' ground effect against its sources and its surfaces
       # against the drawn model (scripts/ge-derive.js).
       - run: npm run ge:derive
@@ -160,13 +160,10 @@ jobs:
       # lint runs first so a lane sees its whole list in one run.
       - run: npm run lint:physics-sources
       - run: npm run physics-sources:selftest
-      # src/render and src/art outputs on a fixed stage against goldens
+      # src/render outputs on a fixed stage against goldens
       # recorded from each module before its track U rewrite
       # (tests/browser/render-golden/).
       - run: npm run render:golden
-      # The scoring chain end to end, the real aircraft flying the tricks
-      # (a powerloop round a rail by a closed loop pilot) included.
-      - run: npm run score:selftest
       # Every aircraft's own gates and stabiliser checks run here, not only
       # the ones a branch happened to add: these six were in package.json and
       # never in CI, so their regressions went unseen (2026-10-11). About
@@ -176,17 +173,8 @@ jobs:
       # was missing once and would have crashed the rooms server on the VM
       # (scripts/deploy-files-check.js). Pure Node, under a second.
       - run: npm run deploy:files
-      - run: npm run bombshell:gates
-      - run: npm run bombshell:stab
       - run: npm run bramor:gates
       - run: npm run bramor:stab
-      - run: npm run floats:gates
-      - run: npm run kadet:gates
-      - run: npm run kadet:stab
-      - run: npm run slowstick:gates
-      - run: npm run slowstick:stab
-      - run: npm run timber:gates
-      - run: npm run timber:stab
       # Phase 29's pure Node halves, under a second each: the one world
       # edge rule on every world's square (src/game/edges.js) and the
       # chase camera's arm against real colliders (src/render/chasearm.js).
@@ -199,6 +187,9 @@ jobs:
 
   shard-2:
     runs-on: ubuntu-latest
+    # Itaipu's map data, as in shard-1.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       - uses: actions/checkout@v7
         with:
@@ -207,26 +198,19 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       - run: npm run rooms:server
       # The livery gallery against a local tracks server: list, like, sort,
       # report, wear, publish and remove, by real pointer (docs/LIVERY-GALLERY.md).
       - run: npm run gallery:check
-      # 32 pilots in one room through free flight, a race and a combat
-      # round, 5 s each, about a minute: the plan's rooms:load at 32 a
-      # room. Its checks are about function; the speed numbers it prints
+      # 32 pilots in one room through free flight, 5 s, about half a
+      # minute: the plan's rooms:load at 32 a room. Its checks are about function; the speed numbers it prints
       # are for a person (docs/MULTIPLAYER-PLAN.md section 12, Phase 6).
       - run: npm run rooms:load -- --quick
-      - run: npm run tigermoth:gates
-      - run: npm run tigermoth:stab
-      - run: npm run extra:gates
-      - run: npm run extra:stab
-      - run: npm run nighttimber:gates
-      - run: npm run figures:plant
-      - run: npm run figures:sweep
-      # The manoeuvre table flies every figure program: a physics change that
-      # moves a grade regenerates it (npm run figures:table) in the same PR.
-      - run: npm run figures:table:check
-      - run: npm run figures:knife
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run padprofiles:selftest
@@ -234,15 +218,11 @@ jobs:
       - run: npm run touchsticks:selftest
       - run: npm run input:trace
       - run: npm run stickmode:selftest
-      - run: npm run ghost:selftest
       # The in-browser flight recorder and its blackbox CSV
       # (src/share/flightlog.js), against a pinned transcript.
       - run: npm run flightlog:selftest
       # The control recorder's rows and thumb numbers (src/share/controlrec.js).
       - run: npm run controlrec:selftest
-      # The ghost and live frame wire formats (src/share/ghostdata.js), bit
-      # for bit against a pinned transcript.
-      - run: npm run ghostdata:selftest
       # The harness file server (tests/lib/server.js): types, ranges, the
       # cache rule and every way out of the root, against a pinned transcript.
       - run: npm run server:selftest
@@ -264,20 +244,9 @@ jobs:
       # tests/gen/gen-baseline.js still writes the committed
       # tests/inputs/baseline.rec byte for byte and refuses to overwrite it.
       - run: npm run genbaseline:selftest
-      - run: npm run score:golden
-      - run: npm run scorehud:golden
       - run: npm run debrief:selftest
-      - run: npm run tricks:golden
-      - run: npm run tricks:gen -- --check
-      - run: npm run trick:golden
-      - run: npm run trickfilm:golden
       - run: npm run loading:golden
-      - run: npm run obstacles:golden
       - run: npm run track:golden
-      - run: npm run guide:golden
-      - run: npm run trackdoc:golden
-      - run: npm run race:golden
-      - run: npm run ghost:golden
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
       - run: npm run simmod:selftest
@@ -313,7 +282,6 @@ jobs:
       # standard library only, no GPU and no model download.
       - run: npm run voice:check
       - run: npm run test:tracks
-      - run: npm run cloud:selftest
       # The game's own domain: which servers the page picks, the probe's
       # fallback to the VM's address, the rooms allowlist and the Caddyfile.
       - run: npm run domain:selftest
@@ -335,14 +303,6 @@ jobs:
       # A tester ticket sent to the board (src/share/bugs.js), against a
       # pinned transcript.
       - run: npm run bugs:selftest
-      # The seated course's summary for the title menu (src/share/summary.js).
-      - run: npm run summary:selftest
-      # How a seated track relates to the board (src/share/listing.js),
-      # against a transcript of answers, requests and storage.
-      - run: npm run listing:selftest
-      # The share seat, edit keys, binds and lap bookkeeping kept in this
-      # browser (src/share/trackseat.js), against a pinned transcript.
-      - run: npm run trackseat:selftest
       # The Stage 1 verification checks (tests/lib/checks.js) against a pinned
       # transcript: the real sim over the fixtures for the checks that need no
       # browser, stand ins for the build, the harness and the page runs.
@@ -350,11 +310,6 @@ jobs:
       - run: npm run crash:rules
       - run: npm run crash:tree-nan
       - run: npm run river:check
-      - run: npm run builder:selftest
-      - run: npm run trackbuilder:golden
-      # Itaipu's two shipped courses are what scripts/itaipu-courses.js
-      # writes; flying them is scripts/itaipu-spawns-check.js, local.
-      - run: npm run itaipu:courses
       - run: npm run stall-side:check
       # Dropped flat or on its side at no airspeed, every aircraft turns its
       # nose into the fall in its own time, never falling flat.
@@ -362,40 +317,16 @@ jobs:
       # A plane's Rates row is its own throws, and a pick flies at once
       # (docs/PLANE-RATES.md).
       - run: npm run planerates:check
-      # The trick callouts on the flight screen, en and es, desktop and
-      # phone, clear of the attitude cues (scripts/callouts-check.js,
-      # docs/TRICKS-CATALOG.md).
-      - run: npm run callouts:check
       # Flight Club's pilot stats read off the screen in en and es, a sync
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
-      - run: npm run hercules:gates
-      - run: npm run cap580:derive
-      - run: npm run cap580:gates
-      - run: npm run cap580:figures
-      - run: npm run cap580:stab
-      # The control surface tiers: derived numbers, then the plant flies each tier (docs/SURFACES-STAGE1.md).
-      - run: npm run surfaces:derive
-      - run: npm run surfaces:gates
-      - run: npm run surfaces:selftest
-      - run: npm run paradrop:selftest
-      # The pilot on foot (docs/ON-FOOT.md): the walk never ends inside a
-      # solid, steps and slopes, pace; then on swiss2 in the real shell,
-      # step out, pace, the eye over the terrain, the hangar wall, fly
-      # again from where the pilot stands, pad and touch.
-      - run: npm run foot:node
-      - run: npm run foot:walk
-      # Extreme Flight's 105.5 in Slick 580 (docs/SLICK-STAGE1.md): its
-      # table, plant row and bands against the derivation, its gates and
-      # its stabiliser.
-      - run: npm run slick:derive -- --check
-      - run: npm run slick:gates
-      - run: npm run slick:stab
-      - run: npm run slick:figures
 
   shard-3:
     runs-on: ubuntu-latest
+    # Itaipu's map data, as in shard-1.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       - uses: actions/checkout@v7
         with:
@@ -404,6 +335,11 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
       # by hand (npm run midair:harness) and its numbers go in the pull
       # request. Two seeds here keep every row and every scenario.
@@ -451,40 +387,14 @@ jobs:
       - run: npm run hoist:check
       - run: npm run damage:check
       - run: npm run marks:selftest
-      - run: npm run combat:harness
-      - run: npm run combat:restart
       - run: npm run wing:math
       - run: npm run wing:gates
       - run: npm run wing:contact
       - run: npm run wing:ge
       - run: npm run wing:stab
-      - run: npm run skyhunter:gates
-      - run: npm run skyhunter:stab
-      - run: npm run cub:gates
-      - run: npm run cub:stab
-      - run: npm run glider:gates
-      - run: npm run glider:stab
-      - run: npm run f16:gates
-      - run: npm run f16:stab
-      - run: npm run p51:gates
-      - run: npm run flapstrip:check
-      - run: npm run p51:stab
-      - run: npm run zagi:gates
-      - run: npm run zagi:stab
-      - run: npm run uglystik:gates
-      - run: npm run uglystik:stab
-      - run: npm run dlg:gates
-      - run: npm run dlg:stab
       # The turtle in the real page: the wait, the poke, the flip and the
       # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
       - run: npm run turtle:check
-      # A solo race's debrief in the real page: the facts, Watch the replay
-      # reached by a pointer and back, Fly again (scripts/debrief-race-check.js).
-      - run: npm run debrief:race
-      - run: npm run debrief:free
-      # The race results' lap table ends above the menu at 1280x720
-      # (scripts/results-layout-check.js).
-      - run: npm run results:layout
       - run: npm run stab:glide
       - run: npm run power:check
       # A rate change mid run keeps the run, tune loads are generation
@@ -530,6 +440,9 @@ jobs:
 
   shard-4:
     runs-on: ubuntu-latest
+    # Itaipu's map data, as in shard-1.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       - uses: actions/checkout@v7
         with:
@@ -538,6 +451,11 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       - run: npm run lint:fc
       - run: npm run rates:selftest
       - run: npm run lint:presets
@@ -551,7 +469,6 @@ jobs:
       - run: npm run ways:golden
       - run: npm run format:golden
       - run: npm run widgets:golden
-      - run: npm run trickslist:golden
       - run: npm run keys:golden
       - run: npm run keybinds:selftest
       - run: npm run menucontrols:golden
@@ -583,48 +500,25 @@ jobs:
       # The frame's one daytime in the real shell: detection's light and the
       # world's sounds turn with the sky (scripts/daytime-frame-check.js),
       # and two pilots in one room see the room's time (daytime-room-check.js).
-      # Itaipu's map data is its own public repository, not this one; the
-      # daytime checks fly Itaipu, so they read it at a pinned commit
-      # (tests/lib/server.js serves FDFPV_ITAIPU_DATA as itaipu-data/).
-      - uses: actions/checkout@v7
-        with:
-          repository: fdflabs/fdfpv-itaipu-data
-          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
-          path: itaipu-data-ci
       - run: npm run daytime:frame
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
       - run: npm run daytime:room
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
-      - run: npm run lap:selftest
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
-      - run: npm run live:selftest
       - run: npm run ratescurve:selftest
       - run: npm run panels:golden
       - run: npm run rooms:selftest
-      - run: npm run bots:selftest
       # Each map's shared world data against the page's own terrain
       # modules, which import three: the page loads three from its CDN
       # import map (index.html), so the same version is unpacked here.
-      # Itaipu's ground is read from the data checked out above.
       - run: |
           npm pack three@0.160.0 --pack-destination "$RUNNER_TEMP"
           tar xzf "$RUNNER_TEMP/three-0.160.0.tgz" -C "$RUNNER_TEMP"
           npm run world:layer -- --three="$RUNNER_TEMP/package"
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
-      - run: npm run jam:selftest
-      - run: npm run figures:selftest
       - run: npm run personpilot:selftest
-      # The first AI pilot behind a ghost on the plant, judged by race.js.
-      - run: npm run aipilot:harness
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
       - run: npm run catalog-rules:selftest
-      - run: npm run streamer:selftest
       # A rooms server draining on SIGUSR2 while a second one serves new
       # rooms, two processes from this tree (docs/ROOMS-DRAIN.md).
       - run: npm run rooms:drain
@@ -654,9 +548,6 @@ jobs:
       # changed folder and a changed C each fail (scripts/aircraft-ctable.js).
       - run: npm run aircraft:ctable -- --check
       - run: npm run midair:plant
-      # Catch the Ace under lag: the full grid (12 seeds, 16 link sets) is
-      # half a minute on 20 cores, by hand; four and six here keep every row.
-      - run: npm run tag:harness -- --seeds=4 --runs=6
       - run: npm run war:harness -- --seeds=3 --runs=6
       - run: npm run war:routes
       - run: npm run registry:selftest
@@ -677,6 +568,9 @@ jobs:
   # one step of 15 to 26 minutes, the longest of any shard.
   shard-5:
     runs-on: ubuntu-latest
+    # Itaipu's map data, as in shard-1.
+    env:
+      FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
     steps:
       - uses: actions/checkout@v7
         with:
@@ -685,6 +579,11 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - uses: actions/checkout@v7
+        with:
+          repository: fdflabs/fdfpv-itaipu-data
+          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
+          path: itaipu-data-ci
       - run: npm run paint:workshop:views
       # The page build() draws, node for node (scripts/shell-dom-golden.js).
       # Outside CI it went red for a day of merged features and hid a moved
@@ -693,10 +592,6 @@ jobs:
       # A hangar that's yours: two pilots' own rooms from their own data,
       # and a level up growing one (docs/HANGAR-ROOM.md).
       - run: npm run foot:mine
-      # The hangar's Surfaces tab on the Cub: the tiers pressed, saved,
-      # seated in the plant and shown in the rates (scripts/surfaces-hangar-check.js).
-      # Outside CI its H6 went red when the tier block grew to nine doubles.
-      - run: npm run surfaces:hangar
       # Every menu screen of the real shell: reachable rows, the baseline's
       # overflow ratchet, stable row ids, the pad's menu switch
       # (scripts/shell-check.js). Outside CI it sat red for five days of
@@ -705,16 +600,7 @@ jobs:
       # A world costs nothing until it is chosen and is freed when left
       # (scripts/memory-check.js). Outside CI the alps' boot started fetching
       # the Swiss valley's field unseen. About 40 s.
-      # lint:memory boots every world, Itaipu among them, whose data is its
-      # own public repository (see the daytime steps in shard-4).
-      - uses: actions/checkout@v7
-        with:
-          repository: fdflabs/fdfpv-itaipu-data
-          ref: 999e84ebe4fd1b50645f15c9bdde406dc931e7ad
-          path: itaipu-data-ci
       - run: npm run lint:memory
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
       # Every start on every world, room seats and stations included, is
       # above ground, dry, clear of solids and facing a way out, with
       # negative controls per world (scripts/world-spawns-check.js). It
@@ -722,8 +608,6 @@ jobs:
       # locally, on the shard with Itaipu's data and the most headroom
       # (608 s, tools/reshard-timings.json).
       - run: npm run world:spawns
-        env:
-          FDFPV_ITAIPU_DATA: ${{ github.workspace }}/itaipu-data-ci
 
   # always(): a node skipped because a shard failed would count as passed
   # for a required check, so it runs and fails instead.

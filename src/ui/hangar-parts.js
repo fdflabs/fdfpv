@@ -31,7 +31,6 @@ import { POWER, powerBlock, powerChoice, powerOption, SIM_POWER } from '../../co
 import {
   ADDONS, PROPS, addonsFor, normalisePlane, partsEntry, partsSummary, propOf, propShape, tapeable,
 } from '../../configs/hangar-parts.js';
-import { PROP_ESTIMATES } from '../../configs/prop-estimates.js';
 import { PART_KINDS } from '../../configs/parts.js';
 import { hasMotors, packOption } from '../../configs/motors.js';
 import { NEW, RETIRED_BELOW, normalisePacks, normaliseWearRecord, packSpec, repair } from '../../configs/wear.js';
@@ -54,7 +53,7 @@ function number(n, digits = 0, trim = false) {
 
 /* Where the camera looks while an add-on's card has the cursor: the
  * hangar's own views (src/render/hangarstage.js). */
-const ADDON_FOCUS = { tundra: 'floats', pod: 'floats', lights: 'wing', smoke: 'tail' };
+const ADDON_FOCUS = { pod: 'floats', lights: 'wing', smoke: 'tail' };
 
 const clone = (e) => JSON.parse(JSON.stringify(e));
 const sameEntry = (a, b) => JSON.stringify(normalisePlane(st.id, a)) === JSON.stringify(normalisePlane(st.id, b));
@@ -87,14 +86,13 @@ function changed(hangar, key) {
 }
 
 /* What an entry does to the spec sheet's readouts: its grams, and its
- * prop's full throttle thrust over the option's own. */
+ * prop's full throttle thrust over the option's own, 1 while only the
+ * option's own prop is offered (configs/hangar-parts.js PROPS). */
 function fitOf(entry, now) {
   const id = st.id;
-  const p = propOf(id, entry.prop);
-  const est = p.id === 'stock' ? null : PROP_ESTIMATES[id][now.option.id][p.id];
   return {
-    extraG: partsSummary(id, entry, now.option, baseMass(id, now)).grams,
-    thrustK: est ? est.thrustN / now.option.thrustN : 1,
+    extraG: partsSummary(id, entry, baseMass(id, now)).grams,
+    thrustK: 1,
   };
 }
 
@@ -163,7 +161,7 @@ function addonCards(hangar, box, now) {
     b.addEventListener('pointerenter', () => {
       hangar.focus = ADDON_FOCUS[a];
     });
-    const grams = partsSummary(id, { prop: 'stock', addons: [a], damage: null }, now.option, baseMass(id, now)).grams;
+    const grams = partsSummary(id, { prop: 'stock', addons: [a], damage: null }, baseMass(id, now)).grams;
     b.append(el('span', 'hangar-card-name', str(`parts.addon.${a}`)));
     b.append(el('span', 'hangar-card-detail', str('parts.plus_grams', { n: number(grams) })));
     previewOn(hangar, b, () => {
@@ -352,11 +350,10 @@ function wearList(hangar, box) {
 
 function statsBlock(box, now) {
   const id = st.id;
-  const s = partsSummary(id, st.entry, now.option, baseMass(id, now));
+  const s = partsSummary(id, st.entry, baseMass(id, now));
   const p = propOf(id, st.entry.prop);
-  const est = p.id === 'stock' ? null : PROP_ESTIMATES[id][now.option.id][p.id];
-  const thrust = est ? est.thrustN : now.option.thrustN;
-  const pitchSpeed = est ? est.pitchSpeedMs : now.option.pitchSpeedMs;
+  const thrust = now.option.thrustN;
+  const pitchSpeed = now.option.pitchSpeedMs;
   const cg = s.cgMm[0];
   const stats = [
     { label: 'parts.stat_weight', value: str('parts.plus_grams', { n: number(s.grams) }) },

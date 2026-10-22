@@ -53,19 +53,19 @@ const root = dirname(dirname(self));
  * checks read (tests/lib/checks.js 14 to 16). */
 const AUDIO_GOOD = { state: 'running', engineAttached: true, musicAttached: true, musicGain: 0.1, musicAdvance: 2.41, elapsed: 2.5, nodes: 41 };
 const AUDIO_BAD = { state: 'suspended', engineAttached: false, musicAttached: true, musicGain: 0.01, musicAdvance: 0, elapsed: 2.5, nodes: 70 };
-const SWISS = (n) => Array.from({ length: n }, (_, i) => `http://127.0.0.1:1/src/maps/swiss2/part${i}.js`);
-const ALPS = ['http://127.0.0.1:1/src/maps/alps.js', 'http://127.0.0.1:1/src/main.js'];
+const INTERIOR = (n) => Array.from({ length: n }, (_, i) => `http://127.0.0.1:1/src/maps/interior/part${i}.js`);
+const ITAIPU = ['http://127.0.0.1:1/src/maps/itaipu.js', 'http://127.0.0.1:1/src/main.js'];
 const BUDGET = { p1: 282, p2: 1604546, p5: 31.2, p10: 32.1, meshes: 169, cel: 12 };
 const CRAFT = { bodyLength: 0.16, bodyWidth: 0.05, bodyHeight: 0.02, sweepMeasured: 0.2451, craftR: 0.2451, craftRTrue: 0.2451, worldScale: 1 };
 const SCALE_GOOD = {
-  urls: [ALPS, ALPS.concat(SWISS(49))],
+  urls: [ITAIPU, ITAIPU.concat(INTERIOR(49))],
   budget: BUDGET,
   budget2: BUDGET,
   craft: { craft: CRAFT, gateScale: 1.15 },
   other: { expectedModules: 49 },
 };
 const SCALE_BAD = {
-  urls: [ALPS.concat(SWISS(1)), ALPS.concat(SWISS(40))],
+  urls: [ITAIPU.concat(INTERIOR(1)), ITAIPU.concat(INTERIOR(5))],
   budget: BUDGET,
   budget2: { ...BUDGET, p1: 290, p5: 31.4, cel: 14 },
   craft: { craft: { ...CRAFT, bodyLength: 0.18, sweepMeasured: 0.2470 }, gateScale: 1.2 },
@@ -99,8 +99,8 @@ const SCENARIOS = {
 
 /* Two digests: the SKIP scenario is pinned apart because it is only
  * reachable where the vendored sources are absent (see the top). */
-const PINNED_CORE = '242dd230f1d6fde624e923704476439ea207da43f96508886e55ff6209b1dc87';
-const PINNED_SKIP = '546adafc1fa60b06910b4ff49e092bfb4c5a2d5525588d759c0a3d9fe85d17be';
+const PINNED_CORE = '53be390415b820b9be9ece0db8fcf687557368f11397c2a0ac410c9ad9f72bfa';
+const PINNED_SKIP = 'ff53a5b0d549b29a0aeee0440d71f468b1d180034f444e3b62e80dab299d34b5';
 
 function log(role, argv) {
   appendFileSync(process.env.VERIFY_SELFTEST_LOG, `${role}\t${argv.join('\t')}\n`);

@@ -3,9 +3,8 @@
  * said until the room lists it. A text over the room's rate is dropped,
  * not queued (edge/rooms/core.js TEXT_PER_S), and a page's texts on
  * joining a room fill that rate for a second, so a Ready pressed then was
- * lost and the pilot never readied. As the race's ready
- * (src/share/roomrace.js ready), it goes again every FINISH_RESEND_MS
- * until the lobby says it, or the lobby closes.
+ * lost and the pilot never readied. So it goes again every
+ * READY_RESEND_MS until the lobby says it, or the lobby closes.
  *
  * Pure: no DOM, no timers, the time handed in, so a check in Node drives
  * it against edge/rooms/core.js.
@@ -26,7 +25,11 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { FINISH_RESEND_MS, WATCH_SEAT } from './roomrace.js';
+import { WATCH_SEAT } from './watchseat.js';
+
+/* How often an unanswered Ready is said again: once the room's rate has
+ * room for it, well inside the lobby's five seconds. */
+export const READY_RESEND_MS = 1500;
 
 /* send(obj) puts one text message on the room's socket. */
 export function createLobbyReady(send) {
@@ -54,7 +57,7 @@ export function createLobbyReady(send) {
         want = null;
         return;
       }
-      if (nowMs - sentAt < FINISH_RESEND_MS) {
+      if (nowMs - sentAt < READY_RESEND_MS) {
         return;
       }
       sentAt = nowMs;

@@ -12,10 +12,8 @@
  * standard layout (padbuttons.js names), null for none. Every action may
  * take a pad button (padbinds.js). A pad button bound to an action with a
  * key arrives as that key, pressed and released (InputManager.pollPadKeys),
- * so the key's readers serve the pad too; `own` marks the one action whose
- * pad button has a reader of its own instead (stepping out is a 500 ms hold
- * on the pad, a press on the keyboard). The rest have no key and are read
- * by name: input.padAction(id).
+ * so the key's readers serve the pad too. The rest have no key and are
+ * read by name: input.padAction(id).
  *
  * A radio's buttons are never read through this table: a radio reports its
  * switches as buttons, latched, in whatever order its firmware chose.
@@ -48,9 +46,6 @@ export const ACTIONS = Object.freeze([
   { id: 'gear', key: 'KeyG', pad: null },
   { id: 'smoke', key: 'KeyO', pad: null },
   { id: 'view', key: 'KeyC', pad: null },
-  /* Every letter is taken in flight (an action above, or RESERVED), and
-   * F, the plan's first pick, is the flaps, which a pilot sets parked. */
-  { id: 'foot', key: 'Digit1', pad: 'b', own: true },
   /* An ops mission's strike, heard only while flying its strike role
    * (MISSIONS.md 1.6). Never on the capture key, so a still never
    * engages; no pad default: A, the one free button, is the camera

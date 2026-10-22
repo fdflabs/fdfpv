@@ -70,7 +70,7 @@ const SHOTS = shotsArg ? resolve(shotsArg.slice('--shots='.length)) : null;
 const CLEAR = 4;
 const SOLIDS_MAX = 15000;
 const CALLS_MAX = 300;
-const AIRFRAME = 'timber1500';
+const AIRFRAME = 'bramor2300';
 const PART = 'window.__mapScene().userData.itaipu.parts.war';
 
 const failures = [];

@@ -3,19 +3,15 @@
  * sections 5 and 14).
  *
  *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/itaipu-water-check.js
- *       [--node] [--shots=DIR] [--swiss2=PERF_JSON]
+ *       [--node] [--shots=DIR]
  *
  * In Node, against dist/sim.wasm and the data's water.json and dam.json,
  * with the bodies in src/game/water.js's lake form as src/maps/itaipu.js
  * makes them (lakesOf: its wind, 2 m/s from the north east, over the
  * fetch water.json gives for that direction) and declared through
- * declareBodies in the shell's frame at each spawn:
+ * declareBodies in the shell's frame at each body's spawn:
  *
- *   floats      the Timber (9) and the Cub (10) on floats started at each
- *               body's spawn float on that body at its level, at rest;
- *               at 40 % throttle they taxi, still on that body and
- *               afloat, and end inside its outline;
- *   dive        a Timber dived into the reservoir, and one into the river,
+ *   dive        a Bramor dived into the reservoir, and one into the river,
  *               raises SIM_EVENT_WATER on water;
  *   waves       the wind from each of the sixteen directions water.json
  *               measures: the reservoir's waves rise with the fetch
@@ -25,30 +21,25 @@
  *               the reservoir's lowest.
  *
  * Then in headless Chromium (tests/lib/page.js), unless --node, one load
- * of the map with a Timber on floats seated:
+ * of the map with the Bramor seated:
  *
  *   declared    the shell's water is the two bodies, reservoir first, and
  *               the plant's body under 60 points round the spawns is the
  *               one the Node forms put there (so the forms above are the
- *               shell's);
- *   afloat      the flight starts afloat on the reservoir (body 0), and
- *               respawned on the river's spawn it floats on body 1; 40 %
- *               throttle taxis it on each, and nothing on it cracks or
- *               breaks;
+ *               shell's), at the reservoir's level on the reservoir;
+ *   flood       by the dam the drawn river stands over its outline's
+ *               level, where Free Flight's flood puts it;
  *   chute       the chutes are D's floor records, their material water
  *               (the map's surfaceAt), each the map's ground, and the
  *               drawn sheet lies 0.4 m over each;
  *   waves       the plant's waves reach both drawn bodies;
  *   mirror      with the camera over the reservoir the mirror is the
  *               reservoir's, down in the canyon the river's, never two
- *               at once, at swiss2's scale for the tier; with SIM_GPU=1
- *               its GPU time at those two places, median of 40 draws,
- *               is no more than swiss2's lake mirror on
- *               scripts/swiss2-perf.js (--swiss2 names its perf.json;
- *               without it the time is printed and not judged).
+ *               at once, at the High tier's half scale; with SIM_GPU=1
+ *               its GPU time at those two places, median of 40 draws, is
+ *               printed.
  *
- * --shots=DIR leaves the reservoir, the river, the chutes and a Timber
- * afloat there as PNGs.
+ * --shots=DIR leaves the reservoir, the river and the chutes as PNGs.
  *
  * Exits 1 on any failure.
  *
@@ -74,9 +65,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
-import {
-  TIMBERF_AIRFRAME, CUBF_AIRFRAME, FLOAT_REST, RC_STEP_MS, floatState, must,
-} from '../tests/lib/wingpilot.js';
+import { BRAMOR_AIRFRAME, RC_STEP_MS, must } from '../tests/lib/wingpilot.js';
 import { declareBodies, insideWater } from '../src/game/water.js';
 
 /* On the river's thalweg 200 m below the chutes' lips (docs/FLOOD.md's
@@ -87,7 +76,7 @@ import { threePosToSim, threeDirToSim } from '../src/render/frame.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
-const opts = { node: false, shots: '', swiss2: '' };
+const opts = { node: false, shots: '' };
 for (const a of process.argv.slice(2)) {
   const m = a.match(/^--([a-z0-9]+)(?:=(.*))?$/);
   if (!m || !(m[1] in opts)) {
@@ -149,12 +138,6 @@ function frameAt(sx, sy, sz, yaw) {
       const [rx, rz] = turn(x, z);
       return threeDirToSim(rx, y, rz, out);
     },
-    /* The plant's (x, y) back to the map's (x, z). */
-    back: (px, py) => {
-      const rx = -py;
-      const rz = -px;
-      return [sx + rx * c + rz * s, sz - rx * s + rz * c];
-    },
     perMetre: 1,
   };
 }
@@ -164,63 +147,7 @@ const declare = (bodies, frame) => {
   return declareBodies(sim.e, bodies, frame);
 };
 
-/* An aircraft on floats started on body k as the shell starts it, then
- * `ms` with the throttle at `throttle`, sampled every 100 ms. */
-function afloat(airframe, k, throttle, ms) {
-  const w = LAKES[k];
-  const sp = w.spawn;
-  const sy = w.surfaceY;
-  const frame = frameAt(sp.x, sy, sp.z, sp.yaw);
-  must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_set_airframe(airframe), 'sim_set_airframe');
-  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
-  must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
-  declare(LAKES, frame);
-  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, w.bedY - sy, 1.4, 0), 'sim_set_ground');
-  const rest = FLOAT_REST[airframe];
-  const h = (rest.pitchDeg * Math.PI) / 360;
-  must(sim.e.sim_set_pose(0, 0, rest.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
-  const samples = [];
-  for (let t = 0; t < ms; t += RC_STEP_MS) {
-    must(sim.input(t / 1000, 0, 0, 0, t < 2000 ? 0 : throttle), 'sim_input');
-    must(sim.step(RC_STEP_MS), 'sim_step');
-    if ((t + RC_STEP_MS) % 100 === 0) {
-      const s = sim.readState().state;
-      const f = floatState(sim);
-      const [mx, mz] = frame.back(s[1], s[2]);
-      samples.push({
-        t: t + RC_STEP_MS, x: mx, z: mz, over: s[3], speed: Math.hypot(s[4], s[5], s[6]), body: f[9], buoyancy: f[0], wet: f[4] + f[5],
-      });
-    }
-  }
-  return samples;
-}
-
-/* A taxi: enough throttle to get under way, not enough to come onto the
- * step. Under way is more than 5 m, a few lengths, in the 10 s and still
- * making half a metre a second at the end. */
-const TAXI = 0.4;
-for (const [airframe, name] of [[TIMBERF_AIRFRAME, 'Timber'], [CUBF_AIRFRAME, 'Cub']]) {
-  for (let k = 0; k < LAKES.length; k += 1) {
-    const w = LAKES[k];
-    const run = afloat(airframe, k, TAXI, 12000);
-    const settled = run.find((r) => r.t === 2000);
-    const rest = FLOAT_REST[airframe].z;
-    check(`the ${name} on floats started on body ${k}, the ${w.name}, floats on it at ${w.surfaceY} m`,
-      settled.body === k && Math.abs(settled.over - rest) < 0.01 && settled.speed < 0.2,
-      `after 2 s: sim_float_state out[9] ${settled.body}, CG ${settled.over.toFixed(4)} m over the surface (rest ${rest}), ${settled.speed.toFixed(3)} m/s`);
-    const taxi = run.filter((r) => r.t > 2000);
-    const end = taxi[taxi.length - 1];
-    const moved = Math.hypot(end.x - w.spawn.x, end.z - w.spawn.z);
-    const onBody = taxi.every((r) => r.body === k && r.wet > 0 && r.over > -0.1 && r.over < 0.6);
-    check(`and taxis on it at ${TAXI * 100}% throttle`,
-      onBody && moved > 5 && end.speed > 0.5 && insideWater(w, end.x, end.z),
-      `${moved.toFixed(1)} m in 10 s to (${end.x.toFixed(0)}, ${end.z.toFixed(0)}), ${end.speed.toFixed(2)} m/s, `
-      + `every sample on body ${k} and wet: ${onBody}, CG ${Math.min(...taxi.map((r) => r.over)).toFixed(3)} to ${Math.max(...taxi.map((r) => r.over)).toFixed(3)} m over the surface`);
-  }
-}
-
-/* A Timber dived at the water, damage on: 8 m over it, 30 degrees nose
+/* A Bramor dived at the water, damage on: 8 m over it, 30 degrees nose
  * down, 16 m/s along the nose. */
 const EVENT_DOUBLES = 16;
 const SIM_EVENT_WATER = 8;
@@ -229,7 +156,7 @@ function dive(k) {
   const w = LAKES[k];
   const sp = w.spawn;
   must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_set_airframe(TIMBERF_AIRFRAME), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(BRAMOR_AIRFRAME), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
   must(sim.e.sim_set_damage(1), 'sim_set_damage');
@@ -252,7 +179,7 @@ function dive(k) {
 for (let k = 0; k < LAKES.length; k += 1) {
   const ev = dive(k);
   const wet = ev.filter((e) => e[2] === SIM_EVENT_WATER);
-  check(`a Timber dived into the ${LAKES[k].name} raises SIM_EVENT_WATER`,
+  check(`a Bramor dived into the ${LAKES[k].name} raises SIM_EVENT_WATER`,
     wet.length >= 1 && wet[0][14] === SIM_SURF_WATER && wet[0][13] > 1,
     `${ev.length} events, ${wet.length} water: ${wet.map((e) => `part ${e[1]} at ${e[0]} ms, closing ${e[13].toFixed(1)} m/s, surface ${e[14]}`).join('; ') || 'none'}`);
 }
@@ -298,7 +225,7 @@ async function browser() {
   const { openPage } = await import('../tests/lib/page.js');
   const { SETTINGS_KEY, seatAirframe } = await import('../src/ui/ui.js');
   const { airframeById } = await import('../configs/airframes.js');
-  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'timber1500f');
+  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'bramor2300');
   seated.map = 'itaipu';
   seated.graphics = 'high';
   seated.graphicsAuto = false;
@@ -342,6 +269,7 @@ async function browser() {
     await page.evaluate("(() => { document.body.style.visibility = 'hidden'; for (const c of document.querySelectorAll('canvas')) { c.dataset.vis = c.style.visibility; c.style.visibility = 'visible'; } return 1; })()");
     const r = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
     await page.evaluate("(() => { document.body.style.visibility = ''; for (const c of document.querySelectorAll('canvas')) { c.style.visibility = c.dataset.vis; } return 1; })()");
+    await mkdir(resolve(opts.shots), { recursive: true });
     const file = join(resolve(opts.shots), `${name}.png`);
     await writeFile(file, Buffer.from(r.data, 'base64'));
     console.log(`  picture ${file}`);
@@ -362,46 +290,6 @@ async function browser() {
 
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState && window.__craftState().mode === 'flight'", 240000);
-    /* `s` seconds on the plant's clock, which headless runs slower than
-     * the page's. */
-    const waitSim = async (s) => {
-      await page.evaluate('window.__t0 = window.__craftState().simS');
-      await page.until(`window.__craftState().simS > window.__t0 + ${s}`, 240000);
-    };
-    const onWater = async (k, name) => {
-      await waitSim(3);
-      const c = await page.evaluate('(() => { const c = window.__craftState(); return { x: c.worldX, y: c.worldY, z: c.worldZ, speed: c.speed, floats: c.floats && c.floats.state.slice() }; })()');
-      check(`the Timber on floats is afloat on body ${k}, the ${name}`,
-        c.floats && c.floats[9] === k && Math.abs(c.y - water[k].y) < 1 && c.floats[4] + c.floats[5] > 0,
-        `at (${c.x.toFixed(0)}, ${c.y.toFixed(2)}, ${c.z.toFixed(0)}), sim_float_state out[9] ${c.floats && c.floats[9]}, wetted ${c.floats && (c.floats[4] + c.floats[5]).toFixed(2)} m`);
-      await page.evaluate(`window.__stick(0, 0, 0, ${TAXI})`);
-      await waitSim(6);
-      await page.evaluate('window.__stick(0, 0, 0, 0)');
-      const d = await page.evaluate('(() => { const c = window.__craftState(); return { x: c.worldX, y: c.worldY, z: c.worldZ, speed: c.speed, floats: c.floats && c.floats.state.slice() }; })()');
-      const moved = Math.hypot(d.x - c.x, d.z - c.z);
-      check(`and taxis on it`,
-        d.floats[9] === k && moved > 3 && Math.abs(d.y - water[k].y) < 1,
-        `${moved.toFixed(1)} m at ${TAXI * 100}% throttle, now on body ${d.floats[9]} at y ${d.y.toFixed(2)}`);
-      /* The crash log is cleared at every reset, so this is the start or
-       * the respawn and the taxi. A ground over the water under a respawn
-       * throws the aircraft up and breaks it (src/maps/itaipu.js wet), and
-       * the rows above see that only when the wreck comes down badly. */
-      const broke = (await page.evaluate('window.__crashLog()')).filter((e) => e.type === 'break' || e.type === 'crack');
-      check(`and nothing on it cracked or broke`,
-        broke.length === 0,
-        broke.length ? broke.slice(0, 3).map((e) => `${e.part} ${e.type} at ${e.t.toFixed(3)} s on ${e.surface}`).join(', ') : 'none');
-      return c;
-    };
-    const res = await onWater(0, 'reservoir');
-    if (opts.shots) {
-      await mkdir(resolve(opts.shots), { recursive: true });
-      await page.evaluate(`window.__respawn(${water[0].spawn.x}, ${water[0].spawn.z}, ${water[0].spawn.yaw})`);
-      await waitSim(3);
-      await settle();
-      await shoot('timber-afloat');
-    }
-    await page.evaluate(`window.__respawn(${water[1].spawn.x}, ${water[1].spawn.z}, ${water[1].spawn.yaw})`);
-    await onWater(1, 'river');
 
     /* The plant's body under points round each spawn against the Node
      * forms'. */
@@ -414,20 +302,19 @@ async function browser() {
     }
     const plant = await page.evaluate(`${JSON.stringify(pts)}.map(([x, z]) => window.__waterSample(x, z))`);
     /* The plant holds one level a still body, and the river's is moved to
-     * the flood's water under the aircraft (docs/FLOOD.md): its level here
-     * is the drawn water where the Timber is, after the river's taxi. */
-    const here = await page.evaluate('(() => { const c = window.__craftState(); return window.__heightAt(c.worldX, c.worldZ); })()');
-    const levelOf = (k) => (k === 1 ? here : LAKES[k].surfaceY);
+     * the flood's water under the aircraft (docs/FLOOD.md), which is on
+     * the ground here: on the river the body alone is the Node forms'. */
+    const levelOk = (k, y) => k !== 0 || Math.abs(y - LAKES[0].surfaceY) < 0.5;
     let agree = 0;
     const disagree = [];
     pts.forEach(([x, z], i) => {
       const want = LAKES.findIndex((w) => insideWater(w, x, z));
       const got = plant[i].body;
-      if (want === got && (want < 0 || Math.abs(plant[i].plant - levelOf(want)) < 0.5)) {
+      if (want === got && (want < 0 || levelOk(want, plant[i].plant))) {
         agree += 1;
       } else {
         disagree.push({
-          x: Math.round(x), z: Math.round(z), want, got, plant: plant[i].plant, level: want < 0 ? null : levelOf(want),
+          x: Math.round(x), z: Math.round(z), want, got, plant: plant[i].plant,
         });
       }
     });
@@ -437,28 +324,14 @@ async function browser() {
 
     /* By the dam the river stands where the flood puts it (docs/FLOOD.md:
      * Free Flight's spill stands it some 1.6 m over its outline's 103.5 m
-     * on the thalweg 200 m below the chutes' lips): the map draws it
-     * there, and the floats must float on that water, told the plant at
-     * the aircraft (water/live.js levelAt, main.js feedWaterLevels), not
-     * on the outline's still level under it. */
+     * on the thalweg 200 m below the chutes' lips), and the map draws it
+     * there. */
     {
       const [x, z] = DAM_RIVER;
       await page.until('window.__map().parts.water.flood.state === "ready"', 120000);
-      await page.evaluate(`window.__respawn(${x}, ${z}, 0)`);
-      await waitSim(4);
       const drawn = await page.evaluate(`window.__heightAt(${x}, ${z})`);
-      const c = await page.evaluate('(() => { const c = window.__craftState(); return { x: c.worldX, y: c.worldY, z: c.worldZ, floats: c.floats && c.floats.state.slice() }; })()');
-      const under = await page.evaluate(`window.__waterSample(${c.x}, ${c.z})`);
-      const drawnAt = await page.evaluate(`window.__heightAt(${c.x}, ${c.z})`);
-      const rest = FLOAT_REST[TIMBERF_AIRFRAME].z;
       check(`by the dam the drawn river stands over its outline's ${water[1].y} m: the flood's water`, drawn > water[1].y + 1,
         `${drawn.toFixed(2)} m at (${x}, ${z})`);
-      check('a Timber on floats respawned there rests on the drawn water, not under it',
-        c.floats && c.floats[9] === 1 && Math.abs(c.y - (drawnAt + rest)) < 0.25,
-        `CG at ${c.y.toFixed(3)} m, the drawn water ${drawnAt.toFixed(3)} m + rest ${rest} = ${(drawnAt + rest).toFixed(3)}; body ${c.floats && c.floats[9]}`);
-      check('and the plant\'s water under it is the drawn water, to a centimetre',
-        under.body === 1 && Math.abs(under.plant - drawnAt) < 0.01,
-        `plant ${under.plant == null ? 'none' : under.plant.toFixed(3)} m, drawn ${drawnAt.toFixed(3)} m`);
     }
 
     /* The chutes: D's floors, water to the crash world, the sheet over
@@ -506,7 +379,7 @@ async function browser() {
       const st = await page.evaluate(`${part}.stats()`);
       check(`the mirror at the ${v.name} view is the ${water[v.body].name}'s, and one`,
         st.mirrorBody === v.body && st.mirrorDrawn && st.mirrorsLive === 1 && st.mirrorScale === 0.5,
-        `body ${st.mirrorBody}, drawn ${st.mirrorDrawn}, ${st.mirrorsLive} live, scale ${st.mirrorScale} (swiss2 High 0.5), ${st.mirrorCalls} calls, ${st.mirrorTriangles} triangles`);
+        `body ${st.mirrorBody}, drawn ${st.mirrorDrawn}, ${st.mirrorsLive} live, scale ${st.mirrorScale} (High 0.5), ${st.mirrorCalls} calls, ${st.mirrorTriangles} triangles`);
       await shoot(v.name);
       if (gpu && v.name !== 'chutes') {
         times[v.name] = await page.evaluate(`(async () => {
@@ -536,24 +409,11 @@ async function browser() {
     }
     if (!gpu) {
       console.log('NOT RUN the mirror\'s GPU time: needs SIM_GPU=1 (a software rasteriser\'s timings say nothing about a GPU)');
-    } else if (!opts.swiss2) {
-      console.log(`NOT JUDGED the mirror's GPU time, no --swiss2 perf.json: ${JSON.stringify(times)}`);
     } else {
-      const perf = JSON.parse(await readFile(resolve(opts.swiss2), 'utf8'));
-      /* swiss2-perf.js's perf.json: presets[].views[], each view's best
-       * repeat's median per part. */
-      const swiss = (perf.presets || []).filter((p) => p.preset === 'high')
-        .flatMap((p) => p.views).filter((v) => /^lake/.test(v.id) && v.best && v.best.parts)
-        .map((v) => ({ view: v.id, mirror: v.best.parts.mirror }));
-      const worstSwiss = Math.max(...swiss.map((r) => r.mirror));
-      const ours = Math.max(...Object.values(times).map((t) => t.median));
-      check('the mirror costs no more than swiss2\'s lake mirror on swiss2-perf.js (High)',
-        swiss.length > 0 && ours <= worstSwiss,
-        `Itaipu ${Object.entries(times).map(([n, t]) => `${n} ${t.median.toFixed(2)} ms (least ${t.least.toFixed(2)})`).join(', ')}; swiss2 ${swiss.map((r) => `${r.view} ${r.mirror.toFixed(2)} ms`).join(', ') || 'no lake rows found'}`);
+      console.log(`the mirror's GPU time: ${Object.entries(times).map(([n, t]) => `${n} ${t.median.toFixed(2)} ms (least ${t.least.toFixed(2)})`).join(', ')}`);
     }
     const errors = page.errors.filter((e) => !/favicon/.test(e));
     check('no page error', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
-    return res;
   } finally {
     await page.close();
   }

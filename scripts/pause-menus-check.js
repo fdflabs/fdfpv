@@ -50,10 +50,10 @@ if (!outDir) {
 const CASES = [
   { id: 'quad-en', airframe: 'interceptor', lang: 'en' },
   { id: 'quad-es', airframe: 'interceptor', lang: 'es' },
-  { id: 'plane-en', airframe: 'extra3d1308', lang: 'en' },
-  { id: 'plane-es', airframe: 'extra3d1308', lang: 'es' },
+  { id: 'plane-en', airframe: 'bramor2300', lang: 'en' },
+  { id: 'plane-es', airframe: 'bramor2300', lang: 'es' },
   { id: 'pad-en', airframe: 'interceptor', lang: 'en', pad: true },
-  { id: 'phone-es', airframe: 'extra3d1308', lang: 'es', touch: true, width: 390, height: 844 },
+  { id: 'phone-es', airframe: 'bramor2300', lang: 'es', touch: true, width: 390, height: 844 },
 ];
 
 let failed = 0;
@@ -69,7 +69,7 @@ function say(ok, what) {
 
 function seed(c) {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, c.airframe);
-  s.map = 'alps';
+  s.map = 'interior';
   s.graphics = 'low';
   s.fpsCap = 0;
   s.airframeAsked = true;
@@ -148,7 +148,20 @@ const ROWS = `window.__ui.items().filter((it) => !it.bar).map((it) => ({
   id: it.id, label: it.label, value: it.value ?? null, section: Boolean(it.section), action: it.action ?? null,
 }))`;
 
+/* The world is drawn for the picture only (runCase turns the draw off),
+ * and for one frame: on, and off again from inside the next frame, after
+ * the shell has drawn it, in one evaluate so no frame runs between. The
+ * canvas keeps that frame while nothing more is drawn, so the picture
+ * shows it. Two frames on, or the draw left on through the picture,
+ * queued a second and third whole Interior frame behind the first on the
+ * software rasteriser, and the GPU was still on them after the picture:
+ * no frame ran, and the pad's Start, read once a frame, went unread for
+ * its whole 5 s. */
 async function shoot(page, name) {
+  await page.evaluate(`(() => {
+    window.__drawOff(false);
+    return new Promise((done) => requestAnimationFrame(() => { window.__drawOff(true); done(true); }));
+  })()`);
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
   await writeFile(join(outDir, `${name}.png`), Buffer.from(data, 'base64'));
 }
@@ -160,6 +173,14 @@ async function runCase(c, record) {
   });
   try {
     await page.until('!!window.__shellReady', 300000);
+    /* Every assertion reads the shell's state or the page's rows, none a
+     * pixel of the world, and the shell reads the pad once a frame: on a
+     * CI runner a software rasterised frame of the Interior took longer
+     * than the 5 s Start is held, so the press could end unread. The
+     * draw is skipped (the harness hook turtle-check uses) except for
+     * the pictures; the loop, the input and the menus run as they do
+     * with it. */
+    await page.evaluate('window.__drawOff(true)');
     await page.until('window.__map && window.__map().ready', 400000);
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState && window.__craftState().mode === 'flight' && window.__map().ready", 400000);

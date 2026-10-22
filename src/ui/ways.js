@@ -7,11 +7,12 @@
  * seats the aircraft and sets the mode together. The aircraft is kept in
  * the settings; the mode is not, so every visit comes back through here.
  *
- * Cards are grouped under three hubs. The mode registry
- * (src/share/modes.js) names each mode's card and its category, which is
- * what puts a card under a hub, and modes:selftest holds the two tables
- * together. Cards with gate: false stay reachable by their action (the
- * title's rooms panel, Defend Itaipu's Play) but are not drawn.
+ * The cards are home's, every one of them Operations' (the mode
+ * registry, src/share/modes.js, names each mode's card and its category,
+ * and modes:selftest holds the two tables together); the Hangar stands
+ * beside them as one card (HUBS). Cards with gate: false stay reachable by
+ * their action (the title's rooms panel, Defend Itaipu's Play) but are
+ * not drawn.
  *
  * The plan drawings over each card are built here as SVG text, so the
  * title can paint before anything has been flown or fetched.
@@ -32,7 +33,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AIRFRAMES, AIRFRAME_IDS, airframeById, DEFAULT_AIRFRAME } from '../../configs/airframes.js';
+import { AIRFRAMES, AIRFRAME_IDS } from '../../configs/airframes.js';
 import { MODES, modeById, wireMode } from '../share/modes.js';
 import { str } from '../strings/index.js';
 import { kindOf } from './carousel.js';
@@ -71,29 +72,6 @@ const SIGHT = tag('circle', { cx: 150, cy: 150, r: 118, fill: 'none', ...line(8,
 
 export function planeSvg() {
   return plan(PLANE);
-}
-
-/* Two planes: flying together. */
-export function pairSvg() {
-  return plan(placed(4, 20, 0.56, PLANE) + placed(128, 112, 0.56, PLANE));
-}
-
-/* A plane trailing a streamer: the streamer combat game. */
-export function streamerSvg() {
-  return plan(placed(78, 4, 0.48, PLANE)
-    + tag('path', { d: 'M 150 132 C 120 170, 190 190, 150 222 S 110 262, 150 294', fill: 'none', ...line(12, 0.7), 'stroke-linecap': 'round' }));
-}
-
-/* A crown: the tag game, where one pilot holds it. */
-export function crownSvg() {
-  return plan(tag('path', { d: 'M 50 210 L 38 96 L 104 150 L 150 70 L 196 150 L 262 96 L 250 210 Z', ...ink(0.45), ...line(8, 0.9), 'stroke-linejoin': 'round' })
-    + tag('rect', { x: 50, y: 222, width: 200, height: 26, rx: 6, ...ink(0.7) }));
-}
-
-/* A loop with its arrow: Trick Battle's card. */
-export function loopSvg() {
-  return plan(tag('path', { d: 'M 150 236 A 86 86 0 1 1 236 150', fill: 'none', ...line(14, 0.8), 'stroke-linecap': 'round' })
-    + tag('path', { d: 'M 206 140 L 236 182 L 266 140 Z', ...ink(0.8) }));
 }
 
 /* A sight over a target ball: the Interior campaign's card. */
@@ -143,39 +121,13 @@ function fromRegistry(modeId) {
   return face;
 }
 
-const FIXED_WINGS = AIRFRAMES.filter((a) => a.fixedWing).map((a) => a.id);
-const leading = (first, ids) => [first, ...ids.filter((id) => id !== first)];
 
 /*
- * The cards, in order. Order is meaningful: picking a card for an
- * aircraft takes the first that fits, and the two solo cards come first
- * so that never lands on a room card. The ids outlived the machines they
- * were first named for (the five inch, the 1000 mm wing).
+ * The cards, in order: picking a card for an aircraft takes the first
+ * that fits. Free Flight's card left with free flight (the combat-only
+ * cut, 2026-10-20); its registry row stays hidden (src/share/modes.js).
  */
 export const WAYS = [
-  /* Racing: every aircraft, the interceptor first. */
-  { id: 'race-5inch', airframes: leading(DEFAULT_AIRFRAME, AIRFRAME_IDS), mode: 'race', ...fromRegistry('race') },
-  /* Free flight: every fixed wing, the Bramor first. */
-  { id: 'freestyle-wing1000', airframes: leading('bramor2300', FIXED_WINGS), mode: 'freestyle', ...fromRegistry('free') },
-  /* Free flight with friends in a private room; off the title since
-   * 2026-10-02, still the way in for the title's rooms panel. */
-  {
-    id: 'friends',
-    gate: false,
-    airframes: AIRFRAME_IDS,
-    mode: 'freestyle',
-    home: 'swiss2',
-    room: true,
-    label: str('friends.title'),
-    art: 'assets/gate/friends.jpg',
-    svg: pairSvg(),
-    blurb: str('friends.card_blurb'),
-    facts: [str('friends.card_public'), str('friends.card_code'), str('friends.card_craft')],
-  },
-  /* The room games: the friends card with its game chosen. */
-  { id: 'combat', airframes: AIRFRAME_IDS, mode: 'freestyle', room: true, game: 'combat', ...fromRegistry('combat'), svg: streamerSvg() },
-  { id: 'ace', airframes: AIRFRAME_IDS, mode: 'freestyle', room: true, game: 'tag', ...fromRegistry('tag'), svg: crownSvg() },
-  { id: 'jam', airframes: AIRFRAME_IDS, mode: 'freestyle', room: true, game: 'jam', ...fromRegistry('jam'), svg: loopSvg() },
   /* Defend Itaipu: its consent gate runs in the shell before the room
    * (src/main.js). Off the title since 2026-09-30; Defend the Parana's
    * Play still enters through it. */
@@ -207,20 +159,21 @@ export const WAYS = [
     blurb: str('ops.campaign.interior.card_blurb'),
     facts: [str('ops.campaign.interior.card_missions'), str('ops.campaign.interior.card_roles'), str('ops.campaign.interior.card_quiet')],
   },
-  /* Learn to fly, the lessons (src/game/training.js): a solo card, not a
-   * room game, so it is not in the mode registry, as the Interior's is
-   * not. Its own page lists the lessons; a lesson seats its aircraft. */
+  /* Defence training, the lessons (src/game/training.js): not a room game
+   * of its own, so it is not in the mode registry, as the Interior's is
+   * not. Its own page lists the lessons; each flies in a war room, which
+   * seats the war's aircraft. */
   {
     id: 'training',
     training: true,
-    category: 'flightclub',
-    airframes: ['timber1500'],
+    category: 'operations',
+    airframes: AIRFRAME_IDS,
     mode: 'freestyle',
     label: str('training.card'),
-    art: 'assets/posters/swiss2.jpg',
-    svg: planeSvg(),
+    art: 'assets/posters/itaipu.jpg',
+    svg: reticleSvg(),
     blurb: str('training.card_blurb'),
-    facts: [str('training.card_steps'), str('training.card_assists'), str('training.card_gates')],
+    facts: [str('training.card_steps'), str('training.card_rooms'), str('training.card_gates')],
   },
 ].map((way) => ({ ...way, action: `way-${way.id}` }));
 
@@ -230,39 +183,18 @@ export function gateWays(ways, modes) {
 }
 export const GATE_WAYS = gateWays(WAYS, MODES);
 
-/* The title's three hubs; a card belongs to the hub of its category. */
+/* The one hub left: the Hangar, a card beside the Operations cards on
+ * home. Home shows the Operations cards themselves since Flight Club left
+ * with its games (the lead, 2026-10-20, ASK 4: no hub layer). */
 export const HUBS = [
-  { id: 'club', label: 'hub.club', blurb: 'hub.club_blurb', art: 'assets/posters/swiss2.jpg', category: 'flightclub' },
-  { id: 'ops', label: 'hub.ops', blurb: 'hub.ops_blurb', art: 'assets/posters/itaipu.jpg', category: 'operations' },
-  { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg', category: null },
+  { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg' },
 ];
 
 /* Actions anyone may take before signing in: getting around and leaving.
  * Everything behind a card or a row asks for the sign in first. */
 export const OPEN_ACTIONS = new Set([
-  'title', 'paused', 'pause', 'resume', 'back', 'card-back', 'mode-gate', 'update-reload', 'noop', 'room-bar', 'reportbug', 'credits', 'leaderboard',
+  'title', 'paused', 'pause', 'resume', 'back', 'card-back', 'mode-gate', 'update-reload', 'noop', 'room-bar', 'reportbug', 'credits',
 ]);
-
-/* A card's category: its mode's, from the registry, or its own. */
-function categoryOf(way) {
-  const mode = MODES.find((m) => m.card.way === way.id);
-  return mode ? mode.category : way.category;
-}
-
-export function hubWays(hubId) {
-  const hub = HUBS.find((h) => h.id === hubId);
-  if (!hub) return [];
-  return GATE_WAYS.filter((way) => categoryOf(way) === hub.category);
-}
-
-/* The hub a card's action lives under, or null. */
-export function hubOfAction(action) {
-  const way = WAYS.find((w) => w.action === action);
-  const category = way && categoryOf(way);
-  if (!category) return null;
-  const hub = HUBS.find((h) => h.category === category);
-  return hub ? hub.id : null;
-}
 
 /* The card the seated aircraft answers for a mode: the first that takes
  * it in that mode, else the first whose aircraft are all its kind, else
@@ -278,12 +210,4 @@ export function seatedWay(settings, mode) {
 export function wayFilter(way) {
   const kinds = new Set(way.airframes.map(kindOf));
   return kinds.size === 1 ? kinds.values().next().value : 'all';
-}
-
-/* What a board link carries for an aircraft: a quad's own id, a fixed
- * wing's track class. The board knows one airframe per class (for wings
- * still the retired wing1000), so every wing is sent as its class. */
-export function boardCraft(id) {
-  const airframe = airframeById(id);
-  return airframe.fixedWing ? airframe.trackClass : airframe.id;
 }

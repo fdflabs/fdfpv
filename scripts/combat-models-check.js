@@ -8,8 +8,8 @@
  *
  *   the BUDGET: no more draw calls than the five inch's model, the quad the
  *     shell was budgeted around (FIVE_INCH_DRAWS below), full and lite, and
- *     no more triangles than the heaviest aircraft already shipped,
- *     measured live on the same page;
+ *     no more triangles than the heaviest aircraft shipped (HEAVIEST_TRIS
+ *     below);
  *   the PAYLOAD is the doc's: its body exactly d across and len long, its
  *     top on the belly plate's underside, its centre under the body, clear
  *     between the legs, and nothing of it or its straps above the belly;
@@ -119,6 +119,14 @@ function check(id, pass, detail) {
  * reference pass: 81 full, 65 lite.
  */
 const FIVE_INCH_DRAWS = { full: 81, lite: 65 };
+/*
+ * THE HEAVIEST AIRCRAFT'S TRIANGLES, typed for the same reason: the F-16
+ * was the heaviest shipped model, and it left with the recreational planes
+ * (2026-10-21) while the budget stays. Measured live on this page at
+ * 988b8dfc6, the last tree that drew it, by this script's own reference
+ * pass: 11880 full.
+ */
+const HEAVIEST_TRIS = { id: 'f16878', tris: 11880 };
 
 const page = await openPage({ root, width: 1280, height: 800, url: '/tests/browser/combat-preview.html' });
 try {
@@ -126,10 +134,8 @@ try {
     /* A module that failed to load leaves only a timeout; say why. */
     throw new Error(`${e.message}\n${page.errors.join('\n')}`);
   });
-  const ref = await page.evaluate('window.__combat.reference()');
-  const heaviest = Object.entries(ref).reduce((m, [id, c]) => (c.full.tris > m.tris ? { id, tris: c.full.tris } : m), { id: '', tris: 0 });
-  const budget = { draws: FIVE_INCH_DRAWS.full, liteDraws: FIVE_INCH_DRAWS.lite, tris: heaviest.tris };
-  console.log(`budget: ${budget.draws} draws full and ${budget.liteDraws} lite (the five inch), ${budget.tris} triangles (${heaviest.id})`);
+  const budget = { draws: FIVE_INCH_DRAWS.full, liteDraws: FIVE_INCH_DRAWS.lite, tris: HEAVIEST_TRIS.tris };
+  console.log(`budget: ${budget.draws} draws full and ${budget.liteDraws} lite (the five inch), ${budget.tris} triangles (${HEAVIEST_TRIS.id})`);
 
   const { frames, payloads, offered } = await page.evaluate('({ frames: window.__combat.frames, payloads: window.__combat.payloads, offered: window.__combat.accessories })');
 

@@ -4,12 +4,11 @@
  * in Settings, all over src/game/progress.js, which is the arithmetic.
  *
  * The shell (src/main.js) tells a Progress what happens in a run, through
- * startRun, gatePass, touch, lap and tick; Progress logs each as the
- * flight's events (src/game/events.js), pays what the log earned through
- * the one fold (progress.js awardFlight), keeps the pilot's progress in
+ * startRun, touch and tick; Progress logs each as the flight's events
+ * (src/game/events.js), pays what the log earned through the one fold
+ * (progress.js awardFlight), keeps the pilot's progress in
  * settings.progress, stores it on every change, and says what it earned
- * in a toast: a lap's XP, a challenge done, a level, and
- * each thing that level opens. The toasts are the one thing here drawn in
+ * in a toast: a challenge done, a level, and each thing that level opens. The toasts are the one thing here drawn in
  * flight, so they take no pointer and sit clear of the OSD's corners.
  *
  * Nothing here imports three.js: scripts import src/ui/ui.js in Node.
@@ -33,14 +32,14 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, CHALLENGES, RIM_KINDS, RunWatch, awardFlight,
-  bestKind, challengeAmounts, challengeRun, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  AIRCRAFT_CHALLENGE_IDS, AIRCRAFT_CHALLENGE_XP, RunWatch, awardFlight,
+  bestKind, challengeAmounts, findItem, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { placeKey, placesAt, placesOf } from '../game/discovery.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
 import { EventLog } from '../game/events.js';
 import { itemById } from '../game/economy.js';
-import { LessonWatch, certsEarned, lessonById, lessonFliesIn, passesOf } from '../game/training.js';
+import { LessonWatch, certsEarned, lessonById, lessonFliesIn } from '../game/training.js';
 import { readWallet } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
@@ -252,10 +251,6 @@ export class Progress {
     this.ui = ui;
     this.host = host;
     this.watch = new RunWatch();
-    /* The run's state as the challenges read it (progress.js
-     * challengeRun), carried across the flights of one run: a recovery or
-     * a placement starts a new log, not a new run. */
-    this.run = challengeRun();
     /* This flight's events (src/game/events.js), and the sim clock as the
      * last tick gave it, for the calls that do not carry one. */
     this.flight = new EventLog();
@@ -307,17 +302,6 @@ export class Progress {
       return w && w.owned[item.id] ? null : { shop: item.earn ? 'earn' : 'buy' };
     }
     return lockOf(this.state, kind, id, airframe);
-  }
-
-  /* A casual sky track just made (src/main.js onBuild): its id is how its
-   * laps are known as the casual track's from now on. */
-  markCasual(id) {
-    this.state.casual[id] = true;
-    this.save();
-  }
-
-  isCasual(id) {
-    return Boolean(id) && Boolean(this.state.casual[id]);
   }
 
   setUnlockAll(on) {
@@ -372,7 +356,7 @@ export class Progress {
     if (!this.state.firsts || typeof this.state.firsts !== 'object') {
       this.state.firsts = {};
     }
-    const { at, counted, awards } = awardFlight(this.state, this.flight.events, this.folded, this.run, {
+    const { at, counted, awards } = awardFlight(this.state, this.flight.events, this.folded, {
       campaign: this.ui.settings.campaign,
       seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
     });
@@ -398,22 +382,6 @@ export class Progress {
    * once. */
   runBests() {
     return this.bests.slice();
-  }
-
-  /* A Streamer Combat round or a Catch the Ace! match this pilot had a
-   * seat in, ended by the room, on world `world` (src/main.js): logged,
-   * folded, and its first paid now rather than at the next flight time.
-   * `more.points` is this pilot's in the room's final standings, which a
-   * best is read from; a best of this game's last round is forgotten
-   * first, so a debrief says only this round's. */
-  roundFinished(game, world, more = {}) {
-    this.bests = this.bests.filter((b) => bestKind(b.key) !== game);
-    const round = this.event('round', { game, world, ...more });
-    this.foldFlight();
-    if (this.lesson) {
-      this.lesson.round(round);
-      this.lessonNews();
-    }
   }
 
   /* Attackers the room credited to this pilot's warhead (src/share/roomwar.js
@@ -478,8 +446,8 @@ export class Progress {
   }
 
   /*
-   * THE LESSON being flown (src/game/training.js), or none: judged beside
-   * the challenges from the same calls, and said in toasts. It lasts until
+   * THE LESSON being flown (src/game/training.js), or none: judged from
+   * the war room's calls and the frame's crash flag, and said in toasts. It lasts until
    * another lesson or endLesson (any other card).
    */
   startLesson(lesson) {
@@ -499,14 +467,6 @@ export class Progress {
   endLesson() {
     this.lesson = null;
     keepLessonInFlight(null);
-    if (this.onLessonEnd) {
-      this.onLessonEnd();
-    }
-  }
-
-  /* The visual aid the lesson in flight draws, or null. */
-  lessonAid() {
-    return this.lesson ? this.lesson.lesson.aid ?? null : null;
   }
 
   /*
@@ -565,12 +525,11 @@ export class Progress {
     const total = w.lesson.steps.length;
     if (w.passed) {
       const now = Date.now();
-      for (const id of passesOf(w.lesson.id)) {
-        this.state.lessons[id] ??= now;
-      }
-      /* Only the lesson actually flown pays its first (progress.js
-       * lessonsFlown); what it covers is passed, not flown. The map is
-       * made here when a profile from before it has none. */
+      this.state.lessons[w.lesson.id] ??= now;
+      /* Only a lesson actually flown pays its first (progress.js
+       * lessonsFlown): "I fly already" passed lessons without flying them
+       * until it left with Flight Club's lessons. The map is made here
+       * when a profile from before it has none. */
       this.state.lessonsFlown ??= {};
       this.state.lessonsFlown[w.lesson.id] = true;
       this.state.certs ??= {};
@@ -594,53 +553,9 @@ export class Progress {
     this.lessonStep = w.step;
   }
 
-  gatePass() {
-    this.event('gate');
-    this.foldFlight();
-    if (this.lesson) {
-      this.lesson.gatePass();
-      this.lessonNews();
-    }
-  }
-
   /* Folded with the next fold: a touch pays nothing by itself. */
   touch(kind) {
     this.event('touch', { kind });
-    if (this.lesson && RIM_KINDS.includes(kind)) {
-      this.lesson.rim();
-    }
-  }
-
-  /* A lap closed on `course`, { key, kind }; `ms` its time, `ghostMs`
-   * the ghost's it was flown against, and `medal` the one it reached on a
-   * course with medals (src/game/medals.js), each null when there is none;
-   * `n` and `of` the lap's place in a solo run and the run's laps, null in
-   * a room, so a run's best is read from the log (progress.js bestsOf). */
-  lap(course, { ms = null, ghostMs = null, medal = null, n = null, of = null } = {}) {
-    const lapped = this.event('lap', { ms, airframe: this.airframe, medal, kind: course.kind, course: course.key ?? null, n, of });
-    this.foldFlight();
-    if (this.lesson) {
-      this.lesson.lap(lapped, ghostMs);
-      this.lessonNews();
-    }
-  }
-
-  /* A row of the race's log that pays nothing (src/game/events.js
-   * lap_void): a lap voided, `ms` null and `reason` why, or a test
-   * flight's lap off a casual track, its time and 'test'. */
-  lapVoid(ms, reason) {
-    this.event('lap_void', { ms, reason });
-  }
-
-  /* A bail the freestyle scorer counted, `cause` 'crash', 'wreck' or
-   * 'bounce' (src/main.js scoreCrash), and a trick it took, `id` its
-   * name and `score` its points: the debrief's, paying nothing. */
-  bail(cause) {
-    this.event('bail', { cause });
-  }
-
-  trick(id, score) {
-    this.event('trick', { id, score });
   }
 
   tick(state) {
@@ -710,7 +625,6 @@ export class Progress {
    * the plane first and the rest counted. */
   show(events) {
     const xp = events.find((e) => e.type === 'xp');
-    const ch = events.find((e) => e.type === 'challenge');
     const firsts = events.filter((e) => e.type === 'first');
     const medal = events.find((e) => e.type === 'medal');
     const best = events.find((e) => e.type === 'best' && e.xp > 0);
@@ -763,15 +677,6 @@ export class Progress {
         kicker: up ? str('progress.toast_first_level', { n: up }) : str('progress.toast_first'),
         title: firstTitle(firsts[0].key),
         sub: firsts.length > 1 ? str('progress.first_more', { n: firsts.length - 1 }) : '',
-        xp: xp ? xp.xp : 0,
-        frac: info.frac,
-      });
-    } else if (ch) {
-      this.toast({
-        cls: `challenge${up ? ' level' : ''}`,
-        icon: '\u2713',
-        kicker: up ? str('progress.toast_challenge_level', { n: up }) : str('progress.toast_challenge'),
-        title: str(`progress.challenge.${ch.id}`),
         xp: xp ? xp.xp : 0,
         frac: info.frac,
       });
@@ -962,8 +867,9 @@ export class Progress {
 
   /*
    * THE CHALLENGES TAB: the level and how far into it, the Unlock all
-   * switch, this plane's challenges first and then the rest, and what the
-   * next levels open.
+   * switch, this aircraft's challenges, and what the next levels open.
+   * The seven plane challenges listed under them left with Flight Club
+   * (the combat-only cut, 2026-10-20).
    */
   paintTab(h) {
     const box = el('div', 'hangar-tab pg-tab');
@@ -1006,15 +912,6 @@ export class Progress {
       box.append(el('h3', 'hangar-h', str('progress.this_aircraft', { plane: airframeById(h.id).name })));
       box.append(this.aircraftList(h.id));
     }
-    const ctx = { airframe: h.id, fixedWing: Boolean(airframeById(h.id).fixedWing), power: this.powerKind(h) };
-    const here = CHALLENGES.filter((c) => fits(c, ctx) && c.plane);
-    const rest = CHALLENGES.filter((c) => !here.includes(c));
-    if (here.length) {
-      box.append(el('h3', 'hangar-h', str('progress.this_plane')));
-      box.append(this.challengeList(here, true));
-    }
-    box.append(el('h3', 'hangar-h', str(here.length ? 'progress.more_challenges' : 'progress.challenges')));
-    box.append(this.challengeList(rest, false));
 
     if (!s.unlockAll) {
       const soon = unlockables().filter((it) => it.level > info.level).sort((a, b) => a.level - b.level).slice(0, 5);
@@ -1033,11 +930,6 @@ export class Progress {
     return box;
   }
 
-  powerKind(h) {
-    const option = h.power && h.power.options ? h.power.options.find((o) => o.id === h.choice.option) : null;
-    return option ? option.kind : null;
-  }
-
   /* The aircraft's own three (progress.js AIRCRAFT_CHALLENGE_IDS), with
    * the amounts its class gives, each done or its XP. */
   aircraftList(airframe) {
@@ -1054,24 +946,6 @@ export class Progress {
     }
     return box;
   }
-
-  challengeList(list, here) {
-    const box = el('div', 'pg-list');
-    for (const c of list) {
-      const done = Boolean(this.state.challenges[c.id]);
-      const shut = !done && c.plane && Boolean(this.lock('plane', c.plane));
-      const row = el('div', `pg-ch${done ? ' done' : here ? ' here' : ''}${shut ? ' shut' : ''}`);
-      row.dataset.challenge = c.id;
-      const words = el('div', 'pg-ch-words');
-      words.append(el('span', 'pg-ch-title', str(`progress.challenge.${c.id}`)), el('span', 'pg-ch-note', str(`progress.challenge.${c.id}_note`)));
-      if (shut) {
-        words.append(el('span', 'pg-lock', str('progress.plane_at', { plane: airframeById(c.plane).name, n: this.lock('plane', c.plane).level })));
-      }
-      row.append(el('span', 'pg-ch-mark', done ? '\u2713' : ''), words, el('span', 'pg-ch-xp', done ? str('progress.done') : str('progress.xp_gain', { n: number(c.xp) })));
-      box.append(row);
-    }
-    return box;
-  }
 }
 
 /* The Challenges tab, in the hangar's tab registry. Progress is the Ui's;
@@ -1083,19 +957,11 @@ const MISSION_KEYS = new Map([
   ...INTERIOR.map((m) => [m.id, `ops.campaign.interior.m.${m.key}`]),
 ]);
 
-/* The words for a room game's first (progress.js PLAYED_GAMES, WORLDS):
- * each game's card name and each world's registry name. */
-const GAME_NAMES = { combat: 'combat.card', tag: 'roomtag.section' };
-const WORLD_NAMES = { alps: 'registry.the_alps', swiss2: 'registry.swiss2', itaipu: 'registry.itaipu', interior: 'registry.interior' };
-
 /* A first's words, from its key (progress.js firstsOf). */
 export function firstTitle(key) {
   const [what, id, part] = key.split(':');
   if (what === 'lesson') {
     return str('progress.first.lesson', { lesson: str(`training.lesson.${id}`) });
-  }
-  if (what === 'game') {
-    return str('progress.first.game', { game: str(GAME_NAMES[id]), world: str(WORLD_NAMES[part]) });
   }
   if (what === 'mission') {
     const mission = str(MISSION_KEYS.get(id) ?? id);

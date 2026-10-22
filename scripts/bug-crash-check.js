@@ -3,7 +3,7 @@
  *
  * bug-484f7119: "I wanted to report a bug after the game crashed and when I
  * pressed F8 to report it the crash disappeared". In headless Chromium, on
- * the Swiss valley, with crash damage on:
+ * the Interior, with crash damage on:
  *
  *  1. The interceptor, the five inch's successor, thrown nose first into
  *     the grass at 30 m/s wrecks (the five inch's throw, 18 m/s at 40
@@ -66,7 +66,7 @@ function check(name, ok, detail = '') {
 const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};
   const s = JSON.parse(localStorage.getItem(k) || '{}');
-  Object.assign(s, { airframeAsked: true, airframe: 'interceptor', map: 'swiss2', graphics: 'low', graphicsAuto: false, crashDamage: true });
+  Object.assign(s, { airframeAsked: true, airframe: 'interceptor', map: 'interior', graphics: 'low', graphicsAuto: false, crashDamage: true });
   localStorage.setItem(k, JSON.stringify(s));
   localStorage.setItem('webfpv.airhint.v2', '1');
 } catch (e) { /* Storage refused; the run boots on its defaults. */ }`,
@@ -137,7 +137,7 @@ function fits(name, ctx) {
 
 async function main() {
   console.log('F8 after a crash, on the real page');
-  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=swiss2', seed });
+  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=interior', seed });
   try {
     await page.until('window.__shellReady && window.__map && window.__map().ready && window.__crashCam && window.__boot', 180000);
     await frames(page, 3);

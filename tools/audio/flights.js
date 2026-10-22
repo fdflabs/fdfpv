@@ -24,8 +24,6 @@
  *             plant's right handed Z up body frame)
  *   x y z     position, metres, world frame (for a listener off board)
  *   amps      pack current, A
- *   flap      the flaps' angle, rad (0 on an aircraft without them)
- *   gear      the retracts, 0 down and locked to 1 up
  *
  * Events are what the shell learns from the plant or its contact code and
  * hands the audio as a call rather than a stream: an impact with the
@@ -60,7 +58,7 @@ const OUT = join(root, 'tools/audio/flights.json');
 export const TRACE_HZ = 62.5;
 const ROW_MS = 1000 / TRACE_HZ;
 const RC_MS = 4;
-export const COLS = ['r0', 'r1', 'r2', 'r3', 'u', 'v', 'w', 'x', 'y', 'z', 'amps', 'flap', 'gear'];
+export const COLS = ['r0', 'r1', 'r2', 'r3', 'u', 'v', 'w', 'x', 'y', 'z', 'amps'];
 const SURF = { grass: 1, concrete: 4, rock: 5, wood: 7 };
 
 function must(code, where) {
@@ -115,8 +113,6 @@ class Recorder {
         live ? +u.toFixed(2) : 0, live ? +v.toFixed(2) : 0, live ? +w.toFixed(2) : 0,
         +s[1].toFixed(2), +s[2].toFixed(2), +s[3].toFixed(2),
         +s[19].toFixed(1),
-        +this.sim.e.sim_wing_flaps().toFixed(4),
-        +this.sim.e.sim_wing_gear().toFixed(3),
       ]);
       this.nextRow += ROW_MS;
     }
@@ -429,25 +425,6 @@ export async function flyAll() {
     });
     flights[`${id}-${opts.tag ?? 'flight'}`] = { craft: id, airframe: id, voice: af.voice ?? 'wing', title, ...out };
   };
-  await wingFlight('cub1400', 'Cub (electric): climb, cruise, glide');
-  await wingFlight('kadet1981', 'Kadet Senior (four stroke glow): climb, cruise, idle');
-  await wingFlight('bombshell1118', 'Bombshell (two stroke glow): climb, cruise, idle');
-  await wingFlight('tigermoth1803', 'Tiger Moth (two stroke glow): climb, cruise, idle');
-  await wingFlight('p51d1450', 'P-51 (electric, four blades): gear up, flaps, cruise', {
-    thr: (ms) => (ms < 6000 ? 0.8 : 0.5),
-    actions: [
-      { ms: 1000, act: (sim) => must(sim.e.sim_wing_set_gear(1), 'gear up') },
-      { ms: 7500, act: (sim) => must(sim.e.sim_wing_set_flaps(1), 'flaps') },
-    ],
-  });
-  await wingFlight('f16878', 'F-16 (ducted fan): spool, full, cruise', {
-    thr: (ms) => (ms < 1500 ? 0.3 : ms < 6000 ? 1 : 0.55),
-    hold: () => ({ z: 60 }),
-  });
-  await wingFlight('nrj1490', 'NRJ glider: the air alone', {
-    thr: () => 0, hold: () => ({ v: 9 }), v0: 9,
-  });
-  flights['nrj1490-flight'].glider = true;
   {
     /* The Bramor: off its catapult, then its parachute. */
     const id = 'bramor2300';

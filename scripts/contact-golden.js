@@ -21,6 +21,10 @@
  *
  *   node scripts/contact-golden.js            compare with the record
  *   node scripts/contact-golden.js --record   write the record (old code!)
+ *   node scripts/contact-golden.js --record --add
+ *                                    record only the throws the record does
+ *                                    not have yet, and add them to it: a row
+ *                                    already there is never written again
  *
  * The record is tests/fixtures/contact-golden.json. Browser: run it through
  * ~/.cache/run-check.sh.
@@ -49,6 +53,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { MOVE } from '../src/maps/itaipu/town/model.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const RECORD = join(root, 'tests', 'fixtures', 'contact-golden.json');
@@ -59,6 +64,7 @@ const WAIT = 300000;
 const FRAME_MS = 100;
 const STALL_FRAMES = 20;
 const recording = process.argv.includes('--record');
+const adding = recording && process.argv.includes('--add');
 
 /* Every plan searches from the map's spawn, a constant, never from the
  * craft: after R the craft hovers and drifts for as long as the page takes
@@ -72,11 +78,15 @@ const SPAWN_JS = 'const SPAWN = () => { const p = window.__map().spawn; return {
  * spot is the same on every run.
  */
 const THROWS = [
+  /* On Itaipu, a world PDCS keeps: its crest's walls and poles and its
+   * town's roofs. These replaced the same throws on the Alps and the Swiss
+   * valley, recorded on the code those were before they left with their
+   * maps (the combat-only cut, 2026-10-20). */
   {
-    id: 'quad-wall',
-    what: 'the interceptor into the face of an Alps wall at 25 m/s',
+    id: 'itaipu-quad-wall',
+    what: 'the interceptor into the face of an Itaipu wall at 25 m/s',
     airframe: 'interceptor',
-    map: 'alps',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       const w = window.__crashSolids(s.worldX, s.worldZ, 600, 'wall').find((c) => {
@@ -94,10 +104,10 @@ const THROWS = [
       return { throw: { x, y, z: w.b[2] + 4.5, yaw: 0, pitch: -25, vx: 0, vy: 0, vz: -25 }, stick: [0, 0, 0, 0] };`,
   },
   {
-    id: 'quad-wall-glance',
-    what: 'the interceptor glancing along an Alps wall at 12 m/s, throttle up',
+    id: 'itaipu-quad-wall-glance',
+    what: 'the interceptor glancing along an Itaipu wall at 12 m/s, throttle up',
     airframe: 'interceptor',
-    map: 'alps',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       const w = window.__crashSolids(s.worldX, s.worldZ, 600, 'wall').find((c) => {
@@ -110,10 +120,10 @@ const THROWS = [
       return { throw: { x: w.a[0] - 3, y, z: w.b[2] + 0.5, yaw: -80, pitch: -10, vx: 12, vy: 0, vz: -1.5 }, stick: [0, 0, 0, 0.45] };`,
   },
   {
-    id: 'quad-pole',
-    what: 'the interceptor into a swiss2 power pole at 15 m/s',
+    id: 'itaipu-quad-pole',
+    what: 'the interceptor into an Itaipu pole at 15 m/s',
     airframe: 'interceptor',
-    map: 'swiss2',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       for (const p of window.__crashSolids(s.worldX, s.worldZ, 800, 'pole')) {
@@ -136,10 +146,10 @@ const THROWS = [
       return null;`,
   },
   {
-    id: 'quad-roof',
-    what: 'the interceptor dropped onto a swiss2 roof at 8 m/s, 35 degrees down',
+    id: 'itaipu-quad-roof',
+    what: 'the interceptor dropped onto an Itaipu roof at 8 m/s, 35 degrees down',
     airframe: 'interceptor',
-    map: 'swiss2',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       const roofs = (window.__roofs() || []).slice()
@@ -154,10 +164,10 @@ const THROWS = [
       return null;`,
   },
   {
-    id: 'quad-ground-skid',
-    what: 'the interceptor skidding into the swiss2 grass at 18 m/s, 15 degrees down',
+    id: 'itaipu-quad-ground-skid',
+    what: 'the interceptor skidding into the Itaipu ground at 18 m/s, 15 degrees down',
     airframe: 'interceptor',
-    map: 'swiss2',
+    map: 'itaipu',
     plan: `
       const s = SPAWN();
       const x = s.worldX + 25, z = s.worldZ + 12, y = window.__heightAt(x, z) + 1.5;
@@ -166,67 +176,234 @@ const THROWS = [
   },
 ];
 
-/* Two more for the slide itself, crash damage off: a long shallow skate
- * along a wall with the throttle up, so the craft keeps pressing into the
- * face and the rounds carry its travel along it, and a building corner hit
- * on the diagonal, two faces in one pass. */
+/* One more for the slide itself, crash damage off: a corner hit on the
+ * diagonal, two faces in one pass, on the dam's own blocks round the
+ * spawn (in the map's tree, not the town's streamed set). The search
+ * stays inside MOVE of the spawn: a town building's corner 675 m out was
+ * a whole box in the set round the spawn and its fine boxes in the set
+ * round the throw, and the swap fell where the host's frames did (the
+ * recording runs parted at step 705); a corner on the Interior 7.9 km
+ * from its spawn parted at step 101 (2026-10-21). The long skate along a
+ * wall comes back below, on a dam block's face. */
 THROWS.push({
-  id: 'quad-wall-skate-nodamage',
-  what: 'the interceptor skating along an Alps wall, 4 degrees into it at 10 m/s, rolled into it, crash damage off',
+  id: 'itaipu-quad-corner-nodamage',
+  what: 'the interceptor into the corner of an Itaipu dam block on the diagonal at 12 m/s, crash damage off',
   airframe: 'interceptor',
-  map: 'alps',
+  map: 'itaipu',
   damage: false,
   plan: `
     const s = SPAWN();
-    const a = 4 * Math.PI / 180;
-    for (const c of window.__crashSolids(s.worldX, s.worldZ, 800, 'wall')) {
-      if (!c.box || c.turned || c.b[0] - c.a[0] < 14) continue;
-      const x0 = c.a[0] + 1.5, z0 = c.b[2] + 1.0;
-      const g = window.__heightAt(x0, z0);
-      if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
-      const y = g + 1.5;
-      let clear = window.__nearSolid(x0, y, z0, 0.9) > 0.5;
-      for (let d = 1; d <= 8 && clear; d += 1) {
-        clear = window.__heightAt(x0 + d, z0) < y - 0.8;
+    for (const c of window.__crashSolids(s.worldX, s.worldZ, ${MOVE}, 'wall')) {
+      if (!c.box) continue;
+      /* A box in its own frame (collide.js addTurnedBox), a plain one in the world's. */
+      const [ux, uz, u0, u1, w0, w1] = c.turned || [1, 0, c.a[0], c.b[0], c.a[2], c.b[2]];
+      if (u1 - u0 < 3 || w1 - w0 < 3) continue;
+      for (const [su, sw] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        const u = su > 0 ? u1 : u0, w = sw > 0 ? w1 : w0;
+        const cx = u * ux - w * uz, cz = u * uz + w * ux;
+        /* The diagonal out of that corner, between its two faces. */
+        const dx = (su * ux - sw * uz) * Math.SQRT1_2, dz = (su * uz + sw * ux) * Math.SQRT1_2;
+        const g = window.__heightAt(cx + dx, cz + dz);
+        if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
+        const y = g + 1.6;
+        const x0 = cx + 6 * dx, z0 = cz + 6 * dz;
+        let clear = true;
+        for (let d = 0; d <= 4.5 && clear; d += 0.5) {
+          const x = x0 - d * dx, z = z0 - d * dz;
+          clear = window.__nearSolid(x, y, z, 0.9) > 0.6 && window.__heightAt(x, z) < y - 1;
+        }
+        if (clear) {
+          return { throw: { x: x0, y, z: z0, yaw: Math.atan2(dx, dz) * 180 / Math.PI, pitch: -20, vx: -12 * dx, vy: 0, vz: -12 * dz }, stick: [0, 0, 0, 0.3] };
+        }
       }
-      if (!clear) continue;
-      const fx = Math.cos(a), fz = -Math.sin(a);
-      return { throw: { x: x0, y, z: z0, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: -15, roll: 25, vx: 10 * fx, vy: 0, vz: 10 * fz }, stick: [0.2, 0, 0, 0.55] };
-    }
-    return null;`,
-});
-THROWS.push({
-  id: 'quad-corner-nodamage',
-  what: 'the interceptor into the corner of an Alps building on the diagonal at 12 m/s, crash damage off',
-  airframe: 'interceptor',
-  map: 'alps',
-  damage: false,
-  plan: `
-    const s = SPAWN();
-    const k = Math.SQRT1_2;
-    for (const c of window.__crashSolids(s.worldX, s.worldZ, 800, 'wall')) {
-      if (!c.box || c.turned) continue;
-      const cx = c.b[0], cz = c.b[2];
-      const g = window.__heightAt(cx + 1, cz + 1);
-      if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
-      const y = g + 1.6;
-      const x0 = cx + 6 * k, z0 = cz + 6 * k;
-      let clear = true;
-      for (let d = 0; d <= 4.5 && clear; d += 0.5) {
-        const x = x0 - d * k, z = z0 - d * k;
-        clear = window.__nearSolid(x, y, z, 0.9) > 0.6 && window.__heightAt(x, z) < y - 1;
-      }
-      if (!clear) continue;
-      return { throw: { x: x0, y, z: z0, yaw: 45, pitch: -20, vx: -12 * k, vy: 0, vz: -12 * k }, stick: [0, 0, 0, 0.3] };
     }
     return null;`,
 });
 
 /* With crash damage off the plant does not own the contact, and the
  * shell's pass resolves every hit itself: the same throws again that way. */
-for (const th of THROWS.filter((t) => ['quad-wall', 'quad-wall-glance', 'quad-pole'].includes(t.id))) {
+for (const th of THROWS.filter((t) => ['itaipu-quad-wall', 'itaipu-quad-wall-glance', 'itaipu-quad-pole'].includes(t.id))) {
   THROWS.push({ ...th, id: `${th.id}-nodamage`, what: `${th.what}, crash damage off`, damage: false });
 }
+
+/*
+ * A skate, a wall and a roof that touch where the throws above do not
+ * (2026-10-21). The wall throw above is planned in the world's frame and
+ * the Itaipu wall it finds is a turned box, so with crash damage off it
+ * runs up the dam's ground beside the wall and meets none; the roof throw
+ * lands on a bridge deck with nothing under it. The skate and the wall
+ * here plan in each box's own frame (collide.js addTurnedBox), and the
+ * roof is a top over walls, all on the dam within MOVE of the spawn, in
+ * the map's tree, as the corner throw is. Appended last, they leave every
+ * page's earlier throws as they were.
+ */
+const FACES_JS = `
+    const s = SPAWN();
+    /* Walls in the map's own tree only: an index under the static count. */
+    const st = window.__colliders().static;
+    const index = new Map(window.__colliderBoxes(s.worldX, s.worldZ, ${MOVE} + 50).map((b) => [[b[0], b[2], b[3], b[5]].join(','), b[6]]));
+    const faces = [];
+    for (const c of window.__crashSolids(s.worldX, s.worldZ, ${MOVE}, 'wall')) {
+      if (!c.box || !(index.get([c.a[0], c.a[2], c.b[0], c.b[2]].join(',')) < st)) continue;
+      const [ux, uz, u0, u1, w0, w1] = c.turned || [1, 0, c.a[0], c.b[0], c.a[2], c.b[2]];
+      const W = (u, w) => [u * ux - w * uz, u * uz + w * ux];
+      /* Each face from the end it starts at, along it (t), its outward
+       * normal (n) on t's left, as the Alps skate had its wall. */
+      faces.push(
+        { c, len: u1 - u0, o: W(u0, w1), t: [ux, uz], n: [-uz, ux] },
+        { c, len: u1 - u0, o: W(u1, w0), t: [-ux, -uz], n: [uz, -ux] },
+        { c, len: w1 - w0, o: W(u1, w1), t: [uz, -ux], n: [ux, uz] },
+        { c, len: w1 - w0, o: W(u0, w0), t: [-uz, ux], n: [-ux, -uz] },
+      );
+    }`;
+THROWS.push({
+  id: 'itaipu-quad-skate-nodamage',
+  what: 'the interceptor skating along the face of an Itaipu dam block, 4 degrees into it at 10 m/s, rolled into it, crash damage off',
+  airframe: 'interceptor',
+  map: 'itaipu',
+  damage: false,
+  plan: `${FACES_JS}
+    const a = 4 * Math.PI / 180;
+    for (const { c, len, o, t, n } of faces) {
+      if (len < 14) continue;
+      const x0 = o[0] + 1.5 * t[0] + n[0], z0 = o[1] + 1.5 * t[1] + n[1];
+      const g = window.__heightAt(x0, z0);
+      if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
+      const y = g + 1.5;
+      let clear = window.__nearSolid(x0, y, z0, 0.9) > 0.5;
+      for (let d = 1; d <= 8 && clear; d += 1) {
+        clear = window.__heightAt(x0 + d * t[0], z0 + d * t[1]) < y - 0.8;
+      }
+      if (!clear) continue;
+      const fx = Math.cos(a) * t[0] - Math.sin(a) * n[0], fz = Math.cos(a) * t[1] - Math.sin(a) * n[1];
+      return { throw: { x: x0, y, z: z0, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: -15, roll: 25, vx: 10 * fx, vy: 0, vz: 10 * fz }, stick: [0.2, 0, 0, 0.55] };
+    }
+    return null;`,
+});
+THROWS.push({
+  id: 'itaipu-quad-wall-face-nodamage',
+  what: 'the interceptor square into the face of an Itaipu dam block at 25 m/s, crash damage off',
+  airframe: 'interceptor',
+  map: 'itaipu',
+  damage: false,
+  plan: `${FACES_JS}
+    for (const { c, len, o, t, n } of faces) {
+      if (len < 4) continue;
+      const at = (d) => [o[0] + t[0] * len / 2 + n[0] * d, o[1] + t[1] * len / 2 + n[1] * d];
+      const g = window.__heightAt(...at(4));
+      if (c.a[1] > g + 0.5 || c.b[1] < g + 3) continue;
+      const y = g + 1.6;
+      let clear = true;
+      for (let d = 0.6; d <= 4.5 && clear; d += 0.6) {
+        const [x, z] = at(d);
+        clear = window.__nearSolid(x, y, z, 0.5) > 0.45 && window.__heightAt(x, z) < y - 1;
+      }
+      if (!clear) continue;
+      const [x, z] = at(4.5);
+      return { throw: { x, y, z, yaw: Math.atan2(n[0], n[1]) * 180 / Math.PI, pitch: -25, vx: -25 * n[0], vy: 0, vz: -25 * n[1] }, stick: [0, 0, 0, 0] };
+    }
+    return null;`,
+});
+/* The roof throw's drop onto a top that stands over walls: the record's
+ * solids, which its cover lets the craft through (roofs.js cover). */
+const ROOF_WALLS = {
+  id: 'itaipu-quad-roof-walls',
+  what: 'the interceptor dropped onto an Itaipu dam top over its walls at 8 m/s, 35 degrees down',
+  airframe: 'interceptor',
+  map: 'itaipu',
+  plan: `
+    const s = SPAWN();
+    const st = window.__colliders().static;
+    const a = 35 * Math.PI / 180;
+    const tops = window.__roofs().map((r, i) => ({ r, i, x: (r.minX + r.maxX) / 2, z: (r.minZ + r.maxZ) / 2 }))
+      .filter(({ r }) => r.solids.length && r.solids.every((j) => j < st))
+      .map((o) => ({ ...o, d: Math.hypot(o.x - s.worldX, o.z - s.worldZ) }))
+      .filter((o) => o.d < ${MOVE})
+      .sort((u, v) => u.d - v.d || u.i - v.i);
+    for (const { i, x, z } of tops) {
+      const top = window.__roofTop(i, x, z);
+      if (!(top === window.__surface(x, z, 1e4))) continue;
+      const x0 = x - 2 * Math.cos(a), y0 = top + 2 * Math.sin(a) + 0.4;
+      if (!(window.__roofTop(i, x0, z) === window.__surface(x0, z, 1e4))) continue;
+      if (!(window.__nearSolid(x0, y0, z, 0.8) > 0.75)) continue;
+      return { throw: { x: x0, y: y0, z, yaw: -90, pitch: -35, vx: 8 * Math.cos(a), vy: -8 * Math.sin(a), vz: 0 }, stick: [0, 0, 0, 0] };
+    }
+    return null;`,
+};
+THROWS.push(ROOF_WALLS, { ...ROOF_WALLS, id: `${ROOF_WALLS.id}-nodamage`, what: `${ROOF_WALLS.what}, crash damage off`, damage: false });
+
+/*
+ * The pole throw again with the streamed set made to refill at REFILL_AT,
+ * through the map's streamer as a pilot crossing MOVE refills it. With
+ * crash damage on the swap declares the crash world again from where the
+ * craft is (src/main.js crashBeforeStep), so the step the swap lands at
+ * is in the trace. It must land there on the sim clock: flown in frames
+ * of FRAME_MS and of a 60 Hz frame's 17 ms, both must give this record
+ * (CLAUDE.md: a dropped frame must change nothing about the trajectory).
+ * The swap lands SWAP_STEPS (500) after the refill starts
+ * (src/maps/itaipu.js), at step 800, where the crash world it declares
+ * moves the trace (it parts from itaipu-quad-pole there); one refilled
+ * from 200 swaps at 700, which this throw's crash world does not feel, and
+ * would guard nothing. When the swap was a frame's, frames of 100 ms put
+ * it at step 600 and of 17 ms at one this throw does not feel, and the
+ * two parted at step 600 (2026-10-21). Appended last, on the damage on
+ * page.
+ */
+const REFILL_AT = 300;
+THROWS.push({
+  ...THROWS.find((t) => t.id === 'itaipu-quad-pole'),
+  id: 'itaipu-quad-pole-refill',
+  what: `the interceptor into an Itaipu pole at 15 m/s, the streamed set refilled from step ${REFILL_AT}, in frames of ${FRAME_MS} and 17 ms`,
+  refillAt: REFILL_AT,
+  frames: [FRAME_MS, 17],
+});
+
+/*
+ * A fixed wing's roof: the Bramor belly landed on an Itaipu dam top over
+ * its walls, the cover letting it over them, at the manual's best
+ * endurance speed, VBE 16 m/s (tests/bramor-thresholds.json b1_cruise),
+ * gliding in 3 degrees down from 0.6 m over the top, motor off, along a
+ * run of the top 30 m long that its whole span stays over, with both damage
+ * modes. A kept fixed wing on a kept map's roof, which roof-check's flown
+ * scenarios, set on the retired Skyhunter, find none of on Itaipu.
+ */
+const WING = airframeById('bramor2300');
+const WING_ROOF = {
+  id: 'itaipu-bramor-roof-walls',
+  what: 'the Bramor belly landed on an Itaipu dam top over its walls at 16 m/s, 3 degrees down, motor off',
+  airframe: WING.id,
+  map: 'itaipu',
+  plan: `
+    const s = SPAWN();
+    const st = window.__colliders().static;
+    const a = 3 * Math.PI / 180;
+    const half = ${WING.dims.hullR} + 0.15;
+    const tops = window.__roofs().map((r, i) => ({ r, i, x: (r.minX + r.maxX) / 2, z: (r.minZ + r.maxZ) / 2 }))
+      .filter(({ r }) => r.solids.length && r.solids.every((j) => j < st))
+      .map((o) => ({ ...o, d: Math.hypot(o.x - s.worldX, o.z - s.worldZ) }))
+      .filter((o) => o.d < ${MOVE})
+      .sort((u, v) => u.d - v.d || u.i - v.i);
+    for (const { i, x, z } of tops) {
+      const top = window.__roofTop(i, x, z);
+      if (!(top === window.__surface(x, z, 1e4))) continue;
+      for (const [fx, fz] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+        const x0 = x - 12 * fx, z0 = z - 12 * fz;
+        let on = true;
+        for (let d = 0; d <= 30 && on; d += 1) {
+          for (const w of [-half, 0, half]) {
+            const px = x0 + d * fx - w * fz, pz = z0 + d * fz + w * fx;
+            on = on && window.__roofTop(i, px, pz) === top && window.__surface(px, pz, 1e4) === top;
+          }
+          on = on && window.__nearSolid(x0 + d * fx, top + 1, z0 + d * fz, 0.8) > 0.75;
+        }
+        if (!on) continue;
+        return { throw: { x: x0, y: top + 0.6, z: z0, yaw: Math.atan2(-fx, -fz) * 180 / Math.PI, pitch: 0,
+          vx: 16 * Math.cos(a) * fx, vy: -16 * Math.sin(a), vz: 16 * Math.cos(a) * fz }, stick: [0, 0, 0, 0] };
+      }
+    }
+    return null;`,
+};
+THROWS.push(WING_ROOF, { ...WING_ROOF, id: `${WING_ROOF.id}-nodamage`, what: `${WING_ROOF.what}, crash damage off`, damage: false });
 
 function seed(airframe, map, damage) {
   const settings = {
@@ -253,25 +430,78 @@ function seed(airframe, map, damage) {
 const PASS_FIELDS = ['resolved', 'resting', 'buried', 'sepFail', 'dvZero', 'inbound', 'outbound', 'plantHeld', 'unheld'];
 const PASS = `JSON.parse(JSON.stringify(window.__contacts()))`;
 
-const digest = (xs) => createHash('sha256').update(xs.join(',')).digest('hex').slice(0, 24);
+/* Where the town's streamed set stands as `s` (src/maps/itaipu/town/model.js
+ * `near`), undefined off Itaipu, and `far(x, z)`: the shell would refill it
+ * round a pilot there (the model's wants()). */
+/* The town's own record of where its set was filled, live (the map's
+ * stats hand out a copy). */
+const NEAR = 'window.__mapScene().userData.itaipu.parts.town.stream.near';
+const TOWN_JS = `const m = window.__map(); const s = m.parts && m.parts.town && m.parts.town.stream;
+  const far = (x, z) => !(Math.hypot(x - s.x, z - s.z) < ${MOVE});`;
 
-async function stage(page, th) {
-  await page.tap('KeyR');
-  await page.until('window.__crash().flags === 0 && !window.__crash().wrecked', 30000);
-  await page.sleep(300);
-  const plan = await page.evaluate(`JSON.stringify((() => { ${SPAWN_JS} ${th.plan} })())`).then(JSON.parse);
-  if (!plan) {
-    throw new Error('no spot on the map fits the throw');
-  }
+async function throwAt(page, plan) {
   const thrown = await page.evaluate(`JSON.stringify(window.__crashThrow(${JSON.stringify({
     ...plan.throw, hold: true, fresh: true, clockMs: 0, showCraft: true,
   })}))`).then(JSON.parse);
   if (!thrown.ok) {
     throw new Error(`throw refused: ${JSON.stringify(thrown)}`);
   }
+}
+
+const digest = (xs) => createHash('sha256').update(xs.join(',')).digest('hex').slice(0, 24);
+
+async function stage(page, th) {
+  await page.tap('KeyR');
+  await page.until('window.__crash().flags === 0 && !window.__crash().wrecked', 30000);
+  if (th.refillAt !== undefined) {
+    /* A refill row's set was refilled round its throw, within MOVE of the
+     * spawn, so R leaves it there: each staging starts from one refilled
+     * round the spawn, made to want it and put there (a put fills the set
+     * where it puts the craft, src/main.js streamToCraft). */
+    await page.until('(() => { const m = window.__map(); const c = window.__craftState(); return Math.hypot(c.worldX - m.spawn.x, c.worldZ - m.spawn.z) < 1; })()', 30000);
+    const fills = await page.evaluate(`${NEAR}.fills`);
+    await page.evaluate(`(() => { ${NEAR}.x = NaN; const s = window.__craftState(); window.__placeCraft(s.worldX, s.worldY, s.worldZ); })()`);
+    await page.until(`${NEAR}.fills !== ${fills}`, 60000);
+  }
+  /* A map that streams colliders round the pilot (Itaipu's town walls,
+   * src/maps/itaipu.js) holds the set round where the craft was before R
+   * until it refills: the shell's spot 1.5 km off the spawn on a page's
+   * first throw, a throw's own spot after it. A plan reads that set, so it
+   * waits for the one round the spawn; read early, the corner plan found a
+   * different corner by the host's load (2026-10-20). */
+  await page.until(`(() => {
+    const m = window.__map();
+    const s = m.parts && m.parts.town && m.parts.town.stream;
+    return !s || (!s.pending && Math.hypot(s.x - m.spawn.x, s.z - m.spawn.z) < 1);
+  })()`, 60000);
+  await page.sleep(300);
+  const plan = await page.evaluate(`JSON.stringify((() => { ${SPAWN_JS} ${th.plan} })())`).then(JSON.parse);
+  if (!plan) {
+    throw new Error('no spot on the map fits the throw');
+  }
+  /* A spot over MOVE from the set's centre starts a refill round it, and
+   * the refill runs only while the craft flies: it swapped in 400 to 700
+   * steps after the release, as the host's frames fell, and the swap
+   * reorders the statics the pass walks, so a throw's digests moved by
+   * the load (a town corner, 2026-10-20). Such a spot (the roof's) is flown
+   * once first, free, until its set is in, and then thrown again from the
+   * same plan. */
+  const away = await page.evaluate(`(() => { ${TOWN_JS} return !!s && far(${plan.throw.x}, ${plan.throw.z}); })()`);
+  if (away) {
+    await throwAt(page, plan);
+    await page.evaluate('window.__releasePose()');
+    await page.until(`(() => { ${TOWN_JS} const c = window.__craftState(); return !s.pending && !far(c.worldX, c.worldZ); })()`, 60000);
+  }
+  await throwAt(page, plan);
+  if (th.refillAt !== undefined && !await page.evaluate(`window.__refillAt(${th.refillAt})`)) {
+    throw new Error(`${th.id}: the map streams nothing to refill`);
+  }
   await page.evaluate(`window.__stick(${plan.stick.join(',')})`);
   await page.sleep(400);
   const passBefore = await page.evaluate(PASS);
+  const groundBefore = await page.evaluate('window.__ground().contactSteps');
+  const FILLS = `(() => { ${TOWN_JS} return s ? s.fills : 0; })()`;
+  const fillsBefore = await page.evaluate(FILLS);
   await page.evaluate('window.__releasePose()');
   /* Until the trace is long enough, or the plant has stopped (a wreck at
    * rest is no longer stepped). Stopped is counted in the page's frames,
@@ -302,6 +532,11 @@ async function stage(page, th) {
     await page.sleep(100);
   }
   const trace = await page.evaluate('JSON.stringify(window.__stepTrace())').then(JSON.parse);
+  const fillsAfter = await page.evaluate(FILLS);
+  const refills = th.refillAt === undefined ? 0 : 1;
+  if (fillsAfter - fillsBefore !== refills) {
+    throw new Error(`${th.id}: the town's set refilled ${fillsAfter - fillsBefore} times inside the trace, not ${refills} (fill ${fillsBefore} to ${fillsAfter})`);
+  }
   /* What the throw met and which branches of the pass it ran (the pass's
    * counters run for the page's life, so the difference over the throw),
    * so the record states what it pins. */
@@ -311,6 +546,9 @@ async function stage(page, th) {
     return { obstacleEvents: c.obstacle.length, contactEvents: c.log.length, damage: window.__crashLog().map((e) => e.part + ':' + e.type) };
   })())`).then(JSON.parse);
   met.pass = Object.fromEntries(PASS_FIELDS.map((f) => [f, passAfter[f] - passBefore[f]]));
+  /* The steps the craft stood on the ground or a roof: a roof is ground
+   * (roofs.js), so this is what a roof throw met. */
+  met.groundSteps = await page.evaluate('window.__ground().contactSteps') - groundBefore;
   await page.evaluate('window.__stick()');
   return {
     n: Math.min(trace.n, STEPS),
@@ -324,7 +562,8 @@ async function stage(page, th) {
 
 /* CONTACT_ONLY=<id>,... stages only those throws, for working on one. */
 const only = process.env.CONTACT_ONLY ? process.env.CONTACT_ONLY.split(',') : null;
-const ACTIVE = THROWS.filter((t) => !only || only.includes(t.id));
+const kept = adding ? JSON.parse(readFileSync(RECORD, 'utf8')) : {};
+const ACTIVE = THROWS.filter((t) => (!only || only.includes(t.id)) && !(t.id in kept));
 
 async function sample() {
   const out = {};
@@ -346,6 +585,13 @@ async function sample() {
       await page.evaluate(`window.__frameMs(${FRAME_MS})`);
       for (const th of list) {
         out[th.id] = await stage(page, th);
+        /* The same throw in frames of other lengths, held to the same record. */
+        out[th.id].also = [];
+        for (const ms of (th.frames ?? []).slice(1)) {
+          await page.evaluate(`window.__frameMs(${ms})`);
+          out[th.id].also.push(await stage(page, th));
+          await page.evaluate(`window.__frameMs(${FRAME_MS})`);
+        }
       }
     } finally {
       await page.close();
@@ -382,10 +628,11 @@ if (recording) {
      * step any two runs part at, and the record stops 100 steps short of
      * that: a later run whose frames fell earlier still agrees up to there.
      */
-    let n = Math.min(...runs.map((r) => r[th.id].n));
+    const traces = runs.flatMap((r) => [r[th.id], ...r[th.id].also]);
+    let n = Math.min(...traces.map((t) => t.n));
     let parted = -1;
-    for (const r of runs.slice(1)) {
-      const k = partAt(runs[0][th.id], r[th.id], n);
+    for (const t of traces.slice(1)) {
+      const k = partAt(traces[0], t, n);
       if (k >= 0 && (parted < 0 || k < parted)) {
         parted = k;
       }
@@ -414,6 +661,18 @@ if (recording) {
     console.log('contact-golden: not recorded, the runs disagree');
     process.exit(1);
   }
+  if (adding) {
+    if (ACTIVE.length === 0) {
+      console.log('contact-golden: every throw has its row already, nothing added');
+      process.exit(0);
+    }
+    /* Spliced in after the opening brace, so every row already there stays
+     * byte for byte what it was. */
+    const rows = JSON.stringify(record, null, 1).slice(2, -2);
+    writeFileSync(RECORD, readFileSync(RECORD, 'utf8').replace(/^\{\n/, `{\n${rows},\n`));
+    console.log(`contact-golden: added ${ACTIVE.map((t) => t.id).join(', ')} to ${RECORD}`);
+    process.exit(0);
+  }
   if (only) {
     console.log('contact-golden: a trial of some throws, not written');
     process.exit(0);
@@ -428,22 +687,25 @@ const now = await sample();
 let failed = 0;
 for (const th of ACTIVE) {
   const want = record[th.id];
-  const got = now[th.id];
   const n = want.steps;
-  if (JSON.stringify(got.throw) !== JSON.stringify(want.throw)) {
-    failed += 1;
-    console.log(`  FAIL  ${th.id}: the throw moved (the map changed under the plan, not the pass): ${JSON.stringify(got.throw)}`);
-    continue;
-  }
-  const enough = got.n >= n;
-  const same = enough
-    && digest(got.pre.slice(0, n)) === want.pre
-    && digest(got.plane.slice(0, n)) === want.plane
-    && digest(got.post.slice(0, n)) === want.post;
-  if (!same) {
-    failed += 1;
-  }
-  console.log(`  ${same ? 'pass' : 'FAIL'}  ${th.id}: ${n} steps${enough ? '' : `, only ${got.n} traced`}  (${th.what})`);
+  const frames = th.frames ?? [FRAME_MS];
+  [now[th.id], ...now[th.id].also].forEach((got, k) => {
+    const label = frames.length > 1 ? `${th.id} (${frames[k]} ms frames)` : th.id;
+    if (JSON.stringify(got.throw) !== JSON.stringify(want.throw)) {
+      failed += 1;
+      console.log(`  FAIL  ${label}: the throw moved (the map changed under the plan, not the pass): ${JSON.stringify(got.throw)}`);
+      return;
+    }
+    const enough = got.n >= n;
+    const same = enough
+      && digest(got.pre.slice(0, n)) === want.pre
+      && digest(got.plane.slice(0, n)) === want.plane
+      && digest(got.post.slice(0, n)) === want.post;
+    if (!same) {
+      failed += 1;
+    }
+    console.log(`  ${same ? 'pass' : 'FAIL'}  ${label}: ${n} steps${enough ? '' : `, only ${got.n} traced`}  (${th.what})`);
+  });
 }
 if (failed > 0) {
   console.log(`contact-golden: ${failed} FAILED`);

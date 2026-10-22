@@ -1,5 +1,5 @@
 /*
- * render-golden.js: src/render and src/art outputs against recorded goldens.
+ * render-golden.js: src/render outputs against recorded goldens.
  *
  *   node scripts/render-golden.js [--only=MODULE] [--write]
  *

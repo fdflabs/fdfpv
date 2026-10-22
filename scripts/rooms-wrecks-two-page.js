@@ -1,13 +1,13 @@
 /*
  * rooms-wrecks-two-page.js: Phase 2's proof (docs/MULTIPLAYER-PLAN.md
- * section 6.5). Two headless pages of the real shell in one room on the
- * Swiss valley. A's red Cub is thrown into the ground, then into a tree
- * trunk; each time B must see A's pieces come off, fall and lie where A's
- * own screen has them, to TOLERANCE_M, and see them gone when A starts
- * again. By hand, against a running rooms Worker:
+ * section 6.5). Two headless pages of the real shell in one room at
+ * Itaipu. A's red Striker is thrown into the ground, then into a tree
+ * trunk; each time B, on a blue Bramor, must see A's pieces come off,
+ * fall and lie where A's own screen has them, to TOLERANCE_M, and see
+ * them gone when A starts again. By hand, on a rooms server of its own
+ * (edge/rooms/node.js), or against one already running:
  *
- *   npx wrangler dev --config edge/rooms/wrangler.toml --port 8797
- *   SIM_GPU=1 node scripts/rooms-wrecks-two-page.js http://127.0.0.1:8797 [outdir]
+ *   SIM_GPU=1 node scripts/rooms-wrecks-two-page.js [rooms origin] [outdir]
  *
  * Why the tolerance is what it is: A sends a piece again only once it has
  * moved STILL_M (3 mm, src/share/roomwrecks.js) from where it was last
@@ -31,6 +31,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -39,8 +41,17 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const rooms = process.argv[2] || 'http://127.0.0.1:8797';
-const outDir = process.argv[3] || join(root, 'build', 'rooms-wrecks');
+const args = process.argv.slice(2);
+const roomsArg = args.find((a) => /^https?:/.test(a));
+let local = null;
+let scratch = null;
+if (!roomsArg) {
+  const { startRooms } = await import('../edge/rooms/node.js');
+  scratch = mkdtempSync(join(tmpdir(), 'rooms-wrecks-'));
+  local = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+}
+const rooms = roomsArg || `http://127.0.0.1:${local.port}`;
+const outDir = args.find((a) => a !== roomsArg) || join(root, 'build', 'rooms-wrecks');
 const TOLERANCE_M = 0.01;
 
 let failed = 0;
@@ -56,8 +67,7 @@ function check(name, ok, detail = '') {
 
 function seedFor(id, colour) {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
-  s.map = 'swiss2';
-  s.freestyleMap = 'swiss2';
+  s.map = 'itaipu';
   s.graphics = 'low';
   s.flightMode = 'angle';
   s.fpsCap = 0;
@@ -150,8 +160,8 @@ async function scenario(a, b, name, throwExpr, view) {
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`shared wrecks, two pages, rooms at ${rooms}`);
-const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('cub1400', '#d8432f') });
-const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('p51d1450', '#2f6fd6') });
+const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('striker2500', '#d8432f') });
+const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('bramor2300', '#2f6fd6') });
 try {
   for (const p of [a, b]) {
     await p.until('window.__shellReady === true', 300000);
@@ -181,7 +191,7 @@ try {
   const cleared = (await b.evaluate('window.__rooms()')).peers[0].wreck;
   check('A starts again and B\'s drawing of the wreck is gone', !cleared || cleared.length === 0, `${cleared ? cleared.length : 0} left`);
   const whole = (await b.evaluate('window.__rooms()')).peers[0];
-  check('and A is whole on B\'s screen again', whole.drawn && whole.drawnAirframe === 'cub1400');
+  check('and A is whole on B\'s screen again', whole.drawn && whole.drawnAirframe === 'striker2500');
 
   await scenario(a, b, 'tree', `() => {
     const s = window.__craftState();
@@ -196,6 +206,10 @@ try {
 } finally {
   await a.close();
   await b.close();
+  if (local) {
+    await local.stop();
+    rmSync(scratch, { recursive: true, force: true });
+  }
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

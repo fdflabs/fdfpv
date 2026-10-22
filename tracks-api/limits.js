@@ -20,33 +20,15 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
- * THE DOCUMENT CAP. The builder's logo budget is 384 kB of data URL
- * (BRANDING_MAX_CHARS in model.js), and a 150 gate course is 59 kB of JSON
- * (measured with tests/lib/maptrack.js), so 512 kB holds a full logo budget
- * on a 150 gate course with room over. worker.js caps the body at the document plus its envelope.
- */
-export const DOCUMENT_MAX_CHARS = 512 * 1024;
-
 /* Track names: the builder's own rename field allows 80. */
 export const TRACK_NAME_MAX = 80;
 
-/*
- * WRITES PER ADDRESS: 30 in 10 minutes. The simulator uploads a track when
- * it is saved (Ctrl S, leaving the builder, starting a new one), one upload
- * in flight at a time and none when nothing changed since the last one, so
- * a pilot building flat out saves a few times a minute at most. Thirty in
- * ten minutes is that with a wide margin, and it caps what one address can
- * push into a free tier database at about four thousand writes a day.
- */
-export const WRITE_LIMIT = 30;
+/* The rate limit's window (http.js spend), shared by every write limit
+ * below. */
 export const WRITE_WINDOW_S = 600;
 
-export const PAGE_DEFAULT = 24;
-export const PAGE_MAX = 50;
-
 /*
- * ACCOUNTS (accounts.js), in the same ten minute window as the saves.
+ * ACCOUNTS (accounts.js), in the same ten minute window.
  * A sign in is one click of Google's button, so twenty from one address in
  * ten minutes is a household signing in and out with room over. The other
  * account writes are a callsign now and then and the progress sync, which
@@ -97,10 +79,6 @@ export const BUILD_MAX_CHARS = 8 * 1024;
 /* Loadouts, settings.combat, one per combat aircraft (configs/combat.js):
  * there are four today, and 64 is that with room for many more. */
 export const COMBAT_MAX_ENTRIES = 64;
-
-/* Control surface tiers, settings.surfaces, one per fixed wing
- * (configs/surfaces.js): under thirty aircraft, and 64 with room over. */
-export const SURFACES_MAX_ENTRIES = 64;
 
 /* Career and war packs (configs/wear.js): two starters a spec an
  * airframe flies, a few dozen, with room for bought ones. */

@@ -139,19 +139,17 @@ console.log(`     ${Object.entries(counts).map(([c, ids]) => `${c}: ${ids}`).joi
 const copy = () => AIRFRAMES.map((a) => ({ ...a, roles: [...a.roles] }));
 const row = (rows, id) => rows.find((a) => a.id === id);
 const CONTROLS = [
-  ['an unknown class', (r) => { row(r, 'cub1400').class = 'helicopter'; }],
-  ['a missing class', (r) => { delete row(r, 'cub1400').class; }],
+  ['an unknown class', (r) => { row(r, 'bramor2300').class = 'helicopter'; }],
+  ['a missing class', (r) => { delete row(r, 'bramor2300').class; }],
   ['a quad called a plane', (r) => { row(r, '7inch').class = 'plane'; }],
-  ['a plane called a multirotor', (r) => { row(r, 'cub1400').class = 'multirotor'; }],
-  ['a glider without a motor called a plane', (r) => { row(r, 'nrj1490').class = 'plane'; }],
-  ['an unknown role', (r) => { row(r, 'cub1400').roles = ['bomber']; }],
+  ['a plane called a multirotor', (r) => { row(r, 'bramor2300').class = 'multirotor'; }],
+  ['an unknown role', (r) => { row(r, 'bramor2300').roles = ['bomber']; }],
   ['a role twice', (r) => { row(r, 'interceptor').roles = ['race', 'combat', 'combat', 'interceptor']; }],
   ['roles out of order', (r) => { row(r, 'interceptor').roles = ['combat', 'race', 'interceptor']; }],
-  ['roles not a list', (r) => { row(r, 'cub1400').roles = 'race'; }],
+  ['roles not a list', (r) => { row(r, 'bramor2300').roles = 'race'; }],
   ['a combat aircraft without the role', (r) => { row(r, 'striker2500').roles = []; }],
-  ['the role without a combat block', (r) => { row(r, 'cub1400').roles = ['combat']; }],
+  ['the role without a combat block', (r) => { row(r, 'bramor2300').roles = ['combat']; }],
   ['an interceptor that is not combat', (r) => { row(r, 'interceptor').roles = ['race', 'interceptor']; delete row(r, 'interceptor').combat; }],
-  ['a float version unlike its land plane', (r) => { row(r, 'cub1400f').class = 'wing'; }],
 ];
 for (const [name, change] of CONTROLS) {
   const rows = copy();
@@ -168,18 +166,17 @@ const folderCopy = () => FOLDERS.map((f) => ({
 }));
 const folder = (fs, id) => fs.find((f) => f.id === id);
 const CHECKLIST_CONTROLS = [
-  ['a folder without a name', (fs) => { folder(fs, 'cub1400').airframe.name = ''; }],
-  ['a folder without a blurb', (fs) => { delete folder(fs, 'cub1400').airframe.blurb; }],
-  ['two facts', (fs) => { folder(fs, 'cub1400').airframe.facts = ['3S', '1400 mm']; }],
-  ['an empty fact', (fs) => { folder(fs, 'cub1400').airframe.facts = ['3S', '', 'Taildragger']; }],
-  ['no weight', (fs) => { delete folder(fs, 'cub1400').airframe.grams; }],
-  ['a size of zero', (fs) => { folder(fs, 'cub1400').airframe.sizeMm = 0; }],
+  ['a folder without a name', (fs) => { folder(fs, 'bramor2300').airframe.name = ''; }],
+  ['a folder without a blurb', (fs) => { delete folder(fs, 'bramor2300').airframe.blurb; }],
+  ['two facts', (fs) => { folder(fs, 'bramor2300').airframe.facts = ['3S', '1400 mm']; }],
+  ['an empty fact', (fs) => { folder(fs, 'bramor2300').airframe.facts = ['3S', '', 'Taildragger']; }],
+  ['no weight', (fs) => { delete folder(fs, 'bramor2300').airframe.grams; }],
+  ['a size of zero', (fs) => { folder(fs, 'bramor2300').airframe.sizeMm = 0; }],
   ['no camera field of view', (fs) => { delete folder(fs, '7inch').airframe.cameraFov; }],
   ['a camera tilted past straight up', (fs) => { folder(fs, '7inch').airframe.cameraAngle = 120; }],
-  ['no kit', (fs) => { folder(fs, 'cub1400').kit.slots = null; }],
-  ['a float version whose land plane has no kit', (fs) => { folder(fs, 'timber1500').kit.slots = null; }, 'timber1500f:'],
-  ['no Spanish description', (fs) => { delete folder(fs, 'p51d1450').strings.es['airframe.blurb.p51d1450']; }],
-  ['an empty English note', (fs) => { folder(fs, 'p51d1450').strings.en['carousel.note.p51d1450'] = ' '; }],
+  ['no kit', (fs) => { folder(fs, 'bramor2300').kit.slots = null; }],
+  ['no Spanish description', (fs) => { delete folder(fs, 'bramor2300').strings.es['airframe.blurb.bramor2300']; }],
+  ['an empty English note', (fs) => { folder(fs, 'bramor2300').strings.en['carousel.note.bramor2300'] = ' '; }],
 ];
 /* `on`: the folder whose line must report it, where the change is made to
  * another. */

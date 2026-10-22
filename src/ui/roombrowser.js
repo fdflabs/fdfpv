@@ -10,8 +10,8 @@
  *                  open public room, live (src/share/roomlist.js), its
  *                  name, world, pilots and game, one press to join,
  *                  busiest first, an empty one with the minutes before it
- *                  closes; a quick join on this world; the way to make a
- *                  room and to join a private one with its code
+ *                  closes; the way to make a room and to join a private
+ *                  one with its code
  *   Make a room    a typed name (or the room's picked one), public or
  *                  private, the world, and a game to set it up for
  *
@@ -193,7 +193,7 @@ export function createRoomBrowser({
    * WHAT ITS PILOTS ARE DOING, as true as the list knows it (the owner,
    * 2026-10-02, of a lobby's one idle pilot the panel called flying): in
    * a lobby, how many are there and how many said ready; flying, how many
-   * and where the game is (a war's wave, a combat round). A room not in a
+   * and where the game is (a war's wave). A room not in a
    * game and not made for one (an older server's free flight) is flying.
    */
   function flyingNow(r) {
@@ -214,9 +214,6 @@ export function createRoomBrowser({
     const flying = who(r);
     if (r.game === 'war' && r.wave) {
       return str('roombrowser.flying_wave', { flying, w: r.wave, of: r.waves });
-    }
-    if ((r.game === 'combat' || r.game === 'jam') && r.round) {
-      return str('roombrowser.flying_round', { flying, n: r.round });
     }
     return flying;
   }
@@ -277,25 +274,12 @@ export function createRoomBrowser({
     return [heading, ...rows];
   }
 
-  /* While the server is full it makes no new public room, so a quick join
-   * with no room of this world to land in is said, not tried. */
-  function quickRow(world) {
-    const seat = (list.rooms() || []).some((r) => r.map === here() && r.n < r.cap);
-    if (list.busy() && !seat) {
-      return { label: str('roombrowser.quick'), value: world, note: str('roombrowser.busy'), info: true };
-    }
-    return { label: str('roombrowser.quick'), value: world, note: str('roombrowser.quick_note', { world }), action: 'friends-quick' };
-  }
-
   function browserRows() {
-    const world = mapById(here()).name;
-    const quick = list.open() === false ? [] : [quickRow(world)];
     return [
       ...hereRows(),
       ...listRows(),
       { label: str('roombrowser.more_section'), section: true },
       { label: str('roombrowser.new'), note: str('roombrowser.new_note'), action: 'roomnew', primary: !(openRooms() || []).some((r) => r.n < r.cap) },
-      ...quick,
       { label: str('friends.join'), note: str('friends.join_note'), action: 'friends-join' },
     ];
   }
@@ -456,9 +440,9 @@ export function createRoomBrowser({
           lobby: 'room',
           label: title(r),
           /* The game, then what its pilots are doing: "War 2 · 1 in
-           * lobby", "Combat · 2 flying · round 3". */
+           * lobby", "Free flight · 2 flying". */
           value: str('roombrowser.chip', { game: str(`roombrowser.chip_${r.mode || r.game || 'free'}`, { n: missionNumber(r.mission) }), doing: doingNow(r) }),
-          join: str(r.state === 'waiting' || r.game === 'race' || r.game === null ? 'roombrowser.join' : r.game === 'war' ? 'roombrowser.join_battle' : 'roombrowser.join_round'),
+          join: str(r.state === 'waiting' || r.game === null ? 'roombrowser.join' : r.game === 'war' ? 'roombrowser.join_battle' : 'roombrowser.join_round'),
           /* Somebody is in the air in it (flyingNow): the panel paints it
            * green, a room in its lobby blue (index.html, THE ROOMS PANEL). */
           live: flyingNow(r),
@@ -556,10 +540,6 @@ export function createRoomBrowser({
     act(action) {
       if (action.startsWith(WATCH_ACTION)) {
         joined = action.slice(WATCH_ACTION.length);
-        /* A watcher flies at its welcome, straight from this panel: a
-         * card's reel still recording would hold the world still under it
-         * (src/ui/cards.js reelFreezeWorld). */
-        ui.stopReels();
         link.join(joined, { watch: true });
         ui.show('friends');
         return true;
@@ -571,11 +551,6 @@ export function createRoomBrowser({
         return true;
       }
       if (action === 'friends-here') {
-        ui.show('friends');
-        return true;
-      }
-      if (action === 'friends-quick') {
-        link.joinPublic(here());
         ui.show('friends');
         return true;
       }

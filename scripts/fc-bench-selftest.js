@@ -652,4 +652,4 @@ await useLocale('es');
 t.rec('es presetRows', () => norm(new FC.FcSession().presetRows()));
 await useLocale('en');
 
-t.finish('src/ui/fc.js', '37435f16bbf1695774e10f2c7d7d66ace075c90de70f13602e89bafd8a82abdf');
+t.finish('src/ui/fc.js', '9facd2b252159bb004e2234cc0768821a3299e236ea8476136381cdafa560c81');

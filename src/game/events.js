@@ -28,8 +28,7 @@
  *                 a new run key (Progress.startRun): the aircraft, its
  *                 power's kind ('electric', 'glow' or null) and whether
  *                 it is on its smallest pack or tank, and whether the
- *                 crash flag was up as it was seated; the challenges
- *                 start over on it (progress.js challengeRun)
+ *                 crash flag was up as it was seated
  *   gate, lap     the shell's calls into Progress (src/ui/progress-ui.js);
  *                 a lap carries {ms, airframe, medal, kind, course, n,
  *                 of}, the medal it reached on a course with medals or
@@ -58,9 +57,9 @@
  *                 is not; freestyle's debrief counts these (debrief.js
  *                 fromFree)
  *   trick {id, score}
- *                 a trick or figure the freestyle scorer took (score.js
- *                 land, from the trick judge, src/game/trickdetect.js and
- *                 figuredetect.js): id its name, score its points (net)
+ *                 a trick or figure the freestyle scorer took: id its
+ *                 name, score its points (net). The scorer left with
+ *                 freestyle; runs recorded before keep the kind
  *   engine_out, battery_low
  *                 the engine quitting with fuel in the tank, and LOW
  *                 BATTERY on electric power, each once a run, as
@@ -90,8 +89,8 @@
  *                 ended by the room with this pilot seated (src/main.js,
  *                 Progress.roundFinished), with {points}, this pilot's in
  *                 the room's final standings; a room race this pilot
- *                 finished, game 'race', carries {pilots} too, how many
- *                 were on its grid
+ *                 finished, game 'race', carried {pilots} too, how many
+ *                 were on its grid (a stored log's, since the race left)
  *   mission_start {mission, airframe}
  *                 a Defend the Paraná war seen begun, with no result yet,
  *                 in this pilot's room (src/ui/campaign.js observe); The

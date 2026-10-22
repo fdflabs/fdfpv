@@ -226,7 +226,7 @@ const IN_LOBBY = "window.__rooms().phase === 'open' && window.__ui.screen === 'f
 /* Home's Continue links, from the hubs as drawn, and the stored last
  * activity (docs/redesign/COMPLETENESS.md item 57). */
 const CONTINUE_LINK = `(() => {
-  const links = window.__ui.hubCards(true).flatMap((c) => c.links).filter((l) => l.continue);
+  const links = window.__ui.homeCards(true).flatMap((c) => c.links || []).filter((l) => l.continue);
   return { stored: JSON.parse(localStorage.getItem('webfpv.settings.v3')).lastActivity, links: links.map((l) => ({ key: l.key, action: l.action, mission: l.mission ?? null, title: l.title ?? null })) };
 })()`;
 

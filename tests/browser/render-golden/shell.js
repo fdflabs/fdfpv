@@ -152,7 +152,7 @@ function handles(shell, built) {
     blades: same('blades', built.blades),
     cameraMount: same('cameraMount', built.cameraMount),
     propSpin: shell.propSpin === built.propSpin,
-    optional: ['setSurfaces', 'setProp', 'setChute', 'setFlaps', 'setGear', 'launcher', 'launcherRest'].map((k) => [k, shell[k] === null ? null : shell[k] === (built[k] ?? null)]),
+    optional: ['setSurfaces', 'setProp', 'setChute', 'launcher', 'launcherRest'].map((k) => [k, shell[k] === null ? null : shell[k] === (built[k] ?? null)]),
   };
 }
 
@@ -282,9 +282,9 @@ function shellSession(opts) {
   /* A swap with no parent. */
   const loose = shell.swapCraft('interceptor');
   rows.looseSwap = { parent: loose.group.parent === null, handles: handles(shell, loose) };
-  /* Aircraft with the optional handles: surfaces, a folding prop, a
-   * parachute and a launch rail; flaps; retracts. */
-  rows.optionalSwaps = ['bramor2300', 'timber1500', 'p51d1450', 'interceptor'].map((id) => handles(shell, shell.swapCraft(id)));
+  /* An aircraft with the optional handles (surfaces, a folding prop, a
+   * parachute and a launch rail) and one with none. */
+  rows.optionalSwaps = ['bramor2300', 'interceptor'].map((id) => handles(shell, shell.swapCraft(id)));
   canvas.remove();
   r.dispose();
   return rows;

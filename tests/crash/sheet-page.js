@@ -39,7 +39,7 @@ import { waterFor } from '../../src/game/water.js';
 import { simPosToThree, simQuatToThree } from '../../src/render/frame.js';
 
 const params = new URLSearchParams(window.location.search);
-const mapId = params.get('map') ?? 'alps';
+const mapId = params.get('map') ?? 'interior';
 const airframe = params.get('craft') ?? 'interceptor';
 const onWater = params.get('water') === '1';
 
@@ -60,7 +60,7 @@ async function build() {
   const entry = mapById(mapId);
   const mod = await entry.load();
   const view = await mod.buildMap(shell, () => {}, { quality: params.get('quality') ?? 'high' });
-  const water = await waterFor(mapId);
+  const water = waterFor(view);
   const sp = onWater && water.length ? water[0].spawn : view.spawn;
   const y0 = onWater && water.length ? water[0].surfaceY : view.height(sp.x, sp.z, sp.y ?? Infinity);
   const qSpawn = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), sp.yaw);

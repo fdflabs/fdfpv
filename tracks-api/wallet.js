@@ -7,8 +7,7 @@
  * src/game/economy.js grantsFrom and earnedFrom, and inserts each grant
  * and each earned item it names, once (the tables' primary keys). It runs
  * after every progress sync and on every wallet read, so a pilot who
- * earned a first offline is paid on the next sync. grantEvent is the
- * Flight Club's (the flightclub lane decides when a placing is final).
+ * earned a first offline is paid on the next sync.
  *
  * THE BALANCE is the grants' sum less the prices of what is owned,
  * computed on every read. A purchase is one INSERT whose WHERE holds that
@@ -30,7 +29,7 @@
  *  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { earnedFrom, eventGrants, grantsFrom, itemById } from '../src/game/economy.js';
+import { earnedFrom, grantsFrom, itemById } from '../src/game/economy.js';
 import { nowUtc } from './http.js';
 
 const BALANCE_SQL = '(SELECT COALESCE(SUM(amount), 0) FROM grants WHERE account_id = ?1) - (SELECT COALESCE(SUM(price), 0) FROM owned WHERE account_id = ?1)';
@@ -65,17 +64,6 @@ export async function settleWallet(env, accountId, blob) {
     }
   }
   return walletOf(env, accountId);
-}
-
-/* A Flight Club placing paid: false for an event id or tier that is not
- * one (economy.js EVENT_ID, EVENT_TIERS), else true, paid or already. */
-export async function grantEvent(env, accountId, eventId, tier) {
-  const grants = eventGrants(eventId, tier);
-  if (!grants.length) {
-    return false;
-  }
-  await insertGrants(env, accountId, grants);
-  return true;
 }
 
 /* { wallet } bought, or { status, why }: 404 no such item, 409 owned or

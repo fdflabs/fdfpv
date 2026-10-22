@@ -1,14 +1,12 @@
 /*
- * gatecards.js: the two pictures on the first screen's choice cards, Race
- * and Free Flight, written to assets/gate/race.jpg and
- * assets/gate/flight.jpg. npm run gen:gatecards.
+ * gatecards.js: the Free Flight picture on the first screen's choice
+ * cards, written to assets/gate/flight.jpg. npm run gen:gatecards.
  *
  * The first screen asks one question, what to fly, with pictures rather
  * than words, because the difference between the choices is a difference
  * between PLACES (the argument is in PROGRESS.md). They are files, not
- * live: the shell records clips of the world the player is actually in, so
- * an unvisited world has none, and the gate is what a first visit opens on
- * and must show something on the first frame with no network. They are
+ * live: the gate is what a first visit opens on and must show something on
+ * the first frame with no network. They are
  * frames of the real renderer through scripts/shots.js, the harness og.js
  * uses, so they cannot drift into a drawing of a game that no longer looks
  * like this.
@@ -50,10 +48,9 @@ const H = 560;
 const QUALITY = 82;
 
 /* Everything the shell draws over the world, the frame bars and the menu
- * included. The gate cards too: a capture seeds a track and an aircraft
- * into storage, but the gate reads the URL, not storage, so it is still
- * up, and the first regeneration after the title grew cards photographed
- * three cards each wearing the picture being replaced. */
+ * included. The gate cards too: the gate reads the URL, not storage, so it
+ * is still up, and the first regeneration after the title grew cards
+ * photographed three cards each wearing the picture being replaced. */
 const HIDE = [
   '.menu-stage', '.hint', '.lede', '.title-foot', '.bug-chip', '.brand', '.brand-best', '.keep-note',
   '.first-note', '.gate-note', '.beta-note', '.craft-showcase', '.frame-top', '.frame-bot', '.music-dock',
@@ -68,30 +65,13 @@ const HIDE = [
  * needs it today.
  */
 const SHOTS = [
-  /* A lit start gate at ten metres, left of centre, the rest running away
-   * up the Alps strip to the right, small under the valley wall. The green
-   * is the renderer's own "this is the way through" and the one colour in
-   * the product that means racing. The track is six gates built on the
-   * strip with the in-sim builder's own pieces, because Track mode races
-   * tracks built in a world (it was once the race field's AU Nationals
-   * layout). The camera sits behind the start gate and a little right, so
-   * the course leaves the frame rather than stopping in it; the seated
-   * aircraft waits behind the gate, out of frame. */
-  {
-    name: 'race',
-    option: '--course=scripts/gatecards-track.json',
-    camera: [6.5, 2.2, 34, -4.5, 1.5, 12],
-    anim: null,
-    ready: 'window.__map && window.__map().id === "alps" && window.__map().ready && window.__race().gates.length === 6',
-    waves: false,
-  },
   /* The photoreal valley's lake from sixty metres over its north shore,
    * looking south down the water past the boats to the village and the
    * east wall. The owner asked for swiss2 on this card, the lake
    * preferably (2026-09-25): the card is where every plane is picked and
    * the lake is where the floatplanes start. Waves on, as a pilot on the
    * water sees it. It needs SIM_GPU=1, because the CPU rasteriser does not
-   * draw the photoreal look; the race card does not care. */
+   * draw the photoreal look. */
   {
     name: 'flight',
     option: '--url=/index.html?map=swiss2',

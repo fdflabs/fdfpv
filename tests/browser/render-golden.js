@@ -1,9 +1,9 @@
 /*
  * render-golden.js: the page scripts/render-golden.js records and compares.
  *
- * Each module under tests/browser/render-golden/ is one src/render or
- * src/art module's cases. A case builds something from that module on a
- * stage of its own and returns a plain JSON value describing what came
+ * Each module under tests/browser/render-golden/ is one src/render
+ * module's cases. A case builds something from that module on a stage
+ * of its own and returns a plain JSON value describing what came
  * out. The values are recorded from the code as it stands and committed
  * (tests/fixtures/render-golden/), so a later rewrite of the module has to
  * produce the same values: they pin behaviour without reading the

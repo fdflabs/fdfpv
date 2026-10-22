@@ -21,11 +21,13 @@
  * shapes and identities of returned objects, and the arguments a callback
  * was handed. Internal fields are never read. Inputs are the worlds the
  * node checks build (crash-rules-selftest, build-selftest, grid-check,
- * turned-box-check, buildWorld from wall-check, orbit-check and
- * path-check), the walls src/render/library/roofs.js stands under roofs and the
- * turned boxes src/maps/interior/sink.js makes, seeded worlds of every
- * primitive and kind, every airframe in configs/airframes.js, and every
- * fixed wing's part hull as the plant reports it.
+ * turned-box-check, buildWorld from wall-check and the rigs the trick
+ * checks flew before the combat-only cut), the walls
+ * src/render/library/roofs.js stands under roofs and the turned boxes
+ * src/maps/interior/sink.js makes, seeded worlds of every
+ * primitive and kind, every airframe in configs/airframes.js and the
+ * recreational planes' dims it held before the PDCS cut, and every fixed
+ * wing's part hull as the plant reports it.
  *
  * Two families pin things the spec calls judgement calls, each kept in
  * cases of its own so they can be dropped alone: prebuild-* (count and
@@ -59,6 +61,7 @@ import * as m from '../src/game/collide.js';
 import { airframeHull, THREE_BODY } from '../src/game/airframehull.js';
 import { simLenToWorld } from '../src/render/frame.js';
 import { AIRFRAMES } from '../configs/airframes.js';
+import { PRECUT_AIRFRAMES } from './lib/precut.js';
 import { CRAFT } from '../tests/crash/scenarios.js';
 import {
   flatTop, gableTop, pyramidTop, recordAt, shedTop, standWalls,
@@ -394,6 +397,12 @@ const HULL_TABLES = {
     [1.466, -0.02, -0.0004, 1.526, 0.02, 0.0396],
   ],
 };
+
+/* The recreational planes left the shell before the PDCS cut
+ * (2026-10-21); their dims come from scripts/lib/precut.js, so the cases
+ * that seat them still put collide.js through twenty real shapes and the
+ * record stands. */
+const dimsOf = (id) => PRECUT_AIRFRAMES.find((a) => a.id === id)?.dims;
 
 /* The five inch the crash scenarios seat (tests/crash/scenarios.js), whose
  * dims give exactly the module's initial bindings: every case but the
@@ -1019,9 +1028,9 @@ function partsCase(id, rows, how) {
     id: `parts-${id}${how ? `-${how}` : ''}`,
     run(s) {
       seat();
-      const af = AIRFRAMES.find((a) => a.id === id);
-      if (af) {
-        m.setCraftAirframe(af.dims);
+      const dims = dimsOf(id);
+      if (dims) {
+        m.setCraftAirframe(dims);
       }
       const hull = hullOf(rows);
       if (how === 'dead') {
@@ -1147,12 +1156,12 @@ const ODD_DIMS = {
 
 function airframeCases() {
   const out = [];
-  for (const af of AIRFRAMES) {
+  for (const { id, dims } of PRECUT_AIRFRAMES) {
     out.push({
-      id: `airframe-${af.id}`,
+      id: `airframe-${id}`,
       run(s) {
         seat();
-        airframeRun(s, af.dims);
+        airframeRun(s, dims);
         seat();
       },
     });
@@ -1192,7 +1201,7 @@ function airframeCases() {
     run(s) {
       seat();
       for (const id of ['striker2500', '7inch', 'zagi1219', 'interceptor', 'nrj1490', '10inch']) {
-        m.setCraftAirframe(AIRFRAMES.find((a) => a.id === id).dims);
+        m.setCraftAirframe(dimsOf(id));
         s.say(id, [bindings(), m.dirtClearance(), m.turtleClearance(), m.turtleLift(), m.craftVerticalHalf(0.3)]);
       }
       seat();
@@ -2370,7 +2379,7 @@ function realCases() {
       id: `real-flightrig-${name}`,
       run(s) {
         seat();
-        const { colliders: c } = buildWorld(rig.parts, null, 0);
+        const { colliders: c } = buildWorld(rig.parts);
         sayState(s, 'built', c);
         sayViews(s, 'built', c);
         const r = seeded(1100 + name.length);

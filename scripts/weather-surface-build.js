@@ -2,11 +2,12 @@
  * weather-surface-build.js: bakes src/game/weather-surface.js, the ground
  * under each map's air (docs/WEATHER-CONTRACT.md, "The surface").
  *
- *     node scripts/weather-surface-build.js --three=DIR [--check]
+ *     node scripts/weather-surface-build.js [--check]
  *
- * DIR is an unpacked three@0.160.0 npm package (as collide-audit-air.js
- * takes it): the alps' and swiss2's terrain modules import three. --check
- * rebuilds and compares with the committed file, writing nothing.
+ * --check rebuilds and compares with the committed file, writing nothing.
+ * --three=DIR was needed while the valleys' terrain modules, which import
+ * three, were read here (until 2026-10-20); it is still accepted and
+ * unused.
  *
  * The thermals need to know water from forest from open ground, and the
  * weather runs in the physics path, where it may not call the maps'
@@ -21,8 +22,6 @@
  *             missing that, the published data folder, checked against
  *             its manifest's sha256.
  *   interior  src/share/interior/land.bin, ESA WorldCover's classes.
- *   swiss2,   groundZone (src/maps/alps/terrain.js) on each map's own
- *   alps      field: the lake, the forest, rock and snow.
  *
  * A cell takes the class most of its samples have.
  *
@@ -56,22 +55,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUT = join(root, 'src/game/weather-surface.js');
 const PUBLISHED = 'https://fdflabs.github.io/fdfpv-itaipu-data/';
 
-const threeArg = process.argv.find((a) => a.startsWith('--three='));
-if (!threeArg) {
-  throw new Error('weather-surface: --three=DIR (an unpacked three@0.160.0 npm package) is needed');
-}
-const threeBase = pathToFileURL(`${threeArg.slice(8).replace(/\/$/, '')}/`).href;
-register(`data:text/javascript,${encodeURIComponent(`
-export async function resolve(spec, ctx, next) {
-  if (spec === 'three') return { url: '${threeBase}build/three.module.js', shortCircuit: true };
-  return next(spec, ctx);
-}`)}`);
 
 const { CLASS } = await import('../src/game/weather-surface-classes.js');
 const { LAND, decodeLand } = await import('../src/share/interior/world.js');
 const { HALF: INTERIOR_HALF, L_CELL, L_N } = await import('../src/share/interior/frame.js');
-const alps = await import('../src/maps/alps/terrain.js');
-const swiss = await import('../src/maps/swiss2/terrain.js');
 
 
 function majority(counts) {
@@ -235,26 +222,6 @@ async function interior() {
   return { x0: -INTERIOR_HALF, cell, n, classes: bake(-INTERIOR_HALF, cell, n, cell / L_CELL, classOf) };
 }
 
-function valley(field) {
-  const zone = {};
-  const classOf = (x, z) => {
-    alps.groundZone(field, x, z, 10, zone);
-    if (zone.lake && zone.y < alps.LAKE_Y) {
-      return CLASS.water;
-    }
-    if (zone.snow > 0.5) {
-      return CLASS.snow;
-    }
-    if (zone.forest > 0.5) {
-      return CLASS.forest;
-    }
-    return zone.rock > 0.5 || zone.scree > 0.5 ? CLASS.bare : CLASS.open;
-  };
-  const cell = 100;
-  const n = alps.FIELD / cell;
-  return { x0: -alps.HALF, cell, n, classes: bake(-alps.HALF, cell, n, 4, classOf) };
-}
-
 /* A grid as text: runs, each a class letter (a for 0) and its length. */
 function runs(classes) {
   let s = '';
@@ -272,8 +239,6 @@ function runs(classes) {
 const grids = {
   itaipu: await itaipu(),
   interior: await interior(),
-  swiss2: valley(swiss.buildSwissField()),
-  alps: valley(alps.buildHeightfield()),
 };
 
 const head = (await readFile(fileURLToPath(import.meta.url), 'utf8')).match(/ \* This file is part[\s\S]*?\*\//)[0];

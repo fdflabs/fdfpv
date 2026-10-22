@@ -196,6 +196,17 @@ try {
        * air each frame had none. */
       && lit && lit.k >= 30 && r.at(-1).puffs >= 20 && burn.alive >= 3 && burn.still === 0,
     `first puff at row ${lit ? lit.k : 'none'}, ${r.at(-1).puffs} puffs over ${r.length - 30} rows hurt, ${burn.alive} alive at the end, ${burn.still} on a still frame`);
+  /* The room's clock comes in its own message after the war's (edge/rooms/
+   * core.js message, daytimeNews), and a loaded page draws a frame between
+   * the two: the war begins on the standing world and the night's rebuild
+   * starts a frame later, under a pilot already in the air. Held here two
+   * frames, as a loaded page holds it, so that order is the one flown on
+   * every run: before src/main.js adoptLoadedView owed that pilot the air
+   * again, it left them paused over the whole war. */
+  await a.evaluate(`(() => { const Socket = window.WebSocket; window.WebSocket = class extends Socket {
+    set onmessage(f) { super.onmessage = (ev) => (typeof ev.data === 'string' && ev.data.includes('"type":"daytime"') ? requestAnimationFrame(() => requestAnimationFrame(() => f(ev))) : f(ev)); }
+    get onmessage() { return super.onmessage; }
+  }; return true; })()`);
   await a.tap('KeyZ');
   await a.evaluate("window.__roomCreate({ map: 'itaipu' })");
   await a.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
@@ -307,10 +318,28 @@ try {
     liveNow && liveNow.targets['intake-3'] === 'fire' && liveNow.targets['yard-right'] === 'fire'
     && liveNow.levels[districtIndex('yard')] === 0 && liveNow.levels[districtIndex('hernandarias-w')] === 0
     && liveNow.targets['gate-4'] === 'smoke' && liveNow.broken.gone === torn.length + torn6.length && liveNow.broken.pieces.length > 0, describe(liveNow));
-  const WATER = "(() => { const w = window.__map().parts.water; return { live: w.flood, replay: w.replayFlood, flows: window.__mapFlows(), water: window.__mapReplayWater(), room: window.__rooms().roomNow, toast: (() => { const v = window.__crashCam.live() ? window.__crashCam.h().view() : null; return v ? v.toast || null : null; })() }; })()";
-  const waterLive = (await a.evaluate(WATER)).live;
+  const WATER = "(() => { const w = window.__map().parts.water; return { live: w.flood, replay: w.replayFlood, flows: window.__mapFlows(), water: window.__mapReplayWater(), toast: (() => { const v = window.__crashCam.live() ? window.__crashCam.h().view() : null; return v ? v.toast || null : null; })() }; })()";
   /* The flood's clock starts at its first event: the gate's hoist. */
   const floodFrom = Math.min(gateAt, originAt);
+  /* The live flood steps a frame budget at a time (live.js
+   * FRAME_BUDGET_MS, host.js THE BUDGET: wall clock decides how soon the
+   * water is seen, never what it is), so on a loaded page it falls behind
+   * the room's clock for a while and catches up. It is compared with the
+   * room's clock it was last stepped on (clockMs, the room's less the
+   * traffic slack), not the room's clock when the check reads it a frame
+   * or more later; and read, all of WATER at once, once it stands within
+   * the same 10 steps of it, or as it is after 20 s. */
+  const liveWant = (live) => Math.floor((live.clockMs - DELAY_MS - floodFrom) / DT_MS);
+  const waterCaughtUp = async () => {
+    const until = Date.now() + 20000;
+    let w = await a.evaluate(WATER);
+    while (!(w.live.clockMs != null && w.live.step >= liveWant(w.live) - 10) && Date.now() < until) {
+      await a.sleep(50);
+      w = await a.evaluate(WATER);
+    }
+    return w;
+  };
+  const waterLive = (await a.evaluate(WATER)).live;
   check('the live flood took both openings and the gate state and stepped on', waterLive.state === 'ready' && waterLive.origin === floodFrom && waterLive.step > 2500,
     `${waterLive.state}, origin ${waterLive.origin}, step ${waterLive.step}`);
 
@@ -358,7 +387,10 @@ try {
   const shown = new Set();
   for (const { k, f } of order) {
     await a.evaluate(`window.__crashCam.h().api.seek(window.__crashCam.h().clipTime(${k})); true`);
-    await a.sleep(120);
+    /* The seek is drawn on the page's next frame, the map with it
+     * (crashcam.js drawWar), and a loaded page's next frame comes later
+     * than any fixed wait: wait for the replay to stand on the row. */
+    await a.until(`(() => { const w = window.__crashCam.h().warWorld(); return Boolean(w) && w.t === ${f.t}; })()`, 20000).catch(() => {});
     const [w, map] = await a.evaluate('[window.__crashCam.h().warWorld(), window.__warMap()]');
     const ok = w && w.t === f.t && canon(w.targets) === canon(f.targets) && w.levels.every((x, i) => x === f.levels[i]) && sameMap(map, f);
     if (!ok) {
@@ -419,7 +451,7 @@ try {
     const anim = await a.evaluate(`window.__crashCam.h().clipAnim(${k})`);
     const want = Math.max(0, Math.floor((anim - DELAY_MS - floodFrom) / DT_MS));
     await a.until(`(() => { const r = window.__map().parts.water.replayFlood; const d = window.__mapReplayWater(); return r && r.state === 'ready' && r.step === ${want} && d && d.drawn; })()`, 20000).catch(() => {});
-    const w = await a.evaluate(WATER);
+    const w = await waterCaughtUp();
     leaves.push({ anim, replay: await a.evaluate(`window.__mapLeaf('gate-2', ${anim})`) });
     const r = w.replay;
     const common = Object.keys(r ? r.hashes : {}).filter((s) => s in atOpen.hashes);
@@ -441,10 +473,9 @@ try {
     }
     /* The live flood, meanwhile, on with the room's clock: never back,
      * never rewound, and its water where it was. */
-    const liveWant = Math.floor((w.room - 100 - DELAY_MS - floodFrom) / DT_MS);
-    if (w.live.step < lastLive || w.live.rewinds !== atOpen.rewinds || w.live.restarts !== atOpen.restarts || w.live.step < liveWant - 10
+    if (w.live.step < lastLive || w.live.rewinds !== atOpen.rewinds || w.live.restarts !== atOpen.restarts || w.live.step < liveWant(w.live) - 10
       || Object.keys(atOpen.hashes).some((s) => s in w.live.hashes && w.live.hashes[s] !== atOpen.hashes[s])) {
-      waterMisses.push(`row ${k}: the live flood at step ${w.live.step} (from ${lastLive}, the room's ${liveWant}), rewinds ${w.live.rewinds} from ${atOpen.rewinds}`);
+      waterMisses.push(`row ${k}: the live flood at step ${w.live.step} (from ${lastLive}, the room's ${liveWant(w.live)}), rewinds ${w.live.rewinds} from ${atOpen.rewinds}`);
     }
     lastLive = w.live.step;
   }
@@ -455,7 +486,7 @@ try {
   await a.evaluate('window.__crashCam.h().api.close(); true');
   await a.until("window.__craftState().mode === 'flight'", 10000);
   await a.sleep(500);
-  const waterBack = await a.evaluate(WATER);
+  const waterBack = await waterCaughtUp();
   /* The live leaf at each row's clock, the replay closed: the same turn. */
   let leafWrong = 0;
   for (const l of leaves) {

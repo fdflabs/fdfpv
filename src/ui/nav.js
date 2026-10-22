@@ -30,7 +30,6 @@
 
 import { MAPS } from '../maps/registry.js';
 import { readPilotName } from '../share/pilot.js';
-import { activeCourseSummary } from '../share/summary.js';
 import { str } from '../strings/index.js';
 import { cursorOnLit, flyWithPending } from './flywith.js';
 import { fitsAsSegments } from './rows.js';
@@ -38,10 +37,7 @@ import { HUBS } from './ways.js';
 import { btn, el } from './widgets.js';
 /* A cycle: ui.js installs this module. Only read inside methods, never at
  * this module's top level, where the bindings are not yet initialised. */
-import { SCREEN_ACTIONS, SCREEN_TITLES, byLine, courseCardKey } from './ui.js';
-
-/* Rows that leave for another tab rather than another screen. */
-const LINK_ACTIONS = new Set(['leaderboard']);
+import { SCREEN_ACTIONS, SCREEN_TITLES } from './ui.js';
 
 /* The breadcrumb per screen, root first. A room inside a room shows the
  * trail, so Escape has one obvious destination. Resolved once, at load,
@@ -52,19 +48,14 @@ const VISIT_PEERS = 3;
 
 const CRUMBS = {
   title: ['ui.product_name'],
-  courses: ['ui.track_mode', 'ui.my_tracks'],
-  freestyle: ['ui.freestyle'],
   pilot: ['ui.settings'],
   quad: ['ui.quad'],
-  launch: ['ui.before_you_fly'],
-  standings: ['ui.race', 'ui.standings'],
   rates: ['hub.hangar', 'controller.title', 'ui.rates'],
   pids: ['ui.quad', 'PIDs'],
   fc: ['ui.quad', 'ui.firmware_bench'],
   paused: ['ui.paused'],
   results: ['ui.run_complete'],
   howto: ['ui.how_to_fly'],
-  tricks: ['ui.freestyle', 'ui.trick_list'],
   credits: ['ui.credits'],
   controls: ['hub.hangar', 'controller.title', 'keybinds.title'],
   controller: ['hub.hangar', 'controller.title'],
@@ -82,15 +73,10 @@ for (const [screen, parts] of Object.entries(CRUMBS)) {
 const MENU_FIELD = {
   title: 'titleMenu',
   howto: 'howtoMenu',
-  tricks: 'trickMenu',
   credits: 'creditsMenu',
-  courses: 'coursesMenu',
-  freestyle: 'freestyleMenu',
   pilot: 'pilotMenu',
   friends: 'friendsMenu',
   quad: 'quadMenu',
-  launch: 'launchMenu',
-  standings: 'standingsMenu',
   rates: 'ratesMenu',
   planerates: 'planeratesMenu',
   pids: 'pidsMenu',
@@ -149,9 +135,6 @@ function paintRow(ui, it, i) {
   const cls = ['row'];
   if (kind === 'navigation') {
     cls.push('row-nav');
-  }
-  if (kind === 'link') {
-    cls.push('row-link');
   }
   if (it.info) {
     cls.push('row-info');
@@ -266,16 +249,6 @@ function controlFor(ui, it, i) {
 function leaveFor(ui, screen) {
   const from = ui.screen;
   const leaving = (s) => from === s && screen !== s;
-  if (leaving('courses')) {
-    /* Nothing draws a thumbnail for a screen nobody is looking at. */
-    ui.stopReels();
-    ui.mapCards = null;
-    ui.courseCards = null;
-    ui.courseCardKey = null;
-    ui.cardSubject = null;
-    ui.lastCardKey = null;
-    ui.newTrackOpen = false;
-  }
   if (ui.roomFrom && (screen === 'title' || screen === ui.roomFrom)) {
     ui.roomFrom = null;
   }
@@ -310,47 +283,30 @@ function leaveFor(ui, screen) {
 /* What a screen loads or starts on entry. ui.screen is already the new
  * one. */
 function arriveAt(ui, screen) {
-  if (screen === 'courses') {
-    /* Read on every entry, not cached: the builder hands the pilot back
-     * here, and a track saved there has to be on this list. */
-    ui.loadLocalCourses();
-    ui.loadBoardCourses();
-    ui.loadCloudCourses();
-  }
   if (screen === 'howto') {
     ui.renderHowto();
   }
   if (screen === 'flywith') {
     cursorOnLit(ui);
   }
-  /* The trick film is the one thing asking for frames outside flight: it
-   * runs on exactly one screen. */
-  if (ui.trickPlayer) {
-    if (screen === 'tricks') {
-      ui.trickShown = '';
-      ui.renderTricks();
-    } else {
-      ui.trickPlayer.stop();
-    }
-  }
   if (screen === HASH_SCREEN && hashScreen() !== HASH_SCREEN) {
     writeHash(HASH_SCREEN);
   }
 }
 
-/* The breadcrumb's parts, root first. A hub on the gate names itself
+/* The breadcrumb's parts, root first. The Hangar on the gate names itself
  * under the product; a screen without a trail shows its title. */
 function crumbTrail(ui) {
   const hub = ui.screen === 'title' && ui.onGate() && ui.hub ? HUBS.find((h) => h.id === ui.hub) : null;
   if (hub) {
     return [str('ui.product_name'), str(hub.label)];
   }
-  /* A walkable hangar is under the hub it was opened from. */
+  /* A walkable hangar is under the Hangar; the field hangar under home. */
   if (ui.screen === 'walk' && ui.walk && ui.walk.roomLineup) {
     return [str('friends.title'), str('walk.lineup_room')];
   }
   if (ui.screen === 'walk' && ui.walk) {
-    return ui.walk.tier === 'field' ? [str('hub.ops'), str('walk.field')] : [str('hub.hangar'), str('walk.card')];
+    return ui.walk.tier === 'field' ? [str('ui.product_name'), str('walk.field')] : [str('hub.hangar'), str('walk.card')];
   }
   return CRUMBS[ui.screen] || [SCREEN_TITLES[ui.screen] || ui.screen];
 }
@@ -359,28 +315,8 @@ export const navMethods = {
   renderMenu() {
     /* The sign in chip's label can change without the screen changing. */
     this.syncChips();
-    if (this.screen === 'standings') {
-      this.paintStandings();
-    }
-    if (this.screen === 'launch' && this.launchLede) {
-      const seat = activeCourseSummary();
-      const map = MAPS.find((m) => m.id === this.settings.map) ?? MAPS[0];
-      const parts = [
-        seat && seat.name ? seat.name : map.name,
-        seat && seat.gates ? `${seat.gates} gates` : '',
-        byLine(seat),
-      ];
-      this.launchLede.textContent = parts.filter(Boolean).join(' · ');
-    }
     this.closeDrop();
-    if (this.screen === 'courses') {
-      this.renderMapCards();
-      this.renderCourseCards();
-    } else if (this.screen === 'freestyle') {
-      this.renderMapCards();
-    } else if (this.screen === 'tricks') {
-      this.renderTricks();
-    } else if (this.screen === 'title') {
+    if (this.screen === 'title') {
       this.renderTitleCards();
       this.renderTitleRooms();
       this.renderTitleStats();
@@ -508,9 +444,6 @@ export const navMethods = {
     if (this.screen !== screen) {
       this.focusId = null;
     }
-    /* Arriving is interaction: a preview recorder must not start into the
-     * frame still painting the room. */
-    this.noteInteraction();
     this.screen = screen;
     this.cursor = this.restoreCursor();
     arriveAt(this, screen);
@@ -523,7 +456,6 @@ export const navMethods = {
     const flying = screen === 'flight' || screen === 'paused';
     this.osd.style.display = flying ? '' : 'none';
     this.osd.className = screen === 'paused' ? 'osd dim' : 'osd';
-    this.syncScoreVisible();
     this.renderMenu();
     this.syncChips();
     /* Last, and on every show, including a re-entry: a listener reads a
@@ -550,23 +482,6 @@ export const navMethods = {
     if (this.screen === HASH_SCREEN) {
       this.back();
     }
-  },
-
-  /* The card `cardSubject` names, or null. Cards are rebuilt by every
-   * items() call, so the chosen one is found by key, not by reference. */
-  subjectCard() {
-    if (!this.cardSubject) {
-      return null;
-    }
-    return this.items().find((it) => it.course && courseCardKey(it) === this.cardSubject) || null;
-  },
-
-  /* Where the cursor goes when a chosen card closes: back on that card,
-   * rather than the top of the strip. */
-  cardCursor() {
-    const items = this.items();
-    const at = items.findIndex((it) => it.course && courseCardKey(it) === this.lastCardKey);
-    return at < 0 ? this.firstStop(items) : at;
   },
 
   setTitleHint(gate) {
@@ -626,17 +541,13 @@ export const navMethods = {
 
   /* The row grammar, which decides what Enter does and what the row looks
    * like: a value row is changed in place by Left and Right, a navigation
-   * row opens a screen (a chevron), a link row leaves for a tab (an
-   * arrow), and everything else does a thing. */
+   * row opens a screen (a chevron), and everything else does a thing. */
   rowKind(it) {
     if (!it) {
       return 'action';
     }
     if (it.adjust || it.options || it.spec || it.num) {
       return 'value';
-    }
-    if (it.action && LINK_ACTIONS.has(it.action)) {
-      return 'link';
     }
     if (it.action && SCREEN_ACTIONS.has(it.action)) {
       return 'navigation';
@@ -716,9 +627,8 @@ export const navMethods = {
     if (this.screen === 'flight' || this.screen === 'fc') {
       return [];
     }
-    const seat = activeCourseSummary();
     const map = MAPS.find((m) => m.id === this.settings.map) ?? MAPS[0];
-    const chips = [{ label: str('ui.flying'), value: seat && seat.name ? seat.name : map.name }];
+    const chips = [{ label: str('ui.flying'), value: map.name }];
     const name = readPilotName();
     if (name) {
       chips.push({ label: str('ui.pilot'), value: name });
@@ -809,8 +719,8 @@ export const navMethods = {
   /* Where the cursor lands on arrival: the remembered row if it is still
    * there and still a stop, else the row the screen exists for (Fly,
    * Resume), else the first stop. The primary row rather than the first
-   * stop because on the launch card the first stop is a dropdown, and a
-   * pilot who read "Enter flies it" was getting a list of packet rates. */
+   * stop because a screen's first stop can be a dropdown, and a pilot who
+   * read "Enter flies it" once got a list of packet rates. */
   restoreCursor() {
     const items = this.items();
     const want = this.cursorMemory[this.screen];

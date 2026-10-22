@@ -19,10 +19,10 @@
  *      aircraft's entry, on a merge and on a plain read.
  *   4. An id this build never had falls back to DEFAULT_AIRFRAME, which is
  *      the interceptor, on purpose rather than as the table's first row.
- *   5. A track drawn for the RaceGOW room the whoop flew: no aircraft flies
- *      it, so it keeps its class through a read and a write, a lap on it is
- *      refused by the board's own check, and the refusal is said in English
- *      and Spanish.
+ *   5. The twenty recreational planes, which went to Openflight on
+ *      2026-10-21 (configs/airframes.js `moved`): a profile seated on one
+ *      loads on the Striker, and a build on one is dropped, on this
+ *      computer and on the server, rather than turned into a Striker.
  *
  * A room seat on either is scripts/rooms-selftest.js's, and a replay or a
  * crash cam clip naming either is scripts/crashcam-selftest.js's.
@@ -63,11 +63,6 @@ const { combatChoice } = await import('../configs/combat.js');
 const { FC_DUMP_AIRFRAME_KEY } = await import('../src/fc/dump.js');
 const { normaliseBuilds, buildsBlob } = await import('../src/ui/builds.js');
 const { cleanBlob, mergeBlobs } = await import('../src/share/progressmerge.js');
-const { normalize, toPlain } = await import('../src/trackbuilder/model.js');
-const { noAircraftFlies } = await import('../src/trackbuilder/elements.js');
-const { checkLap } = await import('../src/game/verify.js');
-const en = (await import('../src/strings/en.js')).default;
-const es = (await import('../src/strings/es.js')).default;
 
 let failed = 0;
 let passed = 0;
@@ -134,7 +129,7 @@ const oldBuilds = {
   builds: [
     { id: 'hotfive1', name: 'Hot Five', airframe: '5inch', fit: { power: { option: 'f40pro-2150', prop: 't5143s', pack: 'cnhl-1500-130' } }, created: 1700000000000, updated: 1700000001000 },
     { id: 'tinywhoop', name: 'Living room', airframe: 'whoop65', fit: {}, created: 1700000002000, updated: 1700000003000 },
-    { id: 'cubkeep', name: 'Cub', airframe: 'cub1400', fit: {}, created: 1700000004000, updated: 1700000005000 },
+    { id: 'bramorkeep', name: 'Survey', airframe: 'bramor2300', fit: {}, created: 1700000004000, updated: 1700000005000 },
   ],
 };
 const builds = normaliseBuilds(oldBuilds);
@@ -148,13 +143,13 @@ check('the five inch build is the same build on the interceptor, name and dates 
 check('and its motors, prop and pack, which were the five inch\'s, are dropped to stock',
   five && Object.values(five.fit).every((v) => v === null), JSON.stringify(five && five.fit));
 check('the whoop build is on the interceptor too', whoop && whoop.airframe === 'interceptor', JSON.stringify(whoop));
-check('a build on an aircraft that stayed is untouched', builds.find((b) => b.id === 'cubkeep').airframe === 'cub1400');
+check('a build on an aircraft that stayed is untouched', builds.find((b) => b.id === 'bramorkeep').airframe === 'bramor2300');
 
 console.log('3. the account, as the server merges it');
 const sent = {
   v: 1,
   data: {
-    builds: { hotfive1: oldBuilds.builds[0], cubkeep: oldBuilds.builds[2] },
+    builds: { hotfive1: oldBuilds.builds[0], bramorkeep: oldBuilds.builds[2] },
     power: { '5inch': { option: 'f40pro-2150', prop: 't5143s', pack: 'cnhl-1500-130' }, '7inch': { option: 'stock', prop: 'stock', pack: 'stock' } },
     tuneFor: { whoop65: 'betaflight-default', interceptor: 'betaflight-interceptor' },
     combat: { '5inch': { payload: 'standard', accessories: [] } },
@@ -187,14 +182,23 @@ check('and the merge is stable: merged again it is the same', JSON.stringify(mer
 check('a build blob written now names no retired aircraft',
   Object.values(buildsBlob(builds)).every((b) => !retiredAirframe(b.airframe)));
 
-console.log('4. a RaceGOW room');
-const room = { schemaVersion: 3, id: 'trk-0ld0r00m', name: 'Old room', trackClass: 'micro', field: { width: 10, depth: 12, gridSize: 0.0254 }, elements: [], sequence: [] };
-check('no aircraft flies it', noAircraftFlies(room) && !noAircraftFlies({ trackClass: 'full' }) && !noAircraftFlies({}));
-const back = toPlain(normalize(room).doc);
-check('read and written it is still a RaceGOW room, never a field track', back.trackClass === 'micro' && noAircraftFlies(back), back.trackClass);
-const lap = checkLap(room, new Uint8Array(0), 2000);
-check('a lap on it is refused, by the board\'s own check', lap && lap.ok === false && /no aircraft flies this track/.test(lap.reason), lap && lap.reason);
-check('the refusal is said in English and Spanish', Boolean(en['track.no_aircraft']) && Boolean(es['track.no_aircraft']) && en['track.no_aircraft'] !== es['track.no_aircraft']);
+console.log('5. the recreational planes, moved to Openflight');
+const MOVED = ['cub1400', 'timber1500f', 'hercules3077', 'nrj1490'];
+for (const id of MOVED) {
+  const gone = retiredAirframe(id);
+  check(`${id} is no aircraft, is seated on the Striker and says where it went`,
+    !AIRFRAME_IDS.includes(id) && gone && gone.to === 'striker2500' && gone.moved === 'openflight' && currentAirframeId(id) === 'striker2500');
+}
+stored.clear();
+stored.set(SETTINGS_KEY, JSON.stringify({ airframe: 'cub1400', airframeAsked: true }));
+check('a profile seated on the Cub loads on the Striker', loadSettings().airframe === 'striker2500');
+const movedBuild = { id: 'cubbuild', name: 'Cub', airframe: 'cub1400', fit: {}, created: 1700000006000, updated: 1700000007000 };
+const kept = normaliseBuilds({ v: 1, builds: [oldBuilds.builds[2], movedBuild] });
+check('on this computer a build on the Cub is dropped, not turned into a Striker, and the rest stay',
+  kept.length === 1 && kept[0].id === 'bramorkeep', kept.map((b) => `${b.id}:${b.airframe}`).join(' '));
+const movedMerged = mergeBlobs({ v: 1, data: { builds: { cubbuild: movedBuild, bramorkeep: oldBuilds.builds[2] } }, stamps: {} }, { v: 1, data: {}, stamps: {} });
+check('on the server the same: dropped from the builds, the rest kept',
+  !('cubbuild' in movedMerged.data.builds) && movedMerged.data.builds.bramorkeep.airframe === 'bramor2300', JSON.stringify(Object.keys(movedMerged.data.builds)));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -35,7 +35,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
+import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
 import { propulsionOf } from '../../configs/combat.js';
 import { BUILD_PREFIX, customisable } from './builds.js';
@@ -60,22 +60,19 @@ export function kindOf(id) {
 }
 
 /* The aircraft a tab shows, in configs/airframes.js order, which is the
- * order the menus have always listed them in. A float version is not a
- * card of its own: it is its land plane with the Floats switch on, here
- * and in the hangar (configs/airframes.js floatVersionOf). */
+ * order the menus have always listed them in. */
 export function pickList(filter) {
   return AIRFRAMES
-    .filter((a) => !isFloatVersion(a.id) && (filter === 'all' || kindOf(a.id) === filter))
+    .filter((a) => filter === 'all' || kindOf(a.id) === filter)
     .map((a) => a.id);
 }
 
 /* The next aircraft for the direct cycle, [ and ]: every aircraft, round
- * and round, so two keys reach all of them without an overlay. It answers
- * with the card's id, the land plane; the caller seats its floats. With
+ * and round, so two keys reach all of them without an overlay. With
  * `only` (a war room's aircraft), round those. */
 export function cycleCraft(id, dir, only = null) {
   const ids = pickList('all').filter((x) => !only || only.includes(x));
-  const i = Math.max(0, ids.indexOf(landPlaneOf(id)));
+  const i = Math.max(0, ids.indexOf(id));
   return ids[(i + dir + ids.length) % ids.length];
 }
 
@@ -154,7 +151,8 @@ const DRAG_SLOP = 6;
  * dozens of small deltas: this much wheel is one place, so a notch is one
  * aircraft and a trackpad swipe is a few. */
 const WHEEL_STEP = 100;
-/* What pollPad edge triggers on: alt is a standard pad's X, floats its Y. */
+/* What pollPad edge triggers on: alt is a standard pad's X, floats its Y
+ * (the input's name for it, from when Y flipped a plane's floats). */
 const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt', 'floats'];
 
 function button(cls, text) {
@@ -228,16 +226,10 @@ export class Carousel {
     const info = el('div', 'carousel-info');
     this.nameEl = el('div', 'carousel-name');
     this.nameEl.setAttribute('aria-live', 'polite');
-    /* The span, the weight and, for a plane with a float version, the
-     * Floats switch: built once and only relabelled, so the switch keeps
-     * its focus across a flip. Styled as the hangar's (index.html). */
+    /* The span and the weight: built once and only relabelled. */
     this.factsEl = el('div', 'carousel-facts');
     this.sizeEl = el('span', 'carousel-fact');
     this.weightEl = el('span', 'carousel-fact');
-    this.floatsBtn = button('hangar-floats carousel-floats', str('hangar.floats'));
-    this.floatsBtn.dataset.key = 'floats';
-    this.floatsBtn.setAttribute('role', 'switch');
-    this.floatsBtn.addEventListener('click', () => this.toggleFloats());
     /* And for an aircraft with more than one engine, the engine it has,
      * which a click switches (toggleEngine): in the row only on its card,
      * as the build's base plane is (paint). */
@@ -246,14 +238,15 @@ export class Carousel {
     this.engineBtn.title = str('carousel.engine_switch');
     this.engineBtn.addEventListener('click', () => this.toggleEngine());
     /* A build's card names the plane it is built on first; a stock card's
-     * row stays the span, the weight and the switch (paint). */
+     * row stays the span and the weight (paint). */
     this.baseEl = el('span', 'carousel-fact carousel-base');
-    /* The star: a stock card's, when the opener hands over `favourites`. */
+    /* The star: a stock card's, when the opener hands over `favourites`.
+     * Styled as the hangar's switch was (index.html .hangar-floats). */
     this.favBtn = button('hangar-floats carousel-fav', str('carousel.favourite'));
     this.favBtn.dataset.key = 'favourite';
     this.favBtn.setAttribute('role', 'switch');
     this.favBtn.addEventListener('click', () => this.toggleFavourite());
-    this.factsEl.append(this.sizeEl, this.weightEl, this.floatsBtn, this.favBtn);
+    this.factsEl.append(this.sizeEl, this.weightEl, this.favBtn);
     /* A build's own two, Rename and Delete, on its card only, and the
      * line that takes the name's place while one is open (startRename,
      * startDelete). */
@@ -397,22 +390,20 @@ export class Carousel {
    * rather than a page; `warn` is a line under the choice, for what a
    * choice will cost. onChoose gets the card's aircraft id and, for a
    * build, the build; onCancel nothing; onCustomise the id, a reopen and
-   * the build. `floats` is the Floats switch, { on(id), set(id, on) } by
-   * land plane id (src/ui/ui.js openPicker); without it no card shows one.
-   * `engine` is the Engine switch, { of(id), set(id, propulsion) } by
+   * the build. `engine` is the Engine switch, { of(id), set(id, propulsion) } by
    * airframe id, `of` giving a combat card's loadout (configs/combat.js
    * combatChoice), which is also what its model is drawn in; without it
    * no card shows one. `builds` is My Hangar, { list(), drawn(card,
    * build), rename(id, name), remove(id) } (src/ui/ui.js pickerBuilds);
    * without it there is no tab. `favourites` is the star, { has(id),
-   * toggle(id) } by land plane id; without it no star and no tab.
+   * toggle(id) } by airframe id; without it no star and no tab.
    */
   /* `only`: the airframes the picker may offer (a war room's, configs/
    * airframes.js WAR_AIRFRAMES), every one without it; a build is offered
    * when its airframe is. */
-  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, engine = null, builds = null, favourites = null, only = null, onChoose, onCancel, onCustomise } = {}) {
-    this.opts = { onChoose, onCancel, onCustomise, floats, engine, builds, favourites, only };
-    this.openArgs = { filter, compact, title, warn, floats, engine, builds, favourites, only, onChoose, onCancel, onCustomise };
+  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', engine = null, builds = null, favourites = null, only = null, onChoose, onCancel, onCustomise } = {}) {
+    this.opts = { onChoose, onCancel, onCustomise, engine, builds, favourites, only };
+    this.openArgs = { filter, compact, title, warn, engine, builds, favourites, only, onChoose, onCancel, onCustomise };
     this.isOpen = true;
     this.hintKind = hint;
     this.root.classList.toggle('compact', Boolean(compact));
@@ -424,7 +415,7 @@ export class Carousel {
     this.filter = this.offered().includes(filter) ? filter : 'all';
     this.closeForm();
     this.relist();
-    const at = this.ids.indexOf(this.filter === MINE ? current : landPlaneOf(current));
+    const at = this.ids.indexOf(current);
     this.index = at >= 0 ? at : 0;
     this.pos = this.index;
     this.vel = 0;
@@ -477,8 +468,8 @@ export class Carousel {
     this.drawn = new Map();
     for (const key of this.ids) {
       const build = this.buildOf(key);
-      const how = builds ? builds.drawn(build ? null : this.shown(key), build) : null;
-      const combat = !build && engine ? engine.of(this.shown(key)) : null;
+      const how = builds ? builds.drawn(build ? null : key, build) : null;
+      const combat = !build && engine ? engine.of(key) : null;
       if (how || combat) {
         this.drawn.set(key, { ...how, ...(combat ? { combat } : {}) });
       }
@@ -498,11 +489,10 @@ export class Carousel {
     return builds.list().find((b) => `${BUILD_PREFIX}${b.id}` === key) ?? null;
   }
 
-  /* The airframe a card stands for: a build's own, or the stock plane as
-   * its Floats switch is set. */
+  /* The airframe a card stands for: a build's own, or the stock plane. */
   airframeOf(key) {
     const build = this.buildOf(key);
-    return build ? build.airframe : this.shown(key);
+    return build ? build.airframe : key;
   }
 
   choose() {
@@ -513,7 +503,7 @@ export class Carousel {
     }
     const build = this.buildOf(key);
     /* A plane progression has not opened (src/ui/progress-ui.js). */
-    if (this.blocked && this.blocked(build ? landPlaneOf(build.airframe) : key)) {
+    if (this.blocked && this.blocked(build ? build.airframe : key)) {
       return;
     }
     this.close();
@@ -551,31 +541,6 @@ export class Carousel {
     const go = this.opts.onCustomise;
     this.close();
     go(build ? build.airframe : key, (card) => this.open({ ...args, current: card ?? key, filter: card ? MINE : args.filter }), build);
-  }
-
-  /* A card's Floats switch: true or false, or null for a card with no
-   * float version or an opener that offers none. A build's floats are its
-   * airframe, changed in its Customise. */
-  floatsOn(id) {
-    const f = this.opts && this.opts.floats;
-    return f && floatVersionOf(id) ? Boolean(f.on(id)) : null;
-  }
-
-  /* The machine a card stands for as its switch is set: the one drawn, and
-   * whose span and weight are read out. */
-  shown(id) {
-    return this.floatsOn(id) ? floatVersionOf(id) : id;
-  }
-
-  toggleFloats() {
-    const id = this.current();
-    const on = this.floatsOn(id);
-    if (on === null) {
-      return;
-    }
-    this.opts.floats.set(id, !on);
-    this.relist();
-    this.paint();
   }
 
   /* A card's engine, a propulsion id, or null for a build (its engine is
@@ -704,10 +669,6 @@ export class Carousel {
     }
     this.sizeEl.textContent = sizeText(seen);
     this.weightEl.textContent = weightText(seen, (this.drawn.get(key) || {}).combat);
-    const floats = build ? null : this.floatsOn(id);
-    this.floatsBtn.hidden = floats === null;
-    this.floatsBtn.classList.toggle('on', Boolean(floats));
-    this.floatsBtn.setAttribute('aria-checked', String(Boolean(floats)));
     const fav = this.favOf(key);
     this.favBtn.hidden = fav === null;
     this.favBtn.classList.toggle('on', Boolean(fav));
@@ -724,7 +685,7 @@ export class Carousel {
     }
     this.noteEl.textContent = str(`carousel.note.${id}`);
     if (this.decorate) {
-      this.decorate(this, build ? landPlaneOf(id) : id);
+      this.decorate(this, id);
     }
   }
 
@@ -892,16 +853,12 @@ export class Carousel {
       this.goTo(0);
     } else if (code === 'End') {
       this.goTo(this.ids.length - 1);
-    } else if (code === 'Space' && document.activeElement === this.floatsBtn) {
-      this.toggleFloats();
     } else if (code === 'Space' && document.activeElement === this.engineBtn) {
       this.toggleEngine();
     } else if (code === 'Space' && document.activeElement === this.favBtn) {
       this.toggleFavourite();
     } else if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
       this.choose();
-    } else if (code === 'KeyF') {
-      this.toggleFloats();
     } else if (code === 'KeyE') {
       this.toggleEngine();
     } else if (code === 'KeyV') {
@@ -921,7 +878,7 @@ export class Carousel {
   /*
    * A gamepad or a radio, as the shell resolves it: { up, down, left, right,
    * select, back, alt, floats }, levels, alt being a standard pad's X and
-   * floats its Y, which is also the Engine switch: no card has both. Edge
+   * floats its Y, the Engine switch. Edge
    * triggered, and the first poll after opening only learns where the
    * sticks are, because the press that opened this is usually still held.
    */
@@ -964,16 +921,13 @@ export class Carousel {
       this.cycleFilter(1);
     }
     /* A standard pad's X and Y are also buttons a menu takes as select, so
-     * X customises first, Y flips the floats or the engine, and the same
-     * press chooses nothing. On a build, which has no switch, Y asks to
-     * delete it. */
+     * X customises first, Y flips the engine, and the same press chooses
+     * nothing. On a build, which has no switch, Y asks to delete it. */
     if (edge('floats')) {
       if (this.buildOf(this.current())) {
         this.startDelete();
-      } else if (this.engineOf(this.current()) !== null) {
-        this.toggleEngine();
       } else {
-        this.toggleFloats();
+        this.toggleEngine();
       }
     } else if (edge('alt')) {
       this.customise();

@@ -1,7 +1,7 @@
 /*
  * rooms-selftest-war.js: the war section of npm run rooms:selftest
- * (docs/WARFARE-PLAN.md sections 4 and 5.1), in its own file as combat's
- * is. rooms-selftest.js calls warSection(check) once. The referee under
+ * (docs/WARFARE-PLAN.md sections 4 and 5.1), in its own file as the
+ * ops' is. rooms-selftest.js calls warSection(check) once. The referee under
  * lag, measured, is scripts/war-harness.js.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -21,11 +21,11 @@
  */
 
 import {
-  AGENTS_ENTRY, AGENTS_HEAD, HUNTS_ENTRY, HUNTS_HEAD, TYPE_HUNTS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
+  AGENTS_ENTRY, AGENTS_HEAD, HUNTS_ENTRY, HUNTS_HEAD, TYPE_HUNTS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, ROOM_LEVEL, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
   checkProfile, decodeAgents, decodeHunts, encodeAgents, encodeHunts, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import {
   EMP_MS, GROUND_MS, MISSIONS, RESPAWN_MS, RESULT_MS, STALE_MS, WARHEADS, WORLD_LEAD_MS, parseLoadout,
 } from '../edge/rooms/war.js';
@@ -40,7 +40,6 @@ import { CARD_MS, INTRO_MS } from '../src/share/war/intro.js';
 import { filmFor } from '../src/share/war/films/index.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
-import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { LATE_MS } from '../src/game/midair.js';
 import { withHeld } from './lib/held.js';
 
@@ -105,7 +104,7 @@ function heardKills(e, i, seat) {
 }
 
 function warRoom({
-  n = 2, pub = false, map = 'itaipu', mission = null, air = 'cub1400', start = true, code = 'W4RR00', dev = false,
+  n = 2, pub = false, map = 'itaipu', mission = null, air = 'bramor2300', start = true, code = 'W4RR00', dev = false,
 } = {}) {
   const r = new RoomCore({
     code, cap: pub ? PUBLIC_CAP : PRIVATE_CAP, friendly: false, map, epoch: 0, public: pub,
@@ -130,7 +129,7 @@ function warRoom({
     env.socks[i] = so;
     env.apply(r.open(so, at));
     env.apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], profile: { airframe: Array.isArray(air) ? air[i] : air, map, figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [i, i, 20 + i], profile: { airframe: Array.isArray(air) ? air[i] : air, map, figure: 1, livery: null, parts: null },
     }), at, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };
@@ -190,7 +189,7 @@ export function warSection(check) {
     check('a client from before HUNTS reads AGENTS unchanged and takes HUNTS for nothing', decodeAgents(hunts) === null && decodeHunts(bytes) === null
       && decodeHunts(hunts.subarray(0, hunts.length - 1)) === null);
     check('war is a room game a profile can name', ROOM_GAMES.includes('war')
-      && checkProfile({ airframe: 'cub1400', map: 'itaipu', figure: 0, game: 'war' }).game === 'war');
+      && checkProfile({ airframe: 'bramor2300', map: 'itaipu', figure: 0, game: 'war' }).game === 'war');
     check('the kinds are section 3\'s seven, the decoy and the carrier after them, hunter at index 4', KINDS.length === 9 && KINDS[4] === 'hunter' && KINDS[7] === 'decoy'
       && KINDS[8] === 'carrier' && KINDS.every((k) => KIND[k].speed > 0));
   }
@@ -289,7 +288,7 @@ export function warSection(check) {
     const pub = warRoom({ mission: plain, pub: true, start: false });
     pub.say(0, { type: 'war', op: 'start', mission: 'test-1' });
     check('a public room\'s host is refused "private" (section 9)', !pub.r.war.on() && pub.refusals(0).join() === 'private');
-    const swiss = warRoom({ mission: plain, map: 'swiss2', start: false });
+    const swiss = warRoom({ mission: plain, map: 'interior', start: false });
     swiss.say(0, { type: 'war', op: 'start', mission: 'test-1' });
     check('a mission on another map than the room\'s is refused "map"', !swiss.r.war.on() && swiss.errors(0).join() === 'map');
     e.say(0, { type: 'war', op: 'start', mission: 'nope' });
@@ -316,8 +315,8 @@ export function warSection(check) {
     check('the host starts it: everybody gets the countdown, the output and the floor', e.r.war.on() && v.state === 'countdown'
       && v.goAt === COUNTDOWN_MS && v.output === 3000 && v.floor === 1500 && v.blast === BLAST_M);
     check('a war game keeps the room\'s clock running with nobody flying', e.r.waiting());
-    e.say(0, { type: 'tag', op: 'start', goal: 10 });
-    check('one game at a time: a tag match under a war is refused "war"', !e.r.tag.on() && e.refusals(0).at(-1) === 'war');
+    e.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('one game at a time: an ops mission under a war is refused "war"', !e.r.ops.on() && e.refusals(0).at(-1) === 'war');
     e.fly(COUNTDOWN_MS + 40);
     check('at the go the rack is rack x pilots', e.view().state === 'live' && e.view().rack === 4 && e.view().rackMax === 4);
     e.fly(COUNTDOWN_MS + 1000);
@@ -337,7 +336,7 @@ export function warSection(check) {
   {
     /* The owner, 3 October: only combat drones fly in wars. A tab from
      * before the rule flying a Cub into a campaign mission. */
-    const e = warRoom({ air: ['cub1400', WAR_DEFAULT], start: false, code: 'W4RCR4' });
+    const e = warRoom({ air: ['bramor2300', WAR_DEFAULT], start: false, code: 'W4RCR4' });
     e.say(0, { type: 'war', op: 'start', mission: 'itaipu-drill' });
     e.paths[0] = hover([0, 400, 0]);
     e.paths[1] = hover([50, 400, 0]);
@@ -348,7 +347,7 @@ export function warSection(check) {
     check('the room refuses a Cub in a war: told "airframe" once, and not in the war\'s flying, the Striker beside it is',
       e.errors(0).filter((x) => x === 'airframe').length === 1 && e.errors(1).length === 0
       && !e.r.war.flying(e.r).some((d) => d.seat === 1) && e.r.war.flying(e.r).some((d) => d.seat === 2), JSON.stringify([e.errors(0), e.errors(1), v.state]));
-    const free = warRoom({ air: 'cub1400', mission: testMission([{ at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' }], { r: [[-3000, Y, 0], [-2000, Y, 0]] }), code: 'W4RCR5' });
+    const free = warRoom({ air: 'bramor2300', mission: testMission([{ at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' }], { r: [[-3000, Y, 0], [-2000, Y, 0]] }), code: 'W4RCR5' });
     free.paths[0] = hover([0, 400, 0]);
     free.fly(COUNTDOWN_MS + 2000);
     check('and a mission that names no aircraft, as these checks write theirs, lets any', free.errors(0).length === 0 && free.r.war.flying(free.r).some((d) => d.seat === 1));
@@ -394,7 +393,7 @@ export function warSection(check) {
         both.view(1).briefAt === 500 && both.view(1).goAt === go, JSON.stringify(both.view(1)));
       const day = up([{ map: 'itaipu', time: 'morning' }, { map: 'itaipu', time: 'day' }]);
       check('a pilot whose world stands at another time keeps the lead', day.view(1).briefAt === 500 + WORLD_LEAD_MS, JSON.stringify(day.view(1)));
-      const other = up([{ map: 'itaipu', time: 'morning' }, { map: 'swiss2', time: 'morning' }]);
+      const other = up([{ map: 'itaipu', time: 'morning' }, { map: 'interior', time: 'morning' }]);
       check('a pilot whose world is another map keeps the lead', other.view(1).briefAt === 500 + WORLD_LEAD_MS, JSON.stringify(other.view(1)));
       const gone = warRoom({ mission: morning, start: false });
       gone.fly(500);
@@ -427,8 +426,8 @@ export function warSection(check) {
       });
       check('and a mission at the map\'s own day has none', d.view(1).briefAt === 500 && d.view(1).goAt === go);
     }
-    check('a briefing is a war game: the clock runs, and a tag match is refused "war"', e.r.waiting()
-      && (e.say(0, { type: 'tag', op: 'start', goal: 10 }), !e.r.tag.on() && e.refusals(0).at(-1) === 'war'));
+    check('a briefing is a war game: the clock runs, and an ops mission is refused "war"', e.r.waiting()
+      && (e.say(0, { type: 'ops', op: 'start', mission: 'interior-1' }), !e.r.ops.on() && e.refusals(0).at(-1) === 'war'));
     check('the room browser shows a briefing as a war counting down', warActivity(e.r.activity(e.clock), 'countdown'), JSON.stringify(e.r.activity(e.clock)));
     e.say(1, { type: 'war', op: 'skipIntro' });
     check('only the host skips it: another pilot is refused "host", and the briefing holds', e.refusals(1).at(-1) === 'host' && e.view().state === 'briefing');
@@ -537,9 +536,8 @@ export function warSection(check) {
     g.say(0, {
       type: 'war', op: 'start', mission: 'test-1', intro: true,
     });
-    g.say(0, { type: 'combat', op: 'start', minutes: 3 });
-    g.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-war00001' }) });
-    check('another game over a briefing is refused "war": combat, and a race\'s track', !g.r.combat.on() && g.refusals(0).join() === 'war,war'
+    g.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
+    check('another game over a briefing is refused "war": an ops mission', !g.r.ops.on() && g.refusals(0).join() === 'war'
       && g.view(1).state === 'briefing', g.refusals(0).join());
 
     const p = warRoom({ mission: plain, start: false });
@@ -1145,7 +1143,7 @@ export function warSection(check) {
     const w = { name: 'watcher', address: '10.9.9.200', got: [] };
     e.apply(e.r.open(w, e.clock));
     e.apply(e.r.message(w, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [9, 9, 29], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [9, 9, 29], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
     }), e.clock, w.address, () => 'f'.repeat(32)));
     e.fly(COUNTDOWN_MS + 1000 + (1200 / KIND.decoy.speed) * 1000 + 20000);
     const late = e.view(2);
@@ -1168,7 +1166,7 @@ export function warSection(check) {
     const back = { name: 'back', address: '10.9.9.2', got: [] };
     e.apply(e.r.open(back, e.clock));
     e.apply(e.r.message(back, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', token, name: [1, 1, 21], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, token, name: [1, 1, 21], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), e.clock, back.address, () => 'e'.repeat(32)));
     const again = back.got.find((x) => x && x.type === 'welcome');
     check('a pilot who flew it, back on its token after the end (a reload at the result card): the welcome carries the result and the uid',
@@ -1192,7 +1190,7 @@ export function warSection(check) {
     const w = { name: 'watcher', address: '10.9.9.200', got: [] };
     e.apply(e.r.open(w, e.clock));
     e.apply(e.r.message(w, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [9, 9, 29], profile: { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
+      type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [9, 9, 29], profile: { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null }, watch: true,
     }), e.clock, w.address, () => 'f'.repeat(32)));
     e.fly(COUNTDOWN_MS + 3000);
     const watched = w.got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).map(decodeAgents).filter((b) => b.agents.length);
@@ -1237,7 +1235,7 @@ export function warSection(check) {
       const so = { name: `back${i}`, address: `10.9.8.${i + 1}`, got: [] };
       again.open(so, e.clock);
       again.message(so, JSON.stringify({
-        type: 'hello', proto: PROTO, build: 't', token: e.socks[i].got.find((x) => x.type === 'welcome').token, seat: i + 1, name: [i, i, 20 + i], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null },
+        type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, token: e.socks[i].got.find((x) => x.type === 'welcome').token, seat: i + 1, name: [i, i, 20 + i], profile: { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null },
       }), e.clock, so.address, () => 'f'.repeat(32));
     }
     const v = again.war.view(again);
@@ -1255,7 +1253,7 @@ export function warSection(check) {
     e.apply(e.r.close(e.socks[1], e.clock));
     e.apply(e.r.safety.remove(e.socks[2], e.clock));
     check('a pilot who left, and one removed by the room\'s safety, are gone from it (safety.js calls the games\' leave)',
-      !e.r.war.seats.has(2) && !e.r.war.seats.has(3) && !e.r.combat.seats.has(3) && e.r.war.seats.has(1));
+      !e.r.war.seats.has(2) && !e.r.war.seats.has(3) && e.r.war.seats.has(1));
   }
 
   console.log('war: the HUD always says what comes next');

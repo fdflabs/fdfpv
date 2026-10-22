@@ -248,12 +248,10 @@
          * rule reads --hub-accent. Measured on --pdcs-bg and on the
          * ground's lighter centre (#101416):
          *   --hub-ops     #6aa3c8   7.3 and 6.8 : 1 (the blue accent)
-         *   --hub-club    #e09a5f   8.5 and 7.9 : 1, apart from --pdcs-warn
          *   --hub-hangar  #a9b4bb   9.4 and 8.8 : 1
          * Dark text on each is the same ratio.
          */
         --hub-ops: var(--pdcs-blue);
-        --hub-club: #e09a5f;
         --hub-hangar: #a9b4bb;
         --hub-accent: var(--hub-ops);
       }
@@ -271,17 +269,14 @@
 
       /* THE FLIGHT DISPLAY. Pale type over a dark shadow reads on sky,
          grass and tarmac alike, which is how a video OSD stays legible. */
-      .osd, .score-hud { position: absolute; inset: 0; }
-      .score-hud { pointer-events: none; }
+      .osd { position: absolute; inset: 0; }
       .osd.dim { opacity: 0.4; }
-      .osd-ghost.is-off, .osd-launch.is-off, .room-race.is-off,
-      .score-hud.is-off, .score-combo.is-off { display: none; }
-      .osd-top, .osd-corner, .score-total { text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
-      .osd-label, .room-race-title, .score-label {
+      .osd-launch.is-off { display: none; }
+      .osd-top, .osd-corner { text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
+      .osd-label {
         margin-bottom: 2px; color: var(--slate);
         font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
       }
-      .score-label { margin-bottom: 1px; }
 
       /* The clock block, top centre. A war has no lap to time: the war HUD
          keeps its clock. */
@@ -300,17 +295,12 @@
       .osd-gate, .osd-mode { color: var(--amber); text-transform: uppercase; }
       .osd-gate { margin-top: 6px; font-size: 15px; letter-spacing: 0.08em; }
       .osd-mode { letter-spacing: 0.14em; }
-      /* The split to the ghost, shown briefly after each gate. Mint is the
-         good news everywhere on this overlay, so mint means ahead. */
-      .osd-ghost { margin-top: 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; }
-      .osd-ghost.ahead { color: var(--mint); }
-      .osd-ghost.behind { color: var(--amber); }
 
       /* The pack and flight blocks in the two lower corners. */
       .osd-corner { position: absolute; bottom: 20px; width: 190px; font-size: 15px; }
       .osd-left { left: 22px; }
       .osd-right { right: 22px; text-align: right; }
-      .bar, .score-combo-bar { overflow: hidden; background: rgba(12, 22, 34, 0.65); }
+      .bar { overflow: hidden; background: rgba(12, 22, 34, 0.65); }
       .bar {
         height: 5px; margin-top: 7px; border-radius: 3px;
         box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.35);
@@ -332,277 +322,6 @@
       .osd-launch.is-go { color: #8dffb0; font-size: clamp(40px, 6vw, 64px); letter-spacing: 0.32em; }
       @keyframes launch-blink {
         50% { opacity: 0.2; }
-      }
-
-      /* A ROOM'S STANDINGS (src/ui/roomhud.js), in the left column under
-         the link readout. The column's other user, the freestyle score, is
-         never up during a race. */
-      .room-race {
-        position: absolute; top: calc(var(--bar-top) + 96px); left: 16px;
-        min-width: 180px; max-width: 42vw; padding: 6px 10px; border-radius: 4px;
-        pointer-events: none; background: rgba(16, 22, 17, 0.62);
-        font-size: 13px; line-height: 1.45; text-shadow: 0 1px 3px rgba(0,0,0,0.85);
-      }
-      /* A tag for something only this pilot has right now, such as Catch
-         the Ace's chase boost. */
-      .room-race-chip {
-        display: inline-block; margin: 1px 0 3px; padding: 0 6px; border-radius: 3px;
-        background: var(--amber); color: #1b1405;
-        font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-      }
-      .room-race-row { display: flex; gap: 8px; white-space: nowrap; }
-      .room-race-row.is-me { color: var(--amber); }
-      .room-race-place { width: 1.2em; text-align: right; }
-      .room-race-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-      .room-race-value { font-variant-numeric: tabular-nums; }
-
-      /* THE FREESTYLE SCORE (src/ui/scorehud.js) owns the left column,
-         the one stretch of frame the OSD leaves free. It is drawn the way
-         the cel shaded town is: flat fills, hard edges, no blur that is not
-         under an ink line. Everything that moves is a keyframe on a node
-         that deletes itself when done, so an idle score asks for no frames
-         from a page running a 1 kHz simulation. */
-
-      /* The running total clears the music dock (30 px tall in the top left
-         corner during flight, where --bar-top is zero). */
-      .score-total { position: absolute; top: calc(var(--bar-top) + 58px); left: 22px; }
-      /* The in-development note: amber because it is about the scorer, not
-         the flying, and smaller and dimmer than the label it footnotes. */
-      .score-beta { margin-left: 6px; color: var(--amber); opacity: 0.8; font-size: 9px; letter-spacing: 0.1em; }
-      /* Score type crosses pale roads at midday, where a soft shadow
-         vanishes. Four one pixel offsets ink a hard edge round each glyph;
-         the blur beneath keeps it from looking stencilled. */
-      .score-cut {
-        text-shadow:
-          -1px -1px 0 rgba(8, 12, 9, 0.92), 1px -1px 0 rgba(8, 12, 9, 0.92),
-          -1px 1px 0 rgba(8, 12, 9, 0.92), 1px 1px 0 rgba(8, 12, 9, 0.92),
-          0 2px 10px rgba(0, 0, 0, 0.9);
-      }
-      .score-value {
-        color: var(--cream); font-size: clamp(26px, 3.4vw, 40px); font-weight: 700;
-        line-height: 1; letter-spacing: 0.01em;
-      }
-
-      /* Trick names stack upward from just above the combo, newest lowest,
-         so the latest trick always sits beside the number it changed. The
-         stack is pinned by its bottom edge and grows up with no script. */
-      .score-names {
-        position: absolute; left: 22px; bottom: calc(24vh + 62px);
-        display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-        width: min(46vw, 340px);
-      }
-      /* Each row is the box its ray burst centres on. */
-      .score-name {
-        position: relative; display: flex; align-items: baseline; gap: 8px;
-        color: var(--cream); white-space: nowrap;
-        font-size: clamp(15px, 1.85vw, 21px); font-weight: 700;
-        letter-spacing: 0.06em; text-transform: uppercase;
-      }
-      .score-hud .score-name { animation: score-name-slam 2.2s cubic-bezier(0.14, 1, 0.3, 1) forwards; }
-      /* Callouts without the score keep the names, the chain and its
-         verdict; the total stays off. */
-      .score-hud.is-callouts .score-total { display: none; }
-      /* A judged aerobatic figure: the name big, the grade word and the
-         points under it. It wraps inside the left column, so at phone
-         width it grows down rather than across the attitude cues in the
-         middle. */
-      .score-name.is-figure {
-        flex-wrap: wrap; column-gap: 10px; row-gap: 0; max-width: min(34vw, 340px);
-        white-space: normal; font-size: clamp(19px, 2.5vw, 30px); line-height: 1.05;
-      }
-      .score-name.is-figure .score-name-text { flex-basis: 100%; }
-      .score-name-tag.is-grade { color: var(--mint); opacity: 1; font-size: 0.6em; font-weight: 700; }
-      .score-name.is-sloppy .score-name-tag.is-grade { color: var(--amber); }
-      .score-name.is-sloppy { color: var(--amber); }
-      .score-name.is-bump { color: var(--sakura); }
-      /* The burst goes behind the words by paint order among positioned
-         siblings. A negative z-index would sink the whole row under the
-         world canvas. */
-      .score-name > span { position: relative; }
-      /* The points land a beat after the name, so the eye reads the trick
-         first and the number second. */
-      .score-name-points {
-        color: var(--cream); opacity: 0.7; font-size: 0.8em; font-weight: 500;
-        animation: score-pop 620ms cubic-bezier(0.1, 1.5, 0.4, 1) 90ms backwards;
-      }
-      .score-name-tag { color: var(--slate); opacity: 0.85; font-size: 0.62em; letter-spacing: 0.14em; }
-      @keyframes score-name-in {
-        0%   { opacity: 0; transform: translateX(-14px); }
-        7%   { opacity: 1; transform: translateX(0); }
-        75%  { opacity: 1; }
-        100% { opacity: 0; transform: translateY(-10px); }
-      }
-      @keyframes score-name-slam {
-        0%   { opacity: 0; transform: translateX(-42px) skewX(-16deg) scale(1.38); }
-        9%   { opacity: 1; transform: translateX(3px) skewX(4deg) scale(0.96); }
-        15%  { transform: translateX(0) skewX(0) scale(1); }
-        76%  { opacity: 1; transform: translateX(0); }
-        100% { opacity: 0; transform: translateY(-14px); }
-      }
-      @keyframes score-pop {
-        0%   { transform: scale(2.1); opacity: 0; }
-        30%  { opacity: 1; }
-        100% { transform: scale(1); opacity: 0.7; }
-      }
-      /* An ink burst: sixteen hard wedges in a hollow ring, an ink fan with
-         the colour fan inside it, because over pale sky the dark line is
-         what makes the fill visible. Stacked conic stops give solid
-         wedges, not a smear. */
-      .score-burst {
-        position: absolute; top: 50%; left: -34px;
-        width: 200px; height: 200px; margin-top: -100px;
-        pointer-events: none; opacity: 0;
-        background: repeating-conic-gradient(#0b1116 0deg 8.4deg, transparent 8.4deg 22.5deg);
-        -webkit-mask-image: radial-gradient(closest-side, transparent 0 30%, #000 33% 74%, transparent 78%);
-        mask-image: radial-gradient(closest-side, transparent 0 30%, #000 33% 74%, transparent 78%);
-        animation: score-burst 480ms cubic-bezier(0.16, 0.9, 0.3, 1) forwards;
-      }
-      .score-burst::before {
-        content: ''; position: absolute; inset: 0;
-        background: repeating-conic-gradient(var(--burst, var(--cream)) 0deg 6.2deg, transparent 6.2deg 22.5deg);
-        -webkit-mask-image: radial-gradient(closest-side, transparent 0 32%, #000 35% 71%, transparent 75%);
-        mask-image: radial-gradient(closest-side, transparent 0 32%, #000 35% 71%, transparent 75%);
-      }
-      @keyframes score-burst {
-        0%   { opacity: 0.95; transform: scale(0.25) rotate(-9deg); }
-        60%  { opacity: 0.35; }
-        100% { opacity: 0; transform: scale(1.25) rotate(5deg); }
-      }
-
-      /* The live combo is the stake, so it is big, and it gets louder by
-         tier: colour first, a throb from tier three, and a badge. */
-      .score-combo { position: absolute; left: 22px; bottom: 24vh; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
-      .score-combo-line {
-        display: flex; align-items: baseline; gap: 6px;
-        color: var(--amber); font-size: clamp(22px, 2.8vw, 34px); font-weight: 700; line-height: 1;
-        transition: color 140ms linear;
-      }
-      .score-combo-mult { color: var(--mint); font-size: 0.82em; }
-      .score-combo.tier-2 .score-combo-line { color: var(--amber); }
-      .score-combo.tier-3 .score-combo-line { color: #ffc46b; }
-      .score-combo.tier-4 .score-combo-line { color: #ff9f5a; }
-      .score-combo.tier-5 .score-combo-line { color: #ff7d96; }
-      .score-combo.tier-3 .score-combo-line,
-      .score-combo.tier-4 .score-combo-line,
-      .score-combo.tier-5 .score-combo-line { animation: score-throb 620ms ease-in-out infinite alternate; }
-      @keyframes score-throb {
-        from { transform: scale(1); }
-        to   { transform: scale(1.045); }
-      }
-      /* The badge names the tier in English and in the town's Japanese. It
-         is a solid chip of the tier's own colour (currentColor) with the
-         words cut out of it in ink. */
-      .score-tier {
-        display: inline-flex; align-items: baseline; gap: 6px;
-        margin-left: 10px; padding: 2px 8px;
-        background: currentColor; box-shadow: 0 0 0 2px rgba(8, 12, 9, 0.9);
-        font-size: 0.44em; font-weight: 700; letter-spacing: 0.18em;
-        text-transform: uppercase; white-space: nowrap;
-        animation: score-tier-in 420ms cubic-bezier(0.1, 1.4, 0.4, 1);
-      }
-      .score-tier > span { color: #0b1116; }
-      .score-tier .score-tier-jp { opacity: 0.72; letter-spacing: 0.05em; }
-      @keyframes score-tier-in {
-        0%   { transform: scale(0.4) rotate(-8deg); opacity: 0; }
-        60%  { transform: scale(1.12) rotate(2deg); opacity: 1; }
-        100% { transform: scale(1) rotate(0); }
-      }
-      /* The chain's timer, drained by script through a scaleX. */
-      .score-combo-bar {
-        width: clamp(90px, 12vw, 150px); height: 4px; margin-top: 6px; border-radius: 2px;
-        box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.3);
-      }
-      .score-combo-fill {
-        width: 100%; height: 100%; background: var(--amber);
-        transform-origin: left center; transform: scaleX(1);
-      }
-
-      /* Banked or bailed, centre frame for one beat: the one moment worth
-         looking away from the quad for. A bank lands with overshoot, a bail
-         shakes, and one or two hard rings go out from it. */
-      .score-verdict, .score-ring { position: absolute; top: 38%; left: 50%; opacity: 0; }
-      .score-verdict {
-        transform: translate(-50%, -50%);
-        font-size: clamp(30px, 4.6vw, 54px); font-weight: 700;
-        letter-spacing: 0.14em; text-transform: uppercase;
-      }
-      .score-verdict.is-bank {
-        color: var(--mint);
-        animation: score-verdict-bank 1.15s cubic-bezier(0.1, 1.3, 0.3, 1) forwards;
-      }
-      /* The token sakura is a pale blossom and read as decoration over a
-         lit road; a loss needs the same hue saturated. */
-      .score-verdict.is-bail { color: #ff7d96; animation: score-verdict-bail 1.15s ease-out forwards; }
-      @keyframes score-verdict {
-        0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.82); }
-        14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
-        24%  { transform: translate(-50%, -50%) scale(1); }
-        70%  { opacity: 1; }
-        100% { opacity: 0; transform: translate(-50%, -74%) scale(1); }
-      }
-      @keyframes score-verdict-bank {
-        0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-5deg); }
-        12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.22) rotate(2deg); }
-        22%  { transform: translate(-50%, -50%) scale(1) rotate(0); }
-        68%  { opacity: 1; }
-        100% { opacity: 0; transform: translate(-50%, -96%) scale(1); }
-      }
-      @keyframes score-verdict-bail {
-        0%   { opacity: 0; transform: translate(-50%, -50%) scale(1.5) skewX(-14deg); }
-        8%   { opacity: 1; transform: translate(-52%, -50%) scale(1) skewX(0); }
-        13%  { transform: translate(-48%, -50%); }
-        18%  { transform: translate(-51%, -50%); }
-        23%  { transform: translate(-50%, -50%); }
-        70%  { opacity: 1; }
-        100% { opacity: 0; transform: translate(-50%, -50%) scale(0.94); }
-      }
-      .score-ring {
-        width: 90px; height: 90px; margin: -45px 0 0 -45px;
-        border: 3px solid var(--mint); border-radius: 50%; pointer-events: none;
-        animation: score-ring 620ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-      }
-      .score-ring.is-bail { border-color: #ff7d96; }
-      .score-ring.is-late { animation-delay: 110ms; }
-      @keyframes score-ring {
-        0%   { opacity: 0.9; transform: scale(0.35); border-width: 5px; }
-        100% { opacity: 0; transform: scale(3.4); border-width: 1px; }
-      }
-
-      /* Speed lines down both edges from tier three, busier as the chain is
-         worth more. They read the tier class the combo already sets. */
-      .score-lines {
-        position: absolute; inset: 0; pointer-events: none; opacity: 0;
-        background:
-          repeating-linear-gradient(90deg, var(--cream) 0 2px, transparent 2px 13px) left / 11vw 100% no-repeat,
-          repeating-linear-gradient(90deg, var(--cream) 0 2px, transparent 2px 13px) right / 11vw 100% no-repeat;
-        -webkit-mask-image: linear-gradient(90deg, #000 0, transparent 12vw, transparent calc(100% - 12vw), #000 100%);
-        mask-image: linear-gradient(90deg, #000 0, transparent 12vw, transparent calc(100% - 12vw), #000 100%);
-        transition: opacity 220ms linear;
-      }
-      .score-hud.tier-3 .score-lines { opacity: 0.16; }
-      .score-hud.tier-4 .score-lines { opacity: 0.24; }
-      .score-hud.tier-5 .score-lines { opacity: 0.34; animation: score-lines 900ms steps(2) infinite; }
-      @keyframes score-lines {
-        from { transform: translateX(0); }
-        to   { transform: translateX(6px); }
-      }
-
-      /* A short phone screen has the thumb sticks up, so the combo climbs
-         clear of them and the name stack keeps two rows. */
-      @media (max-height: 560px) {
-        .score-combo { bottom: 34vh; }
-        .score-names { bottom: calc(34vh + 52px); }
-      }
-      /* Reduced motion keeps every colour, badge and number and drops only
-         the movement. */
-      @media (prefers-reduced-motion: reduce) {
-        .score-hud .score-name, .score-verdict.is-bank, .score-verdict.is-bail,
-        .score-name-points, .score-tier { animation-duration: 0.01s; }
-        .score-burst, .score-ring { display: none; }
-        .score-combo.tier-3 .score-combo-line,
-        .score-combo.tier-4 .score-combo-line,
-        .score-combo.tier-5 .score-combo-line,
-        .score-hud.tier-5 .score-lines { animation: none; }
       }
 
       /* THE STICK GHOST: two Mode 2 gimbals (yaw and throttle left, roll
@@ -792,7 +511,7 @@
       }
 
       /* THE BANNER: one message line under the OSD's top block, 150 px down
-         so a two line banner clears the clock, gate, best and ghost lines,
+         so a two line banner clears the clock, gate and best lines,
          and high enough to stay off the gate a tilted FPV camera puts low in
          the frame. Its type scales with the window (--banner-size) so a
          long message stays a few lines on a phone. */
@@ -1402,6 +1121,12 @@
         min-width: 0;
         font-size: 12.5px; letter-spacing: 0.04em; color: var(--cream);
       }
+      /* With no rooms server the panel is a note alone (src/ui/items.js
+         gateRows: nothing is playable without one), a sentence that wraps
+         under its title rather than a count that fits beside it. */
+      .gate-rooms:not(:has(.gate-rooms-list)) .gate-rooms-head { flex-wrap: wrap; row-gap: 2px; }
+      .gate-rooms:not(:has(.gate-rooms-list)) .gate-rooms-title { flex: 0 1 auto; white-space: normal; overflow: visible; text-overflow: clip; }
+      .gate-rooms:not(:has(.gate-rooms-list)) .gate-rooms-count { flex: 1 1 100%; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.35; }
       .gate-rooms-list, .gate-rooms-buttons { display: flex; gap: 6px; min-width: 0; }
       .gate-room {
         flex: 1 1 0; min-width: 0;
@@ -1429,9 +1154,10 @@
       .gate-room.on .gate-room-name { color: var(--pdcs-bright); }
       .gate-room:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 2px; }
       /*
-       * FLIGHT CLUB'S PILOT STATS (src/ui/pilotstats.js; the owner,
+       * THE PILOT STATS on home (src/ui/pilotstats.js; the owner,
        * 2026-10-08: "i need prominently to see the game stats, played hours
-       * in total"). The room between the wordmark and the cards was empty;
+       * in total"; Flight Club's page until it left, the combat-only cut,
+       * 2026-10-20). The room between the wordmark and the cards was empty;
        * the panel takes it, the total time large on the left, the tiles in
        * a row beside it, each mode's time along the foot. The cards keep
        * their auto margin, so a short window loses the gap above them,
@@ -1439,7 +1165,7 @@
        * stays on it.
        */
       .gate-stats { display: none; }
-      .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
+      .screen-title.is-gate[data-hub=""] .gate-stats:not([hidden]) {
         display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr);
         column-gap: clamp(16px, 2.4vw, 40px); row-gap: 10px; align-items: stretch;
         width: 100%; box-sizing: border-box;
@@ -1501,7 +1227,7 @@
          onto a second row the cards have no height for. */
       @media (max-height: 820px) {
         .gate-stat-sub, .gate-stats-time-label, .gate-stats-title, .gate-stats-mode-game { display: none; }
-        .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
+        .screen-title.is-gate[data-hub=""] .gate-stats:not([hidden]) {
           margin: 6px 0 8px; padding: 8px 14px; row-gap: 6px;
         }
         .gate-stats-time { font-size: clamp(28px, 3.4vw, 46px); }
@@ -1512,7 +1238,7 @@
       /* A window under 1100 wide: the tiles go to their own row under the
          time, three and two, so no label is cut to a letter a line. */
       @media (max-width: 1100px) {
-        .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+        .screen-title.is-gate[data-hub=""] .gate-stats:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
         .gate-stats-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       }
       /* A phone, upright or on its side: one line, the total time and the
@@ -1521,7 +1247,7 @@
          where the tags wrap). The rest stays on the wider page and the
          Pilot rows in Settings. */
       @media (max-width: 860px), (max-height: 520px) {
-        .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
+        .screen-title.is-gate[data-hub=""] .gate-stats:not([hidden]) {
           display: flex; align-items: baseline; justify-content: space-between; gap: 4px 12px;
           margin: 4px 0; padding: 5px 12px;
         }
@@ -1571,6 +1297,39 @@
       @media (max-width: 860px), (max-height: 520px) {
         .screen-title.is-gate[data-hub=""] .gate-card-art { display: none; }
       }
+      /* Home at a laptop's height (1280 by 720 is the common one), or a
+         phone on its side: five cards under the pilot stats and the rooms
+         panel, the Hangar's six links among them, so each card keeps its
+         name, its first tag and its links and gives up the sentence, as
+         the phone rule above does for three cards and more (pilot:stats
+         measures the tags clear of the command bar in Spanish). */
+      @media (min-width: 861px) and (max-height: 820px), (max-height: 520px) {
+        .screen-title.is-gate[data-hub=""] .gate-card-blurb,
+        .screen-title.is-gate[data-hub=""] .gate-card-fact:nth-child(n+2) { display: none; }
+        .screen-title.is-gate[data-hub=""] .gate-card-body { gap: 4px; padding: 7px 12px 8px; }
+        .screen-title.is-gate[data-hub=""] .gate-links { gap: 4px 6px; margin-top: 2px; }
+        .screen-title.is-gate[data-hub=""] .gate-link { padding: 3px 7px; font-size: 11px; letter-spacing: 0.06em; }
+      }
+      /* Home's cards take the height the wordmark, the rooms panel and the
+         pilot stats leave them, and the picture gives back what they lack:
+         it is laid over its box, so its aspect never holds a card tall, and
+         it shrinks before a link reaches the command bar. Only the panel's
+         rooms and the window decide that height, so no breakpoint can
+         (modes:card: the links 73 px under the bar at 1920 by 1080, and
+         past it at 1280 by 720 with three rooms listed). */
+      @media (min-width: 861px) and (min-height: 521px) {
+        .screen-title.is-gate[data-hub=""] .gate-cards { flex: 0 1 auto; min-height: 0; }
+        .screen-title.is-gate[data-hub=""] .gate-card-art { flex: 0 1 auto; min-height: 0; }
+        .screen-title.is-gate[data-hub=""] .gate-card-body { flex: 0 0 auto; }
+        .screen-title.is-gate[data-hub=""] .gate-card-shot { position: absolute; inset: 0; }
+      }
+      /* A phone on its side has no picture to give back: the Hangar's card,
+         the one with links, takes two cards' width so its six links run two
+         or three to a line instead of six lines past the command bar
+         (modes:card at 844 by 390). */
+      @media (max-height: 520px) {
+        .screen-title.is-gate[data-hub=""] .gate-card:has(.gate-link) { flex-grow: 2; }
+      }
       /*
        * A GATE CARD is a framed panel on the ground: a survey plate (the
        * mode's picture greyed and darkened under a fine grid, its number in
@@ -1595,9 +1354,8 @@
       }
       /* After .on, so a keyboard focus shows its own ring on the cursor's card. */
       .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
-      /* One accent per hub (src/ui/ui.js HUBS): its card on home, and every
-         card inside it. Operations keeps the default blue. */
-      .gate-card[data-hub="club"], .screen-title[data-hub="club"] .gate-card { --card-accent: var(--hub-club); }
+      /* The Hangar's accent (src/ui/ways.js HUBS): its card on home, and
+         every card inside it. The Operations cards keep the default blue. */
       .gate-card[data-hub="hangar"], .screen-title[data-hub="hangar"] .gate-card { --card-accent: var(--hub-hangar); }
       /* A hub card's activities, each a press straight into its lobby. */
       .gate-links { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 4px; }
@@ -1848,44 +1606,7 @@
         box-shadow: 0 18px 32px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(215, 221, 221, 0.10);
       }
 
-      /*
-       * THE TRICK LIST: a film of the chosen trick beside its name and
-       * notes. The film is a canvas drawn from the same pattern the scorer
-       * matches (src/ui/trickfilm.js), so it costs no asset and cannot
-       * drift from the catalogue.
-       *
-       * The film has a height budget, min(27vh, 280px), written as a WIDTH
-       * through its fixed ratio, because capping the height of a box at
-       * 100% width squashes the canvas instead of shrinking it. Unbounded,
-       * the film filled a 1920 px window 600 px tall and pushed every
-       * trick row off a page that does not scroll (bug-f105cf4a). The
-       * film's grid track uses the same expression so the words sit beside
-       * the picture, and the list below shares the window with it.
-       */
-      .trick-stage {
-        display: grid; grid-template-columns: calc(min(27vh, 280px) * 1.6) minmax(0, 1fr);
-        gap: 22px; align-items: start; max-width: 1040px; margin: 4px auto 14px;
-      }
-      .trick-film, .craft-showcase-frame { width: 100%; background: #0d1012; }
-      .trick-film {
-        display: block; aspect-ratio: 16 / 10;
-        /* A cel shaded picture is a fill with a line round it. */
-        box-shadow: 0 0 0 2px rgba(11, 17, 22, 0.9), 0 0 0 3px rgba(215, 221, 221, 0.16);
-      }
-      .trick-side { min-width: 0; padding-top: 2px; }
-      .trick-name { font-size: clamp(19px, 2.3vw, 27px); line-height: 1.1; font-weight: 700; letter-spacing: 0.02em; color: var(--cream); }
-      .trick-meta { margin-top: 5px; font-size: 12px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--amber); }
-      .trick-how { margin: 11px 0 0; font-size: 14px; line-height: 1.5; color: var(--cream); opacity: 0.92; }
-      .trick-view { margin-top: 9px; font-size: 12px; line-height: 1.45; color: var(--slate); }
-      /* Narrow: the film goes above the words, wider and shorter, because
-         on a phone the list below is what the thumb is after. */
-      @media (max-width: 900px) {
-        .trick-stage { grid-template-columns: 1fr; gap: 12px; }
-        .trick-film { max-width: calc(min(27vh, 280px) * 2); margin: 0 auto; aspect-ratio: 2 / 1; }
-      }
-      .screen-tricks .menu-scroll { max-height: min(27vh, 300px); }
-
-      .craft-showcase-frame { position: relative; aspect-ratio: 1 / 1; }
+      .craft-showcase-frame { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #0d1012; }
       .craft-view {
         position: absolute; inset: 0; display: block; width: 100%; height: 100%;
         border: 0; background: #0d1012; touch-action: none;
@@ -1953,6 +1674,12 @@
       }
       .frame-primary[hidden] { display: none; }
       .frame-primary:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 2px; }
+      /* On a phone a longer primary gives way first and wraps, since the
+         legend beside it clips: Make a room's CREAR LA SALA cut Esc Volver
+         at 390 and 360 px (modes:card). */
+      @media (max-width: 480px) {
+        .frame-primary { flex-shrink: 1000; padding: 0 12px; letter-spacing: 0.06em; line-height: 1.15; }
+      }
       /* On a coarse pointer every target is at least 44 px: the copy may
          shrink on a phone, the target never does. */
       @media (pointer: coarse) {
@@ -1981,12 +1708,9 @@
       .screen-fc .row:focus-visible { outline-color: var(--bf-accent); }
 
       /* A row shows its kind before Enter (rowKind in src/ui/ui.js): a
-         value row its control, a page a chevron, a link an arrow. */
-      .row-nav::after, .row-link::after { margin-left: 10px; color: #4d5558; }
-      .row-nav::after { content: "\203A"; font-size: 19px; line-height: 1; }
-      .row-link::after { content: "\2197"; font-size: 15px; }
+         value row its control, a page a chevron. */
+      .row-nav::after { content: "\203A"; margin-left: 10px; font-size: 19px; line-height: 1; color: #4d5558; }
       .row-nav.on::after { color: var(--sakura); }
-      .row-link.on::after { color: var(--slate); }
       .row-info { cursor: default; }
       /* A reading off the hardware (padTroubleItem), so amber, and a row
          rather than a banner so a radio pilot can reach it. */
@@ -2025,43 +1749,6 @@
       .row-primary.on { color: var(--deep); background: var(--mint); border-left-color: var(--mint); box-shadow: none; }
       /* The value too: sakura on the mint fill was unreadable. */
       .row-primary.on .row-label, .row-primary.on .row-value { color: var(--deep); }
-
-      /*
-       * STANDINGS, above the actions rather than as rows: a leaderboard is
-       * read, and forty rows would make the cursor walk all of them to
-       * reach Back. Rank, pilot, lap; a record in mint, the reader's own
-       * row marked in sakura.
-       */
-      .standings-table {
-        grid-column: 1 / -1; justify-self: center;
-        width: min(100%, 560px); max-height: min(38vh, 20em); margin: 0 0 14px;
-        overflow-y: auto; pointer-events: auto;
-        scrollbar-width: thin; scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
-      }
-      .standings-row {
-        display: grid; grid-template-columns: 2.4em 1fr auto; align-items: baseline; gap: 12px;
-        padding: 6px 14px; font-size: 15px; color: rgba(215, 221, 221, 0.82);
-      }
-      .standings-head {
-        padding-bottom: 2px;
-        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate);
-      }
-      .standings-rank, .standings-lap { font-variant-numeric: tabular-nums; }
-      .standings-rank { color: var(--slate); }
-      .standings-pilot { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-      .standings-lap { font-weight: 600; color: var(--cream); }
-      .standings-row.is-record .standings-lap { color: var(--mint); }
-      .standings-row.is-me {
-        background: linear-gradient(90deg, rgba(215, 221, 221, 0.14), rgba(215, 221, 221, 0) 70%);
-        box-shadow: inset 3px 0 0 var(--sakura);
-      }
-      .standings-row.is-me .standings-pilot { color: var(--cream); }
-      .standings-ghost {
-        margin-left: 8px; padding: 1px 6px; border-radius: 0;
-        font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-        color: var(--slate); background: rgba(154, 163, 167, 0.18);
-      }
-      .standings-note { padding: 10px 14px; font-size: 14px; color: var(--slate); }
 
       /* A group heading in a long list: not a row, so no cursor, hover or
          click, just a bracketed caption over a hairline. */
@@ -2586,20 +2273,23 @@
           -webkit-line-clamp: 3; line-clamp: 3;
         }
         .gate-card-mark { left: 7px; bottom: 6px; width: 42px; height: 42px; }
-        /* Three to seven cards on an upright phone (360 by 640 is the
+        /* Two to seven cards on an upright phone (360 by 640 is the
            floor) fit by dropping the sentence and all tags but the card's
-           own; name, picture and that tag carry the choice. The picture is
-           laid over its box so its aspect cannot hold the card tall. */
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-blurb,
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art::before,
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 56px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { left: 5px; bottom: 5px; width: 34px; height: 34px; }
+           own (two since the combat-only cut left Flight Club with Free
+           Flight and Learn to fly, whose full cards ran under the command
+           bar at 360 by 640); name, picture and that tag carry the choice.
+           The picture is laid over its box so its aspect cannot hold the
+           card tall. */
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-blurb,
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art::before,
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 56px; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
+        .gate-cards:is([data-count="2"], [data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { left: 5px; bottom: 5px; width: 34px; height: 34px; }
 
         .screen-maps .menu-stage { display: block; position: relative; width: 100%; max-width: 540px; }
         .screen-maps .menu { grid-column: auto; }
@@ -2608,8 +2298,8 @@
            goes under the list instead. */
         .screen-courses .menu-help { position: static; padding: 8px 8px 0; }
       }
-      /* An upright phone 700 px tall or less, rooms panel open over four,
-         six or seven cards: everything on the gate comes down a step, and
+      /* An upright phone 700 px tall or less, rooms panel open over four
+         to seven cards: everything on the gate comes down a step, and
          the Beta sentence goes (its tag stays), or the last card ends up
          under the command bar at 360 by 640. */
       @media (max-width: 860px) and (min-height: 521px) and (max-height: 700px) {
@@ -2622,11 +2312,11 @@
         .gate-rooms-list { gap: 2px; }
         .gate-rooms-list .gate-room { padding: 1px 7px; }
         .gate-rooms-list .gate-room-name { font-size: 13px; line-height: 1.2; }
-        .screen-title.is-gate .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) { gap: 4px; }
-        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-art { min-height: 38px; }
-        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 1px; padding: 4px 12px 5px; }
-        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 13px; }
-        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-mark { bottom: 3px; width: 28px; height: 28px; }
+        .screen-title.is-gate .gate-cards:is([data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
+        .gate-cards:is([data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { min-height: 38px; }
+        .gate-cards:is([data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 1px; padding: 4px 12px 5px; }
+        .gate-cards:is([data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 13px; }
+        .gate-cards:is([data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { bottom: 3px; width: 28px; height: 28px; }
       }
       /*
        * A phone on its side, or any window under 520 px tall. It matches
@@ -2713,9 +2403,6 @@
         /* Narrow, so a 32 letter name keeps to one line beside it. */
         .screen-title.is-gate .gate-rooms-list .gate-room-watch { padding-left: 6px; padding-right: 6px; }
         .screen-title.is-gate .gate-rooms-list .gate-room-watch .gate-room-name { letter-spacing: 0.06em; }
-        /* The stacked cards' 4 px gap the count rule above asks for, which
-           the gate's own 10 px outranks: the rooms took that height. */
-        .screen-title.is-gate[data-hub="club"]:has(.gate-rooms-list .gate-room) .gate-cards { gap: 4px; }
       }
       /* Home on a short upright phone: the hub cards' links come down a
          step, as the cards do in the block above, so the Hangar's seven
@@ -2738,26 +2425,6 @@
         .screen-title.is-gate[data-hub=""] .gate-cards {
           flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
         }
-      }
-      /* With rooms listed, Flight Club's panel and its pilot stats both
-         stand over the cards, so the pictures give back the height, as
-         home's do under its rooms band (106 px at 720 high, so the plan
-         drawing clears the card's number; 330 px at 1080); on a short
-         window on its side the
-         cards are their names and tags, as home's are on a phone. */
-      @media (min-width: 861px) and (min-height: 521px) {
-        .screen-title.is-gate[data-hub="club"]:has(.gate-rooms-list .gate-room) .gate-card-art {
-          height: clamp(64px, calc(62vh - 340px), 400px);
-        }
-      }
-      @media (max-height: 520px) {
-        .screen-title.is-gate[data-hub="club"]:has(.gate-rooms-list .gate-room) .gate-card-art { display: none; }
-      }
-      /* Over 820 high the pilot stats stand at full height over the cards
-         even with no room listed, and Trick Battle's three tags ran under
-         the bar at 1080 (modes:card: 1031 px over a bar at 1028). */
-      @media (min-width: 861px) and (min-height: 821px) {
-        .screen-title.is-gate[data-hub="club"] .gate-card-art { height: clamp(120px, calc(62vh - 340px), 400px); }
       }
 
       /* The map screen: a card per world, each one playing a short flight
@@ -2791,80 +2458,18 @@
       .map-card.chosen { box-shadow: inset 0 0 0 1px var(--mint); }
       .map-card.chosen.on { box-shadow: inset 0 0 0 1px var(--pdcs-blue), 0 0 0 2px var(--mint); }
       .map-card.chosen .map-card-name { color: var(--mint); }
-      /* 16 by 9, so the thumbnail is the shape of the thing it is a
-         thumbnail of. A looping clip of the title shot fills this box. */
+      /* 16 by 9, so the picture is the shape of the world it shows: the
+         card's poster (--poster, set by src/ui/cards.js wearPoster), a
+         rendered frame of the world from scripts/posters.js. A background
+         so a missing file degrades to the dark rectangle. */
       .map-reel {
         display: block; width: 100%; aspect-ratio: 16 / 9; background: #0d1012;
         position: relative; overflow: hidden;
       }
-      .map-reel-view {
-        position: absolute; inset: 0; width: 100%; height: 100%;
-        border: 0; display: block; object-fit: cover; pointer-events: none;
-        z-index: 0;
-      }
-      /*
-       * The poster: the still a world wears until its clip exists.
-       *
-       * A rendered frame of the world itself, from scripts/posters.js. The
-       * URL arrives as --poster, set on the card by src/ui/ui.js, because
-       * two boxes read it: the reel paints it, and so does the wait panel,
-       * which sits over the opaque recorder iframe and would otherwise be a
-       * scrim over nothing. A background rather than an <img> so that the
-       * recorder's three `replaceChildren` calls cannot throw the picture
-       * away, and so that a missing file degrades to the dark rectangle the
-       * card always was.
-       */
       .map-card.has-poster .map-reel {
         background-image: var(--poster);
         background-size: cover;
         background-position: center;
-      }
-      .map-card-still {
-        position: absolute; left: 0; right: 0; top: 0; aspect-ratio: 16 / 9;
-        display: flex; align-items: center; justify-content: center;
-        padding: 0 18px; box-sizing: border-box; text-align: center;
-        color: var(--slate); font-size: 13px; line-height: 1.5;
-        z-index: 3;
-      }
-      /* Over a poster this sentence is type on a photograph, and slate on a
-         cream frontage is not type at all. Cream with a shadow reads on
-         both, so it is set once rather than twice. */
-      .map-card.has-poster .map-card-still {
-        color: var(--cream); text-shadow: 0 1px 4px rgba(10, 13, 14, 0.9);
-      }
-      .map-card-still:empty { display: none; }
-      /* First-time clip wait: "loading" over the card. Cached visits never
-         see it. */
-      .map-reel-wait {
-        position: absolute; inset: 0; z-index: 2;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center;
-        gap: 8px;
-        padding: 12px 16px;
-        box-sizing: border-box;
-        text-align: center;
-        background: radial-gradient(120% 90% at 50% 42%, #0d1012, #0d1012);
-        pointer-events: none;
-      }
-      /*
-       * With a poster the wait is a caption on a photograph rather than a
-       * screen of its own, so the flat panel becomes a scrim over the same
-       * picture and the copy moves off the middle of it. Dark at the foot,
-       * where the type is, and thin at the top, where the world is.
-       */
-      .map-card.has-poster .map-reel-wait {
-        background:
-          linear-gradient(
-            to top,
-            rgba(10, 13, 14, 0.90) 0%,
-            rgba(10, 13, 14, 0.62) 42%,
-            rgba(10, 13, 14, 0.16) 100%
-          ),
-          var(--poster) center / cover no-repeat;
-        justify-content: flex-end;
-      }
-      .map-reel-wait-stage {
-        font-size: 13px; letter-spacing: 0.06em; color: var(--cream);
       }
       .map-card-body { padding: 10px 14px 12px; display: flex; gap: 10px; align-items: baseline; }
       .map-card-name {
@@ -3313,11 +2918,6 @@
       .results-empty {
         margin: 0; color: var(--slate); font-size: 15px; line-height: 1.55;
         max-width: 34em;
-      }
-      /* One line about the ghost that was chased, under the lap rows. Mint
-         for the same reason the ghost itself is: it is a record, flying. */
-      .results-ghost {
-        margin: 10px 0 0; color: var(--mint); font-size: 14px; line-height: 1.5;
       }
       .result-row {
         padding: 8px 0 10px;
@@ -4525,7 +4125,6 @@
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
       }
       .hangar-strip-bar { flex: 1; }
-      .hangar-strip-bar.film, .hangar-dot.film { opacity: 0.8; }
       .hangar-scheme-tag {
         font: 700 10px/1 var(--ui-font); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mint);
       }
@@ -4561,13 +4160,6 @@
         background: var(--swatch);
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), inset 0 10px 14px -10px rgba(255, 255, 255, 0.35);
         transition: transform 220ms var(--hg-spring), box-shadow 160ms;
-      }
-      /* A see through film over the ribs of a wing, lit from behind: the
-       * swatch shows the film's colour with the wood through it. */
-      .hangar-swatch.film, .hangar-colour-chip.film {
-        background:
-          linear-gradient(color-mix(in srgb, var(--swatch) 76%, transparent), color-mix(in srgb, var(--swatch) 76%, transparent)),
-          repeating-linear-gradient(90deg, #6b5334 0 3px, #fff7e2 3px 11px);
       }
       .hangar-swatch:hover, .hangar-swatch:focus-visible {
         transform: scale(1.18); z-index: 1;
@@ -4731,9 +4323,6 @@
         content: ""; width: 14px; height: 14px; border-radius: 50%; flex: none;
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
         background: radial-gradient(circle at 34% 30%, #fff8 0 18%, transparent 19%), #b9a88a;
-      }
-      .paint-finish .paint-finish-film::before {
-        background: repeating-linear-gradient(90deg, #6b533488 0 2px, #ffdb1a99 2px 5px);
       }
       .paint-finish .paint-finish-gloss::before {
         background: radial-gradient(circle at 34% 30%, #fff 0 16%, #d5271f 17% 60%, #7a120d 100%);
@@ -4956,66 +4545,6 @@
       @media (max-width: 520px) {
         .music-title { max-width: 6.5em; font-size: 10px; }
       }
-
-      /* The target mark. A bracket on the next gate while it is in frame,
-         a chevron pinned inside the edge while it is not, and the range
-         under either. Green while the pilot is on the side the gate is
-         flown from, red while they are not, which is the same half space
-         the gate itself is coloured by: the display and the world must
-         never disagree about which way through.
-
-         currentColor everywhere, so the side is one class on the root and
-         not four colour writes a frame. Transform only, no width or top,
-         so tracking a gate at 30 m/s costs a composite and not a layout. */
-      .lock {
-        position: absolute; left: 0; top: 0; pointer-events: none;
-        color: #39ff8b;
-        filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
-        will-change: transform;
-      }
-      .lock.is-off { display: none; }
-      .lock.is-wrong { color: #ff5a5a; }
-      .lock-box {
-        position: absolute; left: 0; top: 0;
-        transform: translate(-50%, -50%);
-      }
-      .lock.is-edge .lock-box { display: none; }
-      /* Corner ticks, not a closed rectangle. A box drawn round an opening
-         reads as a second gate; four ticks read as an instrument. */
-      .lock-box .lc {
-        position: absolute; width: 24%; height: 24%;
-        border: 2px solid currentColor;
-      }
-      .lock-box .lc.tl { left: 0; top: 0; border-right: 0; border-bottom: 0; }
-      .lock-box .lc.tr { right: 0; top: 0; border-left: 0; border-bottom: 0; }
-      .lock-box .lc.bl { left: 0; bottom: 0; border-right: 0; border-top: 0; }
-      .lock-box .lc.br { right: 0; bottom: 0; border-left: 0; border-top: 0; }
-      /* The chevron is the state where the pilot cannot see the target at
-         all, so it is the loudest thing this mark ever draws: bigger than
-         the bracket's ticks, and breathing, because a still triangle on the
-         edge of a moving frame is a thing the eye stops reporting. */
-      .lock-arrow {
-        position: absolute; left: 0; top: 0; display: none;
-        width: 0; height: 0;
-        border-left: 15px solid transparent;
-        border-right: 15px solid transparent;
-        border-bottom: 27px solid currentColor;
-        transform-origin: 50% 50%;
-      }
-      .lock.is-edge .lock-arrow { display: block; }
-      /* Shallow on purpose. Deep enough to catch the eye at the edge of the
-         frame, never so deep that the chevron is missing from a frame: a
-         marker that is sometimes absent is a marker a pilot learns to
-         distrust, and a capture of one is evidence of nothing. */
-      .lock.is-edge { animation: lock-hunt 1.15s ease-in-out infinite; }
-      @keyframes lock-hunt {
-        50% { opacity: 0.72; }
-      }
-      .lock-dist {
-        position: absolute; left: 0; top: 0;
-        font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
-        color: currentColor; white-space: nowrap;
-      }
     </style>
     <!-- Three.js only, pinned. The addons path is the same package, used
          for the post processing chain; nothing else is on the render
@@ -5075,7 +4604,6 @@
               <div class="system-row" data-row="input" data-state="wait"><span data-label="row_input">INPUT DEVICES</span><span id="sys-input">WAIT</span></div>
               <div class="system-row" data-row="audio" data-state="wait"><span data-label="row_audio">AUDIO SYSTEM</span><span id="sys-audio">WAIT</span></div>
               <div class="system-row" data-row="telemetry" data-state="wait"><span data-label="row_telemetry">TELEMETRY</span><span id="sys-telemetry">WAIT</span></div>
-              <div class="system-row" data-row="online" data-state="wait"><span data-label="row_online">ONLINE SERVICES</span><span id="sys-online">WAIT</span></div>
             </div>
             <div class="drone-wireframe" aria-hidden="true"><img src="assets/boot/drone.svg" alt="" width="360" height="240" decoding="async" /></div>
           </div>

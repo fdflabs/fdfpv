@@ -41,7 +41,7 @@ import { API_ORIGIN } from '../src/share/api.js';
 /* The pages a pilot reaches, site relative. Developer pages (dev/, tools/,
  * tests/, the track builder's own page) are left as they are. */
 export const POLICY_PAGES = ['index.html', 'landing.html', 'admin.html', 'privacy.html', 'terms.html',
-  'src/share/orbit.html', 'vids/index.html'];
+  'vids/index.html'];
 
 const API_WS = API_ORIGIN.replace(/^https:/, 'wss:');
 const CDN = 'https://cdn.jsdelivr.net';

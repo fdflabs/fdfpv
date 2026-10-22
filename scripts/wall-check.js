@@ -33,7 +33,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeRig, buildWorld, V, linePath, rampPath, sub, len, cl, cross } from './lib/flightrig.js';
-import { deriveObstacles } from '../src/game/obstacles.js';
 import { CRAFT_ARM, CRAFT_HULL_R, CRAFT_R, BOUNCE_SEPARATION } from '../src/game/collide.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -79,13 +78,13 @@ function report(ok, label, note) {
 
 const world = buildWorld([{
   kind: 'box', material: 'wall', x0: FACE_X, y0: 0, z0: -6, x1: FACE_X + 1.5, y1: 8, z1: 6,
-}], deriveObstacles, 0);
+}]);
 
 /* Settle in front of the wall and ramp up to the speed, released 1.4 m off
  * the face. Returns the rig and its craft at the release point. */
 async function approach(yaw, speed) {
   const rig = await makeRig({
-    wasmBytes, diffText, colliders: world.colliders, field: world.field,
+    wasmBytes, diffText, colliders: world.colliders,
     spawn: V(FACE_X - 15, 0, 0), spawnYaw: yaw, groundY: 0,
   });
   rig.hold(200, 0, 0, 0, 0.5);

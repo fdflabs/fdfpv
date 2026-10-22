@@ -33,10 +33,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { MAPS, mapById } from '../maps/registry.js';
-import { duplicateTrack, isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
-import { raceGatesOf } from '../builder/course.js';
-import { planesFor } from '../game/verify.js';
+import { MAPS } from '../maps/registry.js';
 import {
   CAL_STEPS, MOUSE_SENS, MOUSE_EXPOS, MOUSE_CENTRES,
 } from '../input/input.js';
@@ -48,7 +45,7 @@ import { LINK_PRESETS } from '../input/link.js';
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { PERF_MODES } from '../render/dynres.js';
 import { CUSTOM_TUNE, TUNES, tuneById } from '../../configs/registry.js';
-import { AIRFRAME_IDS, airframeById, currentAirframeId, DEFAULT_AIRFRAME, floatVersionOf, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
+import { AIRFRAME_IDS, airframeById, currentAirframeId, DEFAULT_AIRFRAME } from '../../configs/airframes.js';
 import { POWER, powerChoice } from '../../configs/power.js';
 import { PROPS, normaliseParts } from '../../configs/hangar-parts.js';
 import { combatChoice } from '../../configs/combat.js';
@@ -57,7 +54,6 @@ import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts and Surfaces tabs. */
 import './hangar-tuning.js';
 import './hangar-parts.js';
-import './hangar-surfaces.js';
 import './hangar-shop.js';
 import './hangar-combat.js';
 import './hangar-kit.js';
@@ -109,10 +105,6 @@ import {
   setPidSlider,
   setPidsExpert,
 } from '../../configs/pids.js';
-import {
-  boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
-} from '../share/board.js';
-import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
 import { crashRecord, logError } from '../share/crashrecord.js';
@@ -122,34 +114,6 @@ import { createShotTray } from './bugshots.js';
 import { watchVersion } from './update.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from '../share/pilot.js';
 import { accountsAvailable, mayPlay, needSignIn } from '../share/account.js';
-import { hasFlyableTrack, inspectCourse } from '../share/listing.js';
-import { activeCourseSummary } from '../share/summary.js';
-import {
-  lapSlot,
-  readPendingTime,
-  readPostedBest,
-  writePendingTime,
-  /* My tracks seats the pilot's own tracks (seatLocal) and clears a deleted
-   * one out of the seat. A board track's seat is written by main.js, which
-   * owns the fetch. */
-  clearShareImport,
-  readBind,
-  readEditKey,
-  readShareImport,
-  writeShareImport,
-} from '../share/trackseat.js';
-import {
-  clipKeyForMap,
-  getClip,
-  putClip,
-  makeClipElement,
-  recordCanvasStream,
-  withCaptureLock,
-  whenVisible,
-  CLIP_MS_MAX,
-  CLIP_W,
-  CLIP_H,
-} from '../share/orbitcache.js';
 import {
   GRAPHICS_IDS,
   graphicsLabel,
@@ -165,9 +129,7 @@ import {
   cameraTiltRad,
   clampCameraAngle,
 } from '../render/lens.js';
-import { ScoreHud } from './scorehud.js';
 import { MARK_STYLES } from './peermarks.js';
-import { formatScore } from '../game/score.js';
 import { fillCredits } from './credits.js';
 import { mountRatesPanel } from './ratespanel.js';
 import { mountPidsPanel } from './pidspanel.js';
@@ -176,32 +138,22 @@ import {
   downloadCli, drawAttitude, FcSession, paintPageStrip, paintTabStrip,
 } from './fc.js';
 import { str, plural, LOCALES, LOCALE_NAMES, currentLocale, rememberLocale } from '../strings/index.js';
-/* The pilot's own tracks live in this browser's library, and My tracks
- * lists, copies, renames and deletes them there. */
 import {
-  deleteTrack, listMapTracks, loadMapTrack, readOnlineStates, saveTrack,
-} from '../trackbuilder/storage.js';
-/* Everybody's tracks, on the tracks server (src/share/cloud.js). */
-import {
-  TRACK_SYNC_EVENT, fetchAllTracks, fetchTrack, pilotKey, pullOwnTracks, tracksConfigured,
-} from '../share/cloud.js';
-import {
-  SETTINGS_KEY, FLIGHT_MODES, PACK_VOLTAGES, LAP_COUNTS, RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES,
+  SETTINGS_KEY, FLIGHT_MODES, PACK_VOLTAGES, RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES,
   hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN, WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor,
-  FREESTYLE_SCORING, AVX_INSETS, AVX_LEVELS, AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats,
+  AVX_INSETS, AVX_LEVELS, AVX_PALETTES, loadSettings, FIRST_AIRFRAME,
   seatAirframe, DEFAULTS, saveSettings, airHintSeen, markAirHintSeen, detectFirstRun, tuneChoices, chosenTime, toggleFavourite,
 } from './settings.js';
 import {
   choice, cycle, fitsAsSegments, number, stampIds, stepper, toggle,
 } from './rows.js';
 import {
-  WAYS, GATE_WAYS, HUBS, OPEN_ACTIONS, hubWays, hubOfAction, seatedWay, wayFilter, boardCraft, craftSvg, reticleSvg,
+  WAYS, GATE_WAYS, HUBS, OPEN_ACTIONS, seatedWay, wayFilter, craftSvg, reticleSvg,
 } from './ways.js';
 import { formatDay, formatDelta, formatRunClock, formatTime } from './format.js';
 import {
   btn, el, hintWithKeys, keyHowtoRows, makeGimbal, makePadCard, makeWeightSlider, placeNub, placeSticks, thrNote, wordmark,
 } from './widgets.js';
-import { scoreableTricks, trickStatus } from './trickslist.js';
 /* scripts/modes-selftest.js reads the table from here, and the HUDs and
  * main.js read the clock formats. */
 export { WAYS, formatRunClock, formatTime };
@@ -212,8 +164,8 @@ export { WAYS, formatRunClock, formatTime };
  * draws as a plain action, which promises less, so forgetting one is safe.
  */
 export const SCREEN_ACTIONS = new Set([
-  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'planerates', 'pids', 'fc',
-  'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
+  'pilot', 'quad', 'rates', 'planerates', 'pids', 'fc',
+  'howto', 'credits', 'choosepad',
   'calibrate', 'friends', 'rooms', 'roomnew', 'controls', 'controller',
 ]);
 
@@ -221,17 +173,13 @@ export const SCREEN_ACTIONS = new Set([
  * The screens a room is entered from and returned to on Back. The title is
  * left out: Back reaches it anyway when nothing else is open.
  */
-export const ROOM_PARENTS = new Set(['courses', 'freestyle', 'launch', 'quad', 'pilot']);
+export const ROOM_PARENTS = new Set(['quad', 'pilot']);
 
 /* The breadcrumb's word for each screen. */
 export const SCREEN_TITLES = {
   title: str('ui.product_name'),
-  courses: str('ui.my_tracks'),
-  freestyle: str('ui.freestyle'),
   pilot: str('ui.settings'),
   quad: str('ui.quad'),
-  launch: str('ui.before_you_fly'),
-  standings: str('ui.standings'),
   rates: str('ui.rates'),
   planerates: str('ui.rates'),
   pids: 'PIDs',
@@ -243,16 +191,15 @@ export const SCREEN_TITLES = {
   quick: str('pause.flight'),
   results: str('ui.run_complete'),
   howto: str('ui.how_to_fly'),
-  tricks: str('ui.trick_list'),
   credits: str('ui.credits'),
   friends: str('friends.title'),
   rooms: str('roombrowser.title'),
   roomnew: str('roombrowser.new_title'),
 };
 /*
- * The freestyle world in the seat, or null when the seat holds a track. The
- * title's Map row names what Fly would launch, which is the seat, not the
- * last world the picker showed.
+ * The freestyle world in the seat, or null when it holds none. The title's
+ * Map row names what Fly would launch, which is the seat, not the last
+ * world the picker showed.
  */
 export function seatedFreestyleMap(s) {
   const id = s ? s.map : undefined;
@@ -263,48 +210,10 @@ export function seatedFreestyleMap(s) {
  * accountui.js and the scripts import them from here. */
 export {
   SETTINGS_KEY, FLIGHT_MODES, CAMERA_FOVS, CAMERA_FOV_DEFAULT, CAMERA_ANGLE_MIN, CAMERA_ANGLE_MAX, CAMERA_ANGLE_DEFAULT, PACK_VOLTAGES,
-  LAP_COUNTS, RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES, hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN,
-  WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor, FREESTYLE_SCORING, AVX_INSETS, AVX_LEVELS,
-  AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats, seatAirframe, chosenTime,
+  RENDER_SCALES, FPS_CAPS, LATENCY_MODES, HUD_STYLES, hudStyleFor, FLIGHT_STYLES, WEIGHT_MIN,
+  WEIGHT_MAX, WEIGHT_STEP, WEIGHT_STOCK, clampWeight, gravityScaleFor, AVX_INSETS, AVX_LEVELS,
+  AVX_PALETTES, loadSettings, FIRST_AIRFRAME, seatAirframe, chosenTime,
 };
-
-export const FREESTYLE_SCORING_LABEL = { off: str('ui.off'), free: str('ui.free_flight'), scored: str('ui.scored_run') };
-
-/*
- * Scoring is unfinished, so whenever it is switched on the row's note opens
- * with that caveat before describing the modes (see DEFAULTS.freestyleScoring).
- */
-const SCORING_WARNING = str('ui.this_is_an_unfinished_feature_and')
-  + str('ui.the_recogniser_misses_tricks_it_should')
-  + str('ui.the_ones_it_catches_so_read')
-  + str('ui.on_your_flying');
-
-const SCORING_HOW = str('ui.off_no_overlay_no_names_and')
-  + str('ui.free_flight_tricks_are_named_and')
-  + str('ui.board_and_the_run_never_ends')
-  + str('ui.scored_run_two_minutes_on_the')
-  + str('ui.score_board');
-
-export function scoringNote(mode) {
-  const parts = mode === 'off' ? [SCORING_HOW] : [SCORING_WARNING, SCORING_HOW];
-  return parts.join(' ');
-}
-
-/*
- * The one name a track card credits. The board's `author` is whoever
- * published it; for the imported RaceGOW5 rooms that is not who designed
- * them, and the board passes the designer through, so the designer wins
- * when known. The detail pane shows both.
- */
-export function byLine(t) {
-  if (!t) {
-    return '';
-  }
-  if (t.designer) {
-    return str('ui.by', { designer: t.designer });
-  }
-  return t.author ? str('ui.by_2', { author: t.author }) : '';
-}
 
 /*
  * How src/render/carousel3d.js draws a picker card that is not simply the
@@ -320,19 +229,6 @@ function pickerLook(key, id, fit) {
     fitted = { id, entry, option };
   }
   return { key, look: lookFor(id, fit.livery), fit: fitted, combat: fit.combat ?? null };
-}
-
-/*
- * Whether the seat holds a race, which is what earns the launch card: it
- * explains what a lap time counts as, and a flight with no clock has
- * nothing to explain. Decided by gate count, as the rooms and the renderer
- * decide it, so a published track with no gates flies as freestyle whatever
- * world it stands in. A freestyle world is never a race.
- */
-export function seatIsRace(s) {
-  const world = MAPS.find(({ id }) => id === s.map) || MAPS[0];
-  const gates = world.mode === 'freestyle' ? 0 : (activeCourseSummary()?.gates ?? 0);
-  return gates > 0;
 }
 
 /*
@@ -389,112 +285,10 @@ export function padTroubleItem(info) {
   };
 }
 
-/* What the seated track is to the board, or null when nothing is seated. */
-export function liveListing() {
-  let seated = null;
-  try {
-    seated = inspectCourse();
-  } catch (e) {
-    /* Storage that cannot be read holds no seat worth listing. */
-  }
-  return seated && seated.kind !== 'none' ? seated : null;
-}
-
-/*
- * The plane a lap by `airframe` on this track is filed under on the board,
- * or '' for every lap that is not a plane's on a track built inside a world
- * (src/game/verify.js planesFor): those go where they always went.
- */
-export function lapCraftOf(doc, airframe) {
-  const af = airframeById(airframe);
-  return af.fixedWing && doc && doc.schemaVersion >= 4 && isMapTrack(doc) ? af.id : '';
-}
-
-/*
- * What a track card is remembered by. items() makes new card objects on
- * every render, so the chosen one is kept as this string, never by
- * reference: its kind and its track's id.
- */
-export function courseCardKey(card) {
-  const course = card ? card.course : null;
-  return course ? `${course.kind}:${course.track.id}` : null;
-}
-
-/*
- * The world a track stands in, or null when this build no longer has it:
- * a track on a retired world is listed as retired rather than as a card
- * that loads nothing, because mapById answers an unknown id with another
- * world.
- */
-export function liveWorld(mapId) {
-  const entry = mapById(mapId);
-  return entry.id === mapId && entry.build ? entry : null;
-}
-
-/*
- * Another pilot's track from the tracks server: fly it, or edit a copy of
- * it, which is the pilot's own from the first save. Editing the original is
- * not offered because it is not theirs: the server would refuse the save.
- */
-function cloudCardRows(subject) {
-  const t = subject.course.track;
-  const name = subject.label;
-  const world = liveWorld(t.map);
-  const rows = [{ label: name, section: true }];
-  if (!world) {
-    rows.push({ label: str('cloud.retired_world'), section: true });
-  } else {
-    rows.push(
-      { label: str('ui.play'), action: 'card-fly', note: str('ui.race_it_in', { name, world: world.name }) },
-      { label: str('cloud.edit_a_copy'), action: 'card-editcopy', note: str('cloud.edit_a_copy_note', { name }) },
-    );
-  }
-  rows.push({ label: str('ui.back_to_the_list'), action: 'card-back' });
-  return rows;
-}
-
-/*
- * The list under a chosen track card. Choosing a card does not fly it: it
- * opens this list, Play first, so Enter twice still flies. The pilot's own
- * tracks can be edited, renamed, copied and deleted; a board track can be
- * copied into My tracks, its standings read, or its page opened. Each entry
- * is [label key, action, note key]; every note may name the track and its
- * world.
- */
-const OWN_CARD_ENTRIES = [
-  ['ui.edit', 'card-edit', 'ui.open_it_in_the_builder_in'],
-  ['ui.rename', 'card-rename', 'ui.give_it_a_name_you_will'],
-  ['ui.duplicate', 'card-duplicate', 'ui.a_copy_to_change_without_touching'],
-  ['ui.delete_label', 'card-delete', 'ui.take_it_out_of_this_browser'],
-];
-const BOARD_CARD_ENTRIES = [
-  ['ui.duplicate', 'card-duplicate', 'ui.copy_it_into_my_tracks_board'],
-  ['ui.standings', 'card-standings', 'ui.every_time_posted_on_fastest_first'],
-  ['ui.open_on_the_web', 'card-board', 'ui.the_public_page_for_a_link'],
-];
-
-export function courseCardRows(subject) {
-  if (subject.course.kind === 'cloud') {
-    return cloudCardRows(subject);
-  }
-  const fromBoard = subject.course.kind === 'board';
-  const vars = { name: subject.label, world: mapById(subject.course.track.map).name };
-  const entry = ([label, action, note]) => ({ label: str(label), action, note: str(note, vars) });
-  /* The heading names the track in words, since the highlighted card sits
-   * well above this list. A section, so the cursor skips it. */
-  return [
-    { label: subject.label, section: true },
-    entry(['ui.play', 'card-fly', fromBoard ? 'ui.load_from_the_board_and_fly' : 'ui.race_it_in']),
-    ...(fromBoard ? BOARD_CARD_ENTRIES : OWN_CARD_ENTRIES).map(entry),
-    { label: str('ui.back_to_the_list'), action: 'card-back' },
-  ];
-}
-
 /*
  * The aircraft row heading the Quad screen. Its note is the loudest on the
  * screen because the change is: a new aircraft brings its own tune, pack and
- * camera, and its own kind of track (a whoop room, a five inch field, an
- * airfield), so the seated track moves too.
+ * camera.
  *
  * Given `swap` (the shell's, present only during a run) the choice swaps the
  * aircraft in place via src/main.js hotSwap; otherwise it seats it for the
@@ -529,22 +323,14 @@ function linkParams() {
 
 /*
  * The session's purpose when the link already gives it, so the gate does
- * not ask again: a board link (?share=) or a chase link (?ghost=) means a
- * race, and ?map= a known world's own mode. null when the link says nothing
- * usable. Only links answer this, never stored settings: see the
+ * not ask again: ?map= a known world's own mode. null when the link says
+ * nothing usable. Only links answer this, never stored settings: see the
  * constructor.
  */
 function linkedMode() {
-  const q = linkParams();
-  if (q.get('share') || q.get('ghost')) {
-    return 'race';
-  }
-  const named = q.get('map');
+  const named = linkParams().get('map');
   const world = named ? MAPS.find(({ id }) => id === named) : undefined;
-  if (!world) {
-    return null;
-  }
-  return world.mode === 'freestyle' ? world.mode : 'race';
+  return world ? world.mode : null;
 }
 
 /*
@@ -603,7 +389,7 @@ export class Ui {
      * this session for, and in which aircraft. The two halves are held
      * apart because they are remembered differently.
      *
-     * The session's purpose, 'race' or 'freestyle', is answered by a link
+     * The session's purpose, 'freestyle', is answered by a link
      * that names what to fly (linkedMode) and by nothing else: it is not
      * in the settings and is never remembered, on purpose. Racing on
      * Tuesday says nothing about Wednesday, and a remembered answer would
@@ -632,35 +418,12 @@ export class Ui {
     const seatedByLink = seatLinkedCraft(this.settings);
     /* The gate is up while either half is unanswered: see onGate. */
     this.craftGate = !seatedByLink;
-    /* The hub on the gate, null for home and its three hub cards. */
+    /* The hub on the gate ('hangar'), null for home. */
     this.hub = null;
     /* The walkable hangar, while it is open (src/ui/hangarwalk.js). */
     this.walk = null;
-    /* A guided first flight is in the air; main.js reads it. */
-    this.guided = false;
     /* The room game a title card preselected; see act()'s ways. */
     this.roomGame = null;
-    /* The board's tracks, this browser's own (loadLocalCourses, listed by
-     * My tracks together with the board's), and everybody else's on the
-     * tracks server a page at a time (loadCloudCourses) with where the
-     * next page starts. */
-    this.boardCourses = [];
-    this.localCourses = [];
-    this.cloudCourses = [];
-    this.cloudNext = '';
-    /* The standings screen's subject and times: null is not asked yet
-     * (drawn as Reading the board), an empty array is a board that
-     * answered with none. */
-    this.standingsFor = null;
-    this.standingsTimes = null;
-    this.standingsError = '';
-    /* The Ghost and Live rows the shell pushes (setGhostRow, setLiveRow),
-     * because the shell knows what can be chased; null hides the row. */
-    this.ghostRow = null;
-    this.liveRow = null;
-    this.boardLoading = false;
-    this.openingBoardCourse = false;
-    this.onBoardCourse = null; /* (track) => Promise<boolean> */
     this.screen = 'title';
     /*
      * The device the pilot last touched, so the command bar prints that
@@ -686,11 +449,6 @@ export class Ui {
       const seatedId = seatedWay(this.settings, this.mode).id;
       this.cursor = Math.max(0, GATE_WAYS.findIndex(({ id }) => id === seatedId));
     }
-    /* The course card the pilot chose (courseCardKey), whose list is
-     * showing, and the last one they stood on, where Back to the list
-     * puts the cursor. */
-    this.cardSubject = null;
-    this.lastCardKey = null;
     this.onAction = null;    /* (action, settings) => void */
     this.onSettings = null;  /* (settings) => void */
     this.onMusicSkip = null; /* (dir) => void, -1 previous, +1 next */
@@ -749,13 +507,6 @@ export class Ui {
     this.fc = new FcSession();
     wireFcSession(this);
     this.onUiSound = null;   /* (kind) => void: 'move', 'adjust', 'select', 'back' */
-    this.share = null;       /* published course this run is flying, or null */
-    this.timePosted = null;  /* last successful post on the results screen */
-    /* The freestyle run the results screen shows and whether it was sent;
-     * resetScore clears both on every restart. */
-    this.freestyleRun = null;
-    this.runPosted = null;
-    this.resultsFastest = null;
     /* The flight's debrief record (src/game/debrief.js), or null. */
     this.resultsDebrief = null;
     this.padPrev = { up: false, down: false, left: false, right: false, select: false, back: false };
@@ -766,7 +517,6 @@ export class Ui {
     this.dropIndex = null;
     this.menuRows = [];
     this.rowOffset = 0;
-    this.reelFreezeWorld = false;
     this.gpuInfo = null;
     /* Set by main.js; see setStickProbe. */
     this.stickProbe = null;
@@ -793,32 +543,6 @@ export class Ui {
     mountPage(this);
   }
 
-
-  /*
-   * PLAY: fly the track the seat now holds. The seat goes to Track mode and
-   * the shell builds the track's world if it is not the one standing, seats
-   * the track's gates on it and opens the launch card, where Fly goes
-   * (main.js 'play'). The pilot is on the title under the loading screen
-   * meanwhile, which is where a world swap always lands.
-   */
-  play() {
-    this.mode = 'race';
-    Object.assign(this.settings, { map: 'track' });
-    saveSettings(this.settings);
-    this.returnTo = 'title';
-    if (this.onAction) {
-      this.onAction('play');
-    }
-  }
-
-  /*
-   * Open the builder from My tracks: on one of the pilot's own tracks
-   * (`id`, Edit) or on an empty one in a world (`map`, New track), or on
-   * the casual sky course laid for it there (`casual`), flying. The
-   * shell builds the world if it has to and hands the pilot the builder's
-   * camera there; Escape out of the builder comes back to this screen.
-   */
-
   /* Which input the tutorial teaches. The column is rebuilt, not toggled:
    * it is a few lines, and the source rarely changes twice. */
   setHowtoSource(id) {
@@ -830,29 +554,18 @@ export class Ui {
   }
 
   /*
-   * Where the title's cursor lands when it is reset. On the gate it is the
-   * card the pilot already stands on, so two presses of Enter from a cold
-   * start put a returning pilot back where they were: at home the first
-   * hub, in a hub the seated aircraft's card (seatedWay). Everywhere else
-   * the first row that can be chosen.
+   * Where the title's cursor lands when it is reset: the first row that
+   * can be chosen. On the gate that is the first card, home's campaign
+   * (the Operations cards stand on home since Flight Club left, the lead,
+   * 2026-10-20) or the Hangar's first card, so two presses of Enter from
+   * a cold start put a returning pilot where they were.
    */
   titleStop() {
-    const items = this.items();
-    if (this.onGate()) {
-      /* Home opens on the first hub (Flight Club, the owner's call of
-       * 2026-10-03); inside a hub, on the seated aircraft's card. */
-      const target = this.hub ? seatedWay(this.settings, this.mode).action : `hub-${HUBS[0].id}`;
-      const found = items.findIndex(({ action }) => action === target);
-      if (found !== -1) {
-        return found;
-      }
-    }
-    return this.firstStop(items);
+    return this.firstStop(this.items());
   }
 
   /* Write guards for the overlay: setOsd runs every flight frame over the
-   * WebGL canvas, and unguarded writes cost 17 mutation records a frame
-   * (scorehud.js guards the same way). */
+   * WebGL canvas, and unguarded writes cost 17 mutation records a frame. */
   static text(el, value) {
     writeChanged(el, '__lastText', asText(value), (node, text) => { node.textContent = text; });
   }
@@ -902,12 +615,7 @@ export class Ui {
   }
 
   /*
-   * The picker with its Floats switch, which is the hangar's toggle by
-   * another door: the same s.floats, so the two always agree, and Choose
-   * seats it through withFloats. A flip is kept when the picker is put
-   * away without a choice, except on the seated plane (settleFloats).
-   *
-   * And with My Hangar beside the stock aircraft (src/ui/builds.js). A
+   * The picker, with My Hangar beside the stock aircraft (src/ui/builds.js). A
    * choice puts on what was chosen before the opener seats it: a build is
    * fitted, a stock plane gets the pilot's own customisation back. The
    * opener's onChoose is handed the airframe to seat and whether its slots
@@ -925,8 +633,7 @@ export class Ui {
     /*
      * The Engine switch on the seated aircraft: its loadout before the
      * first flip and after the last. A flip seated by Choose is a refit;
-     * one put away is undone, as settleFloats undoes the Floats switch, so
-     * what is flying is what the slots say. Only while nothing else (the
+     * one put away is undone, so what is flying is what the slots say. Only while nothing else (the
      * Loadout tab's Save, through Customise) has changed it since.
      */
     const seat = s.airframe;
@@ -936,13 +643,6 @@ export class Ui {
     this.carousel.open({
       ...opts,
       only: this.craftOnly(),
-      floats: {
-        on: (id) => Boolean(s.floats && s.floats[id]),
-        set: (id, on) => {
-          s.floats = { ...s.floats, [id]: on };
-          this.persistSettings();
-        },
-      },
       engine: {
         of: (id) => this.stockLoadout(id),
         set: (id, propulsion) => {
@@ -964,7 +664,7 @@ export class Ui {
       },
       onCustomise: (id, reopen, build) => this.openHangar(id, reopen, build),
       onChoose: (card, build) => {
-        const id = build ? build.airframe : withFloats(s, card);
+        const id = build ? build.airframe : card;
         const moved = build ? this.wearBuild(build) : unfitFamily(s, id);
         if (moved) {
           this.persistSettings();
@@ -979,7 +679,6 @@ export class Ui {
         opts.onChoose(id, moved);
       },
       onCancel: () => {
-        this.settleFloats();
         if (flipped()) {
           this.setStockLoadout(seat, flip.before);
         }
@@ -1005,18 +704,6 @@ export class Ui {
       s.combat = { ...s.combat, [id]: combat };
     }
     this.persistSettings();
-  }
-
-  /* The seated plane's toggle back in step with the seat, as seatAirframe
-   * keeps it, after a picker flip that seated nothing: put away, or a swap
-   * the run refused. Nothing then says floats on a plane on its wheels. */
-  settleFloats() {
-    const s = this.settings;
-    const land = landPlaneOf(s.airframe);
-    if (floatVersionOf(land) && Boolean(s.floats && s.floats[land]) !== isFloatVersion(s.airframe)) {
-      s.floats = { ...s.floats, [land]: isFloatVersion(s.airframe) };
-      this.persistSettings();
-    }
   }
 
   /*
@@ -1076,7 +763,7 @@ export class Ui {
     }
     this.buildList = list;
     saveBuilds(list);
-    const e = (this.settings.buildFits || {})[landPlaneOf(build.airframe)];
+    const e = (this.settings.buildFits || {})[build.airframe];
     if (!e || e.build !== build.id) {
       return false;
     }
@@ -1101,8 +788,8 @@ export class Ui {
    * own and the next number. */
   buildName(airframe) {
     const taken = new Set(this.myBuilds.map((b) => b.name));
-    const plane = airframeById(landPlaneOf(airframe)).name;
-    let n = this.myBuilds.filter((b) => landPlaneOf(b.airframe) === landPlaneOf(airframe)).length + 1;
+    const plane = airframeById(airframe).name;
+    let n = this.myBuilds.filter((b) => b.airframe === airframe).length + 1;
     while (taken.has(str('mine.default_name', { plane, n }))) {
       n += 1;
     }
@@ -1130,11 +817,11 @@ export class Ui {
     }
     this.buildList = this.myBuilds.filter((x) => x.id !== id);
     saveBuilds(this.buildList);
-    const e = (s.buildFits || {})[landPlaneOf(b.airframe)];
+    const e = (s.buildFits || {})[b.airframe];
     if (e && e.build === id) {
       unfitFamily(s, b.airframe);
       this.persistSettings();
-      if (landPlaneOf(s.airframe) === landPlaneOf(b.airframe)) {
+      if (s.airframe === b.airframe) {
         this.refitted(s.airframe);
       }
     }
@@ -1199,7 +886,7 @@ export class Ui {
       return;
     }
     if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
-      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'swiss2');
+      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'itaipu');
       return;
     }
     if (way.game === 'war' && this.onWarCard) {
@@ -1245,10 +932,7 @@ export class Ui {
           return;
         }
         if (midRun && this.onHotSwap) {
-          this.swapTo(id).then(() => {
-            this.settleFloats();
-            this.renderMenu();
-          });
+          this.swapTo(id).then(() => this.renderMenu());
           return;
         }
         seatAirframe(s, id);
@@ -1292,10 +976,7 @@ export class Ui {
         } else if (moved) {
           go = this.refitted(id);
         }
-        go.then(() => {
-          this.settleFloats();
-          this.act('resume');
-        });
+        go.then(() => this.act('resume'));
       },
       onCancel: () => {
         if (from === 'flight') {
@@ -1325,9 +1006,8 @@ export class Ui {
    */
   openHangar(card, after = null, build = null, tab = null) {
     const s = this.settings;
-    /* A build opens on the airframe it was built on; a stock plane on the
-     * version its toggle names, whichever of the two it was asked for. */
-    const id = build ? build.airframe : withFloats(s, landPlaneOf(card));
+    /* A build opens on the airframe it was built on. */
+    const id = build ? build.airframe : card;
     if (!customisable(id) || this.hangar.isOpen) {
       return;
     }
@@ -1352,57 +1032,9 @@ export class Ui {
     };
     const offered = this.hangarPower ? this.hangarPower(id) : null;
     const power = offered && !inSlots ? { ...offered, chosen: powerChoice(id, view.power) } : offered;
-    /*
-     * THE FLOATS TOGGLE, beside the span and the weight: remembered for this
-     * plane, and when it is the seated one it seats the other version at
-     * once, in place in a run as the picker's swap does. The hangar then
-     * opens again on the version the toggle names, shut quietly first so
-     * `after` waits for that one. On a build the floats are its airframe,
-     * so the build moves to the other version; the seated plane goes with
-     * it only when it is wearing that build.
-     */
-    const land = landPlaneOf(id);
-    const onFloats = floatVersionOf(land) ? (on) => {
-      const to = on ? floatVersionOf(land) : land;
-      this.hangar.close();
-      preview(null);
-      const moved = build ? { ...build, airframe: to, fit: normaliseFit(to, build.fit), updated: Date.now() } : null;
-      const flown = landPlaneOf(s.airframe) === land && s.airframe !== to
-        && (build ? fittedBuild(s, s.airframe) === build.id : inSlots);
-      if (build) {
-        this.storeBuild(moved);
-      } else {
-        s.floats = { ...s.floats, [land]: on };
-      }
-      const reopen = (ok = true) => this.openHangar(to, after, ok ? moved : build);
-      if (!flown) {
-        this.persistSettings();
-        reopen();
-      } else if (this.returnTo === 'paused' && this.onHotSwap) {
-        /* A swap the run refuses leaves the plane as it was, and the toggle
-         * or the build with it, so the hangar never says floats on a plane
-         * on wheels. */
-        this.swapTo(to).then((ok) => {
-          if (ok !== true) {
-            if (build) {
-              this.storeBuild(build);
-            } else {
-              s.floats = { ...s.floats, [land]: !on };
-            }
-          }
-          this.persistSettings();
-          reopen(ok === true);
-        });
-      } else {
-        seatAirframe(s, to);
-        this.writeSettings();
-        reopen();
-      }
-    } : null;
     this.hangar.open({
       airframe: id,
       tab: tab ?? firstTab,
-      floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: view.livery[family],
       mine: {
         name: build ? build.name : null,
@@ -1450,7 +1082,6 @@ export class Ui {
           parts: res.settings.parts ? res.settings.parts[id] : held.parts,
           tuning: res.settings.tuning ? res.settings.tuning[id] : held.tuning,
           combat: res.settings.combat ? res.settings.combat[id] : held.combat,
-          surfaces: res.settings.surfaces ? res.settings.surfaces[id] : held.surfaces,
         });
         /* A wing taped is the airframe mended, whatever was edited: its
          * damage is the slots'. */
@@ -1537,7 +1168,7 @@ export class Ui {
       return;
     }
     if (this.onHotSwap && this.screen === 'flight') {
-      this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
+      this.swapTo(cycleCraft(this.settings.airframe, dir, this.craftOnly()));
     }
   }
 }

@@ -1,9 +1,10 @@
 /*
  * uirest-golden.js: the parts of src/ui/ui.js no other golden reaches, held
- * to a record taken from them before they were rewritten. The track byline,
- * the seat predicates (seatIsRace, liveListing, liveWorld), the radio trouble
+ * to a record taken from them before they were rewritten. The radio trouble
  * row, the aircraft row's swap, the picker's drawn fits, and the Ui methods
- * play, setHowtoSource, titleStop, menuScrollNode and adjust.
+ * setHowtoSource, titleStop, menuScrollNode and adjust. The track byline,
+ * the seat predicates and play left with the track builder and the race
+ * (the combat-only cut, 2026-10-20).
  *
  *     node scripts/uirest-golden.js            compare
  *     node scripts/uirest-golden.js --record   write tests/fixtures/uirest-golden.json
@@ -54,9 +55,7 @@ globalThis.window = {
 const ui = await import('../src/ui/ui.js');
 const { Ui } = ui;
 const { useLocale } = await import('../src/strings/index.js');
-const { writeShareImport, clearShareImport } = await import('../src/share/trackseat.js');
 const { AIRFRAME_IDS } = await import('../configs/airframes.js');
-const { MAPS } = await import('../src/maps/registry.js');
 const { HUBS } = await import('../src/ui/ways.js');
 
 /* Plain data for the record: functions become a marker, errors their message. */
@@ -67,62 +66,6 @@ function attempt(fn) {
   } catch (e) {
     return { threw: String(e && e.message) };
   }
-}
-
-function course(gates, waypoints = 0) {
-  const elements = [];
-  const sequence = [];
-  for (let i = 0; i < gates; i += 1) {
-    elements.push({ id: `g${i}`, type: 'gate' });
-    sequence.push({ elementId: `g${i}` });
-  }
-  for (let i = 0; i < waypoints; i += 1) {
-    elements.push({ id: `w${i}`, type: 'waypoint' });
-    sequence.push({ elementId: `w${i}` });
-  }
-  return { schemaVersion: 4, map: 'alps', name: 'Seat', elements, sequence };
-}
-
-const SEATS = {
-  empty: null,
-  nogates: { id: 's0', document: course(0) },
-  waypoints: { id: 's1', document: course(0, 3) },
-  gates: { id: 's2', document: course(2, 1) },
-  local: { id: 's3', document: course(3), local: true },
-};
-
-function seat(name) {
-  clearShareImport('full');
-  clearShareImport('wing');
-  if (SEATS[name]) {
-    writeShareImport(SEATS[name]);
-  }
-}
-
-function seatRows() {
-  const out = {};
-  for (const name of Object.keys(SEATS)) {
-    seat(name);
-    const live = attempt(() => ui.liveListing());
-    out[name] = {
-      listing: live && { kind: live.kind, gates: live.gates, name: live.name },
-      race: Object.fromEntries(['track', ...MAPS.map((m) => m.id), 'nope'].map((id) => [id, attempt(() => ui.seatIsRace({ map: id }))])),
-    };
-  }
-  seat('empty');
-  return out;
-}
-
-function bylines() {
-  const cases = [null, undefined, {}, { author: 'ann' }, { designer: 'dee' }, { designer: 'dee', author: 'ann' }, { designer: '', author: 'ann' }, { author: '' }];
-  return cases.map((t) => attempt(() => ui.byLine(t)));
-}
-
-function worlds() {
-  return Object.fromEntries(['track', ...MAPS.map((m) => m.id), 'nope', '', undefined].map((id) => [String(id), attempt(() => {
-    const w = ui.liveWorld(id);
-    return w && w.id;
-  })]));
 }
 
 function troubleRows() {
@@ -204,15 +147,6 @@ function methods() {
     ...extra,
   });
 
-  log.length = 0;
-  const p = fake();
-  Ui.prototype.play.call(p);
-  out.play = { log: [...log], map: p.settings.map, mode: p.mode, returnTo: p.returnTo, stored: JSON.parse(store.get(ui.SETTINGS_KEY) ?? 'null')?.map ?? null };
-  log.length = 0;
-  const quiet = fake({ onAction: null });
-  Ui.prototype.play.call(quiet);
-  out.playQuiet = { log: [...log], map: quiet.settings.map, mode: quiet.mode, returnTo: quiet.returnTo };
-
   out.howto = {};
   for (const id of ['radio', 'launch', 'touch', 'mouse', 'keyboard', 'gamepad', '', undefined]) {
     log.length = 0;
@@ -270,9 +204,6 @@ function methods() {
 function scenarios() {
   store.clear();
   return {
-    bylines: bylines(),
-    worlds: worlds(),
-    seats: seatRows(),
     trouble: troubleRows(),
     craft: craftRows(),
     drawn: drawnFits(),

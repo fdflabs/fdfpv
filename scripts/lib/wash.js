@@ -230,9 +230,7 @@ export function gain(dp, share, V) {
 
 /*
  * A table as the plant has it, read from src/native/plant_wing.c: its
- * numeric fields, scalars and { } arrays, WING_PI expressions evaluated;
- * and the plant's SWIRL_KEEP. For a
- * derivation that puts the prop's torque and swirl into what it predicts.
+ * numeric fields, scalars and { } arrays, WING_PI expressions evaluated.
  */
 const PLANT_WING = new URL('../../src/native/plant_wing.c', import.meta.url);
 export function planeTable(name) {
@@ -240,8 +238,8 @@ export function planeTable(name) {
   let body = new RegExp(`const FixedWingParams ${name} = \\{([\\s\\S]*?)\\n\\};`).exec(src)[1];
   const num = (e) => Function('WING_PI', `return (${e});`)(Math.PI);
   const out = {};
-  /* A table of rows (hi_lat, engine_q): each row a list, taken out of the
-   * body first so the single lists below do not read its rows. */
+  /* A table of rows: each row a list, taken out of the body first so the
+   * single lists below do not read its rows. */
   body = body.replace(/\.(\w+)\s*=\s*\{\s*(\{[\s\S]*?\})\s*,?\s*\},/g, (all, k, rows) => {
     out[k] = [...rows.matchAll(/\{([^}]*)\}/g)].map((r) => r[1].split(',').map((x) => x.trim()).filter(Boolean).map(num));
     return '';
@@ -251,61 +249,5 @@ export function planeTable(name) {
     if (e.startsWith('{')) out[m[1]] = e.slice(1, -1).split(',').map((x) => x.trim()).filter(Boolean).map(num);
     else if (/^[-+*/().\s\dWING_PIe]+$/.test(e)) out[m[1]] = num(e);
   }
-  const keep = Number(/#define SWIRL_KEEP ([\d.]+)/.exec(src)[1]);
-  return { fw: new Proxy(out, { get: (o, k) => (k in o ? o[k] : 0) }), keep };
-}
-
-/* A curve at mu, plant_wing.c prop_curve: straight between the tenths and
- * on along the last two. */
-function curveAt(c, mu) {
-  const x = Math.max(0, mu) * 10, i = Math.min(c.length - 2, Math.floor(x));
-  return c[i] + (x - i) * (c[i + 1] - c[i]);
-}
-
-/*
- * THE SWIRL AT THE FIN, as plant_wing.c takes it, for a derivation that
- * flies the fin in the wash. w is wash()'s at the thrust and forward speed
- * u; q the prop's torque on the air, N m; keep the share of the swirl the
- * wing's root leaves the fin (SWIRL_KEEP, 1 on a pusher, or the root's
- * own where a table measures it). The swirl turns as a solid body, Q = mdot
- * Omega rw^2 / 2, and over the fin's span in the wash its mean is a
- * sideways speed, xs, less the static jet's spread, keepS (slip_loss[2],
- * Deters, Ananda and Selig 2015, figs. 15a and 15b). The fin's angle in
- * the wash, which saturates it, is the swirl's own speed, xs; its force
- * meets the whole stream, 1/2 rho (u + 2 v_i) per unit of it, against the
- * rho v_i the fin's slip terms carry (the same paper's fig. 22b: 3.7 to 4.2
- * times rho v_i's at J 0.52), so the force's crossflow is xsF. A fin
- * sideslip v adds to both as -v.
- */
-export function finSwirl(slip, w, q, keep, u) {
-  const up = Math.max(0, u);
-  const mdot = RHO * Math.PI * slip.slip_r * slip.slip_r * (up + w.vi);
-  const xs = w.keepS * keep * q * (Math.min(w.rw, slip.slip_hv[0]) - Math.min(w.rw, slip.slip_hv[1])) / (mdot * w.rw * w.rw);
-  return { xs, xsF: xs * (up + 2 * w.vi) / (2 * w.vi) };
-}
-
-/*
- * The prop's steady moments on the airframe at a driven speed n (of full)
- * and forward speed u, wings level, no sideslip and no rates, as
- * plant_wing.c takes them: the prop's torque Q = Q_f n^2 torque_curve against
- * the airframe; the wing root's (1 - SWIRL_KEEP) of it back; the swirl at
- * the fin, finSwirl(), through the fin's slip terms. Aero convention: L
- * roll right, N nose right, Y to the right, N m and N.
- */
-export function propMoments(t, n, u) {
-  const fw = t.fw;
-  const mu = Math.max(0, u) / (fw.pitch_speed * n);
-  const T = Math.max(0, fw.thrust_static * n * n * curveAt(fw.axial_curve, mu));
-  const Q = fw.torque_arm * fw.thrust_static * n * n * curveAt(fw.torque_curve, mu);
-  if (!(fw.slip_r > 0) || !(T > 0)) return { L: -Q, N: 0, Y: 0, Q, T };
-  const w = wash(fw, T, u);
-  const keep = fw.slip_pusher ? 1 : t.keep;
-  const kv = RHO * w.vi * w.fv;
-  const xb = -finSwirl(fw, w, Q, keep, u).xsF;
-  return {
-    L: -Q + fw.area * fw.span * kv * fw.slip_cl_b * xb + (1 - keep) * Q,
-    N: fw.area * fw.span * kv * fw.slip_cn_b * xb,
-    Y: fw.area * kv * fw.slip_cy_b * xb,
-    Q, T,
-  };
+  return { fw: new Proxy(out, { get: (o, k) => (k in o ? o[k] : 0) }) };
 }

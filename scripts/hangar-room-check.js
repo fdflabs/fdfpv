@@ -108,23 +108,23 @@ for (const tier of ROOM_IDS) {
 {
   const at = (lv) => ({ xp: LEVEL_XP[lv - 1] });
   check('a level 1 pilot has the starters only', unlockedPlanes(at(1)).join(' ') === STARTER_PLANES.join(' '), unlockedPlanes(at(1)).join(' '));
+  /* PLANE_LEVELS is empty since the recreational planes went to Openflight
+   * (2026-10-21): no plane waits for a level, so level 7 has the starters
+   * as level 1 does. */
   const seven = unlockedPlanes(at(7));
-  const lv = (id) => PLANE_LEVELS[id] ?? 1;
-  check('the planes a level opened come newest first, nothing above the level',
-    seven.every((id, i) => i === 0 || lv(seven[i - 1]) >= lv(id) || STARTER_PLANES.includes(id)) && seven.every((id) => lv(id) <= 7) && seven[0] === 'p51d1450',
-    seven.slice(0, 4).join(' '));
+  check('no plane waits for a level: level 7 has the starters only', seven.join(' ') === STARTER_PLANES.join(' ') && Object.keys(PLANE_LEVELS).length === 0, seven.join(' '));
   const builds = [
-    { id: 'old', airframe: 'cub1400', created: 1, updated: 2 },
-    { id: 'new', airframe: 'timber1500', created: 3, updated: 9 },
+    { id: 'old', airframe: '7inch', created: 1, updated: 2 },
+    { id: 'new', airframe: '10inch', created: 3, updated: 9 },
     { id: 'worn', airframe: 'striker2500', created: 4, updated: 10 },
   ];
   const fill = bayFill(3, { seated: 'striker2500', worn: 'worn', builds, planes: seven });
-  check('builds first, the last changed first, the one worn left to the main stand, then the newest plane',
-    JSON.stringify(fill) === JSON.stringify([{ airframe: 'timber1500', build: 'new' }, { airframe: 'cub1400', build: 'old' }, { airframe: 'p51d1450', build: null }]), JSON.stringify(fill));
-  const planesOnly = bayFill(3, { seated: 'p51d1450', planes: seven });
-  check('a plane family stands once: never the seated one again', planesOnly.every((b) => liveryKey(b.airframe) !== 'p51d1450') && new Set(planesOnly.map((b) => liveryKey(b.airframe))).size === 3, JSON.stringify(planesOnly));
-  check('no bays, nothing on them', bayFill(0, { seated: 'cub1400', builds, planes: seven }).length === 0, '0');
-  check('more bays than aircraft leaves the rest empty', bayFill(9, { seated: 'cub1400', planes: STARTER_PLANES }).length === STARTER_PLANES.length - 1, String(bayFill(9, { seated: 'cub1400', planes: STARTER_PLANES }).length));
+  check('builds first, the last changed first, the one worn left to the main stand, then a plane not yet on a stand',
+    JSON.stringify(fill) === JSON.stringify([{ airframe: '10inch', build: 'new' }, { airframe: '7inch', build: 'old' }, { airframe: 'bramor2300', build: null }]), JSON.stringify(fill));
+  const planesOnly = bayFill(3, { seated: 'bramor2300', planes: seven });
+  check('a plane family stands once: never the seated one again', planesOnly.every((b) => liveryKey(b.airframe) !== 'bramor2300') && new Set(planesOnly.map((b) => liveryKey(b.airframe))).size === planesOnly.length && planesOnly.length === seven.length - 1, JSON.stringify(planesOnly));
+  check('no bays, nothing on them', bayFill(0, { seated: 'striker2500', builds, planes: seven }).length === 0, '0');
+  check('more bays than aircraft leaves the rest empty', bayFill(9, { seated: 'striker2500', planes: STARTER_PLANES }).length === STARTER_PLANES.length - 1, String(bayFill(9, { seated: 'striker2500', planes: STARTER_PLANES }).length));
 }
 
 /* The paint chart: what the wallet owns of the shop's paint, nothing else. */

@@ -156,7 +156,7 @@ export function createPeerScene(peers, time, n, parent, look) {
       p.vx = r[w + PEER.vel];
       p.vy = r[w + PEER.vel + 1];
       p.vz = r[w + PEER.vel + 2];
-      e.rig.replay(drawn, p, spinK, r[w + PEER.gear]);
+      e.rig.replay(drawn, p, spinK);
       e.rig.group.visible = id !== inside;
       e.rig.setLabel(labels ? e.label : '');
       wreckFor(e, r[w + PEER.table], sample.count[s], sample.pieces, s * PARTS_MAX * PIECE_N);

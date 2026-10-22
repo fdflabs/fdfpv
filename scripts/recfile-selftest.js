@@ -32,8 +32,11 @@ import * as rec from '../tests/lib/recfile.js';
 import { transcript } from './lib/transcript.js';
 
 /* Re-pinned when a recording is re-recorded: the flight model lane's
- * tractors (docs/FLIGHTMODEL.md) moved only their own decode lines. */
-const PINNED = '46ae19d500c22ab0f726890e4be13070e519db7952e8c2442bc36d8c58acc06d';
+ * tractors (docs/FLIGHTMODEL.md) moved only their own decode lines.
+ * Re-pinned 2026-10-20: the 19 recordings of the aircraft that left the
+ * module took their own decode and re-encode lines with them, and no
+ * other line moved (was 46ae19d500c22ab0). */
+const PINNED = '67081332892fcd06322161ca4904320a4b2fe0b0ad5762c374c330a931afd4d1';
 const t = transcript();
 const sha = (x) => createHash('sha256').update(x).digest('hex').slice(0, 24);
 const hex = (u8) => Buffer.from(u8.buffer, u8.byteOffset, u8.byteLength).toString('hex');

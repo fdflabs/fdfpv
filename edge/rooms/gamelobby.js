@@ -1,16 +1,16 @@
 /*
  * gamelobby.js: the lobby of every room, between its rounds: who is ready,
  * and when the next one starts. A room is made for a game (meta.mode
- * 'war', 'combat', 'tag' or 'race') or for free flight (meta.mode null).
+ * 'war') or for free flight (meta.mode null).
  *
  * The owner, 2026-10-01: "its not hard to make people join a lobby and
- * then start a mission, its on every single game"; on 2026-10-02, of
- * Toilet paper combat and Catch the Ace: "when i click on them directly, it
- * should take me to the lobby of the room"; and the same day: "every click
- * will take you to the lobby for it, ready to go either single or multi".
+ * then start a mission, its on every single game"; on 2026-10-02, of the
+ * room games then: "when i click on them directly, it should take me to
+ * the lobby of the room"; and the same day: "every click will take you to
+ * the lobby for it, ready to go either single or multi".
  * Every pilot in the room says ready or not. The room starts its round
- * through the game's own start, as its host would (war.js, combat.js,
- * tag.js, race.js), or, for free flight, by saying its pilots fly:
+ * through the game's own start, as its host would (war.js), or, for free
+ * flight, by saying its pilots fly:
  *
  *   all ready      every pilot here is ready, one alone as well: in
  *                  LOBBY_COUNTDOWN_MS. A pilot who says not ready in that
@@ -23,34 +23,24 @@
  *                  its own.
  *   start now      the host's own start of the game, at once, as ever.
  *
- * A race needs its track first (the host's, race.js load), and a pilot on
- * its grid (race.js ready: the track's world built under the lobby
- * screen): until then the flags are kept and no time runs, and the times
- * are settled again when a pilot comes onto the grid (core.js).
- *
  * A round on has no lobby: a pilot who joins then is in it where its
  * game's allowDropIn (src/share/modes.js, read by core.js join) says so
- * (war.js late join; combat.js arrive() gives a newcomer paper; tag.js
- * makes a newcomer a hunter; free flight is just flying). A race on and a
- * jam on cannot be joined: a race went off a grid, and its racers were the
- * ones on it; a jam's turns were set at its start. When the round starts every flag is cleared, so its end finds the
+ * (war.js late join; free flight is just flying).
+ * When the round starts every flag is cleared, so its end finds the
  * room back in the lobby with nobody ready. Free flight has no end: its
  * round is on from its first start until the room is empty.
  *
  * WHAT THE ROUND IS. Each game's lobby carries the one thing its host sets
  * between rounds, kept on the room (core.meta) so a restart keeps it: the
- * war its mission, combat its minutes (src/share/modes.js ROUND_MINUTES), tag its
- * goal (src/share/roomtag.js). A room made without one starts with the
- * first. A race's track is its own (the host's { type: 'track' }), and
- * shown here as `track`, its id or null; free flight has `live`.
+ * war its mission. A room made without one starts with the first. Free
+ * flight has `live`.
  *
  * What a client sends: { type: 'lobby', op: 'ready', ready } from any
  * pilot; from the host, between rounds, { type: 'lobby', op: 'mission',
- * mission } in a war room, { op: 'minutes', minutes } in a combat room,
- * { op: 'goal', goal } in a tag room. What it is told: { type: 'lobby',
+ * mission } in a war room. What it is told: { type: 'lobby',
  * lobby } whenever the lobby changes, and `lobby` in the welcome:
  *
- *   { mission | minutes | goal | track | live, ready: { [seat]: true }, countdownAt, deadlineAt, out? }
+ *   { mission | live, ready: { [seat]: true }, countdownAt, deadlineAt, out? }
  *
  * the two times on the room clock (ms), or null; out, only while there
  * are any, the seats sitting out the war: in a room its host moved into
@@ -76,9 +66,7 @@
  */
 
 import { MISSIONS } from '../../src/share/war/missions/index.js';
-import { GOALS, GOAL_MAX, GOAL_MIN } from '../../src/share/roomtag.js';
-import { RUN_SECONDS, RUN_SECONDS_DEFAULT } from '../../src/share/roomjam.js';
-import { MODES, ROUND_MINUTES, modeById, modeOfWire, sessionOf } from '../../src/share/modes.js';
+import { MODES, modeById, modeOfWire, sessionOf } from '../../src/share/modes.js';
 
 export const LOBBY_COUNTDOWN_MS = 5000;
 export const LOBBY_DEADLINE_MS = 45000;
@@ -114,9 +102,6 @@ export function warMission(core) {
   return first ? first.id : null;
 }
 
-const combatMinutes = (core) => (ROUND_MINUTES.includes(core.meta.minutes) ? core.meta.minutes : ROUND_MINUTES[0]);
-const jamSeconds = (core) => (RUN_SECONDS.includes(core.meta.seconds) ? core.meta.seconds : RUN_SECONDS_DEFAULT);
-const tagGoal = (core) => (Number.isInteger(core.meta.goal) && core.meta.goal >= GOAL_MIN && core.meta.goal <= GOAL_MAX ? core.meta.goal : GOALS[0].goal);
 
 /* The key of game `id`'s one setting, from the mode registry. */
 const settingKey = (id) => modeById(id).setting.key;
@@ -149,37 +134,6 @@ const GAMES = {
     start: (core, conn, s, now) => core.war.message(core, conn, s, warCheckpoint(core)
       ? { type: 'war', op: 'start', mission: warMission(core), from: 'checkpoint' }
       : { type: 'war', op: 'start', mission: warMission(core), intro: briefed(warMission(core)) }, now),
-  },
-  combat: {
-    set: { key: settingKey('combat'), valid: (core, v) => ROUND_MINUTES.includes(v) },
-    show: (core) => ({ minutes: combatMinutes(core) }),
-    can: () => true,
-    on: (core) => core.combat.on(),
-    start: (core, conn, s, now) => core.combat.message(core, conn, s, { type: 'combat', op: 'start', minutes: combatMinutes(core) }, now),
-  },
-  tag: {
-    set: { key: settingKey('tag'), valid: (core, v) => Number.isInteger(v) && v >= GOAL_MIN && v <= GOAL_MAX },
-    show: (core) => ({ goal: tagGoal(core) }),
-    can: () => true,
-    on: (core) => core.tag.on(),
-    start: (core, conn, s, now) => core.tag.message(core, conn, s, { type: 'tag', op: 'start', goal: tagGoal(core) }, now),
-  },
-  jam: {
-    set: { key: settingKey('jam'), valid: (core, v) => RUN_SECONDS.includes(v) },
-    show: (core) => ({ seconds: jamSeconds(core) }),
-    can: () => true,
-    on: (core) => core.jam.on(),
-    start: (core, conn, s, now) => core.jam.message(core, conn, s, { type: 'jam', op: 'start', seconds: jamSeconds(core) }, now),
-  },
-  /* The racers are the pilots on the track's grid when it goes (race.js
-   * start, its own ready): a pilot in the lobby has the room's track
-   * built under the lobby screen, and is on it. */
-  race: {
-    set: null,
-    show: (core) => ({ track: core.race.track ? core.race.track.id : null }),
-    can: (core) => Boolean(core.race.track) && core.race.readySeats().length > 0,
-    on: (core) => Boolean(core.race.race && core.race.race.state === 'on'),
-    start: (core, conn, s, now) => core.race.message(core, conn, s, { type: 'race', op: 'start', laps: 3 }, now),
   },
   free: {
     set: null,
@@ -272,9 +226,8 @@ export class RoomGameLobby {
    * may start or stop the five seconds; a join only keeps them as they
    * are. */
   settle(core, now, arm) {
-    /* The people: an AI pilot is never asked to be ready, nor a pilot
-     * sitting the war out, nor one whose page could not build the room's
-     * world (core.js fail). */
+    /* The people: never a pilot sitting the war out, nor one whose page
+     * could not build the room's world (core.js fail). */
     const out = this.out(core);
     const here = new Set(core.people().filter((s) => !out.has(s.seat) && !core.failed(s)).map((s) => s.seat));
     for (const seat of this.ready) {
@@ -332,17 +285,6 @@ export class RoomGameLobby {
       return [{ store: 'meta', value: core.meta }, ...this.changed(core)];
     }
     return [];
-  }
-
-  /* Something the round needs changed (a race's grid): the times again,
-   * the flags as they are. */
-  rearm(core, now) {
-    if (!this.open(core)) {
-      return [];
-    }
-    const was = [this.countdownAt, this.deadlineAt].join();
-    this.settle(core, now, true);
-    return [this.countdownAt, this.deadlineAt].join() === was ? [] : this.changed(core);
   }
 
   /* A pilot joined: not ready, and the five seconds go on. Nothing of

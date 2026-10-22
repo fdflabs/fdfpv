@@ -39,7 +39,8 @@ import { fileURLToPath } from 'node:url';
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import {
-  attitude, must, bramorPrelude, catapultRelease, BRAMOR_AIRFRAME, SKY_AIRFRAME, RC_STEP_MS,
+  attitude, must, bramorPrelude, catapultRelease, BRAMOR_AIRFRAME, WING_AIRFRAME, RC_STEP_MS,
+  STRIKER_PROP_AIRFRAME, STRIKER_JET_AIRFRAME,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -258,9 +259,17 @@ must(sim.e.sim_wing_chute(1), 'pull');
 catapultRelease(sim);
 check('and so does a relaunch off the catapult', sim.e.sim_wing_chute_open() === 0);
 must(sim.e.sim_wing_chute(1), 'pull');
-must(sim.e.sim_set_airframe(SKY_AIRFRAME), 'sky');
+/* The 1000 mm wing, which carries no chute (the Skyhunter was this
+ * aircraft until it left the module on 2026-10-20). */
+must(sim.e.sim_set_airframe(WING_AIRFRAME), 'wing');
 check('and changing aircraft', sim.e.sim_wing_chute_open() === 0);
 check('an aircraft without a chute refuses the pull', sim.e.sim_wing_chute(1) !== SIM_OK && sim.e.sim_wing_chute_open() === 0);
+/* The same on the fixed wing the war flies, which carries no chute
+ * either (src/native/plant.c, the Striker's entries set none). */
+for (const [name, id] of [['prop', STRIKER_PROP_AIRFRAME], ['jet', STRIKER_JET_AIRFRAME]]) {
+  must(sim.e.sim_set_airframe(id), `striker ${name}`);
+  check(`so does the Striker on its ${name}`, sim.e.sim_wing_chute(1) !== SIM_OK && sim.e.sim_wing_chute_open() === 0);
+}
 must(sim.e.sim_set_airframe(0), 'five inch');
 check('and so does a quad', sim.e.sim_wing_chute(1) !== SIM_OK);
 check('anything but 0 or 1 is refused', sim.e.sim_wing_chute(2) !== SIM_OK);

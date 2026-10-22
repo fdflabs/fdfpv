@@ -14,6 +14,9 @@
 #   3. /etc/coturn/turnserver.conf (root:coturn, 0640): turnserver.conf
 #      beside this file, plus external-ip (public/private, since Oracle
 #      maps the public address to the VM's private one) and the secret,
+#      plus Openflight's secret from /etc/openfieldrc/turn.env when that
+#      file exists (openfieldrc.com shares the relay; two secrets, so
+#      either game's voice can be cut off alone),
 #   4. the TLS certificate: fdfpv-turn-cert.timer copies Caddy's for the
 #      address to /etc/coturn/tls every six hours, and reloads coturn when
 #      it changed (turn-cert.sh),
@@ -121,6 +124,10 @@ trap 'rm -f "$conf"' EXIT
 {
   cat "$HERE/turnserver.conf"
   printf '\n# Added on the VM by turn-install.sh.\nexternal-ip=%s/%s\nstatic-auth-secret=%s\n' "$PUBLIC" "$private" "$secret"
+  # Openflight (openfieldrc.com) shares this relay with a secret of its own, so either game can be cut off alone.
+  if [[ -f /etc/openfieldrc/turn.env ]]; then
+    printf 'static-auth-secret=%s\n' "$(sed -n 's/^TURN_SECRET=//p' /etc/openfieldrc/turn.env)"
+  fi
 } > "$conf"
 unset secret
 if ! cmp -s "$conf" /etc/coturn/turnserver.conf; then

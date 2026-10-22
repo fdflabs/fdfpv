@@ -35,7 +35,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import { AWAY_MS } from '../edge/rooms/ops.js';
 import { SWAP_MS, deal, roleOf } from '../src/share/ops/roles.js';
 import { makeWorld } from '../src/share/ops/fixtures/world.js';

@@ -168,10 +168,8 @@ async function gate(rooms) {
   try {
     await page.until('window.__shellReady === true', 300000);
     await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length > 0", 60000);
-    /* The rooms panel is Flight Club's (src/ui/ui.js HUBS): its hub, where
-     * the panel stands beside the name, is the tight case. */
-    await page.evaluate("(() => { window.__ui.openHub('club'); return true; })()");
-    await page.until("window.__ui.hub === 'club' && document.querySelector('.screen-title .gate-rooms') && !document.querySelector('.screen-title .gate-rooms').hidden", 30000);
+    /* The rooms panel is home's (src/ui/items.js gateRows). */
+    await page.until("window.__ui.hub === null && document.querySelector('.screen-title .gate-rooms') && !document.querySelector('.screen-title .gate-rooms').hidden", 30000);
     await page.until('document.fonts.status === "loaded"', 30000);
 
     const first = await page.evaluate(LAYOUT);

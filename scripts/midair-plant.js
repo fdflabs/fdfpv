@@ -10,8 +10,9 @@
  * through the ABI with the shell's own function (src/game/midair.js
  * applyHit: sim_contact_part, sim_contact_at_mat, and at BREAK_MPS or more
  * the both break rule's sim_part_break). Six pairs from a 0.42 kg foamie
- * to a 4.5 kg balsa bomber, head on and crossing, 8 to 50 m/s closing.
- * Then:
+ * to a 4.5 kg balsa bomber, head on and crossing, 8 to 50 m/s closing;
+ * then the same on the aircraft PDCS seats on Itaipu (KEPT_PAIRS), judged
+ * on their own. Then:
  *
  *   P1  both aircraft took permanent damage (a break, a crush, a bend, a
  *       chip or a knock) in every head on and crossing pass that met at
@@ -54,9 +55,10 @@ import { createHash } from 'node:crypto';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { airframeById } from '../configs/airframes.js';
+import { combatAddon, combatChoice } from '../configs/combat.js';
 import { PART_STATE_DOUBLES, STATE } from '../configs/parts.js';
 import { readPartTable, readDamageEvents } from './lib/crash.js';
-import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, PROTO, encodePose } from '../src/share/roomwire.js';
+import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, PROTO, ROOM_LEVEL, encodePose } from '../src/share/roomwire.js';
 import { RoomCore, PRIVATE_CAP } from '../edge/rooms/core.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { BREAK_MPS, applyHit, sideFor } from '../src/game/midair.js';
@@ -98,9 +100,23 @@ const PERMANENT = new Set(['break', 'crush', 'bend', 'chip', 'knock']);
  */
 async function aircraft(id, pos, yaw, speed, place = true) {
   const af = airframeById(id);
+  if (af.id !== id) {
+    throw new Error(`${id} is no airframe; airframeById gave ${af.id}`);
+  }
   const sim = await loadSim(wasm);
   must(sim.init(config), 'sim_init');
   must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');
+  /* The Striker as the shell seats it: its standard warhead and the
+   * bay's trim lead (configs/combat.js combatAddon), which the bare plant
+   * flies without. */
+  const add = af.combat && af.combat.propulsion ? combatAddon(af, combatChoice(af)) : null;
+  if (add) {
+    must(sim.setAddons(add.block), 'sim_set_addons');
+    const p = sim.e.malloc(add.inertia.length * 8);
+    new Float64Array(sim.e.memory.buffer, p, add.inertia.length).set(add.inertia);
+    must(sim.e.sim_set_addon_inertia(p), 'sim_set_addon_inertia');
+    sim.e.free(p);
+  }
   must(sim.reset(), 'sim_reset');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_damage(1), 'sim_set_damage');
@@ -173,8 +189,8 @@ function applyOne(ac, side) {
  * MEET_MS; latency is each link's one way delay, ms. Returns what the
  * checks read.
  */
-function pass(A, B, latency, friendly = false) {
-  const room = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly, map: 'swiss2', epoch: 0 });
+function pass(A, B, latency, friendly = false, map = 'itaipu') {
+  const room = new RoomCore({ code: 'K7PZ2M', cap: PRIVATE_CAP, friendly, map, epoch: 0 });
   const conns = [{ i: 0 }, { i: 1 }];
   const craft = [A, B];
   const seats = [0, 0];
@@ -191,8 +207,8 @@ function pass(A, B, latency, friendly = false) {
   for (const c of conns) {
     route(room.open(c, 0), 0);
     route(room.message(c, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'plant', name: [1, 2, 42],
-      profile: { airframe: craft[c.i].id, map: 'swiss2', figure: 0, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 'plant', level: ROOM_LEVEL, name: [1, 2, 42],
+      profile: { airframe: craft[c.i].id, map, figure: 0, livery: null, parts: null },
     }), 0, `10.0.0.${c.i + 1}`, newToken), 0);
   }
   for (const c of conns) {
@@ -316,16 +332,16 @@ async function crossing(a, b, va, vb) {
   return [await toMeet(a, 0, va), await toMeet(b, Math.PI / 2, vb)];
 }
 
+/* The interceptor's pair alone is left. The Cub, P-51, Slow Stick and
+ * Bombshell left the shell on 2026-10-21, and a room seats a retired
+ * aircraft as the Striker (src/share/roomwire.js checkProfile), so its
+ * referee can no longer judge one. */
 const PAIRS = [
-  ['cub1400', 'cub1400'],
-  ['cub1400', 'p51d1450'],
   ['interceptor', 'interceptor'],
-  ['interceptor', 'cub1400'],
-  ['slowstick1180', 'bombshell1118'],
 ];
 const CLOSINGS = [8, 12, 16, 24, 36, 50];
 
-console.log('mid air through the real plant, both sides');
+async function series(pairs, map) {
 const drift = [];
 let rows = 0;
 let bothDamaged = 0;
@@ -334,14 +350,14 @@ let bothWreck = 0;
 let replayed = 0;
 let replayOk = 0;
 const lines = [];
-for (const [a, b] of PAIRS) {
+for (const [a, b] of pairs) {
   for (const geometry of ['head on', 'crossing']) {
     for (const closing of CLOSINGS) {
       for (const latency of [0, 50]) {
         const va = geometry === 'head on' ? closing / 2 : closing / Math.SQRT2;
         const vb = va;
         const [A, B] = await (geometry === 'head on' ? headOn : crossing)(a, b, va, vb);
-        const r = pass(A, B, latency);
+        const r = pass(A, B, latency, false, map);
         const gotA = r.hits[0].length;
         const gotB = r.hits[1].length;
         const oa = outcome(A);
@@ -390,16 +406,42 @@ for (const [a, b] of PAIRS) {
 for (const l of lines) {
   console.log(l);
 }
-check(`P1 both aircraft damaged in every pass that met at ${BREAK_MPS} m/s closing or more`, bothDamaged === rows && rows > 0,
-  `${bothDamaged} of ${rows}; by the plant's limits alone, before the both break rule, ${bothPhysics}; both wrecks by the shell's rule in ${bothWreck}`);
-const sorted = [...drift].sort((x, y) => x - y);
-const med = sorted[Math.floor(sorted.length / 2)];
-const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))];
-console.log(`  info  P2 momentum drift |dPA + dPB| / max: median ${(med * 100).toFixed(0)} percent, p95 ${(p95 * 100).toFixed(0)} percent, worst ${(sorted[sorted.length - 1] * 100).toFixed(0)} percent over ${sorted.length} passes`);
-check('P3 a replay of the module calls alone gives the same plant, bit for bit', replayOk === replayed && replayed > 0, `${replayOk} of ${replayed}`);
-const [FA, FB] = await headOn('cub1400', 'p51d1450', 15, 15);
-const fr = pass(FA, FB, 50, true);
-check('P4 a friendly room sends no hit', fr.log.length === 0 && fr.hits[0].length === 0 && fr.hits[1].length === 0 && outcome(FA).kinds.length === 0,
-  `${fr.log.length} hits; A ${outcome(FA).kinds.join('+') || 'intact'}`);
+return { drift, rows, bothDamaged, bothPhysics, bothWreck, replayed, replayOk };
+}
+
+function judge(tag, r) {
+  check(`P1${tag} both aircraft damaged in every pass that met at ${BREAK_MPS} m/s closing or more`, r.bothDamaged === r.rows && r.rows > 0,
+    `${r.bothDamaged} of ${r.rows}; by the plant's limits alone, before the both break rule, ${r.bothPhysics}; both wrecks by the shell's rule in ${r.bothWreck}`);
+  const sorted = [...r.drift].sort((x, y) => x - y);
+  const med = sorted[Math.floor(sorted.length / 2)];
+  const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))];
+  console.log(`  info  P2${tag} momentum drift |dPA + dPB| / max: median ${(med * 100).toFixed(0)} percent, p95 ${(p95 * 100).toFixed(0)} percent, worst ${(sorted[sorted.length - 1] * 100).toFixed(0)} percent over ${sorted.length} passes`);
+  check(`P3${tag} a replay of the module calls alone gives the same plant, bit for bit`, r.replayOk === r.replayed && r.replayed > 0, `${r.replayOk} of ${r.replayed}`);
+}
+async function friendly(tag, a, b, map) {
+  const [FA, FB] = await headOn(a, b, 15, 15);
+  const fr = pass(FA, FB, 50, true, map);
+  check(`P4${tag} a friendly room sends no hit`, fr.log.length === 0 && fr.hits[0].length === 0 && fr.hits[1].length === 0 && outcome(FA).kinds.length === 0,
+    `${fr.log.length} hits; A ${outcome(FA).kinds.join('+') || 'intact'}`);
+}
+
+console.log('mid air through the real plant, both sides');
+judge('', await series(PAIRS, 'itaipu'));
+
+/* The aircraft PDCS seats, in the war's and The Interior's pairs, on
+ * Itaipu: a war ram (the interceptor and the seven inch into the
+ * Striker), two Strikers, the quads into each other, and The Interior's
+ * fixed wings (the Bramor with the Striker, interior-3). Judged on their
+ * own, so P1 to P3 above stay the record they were. */
+const KEPT_PAIRS = [
+  ['interceptor', 'striker2500'],
+  ['7inch', 'striker2500'],
+  ['striker2500', 'striker2500'],
+  ['10inch', 'interceptor'],
+  ['bramor2300', 'striker2500'],
+];
+console.log('\nthe aircraft PDCS seats, on itaipu');
+judge(' (kept)', await series(KEPT_PAIRS, 'itaipu'));
+await friendly(' (kept)', 'bramor2300', 'striker2500', 'itaipu');
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

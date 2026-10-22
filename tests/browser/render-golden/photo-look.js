@@ -28,11 +28,16 @@
 import * as THREE from 'three';
 import * as look from '../../../src/render/library/photolook.js';
 import { makeSun } from '../../../src/render/library/sun.js';
-import { SUN_COLOR, SUN_IRRADIANCE } from '../../../src/maps/swiss2/light.js';
 import { SURFACES } from '../../../src/render/library/surfaces.js';
 import {
   describeGeometry, describeMaterial, describeObject, makeTable, hashText, describeValue,
 } from '../render-golden-lib.js';
+
+/* The sun the Swiss valley lit itself with (src/maps/swiss2/light.js, gone
+ * with the valleys on 2026-10-20), kept here as the values the golden was
+ * recorded with. */
+const SUN_COLOR = new THREE.Color(1.0, 0.96, 0.9);
+const SUN_IRRADIANCE = 2.7 * 1.3;
 
 const sig = (v) => (typeof v === 'number' ? Number(v.toPrecision(12)) + 0 : v);
 const round = (o) => JSON.parse(JSON.stringify(o, (k, v) => sig(v)));
@@ -43,8 +48,8 @@ function texture(w, h, v) {
   return t;
 }
 
-/* The kit's inputs: every surface a set of three small maps, one mark,
- * a ground that says what it was asked for, the heights' uniforms. */
+/* The kit's inputs: every surface a set of three small maps, a ground
+ * that says what it was asked for, the heights' uniforms. */
 function made() {
   const surfaces = Object.fromEntries(SURFACES.map((n, k) => [n, { col: texture(2, 2, 40 + k), nrm: texture(2, 2, 128), arm: texture(2, 2, 200 - k) }]));
   const ground = (opts) => {
@@ -53,7 +58,7 @@ function made() {
     return m;
   };
   const heights = { texture: { value: null }, grid: { value: new THREE.Vector4(1, 2, 3, 4) } };
-  return look.makePhotoLook({ surfaces, marks: { lanpy: texture(4, 4, 90) }, ground, heights });
+  return look.makePhotoLook({ surfaces, ground, heights });
 }
 
 function shaders(m) {

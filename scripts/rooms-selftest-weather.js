@@ -22,7 +22,7 @@
 import { PROTO, ROOM_LEVEL } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 
-const profile = { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null };
+const profile = { airframe: 'bramor2300', map: 'itaipu', figure: 1, livery: null, parts: null };
 
 export function weatherSection(check) {
   console.log('the room\'s air');

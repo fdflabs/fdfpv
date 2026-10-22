@@ -139,8 +139,6 @@ typedef struct {
   double hi[SIM_PARTS_MAX][3];
   unsigned int sub[SIM_PARTS_MAX];   /* the part and everything under it */
   double seat[SIM_PARTS_MAX];        /* half the footprint it seats on, m */
-  int wheel_part[SIM_WHEELS_MAX];    /* the part carrying each wheel, -1 */
-  int float_part[2];                 /* left, right, -1 */
   double wing_area;                  /* plan area of the wing panels */
   double w1[SIM_PARTS_MAX];          /* a ringing part's first bending
                                       * mode, rad/s; 0 rigid */
@@ -346,76 +344,12 @@ static void table_finish(Table *t, int airframe) {
     const int par = t->p[i].parent;
     t->ring_up[i] = par <= 0 ? -1 : (t->w1[par] > 0.0 ? par : t->ring_up[par]);
   }
-  for (int w = 0; w < SIM_WHEELS_MAX; w += 1) {
-    t->wheel_part[w] = -1;
-  }
-  t->float_part[0] = -1;
-  t->float_part[1] = -1;
   t->wing_area = 0.0;
   for (int i = 0; i < t->n; i += 1) {
     const PartDef *d = &t->p[i];
-    if (d->wheel >= 0 && d->wheel < P->wheel_count) {
-      t->wheel_part[d->wheel] = i;
-    }
-    if (d->kind == SIM_PART_FLOAT) {
-      t->float_part[t->cg[i][1] > 0.0 ? 0 : 1] = i;
-    }
     if (d->kind == SIM_PART_WING) {
       t->wing_area += (t->hi[i][0] - t->lo[i][0]) * (t->hi[i][1] - t->lo[i][1]);
     }
-  }
-}
-
-/* A float variant: the wheeled table without its gear, raised by dz, and
- * two floats on struts from the plant's float geometry. */
-static void table_floats(Table *t, const PartDef *base, int nbase, int airframe, double dz,
-                         double strut_x0, double strut_x1, double body_bottom, double float_mass) {
-  const PlantParams *P = &PLANT_TABLE[airframe];
-  const FloatParams *fp = &P->floats;
-  int remap[SIM_PARTS_MAX];
-  t->n = 0;
-  for (int i = 0; i < nbase; i += 1) {
-    remap[i] = -1;
-    if (base[i].kind == SIM_PART_GEAR) {
-      continue;
-    }
-    PartDef d = base[i];
-    d.parent = d.parent >= 0 ? remap[d.parent] : -1;
-    if (d.wheel >= P->wheel_count) {
-      d.wheel = -1;
-    }
-    part_expand(&d, airframe);
-    d.joint[2] += dz;
-    for (int k = 0; k < d.npts; k += 1) {
-      d.pts[k][2] += dz;
-    }
-    remap[i] = t->n;
-    table_add(t, &d, airframe);
-  }
-  for (int f = 0; f < 2; f += 1) {
-    const double yf = f == 0 ? fp->y : -fp->y;
-    PartDef d = {
-      .kind = SIM_PART_FLOAT, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
-      .mass = float_mass, .m_max = FLOAT_STRUT_M, .f_max = FLOAT_STRUT_F, .k = 1.0e4,
-      .crush_s = EPO_CRUSH, .crush_a = 0.5 * fp->beam * fp->depth, .crush_d = 0.05,
-    };
-    d.joint[0] = 0.5 * (strut_x0 + strut_x1);
-    d.joint[1] = 0.5 * yf;
-    d.joint[2] = body_bottom + dz;
-    const double x0 = fp->x_stern, x1 = fp->x_bow;
-    const double y0 = yf - 0.5 * fp->beam, y1 = yf + 0.5 * fp->beam;
-    const double z0 = fp->z_keel, z1 = fp->z_keel + fp->depth;
-    const double pts[8][3] = {
-      { x0, y0, z0 }, { x1, y0, z0 }, { x0, y1, z0 }, { x1, y1, z0 },
-      { x0, y0, z1 }, { x1, y0, z1 }, { x0, y1, z1 }, { x1, y1, z1 },
-    };
-    d.npts = 8;
-    for (int k = 0; k < 8; k += 1) {
-      for (int a = 0; a < 3; a += 1) {
-        d.pts[k][a] = pts[k][a];
-      }
-    }
-    table_add(t, &d, airframe);
   }
 }
 
@@ -526,27 +460,9 @@ static void tables_build(void) {
   struct { int id; const PartDef *p; int n; } src[] = {
     { SIM_AIRFRAME_5IN, PARTS_5IN, COUNT(PARTS_5IN) },
     { SIM_AIRFRAME_WING1000, PARTS_WING1000, COUNT(PARTS_WING1000) },
-    { SIM_AIRFRAME_SKY1800, PARTS_SKY1800, COUNT(PARTS_SKY1800) },
-    { SIM_AIRFRAME_CUB1400, PARTS_CUB1400, COUNT(PARTS_CUB1400) },
-    { SIM_AIRFRAME_SLOWSTICK1180, PARTS_SLOWSTICK1180, COUNT(PARTS_SLOWSTICK1180) },
-    { SIM_AIRFRAME_RADIAN2000, PARTS_RADIAN2000, COUNT(PARTS_RADIAN2000) },
-    { SIM_AIRFRAME_TIMBER1500, PARTS_TIMBER1500, COUNT(PARTS_TIMBER1500) },
     { SIM_AIRFRAME_BRAMOR2300, PARTS_BRAMOR2300, COUNT(PARTS_BRAMOR2300) },
-    { SIM_AIRFRAME_BOMBSHELL1118, PARTS_BOMBSHELL1118, COUNT(PARTS_BOMBSHELL1118) },
-    { SIM_AIRFRAME_KADET1981, PARTS_KADET1981, COUNT(PARTS_KADET1981) },
-    { SIM_AIRFRAME_F16878, PARTS_F16878, COUNT(PARTS_F16878) },
-    { SIM_AIRFRAME_NRJ1490, PARTS_NRJ1490, COUNT(PARTS_NRJ1490) },
-    { SIM_AIRFRAME_P51D1450, PARTS_P51D1450, COUNT(PARTS_P51D1450) },
-    { SIM_AIRFRAME_ZAGI1219, PARTS_ZAGI1219, COUNT(PARTS_ZAGI1219) },
-    { SIM_AIRFRAME_UGLYSTIK1567, PARTS_UGLYSTIK1567, COUNT(PARTS_UGLYSTIK1567) },
-    { SIM_AIRFRAME_TIGERMOTH1803, PARTS_TIGERMOTH1803, COUNT(PARTS_TIGERMOTH1803) },
     { SIM_AIRFRAME_STRIKER_PROP, PARTS_STRIKER_PROP, COUNT(PARTS_STRIKER_PROP) },
     { SIM_AIRFRAME_STRIKER_JET, PARTS_STRIKER_JET, COUNT(PARTS_STRIKER_JET) },
-    { SIM_AIRFRAME_EXTRA3D1308, PARTS_EXTRA3D1308, COUNT(PARTS_EXTRA3D1308) },
-    { SIM_AIRFRAME_NIGHTTIMBER1200, PARTS_NIGHTTIMBER1200, COUNT(PARTS_NIGHTTIMBER1200) },
-    { SIM_AIRFRAME_HERCULES3077, PARTS_HERCULES3077, COUNT(PARTS_HERCULES3077) },
-    { SIM_AIRFRAME_CAP1702, PARTS_CAP1702, COUNT(PARTS_CAP1702) },
-    { SIM_AIRFRAME_SLICK2680, PARTS_SLICK2680, COUNT(PARTS_SLICK2680) },
   };
   for (int s = 0; s < COUNT(src); s += 1) {
     Table *t = &T[src[s].id];
@@ -556,16 +472,6 @@ static void tables_build(void) {
     }
     table_finish(t, src[s].id);
   }
-  /* The CG drops 26.6 and 26.4 mm on floats (plant.c), which raises every
-   * part of the airframe by as much over the new origin. The struts meet
-   * the fuselage's belly, 0.070 and 0.056 under the old CG. Each float with
-   * its struts is half the set's mass, FLOATS-STAGE1's 0.234 and 0.212 kg. */
-  table_floats(&T[SIM_AIRFRAME_TIMBER1500F], PARTS_TIMBER1500, COUNT(PARTS_TIMBER1500),
-               SIM_AIRFRAME_TIMBER1500F, 0.0266, 0.12, -0.02, -0.070, 0.117);
-  table_finish(&T[SIM_AIRFRAME_TIMBER1500F], SIM_AIRFRAME_TIMBER1500F);
-  table_floats(&T[SIM_AIRFRAME_CUB1400F], PARTS_CUB1400, COUNT(PARTS_CUB1400),
-               SIM_AIRFRAME_CUB1400F, 0.0264, 0.07, -0.02, -0.056, 0.106);
-  table_finish(&T[SIM_AIRFRAME_CUB1400F], SIM_AIRFRAME_CUB1400F);
   /* The packs' boxes are scripts/combat-derive.js's about the CG: the 7
    * inch's one 6S1P brick, the 10 inch's two side by side, the
    * interceptor's one 6S LiPo. The five inch's motors are 0.0778 out on
@@ -784,17 +690,6 @@ static void live_pt(const double p[3], double out[3]) {
 
 static int attached(int i) {
   return PS[i].status == SIM_PART_ATTACHED;
-}
-
-/* A gear leg the retracts have folded into the wing, docs/P51-STAGE1.md:
- * a leg that carries a retracting wheel, while the gear is not down and
- * locked. It is still there, its mass and its joint, but inside the
- * airframe, so nothing outside can touch it; the belly is what meets the
- * ground. Never true on an aircraft without retracts. */
-static int stowed(const Table *t, int i) {
-  const PartDef *d = &t->p[i];
-  return d->kind == SIM_PART_GEAR && d->wheel >= 0 && d->wheel < PLANT.wheel_count
-      && PLANT.wheel[d->wheel].retract > 0.0 && !plant_wing_gear_down();
 }
 
 /* ---------------------------------------------------------------------
@@ -1264,20 +1159,6 @@ static void live_rebuild(SimState *s) {
   g_live.camera_x = P0->camera_x - sh[0];
   g_live.camera_y = P0->camera_y - sh[1];
   g_live.camera_z = P0->camera_z - sh[2];
-  for (int w = 0; w < P0->wheel_count; w += 1) {
-    for (int a = 0; a < 3; a += 1) {
-      g_live.wheel[w].pos[a] = P0->wheel[w].pos[a] - sh[a];
-    }
-  }
-  /* The floats are symmetric in the table and stay so: a sideways shift
-   * of the CG is left out of their geometry, which the doc records. */
-  g_live.floats.x_bow = P0->floats.x_bow - sh[0];
-  g_live.floats.x_knee = P0->floats.x_knee - sh[0];
-  g_live.floats.x_step = P0->floats.x_step - sh[0];
-  g_live.floats.x_stern = P0->floats.x_stern - sh[0];
-  g_live.floats.rudder_x = P0->floats.rudder_x - sh[0];
-  g_live.floats.z_keel = P0->floats.z_keel - sh[2];
-  g_live.floats.rudder_z = P0->floats.rudder_z - sh[2];
   g_live_on = 1;
   PLANT_P = &g_live;
   samplers_rebuild();
@@ -1290,13 +1171,11 @@ static void live_rebuild(SimState *s) {
  * craft out of a depth the foam gave up, in one step and with its speed
  * into the ground taken away (433 g on a Skyhunter's belly crushed 7 mm
  * into concrete, where the crush itself stopped it at 94). */
-static int g_samp_stowed = 0; /* whether the samplers were built with the gear folded */
 static void samplers_rebuild(void) {
   const Table *t = tab();
   g_nsamp = 0;
-  g_samp_stowed = !plant_wing_gear_down();
   for (int i = 0; i < t->n; i += 1) {
-    if (!attached(i) || stowed(t, i)) {
+    if (!attached(i)) {
       continue;
     }
     const double *dent = PS[i].dent;
@@ -1462,14 +1341,6 @@ static void effects_rebuild(void) {
   if (CRASH.rudder_keep < 1.0) {
     CRASH.surf_lost[3] = CRASH.rudder_keep == 0.0;
   }
-  for (int w = 0; w < SIM_WHEELS_MAX; w += 1) {
-    const int p = t->wheel_part[w];
-    CRASH.wheel_lost[w] = (p >= 0 && !attached(p)) ? 1 : 0;
-  }
-  for (int f = 0; f < 2; f += 1) {
-    const int p = t->float_part[f];
-    CRASH.float_lost[f] = (p >= 0 && !attached(p)) ? 1 : 0;
-  }
   (void)P0;
   CRASH.active = any;
 }
@@ -1497,14 +1368,9 @@ static void effects_clear(void) {
   CRASH.hstab_keep = 1.0;
   CRASH.fin_keep = 1.0;
   CRASH.cg_shift[0] = CRASH.cg_shift[1] = CRASH.cg_shift[2] = 0.0;
-  for (int w = 0; w < SIM_WHEELS_MAX; w += 1) {
-    CRASH.wheel_lost[w] = 0;
-  }
-  CRASH.float_lost[0] = CRASH.float_lost[1] = 0;
 }
 
 static void own_clear(void);
-static void skid_clear(void);
 static void solids_reset(void);
 static void solid_take(const double n[3], double jn, const double jt[3]);
 static double solid_give_compliance(void);
@@ -1566,7 +1432,6 @@ void crash_reset(void) {
   g_crown_step = -1000000;
   g_surf = SIM_SURF_DEFAULT;
   g_ground_mat = SIM_SURF_DEFAULT;
-  skid_clear();
   g_crush_mask = 0;
   g_crushing = 0;
   g_capped_now = 0;
@@ -1715,7 +1580,7 @@ int crash_part_at(const double b[3]) {
   double near = 1.0e9;
   int best = 0;
   for (int i = 0; i < t->n; i += 1) {
-    if (!attached(i) || stowed(t, i)) {
+    if (!attached(i)) {
       continue;
     }
     for (int k = 0; k < t->p[i].npts; k += 1) {
@@ -2367,75 +2232,6 @@ static double fold_force(const Table *t, int i, const double nb[3], double mu) {
   }
   const double f = WIRE_HINGE * d->m_max * st / arm;
   return f < fm ? f : fm;
-}
-
-/* How far a leg can fold: as far as it reaches below its root. */
-static double fold_travel(const Table *t, int i) {
-  return t->hi[i][2] - t->lo[i][2];
-}
-
-/*
- * A SKID THAT IS A PART STARTS FROM NOTHING. The plant's wheels are springs
- * with a linear damper, F = k x - c v, which at the first touch is c v with
- * no depth at all: the prop tip's skid (k 3000 N/m, c 40 N s/m) met the grass
- * at 5 m/s with 200 N in its first millisecond, 45 g on a Bombshell, and
- * that one step broke both wing panels under their own weight. With the
- * mode on a skid that is a part (a prop's tip) is that part's spring and
- * the surface's in series, as the part's own hull meets the ground
- * (crash_contact_pre): the blade gives before the nose behind it takes the
- * rest. And it meets the ground through Lankarani and Nikravesh's
- * hysteresis damping ("A contact force model with hysteresis
- * damping for impact analysis of multibody systems", J. Mech. Design 112,
- * 1990), F = k x (1 + 3 (1 - e^2) / 4 v / v_in), v_in the closing speed the
- * contact began at and e the surface's restitution: it rises from zero with
- * the depth, and a blow at v_in gives back e of it. A wire leg's wheel is
- * capped at its fold (below); a wheel with no part keeps the plant's.
- */
-static long long g_skid_step[SIM_WHEELS_MAX];
-static double g_skid_vin[SIM_WHEELS_MAX];
-
-static void skid_clear(void) {
-  for (int w = 0; w < SIM_WHEELS_MAX; w += 1) {
-    g_skid_step[w] = -1000000;
-    g_skid_vin[w] = 0.0;
-  }
-}
-
-static double skid_force(const SimState *s, int w, const PartDef *d, double pen, double vn) {
-  const double k = series_k(d->k, SURF[g_ground_mat].k);
-  if (g_skid_step[w] != s->step_index - 1 && g_skid_step[w] != s->step_index) {
-    g_skid_vin[w] = -vn > SPRING_GOING ? -vn : SPRING_GOING;
-  }
-  g_skid_step[w] = s->step_index;
-  const double e = SURF[g_ground_mat].e;
-  return k * pen * (1.0 + 0.75 * (1.0 - e * e) * -vn / g_skid_vin[w]);
-}
-
-double crash_wheel_force(const SimState *s, int w, const double r[3], const double n[3], double pen, double vn) {
-  const WheelParams *wp = &PLANT.wheel[w];
-  const Table *t = tab();
-  const int i = t->wheel_part[w];
-  if (i >= 0 && attached(i) && !wire_leg(&t->p[i])) {
-    return skid_force(s, w, &t->p[i], pen, vn);
-  }
-  if (i < 0 || !attached(i)) {
-    return wp->k * pen - wp->c * vn;
-  }
-  PartState *p = &PS[i];
-  double nb[3];
-  qrot_inv(s->quat, n, nb);
-  const double fp = fold_force(t, i, nb, 0.0);
-  /* The plastic set grows only by what the elastic leg would carry past
-   * the hinge's force, until the leg lies folded against the airframe:
-   * from there its wheel is where the belly is. */
-  if (wp->k * (pen - p->fold) > fp) {
-    p->fold = pen - fp / wp->k;
-  }
-  if (p->fold > fold_travel(t, i)) {
-    p->fold = fold_travel(t, i);
-  }
-  const double f = wp->k * (pen - p->fold) - wp->c * vn;
-  return f < fp ? f : fp;
 }
 
 /* A leg met by the ground on its own hull: the same hinge, a plateau the
@@ -3125,29 +2921,9 @@ void crash_force_note(const SimState *s, const double r[3], const double F[3], i
   }
 }
 
-/* The table's wheel index to its part: wheels and the prop's skid. */
-int crash_wheel_part(int w) {
-  if (w < 0 || w >= SIM_WHEELS_MAX) {
-    return -1;
-  }
-  return tab()->wheel_part[w];
-}
-
-int crash_float_part(int f) {
-  if (f < 0 || f > 1) {
-    return -1;
-  }
-  return tab()->float_part[f];
-}
-
 void crash_batch_begin(const SimState *s, int from_step) {
   if (!SIM_DAMAGE) {
     return;
-  }
-  /* The retracts moved since the samplers were built: a leg folded away
-   * or back out. Never on an aircraft without them. */
-  if (g_samp_stowed != !plant_wing_gear_down()) {
-    samplers_rebuild();
   }
   g_nh = 0;
   g_batch_open = 1;
@@ -5365,7 +5141,7 @@ int crash_touches(const SimState *s) {
   const double travel = g_nwr > 0 ? (norm(s->vel) + norm(s->omega) * craft_reach()) * SIM_DT : 0.0;
   const int rigid = g_nob + g_ntr;
   for (int i = 0; i < t->n; i += 1) {
-    if (!attached(i) || stowed(t, i)) {
+    if (!attached(i)) {
       g_own_solid[i] = 0;
       continue;
     }

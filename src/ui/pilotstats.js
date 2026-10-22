@@ -5,8 +5,7 @@
  *
  * Every number is read from what the settings carry and the account
  * syncs: the time in the air (src/share/flighttime.js, the record the
- * firsts are paid from), the flights and the room games' results
- * (src/share/pilotcounts.js), the XP and medals and tracks lapped
+ * firsts are paid from), the flights (src/share/pilotcounts.js), the XP and medals and tracks lapped
  * (src/game/progress.js), and the war campaign (src/game/campaign.js). So
  * a sync that brings another computer's progress changes these numbers by
  * the same renderMenu that repaints the rest of the page. The tokens are
@@ -32,7 +31,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AIRFRAME_IDS, airframeById, landPlaneOf, retiredAirframe } from '../../configs/airframes.js';
+import { AIRFRAME_IDS, airframeById, retiredAirframe } from '../../configs/airframes.js';
 import { cleanCampaign, MAX_STARS, ACT1, INTERIOR } from '../game/campaign.js';
 import { MEDAL_STEPS } from '../game/medals.js';
 import { bestKind, bestsMap, levelInfo } from '../game/progress.js';
@@ -43,18 +42,16 @@ import { flightTimeText } from './carousel.js';
 import { el } from './dom.js';
 
 /* The Flight Club modes whose time is shown, each under its card's name.
- * Catch the Ace! and Trick Battle add their matches won and best score. */
+ * Streamer Combat's and Catch the Ace!'s left with the games (the
+ * combat-only cut, 2026-10-20); the time flown in them stays in the
+ * record. */
 const MODE_TIME = [
   ['race', 'ui.track_mode'],
   ['free', 'ui.free_flight_card'],
-  ['combat', 'combat.card'],
-  ['tag', 'roomtag.section'],
-  ['jam', 'jam.card'],
 ];
 
-/* A float version is the land plane with a toggle on (configs/airframes.js
- * THE FLOAT VERSIONS), so its time is the land plane's. A retired id keeps
- * its own name: the pilot flew that aircraft, not its successor. */
+/* A retired id keeps its own name: the pilot flew that aircraft, not its
+ * successor. */
 function planeName(id) {
   if (AIRFRAME_IDS.includes(id)) {
     return airframeById(id).name;
@@ -69,13 +66,11 @@ function landingTotal(by) {
 }
 
 /* The bests (src/game/progress.js BESTS) a mode line shows: Track Day's
- * count of laps and runs, Streamer Combat's highest round on any world.
- * Catch the Ace! keeps the best its line already shows (pilotCounts). */
+ * count of laps and runs. */
 function bestsShown(stored) {
   const all = Object.entries(bestsMap(stored));
   const times = all.filter(([k]) => bestKind(k) === 'lap' || bestKind(k) === 'run').length;
-  const combat = all.filter(([k]) => bestKind(k) === 'combat').reduce((n, [, v]) => Math.max(n, v), 0);
-  return { race: times, combat };
+  return { race: times };
 }
 
 /* The numbers, from the settings and the wallet last held (null when
@@ -87,9 +82,8 @@ export function pilotStats(settings, wallet = null) {
   const counts = countTotals(s.pilotCounts);
   const byPlane = {};
   for (const [id, secs] of Object.entries(total.byAirframe)) {
-    const land = landPlaneOf(id);
-    if (secs > 0 && planeName(land)) {
-      byPlane[land] = (byPlane[land] || 0) + secs;
+    if (secs > 0 && planeName(id)) {
+      byPlane[id] = (byPlane[id] || 0) + secs;
     }
   }
   const planes = Object.entries(byPlane).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
@@ -119,7 +113,6 @@ export function pilotStats(settings, wallet = null) {
     modes: MODE_TIME.map(([id]) => total.byActivity[id] || 0),
     flights: counts.flights,
     landings: landingTotal(progress.landings),
-    games: { tag: counts.tag, jam: counts.jam },
     bests: bestsShown(progress.bests),
     tokens: wallet && Number.isFinite(wallet.balance) ? wallet.balance : null,
   };
@@ -188,15 +181,9 @@ export function paintPilotStats(host, st) {
     const m = el('span', 'gate-stats-mode');
     m.dataset.mode = id;
     m.append(el('span', 'gate-stats-mode-name', str(key)), el('span', 'gate-stats-mode-time', st.modes[i] > 0 ? flightTimeText(st.modes[i]) : '0'));
-    const game = st.games[id];
-    if (game && game.played > 0) {
-      m.append(el('span', 'gate-stats-mode-game', str('stats.game', { won: num(game.won), played: num(game.played), best: num(game.best) })));
-    }
     const bests = st.bests ? st.bests[id] : 0;
     if (id === 'race' && bests > 0) {
       m.append(el('span', 'gate-stats-mode-game', plural('stats.bests', bests, { n: num(bests) })));
-    } else if (id === 'combat' && bests > 0) {
-      m.append(el('span', 'gate-stats-mode-game', str('stats.best_score', { best: num(bests) })));
     }
     modes.append(m);
   });

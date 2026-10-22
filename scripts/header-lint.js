@@ -52,10 +52,10 @@ const MARK = 'part of WebFPVSimulator';
  * entries leave as their files are rewritten, none are added. */
 const POST_FORK = new Set([
   'assets/boot/drone.svg', 'scripts/bombshell-shell.js', 'scripts/boot-loader-check.js',
-  'scripts/build-save-check.js', 'scripts/build-selftest.js', 'scripts/crash-rules-selftest.js',
-  'scripts/drone-wireframe.js', 'scripts/floats-shell.js', 'scripts/itaipu-check.js',
-  'scripts/mouse-shell.js', 'scripts/og-check.js', 'scripts/track-mode-check.js',
-  'src/game/airframehull.js', 'src/game/verify.js', 'src/render/pylons.js',
+  'scripts/build-save-check.js', 'scripts/crash-rules-selftest.js',
+  'scripts/drone-wireframe.js', 'scripts/itaipu-check.js',
+  'scripts/mouse-shell.js', 'scripts/og-check.js',
+  'src/game/airframehull.js',
   'src/replay/crashcam.js', 'src/ui/accountui.js', 'src/ui/campaign.js', 'src/ui/carousel.js',
   'src/ui/hangar-combat.js', 'src/ui/hangar-paint.js', 'src/ui/hangar-parts.js',
   'src/ui/hangar-tuning.js', 'src/ui/hangar.js', 'src/ui/progress-ui.js', 'src/ui/update.js',

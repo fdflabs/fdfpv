@@ -93,12 +93,12 @@ async function account(sub, callsign) {
 }
 
 const painter = await account('painter', 'Painter');
-const entry = (await api('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Reported Timber', {}) }, painter)).entry;
+const entry = (await api('POST', '/api/account/gallery', { code: encodeLivery('striker2500', 'Reported Striker', {}) }, painter)).entry;
 for (const who of ['r1', 'r2', 'r3']) {
   /* eslint-disable-next-line no-await-in-loop */
   await api('POST', `/api/account/gallery/${entry.id}/report`, undefined, await account(who, who.toUpperCase()));
 }
-const listed = async () => (await api('GET', '/api/gallery?family=timber1500')).items.some((x) => x.id === entry.id);
+const listed = async () => (await api('GET', '/api/gallery?family=striker2500')).items.some((x) => x.id === entry.id);
 check('three reports hid it before the page opens', !(await listed()));
 
 /* The page's API origin is production's: its requests are sent to the
@@ -161,9 +161,9 @@ async function main() {
   try {
     await page.until("Boolean(document.querySelector('#gis-mock'))", 30000);
     check('pressed Google (mock)', await press(page, '#gis-mock'));
-    await page.until(`(${galleryText}).includes('Reported Timber')`, 20000);
+    await page.until(`(${galleryText}).includes('Reported Striker')`, 20000);
     const text = await page.evaluate(galleryText);
-    check('the hidden livery is listed with its publisher, reports and state', /Reported Timber.*timber1500.*Painter.*3.*Hidden/.test(text), text);
+    check('the hidden livery is listed with its publisher, reports and state', /Reported Striker.*striker2500.*Painter.*3.*Hidden/.test(text), text);
     await page.evaluate("document.getElementById('gallery').scrollIntoView({ block: 'center' }); true");
     await shot(page, 'admin-gallery-hidden');
     check('pressed Show', await press(page, '#gallery td.acts button'));
@@ -172,7 +172,7 @@ async function main() {
     await api('POST', `/api/account/gallery/${entry.id}/report`, undefined, await account('r4', 'R4'));
     await press(page, '#refresh');
     await page.until(`(${galleryText}).includes('Shown')`, 10000);
-    check('its reports were cleared: one more lists it Shown with 1 report', /Reported Timber.*1.*Shown/.test(await page.evaluate(galleryText)), await page.evaluate(galleryText));
+    check('its reports were cleared: one more lists it Shown with 1 report', /Reported Striker.*1.*Shown/.test(await page.evaluate(galleryText)), await page.evaluate(galleryText));
     check('pressed Hide', await press(page, '#gallery td.acts button'));
     await page.until(`(${galleryText}).includes('Hidden')`, 10000);
     check('Hide takes it out of the public list', !(await listed()));

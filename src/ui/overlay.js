@@ -3,7 +3,7 @@
  * that set flight up, as Ui methods installed onto the class at the end
  * of ui.js.
  *
- * The flight part (OSD readouts, banner, target mark, stick ghosts, air
+ * The flight part (OSD readouts, banner, stick ghosts, air
  * slider, score overlay) is called from main.js's frame loop, so it is
  * written to the rule ui.js's Ui.text, Ui.klass and Ui.bar exist for: a
  * frame that changes nothing writes nothing to the DOM, and a frame
@@ -40,7 +40,7 @@ import { boardFlightSeconds } from '../share/stats.js';
 import { str } from '../strings/index.js';
 import { controllerKey } from './controller.js';
 import { cursorOnLit } from './flywith.js';
-import { formatRunClock, formatTime } from './format.js';
+import { formatTime } from './format.js';
 import { WEIGHT_STOCK, airHintSeen, clampWeight, markAirHintSeen, saveSettings } from './settings.js';
 import { el, makePadCard, placeNub, placeSticks } from './widgets.js';
 /* A cycle (ui.js installs these methods), so only read inside methods. */
@@ -50,10 +50,6 @@ import { Ui, padTroubleItem } from './ui.js';
  * untouched, and that counts as read, so it is shown once ever. */
 const AIR_HINT_MS = 10000;
 
-/* The scored freestyle run is two minutes; the clock shows this until the
- * first trick starts it. */
-const RUN_CLOCK_FULL = '2:00';
-const RUN_LATE_MS = 10_000;
 
 /* The comparison's channels this frame, written in place by StickRef.at. */
 const REF_STICKS = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
@@ -61,8 +57,6 @@ const REF_STICKS = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 /* String keys, resolved per frame through str() so a locale change reads
  * right on the next frame. */
 const FLIGHT_MODE_KEYS = { angle: 'ui.angle', stab: 'ui.stabilised', manual: 'ui.manual', as3x: 'ui.as3x' };
-const FLAP_KEYS = ['ui.flaps_up', 'ui.flaps_half', 'ui.flaps_full'];
-const GEAR_KEYS = { up: 'ui.gear_up', down: 'ui.gear_down' };
 
 /* Wording for input.js's calibration steps; the order is CAL_STEPS. Keys,
  * read when the list is drawn, so the words are the table's at that moment
@@ -87,65 +81,16 @@ const unit = (v) => Math.max(-1, Math.min(1, v));
 /* An axis value on the -1..1 track, as a left offset in per cent. */
 const trackPct = (v) => `${Math.max(0, Math.min(100, ((v + 1) / 2) * 100)).toFixed(1)}%`;
 
-/* Writes `value` to node.style[prop] unless the memo already holds it
- * under `key`. The target mark's memo, since its nodes are its own. */
-function styleOnce(memo, key, node, prop, value) {
-  if (memo[key] !== value) {
-    memo[key] = value;
-    node.style[prop] = value;
-  }
-}
-
 /*
  * The clock slot, top centre. One clock on screen whatever the mode:
  *   race: the lap, dim at 0.00 before the first gate;
- *   freestyle, scoring off: the time in the air, same face;
- *   freestyle, free flight: no clock, and it says so rather than going blank;
- *   freestyle, scored: the run's time LEFT, because the last seconds are
- *   when a pilot decides on the big line. Dim at 2:00 until the first
- *   trick, warm in the last ten seconds.
+ *   freestyle: the time in the air, same face.
  */
-function paintClock(ui, freestyle, lapMs, runScored, runTimed, runState, runRemainMs) {
-  let label;
-  let face;
-  let cls;
-  if (!freestyle || runScored === false) {
-    const timing = Number.isFinite(lapMs);
-    label = freestyle ? str('ui.clock_air') : str('ui.lap_label');
-    face = timing ? formatTime(lapMs) : '0.00';
-    cls = timing ? 'osd-timer' : 'osd-timer waiting';
-  } else if (runTimed === false) {
-    label = str('ui.clock_run');
-    face = str('ui.clock_free');
-    cls = 'osd-timer waiting';
-  } else {
-    const started = runState === 'flying' || runState === 'over';
-    const left = Number.isFinite(runRemainMs) ? runRemainMs : 0;
-    label = str('ui.clock_run');
-    face = started ? formatRunClock(left) : RUN_CLOCK_FULL;
-    if (!started) {
-      cls = 'osd-timer waiting';
-    } else {
-      cls = left <= RUN_LATE_MS ? 'osd-timer is-late' : 'osd-timer';
-    }
-  }
-  Ui.text(ui.osdClockLabel, label);
-  Ui.text(ui.osdTimer, face);
-  Ui.klass(ui.osdTimer, cls);
-}
-
-/* The gap to the ghost, signed so it can never be read as a lap time:
- * minus is you ahead. */
-function paintGhost(node, gapMs, final) {
-  if (gapMs == null) {
-    Ui.klass(node, 'osd-ghost is-off');
-    Ui.text(node, '');
-    return;
-  }
-  const ahead = gapMs <= 0;
-  const seconds = (Math.abs(gapMs) / 1000).toFixed(2);
-  Ui.text(node, `${str(final ? 'ui.ghost_lap' : 'ui.ghost')} ${ahead ? '-' : '+'}${seconds}`);
-  Ui.klass(node, ahead ? 'osd-ghost ahead' : 'osd-ghost behind');
+function paintClock(ui, freestyle, lapMs) {
+  const timing = Number.isFinite(lapMs);
+  Ui.text(ui.osdClockLabel, freestyle ? str('ui.clock_air') : str('ui.lap_label'));
+  Ui.text(ui.osdTimer, timing ? formatTime(lapMs) : '0.00');
+  Ui.klass(ui.osdTimer, timing ? 'osd-timer' : 'osd-timer waiting');
 }
 
 function flightModeText(flightMode, launchState) {
@@ -179,13 +124,6 @@ function paintLaunch(node, state, pitch) {
     text = deg > 2 ? str('ui.launch', { deg }) : 'LAUNCH';
   }
   Ui.text(node, text);
-}
-
-function gearText(gear) {
-  if (gear == null) {
-    return '';
-  }
-  return str(GEAR_KEYS[gear] || 'ui.gear_moving');
 }
 
 /* Whether the cards on screen are already one per pad in view. A loop,
@@ -277,81 +215,15 @@ export const overlayMethods = {
   },
 
   /*
-   * The target mark, the answer to "where is the next one": a bracket
-   * sized to the opening while it is in frame, a chevron pinned inside the
-   * edge pointing the short way round when it is not, both with the range
-   * under them and coloured by the same side test the gate uses. main.js
-   * lets go inside 6 m, where a bracket would just outline the frame.
-   */
-  buildTargetLock() {
-    const lock = el('div', 'lock is-off');
-    const box = el('div', 'lock-box');
-    box.append(el('i', 'lc tl'), el('i', 'lc tr'), el('i', 'lc bl'), el('i', 'lc br'));
-    const arrow = el('div', 'lock-arrow');
-    const dist = el('div', 'lock-dist', '');
-    lock.append(box, arrow, dist);
-    this.lock = lock;
-    this.lockBox = box;
-    this.lockArrow = arrow;
-    this.lockDist = dist;
-    /* The mark is up for a whole race, and each of its values is a style
-     * write per frame unless remembered. A fresh node's opacity is already
-     * unset, which is what full strength writes. */
-    this.lockMemo = { fade: '' };
-    return lock;
-  },
-
-  /* `x`, `y`: CSS px from the canvas's top left, already clamped by the
-   * shell. `size`: the aperture in CSS px. `angle`: the chevron's heading,
-   * degrees clockwise from up. `fade`: 0..1. */
-  setTargetLock({ show, x, y, size, angle, edge, wrong, distance, fade }) {
-    const lock = this.lock;
-    if (!lock) {
-      return;
-    }
-    const memo = this.lockMemo;
-    let cls = 'lock is-off';
-    if (show) {
-      cls = `lock${edge ? ' is-edge' : ''}${wrong ? ' is-wrong' : ''}`;
-    }
-    if (memo.cls !== cls) {
-      memo.cls = cls;
-      lock.className = cls;
-    }
-    if (!show) {
-      return;
-    }
-    styleOnce(memo, 'at', lock, 'transform', `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`);
-    styleOnce(memo, 'fade', lock, 'opacity', fade < 0.995 ? fade.toFixed(2) : '');
-    if (edge) {
-      styleOnce(memo, 'turn', this.lockArrow, 'transform', `translate(-50%, -50%) rotate(${angle.toFixed(1)}deg)`);
-    } else {
-      const side = `${size.toFixed(0)}px`;
-      styleOnce(memo, 'w', this.lockBox, 'width', side);
-      styleOnce(memo, 'h', this.lockBox, 'height', side);
-    }
-    /* The range sits under whichever mark shows, and the two are different
-     * heights, so it is placed rather than laid out. */
-    const below = (edge ? 15 : size * 0.5) + 11;
-    styleOnce(memo, 'under', this.lockDist, 'transform', `translate(-50%, ${below.toFixed(0)}px)`);
-    /* Whole metres: tenths at racing speed are a smear. */
-    const range = `${Math.round(distance)} m`;
-    if (memo.range !== range) {
-      memo.range = range;
-      this.lockDist.textContent = range;
-    }
-  },
-
-  /*
    * The flight readouts, every frame. Units a pilot reads (seconds, volts,
-   * metres, km/h), never raw state. A freestyle world has no gates, laps,
-   * last lap or ghost, so those slots go empty rather than lie; altitude is
+   * metres, km/h), never raw state. A freestyle world has no gates, laps
+   * or last lap, so those slots go empty rather than lie; altitude is
    * above the surface under the craft (the collision query's own), which
    * is the number that means something over a roof.
    */
-  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, flaps = null, gear = null, hold = null, bounces, launchState, launchPitch, ghostGapMs, ghostFinal, runState, runRemainMs, runTimed, runScored }) {
+  setOsd({ mode, lapMs, lastLapMs, gate, gateCount, gateCue, volts, packFrac, altitude, speedKph, throttle, flightMode, bounces, launchState, launchPitch }) {
     const freestyle = mode === 'freestyle';
-    paintClock(this, freestyle, lapMs, runScored, runTimed, runState, runRemainMs);
+    paintClock(this, freestyle, lapMs);
     let gateLine = '';
     if (!freestyle) {
       gateLine = gateCue
@@ -360,9 +232,6 @@ export const overlayMethods = {
     }
     Ui.text(this.osdGate, gateLine);
     Ui.text(this.osdLast, !freestyle && lastLapMs != null ? str('ui.last_lap', { formatTime: formatTime(lastLapMs) }) : '');
-    if (this.osdGhost) {
-      paintGhost(this.osdGhost, freestyle ? null : ghostGapMs, ghostFinal);
-    }
     Ui.text(this.osdPack, `${volts.toFixed(1)} volts`);
     Ui.bar(this.osdPackBar, packFrac);
     Ui.text(this.osdSpeed, str('ui.km_h', { speedKph: speedKph.toFixed(0) }));
@@ -370,16 +239,6 @@ export const overlayMethods = {
     Ui.bar(this.osdThrBar, throttle);
     if (this.osdFlight) {
       Ui.text(this.osdFlight, flightModeText(flightMode, launchState));
-    }
-    if (this.osdFlaps) {
-      const key = flaps == null ? null : FLAP_KEYS[flaps];
-      Ui.text(this.osdFlaps, key ? str(key) : '');
-    }
-    if (this.osdGear) {
-      Ui.text(this.osdGear, gearText(gear));
-    }
-    if (this.osdHold) {
-      Ui.text(this.osdHold, hold ?? '');
     }
     if (this.osdLaunch) {
       paintLaunch(this.osdLaunch, launchState, launchPitch);
@@ -393,39 +252,6 @@ export const overlayMethods = {
         Ui.klass(this.osdHits, 'osd-sub osd-hits');
       }
     }
-  },
-
-  /*
-   * The freestyle score overlay, in four calls because they run at four
-   * rates: visibility on a screen or mode change, the view per frame, the
-   * events when something happened, the reset per run.
-   */
-  syncScoreVisible() {
-    if (!this.scoreHud) {
-      return;
-    }
-    /* Scoring off shows the callouts alone when they are on, never the
-     * total: a zero that can never move reads as a fault. */
-    const flying = this.screen === 'flight' || this.screen === 'paused';
-    const scored = this.settings.freestyleScoring !== 'off';
-    this.scoreHud.setCalloutsOnly(!scored);
-    this.scoreHud.setVisible(this.osdMode === 'freestyle' && (scored || this.settings.trickCallouts) && flying);
-  },
-
-  setScore(view) {
-    this.scoreHud.update(view);
-  },
-
-  scoreEvents(list) {
-    this.scoreHud.events(list);
-  },
-
-  resetScore() {
-    this.scoreHud.reset();
-    /* A new run has posted nothing; without this the second run's results
-     * showed the first one's "Run posted". */
-    this.freestyleRun = null;
-    this.runPosted = null;
   },
 
   /*

@@ -281,7 +281,7 @@ await run('everything wrong', 'audio-bed', {
 
 /* Checks 15 and 16 off the world scale run. */
 const craft = (over) => ({ bodyLength: 0.16, bodyWidth: 0.05, bodyHeight: 0.03, sweepMeasured: 0.2451, craftR: 0.2451, craftRTrue: 0.2451, worldScale: 1, ...over });
-const urls = (n) => Array.from({ length: n }, (_, i) => `http://127.0.0.1:1/src/maps/swiss2/m${i}.js`);
+const urls = (n) => Array.from({ length: n }, (_, i) => `http://127.0.0.1:1/src/maps/interior/m${i}.js`);
 const budget = (over) => ({ p1: 282, p2: 1604546, p5: 31.64, p10: 20.11, meshes: 169, cel: 12, ...over });
 const scale = (over) => async () => ({
   craft: craft(),

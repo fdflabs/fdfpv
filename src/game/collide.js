@@ -921,7 +921,9 @@ class StreamFill extends Writer {
     throw new Error('collide: add to a streamed set after its first step');
   }
 
-  step(budget = STREAM_SLICE) {
+  /* Registers up to `budget` cell entries of the set; true once all of it
+   * is registered, ready to swap in. The first freezes the set. */
+  work(budget = STREAM_SLICE) {
     if (this.owner.refill !== this) {
       throw new Error('collide: step on a streamed set that was replaced or already swapped in');
     }
@@ -930,7 +932,12 @@ class StreamFill extends Writer {
       this.draft = null;
       this.reg = new Registrar(this.set, null);
     }
-    if (!this.reg.step(budget)) {
+    return this.reg.step(budget);
+  }
+
+  /* work, and the set swapped in on the call that finishes it. */
+  step(budget = STREAM_SLICE) {
+    if (!this.work(budget)) {
       return false;
     }
     this.owner.swapIn(this.set, this.reg.grid);

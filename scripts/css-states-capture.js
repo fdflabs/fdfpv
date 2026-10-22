@@ -93,15 +93,13 @@ const GROUPS = [
     ui.show('paused');
     const fly = () => { ui.osd.style.display = ''; ui.osd.className = 'osd'; };
     fly();
-    const osdBase = { mode: 'race', lapMs: 12345, lastLapMs: 30000, gate: 3, gateCount: 9, gateCue: '', volts: 15.2, packFrac: 0.6, altitude: 3.2, speedKph: 80, throttle: 0.4, flightMode: 'acro', bounces: 0, launchState: 0, launchPitch: 0, ghostGapMs: null, ghostFinal: false };
-    ui.setOsd({ ...osdBase, lapMs: NaN, launchState: 1, launchPitch: 12, ghostGapMs: -1200 });
+    const osdBase = { mode: 'race', lapMs: 12345, lastLapMs: 30000, gate: 3, gateCount: 9, gateCue: '', volts: 15.2, packFrac: 0.6, altitude: 3.2, speedKph: 80, throttle: 0.4, flightMode: 'acro', bounces: 0, launchState: 0, launchPitch: 0 };
+    ui.setOsd({ ...osdBase, lapMs: NaN, launchState: 1, launchPitch: 12 });
     cap('osd-waiting-ahead-launch', '.osd');
-    ui.setOsd({ ...osdBase, bounces: 2, launchState: 2, ghostGapMs: 800, flaps: 1, gear: 'down' });
+    ui.setOsd({ ...osdBase, bounces: 2, launchState: 2, flaps: 1, gear: 'down' });
     cap('osd-behind-hot-bounces', '.osd');
-    ui.setOsd({ ...osdBase, mode: 'freestyle', runScored: true, runTimed: true, runState: 'flying', runRemainMs: 4000, launchState: 3 });
+    ui.setOsd({ ...osdBase, mode: 'freestyle', launchState: 3 });
     cap('osd-late-go', '.osd');
-    ui.setOsd({ ...osdBase, mode: 'freestyle', runScored: true, runTimed: false, flightMode: 'turtle' });
-    cap('osd-free', '.osd');
     ui.osd.className = 'osd dim';
     cap('osd-dim', '.osd');
     fly();
@@ -138,34 +136,6 @@ const GROUPS = [
     ui.setBanner('A boxed line in the middle of the frame', true);
     cap('banner-panel', '.banner');
     ui.setBanner('', false);
-    /* The score overlay: tiers 3 to 5, rows by execution, verdicts and rings. */
-    ui.osdMode = 'freestyle';
-    ui.settings.freestyleScoring = 'on';
-    const hud = ui.scoreHud;
-    hud.reset();
-    hud.setVisible(true);
-    for (const [mult, name] of [[2, 'tier2'], [3, 'tier3'], [4, 'tier4'], [5, 'tier5']]) {
-      hud.update({ total: 1234 * mult, combo: { points: 300 * mult, mult, remain: 0.6 } });
-      cap('score-' + name, '.score-hud');
-    }
-    hud.update({ total: 9000, combo: { points: 300, mult: 5, remain: 0.3 } });
-    hud.events([{ kind: 'trick', name: 'Power loop', points: 400, execution: 'CLEAN' }, { kind: 'trick', name: 'Split S', points: 200, execution: 'SLOPPY' }, { kind: 'trick', name: 'Matty flip', points: 100, execution: 'BUMP' }, { kind: 'bank', points: 700 }]);
-    cap('score-rows-bank', '.score-hud');
-    hud.update({ total: 9000, combo: null });
-    hud.events([{ kind: 'bail', points: 300 }]);
-    cap('score-bail', '.score-hud');
-    hud.events([{ kind: 'bail', points: 0 }]);
-    hud.setVisible(false);
-    cap('score-off', '.score-hud');
-    hud.reset();
-    /* The room standings, as main.js mounts them. */
-    const { RoomRaceHud } = await import('/src/ui/roomhud.js');
-    const rr = new RoomRaceHud(R);
-    rr.update({ title: 'Race, lap 2 of 3', chip: 'Boost ready', rows: [{ place: 1, name: 'Tester', value: '1:02.31', me: true }, { place: 2, name: 'A pilot with a long name', value: '+0.82', me: false }] });
-    cap('room-race', rr.root);
-    rr.update(null);
-    cap('room-race-off', rr.root);
-    rr.root.remove();
     /* The thumb sticks, as main.js mounts and shows them, one plate held. */
     const { mountTouchSticks } = await import('/src/input/touchsticks.js');
     const touch = mountTouchSticks({});
@@ -214,14 +184,12 @@ const GROUPS = [
   ['results-dialogs', async () => {
     /* D: results with laps, the empty and record states, the dialogs. */
     ui.settings.feelAsked = true;
-    ui.showResults([{ n: 1, ms: 31234 }, { n: 2, ms: null, reason: 'Missed gate 4' }, { n: 3, ms: 29876, score: 1200 }], 30000, 30500, 'Ghost was 0.4 s behind');
+    ui.showResults([{ n: 1, ms: 31234 }, { n: 2, ms: null, reason: 'Missed gate 4' }, { n: 3, ms: 29876, score: 1200 }], 30000, 30500);
     cap('results-record', ui.screens.results);
     ui.showResults([{ n: 1, ms: 33000 }, { n: 2, ms: 34000 }], 30000, 30000, null);
     cap('results-off', ui.screens.results);
     ui.showResults([{ n: 1, ms: null, reason: 'Crashed' }], 30000, 30000, null);
     cap('results-empty', ui.screens.results);
-    ui.showFreestyleResults({ crashes: 0, tricks: 14, unique: 6, total: 12345, bestCombo: 4000, bonus: 500, timed: true, rows: Array.from({ length: 12 }, (_, i) => ({ name: 'Trick ' + i, count: i % 3 + 1, points: 2000 - i * 100 })) });
-    cap('results-freestyle-clean', ui.screens.results);
     ui.showRoomResults({ win: true, kicker: 'Room race', head: 'You won', heroCap: 'Best lap', heroTime: '29.88', heroMeta: '3 pilots', rows: [{ label: 'Tester', time: '29.88', me: true, tag: 'best' }, { label: 'Wingman', time: 'out', out: true }] });
     cap('results-room', ui.screens.results);
     ui.setBest(28123, 'race');
@@ -525,9 +493,8 @@ const GROUPS = [
     ui.leaveFc();
   }],
   ['tracks', async () => {
-    /* My tracks with a board track (renderCourseCards in src/ui/cards.js), the
-     * card chosen with its rows, and the board's standings (paintStandings)
-     * with times and with none. */
+    /* My tracks with a board track (renderCourseCards in src/ui/cards.js), and
+     * the card chosen with its rows. */
     const board = [
       { id: 'bt1', name: 'River run', map: 'swiss2', gates: 9, author: 'Tester', board: null, online: '' },
       { id: 'bt2', name: 'Dam drop', map: 'swiss2', gates: 6, author: '', board: null, online: '' },
@@ -546,27 +513,12 @@ const GROUPS = [
     ui.renderCourseCards();
     cap('courses-chosen-cursor', ui.screens.courses);
     ui.cardSubject = null;
-    const { writePilotName } = await import('/src/share/pilot.js');
-    writePilotName('Tester');
-    ui.showStandings(board[0]);
-    for (let i = 0; i < 50 && ui.standingsLoading; i += 1) await new Promise((r) => setTimeout(r, 100));
-    ui.standingsLoading = null;
-    ui.standingsError = '';
-    ui.standingsTimes = [{ name: 'Fast one', lapMs: 28123, hasGhost: true }, { name: 'Tester', lapMs: 29001 }, { name: '', lapMs: 31000 }];
-    ui.paintStandings();
-    ui.renderMenu();
-    cap('standings-times', ui.screens.standings);
-    ui.standingsTimes = [];
-    ui.paintStandings();
-    cap('standings-none', ui.screens.standings);
     ui.boardCourses = [];
     ui.show('title');
   }],
   ['rows', async () => {
-    /* Rows the menu screens build only in some states: the scoring row's
-     * warning (src/ui/items.js), the pad trouble row (padTroubleItem in
-     * src/ui/ui.js). */
-    ui.settings.freestyleScoring = 'scored';
+    /* Rows the menu screens build only in some states: the pad trouble row
+     * (padTroubleItem in src/ui/ui.js). */
     const report = {};
     for (const s of Object.keys(ui.screens)) {
       ui.show(s);
@@ -669,7 +621,7 @@ const GROUPS = [
     ui.show('paused');
     ui.osd.style.display = '';
     ui.osd.className = 'osd';
-    ui.setOsd({ mode: 'race', lapMs: 12345, lastLapMs: null, gate: 3, gateCount: 9, gateCue: '', volts: 15.2, packFrac: 0.6, altitude: 3.2, speedKph: 80, throttle: 0.4, flightMode: 'acro', bounces: 1, launchState: 0, launchPitch: 0, ghostGapMs: null, ghostFinal: false });
+    ui.setOsd({ mode: 'race', lapMs: 12345, lastLapMs: null, gate: 3, gateCount: 9, gateCue: '', volts: 15.2, packFrac: 0.6, altitude: 3.2, speedKph: 80, throttle: 0.4, flightMode: 'acro', bounces: 1, launchState: 0, launchPitch: 0 });
     ui.setAirSlider(true, false);
     ui.screen = 'flight';
     ui.onHotSwap = ui.onHotSwap || (() => {});
@@ -744,10 +696,13 @@ const GROUPS = [
     if (barAt >= 0) { ui.setCursor(barAt); cap('cursor-update-bar', [ui.frameBot, ui.screens.paused]); }
     ui.updateReady = false;
     ui.syncChips();
-    ui.settings.freestyleScoring = 'scored';
-    ui.show('freestyle');
+    /* Settings' not-saved row: Freestyle's warning row until that screen
+     * left with free flight (the combat-only cut, 2026-10-20). */
+    ui.resetNotice = 'x';
+    ui.show('pilot');
     const warnAt = ui.items().findIndex((x) => x.rowClass === 'row-warn');
-    if (warnAt >= 0) { ui.setCursor(warnAt); cap('cursor-row-warn', ui.screens.freestyle); }
+    if (warnAt >= 0) { ui.setCursor(warnAt); cap('cursor-row-warn', ui.screens.pilot); }
+    ui.resetNotice = null;
     ui.onFcOpen('pid');
     ui.fcFrom = 'title';
     ui.show('fc');
@@ -844,8 +799,6 @@ const NOTES = {
   "sticks": "The stick ghosts and the air slider (src/ui/widgets.js makeGimbal, makeWeightSlider) as setStickOverlay, setAirSlider and paintAir in src/ui/overlay.js leave them.",
   "lock": "The target mark (buildTargetLock, setTargetLock in src/ui/overlay.js).",
   "banner": "The banner line under the OSD block (setBanner in src/ui/overlay.js).",
-  "score": "The freestyle score overlay (src/ui/scorehud.js ScoreHud) after update() and events().",
-  "room": "The room standings (src/ui/roomhud.js RoomRaceHud), mounted on #ui as src/main.js mounts it.",
   "touch": "The thumb sticks (src/input/touchsticks.js mountTouchSticks), with #ui's classes as src/main.js toggles them in flight.",
   "friends": "The room screen in a room (refreshFriends in src/ui/session.js) and the war lobby over it (setWarLobby, drawLobby in src/ui/session.js).",
   "calibrate": "The calibration screen (src/ui/page.js calibrateScreen) as setCalibration and setCalAxes in src/ui/overlay.js paint it.",
@@ -863,7 +816,6 @@ const NOTES = {
   "fc": "The FC screen (src/ui/page.js fcScreen) with the module dump open as ui.onFcOpen in src/main.js opens it (src/ui/fc.js FcSession, painted by src/ui/menucontrols.js).",
   "rows": "A menu screen with a row the default states never build (rowClass row-warn: the scoring row in src/ui/items.js with scoring on).",
   "courses": "My tracks with two board tracks (renderCourseCards in src/ui/cards.js, the items from src/ui/items.js), one chosen with its rows.",
-  "standings": "The board's standings for a track (paintStandings in src/ui/cards.js), with times and with none.",
   "cursor": "A menu screen with the cursor (the on class, src/ui/nav.js setCursor) on a row kind the first row never is.",
   "osd-touch-fly": "The flight overlay and the flight chips with #ui as src/main.js leaves it in flight on a touch screen (touch-fly-on).",
   "osd-war": "The flight overlay with #ui in a war (war-on, src/ui/ui.js).",
@@ -917,7 +869,7 @@ const written = new Set();
 try {
   await page.until('window.__shellReady === true', 300000);
   await page.loaded();
-  await page.evaluate("(() => { const ui = window.__ui; ui.firstRun = false; ui.craftGate = false; ui.mode = 'race'; ui.armReels = () => {}; ui.startReels = () => {}; return true; })()");
+  await page.evaluate("(() => { const ui = window.__ui; ui.firstRun = false; ui.craftGate = false; ui.mode = 'race'; return true; })()");
   for (const [name, run] of GROUPS) {
     if (ONLY.length && !ONLY.includes(name)) {
       continue;

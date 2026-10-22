@@ -92,7 +92,6 @@ import { createDebris } from '../render/debris.js';
 import { createSmoke, LIFE_S as SMOKE_LIFE_S } from '../render/smoke.js';
 import { dressParts } from '../render/partsfit.js';
 import { powerOption } from '../../configs/power.js';
-import { surfaceGrowth } from '../../configs/surfaces.js';
 import { simPosToThree, simQuatToThree } from '../render/frame.js';
 import { partLabel, PART_KINDS } from '../../configs/parts.js';
 import { airframeById, retiredAirframe } from '../../configs/airframes.js';
@@ -204,12 +203,6 @@ export function createCrashCam(host) {
     promptKey = up ? replayKey() : null;
     editor.prompt(up && !host.osdOn(), promptKey || 'V');
     if (!recording || host.mode() !== 'flight') {
-      return;
-    }
-    if (host.onFoot && host.onFoot()) {
-      /* The ring ends at the step out; forgetting its aircraft makes
-       * flying again start a new clip. */
-      ringAirframe = null;
       return;
     }
     const st = host.state();
@@ -900,9 +893,7 @@ export function createCrashCam(host) {
 
   function buildScene(clip) {
     const af = clip.meta.airframe;
-    const fitted = clip.meta.fit;
-    const surfaces = fitted && fitted.surfaces ? surfaceGrowth(af, fitted.surfaces) : null;
-    const craft = craftBuilderFor(af)({ name: 'replay-craft', fog: true, worldScale: true, surfaces: surfaces ?? undefined });
+    const craft = craftBuilderFor(af)({ name: 'replay-craft', fog: true, worldScale: true });
     dressLivery(craft, af, { colours: clip.meta.livery ?? {}, ...(clip.meta.paint ?? {}) });
     /* In the hangar parts it flew with: the pod, the nozzle, the prop. */
     const fit = clip.meta.fit;
@@ -1033,9 +1024,6 @@ export function createCrashCam(host) {
     }
     if (craft.setSurfaces) {
       craft.setSurfaces(s.pose[POSE.surf], s.pose[POSE.surf + 1], s.pose[POSE.surf + 2], s.pose[POSE.surf + 3]);
-    }
-    if (craft.setFlaps) {
-      craft.setFlaps(s.pose[POSE.flaps]);
     }
     const cam = shownCam();
     const onboard = Boolean(cam) && cam.rig === 'fpv' && !cam.watch;

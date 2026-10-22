@@ -31,7 +31,7 @@
 import { WebSocket } from 'ws';
 import { PROTO, ROOM_LEVEL } from '../../src/share/roomwire.js';
 
-const PROFILE = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
+const PROFILE = { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null };
 
 export function seatPilot(origin, code, name = [1, 2, 42]) {
   const ws = new WebSocket(`${origin.replace(/^http/, 'ws')}/v2/room/${code}`, { headers: { origin: 'https://fdflabs.github.io' } });

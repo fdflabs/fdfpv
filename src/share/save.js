@@ -26,7 +26,7 @@
  * src/maps/retired.js), because the same ids arrive from rooms, the
  * account and replays, where no local step can reach; a step here would
  * be a second copy of that rule. The settings blob's in place repairs
- * (wingDefaults, scoringReset, legacy rates) and the stick map's rename
+ * (wingDefaults, legacy rates) and the stick map's rename
  * and version 2 (src/input/stickstore.js) stay with their readers for the
  * same reason, and because a profile can come back from the account in
  * any of those shapes. The whoop's generations went with the whoop
@@ -65,9 +65,9 @@
  *                   (src/input/stickstore.js)
  *   aircraft        a build saved, renamed or deleted (Ui.storeBuild and
  *                   Ui.removeBuild, src/ui/ui.js, into src/ui/builds.js)
- *   records         a new best lap, never an equal or slower one
- *                   (src/game/race.js), a better one from the account
- *                   (keepRecords, src/share/records.js)
+ *   records         a better one from the account (keepRecords,
+ *                   src/share/records.js); the race that wrote a new
+ *                   best lap left with the combat-only cut, 2026-10-20
  *   player          the name set (src/share/pilot.js), the language
  *                   chosen (src/share/sharedkeys.js)
  *   this module     the version, the backups and the quarantine, once per

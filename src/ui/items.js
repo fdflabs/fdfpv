@@ -31,7 +31,7 @@
 
 import { airframeById } from '../../configs/airframes.js';
 import { powerChoice } from '../../configs/power.js';
-import { ELEV_FLAPS, RATES, fullEntry, normalizeEntry, setupFor, throwsFor, tuningFor } from '../../configs/tuning.js';
+import { RATES, fullEntry, normalizeEntry, setupFor, throwsFor, tuningFor } from '../../configs/tuning.js';
 import {
   PID_AXES, PID_FIELDS, PID_FIELD_SPECS, SLIDER_KEYS, SLIDERS, pidsAdjusted, pidsEntry, pidsSummary, setPidSlider, setPidsExpert,
 } from '../../configs/pids.js';
@@ -43,10 +43,8 @@ import {
   formatRate, fullStickDeg, hoverStickPercent, normaliseRates, profileForType, rateField, ratesAreDefault,
 } from '../../configs/rates.js';
 import { CUSTOM_TUNE, tuneById } from '../../configs/registry.js';
-import { formatScore } from '../game/score.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { LINK_PRESETS } from '../input/link.js';
-import { MAPS, mapById } from '../maps/registry.js';
 import { PERF_MODES } from '../render/dynres.js';
 import {
   CAMERA_ANGLE_DEFAULT, CAMERA_ANGLE_MAX, CAMERA_ANGLE_MIN, CAMERA_FOVS, cameraTiltRad, clampCameraAngle,
@@ -57,25 +55,19 @@ import { accountsAvailable } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { nameRules, readAccount, readPilotName } from '../share/pilot.js';
 import { pageVersion } from './update.js';
-import { lapSlot, readPendingTime, readPostedBest } from '../share/trackseat.js';
-import { activeCourseSummary } from '../share/summary.js';
 import {
   LOCALES, LOCALE_NAMES, currentLocale, plural, rememberLocale, str,
 } from '../strings/index.js';
 import { customisable } from './builds.js';
 import { flightTimeText } from './carousel.js';
-import { formatTime } from './format.js';
-import { EVENT_TIERS } from '../game/economy.js';
 import { MARK_STYLES } from './peermarks.js';
 import { choice, number, stampIds, stepper, toggle } from './rows.js';
 import { CHASE_SMOOTHING, SHAKE_LEVELS, UI_SCALES } from '../render/comfort.js';
 import {
-  AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
-  PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, keepCamera, tuneChoices,
+  AVX_PALETTES, DAYTIME_CHOICES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, HUD_STYLES, LATENCY_MODES,
+  RENDER_SCALES, hudStyleFor, keepCamera, tuneChoices,
 } from './settings.js';
-import { trickLevel } from './trickfilm.js';
 import { tuneName } from './tunename.js';
-import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
 import { controllerRows, usingLabel } from './controller.js';
 import { flyWithRows } from './flywith.js';
@@ -83,8 +75,7 @@ import { flyWithRows } from './flywith.js';
  * screen functions, after both modules have run, never at this module's
  * top level. */
 import {
-  FREESTYLE_SCORING_LABEL, SCREEN_TITLES, YAW_TIP_RATE, courseCardKey, courseCardRows, craftItem, lapCraftOf, liveListing,
-  liveWorld, padTroubleItem, scoringNote, seatedFreestyleMap,
+  SCREEN_TITLES, YAW_TIP_RATE, craftItem, padTroubleItem,
 } from './ui.js';
 
 /*
@@ -103,7 +94,6 @@ const YAW_TIP_TYPES = new Set(['ACTUAL', 'QUICK']);
 
 const backRow = () => ({ label: str('ui.back'), action: 'back' });
 const titleRow = () => ({ label: str('ui.back_to_title'), action: 'title' });
-const myTracksRow = () => ({ label: str('ui.my_tracks'), action: 'mytracks', note: str('ui.back_to_the_list_of_tracks') });
 const creditsRow = () => ({ label: str('ui.credits'), action: 'credits', note: str('ui.who_made_this_who_flew_it') });
 
 /* The flight feel report's door, where a pilot has just been flying. */
@@ -211,18 +201,6 @@ function planeRatesRows(ui, s) {
       (v) => store({ expo: { [k]: v } }),
     ));
   });
-  /* The radio's elevator to flap mix, on a plane with flaps: a 3D pilot's
-   * harrier setup, off as the kit ships. */
-  if (tuningFor(id).flaps) {
-    rows.push(choice(
-      str('ui.plane_elev_flap'),
-      str('ui.plane_elev_flap_note'),
-      ELEV_FLAPS,
-      e.elevFlap,
-      (v) => (v === 0 ? str('tuning.flap_mix_off') : str('tuning.percent', { n: v })),
-      (v) => store({ elevFlap: v }),
-    ));
-  }
   rows.push(backRow());
   return rows;
 }
@@ -263,12 +241,6 @@ function flightStyleRow(label, arcadeNote, expertNote, s) {
 
 const crashDamageRow = (s) => toggle(str('ui.crash_damage'), str('ui.crash_damage_note'), s.crashDamage !== false, (v) => {
   s.crashDamage = Boolean(v);
-});
-
-/* Stock control surfaces only, in a room this pilot hosts: every pilot's
- * next run flies stock surfaces (edge/rooms/core.js stockSurfaces). */
-const stockSurfacesRow = (s) => toggle(str('ui.stock_surfaces'), str('ui.stock_surfaces_note'), s.roomStockSurfaces === true, (v) => {
-  s.roomStockSurfaces = Boolean(v);
 });
 
 /* The air: the preset's own note, and in a room the host's choice is the
@@ -324,114 +296,42 @@ function titleRows(ui, s) {
   if (ui.onGate()) {
     return gateRows(ui);
   }
-  const map = MAPS.find((m) => m.id === s.map) ?? MAPS[0];
-  const seat = map.id === 'track' ? activeCourseSummary() : null;
-  const world = seatedFreestyleMap(s);
-  /* The guided first flight needs gates under it: race mode with a track. */
-  const guided = ui.firstRun && ui.mode === 'race' && ui.seatMatchesMode();
-  const fly = guided
-    ? {
-      label: str('ui.first_flight'),
-      action: 'firstflight',
-      primary: true,
-      note: seat && seat.name
-        ? str('ui.levelled_off_with_the_sticks_drawn', { name: seat.name })
-        : str('ui.levelled_off_with_the_sticks_drawn_2'),
-    }
-    : { label: str('ui.fly_label'), action: 'fly', primary: true };
-  /* One row for the place: the world in Freestyle, the track in Race. */
-  const place = ui.mode === 'freestyle'
-    ? {
-      label: str('ui.the_world'),
-      value: world ? world.name : str('ui.not_loaded'),
-      action: 'freestyle',
-      note: world ? str('ui.your_quad_and_the_physics_model', { note: world.note }) : str('ui.no_gates_pick_a_valley'),
-    }
-    : {
-      label: str('ui.track'),
-      value: seat ? seat.name : str('ui.choose_one'),
-      action: 'courses',
-      note: seat ? str('ui.and_every_other_track_gated_against', { name: seat.name }) : str('ui.no_track_is_seated_yet_your'),
-    };
+  /* The menu behind the gate: no Fly and no world here since free
+   * flight left (the combat-only cut, 2026-10-20); every flight is a
+   * card's. */
   return [
     ...padTrouble(ui),
-    fly,
-    place,
     ...ui.friendsItems(),
     machineRow(s, str('ui.the_machine_tune_pids_camera_angle')),
     /* Labelled Settings and valued with the name: the radio lives here,
      * and that is the room pilots fail to find. */
     { label: str('ui.settings'), value: readPilotName() || str('ui.not_set'), action: 'pilot', note: str('ui.you_and_your_radio_your_name') },
     { label: str('ui.how_to_fly'), action: 'howto', note: str('ui.the_sticks_live_and_what_the') },
-    { label: str('ui.tracks_and_statistics'), action: 'leaderboard', note: str('ui.the_public_page_every_published_track') },
     creditsRow(),
     { label: ui.gateLabel(), action: 'mode-gate', note: str('ui.the_three_cards_five_inch_racing') },
   ];
 }
 
 /*
- * The gate: cards, then the rooms panel, then the pad trouble row. The
- * renderer places the rows by counting what is not a row, so every card
- * and panel entry has to come before any row.
+ * The gate: cards, then the rooms panel, then the rows. The renderer
+ * places the rows by counting what is not a row, so every card and panel
+ * entry has to come before any row. Home is the Operations cards and the
+ * Hangar (src/ui/actions.js homeCards); the Hangar is the one hub.
  */
 function gateRows(ui) {
   const rooms = ui.friendsItems().length > 0;
-  const panel = rooms && ui.titleRooms ? ui.titleRooms(!ui.hub) : [];
   const trouble = padTrouble(ui);
-  if (!ui.hub) {
-    return [...ui.hubCards(rooms), ...panel, ...trouble];
-  }
   if (ui.hub === 'hangar') {
     return [...ui.hangarCards(), ...trouble];
   }
-  const ways = hubWays(ui.hub).filter((w) => rooms || !w.room).map((w) => ({
-    label: w.label,
-    card: w.id,
-    art: w.art,
-    svg: w.svg ?? craftSvg(airframeById(w.airframes[0])),
-    blurb: w.blurb,
-    facts: w.facts,
-    action: w.action,
-  }));
-  /* The war's field hangar, a card of its own under Operations. */
-  const field = ui.hub === 'ops' ? [{
-    label: str('walk.field'), card: 'ops-field', svg: null, blurb: str('walk.field_blurb'), facts: [], action: 'field-walk',
-  }] : [];
-  const weekly = ui.hub === 'club' && ui.weeklyEvent ? [weeklyCard(ui.weeklyEvent)] : [];
-  return [...weekly, ...ways, ...field, ...(ui.hub === 'club' ? panel : []), ...trouble];
-}
-
-const POSTERS = new Set(['alps', 'itaipu', 'swiss2']);
-
-/*
- * Flight Club's weekly event as a card at the front of the hub
- * (docs/FLIGHTCLUB-PROGRESSION.md section 4): the course, when it ends in
- * the pilot's own time, the gold to beat, where the pilot stands, and
- * what each tier pays (src/game/economy.js EVENT_TIERS). The end is the
- * only clock the game shows.
- */
-function weeklyCard(e) {
-  const fold = (n) => String(n || '').trim().toLowerCase();
-  const me = fold(readPilotName());
-  const at = e.standings.findIndex((r) => me && fold(r.name) === me);
-  const mine = at < 0 ? null : e.standings[at];
-  const ends = new Date(e.endsUtc).toLocaleString(currentLocale(), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  const pays = Object.entries(EVENT_TIERS).map(([tier, n]) => str('event.pays_tier', { tier: str(`event.tier.${tier}`), n })).join(', ');
-  return {
-    label: str('event.card', { name: e.name }),
-    card: 'weekly',
-    art: `assets/posters/${POSTERS.has(e.map) ? e.map : 'swiss2'}.jpg`,
-    blurb: str('event.blurb'),
-    facts: [
-      str('event.ends', { when: ends }),
-      str('event.gold', { time: formatTime(e.goldMs) }),
-      mine
-        ? str('event.yours', { time: formatTime(mine.lapMs), tier: str(`event.tier.${mine.medal || 'finish'}`), place: at + 1, of: e.standings.length })
-        : str('event.not_flown', { pilots: plural('count.pilots_in', e.standings.length) }),
-      str('event.pays', { pays }),
-    ],
-    action: 'weekly-event',
-  };
+  /* Nothing in PDCS is playable without the rooms server: the campaign,
+   * the Interior and the Defence lessons all fly in rooms (the lead,
+   * 2026-10-20, ASK 5). A page with no server says so where the rooms
+   * panel stands (src/ui/cards.js renderTitleRooms draws a head). */
+  const panel = rooms
+    ? (ui.titleRooms ? ui.titleRooms(true) : [])
+    : [{ lobby: 'head', section: true, label: str('ui.no_rooms_server'), value: str('ui.no_rooms_server_note') }];
+  return [...ui.homeCards(rooms), ...panel, ...trouble];
 }
 
 /* ---- rooms ---- */
@@ -461,130 +361,6 @@ function friendsRows(ui) {
 
 function roomRows(ui) {
   return [...(ui.roomRows ? ui.roomRows(ui.screen) : []), backRow()];
-}
-
-/* ---- My tracks ---- */
-
-function coursesRows(ui, s) {
-  const af = airframeById(s.airframe);
-  /* A plane says which cards it does not fit; a track with no gates yet
-   * fits anything. */
-  const tooTight = (t) => (af.fixedWing && t.gates > 0 && !t.planes.includes(af.id)
-    ? [str('ui.too_tight_flies_on_quad', { craft: af.name })]
-    : []);
-  if (ui.coursesLede) {
-    ui.coursesLede.textContent = af.fixedWing
-      ? str('ui.the_tracks_the_fits', { craft: af.name })
-      : str('ui.every_track_here_is_yours_to');
-  }
-  const own = (ui.localCourses || []).map((t) => ({
-    label: t.name,
-    note: [str('ui.yours_in_gate', { world: mapById(t.map).name, gates: t.gates, v3: t.gates === 1 ? '' : 's' }), ...tooTight(t)].join(' '),
-    course: { kind: 'local', track: t },
-    action: `local:${t.id}`,
-  }));
-  const cloud = (ui.cloudCourses || []).map((t) => {
-    const world = liveWorld(t.map);
-    return {
-      label: t.name,
-      note: world
-        ? [str('cloud.card_note', { world: world.name, author: t.author || str('ui.a_pilot') }), ...tooTight(t)].join(' ')
-        : str('cloud.retired_world'),
-      course: { kind: 'cloud', track: t },
-      action: `cloud:${t.id}`,
-    };
-  });
-  const board = (ui.boardCourses || []).map((t) => ({
-    label: t.name,
-    note: str('ui.hung_in_choosing_it_flies_it_there', { world: mapById(t.map).name, author: t.author || str('ui.a_pilot') }),
-    course: { kind: 'board', track: t },
-    action: `board:${t.id}`,
-  }));
-  const cards = [...own, ...cloud, ...board];
-  const chosen = ui.cardSubject ? cards.find((c) => courseCardKey(c) === ui.cardSubject) : null;
-  if (chosen) {
-    return [...cards, ...courseCardRows(chosen)];
-  }
-  if (ui.newTrackOpen) {
-    return [...cards, ...newTrackRows(af)];
-  }
-  const more = ui.cloudNext ? [{ label: str('cloud.more_tracks'), action: 'cloud-more', note: str('cloud.more_tracks_note') }] : [];
-  return [
-    ...cards,
-    { label: str('ui.new_track'), action: 'newtrack', note: str('ui.build_one_choose_the_world_then') },
-    ...more,
-    { label: str('ui.tracks_and_statistics_on_the_web'), action: 'leaderboard', note: str('ui.the_public_page_for_sending_somebody') },
-    backRow(),
-  ];
-}
-
-/* Which world a new track is built in, and a finished sky course in each,
- * at the seated aircraft's size (src/builder/course.js casualCourse). */
-function newTrackRows(af) {
-  const worlds = MAPS.filter((m) => m.build);
-  const empty = worlds.map((m) => ({
-    label: m.name,
-    action: `newtrack:${m.id}`,
-    note: str('ui.an_empty_track_in_the_builder', { world: m.name }),
-  }));
-  const note = af.fixedWing ? 'ui.casual_sky_course_note' : 'ui.casual_quad_track_note';
-  const casual = worlds.map((m) => ({
-    label: str('ui.casual_sky_course_in', { world: m.name }),
-    action: `casualtrack:${m.id}`,
-    note: str(note, { world: m.name }),
-  }));
-  return [
-    { label: str('ui.new_track_in_which_world'), section: true },
-    ...empty,
-    ...casual,
-    { label: str('ui.back_to_the_list'), action: 'newtrack-back' },
-  ];
-}
-
-/* ---- the trick list ---- */
-
-function trickRows(ui) {
-  return ui.trickRows().map((t) => ({
-    label: t.name,
-    value: `${formatScore(t.points)}`,
-    note: `${t.status.tag}. ${trickLevel(t.difficulty)}. ${t.how}` + str('ui.seen', { v1: str(`trickfilm.view.${t.view}`) }),
-    action: 'noop',
-  }));
-}
-
-/* ---- Freestyle ---- */
-
-function freestyleRows(ui, s) {
-  /* The world cards only once there is more than one world to pick. */
-  const worlds = MAPS.filter((m) => m.mode === 'freestyle');
-  const cards = worlds.length > 1
-    ? worlds.map((m) => ({ label: m.name, note: m.note, map: m, action: `map:${m.id}` }))
-    : [];
-  return [
-    ...cards,
-    {
-      /* Amber while the unfinished scorer is on, and opened rather than
-       * stepped, since the cursor lands here first. */
-      ...choice(
-        str('ui.scoring'),
-        scoringNote(s.freestyleScoring),
-        FREESTYLE_SCORING,
-        s.freestyleScoring,
-        (id) => FREESTYLE_SCORING_LABEL[id],
-        (id) => { s.freestyleScoring = id; },
-      ),
-      rowClass: s.freestyleScoring === 'off' ? undefined : 'row-warn',
-      pickOnly: true,
-    },
-    toggle(str('ui.trick_callouts'), str('ui.trick_callouts_note'), s.trickCallouts, (v) => { s.trickCallouts = Boolean(v); }),
-    machineRow(s, str('ui.the_machine_its_tune_row_opens', { pids: SCREEN_TITLES.pids })),
-    flightStyleRow(str('ui.physics_model'), str('ui.arcade_the_ideal_quad_no_propwash'), str('ui.expert_the_full_physics_propwash_gyro'), s),
-    crashDamageRow(s),
-    weatherRow(s),
-    daytimeRow(s),
-    stockSurfacesRow(s),
-    backRow(),
-  ];
 }
 
 /* ---- Quad ---- */
@@ -676,6 +452,13 @@ function pilotRows(ui, s) {
     ...screenRows(ui, s),
     { label: str('ui.sound'), section: true },
     ...soundRows(s),
+    /* The air and the hour a room this pilot makes flies in (src/main.js
+     * openSession, chosenTime): Freestyle's rows until that screen left
+     * with free flight (the combat-only cut, 2026-10-20). The room's
+     * stock surfaces row left with the surface tiers (2026-10-21). */
+    { label: str('ui.the_world'), section: true },
+    weatherRow(s),
+    daytimeRow(s),
     { label: str('ui.diagnostics'), section: true },
     toggle(str('ui.flight_log'), str('ui.record_the_run_for_download_as'), s.flightLog, (v) => { s.flightLog = v; }),
     { label: str('ui.download_flight_log'), action: 'downloadflightlog', note: str('ui.writes_what_was_recorded_as_blackbox') },
@@ -715,7 +498,7 @@ function identityRows() {
       label: str('ui.your_name'),
       value: name || str('ui.not_set'),
       action: 'setname',
-      note: name ? str('ui.posted_times_and_published_tracks_carry') : str('ui.needed_to_publish_a_track_or', { nameRules: nameRules() }),
+      note: name ? str('ui.the_name_this_computer_flies_under') : str('ui.the_name_this_computer_flies_under_rules', { nameRules: nameRules() }),
     },
     { label: str('ui.pilot_key'), value: str('ui.this_browser'), action: 'exportkey', note: str('ui.on_the_board_your_name_belongs') },
     { label: str('ui.import_pilot_key'), action: 'importkey', note: str('ui.paste_a_key_exported_from_another') },
@@ -727,9 +510,7 @@ function identityRows() {
 const FLIGHT_SPLIT = [
   ['race', 'ui.track_mode'],
   ['free', 'ui.free_flight_card'],
-  ['combat', 'combat.card'],
-  ['tag', 'flight.act_tag'],
-  ['war', 'hub.ops'],
+  ['war', 'war.card'],
 ];
 
 /*
@@ -845,92 +626,7 @@ function soundRows(s) {
   ];
 }
 
-/* ---- Standings ---- */
-
-function standingsRows(ui) {
-  const track = ui.standingsFor;
-  if (!track) {
-    return [
-      { label: str('ui.no_track_chosen'), info: true, disabled: true, note: str('ui.pick_a_track_in_the_race') },
-      backRow(),
-    ];
-  }
-  const times = ui.standingsTimes || [];
-  const best = times[0] || null;
-  /* Only a time that carries a ghost can be raced: older ones predate it. */
-  const ghost = times.find((t) => t.hasGhost && t.id) || null;
-  return [
-    {
-      label: str('ui.fly_this_track'),
-      action: 'standings-fly',
-      primary: true,
-      note: best
-        ? str('ui.loads_and_takes_you_to_the_2', { name: track.name, formatTime: formatTime(best.lapMs), v3: best.name || str('ui.an_unnamed_pilot') })
-        : str('ui.loads_and_takes_you_to_the', { name: track.name }),
-    },
-    ...(ghost ? [{
-      label: str('ui.race_the_record'),
-      action: 'standings-ghost',
-      note: str('ui.s_flown_as_a_ghost_beside', { v1: ghost.name || str('ui.an_unnamed_pilot_2'), formatTime: formatTime(ghost.lapMs) }),
-    }] : []),
-    { label: str('ui.open_on_the_web'), action: 'card-board', note: str('ui.the_public_page_for_a_link', { name: track.name }) },
-    backRow(),
-  ];
-}
-
 /* ---- the launch card ---- */
-
-function launchRows(ui, s) {
-  const seat = activeCourseSummary();
-  const map = MAPS.find((m) => m.id === s.map) ?? MAPS[0];
-  const trackName = seat && seat.name ? seat.name : map.name;
-  return [
-    {
-      label: str('ui.track'),
-      value: trackName,
-      info: true,
-      note: seat && seat.gates ? str('ui.gates_this_is_what_your_time', { gates: seat.gates }) : str('ui.this_is_what_your_time_will'),
-    },
-    machineRow(s, str('ui.the_tune_the_pids_the_camera', { quad: SCREEN_TITLES.quad })),
-    { label: str('ui.what_this_run_counts_as'), section: true },
-    choice(str('ui.laps'), str('ui.how_many_laps_a_run_lasts'), LAP_COUNTS, s.laps, (n) => `${n}`, (n) => { s.laps = n; }),
-    choice(str('ui.pack_charge'), str('ui.a_tired_pack_sags_harder_and'), PACK_VOLTAGES, s.packVoltage, (n) => str('ui.volts_per_cell', { n: n.toFixed(2) }), (n) => { s.packVoltage = n; }),
-    flightStyleRow(str('ui.flight_model'), str('ui.arcade_the_ideal_quad_no_propwash_2'), str('ui.expert_the_full_physics_propwash_gyro_2'), s),
-    crashDamageRow(s),
-    linkRow(s, str('ui.a_perfect_link_is_sharper_than'), 'ui.hz_ms_delay_ms_jitter'),
-    ...ui.ghostItems(),
-    ...ui.liveItems(),
-    { label: str('ui.fly_label'), action: 'launch-go', primary: true, note: recordSentence(s, trackName) },
-    backRow(),
-  ];
-}
-
-/*
- * The record key in English: everything a best lap is filed under, and
- * what keeps it off the public board. The weight goes right behind the
- * physics model when it is not stock, because it is part of the model.
- */
-function recordSentence(s, trackName) {
-  const arcade = s.flightStyle === 'arcade';
-  const weight = clampWeight(s.weight);
-  const parts = [
-    `${arcade ? str('ui.arcade') : str('ui.expert')} physics`,
-    ...(weight !== WEIGHT_STOCK ? [str('ui.weight_at_percent', { weight })] : []),
-    str('ui.v_per_cell', { v1: s.packVoltage.toFixed(2) }),
-    `${s.laps} lap${s.laps === 1 ? '' : 's'}`,
-    str('ui.the_tune', { name: tuneName(s.tune) }),
-  ];
-  let standing;
-  if (arcade) {
-    standing = str('ui.arcade_times_stay_off_the_public');
-  } else if (weight !== WEIGHT_STOCK) {
-    standing = str('ui.times_flown_at_a_weight_that');
-  } else {
-    const link = s.link === 'perfect' ? str('ui.a_perfect_link') : LINK_PRESETS[s.link].label;
-    standing = str('ui.this_run_is_on', { link });
-  }
-  return str('ui.your_best_on_is_filed_under', { trackName, v2: parts.join(', ') }) + str('ui.change_any_part_of_it_and') + standing;
-}
 
 /* ---- the pause menu ---- */
 
@@ -960,7 +656,6 @@ function pausedRows(ui, s) {
     { label: str('carousel.change_aircraft'), value: af.short, action: 'hotswap', note: str('carousel.row_note') },
     ...room,
     { label: str('ui.settings'), action: 'pilot', note: str('pause.settings_note') },
-    ...(s.map === 'track' ? [myTracksRow()] : []),
     { label: str('ui.quit_to_title'), action: 'title' },
   ];
 }
@@ -983,9 +678,6 @@ function quickRows(ui, s) {
     { label: str('pause.view'), section: true },
     hudStyleRow(s),
     graphicsRow(s),
-    ...(ui.ghostItems().length || ui.liveItems().length ? [{ label: str('pause.this_run'), section: true }] : []),
-    ...ui.ghostItems(),
-    ...ui.liveItems(),
     backRow(),
   ];
 }
@@ -1014,35 +706,10 @@ function resultsRows(ui, s) {
     const at = rows.findIndex((it) => it.action === 'restart');
     return at >= 0 ? [...rows.slice(0, at + 1), ...after, ...rows.slice(at + 1)] : rows;
   }
-  const again = { label: str('ui.fly_again'), action: 'restart', primary: true };
-  if (ui.osdMode === 'freestyle') {
-    return [
-      again,
-      replayRow(ui.resultsDebrief),
-      postRunRow(ui),
-      { label: str('ui.open_tracks_and_statistics'), action: 'leaderboard', note: str('ui.every_published_track_and_the_times') },
-      feelRow(),
-      titleRow(),
-    ].filter(Boolean);
-  }
-  /* A free world has no listing; its track rows would all be grey. */
-  const listing = s.map === 'track' ? liveListing() : null;
-  const replay = replayRow(ui.resultsDebrief);
-  if (!listing) {
-    return [again, replay, feelRow(), titleRow()].filter(Boolean);
-  }
   return [
-    again,
-    replay,
-    uploadRow(listing, ui.resultsFastest, ui.timePosted, s.airframe),
-    {
-      label: str('ui.open_tracks_and_statistics'),
-      action: 'leaderboard',
-      disabled: !listing.published,
-      note: listing.name ? str('ui.the_public_page_for', { name: listing.name }) : str('ui.the_public_page_a_track_has'),
-    },
+    { label: str('ui.fly_again'), action: 'restart', primary: true },
+    replayRow(ui.resultsDebrief),
     feelRow(),
-    myTracksRow(),
     titleRow(),
   ].filter(Boolean);
 }
@@ -1059,79 +726,6 @@ function replayRow(d) {
     action: 'watchreplay',
     disabled: !d.replay.ok,
     note: str(d.replay.ok ? 'debrief.watch_replay_note' : d.replay.why),
-  };
-}
-
-/* Post a freestyle run, or why it cannot be: greyed with the reason on
- * the row, since the results screen has no notice banner to refuse in. */
-function postRunRow(ui) {
-  const posted = ui.runPosted;
-  if (posted) {
-    const stands = posted.improved === false;
-    return {
-      label: stands ? str('ui.your_best_still_stands') : str('ui.run_posted'),
-      action: 'postrun',
-      disabled: true,
-      note: stands
-        ? str('ui.the_board_already_holds_a_better', { formatScore: formatScore(posted.score) })
-        : str('ui.the_board_kept_that_run', { v1: posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '' }),
-    };
-  }
-  const run = ui.freestyleRun;
-  const empty = !run || !(run.total > 0) || !(run.tricks > 0);
-  let note;
-  if (empty) {
-    note = str('ui.a_run_with_no_tricks_in');
-  } else if (run.timed === false) {
-    note = str('ui.free_flight_has_no_clock_so');
-  } else if (run.assisted) {
-    note = str('ui.this_run_used_the_harness_hooks');
-  } else {
-    note = str('ui.from_tricks_one_entry_per_pilot', { formatScore: formatScore(run.total), tricks: run.tricks });
-  }
-  return {
-    label: str('ui.post_this_run'),
-    action: 'postrun',
-    disabled: empty || Boolean(run && run.assisted) || (run && run.timed === false),
-    note,
-  };
-}
-
-/*
- * Upload a time. Always a row, greyed with its reason when it does not
- * apply, so the list keeps its shape and the pilot learns why.
- */
-function uploadRow(listing, fastestMs, timePosted, airframe) {
-  const shareId = listing.shareId;
-  const craft = lapCraftOf(listing.doc, airframe);
-  const grey = (note) => ({ label: str('ui.upload_a_time'), action: 'posttime', disabled: true, note });
-  if (timePosted && shareId) {
-    const rank = timePosted.rank != null ? str('ui.rank', { rank: timePosted.rank }) : '';
-    return { label: str('ui.time_uploaded'), action: 'posttime', disabled: true, note: str('ui.that_lap_is_on_the_public', { rank }) };
-  }
-  if (!shareId) {
-    return grey(str('ui.only_a_track_on_the_board'));
-  }
-  if (!listing.canPostTime) {
-    return grey(str('ui.the_layout_has_changed_since_it'));
-  }
-  /* The lap just flown, or the one left waiting for this track and craft. */
-  let ms = Number.isFinite(fastestMs) ? fastestMs : null;
-  if (ms == null) {
-    const pending = readPendingTime();
-    if (pending && pending.trackId === shareId && (pending.craft || '') === craft) {
-      ms = pending.lapMs;
-    }
-  }
-  if (ms == null) {
-    return grey(str('ui.fly_a_clean_lap_on_this'));
-  }
-  const best = readPostedBest(lapSlot(shareId, craft));
-  const faster = best != null && ms < best;
-  return {
-    label: faster ? str('ui.upload_new_best', { formatTime: formatTime(ms) }) : str('ui.upload', { formatTime: formatTime(ms) }),
-    action: 'posttime',
-    note: faster ? str('ui.faster_than_the_last_time_you') : str('ui.send_this_lap_to_the_public'),
   };
 }
 
@@ -1343,13 +937,8 @@ const SCREENS = {
   friends: friendsRows,
   rooms: roomRows,
   roomnew: roomRows,
-  courses: coursesRows,
-  tricks: trickRows,
-  freestyle: freestyleRows,
   quad: quadRows,
   pilot: pilotRows,
-  standings: standingsRows,
-  launch: launchRows,
   paused: pausedRows,
   quick: quickRows,
   results: resultsRows,

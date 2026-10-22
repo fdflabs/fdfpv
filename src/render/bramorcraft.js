@@ -41,8 +41,7 @@
  * long, and setSurfaces(leftRad, rightRad) for the elevons, positive
  * trailing edge up. Three more, all optional to a caller:
  *
- *   setProp(rate)      the Radian's contract (src/render/glidercraft.js):
- *                      the plant's motor rate, and when it is zero the
+ *   setProp(rate)      the plant's motor rate, and when it is zero the
  *                      prop folds back along the tail cone, as a folding
  *                      prop does, and opens again when it turns; returns
  *                      the fold, 0 open to 1 folded

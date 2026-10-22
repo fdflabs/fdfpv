@@ -21,8 +21,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { PROTO } from '../src/share/roomwire.js';
-import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { PROTO, ROOM_LEVEL } from '../src/share/roomwire.js';
+import { COUNTDOWN_MS } from '../edge/rooms/timing.js';
 import { AWAY_MS, RoomOps } from '../edge/rooms/ops.js';
 import { createRoomOps } from '../src/share/roomops.js';
 import { makeWorld } from '../src/share/ops/fixtures/world.js';
@@ -55,7 +55,7 @@ export function opsSection(check) {
   const w = { name: 'watcher', address: '10.7.9.200', got: [] };
   e.apply(e.r.open(w, e.clock));
   e.apply(e.r.message(w, JSON.stringify({
-    type: 'hello', proto: PROTO, build: 't', name: [9, 9, 29], profile: { airframe: 'bramor2300', map: 'test', figure: 1, livery: null, parts: null }, watch: true,
+    type: 'hello', proto: PROTO, build: 't', level: ROOM_LEVEL, name: [9, 9, 29], profile: { airframe: 'bramor2300', map: 'test', figure: 1, livery: null, parts: null }, watch: true,
   }), e.clock, w.address, () => 'f'.repeat(32)));
   const gone = e.tokens[1];
   e.drop(1);

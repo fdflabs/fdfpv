@@ -1,5 +1,5 @@
 /*
- * pilot-stats-check.js: Flight Club's pilot stats (src/ui/pilotstats.js,
+ * pilot-stats-check.js: home's pilot stats (src/ui/pilotstats.js,
  * docs/PILOT-STATS.md), read off the screen the way a pilot reads them.
  *
  *   node scripts/pilot-stats-check.js [outdir]
@@ -11,28 +11,28 @@
  * panel is the one the seed makes. The arrows still walk the cards, Tab
  * never lands in the panel, and a click on it reaches nothing. Then a
  * second computer's hour goes up to the account, a sync runs, and the
- * total and the most flown aircraft move by that hour. The flights and
- * the Catch the Ace! and Trick Battle results of two computers reach it
- * by a sync first (page ES has them in its own storage), a third
- * computer's arrive by the later sync and add to them (its best score the
- * new best), and the tokens are the wallet the account server answered
- * with.
+ * total and the most flown aircraft move by that hour. The flights of
+ * two computers reach it by a sync first (page ES has them in its own
+ * storage), a third computer's arrive by the later sync and add to them,
+ * and the tokens are the wallet the account server answered with. The
+ * Catch the Ace! results the counts still keep are shown nowhere since the
+ * game left (the combat-only cut, 2026-10-20).
  *
  * Page ES, the same seed with ?lang=es: the same numbers in Spanish.
  *
  * Page EMPTY, a brand new pilot, in en and es: zeros, level 1 and the
  * one line nudge.
  *
- * A rooms server of the check's own is up, so Flight Club has its room
- * modes' cards as on the site: without one it shows three, and a layout
- * measured on three says nothing about six.
+ * A rooms server of the check's own is up, so home is as on the site:
+ * the Operations cards and the Hangar (src/ui/actions.js homeCards),
+ * where the panel stands since Flight Club left (the combat-only cut).
  *
  * Each at 390 by 844 and 360 by 640 too: the panel inside the window,
  * on no card, every card's tags clear of the command bar, no sideways
  * scroll. Pictures, and en at 1920 by 1080, only when an outdir is
  * given (it is not in the repository): nothing reads them on CI, where
  * each took a minute of software rasterising. es goes to 1920 by 1080
- * always, for the room games' results that only fit there.
+ * always, as it did for the room games' results that only fit there.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -58,6 +58,10 @@ import { roomsServer } from '../tests/lib/roomsserver.js';
 import { firstsOf } from '../src/game/progress.js';
 import { flightTotals } from '../src/share/flighttime.js';
 import { SETTINGS_KEY } from '../src/ui/settings.js';
+import { GATE_WAYS } from '../src/ui/ways.js';
+
+/* Home's cards with a rooms server: the ways, the field hangar, the Hangar. */
+const CLUB_CARDS = GATE_WAYS.length + 2;
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || null;
@@ -95,8 +99,9 @@ async function shot(page, name) {
 /*
  * THE SEED. Two computers' time: Bramor 6 h 40 min, Interceptor 1 h 20
  * min, Cub 25 min, Skyhunter 5 min, 8 h 30 min in all. By mode: Track Day
- * 1 h 30 min, Free Flight 6 h 15 min, Streamer Combat 20 min, Catch the
- * Ace 10 min, Trick Battle 15 min. XP 700 is level 5 (600 to 900). Four
+ * 1 h 30 min, Free Flight 6 h 15 min, and Streamer Combat 20 min, Catch
+ * the Ace 10 min and Trick Battle 15 min, games since cut, counted in the
+ * total but in no mode row. XP 700 is level 5 (600 to 900). Four
  * medals, three tracks lapped, two missions won with six stars. Thirteen
  * landings on three aircraft.
  */
@@ -104,8 +109,9 @@ const FLIGHT = {
   home0001: { by: { bramor2300: { free: 22200, race: 1800 }, interceptor: { race: 3600, combat: 1200 }, cub1400: { tag: 600, jam: 900 } }, first: '2026-09-01' },
   laptop01: { by: { sky1800: { free: 300 } }, first: '2026-09-10' },
 };
-/* 42 flights; Catch the Ace! 1 of 5 won, best 9 points; Trick Battle 2
- * of 3 won, best 1,250. */
+/* 42 flights. Catch the Ace!'s 1 of 5 won, best 9 points, and Trick
+ * Battle's 2 of 3, games since cut, are kept in the counts and shown
+ * nowhere. */
 const COUNTS = {
   home0001: { flights: { free: 30, race: 10 }, tag: { played: 4, won: 1, best: 7 }, jam: { played: 3, won: 2, best: 1250 } },
   laptop01: { flights: { free: 2 }, tag: { played: 1, best: 9 } },
@@ -149,15 +155,15 @@ const WANT = {
     time: '8 h 30 min', label: 'Total flight time', level: '5', xp: '700 of 900 XP',
     planes: '4', top: 'Most flown: Bramor C4EYE, 6 h 40 min',
     medals: '4', medalsSub: '2 Gold · 1 Silver · 1 Bronze', tracks: '3', won: '2', stars: '6 of 36 stars',
-    modes: ['Track Day 1 h 30 min', 'Free Flight 6 h 15 min', 'Streamer Combat 20 min', 'Catch the Ace! 10 min', 'Trick Battle 15 min'],
-    flights: '42 flights', landings: '13 landings', games: { tag: '1/5 won · best 9', jam: '2/3 won · best 1,250' },
+    modes: ['Track Day 1 h 30 min', 'Free Flight 6 h 15 min'],
+    flights: '42 flights', landings: '13 landings', games: {},
   },
   es: {
     time: '8 h 30 min', label: 'Tiempo total de vuelo', level: '5', xp: '700 de 900 XP',
     planes: '4', top: 'La más volada: Bramor C4EYE, 6 h 40 min',
     medals: '4', medalsSub: '2 Oro · 1 Plata · 1 Bronce', tracks: '3', won: '2', stars: '6 de 36 estrellas',
-    modes: ['Día de pista 1 h 30 min', 'Vuelo Libre 6 h 15 min', 'Combate de serpentinas 20 min', '¡Atrapa al As! 10 min', 'Batalla de Trucos 15 min'],
-    flights: '42 vuelos', landings: '13 aterrizajes', games: { tag: '1/5 ganadas · mejor 9', jam: '2/3 ganadas · mejor 1250' },
+    modes: ['Día de pista 1 h 30 min', 'Vuelo Libre 6 h 15 min'],
+    flights: '42 vuelos', landings: '13 aterrizajes', games: {},
   },
 };
 
@@ -208,18 +214,18 @@ async function resize(page, width, height) {
   await page.sleep(500);
 }
 
+/* Home, where the panel stands since Flight Club left (the combat-only
+ * cut, 2026-10-20). */
 async function toClub(page) {
   await page.until('window.__shellReady === true', 300000);
-  await page.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-club')", 60000);
+  await page.until("window.__ui.onGate() && window.__ui.hub === null && document.querySelector('.screen-title .gate-card')", 60000);
   await page.loaded();
   await drawOff(page, true);
-  await page.click('.gate-card-hub-club .gate-card-name');
-  await page.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length >= 6", 30000).catch(async (e) => {
-    await shot(page, 'no-club');
+  await page.until("!document.querySelector('.gate-stats').hidden", 10000).catch(async (e) => {
+    await shot(page, 'no-stats');
     console.log(await page.evaluate("JSON.stringify({ screen: window.__ui.screen, hub: window.__ui.hub, cards: document.querySelectorAll('.screen-title .gate-card').length, dialog: [...document.querySelectorAll('[role=dialog]:not([hidden]), .name-dialog:not([hidden])')].map((d) => d.textContent.slice(0, 120)) })"));
     throw e;
   });
-  await page.until("!document.querySelector('.gate-stats').hidden", 10000);
   await page.sleep(400);
 }
 
@@ -232,7 +238,7 @@ async function phones(page, tag) {
     const inside = l.panel[0] >= 0 && l.panel[1] >= 0 && l.panel[2] <= l.w && l.panel[3] <= l.bar;
     const clear = l.cards.every((c) => !overlaps(c.box, l.panel) && c.box[0] >= 0 && c.box[2] <= l.w && c.facts <= l.bar);
     check(`${tag} ${w} by ${h}: the panel inside the window and on no card, every card's tags clear of the bar, no sideways scroll`,
-      l.cards.length >= 6 && inside && clear && l.sw <= l.w && l.time.length > 0,
+      l.cards.length === CLUB_CARDS && inside && clear && l.sw <= l.w && l.time.length > 0,
       `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar} scroll ${l.sw}`);
     await shot(page, `${tag}-${w}x${h}`);
   }
@@ -272,7 +278,7 @@ try {
   const got = await en.evaluate(READ);
   check('en: the panel is up on Flight Club', got.shown);
   const names = await en.evaluate("[...document.querySelectorAll('.screen-title .gate-card-name')].map((n) => n.textContent)");
-  check('en: Flight Club shows its room modes too, as on the site', ['Streamer Combat', 'Catch the Ace!', 'Trick Battle'].every((n) => names.includes(n)), names.join());
+  check('en: Flight Club shows no room game\'s card', !['Streamer Combat', 'Catch the Ace!'].some((n) => names.includes(n)), names.join());
   numbers(got, WANT.en, 'en:');
   check('en: no nudge for a pilot with hours', got.nudge === null, got.nudge);
   /* THE TOKENS are the wallet the account server answered the sign in's
@@ -301,6 +307,7 @@ try {
       items: window.__ui.items().filter((it) => it.card).length };
   })()`);
   check('en: nothing in the panel is focusable or takes the pointer', inert.focusable === 0 && inert.pointer === 'none', JSON.stringify(inert));
+  await en.evaluate('(() => { window.__ui.setCursor(0); return true; })()');
   const walked = [];
   for (let i = 0; i < inert.items; i += 1) {
     walked.push(await en.evaluate('(window.__ui.items()[window.__ui.cursor] || {}).card || null'));
@@ -318,7 +325,7 @@ try {
   const screen = await en.evaluate('window.__ui.screen');
   await en.click('.gate-stats-time');
   await en.sleep(300);
-  check('en: a click on the panel opens nothing', await en.evaluate(`window.__ui.screen === ${JSON.stringify(screen)} && window.__ui.hub === 'club'`));
+  check('en: a click on the panel opens nothing', await en.evaluate(`window.__ui.screen === ${JSON.stringify(screen)} && window.__ui.hub === null`));
 
   /* A SYNC BRINGS ANOTHER COMPUTER'S HOUR: an hour on the Interceptor,
    * Track Day, from the office, put to the account; then this page syncs. */
@@ -326,7 +333,7 @@ try {
   const data = {
     ...held.data,
     flightTime: { ...held.data.flightTime, office01: { by: { interceptor: { race: 3600 } }, first: '2026-09-20' } },
-    pilotCounts: { ...held.data.pilotCounts, office01: { flights: { race: 5 }, jam: { played: 1, won: 1, best: 2000 } } },
+    pilotCounts: { ...held.data.pilotCounts, office01: { flights: { race: 5 }, tag: { played: 1, won: 1, best: 20 } } },
   };
   await accounts.api('PUT', '/api/account/progress', { progress: { v: 1, data, stamps: held.stamps || {} } }, account.session);
   await en.evaluate('window.__accountSync()');
@@ -334,8 +341,8 @@ try {
   const synced = await en.evaluate(READ);
   check('en: after a sync the office\'s hour is on the panel', synced.time === '9 h 30 min'
     && synced.modes[0] === 'Track Day 2 h 30 min' && synced.top === 'Most flown: Bramor C4EYE, 6 h 40 min', JSON.stringify([synced.time, synced.modes[0], synced.top]));
-  check('en: and its counts add to this one\'s, its best the new best, nothing counted twice',
-    synced.flights === '47 flights' && synced.games.jam === '3/4 won · best 2,000' && synced.games.tag === '1/5 won · best 9', JSON.stringify([synced.flights, synced.games]));
+  check('en: and its flights add to this one\'s, nothing counted twice, its Catch the Ace! results shown nowhere',
+    synced.flights === '47 flights' && Object.keys(synced.games).length === 0, JSON.stringify([synced.flights, synced.games]));
   await shot(en, 'en-1280x720-synced');
   await phones(en, 'en');
   check('en: no page error', errorsOf(en).length === 0, errorsOf(en).slice(0, 3).join(' | '));
@@ -352,12 +359,12 @@ try {
   check('es: signed out, no tokens line', got.tokens === null, got.tokens);
   const l = await es.evaluate(LAYOUT);
   check('es 1280 by 720: the panel on no card, every card\'s tags clear of the bar, no sideways scroll',
-    l.cards.length >= 6 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
+    l.cards.length === CLUB_CARDS && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
     `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar}`);
   await shot(es, 'es-1280x720');
   await resize(es, 1920, 1080);
   const shown = await es.evaluate("[...document.querySelectorAll('.gate-stats-mode-game, .gate-stats-title')].map((n) => n.getBoundingClientRect().height > 0)");
-  check('es 1920 by 1080: the title and both room games\' results are on screen', shown.length === 3 && shown.every(Boolean), JSON.stringify(shown));
+  check('es 1920 by 1080: the title is on screen, and no room game\'s results line', shown.length === 1 && shown.every(Boolean), JSON.stringify(shown));
   await shot(es, 'es-1920x1080');
   await resize(es, 1280, 720);
   await phones(es, 'es');
@@ -380,7 +387,7 @@ for (const lang of ['en', 'es']) {
     }, `empty ${lang}:`);
     const l = await fresh.evaluate(LAYOUT);
     check(`empty ${lang} 1280 by 720: the panel on no card, every card's tags clear of the bar`,
-      l.cards.length >= 6 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
+      l.cards.length === CLUB_CARDS && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
       `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar}`);
     await shot(fresh, `empty-${lang}-1280x720`);
     await phones(fresh, `empty-${lang}`);

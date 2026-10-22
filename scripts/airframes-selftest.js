@@ -33,19 +33,16 @@ const t = transcript();
 
 for (const name of Object.keys(A).sort()) t.note(`export ${name}`, A[name]);
 
-const IDS = [...A.AIRFRAME_IDS, '5inch', 'whoop65', 'wing1000', 'edge1524', 'pitts850', 'bogus', '', undefined, null, 7,
-  'toString', 'constructor'];
+/* cub1400 and cub1400f: two of the planes that went to Openflight, a land
+ * plane and its float version, each on the Striker with `moved`. */
+const IDS = [...A.AIRFRAME_IDS, '5inch', 'whoop65', 'wing1000', 'edge1524', 'pitts850', 'cub1400', 'cub1400f', 'bogus', '', undefined,
+  null, 7, 'toString', 'constructor'];
 for (const id of IDS) {
   const tag = canon(id);
   t.rec(`airframeById ${tag}`, () => A.airframeById(id).id);
-  t.rec(`simIdFor ${tag}`, () => A.simIdFor(id));
-  t.rec(`trackClassFor ${tag}`, () => A.trackClassFor(id));
   t.rec(`isWarAirframe ${tag}`, () => A.isWarAirframe(id));
   t.rec(`retiredAirframe ${tag}`, () => A.retiredAirframe(id));
   t.rec(`currentAirframeId ${tag}`, () => A.currentAirframeId(id));
-  t.rec(`landPlaneOf ${tag}`, () => A.landPlaneOf(id));
-  t.rec(`floatVersionOf ${tag}`, () => A.floatVersionOf(id));
-  t.rec(`isFloatVersion ${tag}`, () => A.isFloatVersion(id));
 }
 for (const af of A.AIRFRAMES) t.rec(`airStartSpeed ${af.id}`, () => A.airStartSpeed(af));
 
@@ -64,4 +61,4 @@ t.rec('rows do not share objects', () => {
   return shared;
 });
 
-t.finish('configs/airframes.js', 'aefccc28050df4842062ca7948edd28e5695905de87c5d5db53e7d551ea85451');
+t.finish('configs/airframes.js', 'bc65b6f0a54796d92da3845c8e783082b2e7c102665ad5a10a645b6e4bb0f597');

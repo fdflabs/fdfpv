@@ -27,7 +27,6 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Race } from '../src/game/race.js';
 import * as C from '../src/game/collide.js';
 import { FPV_FLOOR_CLEAR, FPV_NEAR_CLEAR, fpvLensClear } from '../src/render/lens.js';
 import { AIRFRAMES } from '../configs/airframes.js';
@@ -233,50 +232,6 @@ check('flown pass under a bridge scores',
     near(halo, 0.15, 1e-12) && near(lift, 0.18, 1e-12), `${halo} ${lift}`);
 }
 
-/* Lap counting through one gate. */
-const oneGate = () => {
-  const aperture = { centreY: 2.5, clearW: 3.5, clearH: 5.0 };
-  return {
-    position: v3(0, 0, 0), heading: 0, pitch: 0, flyOrder: 0,
-    apertures: [{ ...aperture }], aperture: { ...aperture },
-  };
-};
-const dirt = { prev: v3(0, 0.08, 2), curr: v3(0, 0.04, -2) };
-const fly = (race, seg, ms, allow) => race.update(seg.prev, seg.curr, ms, ms, allow);
-
-{
-  const race = new Race([oneGate()]);
-  fly(race, air, 10);
-  check('first pass starts the clock without a lap', race.lap === 0 && race.lapStartMs != null);
-  const dirtAllow = score(dirt.prev, dirt.curr, -1, 0.05, 1);
-  const res = fly(race, dirt, 20, dirtAllow);
-  check('inverted dirt pass is refused by the race',
-    dirtAllow === false && res.passed == null && race.lap === 0);
-  const later = fly(race, air, 30, true);
-  check('the next clean pass counts the lap', later.passed != null && race.lap === 1);
-  check('one lap logged with its time', race.lap === 1 && race.log.length === 1 && race.log[0].ms != null);
-}
-{
-  const runLaps = 3;
-  const race = new Race([oneGate()]);
-  fly(race, air, 10);
-  fly(race, air, 20);
-  check('three lap run: one lap after two passes', race.lap === 1 && !(race.lap >= runLaps));
-  const midDirt = score(dirt.prev, dirt.curr, -1, 0.05, 0);
-  fly(race, dirt, 30, midDirt);
-  check('three lap run: dirt pass mid run is not a lap',
-    midDirt === false && race.lap === 1 && !(race.lap >= runLaps));
-  fly(race, air, 40);
-  check('three lap run: second lap', race.lap === 2 && !(race.lap >= runLaps));
-  fly(race, air, 50);
-  check('three lap run: third lap finishes', race.lap === 3 && race.lap >= runLaps);
-}
-{
-  const free = new Race([]);
-  const r = fly(free, air, 10);
-  check('a map with no gates is freestyle and never laps',
-    free.freestyle === true && r.passed == null && free.lap === 0);
-}
 check('a part inverted low pass does not score', score(lowIn, lowOut, -0.6, 0.04, 0) === false);
 
 section('clip catch');

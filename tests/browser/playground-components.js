@@ -65,12 +65,12 @@ function gateCard(cls, art, name, blurb, facts) {
       h('div', 'gate-card-facts', ...facts.map((f) => h('span', 'gate-card-fact', f)))));
 }
 
-/* The poster is a custom property on the card, as markPoster sets it in
- * ui.js, which the reel paints; the still and the tag are empty until a
- * clip is recorded or the world is the one flying. */
+/* The poster is a custom property on the card, as wearPoster sets it in
+ * cards.js, which the .map-reel box paints; the tag is empty until the
+ * world is the one flying. */
 function worldCard(cls, poster, name, tag = '') {
   return `<div class="map-card has-poster${cls ? ` ${cls}` : ''}" style="--poster: url('${esc(poster)}')">`
-    + h('div', 'map-reel') + h('div', 'map-card-still')
+    + h('div', 'map-reel')
     + h('div', 'map-card-body', h('div', 'map-card-name', name), h('div', 'map-card-tag', tag)) + '</div>';
 }
 
@@ -158,10 +158,9 @@ export const COMPONENTS = [
       ['rest', row(str('ui.settings'))],
       ['cursor', row(str('ui.settings'), 'on')],
       ['navigation', row(str('ui.rates'), 'row-nav')],
-      ['link', row(str('roombrowser.all'), 'row-link')],
       ['primary', row(str('roombrowser.new'), 'row-primary')],
       ['primary, cursor', row(str('roombrowser.new'), 'row-primary on')],
-      ['info', row(str('ui.the_world'), 'row-info', h('span', 'row-value', str('registry.swiss2')))],
+      ['info', row(str('ui.the_world'), 'row-info', h('span', 'row-value', str('registry.itaipu')))],
       ['disabled', row(str('ui.quad'), 'row-grey', h('span', 'row-value', str('ui.cancel')))],
       ['warning', row(str('ui.realistic_drone_combat_inspired_by_paraguay'), 'row-warn')],
     ],
@@ -239,8 +238,8 @@ export const COMPONENTS = [
     source: 'src/ui/ui.js renderTitleCards',
     context: ['screen screen-title is-gate', 'gate-cards'],
     states: [
-      ['rest', gateCard('', 'assets/gate/combat.jpg', str('combat.card'), str('combat.card_blurb'), [str('combat.card_cut'), str('combat.card_rounds'), str('friends.card_code')])],
-      ['cursor', gateCard('on', 'assets/gate/ace.jpg', str('roomtag.section'), str('roomtag.card_blurb'), [str('friends.card_code')])],
+      ['rest', gateCard('', 'assets/posters/itaipu.jpg', str('campaign.card'), str('campaign.card_blurb'), [str('campaign.card_act'), str('campaign.card_missions'), str('campaign.card_shop')])],
+      ['cursor', gateCard('on', 'assets/gate/flight.jpg', str('ui.free_flight_card'), str('ui.card_line_flight'), [str('ui.every_plane')])],
     ],
   },
   {
@@ -250,8 +249,8 @@ export const COMPONENTS = [
     source: 'src/ui/ui.js the maps screen',
     context: ['screen screen-maps', 'map-cards'],
     states: [
-      ['rest', worldCard('', 'assets/posters/alps.jpg', str('registry.the_alps'))],
-      ['cursor', worldCard('on', 'assets/posters/swiss2.jpg', str('registry.swiss2'), str('ui.flying_now'))],
+      ['rest', worldCard('', 'assets/posters/itaipu.jpg', str('registry.itaipu'))],
+      ['cursor', worldCard('on', 'assets/posters/itaipu.jpg', str('registry.itaipu'), str('ui.flying_now'))],
       ['chosen', worldCard('chosen', 'assets/posters/itaipu.jpg', str('registry.itaipu'))],
     ],
   },
@@ -325,7 +324,7 @@ export const COMPONENTS = [
     context: ['screen screen-title is-gate', 'gate-rooms', 'gate-rooms-list'],
     states: [
       ['rest', h('div', 'gate-room', h('span', 'gate-room-name', 'Fernando'), h('span', 'gate-room-value', str('roombrowser.title')))],
-      ['live', h('div', 'gate-room is-live', h('span', 'gate-room-name', 'Fernando'), h('span', 'gate-room-value', h('span', 'gate-room-join', str('combat.card'))))],
+      ['live', h('div', 'gate-room is-live', h('span', 'gate-room-name', 'Fernando'), h('span', 'gate-room-value', h('span', 'gate-room-join', str('war.card'))))],
       ['cursor', h('div', 'gate-room gate-room-make on', h('span', 'gate-room-name', str('roombrowser.new')))],
     ],
   },

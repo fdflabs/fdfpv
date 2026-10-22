@@ -130,11 +130,11 @@ function ordered(v, n) {
 const SIZES = [[1920, 1080, true, 8], [2560, 1080, true, 8], [1280, 720, true, 4], [390, 844, false, 5], [360, 640, false, 2], [844, 390, false, 3]];
 /* 32 letters each, the most a room's name may have, and a mix of games. */
 const ROOMS = [
-  { map: 'swiss2', mode: 'combat' }, { map: 'swiss2', mode: 'tag' }, { map: 'swiss2', mode: 'race' }, { map: 'alps', mode: null },
-  { map: 'swiss2', mode: null }, { map: 'swiss2', mode: 'combat' }, { map: 'alps', mode: null }, { map: 'swiss2', mode: 'tag' },
+  { map: 'swiss2', mode: null }, { map: 'alps', mode: null }, { map: 'swiss2', mode: 'race' }, { map: 'alps', mode: null },
+  { map: 'swiss2', mode: null }, { map: 'alps', mode: null }, { map: 'alps', mode: null }, { map: 'swiss2', mode: null },
 ].map((r, i) => ({ ...r, name: `Long Afternoon Valley Session ${i + 1}!` }));
 /* The words a room's line names its game by (roombrowser.chip_*). */
-const GAMES = /^Join[^·]*· (Combat|Catch the Ace|Race|Free flight) · \d+ (in lobby|flying)/;
+const GAMES = /^Join[^·]*· (Race|Free flight) · \d+ (in lobby|flying)/;
 
 const server = await roomsServer(process.argv[2], 'home-rooms');
 console.log(`home's rooms, rooms at ${server.url}`);
@@ -219,16 +219,6 @@ try {
   check('a click on a room on home joins it', joined.phase === 'open' && joined.code === target, JSON.stringify({ target, joined }));
   await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
   await page.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 15000).catch(() => {});
-
-  /* FLIGHT CLUB KEEPS ITS PANEL. */
-  for (let i = 0; i < 2 && await page.evaluate('window.__ui.hub !== null'); i += 1) {
-    await page.tap('Escape');
-    await page.sleep(400);
-  }
-  await page.evaluate("(() => { window.__ui.openHub('club'); return true; })()");
-  await page.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-rooms-list .gate-room').length > 0", 15000).catch(() => {});
-  const club = await page.evaluate(LAYOUT);
-  check('Flight Club keeps its rooms panel', club.hub === 'club' && Boolean(club.panel) && club.rooms.length > 0, JSON.stringify({ hub: club.hub, panel: club.panel, rooms: club.rooms.length }));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

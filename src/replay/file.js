@@ -241,7 +241,6 @@ import {
   CAPACITY, HEAD, HEAD_N, PART_N, PARTS_MAX, PLANT_N, POSE_N, SMOKE_N,
 } from './recorder.js';
 import { normalisePlane } from '../../configs/hangar-parts.js';
-import { normaliseTiers } from '../../configs/surfaces.js';
 import { RIGS, defaults } from './cameras.js';
 import { EditError, checkEdit, isDefault } from './edit.js';
 import { FINISHES, MAX_DECALS, checkDecal, cleanWear } from '../../configs/paint.js';
@@ -533,6 +532,9 @@ const WHO_MAX = 64;
 const TABLES_MAX = 64;
 const META_KEYS = ['name', 'created', 'airframe', 'livery', 'paint', 'map', 'scale', 'size', 'parts', 'fpv', 'duration', 'fit'];
 const PAINT_KEYS = ['finishes', 'decals', 'wear'];
+/* `surfaces`, the control surface tiers a clip was flown with, stays
+ * readable: a clip saved before the tiers left (2026-10-21) carries it,
+ * and it is dropped on read. */
 const FIT_KEYS = ['entry', 'option', 'surfaces'];
 const PART_KEYS = ['kind', 'kindName', 'parent', 'material', 'cg', 'boxMin', 'boxMax'];
 const EVENT_KEYS = ['t', 'type', 'part', 'label', 'kind', 'point', 'normal', 'speed', 'surface', 'shed', 'floorY', 'level'];
@@ -856,11 +858,7 @@ function checkMeta(m) {
     /* What the hangar would seat from the same entry: unknown props and
      * add-ons fall away, so nothing the file says reaches the model raw. */
     m.fit.entry = normalisePlane(m.airframe, m.fit.entry);
-    /* The control surface tiers it flew with (configs/surfaces.js),
-     * optional: a clip from before them has none, and is stock. */
-    if (m.fit.surfaces !== undefined) {
-      m.fit.surfaces = normaliseTiers(m.fit.surfaces, m.airframe);
-    }
+    delete m.fit.surfaces;
   }
   onlyKeys(m.fpv, FPV_KEYS, 'meta.fpv');
   FPV_KEYS.forEach((k) => finite(m.fpv[k], `meta.fpv.${k}`));

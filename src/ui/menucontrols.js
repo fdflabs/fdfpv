@@ -35,9 +35,6 @@ import { str } from '../strings/index.js';
 import { drawAttitude, paintPageStrip, paintTabStrip } from './fc.js';
 import { saveSettings } from './settings.js';
 import { btn, el } from './widgets.js';
-/* A cycle: ui.js installs this module. Only read inside methods, never at
- * this module's top level, where the binding is not yet initialised. */
-import { courseCardKey } from './ui.js';
 
 /* Each search keystroke rebuilds the bench, about 57 ms measured, so the
  * rebuild waits until the typing pauses. Under about 100 ms it would still
@@ -53,15 +50,10 @@ const FC_RETURNS_TO = new Set(['paused', 'quad', 'pids']);
 const HELP_FIELD = {
   title: 'titleHelp',
   howto: 'howtoHelp',
-  tricks: 'trickHelp',
   credits: 'creditsHelp',
-  courses: 'coursesHelp',
-  freestyle: 'freestyleHelp',
   pilot: 'pilotHelp',
   friends: 'friendsHelp',
   quad: 'quadHelp',
-  launch: 'launchHelp',
-  standings: 'standingsHelp',
   rates: 'ratesHelp',
   planerates: 'planeratesHelp',
   pids: 'pidsHelp',
@@ -508,24 +500,15 @@ export const menuControlMethods = {
    * twenty rows.
    */
   setCursor(i, pointer = false) {
-    this.noteInteraction();
     if (i === this.cursor) {
       return;
     }
     this.closeDrop();
     this.cursor = i;
-    const item = this.items()[i];
-    if (this.screen === 'courses' && item && item.course) {
-      this.lastCardKey = courseCardKey(item);
-    }
-    /* Cards and the trick film are lit by the cursor, and a cursor move does
-     * not rebuild the menu, so they are repainted here or they stay on the
-     * first card and the first trick. */
+    /* Cards are lit by the cursor, and a cursor move does not rebuild the
+     * menu, so they are repainted here or they stay on the first card. */
     if (this.cardScreen()) {
       this.markCards();
-    }
-    if (this.screen === 'tricks') {
-      this.renderTricks();
     }
     this.syncCursor(!pointer);
     if (!pointer && this.onUiSound) {

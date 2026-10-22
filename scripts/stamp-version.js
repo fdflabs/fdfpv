@@ -46,9 +46,8 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/* The pages the shell shows. The orbit preview is its own document in an
- * iframe on the map cards, with its own module graph. */
-export const SHELL_PAGES = ['index.html', 'src/share/orbit.html'];
+/* The pages the shell shows. */
+export const SHELL_PAGES = ['index.html'];
 
 const IMPORT_MAP = /<script type="importmap">([\s\S]*?)<\/script>/g;
 const ENTRY = /<script type="module" src="([^"]+)"><\/script>/g;
