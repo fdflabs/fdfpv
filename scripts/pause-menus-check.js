@@ -148,15 +148,22 @@ const ROWS = `window.__ui.items().filter((it) => !it.bar).map((it) => ({
   id: it.id, label: it.label, value: it.value ?? null, section: Boolean(it.section), action: it.action ?? null,
 }))`;
 
-/* The world is drawn for the picture only (runCase turns the draw off):
- * on, two frames so one whole frame of the shell is drawn under the
- * menu, the picture, off again. */
+/* The world is drawn for the picture only (runCase turns the draw off),
+ * and for one frame: on, and off again from inside the next frame, after
+ * the shell has drawn it, in one evaluate so no frame runs between. The
+ * canvas keeps that frame while nothing more is drawn, so the picture
+ * shows it. Two frames on, or the draw left on through the picture,
+ * queued a second and third whole Interior frame behind the first on the
+ * software rasteriser, and the GPU was still on them after the picture:
+ * no frame ran, and the pad's Start, read once a frame, went unread for
+ * its whole 5 s. */
 async function shoot(page, name) {
-  await page.evaluate('window.__drawOff(false)');
-  await page.evaluate('new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))');
+  await page.evaluate(`(() => {
+    window.__drawOff(false);
+    return new Promise((done) => requestAnimationFrame(() => { window.__drawOff(true); done(true); }));
+  })()`);
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
   await writeFile(join(outDir, `${name}.png`), Buffer.from(data, 'base64'));
-  await page.evaluate('window.__drawOff(true)');
 }
 
 async function runCase(c, record) {
