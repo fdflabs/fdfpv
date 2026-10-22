@@ -104,13 +104,17 @@ if (boardDir) {
   check('the board is up', up, B);
 }
 
+/* In the order sent: a Blob's body is read later, so its place is kept
+ * when it goes and filled when it is read. */
 const CAPTURE = `(() => {
   const sent = [];
   window.__statsBeacons = sent;
   const real = navigator.sendBeacon.bind(navigator);
   navigator.sendBeacon = (url, data) => {
     if (String(url).includes('/api/stats/events')) {
-      (data && data.text ? data.text() : Promise.resolve(String(data))).then((body) => sent.push(JSON.parse(body)));
+      const at = sent.length;
+      sent.push(null);
+      (data && data.text ? data.text() : Promise.resolve(String(data))).then((body) => { sent[at] = JSON.parse(body); });
     }
     return real(url, data);
   };
@@ -127,9 +131,15 @@ const SLOWED = 20;
 const shellUrl = `/index.html?board=${encodeURIComponent(B)}`;
 const reports = async (page) => {
   await page.sleep(SETTLE_MS);
-  return (await page.evaluate('window.__statsBeacons')).filter((e) => e.kind === 'error' || e.kind === 'frames');
+  return (await page.evaluate('window.__statsBeacons')).filter((e) => e && (e.kind === 'error' || e.kind === 'frames'));
 };
-const leave = (page) => page.evaluate("window.dispatchEvent(new Event('pagehide')), true");
+/* Leaves, and answers how many beacons had gone before it did and when. */
+const leave = (page) => page.evaluate(`(() => {
+  const before = window.__statsBeacons.length;
+  const ms = performance.now();
+  window.dispatchEvent(new Event('pagehide'));
+  return { before, ms };
+})()`);
 const throwIt = (page) => page.evaluate(`setTimeout(() => { throw new Error(${JSON.stringify(RAW)}); }), true`);
 /* A TypeError inside the game's own code: a frame for a PerfOverlay that
  * is not there. */
@@ -183,11 +193,20 @@ async function counting() {
       && inCode[0].msg === 'Uncaught TypeError: Cannot read properties of null (reading <q>)'
       && inCode[0].where.length === 1 && /^src\/ui\/perfoverlay\.js:\d+:\d+$/.test(inCode[0].where[0]), JSON.stringify(inCode));
 
-    await leave(page);
+    const left = await leave(page);
     got = await reports(page);
     const repeat = got.filter((x) => x.sig === e.sig);
     check('leaving sends the held repeat with its count', repeat.length === 2 && repeat[1].count === 1, JSON.stringify(repeat));
-    const base = got.filter((x) => x.kind === 'frames');
+    /* A minute of drawn frames goes by itself, so a page that took longer
+     * than that from its first drawn frame to here (the Itaipu title on a
+     * 4 core software runner: 87 s) had sent a whole window before it
+     * left; never more windows than whole minutes since the page began.
+     * The part window is what leaving sends. */
+    const beacons = await page.evaluate('window.__statsBeacons');
+    const early = beacons.slice(0, left.before).filter((x) => x && x.kind === 'frames');
+    check('no window of frames before a minute of them', early.length <= Math.floor(left.ms / 60000),
+      `${early.length} by ${(left.ms / 1000).toFixed(0)} s: ${JSON.stringify(early)}`);
+    const base = beacons.slice(left.before).filter((x) => x && x.kind === 'frames');
     check('leaving sends the part minute of frames', base.length === 1, JSON.stringify(base));
     const f = base[0] || { b: [] };
     check('with exactly the documented keys', JSON.stringify(Object.keys(f)) === '["v","kind","b","gpu","cap","scale"]', Object.keys(f).join());
