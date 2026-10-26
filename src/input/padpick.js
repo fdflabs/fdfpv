@@ -40,6 +40,7 @@
  */
 
 import { str } from '../strings/index.js';
+import { djiPads } from './djiremote.js';
 import { loadPadChoice, savePadChoice } from './stickstore.js';
 
 /* How far an axis must leave rest to count as the pilot moving that pad,
@@ -52,15 +53,19 @@ const REFUSED_COOLDOWN_MS = 450;
  * switches and pots. */
 const AXES_WATCHED = 8;
 
-/* Connected devices with at least four axes; anything less cannot fly. */
+/* Connected devices with at least four axes; anything less cannot fly.
+ * The browser's gamepads first, then any DJI remote answering over Web
+ * Serial (djiremote.js), which the Gamepad API cannot see. */
 export function connectedPads() {
   const reported = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
   /* Chrome's list has null holes where a pad was unplugged. A plain loop:
    * this runs several times on every 2 ms poll. */
   const flyable = [];
-  for (const gp of reported) {
-    if (gp && gp.connected && gp.axes && gp.axes.length >= 4) {
-      flyable.push(gp);
+  for (const list of [reported, djiPads()]) {
+    for (const gp of list) {
+      if (gp && gp.connected && gp.axes && gp.axes.length >= 4) {
+        flyable.push(gp);
+      }
     }
   }
   return flyable;

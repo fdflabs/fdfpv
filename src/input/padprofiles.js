@@ -63,7 +63,8 @@ export function deviceKey(id) {
 }
 
 export const PAD_PROFILES = [
-  { key: 'standard', vouched: true, match: { standard: true } },
+  /* A standard pad's sticks spring to their middle, the throttle's too. */
+  { key: 'standard', vouched: true, throttleSprings: true, match: { standard: true } },
   /* ExpressLRS 3.3 to 3.6 as a Bluetooth joystick: the name is set in
    * src/lib/BLE/devBLE.cpp; its axis order was measured on a RadioMaster
    * Pocket (padmap.js). ExpressLRS 4.0 renamed it "ELRS Joystick" and its
@@ -73,6 +74,13 @@ export const PAD_PROFILES = [
    * product 4f54, radio/src/targets/common/arm/stm32/usbd_desc.c. Its axes
    * follow the radio's own channel order, so the id vouches for nothing. */
   { key: 'edgetx-usb', vouched: false, match: { vendor: '1209', product: '4f54' } },
+  /* A DJI RC231 (RC-N1 family) remote over Web Serial: USB 2ca3:1020, and
+   * the id src/input/djirc.js gives it, since the Gamepad API never lists
+   * it. Its order and signs were measured on a real RC231, 2026-10-26, in
+   * a stick check the owner moved input by input (padmap.js), which
+   * vouches for it. Both its sticks spring to the middle, the throttle's
+   * too. It has no buttons: none reach the serial link. */
+  { key: 'dji-rc231', vouched: true, throttleSprings: true, match: { vendor: '2ca3', product: '1020' } },
 ];
 
 const GUESS = { key: 'aetr', vouched: false };

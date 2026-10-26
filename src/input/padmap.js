@@ -12,8 +12,9 @@
  *
  * Until a pilot calibrates, a built-in map is chosen from what the device
  * says it is: the W3C standard layout for a gamepad that reports one, the
- * ExpressLRS Bluetooth joystick's own report order for that radio, and
- * otherwise AETR, the order a transmitter in USB joystick mode sends.
+ * ExpressLRS Bluetooth joystick's own report order for that radio, the
+ * DJI RC231's measured order for that remote, and otherwise AETR, the
+ * order a transmitter in USB joystick mode sends.
  *
  * Channels follow sim_abi.h: roll +1 right, pitch +1 nose up (stick pulled
  * back), yaw +1 nose right, throttle 0 to 1.
@@ -98,6 +99,16 @@ const ELRS_BLE_MAP = {
   throttle: throttleOn(3, -1, 1),
 };
 
+/* A DJI RC231 over Web Serial (djirc.js): aileron, elevator, throttle,
+ * rudder on axes 0 to 3, then the camera dial, stick up and right
+ * positive. Measured on a real RC231, 2026-10-26, each channel reaching
+ * both stops and resting centred: exactly the AETR order and signs. The
+ * throttle stick springs to its middle, so it rests at half. */
+const DJI_RC_MAP = AETR_MAP;
+
+/* The radios whose layout was measured, by padprofiles.js key. */
+const MEASURED_MAPS = { 'elrs-bluetooth': ELRS_BLE_MAP, 'dji-rc231': DJI_RC_MAP };
+
 /* W3C standard gamepad: left stick on axes 0 and 1, right on 2 and 3,
  * right and down positive. */
 const STANDARD_AXES = { left: [0, 1], right: [2, 3] };
@@ -139,7 +150,7 @@ export function builtInMap(gp, mode) {
   if (!kind) {
     return AETR_MAP;
   }
-  return kind === 'elrs-bluetooth' ? ELRS_BLE_MAP : standardPadMap(mode);
+  return Object.hasOwn(MEASURED_MAPS, kind) ? MEASURED_MAPS[kind] : standardPadMap(mode);
 }
 
 /* All four flips, as booleans, whatever came in. */

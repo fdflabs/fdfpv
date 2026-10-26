@@ -214,6 +214,10 @@ jobs:
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run padprofiles:selftest
+      # The DJI RC231 remote over Web Serial (src/input/djiremote.js): its
+      # profile row, the owner's stick check on a real RC231 through the
+      # driver, and connect, unplug and replug against a stand-in port.
+      - run: npm run djiremote:selftest
       - run: npm run comfort:selftest
       - run: npm run touchsticks:selftest
       - run: npm run input:trace

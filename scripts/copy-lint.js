@@ -63,6 +63,7 @@ const EXCUSED = new Map([
   ['src/replay/refly.js', 'a developer tool; its refusal reasons go to an Error and the replay-refly CLI, not the pilot'],
   ['src/ui/wardebug.js', 'a developer overlay of the attackers\' routes; drawn only in developer mode'],
   ['src/share/devhooks.js', 'the developer hook index; read through window.__dev.help() in developer mode, not by the pilot'],
+  ['src/input/djirc.js', 'a copy of the RC231 reference driver; its one literal with a space is the device id, in the Gamepad.id format the pad code parses'],
 ]);
 
 const SHAPE_OK = [

@@ -3841,6 +3841,8 @@ export default {
   "controller.profile_elrs_bluetooth_note": "Un joystick ExpressLRS 3 por Bluetooth. Su disposición se midió en una RadioMaster Pocket, así que vuela sin calibrar.",
   "controller.profile_edgetx_usb": "Radio EdgeTX u OpenTX",
   "controller.profile_edgetx_usb_note": "Sus ejes siguen el orden de canales de la propia radio, así que vuela el orden habitual (AETR) hasta que la calibres una vez.",
+  "controller.profile_dji_rc231": "Control DJI RC231",
+  "controller.profile_dji_rc231_note": "Un control DJI de la familia RC-N1 por USB. Sus palancas se midieron en un RC231 real, así que vuela sin calibrar. Su palanca de throttle vuelve al centro, así que al aparecer el throttle espera a que la bajes una vez. No envía botones: reiniciar y pausar van por el teclado, y los menús toman el teclado o una palanca mantenida.",
   "controller.profile_aetr": "Dispositivo desconocido",
   "controller.profile_aetr_note": "No es uno que el juego conozca, así que vuela el orden habitual de radio (AETR) como suposición hasta que lo calibres.",
   "controller.builtin": "Disposición de fábrica",

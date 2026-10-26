@@ -316,6 +316,7 @@
     "p51:shell": "node scripts/bombshell-shell.js p51d1450",
     "input:selftest": "node scripts/input-selftest.js",
     "padprofiles:selftest": "node scripts/padprofiles-selftest.js",
+    "djiremote:selftest": "node scripts/djiremote-selftest.js",
     "classrates:selftest": "node scripts/classrates-selftest.js",
     "comfort:selftest": "node scripts/comfort-selftest.js",
     "uiscale:check": "node scripts/uiscale-check.js",
