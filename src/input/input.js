@@ -19,10 +19,11 @@ import { str } from '../strings/index.js';
  * onto the RC grid. A sample is queued when anything changed and as a
  * heartbeat every 100 ms otherwise.
  *
- * A standard gamepad on its built-in map rests its throttle at half. So
- * at a spawn or a landing the shell asks for the throttle to be held at
- * zero until the stick has been down, which is Betaflight refusing to arm
- * with throttle up, for the one device that needs it. Anything else flying
+ * A standard gamepad or a DJI remote on its built-in map rests its
+ * throttle at half (padprofiles.js throttleSprings). So at a spawn or a
+ * landing the shell asks for the throttle to be held at zero until the
+ * stick has been down, which is Betaflight refusing to arm with throttle
+ * up, for the devices that need it. Anything else flying
  * ends the hold, so a pad plugged back in mid air is never cut.
  *
  * Channels follow sim_abi.h: roll +1 right, pitch +1 nose up, yaw +1 nose
@@ -375,7 +376,7 @@ export class InputManager {
 
   throttleRestsHalf() {
     const gp = this.firstGamepad();
-    return Boolean(gp && gp.mapping === 'standard' && !this.map.stored && this.defaultMode);
+    return Boolean(gp && profileFor(gp).throttleSprings && !this.map.stored && this.defaultMode);
   }
 
   gateThrottle(throttle) {

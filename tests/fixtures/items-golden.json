@@ -14919,6 +14919,14 @@
      "drives": {}
     },
     {
+     "id": "controller:a-connect-dji",
+     "label": "Connect DJI remote",
+     "note": "A DJI remote needs Chrome or Edge on a computer: this browser cannot open a USB serial port.",
+     "action": "connect-dji",
+     "disabled": true,
+     "drives": {}
+    },
+    {
      "id": "controller:recognised-as",
      "label": "Recognised as",
      "value": "Nothing plugged in",
@@ -15062,6 +15070,14 @@
      "value": "Keyboard",
      "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
      "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-connect-dji",
+     "label": "Connect DJI remote",
+     "note": "A DJI remote needs Chrome or Edge on a computer: this browser cannot open a USB serial port.",
+     "action": "connect-dji",
+     "disabled": true,
      "drives": {}
     },
     {
@@ -15379,6 +15395,14 @@
      "drives": {}
     },
     {
+     "id": "controller:a-connect-dji",
+     "label": "Connect DJI remote",
+     "note": "A DJI remote needs Chrome or Edge on a computer: this browser cannot open a USB serial port.",
+     "action": "connect-dji",
+     "disabled": true,
+     "drives": {}
+    },
+    {
      "id": "controller:recognised-as",
      "label": "Recognised as",
      "value": "EdgeTX or OpenTX radio",
@@ -15583,6 +15607,14 @@
      "value": "Joystick 1, Xbox",
      "note": "One device is plugged in, Joystick 1, Xbox. Open this to confirm it, or to switch to the keyboard.",
      "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-connect-dji",
+     "label": "Connect DJI remote",
+     "note": "A DJI remote needs Chrome or Edge on a computer: this browser cannot open a USB serial port.",
+     "action": "connect-dji",
+     "disabled": true,
      "drives": {}
     },
     {
@@ -15827,6 +15859,14 @@
      "drives": {}
     },
     {
+     "id": "controller:a-connect-dji",
+     "label": "Connect DJI remote",
+     "note": "A DJI remote needs Chrome or Edge on a computer: this browser cannot open a USB serial port.",
+     "action": "connect-dji",
+     "disabled": true,
+     "drives": {}
+    },
+    {
      "id": "controller:recognised-as",
      "label": "Recognised as",
      "value": "Unknown device",
@@ -16034,6 +16074,14 @@
      "drives": {}
     },
     {
+     "id": "controller:a-connect-dji",
+     "label": "Connect DJI remote",
+     "note": "A DJI remote needs Chrome or Edge on a computer: this browser cannot open a USB serial port.",
+     "action": "connect-dji",
+     "disabled": true,
+     "drives": {}
+    },
+    {
      "id": "controller:recognised-as",
      "label": "Recognised as",
      "value": "Nothing plugged in",
@@ -16177,6 +16225,14 @@
      "value": "Keyboard",
      "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
      "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-connect-dji",
+     "label": "Connect DJI remote",
+     "note": "A DJI remote needs Chrome or Edge on a computer: this browser cannot open a USB serial port.",
+     "action": "connect-dji",
+     "disabled": true,
      "drives": {}
     },
     {
@@ -37721,6 +37777,14 @@
      "drives": {}
     },
     {
+     "id": "controller:a-connect-dji",
+     "label": "Conectar control DJI",
+     "note": "Un control DJI necesita Chrome o Edge en una computadora: este navegador no puede abrir un puerto serie USB.",
+     "action": "connect-dji",
+     "disabled": true,
+     "drives": {}
+    },
+    {
      "id": "controller:reconocido-como",
      "label": "Reconocido como",
      "value": "Nada conectado",
@@ -37864,6 +37928,14 @@
      "value": "Teclado",
      "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
      "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-connect-dji",
+     "label": "Conectar control DJI",
+     "note": "Un control DJI necesita Chrome o Edge en una computadora: este navegador no puede abrir un puerto serie USB.",
+     "action": "connect-dji",
+     "disabled": true,
      "drives": {}
     },
     {
@@ -38181,6 +38253,14 @@
      "drives": {}
     },
     {
+     "id": "controller:a-connect-dji",
+     "label": "Conectar control DJI",
+     "note": "Un control DJI necesita Chrome o Edge en una computadora: este navegador no puede abrir un puerto serie USB.",
+     "action": "connect-dji",
+     "disabled": true,
+     "drives": {}
+    },
+    {
      "id": "controller:reconocido-como",
      "label": "Reconocido como",
      "value": "Radio EdgeTX u OpenTX",
@@ -38385,6 +38465,14 @@
      "value": "Joystick 1, Xbox",
      "note": "Hay un dispositivo conectado, Joystick 1, Xbox. Abre esto para confirmarlo, o para cambiar al teclado.",
      "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-connect-dji",
+     "label": "Conectar control DJI",
+     "note": "Un control DJI necesita Chrome o Edge en una computadora: este navegador no puede abrir un puerto serie USB.",
+     "action": "connect-dji",
+     "disabled": true,
      "drives": {}
     },
     {
@@ -38629,6 +38717,14 @@
      "drives": {}
     },
     {
+     "id": "controller:a-connect-dji",
+     "label": "Conectar control DJI",
+     "note": "Un control DJI necesita Chrome o Edge en una computadora: este navegador no puede abrir un puerto serie USB.",
+     "action": "connect-dji",
+     "disabled": true,
+     "drives": {}
+    },
+    {
      "id": "controller:reconocido-como",
      "label": "Reconocido como",
      "value": "Dispositivo desconocido",
@@ -38836,6 +38932,14 @@
      "drives": {}
     },
     {
+     "id": "controller:a-connect-dji",
+     "label": "Conectar control DJI",
+     "note": "Un control DJI necesita Chrome o Edge en una computadora: este navegador no puede abrir un puerto serie USB.",
+     "action": "connect-dji",
+     "disabled": true,
+     "drives": {}
+    },
+    {
      "id": "controller:reconocido-como",
      "label": "Reconocido como",
      "value": "Nada conectado",
@@ -38979,6 +39083,14 @@
      "value": "Teclado",
      "note": "Conecta una radio en modo joystick. Si hay más de una conectada, así eliges cuál vuela.",
      "action": "choosepad",
+     "drives": {}
+    },
+    {
+     "id": "controller:a-connect-dji",
+     "label": "Conectar control DJI",
+     "note": "Un control DJI necesita Chrome o Edge en una computadora: este navegador no puede abrir un puerto serie USB.",
+     "action": "connect-dji",
+     "disabled": true,
      "drives": {}
     },
     {
