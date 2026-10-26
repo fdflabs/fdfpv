@@ -199,7 +199,16 @@ try {
     JSON.stringify(order.top) === JSON.stringify({ roll: 1, pitch: -1, yaw: 1, throttle: 1 }), JSON.stringify(order.top));
 
   console.log('5. errors');
-  check('no page error', page.errors.length === 0, page.errors.slice(0, 3).join(' | '));
+  /* No board or rooms server runs here, so their fetches are refused, as
+   * in the other checks that boot the game: said, not failed. Any other
+   * error, a failed load of the game's own files included, fails. */
+  const refused = (e) => e.startsWith('network:') && e.includes('ERR_CONNECTION_REFUSED');
+  const said = page.errors.filter(refused);
+  if (said.length) {
+    console.log(`  note  ${said.length} refused connection(s) to servers this check does not start`);
+  }
+  const faults = page.errors.filter((e) => !refused(e));
+  check('no page error', faults.length === 0, faults.slice(0, 3).join(' | '));
 } catch (err) {
   failed += 1;
   console.log(`  FAIL  ${err.message}`);
