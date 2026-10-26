@@ -67,6 +67,7 @@ import { lockOf } from './game/progress.js';
 import { heldTrack, restoreSettings } from './game/training.js';
 import { PRACTICE_ID } from './share/war/missions/itaipu-practice.js';
 import { revRpm } from './ui/hangar-polish.js';
+import { connectDjiRemote, reconnectDjiRemotes } from './input/djiremote.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
@@ -615,6 +616,9 @@ export async function boot({
     powerPreference: gpuQuery === 'low' ? 'low-power' : 'high-performance',
   });
   loading.system('input', 'loading');
+  /* A DJI remote granted on an earlier visit is opened before the roster
+   * looks, so a pilot who chose it is not handed another pad first. */
+  await reconnectDjiRemotes();
   const input = new InputManager();
   /* The sticks are read on a 2 ms timer of their own: a frame rate read
    * would hand feedforward steps as coarse as the display (src/input/input.js). */
@@ -12745,9 +12749,36 @@ export async function boot({
 
   const sayNoRadio = () => flashNotice(str('main.no_radio_or_gamepad_found_plug_2'), 3200);
 
+  /* The Controller screen's Connect DJI remote (src/input/djiremote.js).
+   * The remote the pilot just connected is the one they mean to fly, so
+   * it is chosen outright rather than queuing the picker beside another
+   * pad. Closing the browser's chooser with nothing picked says nothing. */
+  const DJI_NOTICES = {
+    connected: 'controller.dji_connected',
+    silent: 'controller.dji_silent',
+    busy: 'controller.dji_busy',
+    refused: 'controller.dji_refused',
+    unsupported: 'controller.connect_dji_unsupported',
+  };
+  async function connectDji() {
+    const { result, pad } = await connectDjiRemote();
+    if (pad) {
+      input.setPadChoice({ kind: 'pad', id: pad.id, index: pad.index });
+    }
+    if (DJI_NOTICES[result]) {
+      flashNotice(str(DJI_NOTICES[result]), result === 'connected' ? 2800 : 5200);
+    }
+    ui.setPadInfo(input.padSummary());
+    ui.renderMenu();
+  }
+
   /* The Controller screen's feel rows and its Built-in layout row
    * (src/ui/controller.js): the input keeps them per device. */
   ui.onController = (change) => {
+    if (change.connectDji) {
+      connectDji();
+      return;
+    }
     if (change.builtIn) {
       if (input.useBuiltInMap()) {
         flashNotice(str('controller.builtin_done'), 2800);

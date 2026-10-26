@@ -276,6 +276,9 @@ const ACTIONS = {
   'controller-builtin'(ui) {
     if (ui.onController) ui.onController({ builtIn: true });
   },
+  'connect-dji'(ui) {
+    if (ui.onController) ui.onController({ connectDji: true });
+  },
   pids(ui) {
     if (ui.screen === 'quad' || ui.screen === 'quick') {
       ui.pidsFrom = ui.screen;

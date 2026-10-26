@@ -28,6 +28,7 @@
  */
 
 import { airframeById } from '../../configs/airframes.js';
+import { webSerialAvailable } from '../input/djiremote.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { DEAD_ZONES, NO_FEEL, PAD_EXPOS } from '../input/padmap.js';
 import { STICK_MODES, normaliseStickMode } from '../input/stickmode.js';
@@ -79,6 +80,19 @@ function deviceRows(info) {
     action: 'controller-builtin',
     disabled: !info.calibrated,
   }];
+}
+
+/* A DJI remote is not a joystick the browser lists by itself: it is
+ * connected here, over Web Serial (src/input/djiremote.js). A browser
+ * without Web Serial shows the row greyed with the reason. */
+function djiRow() {
+  const can = webSerialAvailable();
+  return {
+    label: str('controller.connect_dji'),
+    action: 'connect-dji',
+    note: str(can ? 'controller.connect_dji_note' : 'controller.connect_dji_unsupported'),
+    disabled: !can,
+  };
 }
 
 /* The device's dead zone, and its expo on a gamepad: a radio shapes its
@@ -136,6 +150,7 @@ export function controllerRows(ui, s, rates) {
   return [
     { label: str('controller.device'), section: true },
     { label: str('ui.choose_joystick'), value: usingLabel(info), action: 'choosepad', note: padChooseNote(info) },
+    djiRow(),
     ...deviceRows(info),
     { label: str('ui.calibrate_sticks'), action: 'calibrate', note: str('ui.centre_full_range_then_one_named') },
     {

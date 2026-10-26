@@ -612,6 +612,11 @@ jobs:
       # locally, on the shard with Itaipu's data and the most headroom
       # (608 s, tools/reshard-timings.json).
       - run: npm run world:spawns
+      # The DJI RC231 remote in the real shell: the Controller screen's
+      # Connect row with and without Web Serial, the spawn's throttle hold,
+      # an unplug mid flight and the replug, and the owner's stick check
+      # replayed into the game's channels (scripts/djiremote-check.js).
+      - run: npm run djiremote:check
 
   # always(): a node skipped because a shard failed would count as passed
   # for a required check, so it runs and fails instead.
