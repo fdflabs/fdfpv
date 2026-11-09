@@ -11,8 +11,9 @@
  * - the wing's linear lift on the top of its curve, the drag on the
  *   linear lift and the deflected surfaces' drag; the pitching moment the
  *   same way; the six lateral derivatives and the CL rules' cross terms in
- *   the stability axes, the fuselage's share of cn_beta on Munk's u v in
- *   the body; the fuselage's crossflow drag (side_cda) at the CG;
+ *   the stability axes, the rudder's in the body (THE RUDDER'S FRAME), the
+ *   fuselage's share of cn_beta on Munk's u v in the body; the fuselage's
+ *   crossflow drag (side_cda) at the CG;
  * - the motor: an electric's duty on the seated pack (scripts/lib/
  *   propcurve.js wingSeat, the gates' 4.1 V), an engine's from its idle,
  *   spooled from the duty's speed at the throw on Drela's law (or a glow
@@ -307,9 +308,10 @@ export function throwFlight(table, { duty, speed, z = 3, pitchDeg = 0, seconds =
      * body, out of the stability axes (plant_wing.c, MUNK'S MOMENT). */
     const cnFus = fw.cn_beta_fus;
     const munk = V > 1e-6 ? -(u * v) / (V * V) : 0;
-    const clS = clb * betaS + fw.cl_p * ps * b2v + fw.cl_da * dA + fw.cl_r_per_cl * CL * rs * b2v + cldr * dR;
-    const cnS = (cnb - cnFus) * betaS + fw.cn_r * rs * b2v + fw.cn_p_per_cl * CL * ps * b2v + fw.cn_da_per_cl * CL * dA + cndr * dR;
-    const clBody = clS * cosB - cnS * sinB, cnBody = cnS * cosB + clS * sinB + cnFus * munk;
+    const clS = clb * betaS + fw.cl_p * ps * b2v + fw.cl_da * dA + fw.cl_r_per_cl * CL * rs * b2v;
+    const cnS = (cnb - cnFus) * betaS + fw.cn_r * rs * b2v + fw.cn_p_per_cl * CL * ps * b2v + fw.cn_da_per_cl * CL * dA;
+    /* The rudder's in the body, on cos(alpha) (plant_wing.c, THE RUDDER'S FRAME). */
+    const clBody = clS * cosB - cnS * sinB + cosB * cldr * dR, cnBody = cnS * cosB + clS * sinB + cnFus * munk + cosB * cndr * dR;
     const mAero = qbar * fw.area * fw.chord * (fw.cm_0 + cmStiff + fw.cm_q * qAero * c2v + cmDe * dE - (fw.cg_shift / fw.chord) * CL);
     const M = [
       qbar * fw.area * fw.span * clBody - qReact,

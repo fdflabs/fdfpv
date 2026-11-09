@@ -1842,7 +1842,23 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double cl_sum = clb * beta_s + fw->cl_p * ps * b2v + fw->cl_da * da_m;
 
   cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * rs * b2v);
-  cl_sum = add_term(cl_sum, cldr * delta_r);
+  /*
+   * THE RUDDER'S FRAME. The rudder's moments are its fin's side force,
+   * along the body's y, at the fin's place in the body, behind the CG and
+   * over it: r x F is fixed in the body at every angle of attack. The
+   * derivation takes cl_dr and cn_dr on those body arms
+   * (scripts/combat-derive.js, cn_dr = -cy_dr (x_r - x_cg) / b, cl_dr =
+   * cy_dr (z_r - z_cg) / b), so they are body axis values, not the
+   * stability axis ones the rates' derivatives are. Held as stability
+   * axis ones and turned by the body's angle, a rudder at alpha rolled the
+   * body by -cn_dr sin(alpha) on top of its cl_dr: at 15 deg 2.1 times
+   * its own cl_dr on the Striker's prop table, 2.4 on the jet's, the same
+   * way. So they go into the body below, after the turn, on the cos(alpha)
+   * the yaw term always had (it turns them over with the flow from behind,
+   * as a deflected surface met from its trailing edge pushes the other
+   * way), and the turn's cross terms are gone. A table without a rudder
+   * (zero) keeps its arithmetic, bit for bit: add_term of a zero is exact.
+   */
   /*
    * MUNK'S MOMENT. The fuselage's share of cn_beta (cn_beta_fus, each
    * derivation's -1.3 Vol / (S b) or Nelson's K_N term) is a slender
@@ -1861,7 +1877,6 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double cn_sum = add_term(cnb, -cn_fus) * beta_s + fw->cn_r * rs * b2v;
   cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * ps * b2v);
   cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * da_m);
-  cn_sum = add_term(cn_sum, cndr * delta_r);
   const double cl_b = cl_sum * cos_b - cn_sum * sin_b;
   const double cn_b = cn_sum * cos_b + cl_sum * sin_b;
   /* The sideslip's own moments are mostly the fin's and the dihedral's,
@@ -1882,8 +1897,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * turn over with the flow (a deflected surface met from its trailing
    * edge pushes the other way), and stay turned with cos_b. */
   const double back = cos_b < 0.0 ? -2.0 * cos_b : 0.0;
-  cl_sum = add_term(cl_b, back * clb * beta_s);
-  cn_sum = add_term(add_term(cn_b, back * add_term(cnb, -cn_fus) * beta_s), cn_fus * munk);
+  cl_sum = add_term(add_term(cl_b, back * clb * beta_s), cos_b * cldr * delta_r);
+  cn_sum = add_term(add_term(add_term(cn_b, back * add_term(cnb, -cn_fus) * beta_s), cn_fus * munk), cos_b * cndr * delta_r);
   const double l_aero = qbar * fw->area * fw->span * cl_sum;
   /* Past the stall the wing's lift no longer grows with alpha, and once it
    * falls what is left of it acts well aft of the quarter chord. The
